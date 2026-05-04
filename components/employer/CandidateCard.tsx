@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import {
-    MapPin, Briefcase, FileText, Calendar, Bookmark, Lock,
+    MapPin, Briefcase, FileText, Calendar, Bookmark, Lock, Sparkles,
 } from 'lucide-react';
 
 interface CandidateCardProps {
@@ -22,6 +22,10 @@ interface CandidateCardProps {
     isViewed?: boolean;
     unlockUsage?: { used: number; limit: number | null; unlimited: boolean };
     onToggleSave?: (id: string) => void;
+    /** Smart Match — LLM-generated one-line "why this candidate" rationale. */
+    aiReason?: string;
+    /** Smart Match — vector similarity rendered as 0..100 for the badge. */
+    aiMatchPercent?: number;
 }
 
 const EXPERIENCE_LABELS: Record<number, string> = {
@@ -74,8 +78,8 @@ const cardBase: React.CSSProperties = {
 const recessedPill: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: '4px',
     fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '10px',
-    border: '1px solid #E8F0EB',
-    boxShadow: 'inset 1px 1px 3px rgba(0,60,50,0.04), inset -1px -1px 2px rgba(255,255,255,0.3)',
+    border: '1px solid rgba(0,0,0,0.05)',
+    boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.03), inset -1px -1px 2px rgba(255,255,255,0.4)',
 };
 
 export default function CandidateCard({
@@ -83,6 +87,7 @@ export default function CandidateCard({
     yearsExperience, certifications, licenseStates,
     specialties, preferredWorkMode, availableDate, hasResume,
     isSaved, isViewed, unlockUsage, onToggleSave,
+    aiReason, aiMatchPercent,
 }: CandidateCardProps) {
     const expLabel = getExperienceLabel(yearsExperience);
     const availLabel = formatAvailableDate(availableDate);
@@ -99,10 +104,19 @@ export default function CandidateCard({
     const extraStates = safeStates.length - maxStates;
 
     // Unlock credit calculations
-    const remaining = unlockUsage && !unlockUsage.unlimited && unlockUsage.limit
+    // Distinguish three states (when not yet viewed):
+    //   1. unlimited / no usage payload → show normal Unlock CTA
+    //   2. limit === 0 → no active posting at all; gate behind "Post a Job"
+    //   3. limit > 0, remaining > 0 → show "Unlock Profile (X left)"
+    //   4. limit > 0, remaining <= 0 → show "No Unlocks Left" + upgrade hint
+    const hasNoEntitlement = !!unlockUsage
+        && !unlockUsage.unlimited
+        && (unlockUsage.limit === 0 || unlockUsage.limit === null);
+    const remaining = unlockUsage && !unlockUsage.unlimited && unlockUsage.limit && unlockUsage.limit > 0
         ? unlockUsage.limit - unlockUsage.used
         : null;
-    const isExhausted = !isViewed && remaining !== null && remaining <= 0;
+    const isExhausted = !isViewed && !hasNoEntitlement && remaining !== null && remaining <= 0;
+    const requiresPosting = !isViewed && hasNoEntitlement;
 
     return (
         <div
@@ -125,7 +139,7 @@ export default function CandidateCard({
                         position: 'absolute', top: '14px', right: '14px',
                         width: '30px', height: '30px', borderRadius: '10px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: isSaved ? '#FEF3C7' : '#F4F8F5',
+                        background: isSaved ? '#FEF3C7' : '#F5F6F8',
                         border: `1px solid ${isSaved ? '#FDE68A' : 'rgba(255,255,255,0.5)'}`,
                         boxShadow: '2px 2px 6px rgba(0,0,0,0.04), -1px -1px 4px rgba(255,255,255,0.7)',
                         cursor: 'pointer', transition: 'all 0.15s',
@@ -188,7 +202,75 @@ export default function CandidateCard({
                         </p>
                     )}
                 </div>
+                {typeof aiMatchPercent === 'number' && (() => {
+                    // Cosine similarity is clustered in a narrow band
+                    // (~50-65% for most clinical text pairs) so showing
+                    // the raw percentage is misleading — a 55% match
+                    // sounds "half right" when it's actually a strong
+                    // signal in this data. Bucket into three tiers
+                    // calibrated against the empirical PMHNP query
+                    // distribution. Within a tier, ranking position
+                    // (the LLM rerank's order) is the source of truth.
+                    type Tier = { label: string; bg: string; color: string; border: string };
+                    let tier: Tier;
+                    if (aiMatchPercent >= 65) {
+                        tier = {
+                            label: 'Strong match',
+                            bg: 'linear-gradient(145deg, #DDD6FE, #C4B5FD)',
+                            color: '#5B21B6',
+                            border: '1px solid #A78BFA',
+                        };
+                    } else if (aiMatchPercent >= 50) {
+                        tier = {
+                            label: 'Good match',
+                            bg: 'linear-gradient(145deg, #EDE9FE, #DDD6FE)',
+                            color: '#6D28D9',
+                            border: '1px solid #C4B5FD',
+                        };
+                    } else {
+                        tier = {
+                            label: 'Possible match',
+                            bg: '#F5F3FF',
+                            color: '#7C3AED',
+                            border: '1px solid #DDD6FE',
+                        };
+                    }
+                    return (
+                        <span
+                            title={`Cosine similarity ${aiMatchPercent}% — ranking is determined by the AI rerank, not this score`}
+                            style={{
+                                ...recessedPill,
+                                background: tier.bg,
+                                color: tier.color,
+                                border: tier.border,
+                                fontSize: '11px',
+                                flexShrink: 0,
+                            }}
+                        >
+                            <Sparkles size={11} /> {tier.label}
+                        </span>
+                    );
+                })()}
             </div>
+
+            {/* AI rationale (Smart Match only) */}
+            {aiReason && (
+                <div style={{
+                    background: 'linear-gradient(145deg, #F5F3FF, #EDE9FE)',
+                    border: '1px solid #DDD6FE',
+                    borderRadius: '12px',
+                    padding: '10px 12px',
+                    fontSize: '12px',
+                    lineHeight: 1.45,
+                    color: '#4C1D95',
+                    display: 'flex',
+                    gap: '8px',
+                    alignItems: 'flex-start',
+                }}>
+                    <Sparkles size={12} style={{ color: '#7C3AED', flexShrink: 0, marginTop: '2px' }} />
+                    <span>{aiReason}</span>
+                </div>
+            )}
 
             {/* Specialties */}
             {safeSpecs.length > 0 && (
@@ -225,7 +307,7 @@ export default function CandidateCard({
                     {visibleStates.map(st => (
                         <span key={st} style={{
                             fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '6px',
-                            background: '#F4F8F5', color: '#6B7F8A', border: '1px solid #E8F0EB',
+                            background: '#F5F6F8', color: '#6B7F8A', border: '1px solid rgba(0,0,0,0.06)',
                         }}>
                             {st}
                         </span>
@@ -247,7 +329,7 @@ export default function CandidateCard({
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     {preferredWorkMode && (
                         <span style={{
-                            ...recessedPill, background: '#F4F8F5', color: '#6B7F8A', fontSize: '11px',
+                            ...recessedPill, background: '#F5F6F8', color: '#6B7F8A', fontSize: '11px',
                         }}>
                             <Briefcase size={10} />
                             {modeIcon} {preferredWorkMode}
@@ -255,7 +337,7 @@ export default function CandidateCard({
                     )}
                     {availLabel && (
                         <span style={{
-                            ...recessedPill, background: '#F4F8F5', color: '#6B7F8A', fontSize: '11px',
+                            ...recessedPill, background: '#F5F6F8', color: '#6B7F8A', fontSize: '11px',
                         }}>
                             <Calendar size={10} />
                             {availLabel}
@@ -263,13 +345,33 @@ export default function CandidateCard({
                     )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
-                    {isExhausted ? (
+                    {requiresPosting ? (
+                        <>
+                            <Link
+                                href="/post-job"
+                                className="clay-profile-btn"
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '5px',
+                                    fontSize: '12px', fontWeight: 600, color: '#fff',
+                                    textDecoration: 'none', padding: '7px 14px', borderRadius: '12px',
+                                    background: 'linear-gradient(145deg, #10B981, #0D9488)',
+                                    boxShadow: '3px 3px 8px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                    transition: 'all 0.2s', whiteSpace: 'nowrap',
+                                }}
+                            >
+                                <Briefcase size={12} /> Post a Job
+                            </Link>
+                            <span style={{ fontSize: '10px', color: '#8A9BA6', whiteSpace: 'nowrap' }}>
+                                to unlock candidates
+                            </span>
+                        </>
+                    ) : isExhausted ? (
                         <>
                             <span style={{
                                 display: 'flex', alignItems: 'center', gap: '5px',
                                 fontSize: '12px', fontWeight: 600, padding: '7px 14px', borderRadius: '12px',
-                                background: '#F4F8F5', color: '#B0C4BC', cursor: 'not-allowed',
-                                border: '1px solid #E8F0EB',
+                                background: '#F5F6F8', color: '#B0C4BC', cursor: 'not-allowed',
+                                border: '1px solid rgba(0,0,0,0.06)',
                                 boxShadow: 'inset 2px 2px 5px rgba(0,60,50,0.04)',
                             }}>
                                 <Lock size={12} /> No Unlocks Left

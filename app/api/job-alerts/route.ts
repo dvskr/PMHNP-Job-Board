@@ -4,19 +4,7 @@ import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeJobAlert } from '@/lib/sanitize';
 import { syncToBeehiiv } from '@/lib/beehiiv';
 import { logger } from '@/lib/logger';
-import {
-  emailShellV2, headerBlockV2, primaryButtonV2, secondaryButtonV2,
-  spacerV2, closeContentV2, featureRowV2, dividerV2, unsubscribeFooterV2,
-  bodyTextV2, V2, SANS, SERIF,
-} from '@/lib/email-templates-v2';
-import { Resend } from 'resend';
-import { brand } from '@/config/brand';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || brand.baseUrl;
-const EMAIL_FROM = process.env.EMAIL_FROM_MARKETING || process.env.EMAIL_FROM || brand.email.marketingFrom;
-const EMAIL_REPLY_TO = brand.email.replyTo;
-const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
+import { sendWelcomeEmail } from '@/lib/email-service';
 
 interface CreateAlertBody {
   email: string;
@@ -29,112 +17,6 @@ interface CreateAlertBody {
   maxSalary?: number;
   frequency?: string;
   newsletterOptIn?: boolean;
-}
-
-// Helper to build criteria summary for email
-function buildCriteriaSummary(alert: CreateAlertBody): string {
-  const parts: string[] = [];
-
-  if (alert.keyword) parts.push(`"${alert.keyword}"`);
-  if (alert.location) parts.push(`in ${alert.location}`);
-  if (alert.mode) parts.push(alert.mode);
-  if (alert.jobType) parts.push(alert.jobType);
-  if (alert.minSalary || alert.maxSalary) {
-    if (alert.minSalary && alert.maxSalary) {
-      parts.push(`$${alert.minSalary.toLocaleString()}-$${alert.maxSalary.toLocaleString()}`);
-    } else if (alert.minSalary) {
-      parts.push(`$${alert.minSalary.toLocaleString()}+`);
-    } else if (alert.maxSalary) {
-      parts.push(`up to $${alert.maxSalary.toLocaleString()}`);
-    }
-  }
-
-  return parts.length > 0 ? parts.join(' · ') : `all ${brand.niche.short} jobs`;
-}
-
-// Send the confirm-your-subscription email (CASL / GDPR double opt-in).
-// The alert is created inactive; the cron only fires for confirmed alerts.
-async function sendAlertConfirmationEmail(
-  email: string,
-  frequency: string,
-  criteriaSummary: string,
-  token: string,
-  confirmationToken: string,
-): Promise<void> {
-  try {
-    const unsubUrl = `${BASE_URL}/job-alerts/unsubscribe?token=${token}`;
-    const confirmUrl = `${BASE_URL}/api/job-alerts/confirm?token=${confirmationToken}`;
-
-    const html = emailShellV2(`
-      ${headerBlockV2('One last step', 'Confirm your job alert subscription')}
-      ${spacerV2(8)}
-      <tr><td class="content-pad" style="padding:0 40px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-          ${featureRowV2('&#9993;', `${frequency === 'daily' ? 'Daily' : 'Weekly'} Job Alerts`, `Once confirmed, we'll email new jobs matching: ${criteriaSummary}`)}
-          ${featureRowV2('&#10003;', 'Smart Matching', `Only relevant ${brand.niche.short} positions \u2014 no spam`)}
-          ${featureRowV2('&#9889;', 'Be First to Apply', 'Jobs delivered before they fill up')}
-        </table>
-      </td></tr>
-      ${spacerV2(24)}
-      <tr><td class="content-pad" style="padding:0 40px;">
-        <table role="presentation" cellspacing="0" cellpadding="0"><tr class="stack">
-          <td style="padding-right:12px;">${primaryButtonV2('Confirm Subscription \u2192', confirmUrl)}</td>
-          <td>${secondaryButtonV2('Manage Alert', `${BASE_URL}/job-alerts/manage?token=${token}`)}</td>
-        </tr></table>
-      </td></tr>
-      ${spacerV2(32)}
-      ${dividerV2()}
-      ${spacerV2(24)}
-      <tr><td class="content-pad" style="padding:0 40px;">
-        <p style="margin:0 0 6px;font-family:${SANS};font-size:12px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:1px;">&#9733; FREE BONUS</p>
-        <p style="margin:0 0 12px;font-family:${SERIF};font-size:22px;font-weight:700;color:${V2.textHeading};">2026 PMHNP Salary Guide</p>
-        <p style="margin:0 0 16px;font-family:${SANS};font-size:14px;color:${V2.textBody};line-height:1.6;">Salary ranges by state &middot; Remote vs in-person pay &middot; Negotiation tips</p>
-        ${primaryButtonV2('Download Salary Guide (PDF)', SALARY_GUIDE_URL)}
-      </td></tr>
-      ${spacerV2(48)}
-      ${closeContentV2()}`,
-      unsubscribeFooterV2(token),
-      'Your PMHNP job alert is live! Browse 10,000+ jobs now.'
-    );
-
-    // Strip HTML for plain text
-    const text = html
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n')
-      .replace(/<a[^>]+href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '$2 ($1)')
-      .replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, ' ').replace(/&middot;/gi, '·')
-      .replace(/&amp;/gi, '&').replace(/&#9733;/gi, '★').replace(/&#9993;/gi, '✉')
-      .replace(/&#10003;/gi, '✓').replace(/&#9889;/gi, '⚡')
-      .replace(/\n{3,}/g, '\n\n').trim();
-
-    await resend.emails.send({
-      from: EMAIL_FROM,
-      to: email,
-      replyTo: EMAIL_REPLY_TO,
-      subject: `Confirm your ${brand.niche.short} job alert subscription`,
-      html,
-      text,
-      headers: {
-        'List-Unsubscribe': `<${unsubUrl}>`,
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-      },
-    });
-
-    // Log to email_sends (non-blocking)
-    try {
-      await prisma.emailSend.create({
-        data: {
-          to: email,
-          subject: `Confirm your ${brand.niche.short} job alert subscription`,
-          emailType: 'alert_confirm',
-        },
-      });
-    } catch { /* non-blocking */ }
-
-    logger.info('Alert confirmation email sent', { email });
-  } catch (error) {
-    logger.error('Error sending alert confirmation email', error, { email });
-  }
 }
 
 // POST - Create new job alert
@@ -223,11 +105,23 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Single opt-in: alerts are created already confirmed. Skipping the double-
+    // opt-in confirmation email increases conversion through the funnel. Tradeoff:
+    // weaker signal to ISPs (Gmail/Yahoo) about consent, slightly higher abuse risk
+    // (someone signing up another person's email). The /api/job-alerts/confirm
+    // endpoint stays in place for grandfathering any in-flight pending alerts from
+    // the old flow.
+    const now = new Date();
+
     if (existing) {
-      // Update frequency if changed, otherwise just reuse
       jobAlert = await prisma.jobAlert.update({
         where: { id: existing.id },
-        data: { frequency, name: name || existing.name },
+        data: {
+          frequency,
+          name: name || existing.name,
+          isActive: true,
+          confirmedAt: existing.confirmedAt ?? now,
+        },
       });
     }
 
@@ -243,25 +137,18 @@ export async function POST(request: NextRequest) {
           minSalary,
           maxSalary,
           frequency,
+          isActive: true,
+          confirmedAt: now,
         },
       });
     }
 
-    // Build criteria summary and send confirm-your-subscription email.
-    // The alert was inserted with isActive=false; the cron only fires
-    // for alerts where confirmedAt is set, which happens at /api/job-
-    // alerts/confirm when the user clicks the link in this email.
-    // Reuse the existing token if the row was already confirmed (the
-    // dedup branch above) so we don't re-prompt subscribed users.
-    const criteriaSummary = buildCriteriaSummary(body);
-    if (!jobAlert.confirmedAt) {
-      await sendAlertConfirmationEmail(
-        normalizedEmail,
-        frequency,
-        criteriaSummary,
-        jobAlert.token,
-        jobAlert.confirmationToken ?? jobAlert.token,
-      );
+    // Send the welcome / "alerts are active" email immediately. This is what users
+    // would have received after clicking Confirm under the old double-opt-in flow.
+    // Only send for newly confirmed alerts to avoid spamming on every form submit.
+    const isNewlyConfirmed = !existing || !existing.confirmedAt;
+    if (isNewlyConfirmed) {
+      await sendWelcomeEmail(normalizedEmail, jobAlert.token);
     }
 
     return NextResponse.json({

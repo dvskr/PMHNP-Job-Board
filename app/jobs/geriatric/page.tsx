@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,7 +37,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `${stats.totalJobs} Geriatric PMHNP Jobs ($130K-175K)`, description: `Find ${stats.totalJobs} geriatric PMHNP jobs. Memory care, nursing home, and geropsychiatry positions paying $130K-175K+.`, alternates: { canonical: 'https://pmhnphiring.com/jobs/geriatric' } };
+  return { title: `${stats.totalJobs} Geriatric PMHNP Jobs ($130K-175K)`, description: `Find ${stats.totalJobs} geriatric PMHNP jobs. Memory care, nursing home, and geropsychiatry positions paying $130K-175K+.`, alternates: { canonical: `${brand.baseUrl}/jobs/geriatric` } };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }

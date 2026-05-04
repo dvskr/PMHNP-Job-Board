@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,7 +37,7 @@ const ADDICTION_FILTER = buildCategoryWhereClause('addiction');
 async function getAddictionJobs(skip = 0, take = 20) {
     return prisma.job.findMany({
         where: ADDICTION_FILTER,
-        orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }],
         skip,
         take,
     });
@@ -95,7 +96,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
                 width: 1200, height: 630, alt: 'Addiction PMHNP Jobs',
             }],
         },
-        alternates: { canonical: 'https://pmhnphiring.com/jobs/addiction' },
+        alternates: { canonical: `${brand.baseUrl}/jobs/addiction` },
         ...(page > 1 && { robots: { index: false, follow: true } }),
     };
 }

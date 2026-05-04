@@ -1,0 +1,32 @@
+﻿2026-05-04T14:03:36.9630166Z Current runner version: '2.334.0'
+2026-05-04T14:03:36.9658128Z ##[group]Runner Image Provisioner
+2026-05-04T14:03:36.9659079Z Hosted Compute Agent
+2026-05-04T14:03:36.9659658Z Version: 20260213.493
+2026-05-04T14:03:36.9660220Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-05-04T14:03:36.9660998Z Build Date: 2026-02-13T00:28:41Z
+2026-05-04T14:03:36.9661941Z Worker ID: {4dd03582-985b-4c62-94b3-93cd83cc7a52}
+2026-05-04T14:03:36.9662601Z Azure Region: northcentralus
+2026-05-04T14:03:36.9663262Z ##[endgroup]
+2026-05-04T14:03:36.9664713Z ##[group]Operating System
+2026-05-04T14:03:36.9665383Z Ubuntu
+2026-05-04T14:03:36.9665851Z 24.04.4
+2026-05-04T14:03:36.9666351Z LTS
+2026-05-04T14:03:36.9666839Z ##[endgroup]
+2026-05-04T14:03:36.9667328Z ##[group]Runner Image
+2026-05-04T14:03:36.9667930Z Image: ubuntu-24.04
+2026-05-04T14:03:36.9668545Z Version: 20260413.86.1
+2026-05-04T14:03:36.9669575Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260413.86/images/ubuntu/Ubuntu2404-Readme.md
+2026-05-04T14:03:36.9671652Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260413.86
+2026-05-04T14:03:36.9672611Z ##[endgroup]
+2026-05-04T14:03:36.9673673Z ##[group]GITHUB_TOKEN Permissions
+2026-05-04T14:03:36.9676153Z Contents: read
+2026-05-04T14:03:36.9676816Z Metadata: read
+2026-05-04T14:03:36.9677398Z Packages: read
+2026-05-04T14:03:36.9677935Z ##[endgroup]
+2026-05-04T14:03:36.9680022Z Secret source: Actions
+2026-05-04T14:03:36.9681051Z Prepare workflow directory
+2026-05-04T14:03:37.0033424Z Prepare all required actions
+2026-05-04T14:03:37.0072242Z Getting action download info
+2026-05-04T14:03:37.4366192Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-05-04T14:03:37.5562877Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-05-04T14:03:37.7583507Z Complete job name: AI quality gates

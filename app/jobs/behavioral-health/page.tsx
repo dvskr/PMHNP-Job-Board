@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -35,7 +36,7 @@ const BH_FILTER = buildCategoryWhereClause('behavioral-health');
 async function getBehavioralHealthJobs(skip = 0, take = 20) {
     return prisma.job.findMany({
         where: BH_FILTER,
-        orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }],
         skip,
         take,
     });
@@ -92,7 +93,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
                 width: 1200, height: 630, alt: 'Behavioral Health NP Jobs',
             }],
         },
-        alternates: { canonical: 'https://pmhnphiring.com/jobs/behavioral-health' },
+        alternates: { canonical: `${brand.baseUrl}/jobs/behavioral-health` },
         ...(page > 1 && { robots: { index: false, follow: true } }),
     };
 }

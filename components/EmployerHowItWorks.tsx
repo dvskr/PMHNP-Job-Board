@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
+import { config } from '@/lib/config';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 24 },
@@ -118,10 +119,11 @@ const css = `
 
 export default function EmployerHowItWorks() {
     return (
+        <LazyMotion features={domAnimation}>
         <section className="ehw-wrap">
             <style>{css}</style>
 
-            <motion.div
+            <m.div
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: '-60px' }}
@@ -130,26 +132,26 @@ export default function EmployerHowItWorks() {
                 className="ehw-inner"
             >
                 {/* Header */}
-                <motion.p
+                <m.p
                     variants={fadeUp}
                     style={{ fontSize: '13px', fontWeight: 600, color: '#e8788c', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '12px' }}
                 >
                     Built for hiring managers
-                </motion.p>
-                <motion.h2
+                </m.p>
+                <m.h2
                     variants={fadeUp}
                     className="font-lora"
                     style={{ fontSize: '44px', fontWeight: 700, color: '#fff', margin: '0 0 64px', lineHeight: 1.15 }}
                 >
                     How employers hire
-                </motion.h2>
+                </m.h2>
 
                 {/* Horizontal 4-step grid */}
                 <div style={{ position: 'relative' }}>
                     <div className="ehw-line" />
                     <div className="ehw-grid">
                         {STEPS.map((step, i) => (
-                            <motion.div key={i} variants={fadeUp} className="ehw-step">
+                            <m.div key={i} variants={fadeUp} className="ehw-step">
                                 {/* Clay illustration */}
                                 <div style={{
                                     width: 180,
@@ -182,13 +184,13 @@ export default function EmployerHowItWorks() {
                                 <p style={{ fontSize: '13px', color: 'rgba(248,232,236,0.4)', margin: 0, lineHeight: 1.55, maxWidth: '240px', marginLeft: 'auto', marginRight: 'auto' }}>
                                     {step.desc}
                                 </p>
-                            </motion.div>
+                            </m.div>
                         ))}
                     </div>
                 </div>
 
                 {/* CTA */}
-                <motion.div variants={fadeUp} style={{ textAlign: 'center', marginTop: '56px' }}>
+                <m.div variants={fadeUp} style={{ textAlign: 'center', marginTop: '56px' }}>
                     <Link
                         href="/post-job"
                         style={{
@@ -216,10 +218,12 @@ export default function EmployerHowItWorks() {
                             e.currentTarget.style.boxShadow = '0 4px 20px rgba(200,90,120,0.3)';
                         }}
                     >
-                        Post a Job — First 2 Free <ArrowUpRight size={15} />
+                        Post a Job — First {config.freePostsPerEmail} Free <ArrowUpRight size={15} />
                     </Link>
-                </motion.div>
-            </motion.div>
+                </m.div>
+            </m.div>
         </section>
+
+        </LazyMotion>
     );
 }

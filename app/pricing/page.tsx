@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -6,16 +7,16 @@ import { config } from '@/lib/config';
 import { Check, ArrowRight, X, HelpCircle, RefreshCw } from 'lucide-react';
 
 export const metadata: Metadata = {
-    title: 'Pricing — PMHNP Job Board | First 2 Posts Free, Then $199',
+    title: `Pricing — PMHNP Job Board | First ${config.freePostsPerEmail} Posts Free, Then $${config.postingPrice}`,
     description:
-        'Simple, transparent pricing for PMHNP job postings. First 2 posts are free with all features. After that, $199 per post. No subscriptions, no contracts.',
+        `Simple, transparent pricing for PMHNP job postings. First ${config.freePostsPerEmail} posts are free with all features. After that, $${config.postingPrice} per post. No subscriptions, no contracts.`,
     openGraph: {
         title: 'Pricing — PMHNP Job Board',
-        description: 'Post PMHNP jobs — first 2 free, then $199/post. Every post gets the full package.',
+        description: `Post PMHNP jobs — first ${config.freePostsPerEmail} free, then $${config.postingPrice}/post. Every post gets the full package.`,
         images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP job board pricing' }],
     },
     twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp'] },
-    alternates: { canonical: 'https://pmhnphiring.com/pricing' },
+    alternates: { canonical: `${brand.baseUrl}/pricing` },
 };
 
 /* ═══ Clay Tokens — matched to employer page ═══ */
@@ -37,9 +38,9 @@ const clayIconWrap = (gradient: string): React.CSSProperties => ({
 const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: true | false | 'partial'; linkedin: true | false | 'partial'; note?: string }[] = [
     { feature: '100% Psychiatric NP Audience', us: true, indeed: false, linkedin: false },
     { feature: 'No Unqualified Applicants', us: true, indeed: false, linkedin: false },
-    { feature: 'First 2 Posts Free (No Card)', us: true, indeed: false, linkedin: false },
-    { feature: 'Flat $199/Post — No Bidding', us: true, indeed: false, linkedin: false, note: 'Indeed is pay-per-click' },
-    { feature: '60-Day Listing Duration', us: true, indeed: false, linkedin: false, note: 'Others: 30 days' },
+    { feature: `First ${config.freePostsPerEmail} Posts Free (No Card)`, us: true, indeed: false, linkedin: false },
+    { feature: `Flat $${config.postingPrice}/Post — No Bidding`, us: true, indeed: false, linkedin: false, note: 'Indeed is pay-per-click' },
+    { feature: `${config.durationDays}-Day Listing Duration`, us: true, indeed: false, linkedin: false, note: 'Others: 30 days' },
     { feature: 'Direct Candidate Messaging', us: true, indeed: false, linkedin: 'partial', note: 'LinkedIn: paid add-on' },
     { feature: 'Candidate Profile Unlocks', us: true, indeed: false, linkedin: 'partial', note: 'LinkedIn: paid add-on' },
     { feature: 'Built-In Screening Questions', us: true, indeed: true, linkedin: false },
@@ -50,9 +51,11 @@ const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: t
 const faqs = [
     { q: 'How many free posts do I get?', a: `Your first ${config.freePostsPerEmail} job posts per email address are completely free — no credit card required. Every feature is included.` },
     { q: 'What happens after my free posts?', a: `Posts 3+ cost a flat $${config.postingPrice} each. Same features, same visibility. Just add payment at checkout.` },
-    { q: 'How long do job postings stay active?', a: `All postings — free or paid — are active for ${config.durationDays} days. You can renew at any time from your employer dashboard.` },
-    { q: 'What does renewal cost?', a: `Renewals are $${config.renewalPrice} (20% off the regular price). Your listing gets another ${config.durationDays} days and is boosted back to the top of search results.` },
-    { q: 'Are free posts different from paid posts?', a: 'No. Every post gets the exact same features: Featured badge, top placement, 25 candidate unlocks, 25 InMails, and full analytics. No downgrades.' },
+    { q: 'How long do job postings stay active?', a: `Paid postings (and renewals) run for ${config.durationDays} days. Free postings run for ${config.freeDurationDays} days — a shorter trial window. You can renew paid postings at any time from your employer dashboard.` },
+    { q: 'What does renewal cost?', a: `Renewals are $${config.renewalPrice} (10% off the regular price) and apply to paid postings only. Your listing gets another ${config.durationDays} days and is boosted back to the top of search results.` },
+    { q: 'If I renew before my posting expires, do I lose the remaining days?', a: `No. Renewing early adds ${config.durationDays} days to your current expiration date — you don't lose any time you've already paid for. Renew whenever it's convenient.` },
+    { q: 'Are free posts different from paid posts?', a: `Same features — Featured badge, top placement, ${config.limits.candidateUnlocksPerPosting} candidate unlocks, ${config.limits.inmailsPerPosting} InMails, and full analytics. The only difference is duration: free posts run ${config.freeDurationDays} days, paid posts run ${config.durationDays} days.` },
+    { q: 'Do I lose access to candidates I\'ve unlocked when my posting expires?', a: 'No. Once you\'ve unlocked a candidate (viewed their full profile), their contact info, resume, and details remain in your dashboard forever — even after the posting expires. To unlock new candidates or send new InMails, you\'ll need an active posting.' },
     { q: 'Can I edit my job posting after publishing?', a: 'Yes! You can edit your posting anytime from your dashboard — update salary, requirements, or any details. Changes go live immediately.' },
     { q: 'Do you offer bulk discounts?', a: 'Yes! Contact us at support@pmhnphiring.com for custom pricing if you need to post 5+ positions. We offer volume discounts for larger organizations.' },
 ];
@@ -131,7 +134,7 @@ export default function PricingPage() {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: 'rgba(255,255,255,0.7)', borderRadius: '10px', border: '1px solid rgba(13,148,136,0.1)', marginBottom: '20px' }}>
                                         <RefreshCw size={14} style={{ color: '#0D9488', flexShrink: 0 }} />
                                         <p style={{ fontSize: '12px', color: '#134E4A', margin: 0, lineHeight: 1.4 }}>
-                                            <strong>Renewals: ${config.renewalPrice}</strong> (20% off) — another {config.durationDays} days
+                                            <strong>Renewals: ${config.renewalPrice}</strong> (10% off) — another {config.durationDays} days
                                         </p>
                                     </div>
 
@@ -142,7 +145,7 @@ export default function PricingPage() {
                                         textDecoration: 'none',
                                         boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
                                     }}>
-                                        Start Posting — First 2 Free <ArrowRight size={16} />
+                                        Start Posting — First {config.freePostsPerEmail} Free <ArrowRight size={16} />
                                     </Link>
                                 </div>
 
@@ -152,12 +155,12 @@ export default function PricingPage() {
                                     <p style={{ fontSize: '13px', color: '#5A4A42', margin: '0 0 20px', lineHeight: 1.5 }}>No tiers. No downgrades. Free or paid, you get everything.</p>
                                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px' }}>
                                         {[
-                                            `${config.durationDays}-day listing`,
+                                            `${config.durationDays}-day listing (${config.freeDurationDays} days free)`,
                                             '★ Featured badge',
                                             'Top search placement',
                                             'Highlighted in job alerts',
-                                            '25 candidate unlocks',
-                                            '25 InMails',
+                                            `${config.limits.candidateUnlocksPerPosting} candidate unlocks`,
+                                            `${config.limits.inmailsPerPosting} InMails`,
                                             'Full analytics dashboard',
                                             'Up to 5 screening questions',
                                         ].map(feat => (
@@ -218,13 +221,13 @@ export default function PricingPage() {
 
                         <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
                             <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-people.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
-                            <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>25 Candidate Unlocks</h3>
+                            <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{config.limits.candidateUnlocksPerPosting} Candidate Unlocks</h3>
                             <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>View full profiles — contact info, resume, LinkedIn.</p>
                         </div>
 
                         <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
                             <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-briefcase.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
-                            <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>25 InMails</h3>
+                            <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{config.limits.inmailsPerPosting} InMails</h3>
                             <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Message candidates directly — no guessing emails.</p>
                         </div>
 
@@ -341,7 +344,7 @@ export default function PricingPage() {
                                         textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                         boxShadow: '4px 4px 12px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
                                     }}>
-                                        Post a Job — First 2 Free <ArrowRight size={15} />
+                                        Post a Job — First {config.freePostsPerEmail} Free <ArrowRight size={15} />
                                     </Link>
                                     <Link href="/contact" className="emp-cta-secondary" style={{
                                         padding: '12px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '14px',

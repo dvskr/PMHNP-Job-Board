@@ -23,14 +23,18 @@ const envSchema = z.object({
     // Email (required for production)
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional().default('PMHNP Hiring <noreply@pmhnphiring.com>'),
+    EMAIL_FROM_MARKETING: z.string().optional().default('PMHNP Hiring <alerts@pmhnphiring.com>'),
+    EMAIL_REPLY_TO: z.string().optional().default('support@pmhnphiring.com'),
+    EMAIL_ASSETS_URL: z.string().url().optional().default('https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/email-assets'),
+    SALARY_GUIDE_URL: z.string().url().optional().default('https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf'),
+    // Required so the Resend webhook can verify Svix signatures. Webhook returns 500 at
+    // runtime if missing — better to fail at startup so misconfiguration is loud.
+    RESEND_WEBHOOK_SECRET: z.string().optional(),
 
     // Stripe (optional - for paid posting)
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
-
-    // Feature flags
-    ENABLE_PAID_POSTING: z.string().optional().default('false'),
 
     // Cron security (required — protects all cron endpoints)
     CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 characters'),
@@ -107,11 +111,9 @@ export function getEnv(): Env {
 /**
  * Check if a specific feature is enabled
  */
-export function isFeatureEnabled(feature: 'paidPosting' | 'sentry'): boolean {
+export function isFeatureEnabled(feature: 'sentry'): boolean {
     const env = getEnv();
     switch (feature) {
-        case 'paidPosting':
-            return env.ENABLE_PAID_POSTING === 'true';
         case 'sentry':
             return !!env.SENTRY_DSN;
         default:

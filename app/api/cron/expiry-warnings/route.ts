@@ -51,8 +51,7 @@ export async function GET(request: NextRequest) {
             job.viewCount || 0,
             job.applyClickCount || 0,
             employerJob.dashboardToken || employerJob.editToken,
-            employerJob.editToken,
-            employerJob.editToken // Using editToken as unsubscribe token
+            null // unsubscribeToken — sendExpiryWarningEmail will mint one if null
           )
           sentCount++
 

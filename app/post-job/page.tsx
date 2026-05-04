@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { config } from '@/lib/config';
+import { trackViewPostJobPage } from '@/lib/analytics';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import ScreeningQuestionsBuilder from '@/components/ScreeningQuestionsBuilder';
 import { Building2, MapPin, FileText, DollarSign, Rocket, ChevronRight, ChevronLeft, Check, Loader2, Save, Trash2, Upload } from 'lucide-react';
@@ -34,10 +35,24 @@ const jobPostingSchema = z.object({
   salaryMin: z.number().positive('Minimum salary must be a positive number').optional().nullable(),
   salaryMax: z.number().positive('Maximum salary must be a positive number').optional().nullable(),
   salaryCompetitive: z.boolean().optional(),
-  description: z.string().min(200, 'Job description must be at least 200 characters').max(5000, 'Job description cannot exceed 5,000 characters'),
+  // Validation operates on visible-text length (HTML stripped) to match the
+  // character counter shown in the UI. Quill stores formatted HTML, so a
+  // raw .length() check on the field includes <p>/<ul>/<li>/<strong>/etc.
+  // markup that the user can't see — leading to the bug where the counter
+  // showed 4,880/5,000 but the form refused to advance because the HTML
+  // was ~6,000+ chars.
+  description: z.string()
+    .refine(
+      (html) => html.replace(/<[^>]*>/g, '').length >= 200,
+      { message: 'Job description must be at least 200 characters' }
+    )
+    .refine(
+      (html) => html.replace(/<[^>]*>/g, '').length <= 7000,
+      { message: 'Job description cannot exceed 7,000 characters' }
+    ),
   applyUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   applyOnPlatform: z.boolean().optional(),
-  pricingTier: z.enum(['starter', 'growth', 'premium']),
+  pricingTier: z.enum(['pro']),
   benefits: z.array(z.string()).optional(),
   setting: z.string().optional(),
   population: z.string().optional(),
@@ -251,10 +266,11 @@ function PostJobContent() {
     setValue,
     watch,
     trigger,
+    getValues,
   } = useForm<JobPostingFormData>({
     resolver: zodResolver(jobPostingSchema),
     defaultValues: {
-      pricingTier: 'starter',
+      pricingTier: 'pro',
       salaryCompetitive: false,
       salaryPeriod: 'annual',
       benefits: [],
@@ -266,7 +282,16 @@ function PostJobContent() {
   const contactEmail = watch('contactEmail');
   const salaryPeriod = watch('salaryPeriod');
 
-  // Auth check
+  // P7: pricing-funnel analytics — landed on post-job page
+  useEffect(() => {
+    trackViewPostJobPage();
+  }, []);
+
+  // Auth + role gate. Allowlist approach: only 'employer' and 'admin' may
+  // post jobs. Everyone else (job_seeker, missing role, future roles) is
+  // blocked by the in-page "Wrong Account Type" screen rendered below.
+  // No silent router.push — the in-page block tells the user what's wrong
+  // and gives them a sign-out path.
   useEffect(() => {
     async function checkUser() {
       try {
@@ -275,19 +300,31 @@ function PostJobContent() {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
         if (user) {
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role')
-            .eq('supabase_id', user.id)
-            .single();
-          setUserRole(profile?.role || null);
-          if (profile?.role === 'job_seeker') {
-            router.push('/jobs');
-            return;
+          // Use the server-side /api/auth/profile endpoint (Prisma + DATABASE_URL,
+          // bypasses RLS and auto-recovers profiles whose supabase_id was relinked).
+          // The previous direct supabase.from('user_profiles') query was blocked
+          // by RLS for browser anon-key callers, returning null → "unknown" role
+          // even when the header dropdown — which uses this same endpoint —
+          // correctly showed the user as Employer.
+          let role: string | null = null;
+          try {
+            const profileRes = await fetch('/api/auth/profile');
+            if (profileRes.ok) {
+              const profile = await profileRes.json();
+              role = profile?.role ?? null;
+            }
+          } catch {
+            // Network failure → treated as unknown; render path below handles it.
           }
-          if (user.email) {
-            setValue('contactEmail', user.email);
+          setUserRole(role);
+          // Only employers and admins proceed to the form (auto-fill, etc.).
+          if (role === 'employer' || role === 'admin') {
+            if (user.email) {
+              setValue('contactEmail', user.email);
+            }
           }
+          // For all other roles (job_seeker / null / unknown) the render
+          // path below catches it and shows the wrong-account-type screen.
         }
       } catch (e) {
         console.error('Auth check failed', e);
@@ -337,6 +374,38 @@ function PostJobContent() {
     };
     loadFormData();
   }, [setValue, searchParams]);
+
+  // Pre-fill company fields from the employer's most recent posting after
+  // draft/localStorage hydration is done. Only fills fields that are still
+  // empty — never overwrites a resumed draft or the user's in-progress edits.
+  useEffect(() => {
+    if (!draftLoaded) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/employer/profile-snapshot');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled || !data?.found || !data.profile) return;
+
+        const current = getValues();
+        const fill = (field: keyof JobPostingFormData, value: string | undefined) => {
+          if (value && !current[field]) {
+            setValue(field, value as never, { shouldDirty: false, shouldValidate: false });
+          }
+        };
+
+        fill('companyName', data.profile.companyName);
+        fill('companyWebsite', data.profile.companyWebsite);
+
+        if (data.profile.companyLogoUrl && !current.companyLogoUrl) {
+          setValue('companyLogoUrl', data.profile.companyLogoUrl, { shouldDirty: false });
+          setLogoPreview(data.profile.companyLogoUrl);
+        }
+      } catch { /* silent — pre-fill is best-effort */ }
+    })();
+    return () => { cancelled = true; };
+  }, [draftLoaded, getValues, setValue]);
 
   const quillModules = useMemo(() => ({
     toolbar: [
@@ -508,8 +577,16 @@ function PostJobContent() {
     );
   }
 
-  // Job Seeker warning
-  if (userRole === 'job_seeker') {
+  // Allowlist gate: only employers and admins reach the form. Everyone else
+  // (job seekers, accounts with missing/unknown role) gets the wrong-account
+  // screen — the API also enforces this, but blocking at the page level
+  // prevents wasted form-fill effort and confusing 403s on submit.
+  if (userRole !== 'employer' && userRole !== 'admin') {
+    const roleLabel = userRole === 'job_seeker'
+      ? 'Job Seeker'
+      : userRole
+        ? `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}`
+        : 'unknown';
     return (
       <div style={{ maxWidth: '560px', margin: '0 auto', padding: '48px 16px' }}>
         <div style={{ ...cardBase, padding: '40px 32px', textAlign: 'center' }}>
@@ -518,13 +595,26 @@ function PostJobContent() {
             Wrong Account Type
           </h2>
           <p style={{ fontSize: '14px', color: '#6B7F8A', margin: '0 0 20px', lineHeight: 1.5 }}>
-            You are logged in with a Job Seeker account. You need an Employer account to post jobs.
+            You are logged in as <strong>{roleLabel}</strong>. Posting a job requires an Employer account.
           </p>
-          <form action="/auth/signout" method="post">
-            <button type="submit" style={{ ...clayBtn, background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>
-              Sign out and switch
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <a href="/jobs" style={{ ...clayBtn, justifyContent: 'center', background: '#F0FDFA', color: '#0D9488', border: '1px solid rgba(13,148,136,0.2)' }}>
+              Browse jobs instead
+            </a>
+            <button
+              type="button"
+              onClick={async () => {
+                const { createClient } = await import('@/lib/supabase/client');
+                const supabase = createClient();
+                await supabase.auth.signOut();
+                router.refresh();
+                router.push('/signup?role=employer');
+              }}
+              style={{ ...clayBtn, width: '100%', justifyContent: 'center', background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}
+            >
+              Sign out and create an Employer account
             </button>
-          </form>
+          </div>
         </div>
       </div>
     );
@@ -779,8 +869,8 @@ function PostJobContent() {
                 <ErrorMsg message={errors.description?.message} />
                 <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <p style={{ fontSize: '11px', color: '#B0BEC5', margin: 0 }}>Minimum 200 characters. Use the toolbar to format.</p>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: (watch('description') || '').replace(/<[^>]*>/g, '').length > 5000 ? '#EF4444' : '#94A3B8' }}>
-                    {(watch('description') || '').replace(/<[^>]*>/g, '').length.toLocaleString()} / 5,000
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: (watch('description') || '').replace(/<[^>]*>/g, '').length > 7000 ? '#EF4444' : '#94A3B8' }}>
+                    {(watch('description') || '').replace(/<[^>]*>/g, '').length.toLocaleString()} / 7,000
                   </span>
                 </div>
                 <InfoBox emoji="💡" color="blue">
@@ -974,7 +1064,7 @@ function PostJobContent() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {['60-day listing', 'Featured badge', 'Top placement', 'Email alerts', '25 candidate unlocks', '25 InMails', 'Analytics'].map(f => (
+                  {[`${config.durationDays}-day paid · ${config.freeDurationDays}-day free`, 'Featured badge', 'Top placement', 'Email alerts', `${config.limits.candidateUnlocksPerPosting} candidate unlocks`, `${config.limits.inmailsPerPosting} InMails`, 'Analytics'].map(f => (
                     <span key={f} style={{
                       fontSize: '11px', fontWeight: 500, padding: '4px 10px',
                       borderRadius: '10px', background: '#CCFBF1', color: '#0D9488',

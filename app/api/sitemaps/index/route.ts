@@ -59,6 +59,14 @@ export async function GET() {
         if (jobCount >= MIN_SITEMAP_JOBS) totalUrls++;
       }
     }
+
+    // GSC Fix (P1.1): also count populated setting×state URLs that the batch
+    // route now emits. Without this the index's batch count under-reports
+    // and batch slicing could truncate the tail.
+    const settingStateCount = await prisma.pseoStats.count({
+      where: { type: 'setting-state', totalJobs: { gte: 1 } },
+    });
+    totalUrls += settingStateCount;
   } catch {
     // Fallback: estimate conservatively
     totalUrls = SITEMAP_CATEGORIES.length * Math.min(CITIES.length, 500);

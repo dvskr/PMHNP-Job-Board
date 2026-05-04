@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { GraduationCap, Sparkles, Target, BookOpen, TrendingUp, Building2, Users, Shield, Award, FileText, AlertTriangle, CheckCircle, ArrowRight, Bell, MapPin, Briefcase } from 'lucide-react';
@@ -92,7 +93,7 @@ export async function generateMetadata(): Promise<Metadata> {
       }],
     },
     alternates: {
-      canonical: 'https://pmhnphiring.com/new-grad',
+      canonical: `${brand.baseUrl}/new-grad`,
     },
   };
 }

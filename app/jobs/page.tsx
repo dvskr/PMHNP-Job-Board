@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
@@ -76,7 +77,7 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
       description,
     },
     alternates: {
-      canonical: 'https://pmhnphiring.com/jobs',
+      canonical: `${brand.baseUrl}/jobs`,
     },
     // Prevent Google from indexing filtered/paginated variants as separate pages
     // This fixes the "Duplicate without user-selected canonical" GSC issue

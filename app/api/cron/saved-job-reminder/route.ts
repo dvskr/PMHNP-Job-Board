@@ -67,7 +67,10 @@ export async function GET(request: NextRequest) {
                 const prefs = (emailLead?.preferences as Record<string, unknown>) ?? {}
                 if (prefs.savedJobReminder === false) continue
 
-                // Get job details (only active/published jobs)
+                // Get job details (only active/published jobs).
+                // Pull the full set of fields the unified job card renders, matching
+                // what sendJobAlerts() selects so the saved-job-reminder card looks
+                // identical to the job-alert card.
                 const jobs = await prisma.job.findMany({
                     where: {
                         id: { in: jobIds },
@@ -78,17 +81,28 @@ export async function GET(request: NextRequest) {
                         ],
                     },
                     select: {
+                        id: true,
                         title: true,
                         employer: true,
                         location: true,
                         slug: true,
+                        minSalary: true,
+                        maxSalary: true,
+                        normalizedMinSalary: true,
+                        normalizedMaxSalary: true,
+                        mode: true,
+                        jobType: true,
+                        isFeatured: true,
+                        applyOnPlatform: true,
+                        sourceType: true,
+                        createdAt: true,
                     },
                 })
 
                 if (jobs.length === 0) continue
 
                 // Filter out jobs without slugs
-                const validJobs = jobs.filter(j => j.slug) as Array<{ title: string; employer: string; location: string; slug: string }>
+                const validJobs = jobs.filter(j => j.slug) as Array<typeof jobs[number] & { slug: string }>
 
                 if (validJobs.length === 0) continue
 

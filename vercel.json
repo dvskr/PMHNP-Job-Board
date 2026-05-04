@@ -86,7 +86,7 @@
     },
     {
       "path": "/api/cron/aggregate-pseo",
-      "schedule": "15 12,18 * * *"
+      "schedule": "15 0,6,12,18 * * *"
     },
     {
       "path": "/api/cron/freshness-decay",
@@ -117,6 +117,14 @@
       "schedule": "45 12,18 * * *"
     },
     {
+      "path": "/api/cron/historical-deindex",
+      "schedule": "0 1,7,19 * * *"
+    },
+    {
+      "path": "/api/cron/gsc-health-check",
+      "schedule": "30 9 * * *"
+    },
+    {
       "path": "/api/cron/send-alerts",
       "schedule": "30 13 * * *"
     },
@@ -132,11 +140,7 @@
       "path": "/api/cron/instagram-post",
       "schedule": "5 14 * * *"
     },
-    {
-      "path": "/api/cron/profile-nudge",
-      "schedule": "0 18 * * *"
-    },
-    {
+{
       "path": "/api/cron/employer-report",
       "schedule": "0 14 * * 1"
     },

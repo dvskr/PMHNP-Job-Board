@@ -266,6 +266,12 @@ export async function GET(request: NextRequest) {
     {
       width: 1200,
       height: 630,
+      headers: {
+        // Cache rendered OG image at the edge for 30 days; revalidate within 1 day in background.
+        'Cache-Control': 'public, immutable, max-age=0, s-maxage=2592000, stale-while-revalidate=86400',
+        'CDN-Cache-Control': 'public, max-age=2592000',
+        'Vercel-CDN-Cache-Control': 'public, max-age=2592000',
+      },
     }
   );
 }

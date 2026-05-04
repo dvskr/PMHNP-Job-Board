@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Search, MapPin, Globe, Monitor, Clock, Clock3, GraduationCap } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 
 interface HomepageHeroProps {
     jobCountDisplay: string;
@@ -43,6 +43,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
     };
 
     return (
+        <LazyMotion features={domAnimation}>
         <section
             style={{
                 position: 'relative',
@@ -59,8 +60,9 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 alt="Diverse community of PMHNP professionals"
                 fill
                 priority
+                fetchPriority="high"
                 sizes="100vw"
-                unoptimized
+                quality={75}
                 style={{
                     objectFit: 'cover',
                     objectPosition: 'center bottom',
@@ -84,7 +86,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
             />
 
             {/* ── Centered content ── */}
-            <motion.div
+            <m.div
                 variants={container}
                 initial="hidden"
                 animate="show"
@@ -100,7 +102,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 }}
             >
                 {/* ── Eyebrow ── */}
-                <motion.p
+                <m.p
                     variants={fadeUp}
                     style={{
                         fontSize: '12px',
@@ -112,10 +114,10 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                     }}
                 >
                     The #1 PMHNP Job Board
-                </motion.p>
+                </m.p>
 
                 {/* ── Headline ── */}
-                <motion.h1
+                <m.h1
                     variants={fadeUp}
                     className="font-heading"
                     style={{
@@ -128,10 +130,10 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 >
                     Find Your Next{' '}
                     <span style={{ color: '#0D9488' }}>PMHNP Role</span>
-                </motion.h1>
+                </m.h1>
 
                 {/* ── Subtitle ── */}
-                <motion.p
+                <m.p
                     variants={fadeUp}
                     style={{
                         fontSize: '17px',
@@ -142,10 +144,10 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                     }}
                 >
                     {jobCountDisplay} verified positions across all 50 states.
-                </motion.p>
+                </m.p>
 
                 {/* ── Search bar ── */}
-                <motion.form
+                <m.form
                     variants={fadeUp}
                     onSubmit={handleSubmit}
                     style={{ width: '100%', maxWidth: '580px', marginBottom: '20px' }}
@@ -226,10 +228,10 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                             }
                         }
                     `}</style>
-                </motion.form>
+                </m.form>
 
                 {/* ── Quick filters ── */}
-                <motion.div
+                <m.div
                     variants={fadeUp}
                     style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '28px' }}
                 >
@@ -271,10 +273,10 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                             </Link>
                         );
                     })}
-                </motion.div>
+                </m.div>
 
                 {/* ── Clay CTA buttons ── */}
-                <motion.div
+                <m.div
                     variants={fadeUp}
                     className="hero-cta-row"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}
@@ -333,10 +335,11 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                     >
                         Post a Job →
                     </Link>
-                </motion.div>
+                </m.div>
 
 
-            </motion.div>
+            </m.div>
         </section>
+        </LazyMotion>
     );
 }

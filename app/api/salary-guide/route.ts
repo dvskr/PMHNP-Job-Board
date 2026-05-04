@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
 import { prisma } from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
-import { buildSalaryGuideHtml } from '@/lib/email-service';
+import { buildSalaryGuideHtml, sendAndLog, isEmailSuppressed } from '@/lib/email-service';
 import { rateLimit } from '@/lib/rate-limit';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
 // Environment-aware URLs
 const PDF_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
@@ -31,7 +29,21 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    const unsubscribeToken = uuidv4();
+
+    // Suppression check before any DB writes — a suppressed user shouldn't even
+    // re-create an EmailLead row from this entry point.
+    if (await isEmailSuppressed(normalizedEmail)) {
+      logger.info('Salary guide skipped — email suppressed', { email: normalizedEmail });
+      return NextResponse.json({ success: true, suppressed: true });
+    }
+
+    // Upsert the lead. Use the existing token if there is one so the unsubscribe
+    // link in the email matches what the user already has on file.
+    const existing = await prisma.emailLead.findUnique({
+      where: { email: normalizedEmail },
+      select: { unsubscribeToken: true },
+    });
+    const unsubscribeToken = existing?.unsubscribeToken ?? uuidv4();
 
     await prisma.emailLead.upsert({
       where: { email: normalizedEmail },
@@ -51,14 +63,14 @@ export async function POST(request: NextRequest) {
     const currentYear = new Date().getFullYear();
     logger.info('Lead saved to database', { email: normalizedEmail });
 
-    const emailResult = await resend.emails.send({
-      from: EMAIL_FROM,
+    await sendAndLog({
+      from: '', // overridden by sendAndLog (marketing sender — salary_guide is in MARKETING_EMAIL_TYPES)
       to: normalizedEmail,
       subject: `Your ${currentYear} PMHNP Salary Guide is Ready`,
       html: buildSalaryGuideHtml(PDF_URL, unsubscribeToken),
-    });
+    }, 'salary_guide', { year: currentYear }, `${BASE_URL}/unsubscribe?token=${unsubscribeToken}`);
 
-    logger.info('Salary guide email sent successfully', { email: normalizedEmail, emailId: emailResult.data?.id });
+    logger.info('Salary guide email sent successfully', { email: normalizedEmail });
 
     return NextResponse.json({ success: true });
   } catch (error) {

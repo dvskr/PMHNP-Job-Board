@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import VideoJsonLd from '@/components/VideoJsonLd';
 import Image from 'next/image';
@@ -101,7 +102,7 @@ export const metadata: Metadata = {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp', width: 1280, height: 900, alt: 'PMHNP salary guide 2026 showing psychiatric nurse practitioner pay by state with interactive salary comparison table' }],
   },
   twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp'] },
-  alternates: { canonical: 'https://pmhnphiring.com/salary-guide' },
+  alternates: { canonical: `${brand.baseUrl}/salary-guide` },
 };
 
 /* ═══ Clay Design Tokens ═══ */

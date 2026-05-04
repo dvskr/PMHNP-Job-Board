@@ -47,25 +47,8 @@ export async function fetchTopJobsForSocial(): Promise<SocialJob[]> {
     // Use a raw query to get a diverse mix via ROW_NUMBER partitioned by job_type.
     // A date-seeded random tiebreaker ensures different jobs surface each day.
     const jobs = await prisma.$queryRaw<SocialJob[]>`
-    WITH premium_posts AS (
-      -- Premium tier employer posts get highest priority (always shown first)
-      SELECT
-        j.title, j.employer, j.location,
-        j.job_type AS "jobType", j.mode,
-        j.display_salary AS "displaySalary",
-        j.is_remote AS "isRemote", j.is_featured AS "isFeatured", j.slug,
-        j.quality_score AS "qualityScore", j.state, j.city,
-        j.created_at,
-        0 AS priority
-      FROM jobs j
-      INNER JOIN employer_jobs ej ON ej.job_id = j.id
-      WHERE j.is_published = true
-        AND (j.expires_at IS NULL OR j.expires_at > NOW())
-        AND j.slug IS NOT NULL
-        AND ej.pricing_tier = 'premium'
-    ),
-    employer_posts AS (
-      -- Employer posts always included first, regardless of quality score
+    WITH employer_posts AS (
+      -- Employer posts (single-tier) always included first, regardless of quality score
       SELECT
         title, employer, location,
         job_type AS "jobType", mode,
@@ -80,7 +63,6 @@ export async function fetchTopJobsForSocial(): Promise<SocialJob[]> {
         AND slug IS NOT NULL
         AND created_at > NOW() - INTERVAL '48 hours'
         AND source_type = 'employer'
-        AND id NOT IN (SELECT j.id FROM jobs j INNER JOIN employer_jobs ej ON ej.job_id = j.id WHERE ej.pricing_tier = 'premium')
     ),
     featured_posts AS (
       -- Featured/paid jobs get priority 2, capped at 30 days to prevent stale repeats
@@ -127,10 +109,6 @@ export async function fetchTopJobsForSocial(): Promise<SocialJob[]> {
         AND source_type != 'employer'
     ),
     combined AS (
-      SELECT title, employer, location, "jobType", mode, "displaySalary",
-             "isRemote", "isFeatured", slug, "qualityScore", state, city, priority, created_at
-      FROM premium_posts
-      UNION ALL
       SELECT title, employer, location, "jobType", mode, "displaySalary",
              "isRemote", "isFeatured", slug, "qualityScore", state, city, priority, created_at
       FROM employer_posts

@@ -52,7 +52,7 @@ export default function PrivacyPage() {
               <h1 style={{ fontSize: 'clamp(2rem, 5vw, 2.75rem)', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 12px 0', lineHeight: 1.15 }}>
                 Privacy <span style={{ color: '#059669' }}>Policy</span>
               </h1>
-              <p style={{ fontSize: '15px', color: '#6B7F8A', margin: 0, lineHeight: 1.6 }}>Last updated: April 30, 2026</p>
+              <p style={{ fontSize: '15px', color: '#6B7F8A', margin: 0, lineHeight: 1.6 }}>Last updated: May 1, 2026</p>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/clay_hero_privacy.webp" alt="Privacy Policy" width={140} height={140} style={{ objectFit: 'contain', filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.12))' }} priority />
@@ -61,8 +61,8 @@ export default function PrivacyPage() {
         </header>
 
         <div>
-          <p style={pStyle}>At {brand.name}, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services.</p>
-          <p style={pStyle}>Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the site.</p>
+          <p style={pStyle}>{brand.name} (the &quot;Service&quot;) is operated by <strong>{brand.legal.entityName}</strong>, a {brand.legal.jurisdiction.split(',')[0]} limited liability company with its registered office at {brand.legal.address} (&quot;{brand.legal.entityName}&quot;, &quot;we&quot;, &quot;us&quot;, &quot;our&quot;). For purposes of EU/UK GDPR and similar privacy laws, {brand.legal.entityName} is the data controller for personal data processed through {brand.name}.</p>
+          <p style={pStyle}>This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services. Please read it carefully. If you do not agree with this policy, please do not access the Service.</p>
 
           <h2 style={h2Style}>1. Information We Collect</h2>
           <p style={pStyle}>We may collect information about you in a variety of ways:</p>
@@ -157,7 +157,9 @@ export default function PrivacyPage() {
           <h2 style={h2Style}>10. Contact Us</h2>
           <p style={pStyle}>If you have questions about this Privacy Policy or wish to exercise your privacy rights, please contact us:</p>
           <ul style={{ ...ulStyle, listStyleType: 'none', paddingLeft: 0 }}>
-            <li style={liStyle}><strong>Email:</strong> {brand.email.support}</li>
+            <li style={liStyle}><strong>Data controller:</strong> {brand.legal.entityName}</li>
+            <li style={liStyle}><strong>Mailing address:</strong> {brand.legal.address}</li>
+            <li style={liStyle}><strong>Email:</strong> <a href={`mailto:${brand.email.privacy}`} style={{ color: '#0D9488', textDecoration: 'none' }}>{brand.email.privacy}</a> (privacy-specific) or <a href={`mailto:${brand.email.support}`} style={{ color: '#0D9488', textDecoration: 'none' }}>{brand.email.support}</a></li>
             <li style={liStyle}><strong>Subject line:</strong> &quot;Privacy Inquiry&quot;</li>
           </ul>
           <p style={pStyle}>For general questions, visit our <Link href="/faq" style={{ color: '#0D9488', textDecoration: 'none' }}>FAQ page</Link> or <Link href="/contact" style={{ color: '#0D9488', textDecoration: 'none' }}>Contact page</Link>.</p>

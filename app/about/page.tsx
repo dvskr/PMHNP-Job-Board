@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import VideoJsonLd from '@/components/VideoJsonLd';
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/about-pmhnp-hiring-platform.webp', width: 1280, height: 900, alt: 'About PMHNP Hiring' }],
   },
   twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/about-pmhnp-hiring-platform.webp'] },
-  alternates: { canonical: 'https://pmhnphiring.com/about' },
+  alternates: { canonical: `${brand.baseUrl}/about` },
 };
 
 export default async function AboutPage() {

@@ -9,12 +9,18 @@ export function cn(...inputs: ClassValue[]): string {
 
 export function formatDate(date: string | Date): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  const hoursSincePosted = (Date.now() - dateObj.getTime()) / (1000 * 60 * 60);
+  const hoursDelta = (Date.now() - dateObj.getTime()) / (1000 * 60 * 60);
 
-  if (hoursSincePosted < 1) {
+  // Only treat as "Just posted" for the recent past (0–1 hour ago).
+  // Future dates (e.g. expiresAt = now + 60 days) have negative hoursDelta and
+  // would otherwise satisfy `< 1` and incorrectly read as "Just posted" — that
+  // was the bug where dashboard cards showed "Expires Just posted".
+  if (hoursDelta >= 0 && hoursDelta < 1) {
     return 'Just posted';
   }
 
+  // formatDistanceToNow handles both past and future dates correctly when
+  // addSuffix=true: "5 minutes ago" / "in 60 days".
   return formatDistanceToNow(dateObj, { addSuffix: true });
 }
 

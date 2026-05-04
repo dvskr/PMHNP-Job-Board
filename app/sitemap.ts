@@ -73,17 +73,20 @@ const STATE_NAME_TO_CODE: Record<string, string> = {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'
 
-  let latestJobDate = new Date('2026-03-01');
-  try {
-    const latestJob = await prisma.job.findFirst({
-      where: { isPublished: true },
-      orderBy: { updatedAt: 'desc' },
-      select: { updatedAt: true },
-    });
-    if (latestJob) latestJobDate = latestJob.updatedAt;
-  } catch { /* fallback */ }
+  // GSC Fix (P1.4): use the actual latest job date, or "now" as a safe live
+  // fallback. Previously hard-coded "2026-03-01" — a stale stamp made every
+  // sitemap entry look 2+ months old and signaled "this site isn't being
+  // maintained" to Google. The outer try/catch at the bottom of this function
+  // still catches DB-wide failure and returns a static-only sitemap.
+  let latestJobDate = new Date();
+  const latestJob = await prisma.job.findFirst({
+    where: { isPublished: true },
+    orderBy: { updatedAt: 'desc' },
+    select: { updatedAt: true },
+  });
+  if (latestJob) latestJobDate = latestJob.updatedAt;
 
-  const STATIC_CONTENT_DATE = new Date('2026-02-20');
+  const STATIC_CONTENT_DATE = new Date('2026-05-04');
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [
@@ -244,7 +247,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.6,
       }))
 
-    return [
+    const all = [
       ...staticPages,
       ...categoryLandingPages,
       ...landingPages,
@@ -256,6 +259,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...jobPages,
       ...blogPages,
     ]
+
+    // GSC Fix (P3.8): sitemap budget guard. Google's per-sitemap limit is
+    // 50,000 URLs. We exceed it silently, the entire sitemap is rejected and
+    // ALL pages stop being recrawled. Log loudly when we approach the cap so
+    // ops can split into batches before that happens.
+    if (all.length > 40000) {
+      logger.warn(`[sitemap] Primary sitemap is ${all.length} entries — approaching Google's 50k limit. Plan to split job pages into /api/sitemaps/jobs/[batch] before exceeding 48000.`);
+    }
+    if (all.length > 48000) {
+      logger.error(`[sitemap] Primary sitemap is ${all.length} entries — Google may reject the whole sitemap (50k cap). Splitting job pages into batches is now mandatory.`);
+    }
+    // Per-section sanity floors — if any of these collapse to 0 unexpectedly,
+    // the DB query likely silently failed and we'd be poisoning Google with
+    // a near-empty sitemap. Better to fail-fast and let the outer catch return
+    // the static-only sitemap.
+    if (jobs.length === 0) {
+      throw new Error('Sitemap: 0 active jobs returned — DB likely degraded; aborting to avoid empty sitemap.');
+    }
+
+    return all
   } catch (error) {
     logger.error('Error generating sitemap, returning static pages only:', error)
     return [

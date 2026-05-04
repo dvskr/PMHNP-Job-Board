@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     template: `%s | ${brand.name}`,
   },
 
-  description: 'Browse thousands of PMHNP jobs updated daily. Find remote, telehealth, and in-person psychiatric NP positions with salary transparency across all 50 states. Free for job seekers.',
+  description: 'Browse thousands of PMHNP jobs updated daily. Remote, telehealth & in-person psychiatric NP positions with salary transparency. Free for job seekers.',
 
   keywords: [
     'PMHNP jobs',
@@ -160,6 +160,9 @@ export default async function RootLayout({
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        {/* Preconnect to Supabase CDN for hero/LCP image */}
+        <link rel="preconnect" href="https://sggccmqjzuimwlahocmy.supabase.co" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://sggccmqjzuimwlahocmy.supabase.co" />
         {/* AI & GEO Discovery Links */}
         <link rel="author" href="/humans.txt" />
         <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM Site Information" />
@@ -177,7 +180,8 @@ export default async function RootLayout({
                   "@type": "Organization",
                   "@id": `${brand.baseUrl}/#organization`,
                   "name": brand.name,
-                  "alternateName": `${brand.niche.short} Jobs`,
+                  "alternateName": [`${brand.niche.short} Jobs`, brand.legal.entityName],
+                  "legalName": brand.legal.entityName,
                   "url": brand.baseUrl,
                   "logo": `${brand.baseUrl}/logo.png`,
                   "image": `${brand.baseUrl}/pmhnp_logo.png`,
@@ -186,6 +190,14 @@ export default async function RootLayout({
                   "founder": {
                     "@type": "Person",
                     "name": brand.legal.founderName
+                  },
+                  "address": {
+                    "@type": "PostalAddress",
+                    "streetAddress": brand.legal.addressLine,
+                    "addressLocality": brand.legal.addressCity,
+                    "addressRegion": brand.legal.addressRegion,
+                    "postalCode": brand.legal.addressPostalCode,
+                    "addressCountry": brand.legal.addressCountry,
                   },
                   "sameAs": [
                     brand.social.linkedin,

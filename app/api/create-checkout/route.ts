@@ -6,9 +6,27 @@ import { createId } from '@paralleldrive/cuid2';
 import { config, PricingTier } from '@/lib/config';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
-import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail } from '@/lib/sanitize';
+import {
+  sanitizeJobPosting,
+  sanitizeUrl,
+  sanitizeEmail,
+  sanitizeText,
+  normalizeContentWhitespace,
+} from '@/lib/sanitize';
+import { createClient } from '@/lib/supabase/server';
+import { normalizeSalary } from '@/lib/salary-normalizer';
+import { formatDisplaySalary } from '@/lib/salary-display';
+import { computeQualityScore } from '@/lib/utils/quality-score';
+import { parseLocation } from '@/lib/location-parser';
+import { summarizeForMeta } from '@/lib/description-cleaner';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy Stripe client — instantiated per-request so a missing STRIPE_SECRET_KEY
+// surfaces as a clean 503 instead of crashing on module import.
+function getStripe(): Stripe | null {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return null;
+  return new Stripe(key);
+}
 
 interface CheckoutRequestBody {
   title: string;
@@ -20,10 +38,24 @@ interface CheckoutRequestBody {
   jobType: string;
   salaryMin?: number | null;
   salaryMax?: number | null;
+  salaryPeriod?: string;
   salaryCompetitive?: boolean;
   description: string;
-  applyUrl: string;
+  applyUrl?: string;
+  applyOnPlatform?: boolean;
   pricingTier?: PricingTier; // ignored — single tier, kept for backward compat
+  benefits?: string[];
+  setting?: string;
+  population?: string;
+  companyLogoUrl?: string;
+  screeningQuestions?: {
+    text: string;
+    type: string;
+    options?: string[];
+    required?: boolean;
+    knockout?: boolean;
+    knockoutAnswer?: string;
+  }[];
 }
 
 export async function POST(request: NextRequest) {
@@ -32,178 +64,260 @@ export async function POST(request: NextRequest) {
   if (rateLimitResult) return rateLimitResult;
 
   try {
-    // Paid checkout is always available — used when employer has used their free posts
+    const stripe = getStripe();
+    if (!stripe) {
+      logger.error('Paid checkout attempted but STRIPE_SECRET_KEY is not configured', null);
+      return NextResponse.json(
+        { error: 'Paid checkout is currently unavailable' },
+        { status: 503 }
+      );
+    }
 
     const rawBody: CheckoutRequestBody = await request.json();
 
-    // Sanitize inputs
-    const body = {
-      ...rawBody,
-      title: sanitizeJobPosting({ ...rawBody, title: rawBody.title || '' } as any).title,
-      companyName: sanitizeJobPosting({ ...rawBody, employer: rawBody.companyName || '' } as any).employer,
-      companyWebsite: rawBody.companyWebsite ? sanitizeUrl(rawBody.companyWebsite) : undefined,
-      contactEmail: sanitizeEmail(rawBody.contactEmail || ''),
-      location: sanitizeJobPosting({ ...rawBody, location: rawBody.location || '' } as any).location,
-      description: sanitizeJobPosting({ ...rawBody, description: rawBody.description || '' } as any).description,
-      applyUrl: sanitizeUrl(rawBody.applyUrl || ''),
-    };
+    // Auth — paid posts still must be tied to an authenticated employer.
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      }
+      const profile = await prisma.userProfile.findUnique({
+        where: { supabaseId: user.id },
+      });
+      if (!profile) {
+        return NextResponse.json({ error: 'User profile not found' }, { status: 403 });
+      }
+      if (profile.role !== 'employer') {
+        return NextResponse.json(
+          { error: 'Only employer accounts can post jobs.' },
+          { status: 403 }
+        );
+      }
+      userId = user.id;
+    } catch (authErr) {
+      logger.warn('Failed to fetch user session in create-checkout', { error: authErr });
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
+    }
+
+    // Sanitize core fields
+    const sanitized = sanitizeJobPosting({
+      title: rawBody.title || '',
+      employer: rawBody.companyName || '',
+      location: rawBody.location || '',
+      description: normalizeContentWhitespace(rawBody.description ?? ''),
+      applyLink: rawBody.applyUrl || null,
+      contactEmail: rawBody.contactEmail || '',
+      mode: rawBody.mode,
+      jobType: rawBody.jobType,
+      companyWebsite: rawBody.companyWebsite,
+      minSalary: rawBody.salaryMin ?? undefined,
+      maxSalary: rawBody.salaryMax ?? undefined,
+      salaryPeriod: rawBody.salaryPeriod,
+    });
+
+    const applyOnPlatform = !!rawBody.applyOnPlatform;
 
     // Validate required fields
-    const {
-      title,
-      companyName: employer,
-      companyWebsite,
-      contactEmail,
-      location,
-      mode,
-      jobType,
-      salaryMin,
-      salaryMax,
-      salaryCompetitive,
-      description,
-      applyUrl: applyLink,
-      pricingTier: _pricing, // ignored in single-tier model
-    } = body;
+    const missing: string[] = [];
+    if (!sanitized.title.trim()) missing.push('title');
+    if (!sanitized.employer.trim()) missing.push('company name');
+    if (!sanitized.location.trim()) missing.push('location');
+    if (!sanitized.mode) missing.push('work mode');
+    if (!sanitized.jobType) missing.push('job type');
+    if (!sanitized.description.trim()) missing.push('description');
+    if (!sanitized.contactEmail) missing.push('contact email');
+    if (!applyOnPlatform && !sanitized.applyLink) missing.push('apply URL');
 
-    // Validate and trim required string fields
-    const trimmedEmployer = employer?.trim();
-    const trimmedContactEmail = contactEmail?.trim();
-    const trimmedTitle = title?.trim();
-    const trimmedLocation = location?.trim();
-    const trimmedDescription = description?.trim();
-    const trimmedApplyLink = applyLink?.trim();
-
-    if (!trimmedTitle || !trimmedEmployer || !trimmedLocation || !mode || !jobType || !trimmedDescription || !trimmedApplyLink || !trimmedContactEmail) {
-      logger.warn('Validation failed. Missing required fields', {
-        title: !!trimmedTitle,
-        employer: !!trimmedEmployer,
-        location: !!trimmedLocation,
-        mode: !!mode,
-        jobType: !!jobType,
-        description: !!trimmedDescription,
-        applyLink: !!trimmedApplyLink,
-        contactEmail: !!trimmedContactEmail,
-      });
+    if (missing.length > 0) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: `Missing required fields: ${missing.join(', ')}` },
         { status: 400 }
       );
     }
 
-    // Single-tier: all paid posts are 'growth' internally, $199
-    const pricing: PricingTier = 'growth';
+    // Single-tier: all paid posts are 'pro' internally, $199
+    const pricing: PricingTier = 'pro';
     const price = config.stripePriceInCents;
 
-    // DUPLICATE CHECK
-    // Check for existing active jobs for this employer
+    // DUPLICATE CHECK — block obvious double-posts at the same title+location
     const existingEmployerJobs = await prisma.employerJob.findMany({
-      where: {
-        contactEmail: trimmedContactEmail,
-      },
-      include: {
-        job: true,
-      },
+      where: { contactEmail: sanitized.contactEmail },
+      include: { job: true },
     });
 
-    const normalizedTitle = trimmedTitle.toLowerCase();
-    const normalizedLocation = trimmedLocation.toLowerCase();
+    const normalizedTitle = sanitized.title.trim().toLowerCase();
+    const normalizedLocation = sanitized.location.trim().toLowerCase();
     const now = new Date();
 
     const duplicateJob = existingEmployerJobs.find((ej) => {
       const job = ej.job;
-      // Only check active, published jobs
       if (!job.isPublished || !job.expiresAt || new Date(job.expiresAt) < now) {
         return false;
       }
-
-      const existingTitle = job.title.trim().toLowerCase();
-      const existingLocation = job.location.trim().toLowerCase();
-
-      return existingTitle === normalizedTitle && existingLocation === normalizedLocation;
+      return (
+        job.title.trim().toLowerCase() === normalizedTitle &&
+        job.location.trim().toLowerCase() === normalizedLocation
+      );
     });
 
     if (duplicateJob) {
       return NextResponse.json(
         {
           error: 'You already have an active posting for this role',
-          editLink: `/jobs/edit/${duplicateJob.editToken}`
+          editLink: `/jobs/edit/${duplicateJob.editToken}`,
         },
         { status: 409 }
       );
     }
 
-    // Determine salary period (default to year for annual salaries)
-    const salaryPeriod = (salaryMin || salaryMax) && !salaryCompetitive ? 'year' : null;
+    // Salary parsing + normalization
+    const parsedMinSalary = (() => {
+      const val = Number(sanitized.minSalary);
+      return Number.isFinite(val) && !Number.isNaN(val) ? val : null;
+    })();
+    const parsedMaxSalary = (() => {
+      const val = Number(sanitized.maxSalary);
+      return Number.isFinite(val) && !Number.isNaN(val) ? val : null;
+    })();
+    const parsedSalaryPeriod = sanitized.salaryPeriod || (parsedMinSalary || parsedMaxSalary ? 'year' : null);
 
-    // Calculate expiry date — all posts get same duration
+    const normalizedSalary = normalizeSalary({
+      minSalary: parsedMinSalary,
+      maxSalary: parsedMaxSalary,
+      salaryPeriod: parsedSalaryPeriod,
+      title: sanitized.title,
+    });
+
+    const displaySalary = formatDisplaySalary(
+      normalizedSalary.normalizedMinSalary,
+      normalizedSalary.normalizedMaxSalary,
+      parsedSalaryPeriod
+    );
+
+    const qualityScore = computeQualityScore({
+      applyLink: sanitized.applyLink,
+      displaySalary,
+      normalizedMinSalary: normalizedSalary.normalizedMinSalary,
+      normalizedMaxSalary: normalizedSalary.normalizedMaxSalary,
+      descriptionSummary: summarizeForMeta(sanitized.description),
+      description: sanitized.description,
+      city: null,
+      state: null,
+      isEmployerPosted: true,
+    });
+
+    const parsedLoc = parseLocation(sanitized.location);
+
+    // Calculate expiry — paid duration (60 days)
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + config.durationDays);
 
-    // Generate unique edit token and dashboard token
+    // Generate unique tokens
     const editToken = crypto.randomBytes(32).toString('hex');
     const dashboardToken = createId();
 
-    // Log the data we're about to use
-    // Log the data we're about to use
-    logger.info('Creating job for checkout', {
-      employer: trimmedEmployer,
-      contactEmail: trimmedContactEmail,
-      pricing,
+    // Wrap Job + slug update + EmployerJob in one transaction so a partial
+    // failure can't leave an orphan job row that the employer can never recover.
+    const { job, employerJob } = await prisma.$transaction(async (tx) => {
+      const created = await tx.job.create({
+        data: {
+          title: sanitized.title,
+          employer: sanitized.employer,
+          location: sanitized.location,
+          jobType: sanitized.jobType || null,
+          mode: sanitized.mode || null,
+          description: sanitized.description,
+          descriptionSummary: summarizeForMeta(sanitized.description),
+          applyLink: applyOnPlatform ? null : sanitized.applyLink,
+          applyOnPlatform,
+          minSalary: parsedMinSalary,
+          maxSalary: parsedMaxSalary,
+          salaryPeriod: parsedSalaryPeriod,
+          normalizedMinSalary: normalizedSalary.normalizedMinSalary,
+          normalizedMaxSalary: normalizedSalary.normalizedMaxSalary,
+          salaryIsEstimated: normalizedSalary.salaryIsEstimated,
+          salaryConfidence: normalizedSalary.salaryConfidence,
+          displaySalary,
+          city: parsedLoc.city,
+          state: parsedLoc.state,
+          stateCode: parsedLoc.stateCode,
+          isRemote: parsedLoc.isRemote,
+          isHybrid: parsedLoc.isHybrid,
+          isFeatured: config.isFeaturedTier(pricing),
+          isPublished: false, // Will be flipped by webhook on successful payment
+          sourceType: 'employer',
+          expiresAt,
+          qualityScore,
+          benefits: Array.isArray(rawBody.benefits) ? rawBody.benefits : [],
+          setting: rawBody.setting || null,
+          population: rawBody.population || null,
+        },
+      });
+
+      const computedSlug = `${sanitized.title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim()}-${created.id}`;
+
+      const updatedJob = await tx.job.update({
+        where: { id: created.id },
+        data: { slug: computedSlug },
+      });
+
+      const ej = await tx.employerJob.create({
+        data: {
+          employerName: sanitized.employer,
+          contactEmail: sanitized.contactEmail,
+          companyWebsite: sanitized.companyWebsite || null,
+          companyLogoUrl: rawBody.companyLogoUrl || null,
+          jobId: created.id,
+          editToken,
+          dashboardToken,
+          paymentStatus: 'pending',
+          pricingTier: pricing,
+          userId,
+          // Anchor — paid posts don't consume free quota (the count query
+          // filters paymentStatus='free'), but we still record the domain so
+          // ownership reporting stays consistent.
+          quotaDomain: sanitized.contactEmail.split('@')[1] || null,
+        },
+      });
+
+      return { job: updatedJob, employerJob: ej };
     });
 
-    // Create job in database first (unpublished, pending payment)
-    const job = await prisma.job.create({
-      data: {
-        title: trimmedTitle,
-        employer: trimmedEmployer,
-        location: trimmedLocation,
-        jobType,
-        mode,
-        description: trimmedDescription,
-        descriptionSummary: trimmedDescription.slice(0, 300),
-        applyLink: trimmedApplyLink,
-        minSalary: salaryMin ? Math.round(salaryMin) : null,
-        maxSalary: salaryMax ? Math.round(salaryMax) : null,
-        salaryPeriod,
-        isFeatured: config.isFeaturedTier(pricing),
-        isPublished: false, // Will be published after payment
-        sourceType: 'employer',
-        expiresAt,
-      },
-    });
+    // Persist screening questions (only for platform-apply jobs)
+    if (applyOnPlatform && Array.isArray(rawBody.screeningQuestions)) {
+      const questions = rawBody.screeningQuestions.slice(0, 5);
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        if (!q?.text || typeof q.text !== 'string') continue;
 
-    logger.info('Job created successfully', { jobId: job.id });
+        const validTypes = ['boolean', 'text', 'select', 'number'];
+        const qType = validTypes.includes(q.type) ? q.type : 'boolean';
 
-    // Generate and update slug
-    const slug = `${trimmedTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim()}-${job.id}`;
+        await prisma.jobScreeningQuestion.create({
+          data: {
+            jobId: job.id,
+            questionText: sanitizeText(q.text, 200),
+            questionType: qType,
+            options: Array.isArray(q.options)
+              ? q.options.map((o: string) => sanitizeText(String(o), 100)).slice(0, 10)
+              : [],
+            isRequired: !!q.required,
+            isKnockout: !!q.knockout,
+            knockoutAnswer: q.knockoutAnswer ? sanitizeText(String(q.knockoutAnswer), 100) : null,
+            sortOrder: i,
+          },
+        });
+      }
+    }
 
-    await prisma.job.update({
-      where: { id: job.id },
-      data: { slug },
-    });
-
-    // Create employer job record
-    const employerJobData = {
-      employerName: trimmedEmployer,
-      contactEmail: trimmedContactEmail,
-      companyWebsite: companyWebsite?.trim() || null,
-      jobId: job.id,
-      editToken,
-      dashboardToken,
-      paymentStatus: 'pending',
-      pricingTier: pricing,
-    };
-
-    logger.debug('Creating employer job record', { jobId: job.id, email: trimmedContactEmail });
-
-    const employerJob = await prisma.employerJob.create({
-      data: employerJobData,
-    });
+    logger.info('Job created for paid checkout', { jobId: job.id, userId });
 
     // Create Stripe Checkout session with job ID and dashboard token in metadata
     const session = await stripe.checkout.sessions.create({
@@ -213,8 +327,8 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `Job Post: ${trimmedTitle}`,
-              description: `${trimmedEmployer} - ${trimmedLocation}`,
+              name: `Job Post: ${sanitized.title}`,
+              description: `${sanitized.employer} - ${sanitized.location}`,
             },
             unit_amount: price,
           },
@@ -222,6 +336,30 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: 'payment',
+      customer_email: sanitized.contactEmail,
+      // B2B polish — collect billing address + optional tax ID, generate
+      // downloadable PDF invoice (one-time Checkout payments don't create
+      // Invoice objects by default; this opts in).
+      billing_address_collection: 'required',
+      tax_id_collection: { enabled: true },
+      // Force Stripe to send a receipt email regardless of the dashboard
+      // "Successful payments" toggle. The toggle is gated behind live-account
+      // activation, but `receipt_email` on the underlying PaymentIntent
+      // bypasses it — works in sandbox immediately and stays correct in live.
+      payment_intent_data: {
+        receipt_email: sanitized.contactEmail,
+      },
+      invoice_creation: {
+        enabled: true,
+        invoice_data: {
+          description: `Job Post: ${sanitized.title} — ${sanitized.employer} (${sanitized.location})`,
+          metadata: {
+            jobId: job.id,
+            employerJobId: employerJob.id,
+          },
+          rendering_options: { amount_tax_display: 'exclude_tax' },
+        },
+      },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/post-job`,
       metadata: {
@@ -231,14 +369,27 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    if (!session.url) {
+      logger.error('Stripe returned a checkout session without a URL', null, { sessionId: session.id });
+      return NextResponse.json(
+        { error: 'Checkout session created but URL is missing' },
+        { status: 502 }
+      );
+    }
+
     return NextResponse.json({
       sessionId: session.id,
       url: session.url,
     });
   } catch (error) {
     logger.error('Error creating checkout session', error);
+    // In dev, surface the underlying cause so we don't have to grep server logs.
+    const isDev = process.env.NODE_ENV !== 'production';
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      {
+        error: 'Failed to create checkout session',
+        ...(isDev && { cause: error instanceof Error ? error.message : String(error) }),
+      },
       { status: 500 }
     );
   }

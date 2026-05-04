@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,7 +37,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `${stats.totalJobs} Private Practice PMHNP Jobs ($150K-300K)`, description: `Find ${stats.totalJobs} private practice PMHNP positions. Solo, group, and independent practice roles paying $150K-300K+.`, alternates: { canonical: 'https://pmhnphiring.com/jobs/private-practice' } };
+  return { title: `${stats.totalJobs} Private Practice PMHNP Jobs ($150K-300K)`, description: `Find ${stats.totalJobs} private practice PMHNP positions. Solo, group, and independent practice roles paying $150K-300K+.`, alternates: { canonical: `${brand.baseUrl}/jobs/private-practice` } };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }

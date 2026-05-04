@@ -26,9 +26,35 @@ export async function GET() {
         }
 
         const tier = await getEmployerTier(user.id);
-        const [usage, postings] = await Promise.all([
+        // AI search usage (today, Central Time). Counted from ai_call_log
+        // for the talent_search_rerank task. Same cap + reset window the
+        // talent search route enforces — keep the values in sync if the
+        // route ever bumps the cap.
+        const AI_SEARCH_CAP = 10;
+        const midnightCt = (() => {
+            const now = new Date();
+            const dateStr = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Chicago',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+            }).format(now);
+            const offsetParts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Chicago', timeZoneName: 'longOffset',
+            }).formatToParts(now);
+            const offsetRaw = offsetParts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT-06:00';
+            return new Date(`${dateStr}T00:00:00${offsetRaw.replace('GMT', '') || '-06:00'}`);
+        })();
+
+        const [usage, postings, aiSearchesUsed] = await Promise.all([
             getUsageSummary(profile.id, user.id, tier),
             getPerPostingUsage(profile.id, user.id),
+            prisma.aiCallLog.count({
+                where: {
+                    task: 'talent_search_rerank',
+                    tenantType: 'employer',
+                    tenantId: user.id,
+                    createdAt: { gte: midnightCt },
+                },
+            }),
         ]);
 
         return NextResponse.json({
@@ -44,6 +70,11 @@ export async function GET() {
                     used: usage.inmails.used,
                     limit: Number.isFinite(usage.inmails.limit) ? usage.inmails.limit : null,
                     unlimited: !Number.isFinite(usage.inmails.limit),
+                },
+                aiSearches: {
+                    used: aiSearchesUsed,
+                    limit: AI_SEARCH_CAP,
+                    remaining: Math.max(0, AI_SEARCH_CAP - aiSearchesUsed),
                 },
             },
             postings,

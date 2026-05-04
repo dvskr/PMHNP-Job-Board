@@ -343,9 +343,10 @@ async function getCitiesWithJobs(stateName: string, stateCode: string): Promise<
 /**
  * Generate metadata for SEO
  */
-export async function generateMetadata({ params }: StatePageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: StatePageProps): Promise<Metadata> {
   try {
-    const { state: stateParam } = await params;
+    const [{ state: stateParam }, sp] = await Promise.all([params, searchParams]);
+    const page = Math.max(1, parseInt(sp.page || '1'));
     const stateInfo = parseStateParam(stateParam);
 
     if (!stateInfo) {
@@ -382,10 +383,13 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
         }],
       },
       alternates: {
+        // Canonical always points to page 1 (no ?page query) — paginated
+        // views are not indexable on their own (P3.5).
         canonical: `https://pmhnphiring.com/jobs/state/${stateParam}`,
       },
-      // Prevent Google from indexing empty state pages (fixes soft 404s)
-      ...(stats.totalJobs === 0 && {
+      // GSC Fix (P3.1 + P3.5): noindex empty-state pages AND any paginated view.
+      // Empty state → soft 404 risk; paginated view → duplicate-canonical risk.
+      ...((stats.totalJobs === 0 || page > 1) && {
         robots: {
           index: false,
           follow: true,
@@ -424,6 +428,20 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
     getCitiesWithJobs(stateName, stateCode),
     getNearbyStatesWithJobs(stateName),
   ]);
+
+  // GSC Fix (P1.5): only render setting pills for setting×state combos that
+  // actually have ≥1 active job. Linking to empty pages generated thousands
+  // of "Discovered — currently not indexed" entries.
+  const stateSlugForLookup = stateName.toLowerCase().replace(/\s+/g, '-');
+  const validSettingRows = await prisma.pseoStats.findMany({
+    where: {
+      type: 'setting-state',
+      locationSlug: stateSlugForLookup,
+      totalJobs: { gte: 1 },
+    },
+    select: { categorySlug: true },
+  });
+  const validSettingSlugs = new Set(validSettingRows.map(r => r.categorySlug));
 
   const totalPages = Math.ceil(stats.totalJobs / limit);
 
@@ -725,18 +743,26 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
                 Job Types in {stateName}
               </h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {/* GSC Fix (P1.5): only render settings that have a state-eligible
+                    page AND ≥1 active job in this state. Removed the city-only
+                    taxonomies (substance-abuse, child-adolescent, private-practice,
+                    per-diem) from this list because they have no /jobs/{cat}/{state}
+                    page — those URLs would 410. */}
                 {[
                   { slug: 'remote', label: 'Remote' },
                   { slug: 'telehealth', label: 'Telehealth' },
                   { slug: 'outpatient', label: 'Outpatient' },
                   { slug: 'inpatient', label: 'Inpatient' },
                   { slug: 'travel', label: 'Travel' },
-                  { slug: 'substance-abuse', label: 'Substance Abuse' },
-                  { slug: 'child-adolescent', label: 'Child & Adolescent' },
-                  { slug: 'private-practice', label: 'Private Practice' },
-                  { slug: 'per-diem', label: 'Per Diem' },
                   { slug: 'new-grad', label: 'New Grad' },
-                ].map((setting) => (
+                  { slug: 'full-time', label: 'Full-Time' },
+                  { slug: 'part-time', label: 'Part-Time' },
+                  { slug: 'contract', label: 'Contract' },
+                  { slug: 'addiction', label: 'Addiction' },
+                  { slug: 'behavioral-health', label: 'Behavioral Health' },
+                  { slug: 'correctional', label: 'Correctional' },
+                  { slug: '1099', label: '1099' },
+                ].filter((setting) => validSettingSlugs.has(setting.slug)).map((setting) => (
                   <Link key={setting.slug} href={`/jobs/${setting.slug}/${stateSlug}`}
                     className="pseo-pill"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 16px', borderRadius: '12px', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#1A2E35', background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>

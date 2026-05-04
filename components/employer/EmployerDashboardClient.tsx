@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatDate, getExpiryStatus } from '@/lib/utils';
-import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield, Bell, Pause, Play, Rocket, Users, Eye, MousePointerClick, User, Plus, Briefcase, BarChart3, Star, MessageSquare, Send, HelpCircle } from 'lucide-react';
+import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield, Pause, Play, Rocket, Users, Eye, MousePointerClick, User, Plus, Briefcase, BarChart3, Star, MessageSquare, Send, HelpCircle, Archive, ArchiveRestore, Info, FileText } from 'lucide-react';
 import { config } from '@/lib/config';
+import { trackBeginCheckout } from '@/lib/analytics';
 import ApplicantsTab from '@/components/employer/ApplicantsTab';
 import AnalyticsTab from '@/components/employer/AnalyticsTab';
 import SavedCandidatesTab from '@/components/employer/SavedCandidatesTab';
@@ -24,6 +25,7 @@ interface Job {
     applicantCount?: number;
     createdAt: string;
     expiresAt: string | null;
+    archivedAt: string | null;
     editToken: string;
     paymentStatus: string;
     pricingTier: string;
@@ -73,27 +75,6 @@ const clayBtn: React.CSSProperties = {
     textDecoration: 'none',
 };
 
-const clayToggle = (isActive: boolean): React.CSSProperties => ({
-    position: 'relative',
-    width: '44px', height: '24px',
-    borderRadius: '12px',
-    background: isActive ? '#0D9488' : '#EDF5F0',
-    border: `1px solid ${isActive ? 'rgba(255,255,255,0.3)' : '#D5E8E0'}`,
-    boxShadow: isActive
-        ? '3px 3px 8px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)'
-        : 'inset 2px 2px 5px rgba(0,60,50,0.06), inset -1px -1px 3px rgba(255,255,255,0.4)',
-    cursor: 'pointer', transition: 'all 0.2s',
-    flexShrink: 0,
-});
-
-const clayToggleKnob = (isActive: boolean): React.CSSProperties => ({
-    position: 'absolute', top: '2px',
-    left: isActive ? '22px' : '2px',
-    width: '18px', height: '18px', borderRadius: '50%',
-    background: '#fff',
-    transition: 'all 0.2s',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-});
 
 
 export default function EmployerDashboardClient({ employerEmail, employerName, jobs, dashboardToken }: EmployerDashboardClientProps) {
@@ -104,61 +85,20 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     const [showRenewModal, setShowRenewModal] = useState(false);
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [togglingJobId, setTogglingJobId] = useState<string | null>(null);
+    const [archivingJobId, setArchivingJobId] = useState<string | null>(null);
+    const [jobFilter, setJobFilter] = useState<'active' | 'archived'>('active');
+    const [archiveTarget, setArchiveTarget] = useState<Job | null>(null);
+    // Unpublish-reason capture: when employer pauses a live job, prompt them
+    // for the reason. Republishing skips the modal entirely (handled below).
+    const [unpublishTarget, setUnpublishTarget] = useState<Job | null>(null);
+    const [unpublishReason, setUnpublishReason] = useState<string>('');
+    const [unpublishNote, setUnpublishNote] = useState<string>('');
     const [localJobs, setLocalJobs] = useState(jobs);
     const [showSignupBanner, setShowSignupBanner] = useState(isTokenAccess);
     const [activeTab, setActiveTab] = useState<'jobs' | 'applicants' | 'analytics' | 'saved' | 'messages'>('jobs');
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => { setMounted(true); }, []);
-
-    // Newsletter (only for logged-in users)
-    const [newsletterOptIn, setNewsletterOptIn] = useState(false);
-    const [newsletterLoading, setNewsletterLoading] = useState(false);
-    const [newsletterChecked, setNewsletterChecked] = useState(false);
-
-    useEffect(() => {
-        if (isTokenAccess) return; // Skip newsletter for token access
-        fetch('/api/newsletter/status?' + new URLSearchParams({ email: employerEmail }))
-            .then(r => r.json())
-            .then(d => { setNewsletterOptIn(d.optIn ?? false); setNewsletterChecked(true); })
-            .catch(() => setNewsletterChecked(true));
-    }, [employerEmail, isTokenAccess]);
-
-    // Notification preferences (only for logged-in users)
-    interface NotifPref {
-        employerJobId: string;
-        jobId: string;
-        jobTitle: string;
-        notifyOnApplication: boolean;
-        notifyDigest: string;
-    }
-    const [notifPrefs, setNotifPrefs] = useState<NotifPref[]>([]);
-    const [notifLoading, setNotifLoading] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (isTokenAccess) return;
-        fetch('/api/employer/settings/notifications')
-            .then(r => r.json())
-            .then(d => setNotifPrefs(d.preferences || []))
-            .catch(() => { });
-    }, [isTokenAccess]);
-
-    const handleNewsletterToggle = async () => {
-        setNewsletterLoading(true);
-        const newState = !newsletterOptIn;
-        setNewsletterOptIn(newState);
-        try {
-            await fetch('/api/newsletter', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: employerEmail, optIn: newState, source: 'employer_newsletter' }),
-            });
-        } catch {
-            setNewsletterOptIn(!newState);
-        } finally {
-            setNewsletterLoading(false);
-        }
-    };
 
     const getStatusBadge = (job: Job) => {
         if (!job.isPublished) {
@@ -193,11 +133,26 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
         setShowRenewModal(true);
     };
 
-    const handleTogglePublish = async (job: Job) => {
+    // Click handler on the Pause/Unpause button. For "pause" (published -> not),
+    // open the reason modal first; for "unpause" (not -> published), call the
+    // API immediately — no reason needed for republish.
+    const handleTogglePublish = (job: Job) => {
+        if (job.isPublished) {
+            setUnpublishTarget(job);
+            setUnpublishReason('');
+            setUnpublishNote('');
+            return;
+        }
+        void performTogglePublish(job, null, null);
+    };
+
+    const performTogglePublish = async (job: Job, reason: string | null, note: string | null) => {
         setTogglingJobId(job.id);
         try {
             const res = await fetch(`/api/employer/jobs/${job.id}/toggle-publish`, {
                 method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: reason ? JSON.stringify({ reason, note: note ?? undefined }) : undefined,
             });
             const result = await res.json();
             if (res.ok && result.success) {
@@ -207,14 +162,55 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
             }
         } catch { /* silent */ } finally {
             setTogglingJobId(null);
+            setUnpublishTarget(null);
         }
     };
 
-    const handleRenewCheckout = async (tier: 'starter' | 'growth' | 'premium') => {
+    const submitUnpublish = () => {
+        if (!unpublishTarget) return;
+        // Allow paused-without-reason — don't force the user to pick. The modal
+        // suggests options but skipping is a single click on "Pause anyway".
+        const reason = unpublishReason || null;
+        const note = unpublishReason === 'other' ? unpublishNote : null;
+        void performTogglePublish(unpublishTarget, reason, note);
+    };
+
+    const handleToggleArchive = (job: Job) => {
+        // Restoring is reversible — no confirmation needed. Archiving needs confirmation
+        // because the job leaves the public board and free posts don't refund quota.
+        if (job.archivedAt) {
+            void performArchiveToggle(job);
+            return;
+        }
+        setArchiveTarget(job);
+    };
+
+    const performArchiveToggle = async (job: Job) => {
+        setArchivingJobId(job.id);
+        setArchiveTarget(null);
+        try {
+            const res = await fetch(`/api/employer/jobs/${job.id}/archive`, { method: 'PATCH' });
+            const result = await res.json();
+            if (res.ok && result.success) {
+                setLocalJobs(prev => prev.map(j =>
+                    j.id === job.id
+                        ? { ...j, archivedAt: result.archivedAt, isPublished: result.archivedAt ? false : j.isPublished }
+                        : j
+                ));
+            }
+        } catch { /* silent */ } finally {
+            setArchivingJobId(null);
+        }
+    };
+
+    const handleRenewCheckout = async (tier: 'pro') => {
         if (!selectedJob) return;
 
         setRenewingJobId(selectedJob.id);
         setShowRenewModal(false);
+
+        // P7: fire begin_checkout for renewal
+        trackBeginCheckout(config.stripeRenewalPriceInCents, 'renewal');
 
         try {
             const response = await fetch('/api/create-renewal-checkout', {
@@ -298,12 +294,12 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     ];
 
     return (
-        <div style={{ background: '#F5F6F8' }}>
+        <div style={{ background: '#F5F0EB' }}>
             {/* ═══ Hero Header ═══ */}
             <div style={{
                 padding: '16px 16px 20px',
-                background: 'linear-gradient(180deg, #F0F2F5 0%, #F5F6F8 100%)',
-                borderBottom: '1px solid #E5E7EB',
+                background: 'linear-gradient(180deg, #EDE7E0 0%, #F5F0EB 100%)',
+                borderBottom: '1px solid #E5DDD3',
             }}>
                 <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
                     {/* Signup Banner — token-access only */}
@@ -551,10 +547,52 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                             </div>
                         )}
 
+                        {/* Active / Archived filter — visible only when there's at least one archived job */}
+                        {localJobs.some(j => j.archivedAt) && localJobs.length > 0 && (
+                            <div style={{
+                                ...cardRecessed, display: 'inline-flex', gap: '4px', padding: '4px',
+                                marginBottom: '14px',
+                            }}>
+                                {(['active', 'archived'] as const).map(f => {
+                                    const count = localJobs.filter(j => f === 'archived' ? !!j.archivedAt : !j.archivedAt).length;
+                                    return (
+                                        <button
+                                            key={f}
+                                            onClick={() => setJobFilter(f)}
+                                            style={{
+                                                padding: '6px 14px', borderRadius: '10px',
+                                                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                                                background: jobFilter === f ? '#fff' : 'transparent',
+                                                color: jobFilter === f ? '#1A2E35' : '#8A9BA6',
+                                                border: jobFilter === f ? '1px solid rgba(255,255,255,0.5)' : '1px solid transparent',
+                                                boxShadow: jobFilter === f
+                                                    ? '2px 2px 6px rgba(0,0,0,0.05), -1px -1px 4px rgba(255,255,255,0.7), inset 1px 1px 1px rgba(255,255,255,0.5)'
+                                                    : 'none',
+                                                textTransform: 'capitalize',
+                                            }}
+                                        >
+                                            {f} ({count})
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
                         {/* Jobs List */}
-                        {localJobs.length > 0 && (
+                        {localJobs.length > 0 && (() => {
+                            const filteredJobs = localJobs.filter(j => jobFilter === 'archived' ? !!j.archivedAt : !j.archivedAt);
+                            if (filteredJobs.length === 0) {
+                                return (
+                                    <div style={{ ...cardBase, padding: '32px 24px', textAlign: 'center' }}>
+                                        <p style={{ fontSize: '13px', color: '#8A9BA6', margin: 0 }}>
+                                            {jobFilter === 'archived' ? 'No archived jobs yet.' : 'No active jobs.'}
+                                        </p>
+                                    </div>
+                                );
+                            }
+                            return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {localJobs.map((job: Job) => (
+                                {filteredJobs.map((job: Job) => (
                                     <div key={job.id} className="emp-job-card" style={{
                                         ...cardBase, padding: '18px 20px',
                                         transition: 'all 0.2s',
@@ -576,6 +614,12 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                     {job.isFeatured && (
                                                         <span style={{ ...clayPill, background: '#CCFBF1', color: '#0D9488' }}>★ Featured</span>
                                                     )}
+                                                    {(job.paymentStatus === 'free' || job.paymentStatus === 'free_renewed' || job.paymentStatus === 'free_upgraded') && (
+                                                        <span style={{ ...clayPill, background: '#F0FDFA', color: '#0D9488', border: '1px solid rgba(13,148,136,0.18)' }}>Free trial</span>
+                                                    )}
+                                                    {job.archivedAt && (
+                                                        <span style={{ ...clayPill, background: '#EDE9FE', color: '#7C3AED' }}>Archived</span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -588,11 +632,18 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                             <span style={{ ...cardRecessed, padding: '4px 10px', fontSize: '11px', fontWeight: 600, color: '#6B7F8A', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                                 <MousePointerClick size={11} /> {job.applyClickCount} clicks
                                             </span>
-                                            {(job.applicantCount !== undefined && job.applicantCount > 0) && (
-                                                <span style={{ ...cardRecessed, padding: '4px 10px', fontSize: '11px', fontWeight: 600, color: '#059669', background: '#D1FAE5', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                    <User size={11} /> {job.applicantCount} applicant{job.applicantCount !== 1 ? 's' : ''}
-                                                </span>
-                                            )}
+                                            {/* Always render the applicant chip — even at zero — so the row reads
+                                                consistently with the views and clicks chips. Greyed when zero so the
+                                                empty state doesn't read as "broken counter". */}
+                                            <span style={{
+                                                ...cardRecessed,
+                                                padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                                                color: (job.applicantCount ?? 0) > 0 ? '#059669' : '#6B7F8A',
+                                                background: (job.applicantCount ?? 0) > 0 ? '#D1FAE5' : undefined,
+                                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                            }}>
+                                                <User size={11} /> {(job.applicantCount ?? 0)} applicant{(job.applicantCount ?? 0) !== 1 ? 's' : ''}
+                                            </span>
                                         </div>
 
                                         {/* Date Row */}
@@ -607,11 +658,13 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                             {job.paymentStatus === 'paid' && (
                                                 <a
                                                     href={`/api/employer/invoice?jobId=${job.id}${dashboardToken ? `&token=${dashboardToken}` : ''}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    style={{ color: '#0D9488', textDecoration: 'underline', fontWeight: 600 }}
+                                                    download={`invoice-${(job.title || 'job').replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`}
+                                                    style={{
+                                                        color: '#0D9488', textDecoration: 'none', fontWeight: 600,
+                                                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                    }}
                                                 >
-                                                    Download Invoice
+                                                    <FileText size={11} /> Download Invoice
                                                 </a>
                                             )}
                                         </div>
@@ -623,24 +676,30 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                             }}>
                                                 <Edit size={14} /> Edit
                                             </Link>
-                                            {mounted && !isExpired(job) && (
-                                                <button
-                                                    onClick={() => handleTogglePublish(job)}
-                                                    disabled={togglingJobId === job.id}
-                                                    className="emp-action-btn"
-                                                    style={{
-                                                        ...clayBtn,
-                                                        background: job.isPublished ? '#FEF3C7' : '#D1FAE5',
-                                                        color: job.isPublished ? '#D97706' : '#059669',
-                                                        opacity: togglingJobId === job.id ? 0.6 : 1,
-                                                    }}
-                                                >
-                                                    {togglingJobId === job.id
-                                                        ? <Loader2 size={14} className="animate-spin" />
-                                                        : job.isPublished ? <Pause size={14} /> : <Play size={14} />}
-                                                    {togglingJobId === job.id ? '...' : job.isPublished ? 'Pause' : 'Unpause'}
-                                                </button>
-                                            )}
+                                            {mounted && (() => {
+                                                const expired = isExpired(job);
+                                                const disabled = expired || togglingJobId === job.id;
+                                                return (
+                                                    <button
+                                                        onClick={() => !expired && handleTogglePublish(job)}
+                                                        disabled={disabled}
+                                                        title={expired ? 'This posting has expired — renew or post a new listing to make changes.' : undefined}
+                                                        className="emp-action-btn"
+                                                        style={{
+                                                            ...clayBtn,
+                                                            background: expired ? '#F3F4F6' : (job.isPublished ? '#FEF3C7' : '#D1FAE5'),
+                                                            color: expired ? '#B0BEC5' : (job.isPublished ? '#D97706' : '#059669'),
+                                                            opacity: togglingJobId === job.id ? 0.6 : (expired ? 0.55 : 1),
+                                                            cursor: expired ? 'not-allowed' : 'pointer',
+                                                        }}
+                                                    >
+                                                        {togglingJobId === job.id
+                                                            ? <Loader2 size={14} className="animate-spin" />
+                                                            : job.isPublished ? <Pause size={14} /> : <Play size={14} />}
+                                                        {togglingJobId === job.id ? '...' : job.isPublished ? 'Pause' : 'Unpause'}
+                                                    </button>
+                                                );
+                                            })()}
                                             {/* Upgrade button removed — single-tier model */}
                                             {mounted && shouldShowRenew(job) && (
                                                 <button
@@ -659,118 +718,336 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                     {renewingJobId === job.id ? 'Processing...' : 'Renew'}
                                                 </button>
                                             )}
+                                            {/* Archive / Restore — always available, hides post from public board */}
+                                            <button
+                                                onClick={() => handleToggleArchive(job)}
+                                                disabled={archivingJobId === job.id}
+                                                className="emp-action-btn"
+                                                style={{
+                                                    ...clayBtn,
+                                                    background: job.archivedAt ? '#EDE9FE' : '#F3F4F6',
+                                                    color: job.archivedAt ? '#7C3AED' : '#6B7280',
+                                                    opacity: archivingJobId === job.id ? 0.6 : 1,
+                                                }}
+                                            >
+                                                {archivingJobId === job.id ? (
+                                                    <Loader2 size={14} className="animate-spin" />
+                                                ) : job.archivedAt ? (
+                                                    <ArchiveRestore size={14} />
+                                                ) : (
+                                                    <Archive size={14} />
+                                                )}
+                                                {archivingJobId === job.id ? '...' : job.archivedAt ? 'Restore' : 'Archive'}
+                                            </button>
                                         </div>
+
+                                        {/* Pause-doesn't-extend hint — only when paused, not archived, not expired */}
+                                        {mounted && !job.isPublished && !job.archivedAt && !isExpired(job) && (
+                                            <div style={{
+                                                display: 'flex', alignItems: 'flex-start', gap: '6px',
+                                                fontSize: '11px', color: '#8A9BA6', margin: '10px 0 0',
+                                                lineHeight: 1.5,
+                                            }}>
+                                                <Info size={13} style={{ flexShrink: 0, marginTop: '1px', color: '#B0BEC5' }} />
+                                                <span>Pausing hides the listing but doesn&apos;t extend it — your {config.durationDays}-day window keeps counting.</span>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
-                        )}
-
-                        {/* Newsletter Opt-in — session access only */}
-                        {!isTokenAccess && newsletterChecked && (
-                            <div style={{ ...cardBase, padding: '16px 20px', marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{
-                                        width: '36px', height: '36px', borderRadius: '12px',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        background: '#CCFBF1', color: '#0D9488',
-                                        border: '1px solid rgba(255,255,255,0.5)',
-                                        boxShadow: '3px 3px 8px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.7)',
-                                    }}>
-                                        <Mail size={16} />
-                                    </div>
-                                    <div>
-                                        <p style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: 0 }}>Employer Newsletter</p>
-                                        <p style={{ fontSize: '11px', color: '#8A9BA6', margin: 0 }}>Hiring tips, salary benchmarks & PMHNP market insights</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={handleNewsletterToggle}
-                                    disabled={newsletterLoading}
-                                    style={clayToggle(newsletterOptIn)}
-                                >
-                                    <div style={clayToggleKnob(newsletterOptIn)} />
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Notification Preferences — session access only */}
-                        {!isTokenAccess && notifPrefs.length > 0 && (
-                            <div style={{ ...cardBase, padding: '18px 20px', marginTop: '12px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-                                    <div style={{
-                                        width: '36px', height: '36px', borderRadius: '12px',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        background: '#CCFBF1', color: '#0D9488',
-                                        border: '1px solid rgba(255,255,255,0.5)',
-                                        boxShadow: '3px 3px 8px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.7)',
-                                    }}>
-                                        <Bell size={16} />
-                                    </div>
-                                    <div>
-                                        <p style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: 0 }}>Application Notifications</p>
-                                        <p style={{ fontSize: '11px', color: '#8A9BA6', margin: 0 }}>Get notified when candidates apply</p>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {notifPrefs.map(pref => (
-                                        <div
-                                            key={pref.employerJobId}
-                                            style={{
-                                                ...cardRecessed, padding: '10px 14px',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
-                                            }}
-                                        >
-                                            <div style={{ minWidth: 0, flex: 1 }}>
-                                                <p style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pref.jobTitle}</p>
-                                                <p style={{ fontSize: '10px', color: '#8A9BA6', margin: 0 }}>
-                                                    {pref.notifyOnApplication ? 'Email on each application' : 'Notifications off'}
-                                                </p>
-                                            </div>
-                                            <button
-                                                onClick={async () => {
-                                                    setNotifLoading(pref.employerJobId);
-                                                    const newState = !pref.notifyOnApplication;
-                                                    setNotifPrefs(prev => prev.map(p =>
-                                                        p.employerJobId === pref.employerJobId
-                                                            ? { ...p, notifyOnApplication: newState }
-                                                            : p
-                                                    ));
-                                                    try {
-                                                        await fetch('/api/employer/settings/notifications', {
-                                                            method: 'PATCH',
-                                                            headers: { 'Content-Type': 'application/json' },
-                                                            body: JSON.stringify({
-                                                                employerJobId: pref.employerJobId,
-                                                                notifyOnApplication: newState,
-                                                            }),
-                                                        });
-                                                    } catch {
-                                                        setNotifPrefs(prev => prev.map(p =>
-                                                            p.employerJobId === pref.employerJobId
-                                                                ? { ...p, notifyOnApplication: !newState }
-                                                                : p
-                                                        ));
-                                                    } finally {
-                                                        setNotifLoading(null);
-                                                    }
-                                                }}
-                                                disabled={notifLoading === pref.employerJobId}
-                                                style={clayToggle(pref.notifyOnApplication)}
-                                            >
-                                                <div style={clayToggleKnob(pref.notifyOnApplication)} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
+                            );
+                        })()}
 
                     </>
                 )}
 
-                {/* ═══ Renewal Modal ═══ */}
-                {showRenewModal && selectedJob && (
+                {/* ═══ Archive Confirmation Modal — branches by paid vs free ═══ */}
+                {archiveTarget && (() => {
+                    const isFreePost = archiveTarget.paymentStatus === 'free'
+                        || archiveTarget.paymentStatus === 'free_renewed'
+                        || archiveTarget.paymentStatus === 'free_upgraded';
+                    return (
+                        <div style={{
+                            position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: '16px', zIndex: 50, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+                        }}>
+                            <div style={{
+                                ...cardBase, maxWidth: '460px', width: '100%', padding: '24px',
+                                boxShadow: '12px 12px 30px rgba(0,0,0,0.12), -6px -6px 16px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6)',
+                            }}>
+                                {/* Icon header */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                                    <div style={{
+                                        width: '44px', height: '44px', borderRadius: '14px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: '#EDE9FE', color: '#7C3AED',
+                                        border: '1px solid rgba(255,255,255,0.5)',
+                                        boxShadow: '3px 3px 8px rgba(0,0,0,0.04), inset 1px 1px 2px rgba(255,255,255,0.5)',
+                                    }}>
+                                        <Archive size={20} />
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <h3 style={{
+                                            fontSize: '18px', fontWeight: 700,
+                                            fontFamily: 'var(--font-lora), Georgia, serif',
+                                            color: '#1A2E35', margin: 0,
+                                        }}>Archive this posting?</h3>
+                                        <p style={{
+                                            fontSize: '13px', color: '#8A9BA6', margin: '2px 0 0',
+                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                        }}>{archiveTarget.title}</p>
+                                    </div>
+                                </div>
+
+                                {/* What will happen — bullet list */}
+                                <div style={{
+                                    background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.05)',
+                                    borderRadius: '12px', padding: '14px 16px', marginBottom: '16px',
+                                }}>
+                                    <p style={{
+                                        fontSize: '11px', fontWeight: 700, color: '#6B7F8A',
+                                        textTransform: 'uppercase', letterSpacing: '0.05em',
+                                        margin: '0 0 8px',
+                                    }}>What happens</p>
+                                    <ul style={{ margin: 0, padding: '0 0 0 18px', fontSize: '13px', color: '#1A2E35', lineHeight: 1.6 }}>
+                                        <li>Removed from the public job board immediately</li>
+                                        <li>Stays in your dashboard under <strong>Archived</strong></li>
+                                        <li>Existing applications and analytics are preserved</li>
+                                        <li>You can restore it any time, then republish manually</li>
+                                    </ul>
+                                </div>
+
+                                {/* Branch — paid vs free quota note */}
+                                {isFreePost ? (
+                                    <div style={{
+                                        background: '#FFF8E1', border: '1px solid rgba(245,158,11,0.18)',
+                                        borderRadius: '12px', padding: '12px 14px', marginBottom: '20px',
+                                    }}>
+                                        <p style={{ fontSize: '12px', color: '#92400E', margin: 0, lineHeight: 1.5 }}>
+                                            <strong>Heads up:</strong> this is a free trial post. Archiving doesn&apos;t refund the credit — your organization&apos;s free quota stays at the same count.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div style={{
+                                        background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.18)',
+                                        borderRadius: '12px', padding: '12px 14px', marginBottom: '20px',
+                                    }}>
+                                        <p style={{ fontSize: '12px', color: '#115E59', margin: 0, lineHeight: 1.5 }}>
+                                            Your remaining {config.durationDays}-day window keeps counting down even while archived. Restoring later won&apos;t reset the expiry.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Actions */}
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        onClick={() => setArchiveTarget(null)}
+                                        style={{
+                                            ...clayBtn, flex: 1, justifyContent: 'center',
+                                            background: '#F5F0EB', color: '#6B7F8A',
+                                            padding: '12px 16px', fontWeight: 600, fontSize: '14px',
+                                        }}
+                                    >
+                                        Keep Active
+                                    </button>
+                                    <button
+                                        onClick={() => performArchiveToggle(archiveTarget)}
+                                        style={{
+                                            ...clayBtn, flex: 1, justifyContent: 'center',
+                                            background: 'linear-gradient(145deg, #8B5CF6, #7C3AED)', color: '#fff',
+                                            border: 'none', padding: '12px 16px', fontWeight: 700, fontSize: '14px',
+                                            boxShadow: '4px 4px 12px rgba(124,58,237,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                        }}
+                                    >
+                                        <Archive size={14} /> Archive
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* ═══ Unpublish-Reason Modal — captures why an employer paused a live job ═══ */}
+                {unpublishTarget && (() => {
+                    const REASONS: { value: string; label: string; sub: string }[] = [
+                        { value: 'filled', label: 'Filled the role', sub: 'You hired someone for this position' },
+                        { value: 'enough_applicants', label: 'Got enough applicants', sub: 'You have enough candidates to review' },
+                        { value: 'too_many_applicants', label: 'Too many applicants', sub: 'Inbox is overwhelmed — pausing to catch up' },
+                        { value: 'low_quality', label: 'Applicants weren’t a fit', sub: 'Quality of candidates didn’t match what you need' },
+                        { value: 'reposting_later', label: 'Reposting later', sub: 'Pausing temporarily — will republish soon' },
+                        { value: 'other', label: 'Other', sub: 'Tell us in the box below' },
+                    ];
+                    const submitting = togglingJobId === unpublishTarget.id;
+                    return (
+                        <div style={{
+                            position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: '16px', zIndex: 50, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+                        }}>
+                            <div style={{
+                                ...cardBase, maxWidth: '480px', width: '100%', padding: '24px',
+                                maxHeight: '90vh', overflowY: 'auto',
+                                boxShadow: '12px 12px 30px rgba(0,0,0,0.12), -6px -6px 16px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6)',
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+                                    <div style={{
+                                        width: '40px', height: '40px', borderRadius: '12px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: 'linear-gradient(145deg, #FEF3C7, #FDE68A)',
+                                        boxShadow: '3px 3px 8px rgba(245,158,11,0.18), inset 1px 1px 2px rgba(255,255,255,0.5)',
+                                    }}>
+                                        <Pause size={18} color="#92400E" />
+                                    </div>
+                                    <h3 style={{
+                                        fontSize: '18px', fontWeight: 700,
+                                        fontFamily: 'var(--font-lora), Georgia, serif',
+                                        color: '#1A2E35', margin: 0,
+                                    }}>Quick question before pausing</h3>
+                                </div>
+                                <p style={{ fontSize: '13px', color: '#6B7F8A', margin: '0 0 18px', lineHeight: 1.5 }}>
+                                    Why are you pausing <strong style={{ color: '#1A2E35' }}>{unpublishTarget.title}</strong>?
+                                    Helps us understand what&apos;s working and what isn&apos;t. Optional — you can skip.
+                                </p>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                                    {REASONS.map((opt) => {
+                                        const selected = unpublishReason === opt.value;
+                                        return (
+                                            <button
+                                                key={opt.value}
+                                                type="button"
+                                                onClick={() => setUnpublishReason(opt.value)}
+                                                style={{
+                                                    display: 'flex', alignItems: 'flex-start', gap: '10px',
+                                                    padding: '12px 14px', borderRadius: '12px',
+                                                    background: selected ? '#F0FDFA' : '#FFFFFF',
+                                                    border: `1px solid ${selected ? '#0D9488' : 'rgba(0,0,0,0.08)'}`,
+                                                    boxShadow: selected
+                                                        ? 'inset 2px 2px 4px rgba(13,148,136,0.06), 0 0 0 3px rgba(13,148,136,0.1)'
+                                                        : '2px 2px 6px rgba(0,0,0,0.04), inset 1px 1px 2px rgba(255,255,255,0.6)',
+                                                    cursor: 'pointer', textAlign: 'left',
+                                                    transition: 'all 0.15s',
+                                                }}
+                                            >
+                                                <span style={{
+                                                    flexShrink: 0, marginTop: '2px',
+                                                    width: '16px', height: '16px', borderRadius: '50%',
+                                                    border: `2px solid ${selected ? '#0D9488' : '#CBD5E0'}`,
+                                                    background: selected ? '#0D9488' : 'transparent',
+                                                    boxShadow: selected ? 'inset 0 0 0 3px #fff' : 'none',
+                                                }} />
+                                                <div>
+                                                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35', margin: 0 }}>{opt.label}</p>
+                                                    <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0', lineHeight: 1.4 }}>{opt.sub}</p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {unpublishReason === 'other' && (
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <textarea
+                                            value={unpublishNote}
+                                            onChange={(e) => setUnpublishNote(e.target.value.slice(0, 1000))}
+                                            placeholder="What's the reason? (optional, ~1000 chars max)"
+                                            rows={3}
+                                            style={{
+                                                width: '100%', padding: '10px 12px',
+                                                borderRadius: '12px', border: '1px solid rgba(0,0,0,0.08)',
+                                                background: '#F5F6F8', color: '#1A2E35', fontSize: '14px',
+                                                fontFamily: 'inherit', resize: 'vertical',
+                                                boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.05), inset -1px -1px 2px rgba(255,255,255,0.5)',
+                                                outline: 'none',
+                                            }}
+                                        />
+                                        <p style={{ fontSize: '11px', color: '#94A3B8', margin: '4px 0 0', textAlign: 'right' }}>
+                                            {unpublishNote.length}/1000
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setUnpublishTarget(null)}
+                                        disabled={submitting}
+                                        style={{
+                                            ...clayBtn, flex: 1, justifyContent: 'center',
+                                            background: '#F5F0EB', color: '#6B7F8A',
+                                            padding: '12px 16px', fontWeight: 600, fontSize: '14px',
+                                            opacity: submitting ? 0.6 : 1,
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={submitUnpublish}
+                                        disabled={submitting}
+                                        style={{
+                                            ...clayBtn, flex: 1, justifyContent: 'center',
+                                            background: 'linear-gradient(145deg, #F59E0B, #D97706)', color: '#fff',
+                                            border: 'none', padding: '12px 16px', fontWeight: 700, fontSize: '14px',
+                                            boxShadow: '4px 4px 12px rgba(245,158,11,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                            opacity: submitting ? 0.7 : 1,
+                                        }}
+                                    >
+                                        {submitting ? <Loader2 size={14} className="animate-spin" /> : <Pause size={14} />}
+                                        {submitting ? 'Pausing...' : (unpublishReason ? 'Pause Job' : 'Pause Anyway')}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* ═══ Renewal Modal — branches on whether the original posting was free ═══ */}
+                {showRenewModal && selectedJob && selectedJob.paymentStatus === 'free' && (
+                    <div style={{
+                        position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '16px', zIndex: 50, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+                    }}>
+                        <div style={{
+                            ...cardBase, maxWidth: '440px', width: '100%', padding: '24px',
+                            boxShadow: '12px 12px 30px rgba(0,0,0,0.12), -6px -6px 16px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6)',
+                        }}>
+                            <h3 style={{
+                                fontSize: '18px', fontWeight: 700,
+                                fontFamily: 'var(--font-lora), Georgia, serif',
+                                color: '#1A2E35', marginBottom: '4px',
+                            }}>This free post can&apos;t be renewed</h3>
+                            <p style={{ fontSize: '13px', color: '#8A9BA6', marginBottom: '14px' }}>{selectedJob.title}</p>
+
+                            <p style={{ fontSize: '14px', color: '#1A2E35', lineHeight: 1.6, marginBottom: '8px' }}>
+                                Renewals at the discounted ${config.renewalPrice} rate are available for paid postings only.
+                            </p>
+                            <p style={{ fontSize: '13px', color: '#6B7F8A', lineHeight: 1.6, marginBottom: '20px' }}>
+                                You can post this role again as a fresh listing for ${config.postingPrice} — same {config.durationDays}-day duration and a new bucket of {config.limits.candidateUnlocksPerPosting} unlocks &amp; {config.limits.inmailsPerPosting} InMails.
+                            </p>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <Link href="/post-job" style={{
+                                    ...clayBtn, width: '100%', justifyContent: 'center',
+                                    background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                                    textDecoration: 'none', padding: '12px 16px', fontWeight: 700, fontSize: '14px',
+                                }}>
+                                    Post a New Job — ${config.postingPrice}
+                                </Link>
+                                <button
+                                    onClick={() => { setShowRenewModal(false); setSelectedJob(null); }}
+                                    style={{
+                                        ...clayBtn, width: '100%', justifyContent: 'center',
+                                        background: '#EDF5F0', color: '#6B7F8A',
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {showRenewModal && selectedJob && selectedJob.paymentStatus !== 'free' && (
                     <div style={{
                         position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         padding: '16px', zIndex: 50, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
@@ -788,7 +1065,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
                                 {/* Single-tier renewal */}
-                                <button onClick={() => handleRenewCheckout('growth')} className="emp-tier-btn" style={{
+                                <button onClick={() => handleRenewCheckout('pro')} className="emp-tier-btn" style={{
                                     ...cardBase, padding: '14px 16px', cursor: 'pointer',
                                     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                                     textAlign: 'left', transition: 'all 0.2s',
@@ -796,11 +1073,11 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                 }}>
                                     <div>
                                         <p style={{ fontSize: '14px', fontWeight: 700, color: '#134E4A', margin: '0 0 4px' }}>Renew Listing</p>
-                                        <p style={{ fontSize: '11px', color: '#0D9488', margin: 0, lineHeight: 1.5 }}>✓ 60 more days · Featured · 25 unlocks · 25 InMails</p>
+                                        <p style={{ fontSize: '11px', color: '#0D9488', margin: 0, lineHeight: 1.5 }}>✓ Adds {config.durationDays} days to your expiration · Featured · {config.limits.candidateUnlocksPerPosting} unlocks · {config.limits.inmailsPerPosting} InMails</p>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
                                         <span style={{ fontSize: '20px', fontWeight: 800, color: '#134E4A' }}>${config.renewalPrice}</span>
-                                        <p style={{ fontSize: '10px', color: '#6B7F8A', margin: 0 }}>Save 20%</p>
+                                        <p style={{ fontSize: '10px', color: '#6B7F8A', margin: 0 }}>Save 10%</p>
                                     </div>
                                 </button>
                             </div>
@@ -822,24 +1099,34 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
             {/* ═══ RIGHT SIDEBAR — All Cards ═══ */}
             <aside style={{ position: 'sticky', top: '100px', display: 'flex', flexDirection: 'column', gap: '16px' }} className="emp-right-panel">
 
-                {/* ── Hiring Tips ── */}
+                {/* ── Hiring Tips — numbered playbook, no duplicate CTA (header already has Post a New Job) ── */}
                 <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
                     <div style={{ padding: '16px 18px' }}>
-                        <h3 style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 6px' }}>
+                        <h3 style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 12px' }}>
                             Hiring Tips
                         </h3>
-                        <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 10px', lineHeight: 1.5 }}>
-                            Featured job postings get 3x more qualified applicants. Your first 2 posts are free.
-                        </p>
-                        <Link href="/post-job" className="emp-cta-card" style={{
-                            fontSize: '12px', fontWeight: 600, color: '#fff',
-                            background: 'linear-gradient(145deg, #0D9488, #10B981)',
-                            padding: '7px 14px', borderRadius: '10px',
-                            textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                            boxShadow: '3px 3px 8px rgba(13,148,136,0.15), inset 0 1px 0 rgba(255,255,255,0.15)',
-                        }}>
-                            <Plus size={13} /> Post a Job
-                        </Link>
+                        <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {[
+                                <>Featured listings get <strong>3× more qualified applicants</strong> than non-featured posts.</>,
+                                <>Posts with a salary range get <strong>2× the apply clicks</strong> of posts without one.</>,
+                                <>Adding <strong>2–3 screening questions</strong> cuts unqualified applicants by ~40%.</>,
+                                <>Use <strong>in-platform apply</strong> instead of an external link — applications land directly in your dashboard so nothing slips through.</>,
+                                <>Don&apos;t wait for inbound — <strong>browse the Talent Pool</strong> and reach out to candidates who match your role.</>,
+                            ].map((tip, i) => (
+                                <li key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                    <span style={{
+                                        flexShrink: 0,
+                                        width: '20px', height: '20px', borderRadius: '50%',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: 'linear-gradient(145deg, #0D9488, #10B981)',
+                                        color: '#fff', fontSize: '11px', fontWeight: 700,
+                                        boxShadow: '2px 2px 5px rgba(13,148,136,0.18), inset 0 1px 0 rgba(255,255,255,0.2)',
+                                        marginTop: '1px',
+                                    }}>{i + 1}</span>
+                                    <span style={{ fontSize: '12px', color: '#6B7F8A', lineHeight: 1.55 }}>{tip}</span>
+                                </li>
+                            ))}
+                        </ol>
                     </div>
                 </div>
 
@@ -956,18 +1243,27 @@ function EmployerFeedbackCard() {
     const [message, setMessage] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async () => {
         if (selected === 0) return;
         setLoading(true);
+        setError(null);
         try {
-            await fetch('/api/feedback', {
+            const res = await fetch('/api/feedback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ rating: selected, message, page: 'employer-dashboard' }),
             });
-            setSubmitted(true);
-        } catch { /* silent */ }
+            if (res.ok) {
+                setSubmitted(true);
+            } else {
+                const data = await res.json().catch(() => ({} as { error?: string }));
+                setError(data.error || 'Couldn’t submit feedback right now. Please try again.');
+            }
+        } catch {
+            setError('Network error — please try again.');
+        }
         setLoading(false);
     };
 
@@ -1016,7 +1312,7 @@ function EmployerFeedbackCard() {
                 <>
                     <textarea
                         value={message}
-                        onChange={(e) => setMessage(e.target.value)}
+                        onChange={(e) => { setMessage(e.target.value); if (error) setError(null); }}
                         placeholder="Tell us more (optional)..."
                         rows={2}
                         style={{
@@ -1027,6 +1323,16 @@ function EmployerFeedbackCard() {
                             outline: 'none', fontFamily: 'inherit', marginBottom: '10px',
                         }}
                     />
+                    {error && (
+                        <div style={{
+                            fontSize: '11px', color: '#DC2626',
+                            background: '#FEF2F2', border: '1px solid #FECACA',
+                            borderRadius: '8px', padding: '6px 10px', marginBottom: '10px',
+                            lineHeight: 1.4,
+                        }}>
+                            {error}
+                        </div>
+                    )}
                     <button
                         onClick={handleSubmit}
                         disabled={loading}
@@ -1049,28 +1355,44 @@ function EmployerFeedbackCard() {
 }
 
 /* ═══ Employer Testimonial Collection Card ═══ */
+const TESTIMONIAL_MIN_CHARS = 10;
+const TESTIMONIAL_MAX_CHARS = 500; // matches the textarea maxLength
+
 function EmployerTestimonialCard({ employerName }: { employerName: string }) {
     const [review, setReview] = useState('');
     const [consent, setConsent] = useState(false);
     const [displayAs, setDisplayAs] = useState<'full' | 'initial' | 'anonymous'>('initial');
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const trimmed = review.trim();
+    const tooShort = trimmed.length > 0 && trimmed.length < TESTIMONIAL_MIN_CHARS;
+    const canSubmit = trimmed.length >= TESTIMONIAL_MIN_CHARS && consent && !loading;
 
     const handleSubmit = async () => {
-        if (!review.trim()) return;
+        if (!canSubmit) return;
         setLoading(true);
+        setError(null);
         try {
-            await fetch('/api/feedback', {
+            const res = await fetch('/api/employer/testimonials', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    rating: 5,
-                    message: `[EMPLOYER-TESTIMONIAL] ${review} | consent=${consent} | display=${displayAs}`,
-                    page: 'employer-dashboard-testimonial',
+                    content: trimmed,
+                    consent,
+                    displayAs,
                 }),
             });
-            setSubmitted(true);
-        } catch { /* silent */ }
+            if (res.ok) {
+                setSubmitted(true);
+            } else {
+                const data = await res.json().catch(() => ({} as { error?: string }));
+                setError(data.error || 'Couldn’t share your story right now. Please try again.');
+            }
+        } catch {
+            setError('Network error — please try again.');
+        }
         setLoading(false);
     };
 
@@ -1094,21 +1416,42 @@ function EmployerTestimonialCard({ employerName }: { employerName: string }) {
             </p>
             <textarea
                 value={review}
-                onChange={(e) => setReview(e.target.value)}
+                onChange={(e) => { setReview(e.target.value); if (error) setError(null); }}
                 placeholder="How has PMHNP Hiring helped your recruitment?"
                 rows={3}
-                maxLength={500}
+                maxLength={TESTIMONIAL_MAX_CHARS}
                 style={{
                     width: '100%', padding: '10px 12px', fontSize: '13px',
-                    borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)',
+                    borderRadius: '12px',
+                    border: `1px solid ${tooShort ? 'rgba(245,158,11,0.5)' : 'rgba(0,0,0,0.06)'}`,
                     background: '#F5F6F8', color: '#1A2E35', resize: 'none',
                     boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.04)',
-                    outline: 'none', fontFamily: 'inherit', marginBottom: '8px',
+                    outline: 'none', fontFamily: 'inherit', marginBottom: '6px',
                 }}
             />
-            <span style={{ fontSize: '11px', color: '#A0AEB5', marginBottom: '10px', textAlign: 'right' }}>
-                {review.length}/500
-            </span>
+            <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                marginBottom: '10px', fontSize: '11px',
+            }}>
+                <span style={{ color: tooShort ? '#D97706' : '#A0AEB5' }}>
+                    {tooShort
+                        ? `${TESTIMONIAL_MIN_CHARS - trimmed.length} more character${TESTIMONIAL_MIN_CHARS - trimmed.length === 1 ? '' : 's'} to share`
+                        : trimmed.length === 0
+                            ? `Minimum ${TESTIMONIAL_MIN_CHARS} characters`
+                            : ''}
+                </span>
+                <span style={{ color: '#A0AEB5' }}>{review.length}/{TESTIMONIAL_MAX_CHARS}</span>
+            </div>
+            {error && (
+                <div style={{
+                    fontSize: '11px', color: '#DC2626',
+                    background: '#FEF2F2', border: '1px solid #FECACA',
+                    borderRadius: '8px', padding: '6px 10px', marginBottom: '10px',
+                    lineHeight: 1.4,
+                }}>
+                    {error}
+                </div>
+            )}
             <label style={{
                 display: 'flex', alignItems: 'flex-start', gap: '8px',
                 fontSize: '12px', color: '#4A5E6A', cursor: 'pointer',
@@ -1117,10 +1460,13 @@ function EmployerTestimonialCard({ employerName }: { employerName: string }) {
                 <input
                     type="checkbox"
                     checked={consent}
-                    onChange={(e) => setConsent(e.target.checked)}
+                    onChange={(e) => { setConsent(e.target.checked); if (error) setError(null); }}
                     style={{ marginTop: '2px', accentColor: '#0D9488' }}
                 />
-                I consent to my review being featured publicly
+                <span>
+                    I consent to my review being featured publicly
+                    <span style={{ color: '#DC2626', marginLeft: '4px' }}>*</span>
+                </span>
             </label>
             {consent && (
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
@@ -1151,15 +1497,22 @@ function EmployerTestimonialCard({ employerName }: { employerName: string }) {
             )}
             <button
                 onClick={handleSubmit}
-                disabled={loading || !review.trim()}
+                disabled={!canSubmit}
+                title={
+                    !consent
+                        ? 'Check the consent box to share your testimonial'
+                        : trimmed.length < TESTIMONIAL_MIN_CHARS
+                            ? `Add at least ${TESTIMONIAL_MIN_CHARS} characters`
+                            : undefined
+                }
                 style={{
                     alignSelf: 'flex-start',
                     fontSize: '12px', fontWeight: 600, color: '#fff',
-                    background: review.trim() ? 'linear-gradient(145deg, #818CF8, #6366F1)' : '#CBD5E1',
+                    background: canSubmit ? 'linear-gradient(145deg, #818CF8, #6366F1)' : '#CBD5E1',
                     padding: '8px 18px', borderRadius: '12px', border: 'none',
-                    cursor: review.trim() ? 'pointer' : 'not-allowed',
+                    cursor: canSubmit ? 'pointer' : 'not-allowed',
                     display: 'inline-flex', alignItems: 'center', gap: '5px',
-                    boxShadow: review.trim()
+                    boxShadow: canSubmit
                         ? '3px 3px 8px rgba(99,102,241,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)'
                         : 'none',
                 }}

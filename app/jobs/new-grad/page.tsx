@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -44,6 +45,8 @@ async function getNewGradJobs(skip: number = 0, take: number = 20) {
         where: NEW_GRAD_FILTER,
         orderBy: [
             { isFeatured: 'desc' },
+            { qualityScore: 'desc' },
+            { originalPostedAt: 'desc' },
             { createdAt: 'desc' },
         ],
         skip,
@@ -136,7 +139,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
             }],
         },
         alternates: {
-            canonical: 'https://pmhnphiring.com/jobs/new-grad',
+            canonical: `${brand.baseUrl}/jobs/new-grad`,
         },
         // Prevent Google from indexing paginated variants as separate pages
         ...(page > 1 && {

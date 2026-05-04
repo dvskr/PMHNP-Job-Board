@@ -6,10 +6,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { Job } from '@/lib/types';
-import { AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+import { config } from '@/lib/config';
+import { trackBeginCheckout } from '@/lib/analytics';
+import { AlertTriangle, CheckCircle, RefreshCw, Briefcase, FileText, DollarSign, Mail, Check, ChevronLeft, ChevronRight, Save } from 'lucide-react';
 
 const ReactQuill = lazy(() => import('react-quill-new'));
 import 'react-quill-new/dist/quill.snow.css';
+import ScreeningQuestionsBuilder from '@/components/ScreeningQuestionsBuilder';
 
 const editJobSchema = z.object({
   title: z.string().min(10, 'Job title must be at least 10 characters'),
@@ -20,15 +23,53 @@ const editJobSchema = z.object({
   jobType: z.enum(['Full-Time', 'Part-Time', 'Contract', 'Per Diem'], {
     message: 'Please select a job type',
   }),
+  setting: z.string().optional().or(z.literal('')),
+  population: z.string().optional().or(z.literal('')),
   salaryMin: z.number().positive().optional().nullable(),
   salaryMax: z.number().positive().optional().nullable(),
+  salaryPeriod: z.enum(['hourly', 'weekly', 'monthly', 'annual']).optional(),
+  benefits: z.array(z.string()).optional(),
   description: z.string().min(200, 'Job description must be at least 200 characters'),
+  applyOnPlatform: z.boolean().optional(),
   applyUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   contactEmail: z.string().email('Must be a valid email address'),
   companyWebsite: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+}).superRefine((data, ctx) => {
+  if (!data.applyOnPlatform && (!data.applyUrl || data.applyUrl.trim() === '')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Application URL is required when not using in-platform applications',
+      path: ['applyUrl'],
+    });
+  }
 });
 
 type EditJobFormData = z.infer<typeof editJobSchema>;
+
+const SETTING_OPTIONS = [
+  'Outpatient', 'Inpatient', 'Community Health', 'Telehealth',
+  'Private Practice', 'Corrections', 'VA / Military', 'Academic',
+  'Emergency / Crisis', 'Residential',
+] as const;
+
+const POPULATION_OPTIONS = [
+  'Adults', 'Child & Adolescent', 'Geriatric', 'All Ages',
+  'Substance Use / Dual Diagnosis', 'Forensic',
+] as const;
+
+const BENEFIT_OPTIONS = [
+  'Health Insurance', 'Dental & Vision', 'PTO / Vacation',
+  'CME Allowance', 'Malpractice Coverage', '401k / Retirement',
+  'Loan Repayment', 'Flexible Schedule', 'Sign-on Bonus',
+  'Relocation Assistance', 'Tuition Reimbursement', 'Life Insurance',
+] as const;
+
+const SALARY_PERIODS = [
+  { value: 'hourly', label: 'Hourly' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'annual', label: 'Annual' },
+] as const;
 
 interface EmployerJobData {
   id: string;
@@ -53,6 +94,144 @@ const quillModules = {
 
 const quillFormats = ['header', 'bold', 'italic', 'underline', 'list', 'link'];
 
+/* ═══ Clay Design Tokens — mirror the post-job page so the edit page feels native ═══ */
+const cardBase: React.CSSProperties = {
+  background: '#FFFFFF',
+  borderRadius: '20px',
+  border: '1px solid rgba(0,0,0,0.06)',
+  boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+};
+
+const clayInput: React.CSSProperties = {
+  width: '100%', padding: '12px 16px', fontSize: '14px',
+  borderRadius: '14px', border: '1px solid rgba(0,0,0,0.08)',
+  background: '#F5F6F8', color: '#1A2E35',
+  boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.05), inset -1px -1px 2px rgba(255,255,255,0.5)',
+  outline: 'none', fontFamily: 'inherit',
+  transition: 'all 0.2s ease',
+};
+
+const clayInputError: React.CSSProperties = {
+  ...clayInput,
+  border: '1.5px solid #EF4444',
+  boxShadow: 'inset 2px 2px 4px rgba(239,68,68,0.06), inset -1px -1px 2px rgba(255,255,255,0.5)',
+};
+
+const clayBtn: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '8px',
+  padding: '12px 24px', borderRadius: '14px',
+  fontSize: '14px', fontWeight: 600,
+  border: '1px solid rgba(255,255,255,0.5)',
+  boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.6)',
+  cursor: 'pointer', transition: 'all 0.2s ease',
+  textDecoration: 'none', background: '#fff',
+};
+
+const clayPill: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  padding: '10px 20px', borderRadius: '14px',
+  fontSize: '14px', fontWeight: 500,
+  border: '1px solid rgba(0,0,0,0.06)',
+  boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.04), inset -1px -1px 2px rgba(255,255,255,0.4)',
+  cursor: 'pointer', transition: 'all 0.2s ease',
+  background: '#F5F6F8', color: '#6B7F8A',
+};
+
+const clayPillActive: React.CSSProperties = {
+  ...clayPill,
+  background: 'linear-gradient(145deg, #0D9488, #10B981)',
+  color: '#fff',
+  border: '1px solid rgba(255,255,255,0.3)',
+  boxShadow: '3px 3px 8px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
+};
+
+const fieldLabel: React.CSSProperties = {
+  display: 'block', fontSize: '13px', fontWeight: 600, color: '#1A2E35', marginBottom: '8px',
+};
+
+const errorText: React.CSSProperties = {
+  marginTop: '6px', fontSize: '12px', color: '#DC2626', fontWeight: 500,
+};
+
+/* ═══ Edit Wizard Steps ═══
+ * Intentionally a subset of post-job's steps. Excluded:
+ *   - Plan / pricing (would let employers shift tier without paying)
+ *   - companyName / branding (set once at posting; managed in /employer/settings)
+ *   - expiresAt / isPublished / isFeatured / archivedAt (have dedicated flows)
+ */
+type StepId = 1 | 2 | 3 | 4;
+const EDIT_STEPS: { id: StepId; label: string; icon: typeof Briefcase; fields: (keyof EditJobFormData)[] }[] = [
+  { id: 1, label: 'Basics',      icon: Briefcase,   fields: ['title', 'location', 'mode', 'jobType', 'setting', 'population'] },
+  { id: 2, label: 'Description', icon: FileText,    fields: ['description'] },
+  { id: 3, label: 'Pay & Apply', icon: DollarSign,  fields: ['salaryMin', 'salaryMax', 'salaryPeriod', 'benefits', 'applyOnPlatform', 'applyUrl'] },
+  { id: 4, label: 'Contact',     icon: Mail,        fields: ['contactEmail', 'companyWebsite'] },
+];
+
+function EditStepProgressBar({ currentStep, onStepClick, completedSteps }: {
+  currentStep: StepId;
+  onStepClick: (step: StepId) => void;
+  completedSteps: Set<StepId>;
+}) {
+  return (
+    <div style={{
+      ...cardBase, padding: '14px 18px', marginBottom: '20px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: '4px', overflow: 'hidden',
+    }}>
+      {EDIT_STEPS.map((step, i) => {
+        const Icon = step.icon;
+        const isActive = step.id === currentStep;
+        const isCompleted = completedSteps.has(step.id);
+        const isClickable = isCompleted || step.id <= currentStep;
+
+        return (
+          <div key={step.id} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+            <button
+              type="button"
+              onClick={() => isClickable && onStepClick(step.id)}
+              className="edit-step-btn"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '8px 12px', borderRadius: '12px',
+                background: isActive
+                  ? 'linear-gradient(145deg, #0D9488, #10B981)'
+                  : isCompleted ? '#D1FAE5' : '#F5F6F8',
+                color: isActive ? '#fff' : isCompleted ? '#059669' : '#8A9BA6',
+                border: 'none',
+                cursor: isClickable ? 'pointer' : 'default',
+                fontSize: '12px', fontWeight: 600,
+                boxShadow: isActive
+                  ? '3px 3px 8px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)'
+                  : 'inset 1px 1px 2px rgba(0,0,0,0.03)',
+                transition: 'all 0.25s ease',
+                whiteSpace: 'nowrap',
+                opacity: isClickable ? 1 : 0.5,
+              }}
+            >
+              {isCompleted && !isActive ? <Check size={14} /> : <Icon size={14} />}
+              <span className="edit-step-label">{step.label}</span>
+            </button>
+            {i < EDIT_STEPS.length - 1 && (
+              <div style={{
+                flex: 1, height: '2px', margin: '0 8px',
+                background: isCompleted ? '#10B981' : '#E5E7EB',
+                borderRadius: '1px', transition: 'background 0.3s ease',
+                minWidth: '14px',
+              }} />
+            )}
+          </div>
+        );
+      })}
+      <style>{`
+        @media (max-width: 640px) {
+          .edit-step-label { display: none; }
+          .edit-step-btn { padding: 8px !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function EditJobPage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter();
   const [token, setToken] = useState<string>('');
@@ -64,8 +243,10 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
   const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const [showRenewModal, setShowRenewModal] = useState(false);
-  const [renewingTier, setRenewingTier] = useState<'starter' | 'growth' | 'premium' | null>(null);
+  const [renewingTier, setRenewingTier] = useState<'pro' | null>(null);
   const [isApplyOnPlatform, setIsApplyOnPlatform] = useState(false);
+  const [currentStep, setCurrentStep] = useState<StepId>(1);
+  const [completedSteps, setCompletedSteps] = useState<Set<StepId>>(new Set());
 
   const {
     register,
@@ -73,9 +254,50 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
     control,
     formState: { errors, isSubmitting },
     reset,
+    trigger,
+    watch,
+    setValue,
   } = useForm<EditJobFormData>({
     resolver: zodResolver(editJobSchema),
   });
+
+  const applyOnPlatform = watch('applyOnPlatform');
+  const salaryPeriod = watch('salaryPeriod');
+  const benefits = watch('benefits') || [];
+
+  // Per-step validation — only validate the fields owned by the current step
+  // when the user clicks Continue. Final step validates everything via the
+  // form's onSubmit path.
+  const handleNext = async () => {
+    const step = EDIT_STEPS.find(s => s.id === currentStep);
+    if (!step) return;
+    const fieldsToValidate = step.fields.filter(f =>
+      // Skip applyUrl validation when the post is on-platform — there's no
+      // input to fill in that case.
+      !(f === 'applyUrl' && applyOnPlatform)
+    );
+    const valid = await trigger(fieldsToValidate);
+    if (!valid) return;
+    setCompletedSteps(prev => new Set(prev).add(currentStep));
+    if (currentStep < 4) {
+      setCurrentStep((currentStep + 1) as StepId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep((currentStep - 1) as StepId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleStepJump = (step: StepId) => {
+    if (completedSteps.has(step) || step <= currentStep) {
+      setCurrentStep(step);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -94,15 +316,37 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
         setEmployerJob(data.employerJob);
         setIsApplyOnPlatform(data.job.applyOnPlatform || false);
 
+        // Hydrate the screening-questions builder via the same localStorage key
+        // post-job uses, so the builder pre-loads the existing questions.
+        try {
+          const existingQs = Array.isArray(data.job.screeningQuestions)
+            ? data.job.screeningQuestions.map((q: { questionText: string; questionType: string; options?: string[]; isRequired: boolean; isKnockout: boolean; knockoutAnswer: string | null }) => ({
+                id: crypto.randomUUID(),
+                text: q.questionText,
+                type: q.questionType,
+                options: q.options || [],
+                required: q.isRequired,
+                knockout: q.isKnockout,
+                knockoutAnswer: q.knockoutAnswer || '',
+              }))
+            : [];
+          localStorage.setItem('jobScreeningQuestions', JSON.stringify(existingQs));
+        } catch { /* ignore */ }
+
         // Pre-fill form
         reset({
           title: data.job.title,
           location: data.job.location,
           mode: data.job.mode as 'Remote' | 'Hybrid' | 'In-Person',
           jobType: data.job.jobType as 'Full-Time' | 'Part-Time' | 'Contract' | 'Per Diem',
+          setting: data.job.setting || '',
+          population: data.job.population || '',
           salaryMin: data.job.minSalary,
           salaryMax: data.job.maxSalary,
+          salaryPeriod: (data.job.salaryPeriod as 'hourly' | 'weekly' | 'monthly' | 'annual' | undefined) || 'annual',
+          benefits: Array.isArray(data.job.benefits) ? data.job.benefits : [],
           description: data.job.description,
+          applyOnPlatform: !!data.job.applyOnPlatform,
           applyUrl: data.job.applyLink || '',
           contactEmail: data.employerJob.contactEmail,
           companyWebsite: data.employerJob.companyWebsite || '',
@@ -122,6 +366,26 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
       setUpdateSuccess(false);
       setError(null);
 
+      // Pull screening questions from the builder's localStorage. This mirrors
+      // how the post-job page collects them at submit time.
+      let screeningQuestions: { text: string; type: string; options?: string[]; required?: boolean; knockout?: boolean; knockoutAnswer?: string }[] = [];
+      try {
+        const stored = localStorage.getItem('jobScreeningQuestions');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            screeningQuestions = parsed.map((q: { text?: string; type?: string; options?: string[]; required?: boolean; knockout?: boolean; knockoutAnswer?: string }) => ({
+              text: q.text || '',
+              type: q.type || 'boolean',
+              options: q.options || [],
+              required: q.required || false,
+              knockout: q.knockout || false,
+              knockoutAnswer: q.knockoutAnswer || '',
+            }));
+          }
+        }
+      } catch { /* ignore */ }
+
       const response = await fetch('/api/jobs/update', {
         method: 'POST',
         headers: {
@@ -134,13 +398,20 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
             location: data.location,
             mode: data.mode,
             jobType: data.jobType,
+            setting: data.setting || null,
+            population: data.population || null,
             description: data.description,
-            applyLink: isApplyOnPlatform ? null : data.applyUrl,
+            applyOnPlatform: !!data.applyOnPlatform,
+            applyLink: data.applyOnPlatform ? null : (data.applyUrl || null),
             minSalary: data.salaryMin,
             maxSalary: data.salaryMax,
-            salaryPeriod: 'year',
+            salaryPeriod: data.salaryPeriod || 'annual',
+            benefits: Array.isArray(data.benefits) ? data.benefits : [],
             contactEmail: data.contactEmail,
             companyWebsite: data.companyWebsite || null,
+            // Only send screening questions when on-platform — otherwise wipe them
+            // by sending [] so a switch from on-platform → external clears stale Qs.
+            screeningQuestions: data.applyOnPlatform ? screeningQuestions : [],
           },
         }),
       });
@@ -198,11 +469,14 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
     return isExpired() || isExpiringSoon();
   };
 
-  const handleRenewCheckout = async (tier: 'starter' | 'growth' | 'premium') => {
+  const handleRenewCheckout = async (tier: 'pro') => {
     if (!job) return;
 
     setRenewingTier(tier);
     setShowRenewModal(false);
+
+    // P7: fire begin_checkout for renewal
+    trackBeginCheckout(config.stripeRenewalPriceInCents, 'renewal');
 
     try {
       const response = await fetch('/api/create-renewal-checkout', {
@@ -235,11 +509,13 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
   // Loading state
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-center py-12">
-          <div className="flex items-center gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
-            <p className="text-gray-600">Loading job details...</p>
+      <div style={{ background: '#F5F0EB', minHeight: '100vh' }}>
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-center py-12">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+              <p className="text-gray-600">Loading job details...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -249,201 +525,242 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
   // Error state (invalid token)
   if (error && !job) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Edit Link</h1>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <p className="text-sm text-gray-500">
-            This link may have expired or is invalid. Please check your email for the correct edit link.
-          </p>
+      <div style={{ background: '#F5F0EB', minHeight: '100vh' }}>
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Edit Link</h1>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <p className="text-sm text-gray-500">
+              This link may have expired or is invalid. Please check your email for the correct edit link.
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Edit Job Posting</h1>
-        <p className="text-gray-600">
-          Update your job listing for <strong>{employerJob?.employerName}</strong>
-        </p>
-      </div>
+    <div style={{ background: '#F5F0EB', minHeight: '100vh', padding: '16px 0 60px' }}>
+      <div className="max-w-3xl mx-auto px-4">
 
       {/* Success Message */}
       {updateSuccess && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center gap-3">
-          <CheckCircle className="text-green-500" size={20} />
-          <p className="text-green-700">Job updated successfully!</p>
+        <div style={{
+          ...cardBase, padding: '14px 18px', marginBottom: '20px',
+          background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.18)',
+          display: 'flex', alignItems: 'center', gap: '10px',
+        }}>
+          <CheckCircle size={18} style={{ color: '#0D9488' }} />
+          <p style={{ fontSize: '13px', color: '#115E59', fontWeight: 600, margin: 0 }}>Job updated successfully!</p>
         </div>
       )}
 
       {/* Error Message */}
       {error && job && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <p className="text-red-600">{error}</p>
+        <div style={{
+          ...cardBase, padding: '14px 18px', marginBottom: '20px',
+          background: '#FEF2F2', border: '1px solid #FECACA',
+          display: 'flex', alignItems: 'center', gap: '10px',
+        }}>
+          <AlertTriangle size={18} style={{ color: '#DC2626' }} />
+          <p style={{ fontSize: '13px', color: '#991B1B', fontWeight: 500, margin: 0 }}>{error}</p>
         </div>
       )}
 
       {/* Expiry Warning & Renew Section */}
-      {shouldShowRenew() && job && (
-        <div className={`rounded-lg border-2 p-6 mb-6 ${isExpired()
-          ? 'bg-red-50 border-red-300'
-          : 'bg-orange-50 border-orange-300'
-          }`}>
-          <div className="flex items-start gap-3 mb-4">
-            <AlertTriangle className={`flex-shrink-0 ${isExpired() ? 'text-red-600' : 'text-orange-600'
-              }`} size={24} />
-            <div className="flex-1">
-              <h3 className={`font-bold text-lg mb-1 ${isExpired() ? 'text-red-900' : 'text-orange-900'
-                }`}>
-                {isExpired() ? 'This job has expired' : 'This job expires soon'}
-              </h3>
-              <p className={`text-sm mb-4 ${isExpired() ? 'text-red-700' : 'text-orange-700'
-                }`}>
-                {isExpired()
-                  ? `This job expired on ${new Date(job.expiresAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} and is no longer visible to candidates.`
-                  : `This job expires on ${new Date(job.expiresAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Renew now to keep it visible.`
-                }
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3">
+      {shouldShowRenew() && job && (() => {
+        const expired = isExpired();
+        const accentBg = expired ? '#FEE2E2' : '#FEF3C7';
+        const accentBorder = expired ? '#FECACA' : '#FDE68A';
+        const accentColor = expired ? '#991B1B' : '#92400E';
+        const expiryDate = new Date(job.expiresAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        return (
+          <div style={{
+            ...cardBase, padding: '20px 22px', marginBottom: '20px',
+            background: accentBg, border: `1px solid ${accentBorder}`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: '#fff', color: accentColor,
+                boxShadow: '3px 3px 8px rgba(0,0,0,0.04), inset 1px 1px 2px rgba(255,255,255,0.5)',
+              }}>
+                <AlertTriangle size={20} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{
+                  fontSize: '16px', fontWeight: 700,
+                  fontFamily: 'var(--font-lora), Georgia, serif',
+                  color: accentColor, margin: '0 0 4px',
+                }}>
+                  {expired ? 'This job has expired' : 'This job expires soon'}
+                </h3>
+                <p style={{ fontSize: '13px', color: accentColor, margin: '0 0 14px', lineHeight: 1.5, opacity: 0.85 }}>
+                  {expired
+                    ? `Expired on ${expiryDate} — no longer visible to candidates. Renew to relist.`
+                    : `Expires on ${expiryDate}. Renew now to keep it visible.`}
+                </p>
                 <button
                   onClick={() => setShowRenewModal(true)}
                   disabled={renewingTier !== null}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    ...clayBtn,
+                    background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                    border: 'none',
+                    boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                    opacity: renewingTier ? 0.6 : 1,
+                  }}
                 >
-                  <RefreshCw size={18} className={renewingTier ? 'animate-spin' : ''} />
+                  <RefreshCw size={16} className={renewingTier ? 'animate-spin' : ''} />
                   {renewingTier ? 'Processing...' : 'Renew This Job'}
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        {/* Job Details Section */}
-        <div className="rounded-lg shadow-md p-5 md:p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-          <h2 className="text-xl font-semibold mb-6">Job Details</h2>
+      {/* ═══ Step Progress ═══ */}
+      <EditStepProgressBar
+        currentStep={currentStep}
+        completedSteps={completedSteps}
+        onStepClick={handleStepJump}
+      />
 
-          <div className="space-y-6">
-            {/* Job Title */}
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                Job Title <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="title"
-                {...register('title')}
-                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.title ? 'border-red-500' : ''}`}
-                style={{ borderColor: errors.title ? undefined : 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-              />
-              {errors.title && (
-                <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
-              )}
-            </div>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        {/* ═══ Step 1 — Basics: title, location, mode, jobType ═══ */}
+        {currentStep === 1 && (
+          <div style={{ ...cardBase, padding: '28px 24px', marginBottom: '20px' }}>
+            <h2 style={{
+              fontSize: '17px', fontWeight: 700,
+              fontFamily: 'var(--font-lora), Georgia, serif',
+              color: '#1A2E35', margin: '0 0 4px',
+            }}>Job Basics</h2>
+            <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '0 0 20px' }}>
+              The core details candidates see at the top of your listing.
+            </p>
 
-            {/* Location */}
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                Location <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="location"
-                placeholder="e.g. Remote, New York NY"
-                {...register('location')}
-                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.location ? 'border-red-500' : ''}`}
-                style={{ borderColor: errors.location ? undefined : 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-              />
-              {errors.location && (
-                <p className="mt-1 text-sm text-red-500">{errors.location.message}</p>
-              )}
-            </div>
-
-            {/* Work Mode */}
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                Work Mode <span className="text-red-500">*</span>
-              </label>
-              <div className="flex flex-wrap gap-4">
-                {workModes.map((mode: typeof workModes[number]) => (
-                  <label key={mode} className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      value={mode}
-                      {...register('mode')}
-                      className="w-4 h-4 text-teal-500 border-gray-300 focus:ring-teal-500"
-                    />
-                    <span className="ml-2 text-sm" style={{ color: 'var(--text-secondary)' }}>{mode}</span>
-                  </label>
-                ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label htmlFor="title" style={fieldLabel}>
+                  Job Title <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <input
+                  type="text" id="title"
+                  {...register('title')}
+                  style={errors.title ? clayInputError : clayInput}
+                />
+                {errors.title && <p style={errorText}>{errors.title.message}</p>}
               </div>
-              {errors.mode && (
-                <p className="mt-1 text-sm text-red-500">{errors.mode.message}</p>
-              )}
-            </div>
 
-            {/* Job Type */}
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                Job Type <span className="text-red-500">*</span>
-              </label>
-              <div className="flex flex-wrap gap-4">
-                {jobTypes.map((type: typeof jobTypes[number]) => (
-                  <label key={type} className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      value={type}
-                      {...register('jobType')}
-                      className="w-4 h-4 text-teal-500 border-gray-300 focus:ring-teal-500"
-                    />
-                    <span className="ml-2 text-sm" style={{ color: 'var(--text-secondary)' }}>{type}</span>
-                  </label>
-                ))}
+              <div>
+                <label htmlFor="location" style={fieldLabel}>
+                  Location <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <input
+                  type="text" id="location"
+                  placeholder="e.g. Remote, New York NY"
+                  {...register('location')}
+                  style={errors.location ? clayInputError : clayInput}
+                />
+                {errors.location && <p style={errorText}>{errors.location.message}</p>}
               </div>
-              {errors.jobType && (
-                <p className="mt-1 text-sm text-red-500">{errors.jobType.message}</p>
-              )}
-            </div>
 
-            {/* Salary Range */}
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                Salary Range (Annual)
-              </label>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  <input
-                    type="number"
-                    placeholder="Min $"
-                    {...register('salaryMin', { valueAsNumber: true })}
-                    className="w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    style={{ borderColor: 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-                  />
-                </div>
-                <div className="flex-1">
-                  <input
-                    type="number"
-                    placeholder="Max $"
-                    {...register('salaryMax', { valueAsNumber: true })}
-                    className="w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    style={{ borderColor: 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-                  />
-                </div>
+              <div>
+                <label style={fieldLabel}>
+                  Work Mode <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <Controller
+                  name="mode"
+                  control={control}
+                  render={({ field }) => (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      {workModes.map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => field.onChange(mode)}
+                          style={field.value === mode ? clayPillActive : clayPill}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                />
+                {errors.mode && <p style={errorText}>{errors.mode.message}</p>}
+              </div>
+
+              <div>
+                <label style={fieldLabel}>
+                  Job Type <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <Controller
+                  name="jobType"
+                  control={control}
+                  render={({ field }) => (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      {jobTypes.map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => field.onChange(type)}
+                          style={field.value === type ? clayPillActive : clayPill}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                />
+                {errors.jobType && <p style={errorText}>{errors.jobType.message}</p>}
+              </div>
+
+              {/* Clinical Setting */}
+              <div>
+                <label htmlFor="setting" style={fieldLabel}>
+                  Clinical Setting <span style={{ fontWeight: 400, color: '#B0BEC5', fontSize: '12px' }}>(optional)</span>
+                </label>
+                <select id="setting" {...register('setting')} style={clayInput} defaultValue="">
+                  <option value="">Select a setting...</option>
+                  {SETTING_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              {/* Patient Population */}
+              <div>
+                <label htmlFor="population" style={fieldLabel}>
+                  Patient Population <span style={{ fontWeight: 400, color: '#B0BEC5', fontSize: '12px' }}>(optional)</span>
+                </label>
+                <select id="population" {...register('population')} style={clayInput} defaultValue="">
+                  <option value="">Select a population...</option>
+                  {POPULATION_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Job Description — Rich Text */}
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                Job Description <span className="text-red-500">*</span>
-              </label>
-              <style>{`.ql-editor { min-height: 300px !important; }`}</style>
-              <Suspense fallback={<div className="h-64 rounded-lg animate-pulse" style={{ background: 'var(--bg-tertiary)' }} />}>
+        {/* ═══ Step 2 — Description ═══ */}
+        {currentStep === 2 && (
+          <div style={{ ...cardBase, padding: '28px 24px', marginBottom: '20px' }}>
+            <h2 style={{
+              fontSize: '17px', fontWeight: 700,
+              fontFamily: 'var(--font-lora), Georgia, serif',
+              color: '#1A2E35', margin: '0 0 4px',
+            }}>Job Description</h2>
+            <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '0 0 20px' }}>
+              Cover the role, responsibilities, requirements, and what makes this opportunity special. Minimum 200 characters.
+            </p>
+            <style>{`
+              .clay-quill-wrap .ql-toolbar { border-radius: 14px 14px 0 0; border: 1px solid rgba(0,0,0,0.08); border-bottom: none; background: #fff; }
+              .clay-quill-wrap .ql-container { border-radius: 0 0 14px 14px; border: 1px solid rgba(0,0,0,0.08); background: #F5F6F8; box-shadow: inset 2px 2px 4px rgba(0,0,0,0.03); }
+              .clay-quill-wrap .ql-editor { min-height: 320px !important; font-family: inherit; font-size: 14px; color: #1A2E35; }
+            `}</style>
+            <div className="clay-quill-wrap">
+              <Suspense fallback={<div style={{ height: '360px', borderRadius: '14px', background: '#F5F6F8' }} />}>
                 <Controller
                   name="description"
                   control={control}
@@ -462,117 +779,344 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                   )}
                 />
               </Suspense>
-              {errors.description && (
-                <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>
-              )}
             </div>
+            {errors.description && <p style={errorText}>{errors.description.message}</p>}
+          </div>
+        )}
 
-            {/* Apply URL — only when NOT apply on platform */}
-            {!isApplyOnPlatform && (
+        {/* ═══ Step 3 — Pay, Benefits & Apply ═══ */}
+        {currentStep === 3 && (
+          <div style={{ ...cardBase, padding: '28px 24px', marginBottom: '20px' }}>
+            <h2 style={{
+              fontSize: '17px', fontWeight: 700,
+              fontFamily: 'var(--font-lora), Georgia, serif',
+              color: '#1A2E35', margin: '0 0 4px',
+            }}>Compensation, Benefits &amp; Apply</h2>
+            <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '0 0 20px' }}>
+              Posts with a salary range get 2× more apply clicks than those without.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Salary Range with pay period pills */}
               <div>
-                <label htmlFor="applyUrl" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                  How to Apply URL <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="url"
-                  id="applyUrl"
-                  {...register('applyUrl')}
-                  className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.applyUrl ? 'border-red-500' : ''}`}
-                  style={{ borderColor: errors.applyUrl ? undefined : 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-                />
-                {errors.applyUrl && (
-                  <p className="mt-1 text-sm text-red-500">{errors.applyUrl.message}</p>
-                )}
+                <label style={fieldLabel}>Salary Range</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                  {SALARY_PERIODS.map((period) => (
+                    <button
+                      key={period.value}
+                      type="button"
+                      onClick={() => setValue('salaryPeriod', period.value)}
+                      style={salaryPeriod === period.value ? { ...clayPillActive, padding: '8px 16px', fontSize: '13px' } : { ...clayPill, padding: '8px 16px', fontSize: '13px' }}
+                    >
+                      {period.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <input
+                    type="number" inputMode="numeric"
+                    placeholder={`Min ${salaryPeriod === 'hourly' ? '$/hr' : '$ ' + (salaryPeriod || 'annual')}`}
+                    {...register('salaryMin', { valueAsNumber: true })}
+                    style={{ ...clayInput, flex: 1, minWidth: '140px' }}
+                  />
+                  <input
+                    type="number" inputMode="numeric"
+                    placeholder={`Max ${salaryPeriod === 'hourly' ? '$/hr' : '$ ' + (salaryPeriod || 'annual')}`}
+                    {...register('salaryMax', { valueAsNumber: true })}
+                    style={{ ...clayInput, flex: 1, minWidth: '140px' }}
+                  />
+                </div>
               </div>
-            )}
 
-            {isApplyOnPlatform && (
-              <div className="flex items-start gap-2 rounded-lg px-4 py-3" style={{ background: 'rgba(45,212,191,0.08)', border: '1px solid rgba(45,212,191,0.2)' }}>
-                <span className="text-lg leading-none mt-0.5">✅</span>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Candidates apply directly on this platform. Applications arrive in your employer dashboard.
+              {/* Benefits multi-select grid */}
+              <div>
+                <label style={fieldLabel}>Benefits &amp; Perks</label>
+                <Controller
+                  name="benefits"
+                  control={control}
+                  render={({ field }) => {
+                    const value = (field.value as string[] | undefined) || [];
+                    const toggle = (b: string) => {
+                      field.onChange(value.includes(b) ? value.filter(x => x !== b) : [...value, b]);
+                    };
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '8px' }}>
+                        {BENEFIT_OPTIONS.map((benefit) => {
+                          const selected = value.includes(benefit);
+                          return (
+                            <button
+                              key={benefit}
+                              type="button"
+                              onClick={() => toggle(benefit)}
+                              style={{
+                                ...clayPill, padding: '8px 12px', fontSize: '12px',
+                                justifyContent: 'flex-start', gap: '6px',
+                                ...(selected
+                                  ? { background: '#D1FAE5', color: '#059669', border: '1px solid #A7F3D0', boxShadow: '2px 2px 5px rgba(5,150,105,0.08), inset 1px 1px 2px rgba(255,255,255,0.5)' }
+                                  : {}),
+                              }}
+                            >
+                              {selected ? '✓' : '+'} {benefit}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  }}
+                />
+                <p style={{ marginTop: '8px', fontSize: '11px', color: '#B0BEC5' }}>
+                  {benefits.length} selected
                 </p>
               </div>
-            )}
 
-            {/* Contact Email */}
-            <div>
-              <label htmlFor="contactEmail" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                Contact Email <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                id="contactEmail"
-                {...register('contactEmail')}
-                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.contactEmail ? 'border-red-500' : ''}`}
-                style={{ borderColor: errors.contactEmail ? undefined : 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-              />
-              {errors.contactEmail && (
-                <p className="mt-1 text-sm text-red-500">{errors.contactEmail.message}</p>
-              )}
-            </div>
+              {/* Apply Method */}
+              <div>
+                <label style={fieldLabel}>
+                  How should candidates apply? <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {/* External */}
+                  <label style={{
+                    ...cardBase, padding: '14px 16px', cursor: 'pointer',
+                    border: !applyOnPlatform ? '2px solid #0D9488' : '1px solid rgba(0,0,0,0.06)',
+                    background: !applyOnPlatform ? '#F0FDFA' : '#fff',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                      <input
+                        type="radio"
+                        checked={!applyOnPlatform}
+                        onChange={() => { setValue('applyOnPlatform', false); setIsApplyOnPlatform(false); }}
+                        style={{ marginTop: '3px', accentColor: '#0D9488', width: '16px', height: '16px' }}
+                      />
+                      <div>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35' }}>External Application URL</span>
+                        <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '2px 0 0' }}>Candidates are redirected to your website or ATS</p>
+                      </div>
+                    </div>
+                  </label>
 
-            {/* Company Website */}
-            <div>
-              <label htmlFor="companyWebsite" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                Company Website
-              </label>
-              <input
-                type="url"
-                id="companyWebsite"
-                {...register('companyWebsite')}
-                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.companyWebsite ? 'border-red-500' : ''}`}
-                style={{ borderColor: errors.companyWebsite ? undefined : 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-              />
-              {errors.companyWebsite && (
-                <p className="mt-1 text-sm text-red-500">{errors.companyWebsite.message}</p>
-              )}
+                  {/* Platform */}
+                  <label style={{
+                    ...cardBase, padding: '14px 16px', cursor: 'pointer',
+                    border: applyOnPlatform ? '2px solid #0D9488' : '1px solid rgba(0,0,0,0.06)',
+                    background: applyOnPlatform ? '#F0FDFA' : '#fff',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                      <input
+                        type="radio"
+                        checked={applyOnPlatform === true}
+                        onChange={() => { setValue('applyOnPlatform', true); setValue('applyUrl', ''); setIsApplyOnPlatform(true); }}
+                        style={{ marginTop: '3px', accentColor: '#0D9488', width: '16px', height: '16px' }}
+                      />
+                      <div>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35' }}>Receive on PMHNP Hiring</span>
+                        <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '2px 0 0' }}>Candidates apply directly — applications arrive in your dashboard</p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
+                          {['Resume', 'Cover letter', 'Email alerts'].map(f => (
+                            <span key={f} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '8px', background: '#CCFBF1', color: '#0D9488', fontWeight: 500 }}>✓ {f}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                {/* External URL input */}
+                {!applyOnPlatform && (
+                  <div style={{ marginTop: '12px' }}>
+                    <label htmlFor="applyUrl" style={fieldLabel}>
+                      Application URL <span style={{ color: '#DC2626' }}>*</span>
+                    </label>
+                    <input
+                      type="url" id="applyUrl"
+                      placeholder="https://www.example.com/careers/apply"
+                      {...register('applyUrl')}
+                      style={errors.applyUrl ? clayInputError : clayInput}
+                    />
+                    {errors.applyUrl && <p style={errorText}>{errors.applyUrl.message}</p>}
+                    <div style={{
+                      background: '#FEF3C7', border: '1px solid #FDE68A',
+                      borderRadius: '10px', padding: '8px 12px', marginTop: '8px',
+                      fontSize: '11px', color: '#92400E',
+                    }}>
+                      💡 Use a direct application link, not your homepage.
+                    </div>
+                  </div>
+                )}
+
+                {/* Screening Questions builder — only when on-platform */}
+                {applyOnPlatform && (
+                  <div style={{ marginTop: '16px' }}>
+                    <ScreeningQuestionsBuilder />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
+        {/* ═══ Step 4 — Contact ═══ */}
+        {currentStep === 4 && (
+          <div style={{ ...cardBase, padding: '28px 24px', marginBottom: '20px' }}>
+            <h2 style={{
+              fontSize: '17px', fontWeight: 700,
+              fontFamily: 'var(--font-lora), Georgia, serif',
+              color: '#1A2E35', margin: '0 0 4px',
+            }}>Contact</h2>
+            <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '0 0 20px' }}>
+              Where applicant notifications go and an optional public link to your careers page.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label htmlFor="contactEmail" style={fieldLabel}>
+                  Contact Email <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <input
+                  type="email" id="contactEmail"
+                  {...register('contactEmail')}
+                  style={errors.contactEmail ? clayInputError : clayInput}
+                />
+                {errors.contactEmail && <p style={errorText}>{errors.contactEmail.message}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="companyWebsite" style={fieldLabel}>Company Website</label>
+                <input
+                  type="url" id="companyWebsite"
+                  placeholder="https://your-company.com"
+                  {...register('companyWebsite')}
+                  style={errors.companyWebsite ? clayInputError : clayInput}
+                />
+                {errors.companyWebsite && <p style={errorText}>{errors.companyWebsite.message}</p>}
+              </div>
+
+              <div style={{
+                background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.05)',
+                borderRadius: '12px', padding: '12px 14px',
+                fontSize: '11px', color: '#6B7F8A', lineHeight: 1.5,
+              }}>
+                <strong style={{ color: '#1A2E35' }}>Not editable here:</strong> company name &amp; logo (Settings → Company Profile),
+                pricing tier, expiry date, paused/featured/archived state — those have their own dedicated controls.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ Step Navigation Footer ═══ */}
+        <div style={{
+          ...cardBase, padding: '16px 20px',
+          display: 'flex', gap: '12px', flexWrap: 'wrap',
+          justifyContent: 'space-between', alignItems: 'center',
+          position: 'sticky', bottom: '12px', zIndex: 10,
+        }}>
           <button
             type="button"
             onClick={() => setShowUnpublishConfirm(true)}
-            className="px-6 py-3 bg-red-50 text-red-600 rounded-lg font-semibold hover:bg-red-100 transition-colors border border-red-200"
+            style={{
+              ...clayBtn,
+              background: '#FEF2F2', color: '#DC2626',
+              border: '1px solid #FECACA',
+            }}
           >
-            Unpublish Job
+            Unpublish
           </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-8 py-3 bg-teal-500 text-white rounded-lg font-semibold hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? 'Updating...' : 'Update Job'}
-          </button>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {currentStep > 1 && (
+              <button
+                type="button"
+                onClick={handleBack}
+                style={{
+                  ...clayBtn,
+                  background: '#F5F0EB', color: '#6B7F8A',
+                }}
+              >
+                <ChevronLeft size={16} /> Back
+              </button>
+            )}
+            {currentStep < 4 ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                style={{
+                  ...clayBtn,
+                  background: 'linear-gradient(145deg, #10B981, #0D9488)', color: '#fff',
+                  border: 'none', padding: '12px 24px',
+                  boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                }}
+              >
+                Continue <ChevronRight size={16} />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                style={{
+                  ...clayBtn,
+                  background: 'linear-gradient(145deg, #10B981, #0D9488)', color: '#fff',
+                  border: 'none', padding: '12px 28px',
+                  boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                  opacity: isSubmitting ? 0.6 : 1,
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <Save size={16} /> {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </button>
+            )}
+          </div>
         </div>
       </form>
 
-      {/* Unpublish Confirmation Dialog */}
+      {/* Unpublish Confirmation Modal */}
       {showUnpublishConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="rounded-lg shadow-xl max-w-md w-full p-6" style={{ background: 'var(--bg-secondary)' }}>
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="text-red-500" size={24} />
-              <h3 className="text-xl font-semibold">Unpublish Job?</h3>
+        <div style={{
+          position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '16px', zIndex: 50, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+        }}>
+          <div style={{
+            ...cardBase, maxWidth: '440px', width: '100%', padding: '24px',
+            boxShadow: '12px 12px 30px rgba(0,0,0,0.12), -6px -6px 16px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '14px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: '#FEF2F2', color: '#DC2626',
+                boxShadow: '3px 3px 8px rgba(0,0,0,0.04), inset 1px 1px 2px rgba(255,255,255,0.5)',
+              }}>
+                <AlertTriangle size={20} />
+              </div>
+              <h3 style={{
+                fontSize: '18px', fontWeight: 700,
+                fontFamily: 'var(--font-lora), Georgia, serif',
+                color: '#1A2E35', margin: 0,
+              }}>Unpublish this job?</h3>
             </div>
-            <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
-              Are you sure you want to unpublish this job? It will no longer be visible to job seekers.
-              You can contact support if you need to republish it later.
+            <p style={{ fontSize: '14px', color: '#6B7F8A', lineHeight: 1.5, margin: '0 0 20px' }}>
+              The listing will be removed from the public job board. Existing applications and analytics are preserved. Contact support if you need to republish later.
             </p>
-            <div className="flex gap-4 justify-end">
+            <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={() => setShowUnpublishConfirm(false)}
-                className="px-4 py-2 transition-colors" style={{ color: 'var(--text-secondary)' }}
+                style={{
+                  ...clayBtn, flex: 1, justifyContent: 'center',
+                  background: '#F5F0EB', color: '#6B7F8A',
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleUnpublish}
                 disabled={unpublishing}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
+                style={{
+                  ...clayBtn, flex: 1, justifyContent: 'center',
+                  background: 'linear-gradient(145deg, #DC2626, #B91C1C)', color: '#fff',
+                  border: 'none',
+                  boxShadow: '4px 4px 12px rgba(220,38,38,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                  opacity: unpublishing ? 0.6 : 1,
+                  cursor: unpublishing ? 'not-allowed' : 'pointer',
+                }}
               >
                 {unpublishing ? 'Unpublishing...' : 'Yes, Unpublish'}
               </button>
@@ -581,51 +1125,106 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
         </div>
       )}
 
-      {/* Renewal Modal */}
-      {showRenewModal && job && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="rounded-lg shadow-xl max-w-md w-full p-6" style={{ background: 'var(--bg-secondary)' }}>
-            <div className="mb-4">
-              <h3 className="text-xl font-bold mb-2">Renew Job Posting</h3>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{job.title}</p>
-            </div>
+      {/* Renewal Modal — free posts can't be renewed at the discounted rate */}
+      {showRenewModal && job && employerJob?.paymentStatus === 'free' && (
+        <div style={{
+          position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '16px', zIndex: 50, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+        }}>
+          <div style={{
+            ...cardBase, maxWidth: '460px', width: '100%', padding: '24px',
+            boxShadow: '12px 12px 30px rgba(0,0,0,0.12), -6px -6px 16px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6)',
+          }}>
+            <h3 style={{
+              fontSize: '18px', fontWeight: 700,
+              fontFamily: 'var(--font-lora), Georgia, serif',
+              color: '#1A2E35', margin: '0 0 4px',
+            }}>This free post can&apos;t be renewed</h3>
+            <p style={{ fontSize: '13px', color: '#8A9BA6', margin: '0 0 16px' }}>{job.title}</p>
 
-            <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>Choose how you&apos;d like to renew your listing:</p>
+            <p style={{ fontSize: '14px', color: '#1A2E35', lineHeight: 1.6, margin: '0 0 8px' }}>
+              Renewals at the discounted ${config.renewalPrice} rate are available for paid postings only.
+            </p>
+            <p style={{ fontSize: '13px', color: '#6B7F8A', lineHeight: 1.6, margin: '0 0 20px' }}>
+              You can post this role again as a fresh listing for ${config.postingPrice} — same {config.durationDays}-day duration and a new bucket of {config.limits.candidateUnlocksPerPosting} unlocks &amp; {config.limits.inmailsPerPosting} InMails.
+            </p>
 
-            <div className="space-y-3 mb-6">
-              {/* Single-tier renewal */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <a href="/post-job" style={{
+                ...clayBtn, justifyContent: 'center',
+                background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                border: 'none', padding: '12px 16px', fontWeight: 700,
+                boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+              }}>
+                Post a New Job — ${config.postingPrice}
+              </a>
               <button
-                onClick={() => handleRenewCheckout('growth')}
-                className="w-full text-left border-2 border-teal-500 rounded-lg p-4 transition-all group"
-                style={{ background: 'rgba(13,148,136,0.08)' }}
+                onClick={() => setShowRenewModal(false)}
+                style={{
+                  ...clayBtn, justifyContent: 'center',
+                  background: '#F5F0EB', color: '#6B7F8A',
+                }}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold" style={{ color: 'var(--color-primary)' }}>Renew Listing</span>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>$159</span>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Save 20%</p>
-                  </div>
-                </div>
-                <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                  <li>✓ 60 more days of visibility</li>
-                  <li>✓ Featured placement (top of list)</li>
-                  <li>✓ 25 candidate unlocks</li>
-                  <li>✓ 25 InMails</li>
-                </ul>
+                Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* Cancel Button */}
+      {/* Renewal Modal — paid posts get the discounted renewal */}
+      {showRenewModal && job && employerJob?.paymentStatus !== 'free' && (
+        <div style={{
+          position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '16px', zIndex: 50, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+        }}>
+          <div style={{
+            ...cardBase, maxWidth: '460px', width: '100%', padding: '24px',
+            boxShadow: '12px 12px 30px rgba(0,0,0,0.12), -6px -6px 16px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6)',
+          }}>
+            <h3 style={{
+              fontSize: '18px', fontWeight: 700,
+              fontFamily: 'var(--font-lora), Georgia, serif',
+              color: '#1A2E35', margin: '0 0 4px',
+            }}>Renew Job Posting</h3>
+            <p style={{ fontSize: '13px', color: '#8A9BA6', margin: '0 0 18px' }}>{job.title}</p>
+
+            <button
+              onClick={() => handleRenewCheckout('pro')}
+              style={{
+                ...cardBase, padding: '16px 18px', textAlign: 'left', cursor: 'pointer',
+                width: '100%', marginBottom: '14px',
+                border: '1px solid rgba(13,148,136,0.25)',
+                background: 'linear-gradient(145deg, #F0FDFA, #FFFFFF)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#0D9488' }}>Renew Listing</span>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '22px', fontWeight: 800, color: '#0D9488', fontFamily: 'var(--font-lora), Georgia, serif' }}>${config.renewalPrice}</span>
+                  <p style={{ fontSize: '11px', color: '#6B7F8A', margin: '0', fontWeight: 600 }}>Save {Math.round((1 - config.renewalPrice / config.postingPrice) * 100)}%</p>
+                </div>
+              </div>
+              <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '12px', color: '#6B7F8A', lineHeight: 1.6 }}>
+                <li>Adds {config.durationDays} days to your current expiration</li>
+                <li>Featured placement (top of list)</li>
+                <li>{config.limits.candidateUnlocksPerPosting} candidate unlocks · {config.limits.inmailsPerPosting} InMails</li>
+              </ul>
+            </button>
+
             <button
               onClick={() => setShowRenewModal(false)}
-              className="w-full px-4 py-2 border rounded-lg font-medium transition-colors"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+              style={{
+                ...clayBtn, width: '100%', justifyContent: 'center',
+                background: '#F5F0EB', color: '#6B7F8A',
+              }}
             >
               Cancel
             </button>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

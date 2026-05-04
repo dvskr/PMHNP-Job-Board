@@ -43,7 +43,7 @@ const nextConfig: NextConfig = {
 
   // Experimental features for better performance
   experimental: {
-    optimizePackageImports: ['lucide-react'],
+    optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
 
   // Headers for caching and security
@@ -115,6 +115,48 @@ const nextConfig: NextConfig = {
       {
         source: '/new-grad',
         destination: '/jobs/new-grad',
+        permanent: true,
+      },
+      // Crawler-discovered URL pattern that never existed; canonical route is /jobs/city/[slug]
+      {
+        source: '/jobs/locations/city/:slug',
+        destination: '/jobs/city/:slug',
+        permanent: true,
+      },
+      // Bots invent /salary-guide/city/<slug>; canonical content lives at /salary-guide
+      {
+        source: '/salary-guide/city/:slug*',
+        destination: '/salary-guide',
+        permanent: true,
+      },
+      // Legacy/expected /register path → canonical /signup
+      {
+        source: '/register',
+        destination: '/signup',
+        permanent: true,
+      },
+      // Common URL-guessing → canonical paths.
+      // Footer links are correct, but users (and crawlers) often guess
+      // shorter/simpler URLs. Without these, /states, /employers, /alerts
+      // fall through to a 404 — better to 301 to the real page.
+      {
+        source: '/states',
+        destination: '/jobs/locations',
+        permanent: true,
+      },
+      {
+        source: '/locations',
+        destination: '/jobs/locations',
+        permanent: true,
+      },
+      {
+        source: '/employers',
+        destination: '/for-employers',
+        permanent: true,
+      },
+      {
+        source: '/alerts',
+        destination: '/job-alerts',
         permanent: true,
       },
     ];

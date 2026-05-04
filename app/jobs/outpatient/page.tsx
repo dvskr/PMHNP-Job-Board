@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -79,7 +80,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
                 width: 1200, height: 630, alt: 'Outpatient PMHNP Jobs',
             }],
         },
-        alternates: { canonical: 'https://pmhnphiring.com/jobs/outpatient' },
+        alternates: { canonical: `${brand.baseUrl}/jobs/outpatient` },
         ...(page > 1 && { robots: { index: false, follow: true } }),
     };
 }

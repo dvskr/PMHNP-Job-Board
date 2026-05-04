@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -73,7 +74,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} Correctional PMHNP Jobs — Forensic Psych NP Positions`,
+    title: `${stats.totalJobs} Correctional PMHNP Jobs — Forensic Psych NP ($160K-200K+)`,
     description: `Find ${stats.totalJobs} correctional and forensic PMHNP jobs. Psychiatric nurse practitioner positions in prisons, jails, and detention facilities with 15-25% salary premiums, loan forgiveness eligibility, and high clinical autonomy.`,
     keywords: ['correctional pmhnp jobs', 'forensic psychiatric nurse practitioner', 'prison pmhnp', 'corrections psych NP', 'forensic mental health NP jobs'],
     openGraph: {
@@ -81,7 +82,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       description: 'Browse correctional and forensic psychiatric mental health nurse practitioner positions.',
       type: 'website',
     },
-    alternates: { canonical: 'https://pmhnphiring.com/jobs/correctional' },
+    alternates: { canonical: `${brand.baseUrl}/jobs/correctional` },
     ...(page > 1 && { robots: { index: false, follow: true } }),
   };
 }

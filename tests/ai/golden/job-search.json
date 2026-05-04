@@ -1,0 +1,59 @@
+{
+  "_curation_status": "SEED_ONLY — 4 representative cases. Production target: 30 query→relevant-jobs golden tuples per docs/ai-implementation-plan.md ticket 1.1.4. Ranking quality (NDCG@10 vs keyword) is the eval metric, not score-band agreement, so the suite contract differs from candidate_scoring.",
+  "promptVersion": "v1",
+  "description": "Semantic job search golden cases. Each case ties a free-text query to the set of job IDs that should rank in the top-K, with optional positional weights for NDCG calculation.",
+  "cases": [
+    {
+      "id": "telehealth-ca",
+      "description": "User searching for California telehealth roles — vector + keyword should both hit",
+      "input": {
+        "query": "telehealth psychiatric NP California remote",
+        "filters": { "state": "CA" }
+      },
+      "expected": {
+        "expectedTopK": ["telehealth_ca_job_id_1", "telehealth_ca_job_id_2"],
+        "minNdcgAt10": 0.7,
+        "mustNotIncludeStates": ["NY", "FL"]
+      }
+    },
+    {
+      "id": "child-adolescent-specialty",
+      "description": "Niche specialty query — vector should outperform keyword by recognizing semantic kinship",
+      "input": {
+        "query": "child and adolescent psychiatry outpatient",
+        "filters": {}
+      },
+      "expected": {
+        "expectedTopK": ["pediatric_job_1", "adolescent_job_1"],
+        "minNdcgAt10": 0.65,
+        "mustNotIncludeStates": []
+      }
+    },
+    {
+      "id": "geriatric-dementia",
+      "description": "Dementia care — should match geriatric psychiatry roles even without exact keyword",
+      "input": {
+        "query": "dementia care for older adults",
+        "filters": {}
+      },
+      "expected": {
+        "expectedTopK": ["geriatric_job_1"],
+        "minNdcgAt10": 0.6,
+        "mustNotIncludeStates": []
+      }
+    },
+    {
+      "id": "fellowship-trained",
+      "description": "Higher specialty bar — fellowship-trained PMHNPs in addiction psych",
+      "input": {
+        "query": "addiction psychiatry fellowship trained",
+        "filters": {}
+      },
+      "expected": {
+        "expectedTopK": ["addiction_job_1"],
+        "minNdcgAt10": 0.6,
+        "mustNotIncludeStates": []
+      }
+    }
+  ]
+}

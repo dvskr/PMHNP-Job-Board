@@ -3,6 +3,7 @@ import { normalizeSalary } from './salary-normalizer';
 import { parseLocation } from './location-parser';
 import { formatDisplaySalary } from './salary-display';
 import { cleanDescription } from './description-cleaner';
+import { expiresFromNow } from './expires-at';
 
 type NormalizedJob = Omit<Job, 'id' | 'createdAt' | 'updatedAt' | 'viewCount' | 'applyClickCount'> & {
   originalPostedAt?: Date | null;
@@ -558,8 +559,9 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     const experienceLevel = detectExperienceLevel(title, fullText);
 
 
-    // Set expiration
-    let expiresAt = new Date();
+    // Set expiration. UTC math via expiresFromNow — setDate() drifted across
+    // DST boundaries (caused production NYPCC posting to expire 2 days late).
+    let expiresAt: Date;
 
     // Priority 1: Use explicit expiration from source (JSearch, USAJobs)
     const explicitExpiry = rawJob.expiresAt || rawJob.expiresDate || rawJob.job_offer_expiration_datetime_utc;
@@ -569,12 +571,12 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
       if (!isNaN(expDate.getTime()) && expDate.getTime() > Date.now() - 24 * 60 * 60 * 1000) {
         expiresAt = expDate;
       } else {
-        // Fallback if expired: Close it soon (1 day) or standard
-        expiresAt.setDate(expiresAt.getDate() + 30);
+        // Fallback if expired: standard 30-day window from now
+        expiresAt = expiresFromNow(30);
       }
     } else {
       // Priority 2: Default rule (60 days from now)
-      expiresAt.setDate(expiresAt.getDate() + 60);
+      expiresAt = expiresFromNow(60);
     }
 
     // Normalize salary to annual equivalent

@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { getEmployerTier } from '@/lib/tier-limits';
 
 /**
  * GET /api/employer/analytics/csv
- * Premium-only: Download analytics data as CSV.
+ * Admin-only: Download analytics data as CSV.
  */
 export async function GET() {
     const supabase = await createClient();
@@ -24,13 +23,10 @@ export async function GET() {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Gate: Premium only
-    const tier = profile.role === 'admin' ? 'premium' : await getEmployerTier(user.id);
-    if (tier !== 'premium') {
+    // Gate: admin only (CSV export is internal tooling, not an employer feature)
+    if (profile.role !== 'admin') {
         return NextResponse.json({
-            error: 'CSV export is available for Premium tier only',
-            tier,
-            upgradeRequired: true,
+            error: 'CSV export is available for admin users only',
         }, { status: 403 });
     }
 

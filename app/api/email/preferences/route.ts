@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 type JsonInputValue =
   | string
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
       preferences: emailLead.preferences,
     });
   } catch (error) {
-    console.error('Error fetching preferences:', error);
+    logger.error('Error fetching preferences', error);
     return NextResponse.json(
       { success: false, message: 'Failed to fetch preferences' },
       { status: 500 }
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
       preferences: updatedEmailLead.preferences,
     });
   } catch (error) {
-    console.error('Error updating preferences:', error);
+    logger.error('Error updating preferences', error);
     return NextResponse.json(
       { success: false, message: 'Failed to update preferences' },
       { status: 500 }

@@ -52,7 +52,7 @@ export async function sendExpiryWarnings(): Promise<ExpiryCheckResult> {
     // Process each employer job
     for (const employerJob of employerJobs) {
       try {
-        const { job, contactEmail, dashboardToken, editToken } = employerJob;
+        const { job, contactEmail, dashboardToken } = employerJob;
 
         // Validate required data
         if (!job.expiresAt) {
@@ -91,7 +91,6 @@ export async function sendExpiryWarnings(): Promise<ExpiryCheckResult> {
           job.viewCount,
           job.applyClickCount,
           dashboardToken,
-          editToken,
           unsubscribeToken
         );
 

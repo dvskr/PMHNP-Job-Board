@@ -22,6 +22,8 @@ import EducationSection from '@/components/settings/EducationSection'
 import WorkExperienceSection from '@/components/settings/WorkExperienceSection'
 import ScreeningAnswersSection from '@/components/settings/ScreeningAnswersSection'
 import OpenEndedResponsesSection from '@/components/settings/OpenEndedResponsesSection'
+import NewsletterPreference from '@/components/settings/NewsletterPreference'
+import AIRecommendationsToggle from '@/components/settings/AIRecommendationsToggle'
 
 import ReferencesSection from '@/components/settings/ReferencesSection'
 
@@ -369,7 +371,9 @@ function SettingsPageInner() {
     try {
       const supabase = createClient()
       const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
-        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+        // /auth/confirm — handles hash-fragment recovery tokens that the
+        // server-side /auth/callback can't read.
+        redirectTo: `${window.location.origin}/auth/confirm?type=recovery`,
       })
       if (error) {
         if (error.message?.includes('seconds') || error.message?.includes('rate limit')) {
@@ -1516,6 +1520,16 @@ function SettingsPageInner() {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* ── Email preferences ── */}
+          <div style={cardStyle}>
+            <h3 style={cardTitle}>
+              <Bell size={20} style={{ color: 'var(--text-muted)' }} />
+              Email Preferences
+            </h3>
+            <NewsletterPreference email={profile.email} />
+            {profile.role !== 'employer' && <AIRecommendationsToggle />}
           </div>
 
           {/* ── Danger Zone ── */}

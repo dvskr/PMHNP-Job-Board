@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   },
   twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-frequently-asked-questions.webp'] },
   alternates: {
-    canonical: 'https://pmhnphiring.com/faq',
+    canonical: `${brand.baseUrl}/faq`,
   },
 };
 
@@ -52,19 +53,27 @@ export default function FAQPage() {
   const employerFaqs = [
     {
       question: "How much does it cost to post a job?",
-      answer: "Your first 2 job posts are completely FREE with all features included — no credit card required. After that, each additional post costs $199 flat. Renewals are discounted at $159 (20% off)."
+      answer: `Your first ${config.freePostsPerEmail} job posts are completely FREE with all features included — no credit card required. After that, each additional post costs $${config.postingPrice} flat. Renewals are discounted at $${config.renewalPrice} (${Math.round((1 - config.renewalPrice / config.postingPrice) * 100)}% off).`
     },
     {
       question: "What features are included?",
-      answer: "Every job post — free or paid — gets the same features: 60-day listing, Featured badge, top placement in search results, company logo, full analytics with salary benchmarks, 25 candidate profile views, 25 InMails, up to 5 screening questions, and apply-on-platform."
+      answer: `Every job post — free or paid — gets the same features: Featured badge, top placement in search results, company logo, full analytics with salary benchmarks, ${config.limits.candidateUnlocksPerPosting} candidate profile views, ${config.limits.inmailsPerPosting} InMails, up to 5 screening questions, and apply-on-platform. The only difference is listing duration: free posts run ${config.freeDurationDays} days, paid posts run ${config.durationDays} days.`
     },
     {
       question: "How long do job postings last?",
-      answer: "All job postings are active for 60 days. You can renew your posting at any time from your employer dashboard for $159 (20% off the regular price)."
+      answer: `Paid postings are active for ${config.durationDays} days; free postings run for ${config.freeDurationDays} days. Paid postings can be renewed any time from the employer dashboard for $${config.renewalPrice} (${Math.round((1 - config.renewalPrice / config.postingPrice) * 100)}% off the regular price). Free postings cannot be renewed at the discounted rate — post a fresh listing at $${config.postingPrice} instead.`
+    },
+    {
+      question: "If I renew before my post expires, do I lose the remaining days?",
+      answer: `No. Renewing early adds ${config.durationDays} days to your current expiration date — you keep every day you've already paid for. Renew on your schedule.`
+    },
+    {
+      question: "What happens to candidates I've unlocked when my posting expires?",
+      answer: "You keep them. Once you've unlocked a candidate (paid 1 of your 25 unlocks to view their full profile), their contact info, resume, and details remain accessible in your dashboard forever — even after the posting expires. To unlock new candidates or send new InMails, you'll need an active posting."
     },
     {
       question: "Can I edit my job posting?",
-      answer: "Yes! You'll receive an edit link in your confirmation email. You can update your posting anytime—change salary, requirements, description, or any other details. Changes go live immediately."
+      answer: "Yes! Open your employer dashboard (link is in your confirmation email) and click Edit on any posting. You can update salary, requirements, description, or any other details — changes go live immediately."
     },
     {
       question: "How do I access my employer dashboard?",

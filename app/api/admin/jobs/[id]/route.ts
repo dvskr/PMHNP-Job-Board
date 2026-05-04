@@ -81,14 +81,73 @@ export async function PATCH(
             );
         }
 
+        // Validate expiresAt — previously this was a pass-through that accepted
+        // any value the admin form sent. That allowed silent setting of arbitrary
+        // dates (year 9999, dates in the past, malformed strings) and is the
+        // most likely cause of the production SOL Mental Health 74-day anomaly.
+        // Now: must be parseable, must be in the future, must be within 12
+        // months of NOW (admins shouldn't be pushing posts more than a year out).
+        if ('expiresAt' in data) {
+            const raw = data.expiresAt;
+            if (raw === null) {
+                // explicit clear is allowed (e.g. archive/cleanup workflows)
+            } else {
+                const parsed = raw instanceof Date ? raw : new Date(String(raw));
+                if (Number.isNaN(parsed.getTime())) {
+                    return NextResponse.json(
+                        { success: false, error: 'expiresAt must be a valid date' },
+                        { status: 400 },
+                    );
+                }
+                const now = Date.now();
+                const maxFuture = now + 365 * 24 * 60 * 60 * 1000; // 12 months
+                if (parsed.getTime() < now) {
+                    return NextResponse.json(
+                        { success: false, error: 'expiresAt cannot be in the past — use isPublished=false to unpublish instead' },
+                        { status: 400 },
+                    );
+                }
+                if (parsed.getTime() > maxFuture) {
+                    return NextResponse.json(
+                        { success: false, error: 'expiresAt cannot be more than 12 months in the future' },
+                        { status: 400 },
+                    );
+                }
+                data.expiresAt = parsed;
+            }
+        }
+
+        // Capture the prior expiresAt for audit trail when changing it
+        const priorJob = 'expiresAt' in data
+            ? await prisma.job.findUnique({ where: { id }, select: { expiresAt: true, title: true } })
+            : null;
+
         const job = await prisma.job.update({
             where: { id },
             data,
             select: {
                 id: true, title: true, employer: true, isPublished: true,
-                isFeatured: true, updatedAt: true,
+                isFeatured: true, updatedAt: true, expiresAt: true,
             },
         });
+
+        // Log expiry edits to AuditLog so we can answer "who changed this and when"
+        // for the next anomaly investigation.
+        if (priorJob && 'expiresAt' in data) {
+            const priorIso = priorJob.expiresAt?.toISOString() ?? null;
+            const newIso = job.expiresAt?.toISOString() ?? null;
+            if (priorIso !== newIso) {
+                await prisma.auditLog.create({
+                    data: {
+                        action: 'admin.job.expiry_change',
+                        actorType: 'admin',
+                        targetType: 'job',
+                        targetId: id,
+                        metadata: { from: priorIso, to: newIso, jobTitle: priorJob.title },
+                    },
+                }).catch((err) => console.error('[Admin Jobs] failed to write audit log', err));
+            }
+        }
 
         return NextResponse.json({ success: true, job });
     } catch (error) {
@@ -101,6 +160,12 @@ export async function PATCH(
  * DELETE /api/admin/jobs/:id
  * Soft-delete by default (sets isPublished=false).
  * Use ?hard=true for permanent deletion.
+ *
+ * Audit #25: hard-delete is BLOCKED on free posts. Cascade-deleting an
+ * EmployerJob row that recorded a freebie use would drop the domain's
+ * freebie count, letting the (probably-just-spammy) employer post 2 fresh
+ * free jobs from a clean slate. Admin can still soft-delete free posts,
+ * which removes them from search without nuking the quota signal.
  */
 export async function DELETE(
     request: NextRequest,
@@ -114,6 +179,23 @@ export async function DELETE(
 
     try {
         if (hard) {
+            // Audit #25: refuse hard-delete if the job is a free posting.
+            // Cascade through EmployerJob would drop the quotaDomain row that
+            // anchors the freebie quota count.
+            const employerJob = await prisma.employerJob.findUnique({
+                where: { jobId: id },
+                select: { paymentStatus: true },
+            });
+            if (employerJob && employerJob.paymentStatus === 'free') {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: 'Cannot hard-delete a free posting — cascade would erase the freebie-quota record. Soft-delete (default, no ?hard flag) instead, or contact engineering for a quota-preserving removal.',
+                    },
+                    { status: 409 },
+                );
+            }
+
             await prisma.job.delete({ where: { id } });
             return NextResponse.json({ success: true, action: 'hard_deleted' });
         }

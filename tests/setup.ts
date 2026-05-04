@@ -36,8 +36,37 @@ vi.mock('@/lib/prisma', () => {
             },
             employerJob: {
                 findFirst: vi.fn(),
+                findMany: vi.fn(),
+                count: vi.fn(),
                 create: vi.fn(),
                 update: vi.fn(),
+            },
+            profileView: {
+                count: vi.fn(),
+                findUnique: vi.fn(),
+                findMany: vi.fn(),
+                upsert: vi.fn(),
+                create: vi.fn(),
+            },
+            conversation: {
+                count: vi.fn(),
+                findFirst: vi.fn(),
+                findMany: vi.fn(),
+                create: vi.fn(),
+            },
+            employerMessage: {
+                count: vi.fn(),
+                findMany: vi.fn(),
+                create: vi.fn(),
+            },
+            processedStripeEvent: {
+                create: vi.fn(),
+                findUnique: vi.fn(),
+            },
+            jobCharge: {
+                create: vi.fn(),
+                findFirst: vi.fn(),
+                findMany: vi.fn(),
             },
             jobDraft: {
                 deleteMany: vi.fn(),
@@ -70,6 +99,33 @@ vi.mock('@/lib/prisma', () => {
                 update: vi.fn(),
                 delete: vi.fn(),
             },
+            aiCallLog: {
+                create: vi.fn(),
+                findMany: vi.fn(),
+                count: vi.fn(),
+                aggregate: vi.fn(),
+            },
+            aiEvalSnapshot: {
+                create: vi.fn(),
+                findMany: vi.fn(),
+                count: vi.fn(),
+            },
+            aiFeatureFlagOverride: {
+                findMany: vi.fn(),
+                create: vi.fn(),
+                update: vi.fn(),
+                delete: vi.fn(),
+                upsert: vi.fn(),
+                deleteMany: vi.fn(),
+            },
+            candidateRecommendation: {
+                findFirst: vi.fn(),
+                findMany: vi.fn(),
+                create: vi.fn(),
+                update: vi.fn(),
+                updateMany: vi.fn(),
+                deleteMany: vi.fn(),
+            },
             $queryRaw: vi.fn(),
         },
     };
@@ -80,7 +136,6 @@ vi.mock('@/lib/email-service', () => {
     return {
         sendWelcomeEmail: vi.fn().mockResolvedValue({ success: true }),
         sendConfirmationEmail: vi.fn().mockResolvedValue({ success: true }),
-        sendJobAlertEmail: vi.fn().mockResolvedValue(undefined),
         sendRenewalConfirmationEmail: vi.fn().mockResolvedValue({ success: true }),
         sendExpiryWarningEmail: vi.fn().mockResolvedValue({ success: true }),
         sendDraftSavedEmail: vi.fn().mockResolvedValue({ success: true }),

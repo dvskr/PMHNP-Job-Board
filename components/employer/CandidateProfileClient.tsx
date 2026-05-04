@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
     ArrowLeft, MapPin, Briefcase, Award, Calendar, DollarSign,
-    FileText, Mail, ExternalLink, Loader2, Shield, Clock, Linkedin, Lock,
+    FileText, Mail, ExternalLink, Loader2, Shield, Clock, Linkedin, Lock, Plus,
 } from 'lucide-react';
 import ComposeMessageModal from './ComposeMessageModal';
 
@@ -61,7 +61,7 @@ const cardBase: React.CSSProperties = {
 const recessedPill: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: '4px',
     fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '10px',
-    border: '1px solid #E8F0EB',
+    border: '1px solid rgba(0,0,0,0.06)',
     boxShadow: 'inset 1px 1px 3px rgba(0,60,50,0.04), inset -1px -1px 2px rgba(255,255,255,0.3)',
 };
 
@@ -80,10 +80,13 @@ const sectionLabel: React.CSSProperties = {
     marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px',
 };
 
+type ErrorReason = 'no_posting' | 'posting_cap' | 'daily_cap' | 'not_found' | 'generic';
+
 export default function CandidateProfileClient({ candidateId }: { candidateId: string }) {
     const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [errorReason, setErrorReason] = useState<ErrorReason | null>(null);
     const [showContact, setShowContact] = useState(false);
     const [showCompose, setShowCompose] = useState(false);
     const [postingJobId, setPostingJobId] = useState<string | undefined>(undefined);
@@ -94,12 +97,26 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
             try {
                 const res = await fetch(`/api/employer/candidates/${candidateId}`);
                 if (!res.ok) {
-                    setError(res.status === 404 ? 'Candidate not found or profile is no longer visible.' : 'Failed to load profile.');
+                    if (res.status === 404) {
+                        setError('Candidate not found or profile is no longer visible.');
+                        setErrorReason('not_found');
+                        return;
+                    }
+                    // 403s from the unlock endpoint carry a `reason` we can use
+                    // to render an actionable message instead of "Failed to load".
+                    let body: { error?: string; reason?: ErrorReason } = {};
+                    try { body = await res.json(); } catch { /* non-JSON */ }
+                    const reason = body.reason && ['no_posting', 'posting_cap', 'daily_cap'].includes(body.reason)
+                        ? body.reason
+                        : 'generic';
+                    setErrorReason(reason);
+                    setError(body.error || 'Failed to load profile.');
                     return;
                 }
                 setCandidate(await res.json());
             } catch {
                 setError('Failed to load profile.');
+                setErrorReason('generic');
             } finally {
                 setLoading(false);
             }
@@ -123,9 +140,9 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
 
     if (loading) {
         return (
-            <div style={{ background: '#F5F6F8', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: '#F5F0EB', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ textAlign: 'center' }}>
-                    <Loader2 size={32} className="animate-spin" style={{ color: '#0D9488', marginBottom: '12px' }} />
+                    <Loader2 size={32} className="animate-spin" style={{ color: '#0D9488', margin: '0 auto 12px', display: 'block' }} />
                     <p style={{ color: '#8A9BA6', fontSize: '14px' }}>Loading candidate profile…</p>
                 </div>
             </div>
@@ -133,16 +150,49 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
     }
 
     if (error || !candidate) {
+        const isNoPosting = errorReason === 'no_posting';
+        const heading = isNoPosting
+            ? 'Post a job to unlock candidates'
+            : (error || 'Profile not available');
+        const sub = isNoPosting
+            ? 'Candidate contact info, resume, and LinkedIn unlock once you have at least one active job posting.'
+            : null;
         return (
-            <div style={{ background: '#F5F6F8', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ ...cardBase, padding: '48px 32px', textAlign: 'center', maxWidth: '420px' }}>
-                    <Shield size={36} style={{ color: '#B0C4BC', marginBottom: '12px' }} />
+            <div style={{ background: '#F5F0EB', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ ...cardBase, padding: '48px 32px', textAlign: 'center', maxWidth: '460px' }}>
+                    {isNoPosting ? (
+                        <Briefcase size={36} style={{ color: '#0D9488', margin: '0 auto 12px', display: 'block' }} />
+                    ) : (
+                        <Shield size={36} style={{ color: '#B0C4BC', margin: '0 auto 12px', display: 'block' }} />
+                    )}
                     <h2 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', marginBottom: '8px' }}>
-                        {error || 'Profile not available'}
+                        {heading}
                     </h2>
-                    <Link href="/employer/candidates" style={{ color: '#0D9488', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>
-                        ← Back to Talent Pool
-                    </Link>
+                    {sub && (
+                        <p style={{ fontSize: '13px', color: '#6B7F8A', lineHeight: 1.55, margin: '0 0 18px' }}>
+                            {sub}
+                        </p>
+                    )}
+                    {isNoPosting && (
+                        <Link
+                            href="/post-job"
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                padding: '10px 18px', borderRadius: '12px',
+                                fontSize: '13px', fontWeight: 600, color: '#fff',
+                                background: 'linear-gradient(145deg, #10B981, #0D9488)',
+                                boxShadow: '3px 3px 8px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
+                                textDecoration: 'none', marginBottom: '14px',
+                            }}
+                        >
+                            <Plus size={14} /> Post a Job
+                        </Link>
+                    )}
+                    <div>
+                        <Link href="/employer/candidates" style={{ color: '#0D9488', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>
+                            ← Back to Talent Pool
+                        </Link>
+                    </div>
                 </div>
             </div>
         );
@@ -154,11 +204,11 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
     const safeStates = candidate.licenseStates || [];
 
     return (
-        <div style={{ background: '#F5F6F8' }}>
+        <div style={{ background: '#F5F0EB' }}>
             {/* Header band */}
             <div style={{
                 padding: '20px 16px',
-                background: 'linear-gradient(180deg, #F0F2F5 0%, #F5F6F8 100%)',
+                background: 'linear-gradient(180deg, #EDE7E0 0%, #F5F0EB 100%)',
                 borderBottom: '1px solid #E5E7EB',
             }}>
                 <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -213,7 +263,7 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                                 </span>
                             )}
                             {candidate.preferredWorkMode && (
-                                <span style={{ ...recessedPill, background: '#F4F8F5', color: '#6B7F8A' }}>
+                                <span style={{ ...recessedPill, background: '#F5F6F8', color: '#6B7F8A' }}>
                                     <Briefcase size={11} /> {candidate.preferredWorkMode}
                                 </span>
                             )}
@@ -229,8 +279,8 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                                 }}>
                                     <Mail size={15} /> Contact Candidate
                                 </button>
-                                {candidate.hasResume && candidate.resumeUrl && (
-                                    <a href={candidate.resumeUrl} target="_blank" rel="noopener noreferrer" className="cp-action-btn" style={{
+                                {candidate.hasResume && (
+                                    <a href={`/api/employer/candidates/${candidate.id}/resume`} target="_blank" rel="noopener noreferrer" className="cp-action-btn" style={{
                                         ...clayBtn, background: '#FFFFFF', color: '#2A4A5A',
                                     }}>
                                         <FileText size={15} /> Download Resume
@@ -296,7 +346,7 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                                         {safeStates.map(st => (
                                             <span key={st} style={{
                                                 fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '8px',
-                                                background: '#F4F8F5', color: '#6B7F8A', border: '1px solid #E8F0EB',
+                                                background: '#F5F6F8', color: '#6B7F8A', border: '1px solid rgba(0,0,0,0.06)',
                                             }}>
                                                 {st}
                                             </span>
@@ -372,8 +422,8 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                                 </a>
                             </div>
                         )}
-                        {candidate.hasResume && candidate.resumeUrl && (
-                            <a href={candidate.resumeUrl} target="_blank" rel="noopener noreferrer" className="cp-action-btn" style={{
+                        {candidate.hasResume && (
+                            <a href={`/api/employer/candidates/${candidate.id}/resume`} target="_blank" rel="noopener noreferrer" className="cp-action-btn" style={{
                                 ...clayBtn, background: '#FFFFFF', color: '#2A4A5A',
                             }}>
                                 <FileText size={15} /> Download Resume

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LayoutGrid, List, SlidersHorizontal, ChevronDown, Briefcase } from 'lucide-react';
+import { LayoutGrid, List, SlidersHorizontal, ChevronDown, Briefcase, Search, Sparkles } from 'lucide-react';
 import JobCard from '@/components/JobCard';
 import LinkedInFilters from '@/components/jobs/LinkedInFilters';
 import CreateAlertForm from '@/components/CreateAlertForm';
@@ -39,7 +39,10 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     }
   }, [jobs]);
 
-  const [total, setTotal] = useState(initialTotal);
+  // `total` was previously displayed in the "Showing X PMHNP jobs" header
+  // (replaced by the AI Search bar). Kept as setter-only so future surfaces
+  // (analytics, breadcrumbs, sticky toast) can pick it up without re-wiring fetchJobs.
+  const [, setTotal] = useState(initialTotal);
   const [totalPages, setTotalPages] = useState(initialTotalPages);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [loading, setLoading] = useState(false);
@@ -57,6 +60,59 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   // Read sort from URL params (persists across navigation)
   const urlSort = searchParams.get('sort') || 'best';
   const [sortOption, setSortOption] = useState(urlSort);
+
+  // ── AI / Smart Search (inline; does NOT navigate away) ─────────────
+  // Submits to /api/jobs/search/semantic and replaces the rendered job list
+  // with the ranked semantic results. The user's filter state stays intact —
+  // a "Clear AI matches" link reverts to the normal browse view.
+  // (Type AiHit = Job + aiMatchPercent — server returns Job-shaped rows.)
+  type AiHit = Job & { aiMatchPercent: number };
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiResults, setAiResults] = useState<AiHit[] | null>(null);
+  const [aiSubmittedQuery, setAiSubmittedQuery] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiDegraded, setAiDegraded] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const handleAiSearch = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = aiQuery.trim();
+    if (q.length < 2) return;
+    setAiLoading(true);
+    setAiError(null);
+    setAiSubmittedQuery(q);
+    try {
+      const params = new URLSearchParams({ q, k: '24' });
+      const res = await fetch(`/api/jobs/search/semantic?${params.toString()}`);
+      if (res.status === 404) {
+        // Flag off — degrade gracefully, surface a small inline message.
+        setAiError('AI search is not enabled yet.');
+        setAiResults(null);
+        return;
+      }
+      if (!res.ok) {
+        setAiError(`Search failed (${res.status}). Try again or use filters below.`);
+        setAiResults(null);
+        return;
+      }
+      const data = (await res.json()) as { jobs: AiHit[]; degraded: boolean };
+      setAiResults(data.jobs);
+      setAiDegraded(!!data.degraded);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'Search failed');
+      setAiResults(null);
+    } finally {
+      setAiLoading(false);
+    }
+  }, [aiQuery]);
+
+  const clearAiSearch = useCallback(() => {
+    setAiResults(null);
+    setAiQuery('');
+    setAiSubmittedQuery('');
+    setAiError(null);
+    setAiDegraded(false);
+  }, []);
 
   // Persist filter preferences across sessions
   useFilterPersistence();
@@ -303,20 +359,77 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 marginBottom: '20px', flexWrap: 'wrap', gap: '12px',
               }}>
-                {/* Left: results count */}
-                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, fontWeight: 500 }}>
-                  {total > 0 ? (
-                    <>
-                      Showing{' '}
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                        {total.toLocaleString()}
-                      </span>
-                      {' '}PMHNP job{total !== 1 ? 's' : ''}
-                    </>
-                  ) : (
-                    <>Showing 0 jobs</>
-                  )}
-                </p>
+                {/*
+                  AI Search bar — exact clone of the homepage hero search bar
+                  (components/HomepageHero.tsx). Same wrapper class, same
+                  borderRadius/shadow/backdrop, same `#0D9488` CTA. Single
+                  input variant (no location field) and CTA changed to
+                  "AI Search" with a Sparkles icon. Submit calls
+                  /api/jobs/search/semantic inline and replaces the rendered
+                  job list — no separate page navigation.
+                */}
+                <form
+                  onSubmit={handleAiSearch}
+                  style={{ flex: 1, minWidth: 0, maxWidth: '640px' }}
+                  role="search"
+                  aria-label="AI semantic job search"
+                >
+                  <div
+                    className="hero-search-bar"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'stretch',
+                      borderRadius: '20px',
+                      overflow: 'hidden',
+                      background: 'rgba(255,255,255,0.95)',
+                      backdropFilter: 'blur(12px)',
+                      border: '1px solid rgba(255,255,255,0.6)',
+                      boxShadow: '8px 8px 20px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.02)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 18px', flex: 1, minWidth: 0 }}>
+                      <Search size={18} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                      <input
+                        type="text"
+                        placeholder='Try "telehealth child psych in CA"'
+                        value={aiQuery}
+                        onChange={(e) => setAiQuery(e.target.value)}
+                        autoComplete="off"
+                        aria-label="Describe the role you want"
+                        title='Describe a role in your own words — e.g. "telehealth child psychiatry, west coast"'
+                        className="hero-search-input"
+                        style={{ boxShadow: 'none', outline: 'none', border: 'none', background: 'transparent', width: '100%', fontSize: '0.9rem', color: '#1f2937', textAlign: 'left' }}
+                        onFocus={(e) => { e.target.style.boxShadow = 'none'; e.target.style.outline = 'none'; }}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="hero-search-btn"
+                      disabled={aiQuery.trim().length < 2 || aiLoading}
+                      style={{
+                        background: '#0D9488',
+                        color: 'white',
+                        padding: '0 24px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        border: 'none',
+                        cursor: (aiQuery.trim().length < 2 || aiLoading) ? 'not-allowed' : 'pointer',
+                        opacity: (aiQuery.trim().length < 2 || aiLoading) ? 0.55 : 1,
+                        flexShrink: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s ease',
+                        boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.2), inset -1px -1px 2px rgba(0,0,0,0.08)',
+                      }}
+                      onMouseEnter={(e) => { if (aiQuery.trim().length >= 2 && !aiLoading) { e.currentTarget.style.background = '#0f766e'; e.currentTarget.style.transform = 'scale(1.02)'; } }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = '#0D9488'; e.currentTarget.style.transform = 'scale(1)'; }}
+                    >
+                      <Sparkles size={14} aria-hidden="true" />
+                      {aiLoading ? 'Searching…' : 'AI Search'}
+                    </button>
+                  </div>
+                </form>
 
                 {/* Right: sort + view toggle */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -393,10 +506,71 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               </div>
             )}
 
-            {/* Loading State */}
-            {loading && <JobsListSkeleton count={9} />}
+            {/* AI Search Banner — clay surface matching the rest of the
+                /jobs page (white card, soft outer shadow + inset highlight,
+                tinted left edge for status). Error state swaps the accent
+                from teal to soft red without breaking the clay aesthetic. */}
+            {(aiResults !== null || aiLoading || aiError) && (
+              <div style={{
+                marginBottom: '16px',
+                padding: '14px 18px',
+                background: '#FFFFFF',
+                borderRadius: '20px',
+                border: '1px solid rgba(255,255,255,0.5)',
+                borderLeft: `3px solid ${aiError ? '#EF4444' : '#0D9488'}`,
+                boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                  {/* Clay pebble around the icon — same recipe as the
+                      hero/sidebar pebbles elsewhere in the design system. */}
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 28, height: 28, borderRadius: 10,
+                    backgroundColor: aiError ? '#FEE2E2' : '#CCFBF1',
+                    boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.04), 2px 2px 4px rgba(0,0,0,0.06)',
+                    border: '1px solid rgba(255,255,255,0.6)',
+                    flexShrink: 0,
+                  }}>
+                    <Sparkles size={14} style={{ color: aiError ? '#EF4444' : '#0D9488' }} />
+                  </span>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)' }}>
+                    {aiLoading && <>Searching for <strong>&ldquo;{aiSubmittedQuery}&rdquo;</strong>…</>}
+                    {!aiLoading && aiError && <span style={{ color: '#B91C1C' }}>{aiError}</span>}
+                    {!aiLoading && !aiError && aiResults !== null && (
+                      <>
+                        Showing <strong>relevant matches</strong> for <strong>&ldquo;{aiSubmittedQuery}&rdquo;</strong>
+                        {aiDegraded && <span style={{ color: '#92400e', marginLeft: 6 }}>(degraded — keyword fallback)</span>}
+                      </>
+                    )}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearAiSearch}
+                  className="jp-clay-btn"
+                  style={{
+                    fontSize: '12px', fontWeight: 600,
+                    padding: '8px 14px', borderRadius: '12px',
+                    backgroundColor: '#EDF2EE',
+                    border: '1px solid rgba(255,255,255,0.5)',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer', flexShrink: 0,
+                    transition: 'all 0.2s',
+                    boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#E4ECE5'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#EDF2EE'; }}
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
 
-            {/* Error State */}
+            {/* Loading State (regular browse fetch — NOT AI) */}
+            {loading && !aiResults && <JobsListSkeleton count={9} />}
+
+            {/* Error State (regular browse) */}
             {error && (
               <div style={{
                 backgroundColor: 'rgba(239,68,68,0.08)',
@@ -408,7 +582,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
             )}
 
             {/* No Jobs State */}
-            {!loading && !error && jobs.length === 0 && (
+            {!loading && !error && !aiResults && jobs.length === 0 && (
               <div style={{ textAlign: 'center', padding: '64px 20px' }}>
                 <p style={{ fontSize: '18px', color: 'var(--text-secondary)', fontWeight: 600 }}>No jobs found</p>
                 {activeFilterCount > 0 && (
@@ -419,15 +593,29 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               </div>
             )}
 
-            {/* Jobs Grid/List */}
-            {!loading && !error && jobs.length > 0 && (
+            {/* AI No-Results State */}
+            {!aiLoading && !aiError && aiResults !== null && aiResults.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '64px 20px' }}>
+                <p style={{ fontSize: '18px', color: 'var(--text-secondary)', fontWeight: 600 }}>No semantic matches</p>
+                <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
+                  Try a broader query, or clear AI matches to browse normally.
+                </p>
+              </div>
+            )}
+
+            {/* Jobs Grid/List — renders AI results when active, else the normal browse list */}
+            {!loading && !error && (aiResults !== null ? aiResults.length > 0 : jobs.length > 0) && (
               <>
                 <div style={
                   viewMode === 'grid'
                     ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))', gap: '16px', alignItems: 'start' }
                     : { display: 'flex', flexDirection: 'column' as const, gap: '12px' }
                 }>
-                  {jobs.map((job: Job, index: number) => (
+                  {(aiResults ?? jobs).map((job: Job | AiHit, index: number) => (
+                    // Per-card relevance badge intentionally removed — cosine
+                    // similarity is too noisy to display as a precise score
+                    // and adds visual clutter without informing the click
+                    // decision. Ranking order conveys the same signal.
                     <div key={job.id} style={viewMode === 'grid' ? { height: '100%' } : {}}>
                       <AnimatedContainer
                         animation="fade-in-up"
@@ -439,8 +627,8 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                   ))}
                 </div>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
+                {/* Pagination — hidden in AI mode (semantic returns top-K, not paged) */}
+                {totalPages > 1 && aiResults === null && (
                   <div style={{
                     marginTop: '40px', paddingTop: '24px',
                     borderTop: '1px solid var(--border-color)',

@@ -22,6 +22,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test smoke",
+    "test:e2e:regression": "playwright test regression",
+    "test:e2e:seo": "playwright test seo",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install chromium",
     "postinstall": "prisma generate",
     "audit:jobs": "ts-node --project scripts/tsconfig.json scripts/audit-and-fix-jobs.ts",
     "audit:salaries": "ts-node --project scripts/tsconfig.json scripts/audit-salaries.ts",
@@ -29,7 +35,14 @@
     "fix:salaries": "ts-node --project scripts/tsconfig.json scripts/fix-all-salaries.ts",
     "populate:display-salaries": "ts-node --project scripts/tsconfig.json scripts/populate-display-salaries.ts",
     "clean:descriptions": "ts-node --project scripts/tsconfig.json scripts/clean-job-descriptions.ts",
-    "ingest": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-ingestion.ts"
+    "ingest": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-ingestion.ts",
+    "eval": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-eval.ts",
+    "prompt:diff": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/prompt-diff.ts",
+    "backfill:embeddings": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/backfill-embeddings.ts",
+    "lint:pii-prompts": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/scan-prompt-pii.ts",
+    "db:sync-from-prod": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/sync-prod-jobs-to-local.ts",
+    "recs:run": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-recommendations.ts",
+    "seed:test-candidates": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/seed-test-candidates.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

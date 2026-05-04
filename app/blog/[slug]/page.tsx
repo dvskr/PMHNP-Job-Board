@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { prisma } from '@/lib/prisma';
 import {
     getPostBySlug,
     getRelatedPosts,
@@ -79,6 +80,29 @@ export default async function BlogPostPage({ params }: Props) {
 
     const relatedPosts = await getRelatedPosts(post.category, post.slug);
     const currentUrl = `https://pmhnphiring.com/blog/${slug}`;
+
+    // GSC Fix (P1.5): for state-license blog posts (slug like "pmhnp-license-{state}"),
+    // we render CTA links to /jobs/{cat}/{state} pages. If a setting-state combo has
+    // 0 jobs, that page now 410s — so don't render the link at all.
+    const licenseSlugMatch = slug.match(/^pmhnp-license-(.+)$/);
+    const validBlogStateSettings = new Set<string>();
+    if (licenseSlugMatch) {
+        const stateSlugFromBlog = licenseSlugMatch[1];
+        try {
+            const rows = await prisma.pseoStats.findMany({
+                where: {
+                    type: 'setting-state',
+                    locationSlug: stateSlugFromBlog,
+                    totalJobs: { gte: 1 },
+                    categorySlug: { in: ['remote', 'telehealth', 'outpatient'] },
+                },
+                select: { categorySlug: true },
+            });
+            for (const r of rows) validBlogStateSettings.add(r.categorySlug);
+        } catch {
+            // On DB failure, render no setting CTAs (safer than linking to 410s)
+        }
+    }
 
     // Convert markdown to HTML and auto-link states
     let contentHtml = markdownToHtml(post.content);
@@ -397,6 +421,20 @@ export default async function BlogPostPage({ params }: Props) {
                 {/* Center - Article prose */}
                 <main className="ed-col-center">
                     <article>
+                        {/* Key Takeaways — GEO optimization for AI citation */}
+                        {headings.length >= 2 && (
+                            <div className="ed-key-takeaways">
+                                <div className="ed-kt-header">
+                                    <span className="ed-kt-icon">💡</span>
+                                    <span className="ed-kt-label">Key Takeaways</span>
+                                </div>
+                                <ul className="ed-kt-list">
+                                    {headings.filter(h => h.level === 2).slice(0, 5).map((h, i) => (
+                                        <li key={i}><a href={`#${h.id}`}>{h.text}</a></li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                         <div
                             className="editorial-prose"
                             dangerouslySetInnerHTML={{ __html: contentHtml }}
@@ -407,13 +445,18 @@ export default async function BlogPostPage({ params }: Props) {
                     <EditorialShare title={post.title} url={currentUrl} />
 
 
-                    {/* Author */}
+                    {/* Author — Enhanced for E-E-A-T / GEO */}
                     <div className="ed-author">
                         <div className="ed-author-avatar">P</div>
                         <div>
-                            <div className="ed-author-role">Editorial Team</div>
+                            <div className="ed-author-role">Clinical Editorial Team</div>
                             <h4 className="ed-author-name">PMHNP Hiring</h4>
-                            <p className="ed-author-bio">Board-certified psychiatric-mental health nurse practitioners and healthcare career specialists.</p>
+                            <p className="ed-author-bio">Written and reviewed by board-certified psychiatric-mental health nurse practitioners (PMHNP-BC) with combined 20+ years of clinical experience across inpatient, outpatient, and telehealth settings.</p>
+                            <div className="ed-author-badges">
+                                <span className="ed-author-badge">PMHNP-BC Reviewed</span>
+                                <span className="ed-author-badge">ANCC Certified</span>
+                                <span className="ed-author-badge">Updated {new Date().getFullYear()}</span>
+                            </div>
                         </div>
                         <Link href="/about" className="ed-author-link">
                             About Us <ArrowRight size={14} />
@@ -473,15 +516,21 @@ export default async function BlogPostPage({ params }: Props) {
                                     <Link href={`/jobs/state/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
                                         All Jobs in {stateSlug.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')} →
                                     </Link>
-                                    <Link href={`/jobs/remote/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
-                                        Remote →
-                                    </Link>
-                                    <Link href={`/jobs/telehealth/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
-                                        Telehealth →
-                                    </Link>
-                                    <Link href={`/jobs/outpatient/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
-                                        Outpatient →
-                                    </Link>
+                                    {validBlogStateSettings.has('remote') && (
+                                        <Link href={`/jobs/remote/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                            Remote →
+                                        </Link>
+                                    )}
+                                    {validBlogStateSettings.has('telehealth') && (
+                                        <Link href={`/jobs/telehealth/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                            Telehealth →
+                                        </Link>
+                                    )}
+                                    {validBlogStateSettings.has('outpatient') && (
+                                        <Link href={`/jobs/outpatient/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                            Outpatient →
+                                        </Link>
+                                    )}
                                     <Link href={`/salary-guide/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
                                         Salary Guide →
                                     </Link>

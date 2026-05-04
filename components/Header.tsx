@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, X, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search, HelpCircle, Info, Mail, PenSquare, GraduationCap, UserCheck } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search, HelpCircle, Info, Mail, PenSquare, GraduationCap, UserCheck, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
@@ -51,11 +51,14 @@ export default function Header() {
     { href: '/settings', label: 'Settings', icon: Settings },
   ];
 
-  // Logged-in employer nav — minimal, app-focused
+  // Logged-in employer nav — minimal, app-focused.
+  // Settings remains accessible from the user-menu dropdown; the top-nav
+  // slot is more valuable for surfacing the talent pool, which is the
+  // employer's primary daily action.
   const employerNavLinks = [
     { href: '/employer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/employer/candidates', label: 'Browse Talent Pool', icon: Users },
     { href: '/messages', label: 'Messages', icon: MessageSquare },
-    { href: '/settings', label: 'Settings', icon: Settings },
   ];
 
   // Mobile-only extra links for public users (pages not in top nav)

@@ -25,6 +25,23 @@ export async function PATCH(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Optional unpublish-reason payload — only consumed when transitioning
+        // published -> unpublished. Republishing ignores any reason in the body.
+        // Validated against a fixed allowlist; "other" requires the free-text note.
+        const ALLOWED_REASONS = ['filled', 'too_many_applicants', 'enough_applicants', 'reposting_later', 'low_quality', 'other'] as const;
+        type UnpublishReason = typeof ALLOWED_REASONS[number];
+        let providedReason: UnpublishReason | null = null;
+        let providedNote: string | null = null;
+        try {
+            const body = await req.json().catch(() => null) as { reason?: string; note?: string } | null;
+            if (body?.reason && (ALLOWED_REASONS as readonly string[]).includes(body.reason)) {
+                providedReason = body.reason as UnpublishReason;
+                if (typeof body.note === 'string' && body.note.trim().length > 0) {
+                    providedNote = body.note.trim().slice(0, 1000);
+                }
+            }
+        } catch { /* body optional — toggling without a reason is allowed */ }
+
         const profile = await prisma.userProfile.findUnique({
             where: { supabaseId: user.id },
             select: { id: true, role: true },
@@ -68,11 +85,37 @@ export async function PATCH(
             return NextResponse.json({ error: 'Cannot modify an expired job' }, { status: 400 });
         }
 
-        // Toggle
+        // Toggle. When transitioning published -> unpublished, persist the
+        // reason if the modal provided one and stamp `unpublished_at` so we
+        // know when this state change happened (audit + outreach trigger).
         const newPublishedState = !job.isPublished;
+        const updateData: {
+          isPublished: boolean;
+          isManuallyUnpublished?: boolean;
+          unpublishReason?: string | null;
+          unpublishReasonNote?: string | null;
+          unpublishedAt?: Date | null;
+        } = { isPublished: newPublishedState };
+
+        if (!newPublishedState) {
+            // Pause / unpublish
+            updateData.isManuallyUnpublished = true;
+            updateData.unpublishedAt = new Date();
+            if (providedReason) {
+                updateData.unpublishReason = providedReason;
+                // Only persist the note when the reason is "other" — otherwise
+                // it's redundant / reduces analytical signal.
+                updateData.unpublishReasonNote = providedReason === 'other' ? providedNote : null;
+            }
+        } else {
+            // Republish — clear the manual flag so the cron lifecycle treats
+            // this row as freshly active again. Reason stays as historical record.
+            updateData.isManuallyUnpublished = false;
+        }
+
         await prisma.job.update({
             where: { id: job.id },
-            data: { isPublished: newPublishedState },
+            data: updateData,
         });
 
         logger.info('Job publish status toggled', {

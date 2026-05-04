@@ -26,6 +26,7 @@ import { prisma } from '@/lib/prisma';
 import { getPostBySlug } from '@/lib/blog';
 import { getCurrentUser } from '@/lib/auth/protect';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 // ISR: Cache job detail pages for 1 hour.
 // Each job page runs 10-12 DB queries (relatedJobs, companyInfo, salaryData, blogPosts, etc.).
@@ -341,12 +342,12 @@ export async function generateMetadata({ params }: JobPageProps) {
   const id = uuidMatch ? uuidMatch[1] : null;
 
   if (!id) {
-    // Malformed slug with no UUID — return 410 to stop Google recrawling
+    // Malformed slug with no UUID — this is a 404 (wrong/guessed URL),
+    // not a 410 (deleted job). Use generic page-not-found metadata.
     return {
-      title: 'Position No Longer Available',
-      description: 'This PMHNP position is no longer available. Browse current job openings on PMHNP Hiring.',
+      title: 'Page Not Found',
+      description: 'The page you are trying to access doesn’t exist. Browse current PMHNP jobs on PMHNP Hiring.',
       robots: { index: false, follow: true },
-      other: { 'X-Status': '410' },
     };
   }
 
@@ -491,7 +492,7 @@ function renderRemovedPage({ badge, badgeGradient, heading, subtext, title, empl
   ];
 
   return (
-    <div style={{ backgroundColor: '#FDFBF7', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: '#F5F0EB', minHeight: '100vh' }}>
       {/* Inline hover styles */}
       <style dangerouslySetInnerHTML={{ __html: `
         .gone-card { transition: transform 0.25s ease, box-shadow 0.25s ease; cursor: pointer; }
@@ -588,8 +589,9 @@ export default async function JobPage({ params }: JobPageProps) {
   const id = uuidMatch ? uuidMatch[1] : null;
 
   if (!id) {
-    // Render 410 Gone page for malformed slugs
-    return renderGonePage();
+    // Malformed slug with no UUID — this is a wrong/guessed URL, not a deleted job.
+    // Render proper 404 instead of the misleading "Position No Longer Available" template.
+    notFound();
   }
 
   const result = await getJob(id);
@@ -694,7 +696,7 @@ export default async function JobPage({ params }: JobPageProps) {
         { name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` },
       ]} />
       <JobViewTracker job={{ id: job.id, title: job.title, employer: job.employer, jobType: job.jobType || undefined, stateCode: job.stateCode || undefined, sourceProvider: job.sourceProvider || undefined, normalizedMinSalary: job.normalizedMinSalary }} />
-      <div style={{ backgroundColor: '#FDFBF7', minHeight: '100vh', paddingTop: '1px', paddingBottom: '40px' }}>
+      <div style={{ backgroundColor: '#F5F0EB', minHeight: '100vh', paddingTop: '1px', paddingBottom: '40px' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
         {/* Breadcrumbs */}
         <Breadcrumbs items={breadcrumbItems} />

@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -82,7 +83,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       description: 'Browse 1099 and independent contractor psychiatric mental health nurse practitioner positions.',
       type: 'website',
     },
-    alternates: { canonical: 'https://pmhnphiring.com/jobs/1099' },
+    alternates: { canonical: `${brand.baseUrl}/jobs/1099` },
     ...(page > 1 && { robots: { index: false, follow: true } }),
   };
 }

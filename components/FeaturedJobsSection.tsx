@@ -111,6 +111,30 @@ export default async function FeaturedJobsSection() {
 
     console.log(`[FeaturedJobsSection] Fetched ${jobs.length} jobs`);
 
-    return <FeaturedJobs jobs={jobs} />;
+    return (
+        <>
+            {/* ItemList schema — enables job carousels in Google search */}
+            {jobs.length > 0 && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            '@context': 'https://schema.org',
+                            '@type': 'ItemList',
+                            name: 'Featured PMHNP Jobs',
+                            numberOfItems: jobs.length,
+                            itemListElement: jobs.map((job, idx) => ({
+                                '@type': 'ListItem',
+                                position: idx + 1,
+                                name: job.title,
+                                url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+                            })),
+                        }),
+                    }}
+                />
+            )}
+            <FeaturedJobs jobs={jobs} />
+        </>
+    );
 }
 

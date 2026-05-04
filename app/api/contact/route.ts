@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeContactForm } from '@/lib/sanitize';
 import { logger } from '@/lib/logger';
-import { buildContactConfirmationHtml, buildContactNotificationHtml } from '@/lib/email-service';
+import {
+  buildContactConfirmationHtml,
+  buildContactNotificationHtml,
+  sendAndLog,
+  isEmailSuppressed,
+} from '@/lib/email-service';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { getEmployerTier } from '@/lib/tier-limits';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -83,35 +84,36 @@ export async function POST(request: NextRequest) {
       // Non-critical — continue without tier info
     }
 
-    // 1. Send notification email to support team
+    // 1. Notify the support team. Internal address — no suppression check needed
+    //    (we always want internal mail to land regardless of personal opt-out state).
     try {
-      await resend.emails.send({
-        from: EMAIL_FROM,
+      await sendAndLog({
+        from: '', // overridden by sendAndLog (transactional sender)
         to: 'support@pmhnphiring.com',
         subject: `${tierPrefix}Contact Form: ${trimmedSubject}`,
         html: buildContactNotificationHtml(trimmedName, trimmedEmail, trimmedSubject, trimmedMessage + tierInfo),
-        replyTo: trimmedEmail,
-      });
+      }, 'contact_internal', { senderEmail: trimmedEmail, subject: trimmedSubject });
 
       logger.info('Contact form submission', { email: trimmedEmail, subject: trimmedSubject });
     } catch (emailError) {
       logger.error('Error sending notification email', emailError);
-      // Continue to send confirmation email even if notification fails
     }
 
-    // 2. Send confirmation email to user
+    // 2. Send confirmation back to the user. Skip if suppressed — they don't want
+    //    any mail from us. The support team still gets the inbound.
     try {
-      await resend.emails.send({
-        from: EMAIL_FROM,
-        to: trimmedEmail,
-        subject: 'We received your message',
-        html: buildContactConfirmationHtml(trimmedName, trimmedSubject),
-      });
+      if (!(await isEmailSuppressed(trimmedEmail))) {
+        await sendAndLog({
+          from: '', // overridden by sendAndLog (transactional sender)
+          to: trimmedEmail,
+          subject: 'We received your message',
+          html: buildContactConfirmationHtml(trimmedName, trimmedSubject),
+        }, 'contact_confirmation', { subject: trimmedSubject });
 
-      logger.info('Confirmation email sent', { email: trimmedEmail });
+        logger.info('Confirmation email sent', { email: trimmedEmail });
+      }
     } catch (confirmationError) {
       logger.error('Error sending confirmation email', confirmationError);
-      // Don't fail the request if confirmation email fails
     }
 
     // Return success response

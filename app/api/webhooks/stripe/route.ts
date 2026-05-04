@@ -1,16 +1,29 @@
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { sendConfirmationEmail, sendRenewalConfirmationEmail } from '@/lib/email-service';
+import { sendConfirmationEmail, sendRenewalConfirmationEmail, sendRefundConfirmationEmail, getOrCreateUnsubToken } from '@/lib/email-service';
 import { config, PricingTier } from '@/lib/config';
+import { renewalExpiresAt } from '@/lib/expires-at';
 import { logger } from '@/lib/logger';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { anonymizeEmail } from '@/lib/server-utils';
+import { trackServerPurchase } from '@/lib/analytics-server';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+function getStripe(): Stripe | null {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return null;
+  return new Stripe(key);
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const stripe = getStripe();
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!stripe || !webhookSecret) {
+      logger.error('Stripe webhook called but STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET is missing', null);
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
+    }
+
     // Get raw body for signature verification
     const body = await request.text();
     const signature = request.headers.get('stripe-signature')!;
@@ -21,7 +34,7 @@ export async function POST(request: NextRequest) {
       event = stripe.webhooks.constructEvent(
         body,
         signature,
-        process.env.STRIPE_WEBHOOK_SECRET!
+        webhookSecret
       );
     } catch (err) {
       logger.error('Webhook signature verification failed', err);
@@ -30,6 +43,56 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Audit #3: Idempotency dedupe. Stripe redelivers events on transient
+    // failures; without this we'd double-send confirmation emails and re-run
+    // state writes. We insert-then-process; on unique-violation (event already
+    // processed) we return 200 so Stripe stops retrying.
+    try {
+      await prisma.processedStripeEvent.create({
+        data: { eventId: event.id, eventType: event.type },
+      });
+    } catch (dedupeErr) {
+      // Prisma P2002 = unique constraint violation → already processed.
+      // Any other error → log and bail conservatively (Stripe will retry).
+      const code = (dedupeErr as { code?: string } | null)?.code;
+      if (code === 'P2002') {
+        logger.info('Stripe webhook event already processed; skipping', { eventId: event.id, eventType: event.type });
+        return NextResponse.json({ received: true, deduped: true });
+      }
+      logger.error('Failed to record processed Stripe event', dedupeErr, { eventId: event.id });
+      return NextResponse.json({ error: 'Idempotency check failed' }, { status: 500 });
+    }
+
+    // Helper: pull invoice URLs off a session that had `invoice_creation` enabled.
+    // Returns null fields gracefully if the invoice is missing or can't be fetched —
+    // payment processing must never fail because the invoice URL lookup hiccupped.
+    const fetchInvoiceData = async (
+      stripeClient: Stripe,
+      session: Stripe.Checkout.Session
+    ): Promise<{
+      stripeInvoiceId: string | null;
+      invoicePdfUrl: string | null;
+      hostedInvoiceUrl: string | null;
+      invoiceNumber: string | null;
+    }> => {
+      const invoiceId = typeof session.invoice === 'string' ? session.invoice : session.invoice?.id ?? null;
+      if (!invoiceId) {
+        return { stripeInvoiceId: null, invoicePdfUrl: null, hostedInvoiceUrl: null, invoiceNumber: null };
+      }
+      try {
+        const invoice = await stripeClient.invoices.retrieve(invoiceId);
+        return {
+          stripeInvoiceId: invoice.id ?? invoiceId,
+          invoicePdfUrl: invoice.invoice_pdf ?? null,
+          hostedInvoiceUrl: invoice.hosted_invoice_url ?? null,
+          invoiceNumber: invoice.number ?? null,
+        };
+      } catch (invErr) {
+        logger.error('Failed to retrieve Stripe invoice for JobCharge', invErr, { invoiceId, sessionId: session.id });
+        return { stripeInvoiceId: invoiceId, invoicePdfUrl: null, hostedInvoiceUrl: null, invoiceNumber: null };
+      }
+    };
 
     // Handle checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
@@ -50,10 +113,22 @@ export async function POST(request: NextRequest) {
       // Handle renewal payment
       if (type === 'renewal') {
         try {
-          // Calculate new expiry date from config
-          const newExpiresAt = new Date();
-          const renewalTier = (tier || 'starter') as PricingTier;
-          newExpiresAt.setDate(newExpiresAt.getDate() + config.getDurationDays(renewalTier));
+          // Calculate new expiry via renewalExpiresAt (UTC math, capped at 365
+          // days from createdAt to prevent indefinite stacking from repeated
+          // back-to-back renewals).
+          //   - Extends from existing expiresAt if still in the future (audit #22)
+          //   - Otherwise extends from now (late renewers don't bank dead time)
+          //   - Hard cap so 6 paid renewals can't push a posting 2 years out
+          const renewalTier = (tier || 'pro') as PricingTier;
+          const existingJob = await prisma.job.findUnique({
+            where: { id: jobId },
+            select: { expiresAt: true, createdAt: true },
+          });
+          const newExpiresAt = renewalExpiresAt({
+            currentExpiry: existingJob?.expiresAt ?? null,
+            originalCreatedAt: existingJob?.createdAt ?? new Date(),
+            durationDays: config.getDurationDays(renewalTier),
+          });
 
           // Update job
           const job = await prisma.job.update({
@@ -66,16 +141,55 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          // Update employer job payment status
+          // Update employer job payment status. Audit #8: surface a loud failure
+          // if the EmployerJob row is missing — previously we silently extended the
+          // job without recording payment status or sending the receipt email.
           const employerJob = await prisma.employerJob.findFirst({
             where: { jobId: jobId },
           });
 
-          if (employerJob) {
+          if (!employerJob) {
+            logger.error('Renewal webhook: EmployerJob not found for paid job', null, {
+              jobId,
+              sessionId: session.id,
+              tier: renewalTier,
+            });
+            return NextResponse.json(
+              { error: 'EmployerJob record missing for renewed job' },
+              { status: 500 }
+            );
+          }
+
+          {
             await prisma.employerJob.update({
               where: { id: employerJob.id },
               data: { paymentStatus: 'paid', pricingTier: renewalTier },
             });
+
+            // Audit #2: record a JobCharge for this renewal so invoices reflect
+            // the actual amount paid ($179 renewal vs $199 new post).
+            // Audit #28: also persist payment_intent so the refund webhook can
+            // match `charge.refunded` events back to this JobCharge row.
+            const renewalInvoiceData = await fetchInvoiceData(stripe, session);
+            try {
+              await prisma.jobCharge.create({
+                data: {
+                  employerJobId: employerJob.id,
+                  stripeSessionId: session.id,
+                  stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
+                  amountCents: session.amount_total ?? config.stripeRenewalPriceInCents,
+                  currency: session.currency ?? 'usd',
+                  type: 'renewal',
+                  ...renewalInvoiceData,
+                },
+              });
+            } catch (chargeErr) {
+              // Idempotency on stripeSessionId — duplicate webhooks shouldn't fail the flow.
+              const code = (chargeErr as { code?: string } | null)?.code;
+              if (code !== 'P2002') {
+                logger.error('Failed to record JobCharge for renewal', chargeErr, { jobId });
+              }
+            }
 
             // Get or create email lead for unsubscribe token
             let emailLead = await prisma.emailLead.findUnique({
@@ -95,7 +209,12 @@ export async function POST(request: NextRequest) {
                 job.title,
                 newExpiresAt,
                 employerJob.dashboardToken,
-                emailLead.unsubscribeToken
+                emailLead.unsubscribeToken,
+                {
+                  invoicePdfUrl: renewalInvoiceData.invoicePdfUrl,
+                  hostedInvoiceUrl: renewalInvoiceData.hostedInvoiceUrl,
+                  invoiceNumber: renewalInvoiceData.invoiceNumber,
+                }
               );
             } catch (emailError) {
               logger.error('Failed to send renewal confirmation email', emailError, { jobId });
@@ -104,6 +223,17 @@ export async function POST(request: NextRequest) {
           }
 
           logger.info('Job renewed', { jobId, tier });
+
+          // P7: server-side purchase event (fire-and-forget)
+          trackServerPurchase({
+            clientId: jobId,
+            sessionId: session.id,
+            amountCents: session.amount_total ?? config.stripeRenewalPriceInCents,
+            currency: session.currency ?? 'usd',
+            type: 'renewal',
+            tier: renewalTier,
+            jobId,
+          }).catch(() => { /* logged inside */ });
 
           // Ping search engines for renewed job (fire-and-forget)
           if (job.slug) {
@@ -118,10 +248,6 @@ export async function POST(request: NextRequest) {
             { status: 500 }
           );
         }
-      } else if (type === 'upgrade') {
-        // Upgrades no longer exist in single-tier model
-        logger.warn('Received upgrade webhook in single-tier model', { jobId });
-        return NextResponse.json({ received: true, note: 'upgrades deprecated' });
       } else {
         // Original flow: new job posting
         try {
@@ -137,11 +263,34 @@ export async function POST(request: NextRequest) {
           });
 
           if (employerJob) {
-            const paidTier = session.metadata?.pricing || 'starter';
+            const paidTier = session.metadata?.pricing || 'pro';
             await prisma.employerJob.update({
               where: { id: employerJob.id },
               data: { paymentStatus: 'paid', pricingTier: paidTier },
             });
+
+            // Audit #2: record JobCharge for the new-post payment.
+            // Audit #28: also persist payment_intent so the refund webhook can
+            // match `charge.refunded` events back to this JobCharge row.
+            const newPostInvoiceData = await fetchInvoiceData(stripe, session);
+            try {
+              await prisma.jobCharge.create({
+                data: {
+                  employerJobId: employerJob.id,
+                  stripeSessionId: session.id,
+                  stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
+                  amountCents: session.amount_total ?? config.stripePriceInCents,
+                  currency: session.currency ?? 'usd',
+                  type: 'new',
+                  ...newPostInvoiceData,
+                },
+              });
+            } catch (chargeErr) {
+              const code = (chargeErr as { code?: string } | null)?.code;
+              if (code !== 'P2002') {
+                logger.error('Failed to record JobCharge for new post', chargeErr, { jobId });
+              }
+            }
 
             // Send confirmation email
             try {
@@ -149,8 +298,14 @@ export async function POST(request: NextRequest) {
                 employerJob.contactEmail,
                 job.title,
                 job.id,
-                employerJob.editToken,
-                employerJob.dashboardToken
+                employerJob.dashboardToken,
+                undefined, // unsubscribeToken — sendConfirmationEmail looks it up by email
+                undefined, // durationDays — paid posts use config.durationDays default
+                {
+                  invoicePdfUrl: newPostInvoiceData.invoicePdfUrl,
+                  hostedInvoiceUrl: newPostInvoiceData.hostedInvoiceUrl,
+                  invoiceNumber: newPostInvoiceData.invoiceNumber,
+                }
               );
             } catch (emailError) {
               logger.error('Failed to send confirmation email', emailError, { jobId });
@@ -174,6 +329,17 @@ export async function POST(request: NextRequest) {
 
           logger.info('Job published', { jobId });
 
+          // P7: server-side purchase event (fire-and-forget)
+          trackServerPurchase({
+            clientId: jobId,
+            sessionId: session.id,
+            amountCents: session.amount_total ?? config.stripePriceInCents,
+            currency: session.currency ?? 'usd',
+            type: 'new',
+            tier: session.metadata?.pricing,
+            jobId,
+          }).catch(() => { /* logged inside */ });
+
           // Ping search engines for new job (fire-and-forget)
           if (job.slug) {
             pingAllSearchEngines(`https://pmhnphiring.com/jobs/${job.slug}`).catch((err) =>
@@ -187,6 +353,98 @@ export async function POST(request: NextRequest) {
             { status: 500 }
           );
         }
+      }
+    }
+
+    // Audit #28: charge.refunded handler — runs when admin issues a refund
+    // from the Stripe Dashboard. Updates the JobCharge ledger, flips
+    // EmployerJob.paymentStatus to 'refunded', unpublishes the job (full
+    // refund only), and sends the customer a confirmation email.
+    if (event.type === 'charge.refunded') {
+      try {
+        const charge = event.data.object as Stripe.Charge;
+        const paymentIntentId = typeof charge.payment_intent === 'string' ? charge.payment_intent : null;
+
+        if (!paymentIntentId) {
+          logger.warn('charge.refunded webhook with no payment_intent — cannot match to JobCharge', { chargeId: charge.id });
+          return NextResponse.json({ received: true, note: 'no payment_intent' });
+        }
+
+        const jobCharge = await prisma.jobCharge.findUnique({
+          where: { stripePaymentIntentId: paymentIntentId },
+        });
+
+        if (!jobCharge) {
+          // Pre-audit-#28 charges don't have payment_intent persisted, OR
+          // the refund is for a charge that originated outside our flow.
+          logger.warn('charge.refunded: no matching JobCharge — pre-#28 row or external charge', { paymentIntentId, chargeId: charge.id });
+          return NextResponse.json({ received: true, note: 'no matching JobCharge' });
+        }
+
+        const refundedAmount = charge.amount_refunded ?? 0;
+        const isPartial = refundedAmount > 0 && refundedAmount < jobCharge.amountCents;
+        const isFullRefund = refundedAmount >= jobCharge.amountCents;
+
+        // Pull a refund reason from the latest refund object on the charge if available.
+        const latestRefund = charge.refunds?.data?.[0];
+        const refundReason = latestRefund?.reason ?? null;
+
+        // Update the ledger
+        await prisma.jobCharge.update({
+          where: { id: jobCharge.id },
+          data: {
+            refundedAt: new Date(),
+            refundedAmountCents: refundedAmount,
+            refundReason,
+          },
+        });
+
+        // Flip the EmployerJob paymentStatus + (if full refund) unpublish the job
+        const employerJob = await prisma.employerJob.findUnique({
+          where: { id: jobCharge.employerJobId },
+          include: { job: { select: { id: true, title: true } } },
+        });
+
+        if (employerJob) {
+          await prisma.employerJob.update({
+            where: { id: employerJob.id },
+            data: { paymentStatus: 'refunded' },
+          });
+
+          if (isFullRefund) {
+            await prisma.job.update({
+              where: { id: employerJob.jobId },
+              data: { isPublished: false },
+            });
+          }
+
+          // Best-effort refund-confirmation email (don't fail the webhook on email errors)
+          try {
+            const unsubToken = await getOrCreateUnsubToken(employerJob.contactEmail);
+            await sendRefundConfirmationEmail(
+              employerJob.contactEmail,
+              employerJob.job?.title ?? 'your job posting',
+              refundedAmount,
+              isPartial,
+              unsubToken,
+            );
+          } catch (emailErr) {
+            logger.error('Failed to send refund confirmation email', emailErr, { jobChargeId: jobCharge.id });
+          }
+        } else {
+          logger.warn('charge.refunded: JobCharge has no matching EmployerJob — orphaned ledger row', { jobChargeId: jobCharge.id });
+        }
+
+        logger.info('Refund processed', {
+          jobChargeId: jobCharge.id,
+          refundedAmount,
+          isPartial,
+          isFullRefund,
+          paymentIntentId,
+        });
+      } catch (refundErr) {
+        logger.error('Error handling charge.refunded webhook', refundErr);
+        return NextResponse.json({ error: 'Failed to handle refund' }, { status: 500 });
       }
     }
 

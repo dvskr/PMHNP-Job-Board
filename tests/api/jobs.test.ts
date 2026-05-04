@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from '@/app/api/jobs/route';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 
 // Helper to create NextRequest with query params
 function createRequest(params: Record<string, string> = {}): NextRequest {
@@ -128,7 +129,7 @@ describe('/api/jobs', () => {
         expect(data.error).toBe('Failed to fetch jobs');
     });
 
-    it('orders by featured first, then by date', async () => {
+    it('orders by the canonical BEST_SORT_ORDER_BY (featured → qualityScore → recency)', async () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.mocked(prisma.job.findMany).mockResolvedValue(mockJobs as any);
         vi.mocked(prisma.job.count).mockResolvedValue(2);
@@ -136,12 +137,11 @@ describe('/api/jobs', () => {
         const request = createRequest();
         await GET(request);
 
+        // Assert against the shared constant so this test never drifts from
+        // the source of truth in lib/utils/job-sort.ts.
         expect(prisma.job.findMany).toHaveBeenCalledWith(
             expect.objectContaining({
-                orderBy: [
-                    { isFeatured: 'desc' },
-                    { createdAt: 'desc' },
-                ],
+                orderBy: BEST_SORT_ORDER_BY,
             })
         );
     });

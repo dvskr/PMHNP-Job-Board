@@ -10,12 +10,12 @@ const IMG = process.env.EMAIL_ASSETS_URL || `${BASE_URL}/images/email`;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function hero(file: string): string {
-  return `<tr><td style="padding:0 40px;"><img src="${IMG}/${file}" alt="" width="520" style="width:100%;max-width:520px;height:auto;display:block;border-radius:12px;margin:0 auto;" /></td></tr>`;
+function hero(file: string, alt: string = 'PMHNP Hiring'): string {
+  return `<tr><td style="padding:0 40px;" bgcolor="${V2.bgCard}"><img src="${IMG}/${file}" alt="${alt}" width="520" height="280" style="width:100%;max-width:520px;height:auto;display:block;border-radius:12px;margin:0 auto;border:0;background-color:${V2.bgCard};color:${V2.teal};font-family:${SERIF};font-size:20px;font-weight:700;text-align:center;line-height:280px;" /></td></tr>`;
 }
 
 function bodyText(text: string): string {
-  return `<tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">${text}</p></td></tr>`;
+  return `<tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;text-align:center;">${text}</p></td></tr>`;
 }
 
 function centeredCta(label: string, url: string): string {
@@ -27,7 +27,7 @@ function sectionHead(text: string): string {
 }
 
 function step(file: string, title: string, desc: string): string {
-  return `<tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;"><img src="${IMG}/${file}" alt="${title}" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" /></td><td valign="middle"><p style="margin:0 0 4px;font-family:${SANS};font-size:15px;font-weight:700;color:${V2.textHeading};">${title}</p><p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textMuted};line-height:1.5;">${desc}</p></td></tr></table></td></tr>`;
+  return `<tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;" bgcolor="${V2.bgCardAlt}"><img src="${IMG}/${file}" alt="${title}" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;border:0;background-color:${V2.bgCardAlt};color:${V2.teal};font-family:${SANS};font-size:11px;font-weight:700;text-align:center;line-height:80px;" /></td><td valign="middle"><p style="margin:0 0 4px;font-family:${SANS};font-size:15px;font-weight:700;color:${V2.textHeading};">${title}</p><p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textMuted};line-height:1.5;">${desc}</p></td></tr></table></td></tr>`;
 }
 
 function stat(value: string, label: string): string {
@@ -38,12 +38,24 @@ function secondary(text: string): string {
   return `<tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textMuted};line-height:1.6;">${text}</p></td></tr>`;
 }
 
+// Bulletproof Apply button used inside job cards. VML for Outlook (which strips
+// gradient + padding + border-radius), gradient anchor for everyone else.
+function applyButton(url: string, label: string): string {
+  return `<!--[if mso]>
+  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${url}" style="height:42px;v-text-anchor:middle;width:140px;" arcsize="40%" stroke="f" fillcolor="#0D9488">
+    <w:anchorlock/>
+    <center style="color:#FFFFFF;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">${label}</center>
+  </v:roundrect>
+  <![endif]-->
+  <!--[if !mso]><!-- --><a href="${url}" style="display:inline-block;box-sizing:border-box;padding:11px 26px;border-radius:18px;font-family:${SANS};font-size:14px;font-weight:700;color:#fff;-webkit-text-fill-color:#fff;background:#0d9488;background-image:linear-gradient(135deg,#2DD4BF,#0D9488);text-decoration:none;border:1px solid rgba(255,255,255,0.3);box-shadow:0 4px 12px rgba(13,148,136,0.30);mso-hide:all;">${label}</a><!--<![endif]-->`;
+}
+
 function simple(iconFile: string, heading: string, body: string, cta: string, ctaUrl: string, preheader: string, extra?: string): string {
   return emailShellV2(`
     ${headerBlockV2(heading, '')}
     ${spacerV2(12)}
     <tr><td class="content-pad" style="padding:0 40px;">
-      <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">${body}</p>
+      <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;text-align:center;">${body}</p>
     </td></tr>
     ${spacerV2(32)}
     ${centeredCta(cta, ctaUrl)}
@@ -71,10 +83,10 @@ export interface V2TemplateEntry {
 
 export const v2Templates: Record<string, V2TemplateEntry> = {
 
-  // 1. Welcome (Alert Subscription)
+  // 1. Welcome (Alert Subscription) \u2014 sent immediately after subscribe (single opt-in)
   welcome: {
     label: 'Welcome (Alert Subscription)',
-    desc: 'Sent when a user subscribes to job alerts',
+    desc: 'Sent immediately when a user subscribes \u2014 alerts active',
     fn: () => simple('hero-alert-subscription.png', 'Your Alerts Are Live',
       'Your job alerts are now active. We scan thousands of PMHNP positions daily and deliver matches straight to your inbox \u2014 so you never miss the right opportunity.',
       'Browse Open Positions', `${BASE_URL}/jobs`,
@@ -87,8 +99,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     desc: 'Sent when a new job seeker creates an account',
     fn: () => emailShellV2(`
       ${headerBlockV2('Welcome to PMHNP Hiring', '')}
-      ${hero('welcome-email-hero.png')}
-      ${spacerV2(28)}
+      ${spacerV2(20)}
       ${bodyText('You have unlocked a new way to find your perfect role. Search curated positions, get matched by AI, and connect directly with hiring managers \u2014 no recruiters, no middlemen.')}
       ${spacerV2(36)}
       ${sectionHead('Here is how to get started')}
@@ -136,53 +147,53 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     desc: 'Sent when new jobs match alert criteria',
     fn: () => {
       const jobs = [
-        { t: 'Remote PMHNP \u2014 Telehealth', o: 'MindPath Health', l: 'Remote', s: '$145k\u2013$175k', type: 'Full-time', mode: 'Remote', fresh: '2 hours ago', color: '#4DB6AC' },
-        { t: 'Psychiatric NP \u2014 Outpatient Clinic', o: 'Valley Behavioral', l: 'Austin, TX', s: '$135k\u2013$160k', type: 'Full-time', mode: 'On-site', fresh: '5 hours ago', color: '#E8937A' },
-        { t: 'PMHNP \u2014 Pediatric and Adolescent', o: "Children's Mercy Hospital", l: 'Kansas City, MO', s: '$150k\u2013$185k', type: 'Full-time', mode: 'Hybrid', fresh: '8 hours ago', color: '#7C8CF5' },
+        { t: 'Remote PMHNP \u2014 Telehealth', o: 'MindPath Health', l: 'Remote', s: '$145k\u2013$175k', type: 'Full-time', mode: 'Remote', fresh: '2 hours ago', color: '#4DB6AC', featured: true, applyType: 'easy' },
+        { t: 'Psychiatric NP \u2014 Outpatient Clinic', o: 'Valley Behavioral', l: 'Austin, TX', s: '$135k\u2013$160k', type: 'Full-time', mode: 'On-site', fresh: '5 hours ago', color: '#E8937A', featured: false, applyType: 'direct' },
+        { t: 'PMHNP \u2014 Pediatric and Adolescent', o: "Children's Mercy Hospital", l: 'Kansas City, MO', s: '$150k\u2013$185k', type: 'Full-time', mode: 'Hybrid', fresh: '8 hours ago', color: '#7C8CF5', featured: false, applyType: 'external' },
       ];
       const badge = (text: string, bg: string, fg: string, border?: string) =>
         `<span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS};font-size:11px;font-weight:600;letter-spacing:0.3px;background:${bg};color:${fg};${border ? 'border:1px solid ' + border + ';' : ''}">${text}</span>`;
-      const jobCards = jobs.map((j, i) => `
+      const applyLabelFor = (t: string) =>
+        t === 'easy' ? '⚡ Easy Apply'
+        : t === 'direct' ? 'Direct Apply'
+        : 'Apply Now ↗';
+
+      const jobCards = jobs.map((j) => `
         <tr><td style="padding:0 40px;">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
             <!-- Accent stripe top -->
             <tr><td style="height:4px;background:${j.color};border-radius:14px 14px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
-            <tr><td style="padding:24px 24px 20px;">
-              <!-- Avatar + Title + Salary -->
+            <tr><td style="padding:20px 20px 18px;">
+              <!-- Avatar + Title + Employer -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-                <td width="48" valign="top" style="padding-right:16px;">
+                <td width="48" valign="top" style="width:48px;padding-right:14px;">
                   <div style="width:48px;height:48px;border-radius:12px;background:${j.color};color:#fff;font-size:20px;font-weight:700;text-align:center;line-height:48px;letter-spacing:-0.5px;">${j.o[0]}</div>
                 </td>
-                <td valign="top" style="width:100%;">
-                  <a href="${BASE_URL}/jobs" style="font-family:${SERIF};font-size:18px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.35;display:block;">${j.t}</a>
+                <td valign="top" style="width:auto;">
+                  <a href="${BASE_URL}/jobs" style="font-family:${SERIF};font-size:18px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.3;display:block;">${j.t}</a>
                   <p style="margin:4px 0 0;font-family:${SANS};font-size:13px;font-weight:500;color:${V2.textMuted};">${j.o}</p>
                 </td>
-                <td valign="top" align="right" style="white-space:nowrap;padding-left:12px;">
-                  <span style="display:inline-block;padding:6px 16px;border-radius:8px;font-family:${SANS};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;letter-spacing:-0.3px;">${j.s}</span>
-                </td>
               </tr></table>
+              <!-- Salary + Featured badges under title -->
+              <div style="margin-top:12px;">
+                <span style="display:inline-block;padding:6px 14px;border-radius:8px;font-family:${SANS};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;letter-spacing:-0.3px;margin-right:6px;">${j.s}</span>
+                ${j.featured ? `<span style="display:inline-block;padding:6px 12px;border-radius:8px;font-family:${SANS};font-size:12px;font-weight:700;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;letter-spacing:0.3px;text-transform:uppercase;">★ Featured</span>` : ''}
+              </div>
               <!-- Divider -->
-              <div style="border-top:1px solid #F0F3F1;margin:16px 0;"></div>
+              <div style="border-top:1px solid #F0F3F1;margin:14px 0;"></div>
               <!-- Meta badges -->
               <table role="presentation" cellspacing="0" cellpadding="0"><tr>
                 <td style="padding-right:6px;">${badge(j.l, '#F3F6F4', '#374151', '#E0E5E1')}</td>
                 <td style="padding-right:6px;">${badge(j.type, '#F3F6F4', '#374151', '#E0E5E1')}</td>
                 <td>${badge(j.mode, j.mode === 'Remote' ? '#ECFDF5' : '#F3F6F4', j.mode === 'Remote' ? '#065F46' : '#374151', j.mode === 'Remote' ? '#A7F3D0' : '#E0E5E1')}</td>
               </tr></table>
-              <!-- Footer: Freshness + CTAs -->
+              <!-- Footer: Freshness + Apply CTA -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;"><tr>
                 <td valign="middle">
                   <p style="margin:0;font-family:${SANS};font-size:12px;font-weight:500;color:#9CA3AF;">${j.fresh}</p>
                 </td>
                 <td align="right" valign="middle">
-                  <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-                    <td style="padding-right:8px;">
-                      <a href="${BASE_URL}/jobs" style="display:inline-block;padding:8px 18px;border-radius:10px;font-family:${SANS};font-size:13px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Job &rarr;</a>
-                    </td>
-                    <td>
-                      <a href="${BASE_URL}/jobs" style="display:inline-block;padding:8px 20px;border-radius:10px;font-family:${SANS};font-size:13px;font-weight:700;color:#fff;background:#0d9488;text-decoration:none;box-shadow:0 2px 6px rgba(13,148,136,0.25);">Apply Now</a>
-                    </td>
-                  </tr></table>
+                  ${applyButton(`${BASE_URL}/jobs`, applyLabelFor(j.applyType))}
                 </td>
               </tr></table>
             </td></tr>
@@ -192,16 +203,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       return emailShellV2(`
         ${headerBlockV2('3 New Jobs Match Your Alert', '')}
         ${spacerV2(12)}
-        <tr><td class="content-pad" style="padding:0 40px;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-            <td width="22%" valign="top" style="padding-right:16px;">
-              <img src="${IMG}/hero-job-alert.png" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
-            </td>
-            <td width="78%" valign="top">
-              <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">We found <strong>3 new positions</strong> matching your preferences. Apply early for the best response rates.</p>
-            </td>
-          </tr></table>
-        </td></tr>
+        ${bodyText('We found <strong>3 new positions</strong> matching your preferences. Apply early for the best response rates.')}
         ${spacerV2(20)}
         ${jobCards}
         ${spacerV2(20)}
@@ -217,7 +219,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     label: 'Job Post Confirmation',
     desc: 'Sent to employers after a job is published',
     fn: () => simple('hero-job-post.png', 'Your Listing Is Live',
-      'Your posting is now visible to over 10,000 PMHNPs actively searching for their next role. The listing will remain active for 30 days.',
+      'Your posting is now visible to thousands of PMHNPs actively searching for their next role. The listing will remain active for 30 days.',
       'View Your Listing', `${BASE_URL}/jobs`, 'Your job posting is now live.',
       `${spacerV2(16)}${secondary(`Need to edit? <a href="${BASE_URL}/employer/dashboard" style="color:${V2.teal};text-decoration:underline;">Open your dashboard</a>.`)}`),
   },
@@ -229,16 +231,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     fn: () => emailShellV2(`
       ${headerBlockV2('Your Listing Expires in 3 Days', '')}
       ${spacerV2(12)}
-      <tr><td class="content-pad" style="padding:0 40px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-          <td width="22%" valign="top" style="padding-right:16px;">
-            <img src="${IMG}/hero-expiry-warning.png" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
-          </td>
-          <td width="78%" valign="top">
-            <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">Your posting for <strong>Senior PMHNP \u2014 Private Practice</strong> will expire on Wednesday, March 18, 2026. Renew now to maintain visibility and continue receiving applications.</p>
-          </td>
-        </tr></table>
-      </td></tr>
+      ${bodyText('Your posting for <strong>Senior PMHNP \u2014 Private Practice</strong> will expire on Wednesday, March 18, 2026. Renew now to maintain visibility and continue receiving applications.')}
       ${spacerV2(24)}
       <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${stat('2,847', 'Views')}<td width="8"></td>${stat('186', 'Applies')}<td width="8"></td>${stat('24', 'Saved')}</tr></table></td></tr>
       ${spacerV2(28)}
@@ -381,38 +374,37 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
         <tr><td style="padding:0 40px;">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
             <tr><td style="height:4px;background:#4DB6AC;border-radius:14px 14px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
-            <tr><td style="padding:24px 24px 20px;">
+            <tr><td style="padding:20px 20px 18px;">
+              <!-- Avatar + Title + Employer -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-                <td width="48" valign="top" style="padding-right:16px;">
-                  <div style="width:48px;height:48px;border-radius:12px;background:#4DB6AC;color:#fff;font-size:20px;font-weight:700;text-align:center;line-height:48px;">M</div>
+                <td width="48" valign="top" style="width:48px;padding-right:14px;">
+                  <div style="width:48px;height:48px;border-radius:12px;background:#4DB6AC;color:#fff;font-size:20px;font-weight:700;text-align:center;line-height:48px;letter-spacing:-0.5px;">M</div>
                 </td>
-                <td valign="top" style="width:100%;">
-                  <a href="${BASE_URL}/jobs" style="font-family:${SERIF};font-size:18px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.35;display:block;">Remote PMHNP &#8212; Telehealth Platform</a>
+                <td valign="top" style="width:auto;">
+                  <a href="${BASE_URL}/jobs" style="font-family:${SERIF};font-size:18px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.3;display:block;">Remote PMHNP &#8212; Telehealth Platform</a>
                   <p style="margin:4px 0 0;font-family:${SANS};font-size:13px;font-weight:500;color:${V2.textMuted};">MindPath Health</p>
                 </td>
-                <td valign="top" align="right" style="white-space:nowrap;padding-left:12px;">
-                  <span style="display:inline-block;padding:6px 16px;border-radius:8px;font-family:${SANS};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;">$145k&#8211;$175k</span>
-                </td>
               </tr></table>
-              <div style="border-top:1px solid #F0F3F1;margin:16px 0;"></div>
+              <!-- Salary + Featured badges under title -->
+              <div style="margin-top:12px;">
+                <span style="display:inline-block;padding:6px 14px;border-radius:8px;font-family:${SANS};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;letter-spacing:-0.3px;margin-right:6px;">$145k&#8211;$175k</span>
+                <span style="display:inline-block;padding:6px 12px;border-radius:8px;font-family:${SANS};font-size:12px;font-weight:700;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;letter-spacing:0.3px;text-transform:uppercase;">&#9733; Featured</span>
+              </div>
+              <!-- Divider -->
+              <div style="border-top:1px solid #F0F3F1;margin:14px 0;"></div>
+              <!-- Meta badges -->
               <table role="presentation" cellspacing="0" cellpadding="0"><tr>
                 <td style="padding-right:6px;">${badge('Remote', '#ECFDF5', '#065F46', '#A7F3D0')}</td>
                 <td style="padding-right:6px;">${badge('Full-time', '#F3F6F4', '#374151', '#E0E5E1')}</td>
                 <td>${badge('Telehealth', '#F3F6F4', '#374151', '#E0E5E1')}</td>
               </tr></table>
+              <!-- Footer: Freshness + Apply CTA (no separate View Job; clicking the title navigates) -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;"><tr>
                 <td valign="middle">
                   <p style="margin:0;font-family:${SANS};font-size:12px;font-weight:500;color:#9CA3AF;">Posted 2 days ago</p>
                 </td>
                 <td align="right" valign="middle">
-                  <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-                    <td style="padding-right:8px;">
-                      <a href="${BASE_URL}/jobs" style="display:inline-block;padding:8px 18px;border-radius:10px;font-family:${SANS};font-size:13px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Job &rarr;</a>
-                    </td>
-                    <td>
-                      <a href="${BASE_URL}/jobs" style="display:inline-block;padding:8px 20px;border-radius:10px;font-family:${SANS};font-size:13px;font-weight:700;color:#fff;background:#0d9488;text-decoration:none;box-shadow:0 2px 6px rgba(13,148,136,0.25);">Apply Now</a>
-                    </td>
-                  </tr></table>
+                  ${applyButton(`${BASE_URL}/jobs`, "&#9889; Easy Apply")}
                 </td>
               </tr></table>
             </td></tr>
@@ -565,10 +557,51 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   'saved-job-reminder': {
     label: 'Saved Job Reminder',
     desc: 'Sent to remind candidates about saved jobs',
-    fn: () => simple('hero-saved-job.png', 'Your Saved Job Is Still Open',
-      'You saved <strong>Remote PMHNP \u2014 Telehealth Platform</strong> at MindPath Health 5 days ago. This position is still accepting applications \u2014 do not miss your window.',
-      'View and Apply', `${BASE_URL}/jobs`,
-      'The job you saved is still open.'),
+    fn: () => {
+      const badge = (text: string, bg: string, fg: string, border?: string) =>
+        `<span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS};font-size:11px;font-weight:600;letter-spacing:0.3px;background:${bg};color:${fg};${border ? 'border:1px solid ' + border + ';' : ''}">${text}</span>`;
+      return emailShellV2(`
+        ${headerBlockV2('Your Saved Job Is Still Open', '')}
+        ${spacerV2(12)}
+        ${bodyText('You saved this position recently. It is still accepting applications \u2014 do not miss your window.')}
+        ${spacerV2(20)}
+        <tr><td style="padding:0 40px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+            <tr><td style="height:4px;background:#4DB6AC;border-radius:14px 14px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
+            <tr><td style="padding:20px 20px 18px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+                <td width="48" valign="top" style="width:48px;padding-right:14px;">
+                  <div style="width:48px;height:48px;border-radius:12px;background:#4DB6AC;color:#fff;font-size:20px;font-weight:700;text-align:center;line-height:48px;letter-spacing:-0.5px;">M</div>
+                </td>
+                <td valign="top" style="width:auto;">
+                  <a href="${BASE_URL}/jobs" style="font-family:${SERIF};font-size:18px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.3;display:block;">Remote PMHNP &#8212; Telehealth Platform</a>
+                  <p style="margin:4px 0 0;font-family:${SANS};font-size:13px;font-weight:500;color:${V2.textMuted};">MindPath Health</p>
+                </td>
+              </tr></table>
+              <div style="margin-top:12px;">
+                <span style="display:inline-block;padding:6px 14px;border-radius:8px;font-family:${SANS};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;letter-spacing:-0.3px;">$145k&#8211;$175k</span>
+              </div>
+              <div style="border-top:1px solid #F0F3F1;margin:14px 0;"></div>
+              <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                <td style="padding-right:6px;">${badge('Remote', '#ECFDF5', '#065F46', '#A7F3D0')}</td>
+                <td style="padding-right:6px;">${badge('Full-time', '#F3F6F4', '#374151', '#E0E5E1')}</td>
+                <td>${badge('Telehealth', '#F3F6F4', '#374151', '#E0E5E1')}</td>
+              </tr></table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;"><tr>
+                <td valign="middle">&nbsp;</td>
+                <td align="right" valign="middle">
+                  ${applyButton(`${BASE_URL}/jobs`, "&#9889; Easy Apply")}
+                </td>
+              </tr></table>
+            </td></tr>
+          </table>
+        </td></tr>
+        ${spacerV2(28)}
+        ${centeredCta('View All Saved \u2192', `${BASE_URL}/saved`)}
+        ${spacerV2(48)}
+        ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+        'The job you saved is still open.');
+    },
   },
 
   // 19. Performance Report
@@ -580,8 +613,8 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${spacerV2(12)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-          <td width="100" height="100" valign="middle" style="padding-right:20px;width:100px;min-width:100px;height:100px;overflow:hidden;">
-            <img src="${IMG}/hero-performance.png" alt="" width="100" height="100" style="width:100px;min-width:100px;height:100px;min-height:100px;max-height:100px;border-radius:12px;display:block;" />
+          <td width="100" height="100" valign="middle" style="padding-right:20px;width:100px;min-width:100px;height:100px;overflow:hidden;" bgcolor="${V2.bgCardAlt}">
+            <img src="${IMG}/hero-performance.png" alt="Performance report" width="100" height="100" style="width:100px;min-width:100px;height:100px;min-height:100px;max-height:100px;border-radius:12px;display:block;border:0;background-color:${V2.bgCardAlt};color:${V2.teal};font-family:${SANS};font-size:12px;font-weight:700;text-align:center;line-height:100px;" />
           </td>
           <td valign="top">
             <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">Here is how your listings performed this month. Use these insights to optimize your postings and attract stronger candidates.</p>
@@ -597,26 +630,4 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       'Your monthly hiring performance report is ready.'),
   },
 
-  // 20. Profile Incomplete
-  'profile-incomplete': {
-    label: 'Profile Incomplete Reminder',
-    desc: 'Sent to candidates with incomplete profiles',
-    fn: () => emailShellV2(`
-      ${headerBlockV2('Your Profile Is Almost There', '')}
-      ${spacerV2(12)}
-      ${bodyText('Your profile is 60 percent complete. Candidates with finished profiles receive 3 times more visibility from employers. Take a moment to fill in the remaining details.')}
-      ${spacerV2(36)}
-      ${sectionHead('What to add next')}
-      ${spacerV2(20)}
-      ${step('icon-profile-credential.png', 'Add your credentials', 'List your certifications, licenses, and education to stand out.')}
-      ${spacerV2(16)}
-      ${step('icon-profile-location.png', 'Set location preferences', 'Tell us where you want to work so we can match you accurately.')}
-      ${spacerV2(16)}
-      ${step('icon-profile-specialty.png', 'Choose your specialties', 'Select your areas of focus to receive the most relevant opportunities.')}
-      ${spacerV2(32)}
-      ${centeredCta('Complete Your Profile', `${BASE_URL}/profile`)}
-      ${spacerV2(48)}
-      ${closeContentV2()}`, unsubscribeFooterV2('sample'),
-      'Your profile is 60% complete \u2014 finish it to boost visibility.'),
-  },
 };

@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,7 +37,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `${stats.totalJobs} Travel PMHNP Jobs — Locum Tenens ($80-150/hr)`, description: `Find ${stats.totalJobs} travel PMHNP and locum tenens positions paying $80-150/hr. Housing stipends, flexible nationwide assignments, premium pay.`, keywords: ['travel pmhnp jobs', 'locum tenens psych NP', 'travel psychiatric nurse practitioner', 'traveling PMHNP positions'], alternates: { canonical: 'https://pmhnphiring.com/jobs/travel' } };
+  return { title: `${stats.totalJobs} Travel PMHNP Jobs — Locum Tenens ($80-150/hr)`, description: `Find ${stats.totalJobs} travel PMHNP and locum tenens positions paying $80-150/hr. Housing stipends, flexible nationwide assignments, premium pay.`, keywords: ['travel pmhnp jobs', 'locum tenens psych NP', 'travel psychiatric nurse practitioner', 'traveling PMHNP positions'], alternates: { canonical: `${brand.baseUrl}/jobs/travel` } };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }

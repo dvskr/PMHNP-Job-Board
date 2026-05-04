@@ -96,10 +96,25 @@
       "sourceType": "github",
       "computedHash": "6d9b74a5963d67f017fdffb9353710adb93ceb75773768af6e5d842310e97998"
     },
+    "stripe-best-practices": {
+      "source": "docs.stripe.com",
+      "sourceType": "well-known",
+      "computedHash": "f0aac866fab408c8bf28f3acacbbf61539cea81b3aeb030fceb64be1ccddaf9e"
+    },
+    "stripe-projects": {
+      "source": "docs.stripe.com",
+      "sourceType": "well-known",
+      "computedHash": "74b5f9e1e24d7662000c28d6572e438ac71847d60ea0a8704b088441355e3371"
+    },
     "technical-seo-checker": {
       "source": "aaron-he-zhu/seo-geo-claude-skills",
       "sourceType": "github",
       "computedHash": "d63b4dcdeddee626db1b41629f39aec6b3709201a28ef6aa225beef752ed7753"
+    },
+    "upgrade-stripe": {
+      "source": "docs.stripe.com",
+      "sourceType": "well-known",
+      "computedHash": "df1c52c17aff54490e81e98979f302564988fbddaaf59e74c2d1bd4b103a7d2e"
     }
   }
 }

@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,7 +37,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `${stats.totalJobs} Per Diem PMHNP Jobs ($80-120/hr)`, description: `Find ${stats.totalJobs} per diem PMHNP positions paying $80-120+/hr. Pick your shifts, no long-term commitment.`, alternates: { canonical: 'https://pmhnphiring.com/jobs/per-diem' } };
+  return { title: `${stats.totalJobs} Per Diem PMHNP Jobs ($80-120/hr)`, description: `Find ${stats.totalJobs} per diem PMHNP positions paying $80-120+/hr. Pick your shifts, no long-term commitment.`, alternates: { canonical: `${brand.baseUrl}/jobs/per-diem` } };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }

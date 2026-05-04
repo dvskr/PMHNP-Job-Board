@@ -1,0 +1,42 @@
+Jane Doe, MSN, PMHNP-BC
+123 Main St, Boston, MA 02108
+jane.doe@example.com | (555) 123-4567
+
+PROFESSIONAL SUMMARY
+Board-Certified Psychiatric Mental Health Nurse Practitioner with 7 years of
+experience providing comprehensive mental health care across outpatient and
+telehealth settings. Specializes in adult psychiatry, addiction medicine, and
+medication management.
+
+EDUCATION
+Master of Science in Nursing, Psychiatric Mental Health
+Boston College, 2019
+
+Bachelor of Science in Nursing
+University of Massachusetts, 2016
+
+CERTIFICATIONS
+PMHNP-BC (American Nurses Credentialing Center), 2019
+DEA Number: BD1234567
+NPI: 1234567890
+
+LICENSES
+Massachusetts RN/APRN
+California RN/APRN
+Texas RN/APRN
+
+WORK EXPERIENCE
+Psychiatric Mental Health Nurse Practitioner
+Telehealth Mental Health Services, Boston, MA — 2021 to present
+- Provide remote psychiatric evaluation and medication management for 25+ patients/day
+- Collaborate with multidisciplinary team on complex cases
+- Specialize in mood disorders, anxiety, and ADHD
+
+Outpatient Psychiatric Nurse Practitioner
+Boston Behavioral Health, Boston, MA — 2019 to 2021
+- Conducted intake assessments and ongoing medication management
+- Treated diverse adult population including substance use disorders
+
+SKILLS
+Telepsychiatry, Cognitive Behavioral Therapy (CBT), Dialectical Behavior
+Therapy (DBT), Psychopharmacology, EMR (Epic, Cerner)

@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,7 +37,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `${stats.totalJobs} Entry Level PMHNP Jobs ($100K-140K)`, description: `Find ${stats.totalJobs} entry-level PMHNP jobs. New grad friendly positions with mentorship and structured onboarding.`, alternates: { canonical: 'https://pmhnphiring.com/jobs/entry-level' } };
+  return { title: `${stats.totalJobs} Entry Level PMHNP Jobs ($100K-140K)`, description: `Find ${stats.totalJobs} entry-level PMHNP jobs. New grad friendly positions with mentorship and structured onboarding.`, alternates: { canonical: `${brand.baseUrl}/jobs/entry-level` } };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }

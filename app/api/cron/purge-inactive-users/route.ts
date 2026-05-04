@@ -29,8 +29,8 @@ export const maxDuration = 300;
  * for accounts created before the column was introduced.
  *
  * NOTE: this cron does not currently send the warning email — it only
- * marks the gate. Wire `lib/email-service-v2` in a follow-up to deliver
- * `purge_warning_v1`. The marker is the audit anchor.
+ * marks the gate. The marker is the audit anchor; wire a sender from
+ * lib/email-service.ts in a follow-up to deliver `purge_warning_v1`.
  */
 const ACTIVITY_THRESHOLD_DAYS = 30 * 23;       // ~23 months
 const WARNING_GRACE_DAYS = 30;

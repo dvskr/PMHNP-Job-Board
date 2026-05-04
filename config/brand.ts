@@ -35,11 +35,27 @@ export const brand = {
     domain: 'pmhnphiring.com',
     baseUrl: 'https://pmhnphiring.com',
 
-    /** Legal entity. Used in privacy policy, sub-processors page. */
+    /**
+     * Legal entity that operates the brand.
+     * - `entityName` is the registered legal name (used in ToS, privacy policy,
+     *   data-controller references, indemnification, governing law clauses).
+     * - `brandDisplayName` is the customer-facing trade name (used on receipts,
+     *   hosted Stripe Checkout, customer support contexts).
+     * - `address`, `addressLine`, `addressCity`, etc. drive CAN-SPAM email
+     *   footers and the legal mailing address printed on invoices and contracts.
+     */
     legal: {
-        entityName: 'PMHNP Hiring',
+        entityName: 'Akari Labs LLC',
+        brandDisplayName: 'PMHNP Hiring',
         founderName: 'Pavan Kumar Reddy Daggula',
         foundingYear: '2026',
+        jurisdiction: 'Wyoming, United States',
+        address: '30 North Gould Street, Sheridan, WY 82801, United States',
+        addressLine: '30 North Gould Street',
+        addressCity: 'Sheridan',
+        addressRegion: 'WY',
+        addressPostalCode: '82801',
+        addressCountry: 'US',
     },
 
     /**
@@ -51,10 +67,12 @@ export const brand = {
         security: 'security@pmhnphiring.com',
         support: 'support@pmhnphiring.com',
         contact: 'contact@pmhnphiring.com',
-        // From-addresses for outbound mail. Read by lib/email-service-v2.
+        // From-addresses for outbound mail. Read by lib/email-service.ts and
+        // lib/job-alerts-service.ts. Env vars EMAIL_FROM, EMAIL_FROM_MARKETING,
+        // and EMAIL_REPLY_TO override these at runtime when set.
         marketingFrom: 'PMHNP Hiring <alerts@pmhnphiring.com>',
-        transactionalFrom: 'PMHNP Hiring <hello@pmhnphiring.com>',
-        replyTo: 'hello@pmhnphiring.com',
+        transactionalFrom: 'PMHNP Hiring <noreply@pmhnphiring.com>',
+        replyTo: 'support@pmhnphiring.com',
     },
 
     /** Public social handles — used in footer + Organization schema. */

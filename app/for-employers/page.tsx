@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP employer hiring solutions' }],
   },
   twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp'] },
-  alternates: { canonical: 'https://pmhnphiring.com/for-employers' },
+  alternates: { canonical: `${brand.baseUrl}/for-employers` },
 };
 
 /* ═══ Design Tokens — matched to homepage ═══ */
@@ -48,9 +49,9 @@ async function getEmployerStats() {
 const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: true | false | 'partial'; linkedin: true | false | 'partial'; note?: string }[] = [
   { feature: '100% Psychiatric NP Audience', us: true, indeed: false, linkedin: false },
   { feature: 'No Unqualified Applicants', us: true, indeed: false, linkedin: false },
-  { feature: 'First 2 Posts Free (No Card)', us: true, indeed: false, linkedin: false },
-  { feature: 'Flat $199/Post — No Bidding', us: true, indeed: false, linkedin: false, note: 'Indeed is pay-per-click' },
-  { feature: '60-Day Listing Duration', us: true, indeed: false, linkedin: false, note: 'Others: 30 days' },
+  { feature: `First ${config.freePostsPerEmail} Posts Free (No Card)`, us: true, indeed: false, linkedin: false },
+  { feature: `Flat $${config.postingPrice}/Post — No Bidding`, us: true, indeed: false, linkedin: false, note: 'Indeed is pay-per-click' },
+  { feature: `${config.durationDays}-Day Listing Duration`, us: true, indeed: false, linkedin: false, note: 'Others: 30 days' },
   { feature: 'Direct Candidate Messaging', us: true, indeed: false, linkedin: 'partial', note: 'LinkedIn: paid add-on' },
   { feature: 'Candidate Profile Unlocks', us: true, indeed: false, linkedin: 'partial', note: 'LinkedIn: paid add-on' },
   { feature: 'Built-In Screening Questions', us: true, indeed: true, linkedin: false },
@@ -97,7 +98,7 @@ export default async function ForEmployersPage() {
                   background: '#0D9488', color: '#fff',
                   textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px',
                 }}>
-                  Post a Job — First 2 Free <ArrowRight size={17} />
+                  Post a Job — First {config.freePostsPerEmail} Free <ArrowRight size={17} />
                 </Link>
                 <Link href="/pricing" className="clay-btn emp-cta-secondary" style={{
                   padding: '16px 36px', borderRadius: '16px', fontWeight: 600, fontSize: '15px',
@@ -235,13 +236,13 @@ export default async function ForEmployersPage() {
 
             <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-people.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
-              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>25 Candidate Unlocks</h3>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{config.limits.candidateUnlocksPerPosting} Candidate Unlocks</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>View full profiles — contact info, resume, LinkedIn.</p>
             </div>
 
             <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-briefcase.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
-              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>25 InMails</h3>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{config.limits.inmailsPerPosting} InMails</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Message candidates directly — no guessing emails.</p>
             </div>
 
@@ -383,7 +384,7 @@ export default async function ForEmployersPage() {
                     textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                     boxShadow: '4px 4px 12px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
                   }}>
-                    Post a Job — First 2 Free <ArrowRight size={15} />
+                    Post a Job — First {config.freePostsPerEmail} Free <ArrowRight size={15} />
                   </Link>
                   <Link href="/contact" className="emp-cta-secondary" style={{
                     padding: '12px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '14px',
