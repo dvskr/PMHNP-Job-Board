@@ -1,5 +1,5 @@
 {
-  "_curation_status": "CURATED — 30 cases, 8-10 candidates each, 1-3 expected hits per case. First 6 cases are hand-curated by engineering covering core scenarios (telehealth, child/adolescent, license knockout, addiction, geriatric, veteran). Cases 7-30 are SYNTHETIC_NEEDS_REVIEW — generated via Claude research to expand coverage of forensic, perinatal, bilingual, eating disorders, crisis, concierge, locums, and collaborative-care scenarios. Discriminators concentrated on state-licensure knockouts (~75% of cases since APRN Compact is not yet operational in 2026), wrong-discipline distractors (FNP-BC / WHNP-BC / ambiguous Psychiatric APRN — ~30% of cases, concentrated in generalist settings), and age-group/setting/credential mismatches. Each case is hand-tuned so the LLM rerank can plausibly outperform pure cosine similarity. Production target per docs/ai-implementation-plan.md ticket 1.3.4 met (30 hand-rated tuples); next step is PMHNP-recruiter validation pass on cases 7-30 to confirm or adjust expected top-K rankings.",
+  "_curation_status": "CURATED — 36 cases, 8-10 candidates each, 1-3 expected hits per case. Cases 1-6 hand-curated by engineering. Cases 7-30 SYNTHETIC_NEEDS_REVIEW (Claude-generated coverage expansion). Cases 31-36 ADVERSARIAL_VECTOR_BLINDSPOTS — designed to force the LLM rerank to apply judgment beyond cosine similarity. Live eval on the original 30 cases hit precision@3 = 1.000 with vector baseline = 0.878 (lift 1.14× — below the 1.20× gate because vector was already saturating). The adversarial cases drop the vector baseline by attacking known cosine weaknesses: vague queries, sparse profiles where the right answer has minimal keyword density, negative-keyword traps (candidate explicitly states they do NOT do the thing), specialty transitions buried in bio text, implicit knockouts that aren't in titles, and judgment calls between three candidates with identical keyword density. These cases REQUIRE reading and understanding, not just matching.",
   "promptVersion": "v1",
   "description": "Talent-search rerank golden cases. Each case = (job summary, candidate list with ≥8 entries) → expected top-K candidate indices. Eval gate: mean(rerank precision@K) must be ≥ 1.20 × mean(vector precision@K) per architecture §1.3.4.",
   "cases": [
@@ -386,6 +386,84 @@
         "minPrecisionAtK": 0.66
       },
       "_curatorNote": "Discriminator is FL license PLUS geriatric specialty PLUS collaborative-care model — pure cosine elevates Candidate 3 (FL + geriatric PCMH but FNP) and Candidate 5 (perfect collaborative-care/geriatric bio but GA-only). Candidates 1, 2, and 4 are FL-licensed PMHNPs with explicit geriatric collaborative-care depth. Strongest distractor is Candidate 3 (FL + geriatric + PCMH, FNP credential) — recruiter rejects on wrong discipline for psychotropic prescribing in late-life depression."
+    },
+    {
+      "id": "adversarial-sparse-profile-perfect-fit",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for Texas inpatient psychiatric unit\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC, Inpatient TX | Years: 8 | States: TX\nCandidate #2 | Headline: Senior Psychiatric NP | Years: 12 | States: TX, OK | Specialties: Adult Psychiatry, Outpatient Mood Disorders, Anxiety, Depression, ADHD, Substance Use Counseling, Psychopharmacology, Telehealth Adult Care, Mental Health Coaching, Wellness Programs | Mode: remote\nCandidate #3 | Headline: PMHNP-BC, Adult Mood and Anxiety | Years: 10 | States: TX | Specialties: Adult Mood, Generalized Anxiety, Major Depressive Disorder, Cognitive Behavioral Therapy Integration, Adult Outpatient | Mode: hybrid\nCandidate #4 | Headline: PMHNP-BC | Years: 6 | States: TX | Specialties: Outpatient Adult Psychiatry, Mood Disorders, Anxiety Spectrum Disorders, ADHD Adults, Telepsychiatry | Mode: remote\nCandidate #5 | Headline: PMHNP-BC | Years: 9 | States: TX | Specialties: Adult Mood, Anxiety, ADHD, Outpatient | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 4 | States: TX | Specialties: Adult Outpatient | Mode: hybrid\nCandidate #7 | Headline: PMHNP-BC | Years: 11 | States: TX, AR | Specialties: Adult Outpatient Mood, Anxiety, Bipolar, Trauma Recovery, EMDR Trained | Mode: hybrid\nCandidate #8 | Headline: PMHNP-BC | Years: 7 | States: TX | Specialties: Adult Outpatient Telehealth | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1],
+        "k": 3,
+        "minPrecisionAtK": 0.33
+      },
+      "_curatorNote": "Sparse-profile blindspot. Candidate #1 has the perfect fit for inpatient TX (literally in the headline) but has zero specialties listed — a sparse profile. Candidates #2-#8 all have rich outpatient bios stuffed with psychiatric keywords; vector cosine ranks them above #1 because of keyword density. Rerank should read 'Inpatient TX' in #1's headline and rank them first. Vector pre-test rank likely puts #1 at position 5-7."
+    },
+    {
+      "id": "adversarial-negative-keyword-trap",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"telehealth PMHNP for fully-remote adult outpatient panel in California\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 7 | States: CA | Specialties: Adult Telehealth, Telepsychiatry, Remote Mental Health, Virtual Care, Online Adult Mood and Anxiety Treatment, Digital Therapeutics | Mode: onsite | Bio: I am strictly an in-person clinician; I do not accept telehealth-only roles and will not consider remote positions. My background is fully in-clinic outpatient adult psychiatry.\nCandidate #2 | Headline: PMHNP-BC | Years: 5 | States: CA | Specialties: Adult Mood, Anxiety, ADHD | Mode: remote | Bio: 100% telehealth practice for the past 3 years. Open to fully-remote California panels.\nCandidate #3 | Headline: PMHNP-BC | Years: 8 | States: TX | Specialties: Adult Telehealth, Mood, Anxiety | Mode: remote\nCandidate #4 | Headline: PMHNP-BC | Years: 6 | States: CA | Specialties: Adult Telehealth, Mood, Anxiety | Mode: remote | Bio: Comfortable in fully-remote settings.\nCandidate #5 | Headline: Child PMHNP-BC | Years: 4 | States: CA | Specialties: Pediatric Telehealth, ADHD | Mode: remote\nCandidate #6 | Headline: PMHNP-BC | Years: 11 | States: CA | Specialties: Inpatient Adult, Crisis | Mode: onsite\nCandidate #7 | Headline: PMHNP-BC | Years: 9 | States: CA, NV | Specialties: Adult Mood, Anxiety, Telepsychiatry, Outpatient Telehealth | Mode: remote\nCandidate #8 | Headline: PMHNP-BC | Years: 3 | States: CA | Specialties: Adult Outpatient | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [2, 4, 7],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Negative-keyword trap. Candidate #1 has the highest vector similarity by far (literally lists every telehealth keyword and adds Digital Therapeutics) but their bio explicitly says they will NOT do telehealth. Pure cosine ranks #1 first; rerank reads the bio and rejects them. The right answers are #2, #4, #7 — all CA-licensed PMHNPs whose bios or modes confirm telehealth fit. This case forces the rerank to look beyond keyword density into intent."
+    },
+    {
+      "id": "adversarial-specialty-transition",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"Child & adolescent PMHNP for outpatient pediatric ADHD clinic in Ohio\"",
+        "candidateList": "Candidate #1 | Headline: Child PMHNP-BC, Pediatric Specialist | Years: 9 | States: OH | Specialties: Pediatric Psychiatry, ADHD, Anxiety, Adolescent Mood | Mode: hybrid | Bio: After 7 years in pediatric inpatient, I transitioned in 2024 to exclusively adult geriatric memory care work. I no longer accept pediatric or adolescent referrals.\nCandidate #2 | Headline: Geriatric PMHNP-BC | Years: 6 | States: OH | Specialties: Adult Geriatric Psychiatry, Memory Care | Mode: hybrid | Bio: Started my career in pediatric psychiatry but moved fully to geriatric work 5 years ago.\nCandidate #3 | Headline: PMHNP-BC | Years: 5 | States: OH | Specialties: Pediatric Outpatient, Adolescent ADHD, Child Anxiety, Behavioral Therapy | Mode: hybrid | Bio: Currently practicing pediatric outpatient psychiatry with focus on ADHD and anxiety in school-age children.\nCandidate #4 | Headline: Adult PMHNP-BC | Years: 10 | States: OH | Specialties: Adult Mood, Anxiety, ADHD | Mode: hybrid | Bio: Adult-only practice; do not see patients under 18.\nCandidate #5 | Headline: Child PMHNP-BC | Years: 3 | States: OH | Specialties: Adolescent ADHD, Pediatric Anxiety, School-Based Mental Health | Mode: hybrid | Bio: Recent graduate building a pediatric outpatient practice; primary focus on ADHD and anxiety.\nCandidate #6 | Headline: PMHNP-BC | Years: 12 | States: OH, KY | Specialties: Adolescent Outpatient ADHD, Pediatric Mood Disorders, Family-Based Therapy | Mode: hybrid | Bio: Active pediatric psychiatry practice in Cincinnati; focus on ADHD and adolescent mood.\nCandidate #7 | Headline: PMHNP-BC | Years: 4 | States: OH | Specialties: Adult Inpatient | Mode: onsite\nCandidate #8 | Headline: Child PMHNP-BC | Years: 8 | States: MI | Specialties: Pediatric ADHD, Adolescent Mood | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [3, 5, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Specialty transition. Candidate #1 has the best-looking child PMHNP profile (every keyword) but their bio reveals they transitioned out of pediatrics in 2024 — they no longer take pediatric cases. Pure vector ranks #1 highest; rerank reads the bio and rejects. The right answers are #3, #5, #6 — actively-practicing pediatric PMHNPs in Ohio. Candidate #8 is pediatric but MI-only."
+    },
+    {
+      "id": "adversarial-vague-query-judgment-call",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"experienced PMHNP for our growing practice\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 16 | States: NY | Specialties: Adult Mood, Anxiety, Bipolar, Trauma, Crisis, Inpatient and Outpatient, Supervisor Experience, Clinic Operations | Mode: hybrid | Bio: 16 years across inpatient and outpatient with 4 years supervising junior PMHNPs.\nCandidate #2 | Headline: PMHNP-BC | Years: 1 | States: NY | Specialties: Adult Outpatient | Mode: hybrid | Bio: Recent graduate of NYU PMHNP program.\nCandidate #3 | Headline: PMHNP-BC | Years: 12 | States: NY | Specialties: Adult Mood, Anxiety, ADHD, Telepsychiatry, Bipolar | Mode: remote | Bio: 12 years in private practice.\nCandidate #4 | Headline: PMHNP-BC | Years: 9 | States: NY | Specialties: Adult Outpatient, Mood, Anxiety | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 14 | States: NY, NJ | Specialties: Adult Mood, Anxiety, Bipolar, ADHD, OCD, PTSD, Substance Use, Eating Disorders, Geriatric, Crisis | Mode: hybrid | Bio: Generalist with broad specialty exposure across 14 years.\nCandidate #6 | Headline: PMHNP-BC | Years: 2 | States: NY | Specialties: Adult Outpatient | Mode: hybrid\nCandidate #7 | Headline: PMHNP-BC | Years: 7 | States: NY | Specialties: Adult Outpatient Mood, Anxiety | Mode: hybrid\nCandidate #8 | Headline: PMHNP-BC | Years: 4 | States: NY | Specialties: Adult Mood, Anxiety, ADHD | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 5, 3],
+        "k": 3,
+        "minPrecisionAtK": 0.5
+      },
+      "_curatorNote": "Vague query with judgment call. Query 'experienced PMHNP' has no specific specialty hook — vector cosine ranks roughly by keyword density (favoring rich profiles regardless of years). The right reading is 'experienced' = high years of experience, narrowing to candidates 1 (16 yrs), 5 (14 yrs), 3 (12 yrs). Rerank should pick by years; vector mostly ignores it because numbers don't embed well."
+    },
+    {
+      "id": "adversarial-implicit-knockout-buried-in-bio",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"Spanish-speaking PMHNP for FQHC in Florida\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 8 | States: FL | Specialties: FQHC, Community Mental Health, Adult Mood, Anxiety, Trauma | Mode: hybrid | Bio: Bilingual Spanish-English; comfortable conducting full sessions in Spanish.\nCandidate #2 | Headline: PMHNP-BC | Years: 10 | States: FL | Specialties: FQHC, Community Mental Health, Adult Mood, Anxiety, ADHD, Substance Use, Telehealth | Mode: hybrid | Bio: 10 years FQHC experience. English-only.\nCandidate #3 | Headline: PMHNP-BC | Years: 6 | States: FL | Specialties: Bilingual Spanish, FQHC, Adult Mood, Anxiety | Mode: hybrid\nCandidate #4 | Headline: PMHNP-BC | Years: 12 | States: FL | Specialties: FQHC, Community Mental Health, Adult Mood, Anxiety, ADHD, Substance Use, Bipolar, Crisis | Mode: hybrid | Bio: Long FQHC career; speak only English.\nCandidate #5 | Headline: PMHNP-BC | Years: 5 | States: FL | Specialties: FQHC, Adult Outpatient | Mode: hybrid | Bio: Native Spanish speaker; raised bilingual.\nCandidate #6 | Headline: PMHNP-BC | Years: 9 | States: FL | Specialties: FQHC, Community Mental Health, Trauma, Adult Mood, Anxiety, Adolescent Anxiety, Adult ADHD | Mode: hybrid | Bio: Strong FQHC-aligned values; English-only.\nCandidate #7 | Headline: PMHNP-BC | Years: 3 | States: FL | Specialties: FQHC, Adult Outpatient | Mode: hybrid\nCandidate #8 | Headline: PMHNP-BC | Years: 11 | States: FL | Specialties: FQHC, Community Mental Health, Adult Mood, Anxiety, Crisis, Bipolar | Mode: hybrid | Bio: 11 years community psychiatry; English-only practice.\nCandidate #9 | Headline: PMHNP-BC | Years: 7 | States: FL | Specialties: FQHC, Adult Mood, Anxiety, Telehealth | Mode: hybrid | Bio: Habla espanol con fluidez; conduzco la mayoria de mis sesiones en espanol.\nCandidate #10 | Headline: PMHNP-BC | Years: 4 | States: FL | Specialties: FQHC, Adult Outpatient | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 5],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Implicit knockout from bio. Spanish capability is the hard requirement, but only Candidate #3 mentions it in their specialties field. Candidates #1, #5, and #9 mention it ONLY in their bio text. Vector cosine weighs the dense FQHC keyword stuffing of #2, #4, #8 above bio text mentions of Spanish. Rerank should recognize bio language signals as binding for this query. Note Candidate #9's bio is in Spanish itself, which the LLM should pick up."
+    },
+    {
+      "id": "adversarial-three-way-tie-judgment",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for Tennessee outpatient clinic specializing in adult ADHD\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 6 | States: TN | Specialties: Adult ADHD, Outpatient Psychiatry, Anxiety | Mode: hybrid | Bio: 6 years exclusive focus on adult ADHD diagnosis and stimulant management. Author of two CME modules on adult ADHD pharmacotherapy.\nCandidate #2 | Headline: PMHNP-BC | Years: 10 | States: TN | Specialties: Adult Outpatient, ADHD, Anxiety, Mood | Mode: hybrid | Bio: ADHD is one of many specialties in my generalist practice. I see roughly 20% ADHD, 40% mood, 40% anxiety.\nCandidate #3 | Headline: PMHNP-BC | Years: 4 | States: TN | Specialties: Adult ADHD, Adult Outpatient | Mode: hybrid | Bio: Recent specialty pivot to adult ADHD; trained at the Vanderbilt ADHD Clinic.\nCandidate #4 | Headline: PMHNP-BC | Years: 8 | States: TN | Specialties: Adult Mood, Anxiety, ADHD, Bipolar, Trauma | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 12 | States: TN | Specialties: Adult Outpatient Mood, Anxiety, Bipolar, ADHD | Mode: hybrid | Bio: Generalist practice with ADHD as a small portion of caseload.\nCandidate #6 | Headline: PMHNP-BC | Years: 5 | States: TN | Specialties: Adult ADHD, Behavioral Therapy Integration, Outpatient | Mode: hybrid | Bio: Dedicated adult ADHD practice; co-author of clinic protocols.\nCandidate #7 | Headline: Child PMHNP-BC | Years: 7 | States: TN | Specialties: Pediatric ADHD, Child Outpatient | Mode: hybrid\nCandidate #8 | Headline: PMHNP-BC | Years: 3 | States: TN | Specialties: Adult Mood, Anxiety, ADHD | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Judgment call between specialists vs generalists. All TN-licensed candidates list ADHD; pure cosine has trouble distinguishing #2 (generalist with ADHD as 20%) from #1 (exclusive ADHD focus). Rerank should pick the candidates whose ADHD focus is PRIMARY (#1, #3, #6) over generalists who happen to list ADHD. This requires reading the depth of focus from bios, not just keyword presence."
     }
   ]
 }
