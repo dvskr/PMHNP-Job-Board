@@ -109,6 +109,9 @@ export default function CandidateSearchClient() {
     const [jdSearchPostingId, setJdSearchPostingId] = useState<string | null>(initialPostingId);
     /** Title of the posting being JD-matched, for the result banner. */
     const [jdSearchTitle, setJdSearchTitle] = useState<string | null>(null);
+    /** Underlying rerank failure message from the last call (dev only).
+     *  Non-null iff the LLM rerank failed and we fell back to vector order. */
+    const [rerankError, setRerankError] = useState<string | null>(null);
     const [aiState, setAiState] = useState<SmartMatchState>({
         status: 'idle', usesRemaining: null, limitMessage: null,
     });
@@ -209,6 +212,11 @@ export default function CandidateSearchClient() {
                     // For JD-driven matches the server returns the posting
                     // title; surface it on the result banner.
                     setJdSearchTitle(typeof data.postingTitle === 'string' ? data.postingTitle : null);
+                    // If the rerank failed and we fell back to vector
+                    // order, the API returns `rerankError` with the
+                    // underlying message (dev only). Surface it so the
+                    // page tells the truth instead of silently degrading.
+                    setRerankError(typeof data.rerankError === 'string' ? data.rerankError : null);
                     setAiState({
                         status: 'ready',
                         usesRemaining: typeof data.rerankUsesRemaining === 'number' ? data.rerankUsesRemaining : null,
@@ -743,6 +751,23 @@ export default function CandidateSearchClient() {
                     </div>
                 ) : (
                     <>
+                        {/* Rerank-failure diagnostic — surfaces the actual
+                            error so we can stop chasing dev-server logs. */}
+                        {rerankError && aiState.status === 'ready' && (
+                            <div style={{
+                                background: '#FEF3C7',
+                                border: '1px solid #FCD34D',
+                                borderRadius: '12px',
+                                padding: '10px 14px',
+                                marginBottom: '14px',
+                                fontSize: '12px',
+                                color: '#92400E',
+                                fontFamily: 'monospace',
+                            }}>
+                                <strong>Rerank fell back to vector order.</strong> Reason: {rerankError}
+                            </div>
+                        )}
+
                         {/* JD-match result banner — only when actively
                             showing candidates ranked against a posting. */}
                         {jdSearchPostingId && jdSearchTitle && aiState.status === 'ready' && (

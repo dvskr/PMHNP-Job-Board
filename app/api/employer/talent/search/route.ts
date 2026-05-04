@@ -279,6 +279,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // ── 4. LLM rerank ──────────────────────────────────────────────────
     let ranked: Array<{ candidateIndex: number; reason: string }>;
+    let rerankError: string | null = null;
     try {
         const prompt = await loadPrompt('talent_search_rerank');
         const result = await complete({
@@ -291,8 +292,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             outputSchema: rerankResultSchema,
         });
         ranked = result.parsed?.ranked ?? [];
+        if (ranked.length === 0) {
+            rerankError = 'rerank returned empty ranking';
+        }
     } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
         logger.warn('talent search: rerank failed, falling back to vector order', undefined, err);
+        // Surface the message in the response (dev only) so debugging
+        // doesn't require chasing dev-server stdout. In prod we mask it.
+        rerankError = process.env.NODE_ENV === 'production'
+            ? 'rerank unavailable'
+            : msg;
         ranked = ordered.slice(0, k).map((_, i) => ({ candidateIndex: i + 1, reason: 'Vector match (rerank unavailable).' }));
     }
 
@@ -373,5 +383,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         tier,
         hasActivePosting,
         rerankUsesRemaining: Math.max(0, RERANK_DAILY_CAP - todayCalls - 1),
+        // Diagnostics — non-null iff the rerank LLM call failed and we
+        // fell back to vector order. Visible to the client so the UI can
+        // surface the reason instead of generic "rerank unavailable".
+        rerankError,
     });
 }
