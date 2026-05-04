@@ -528,13 +528,6 @@ export default function CandidateSearchClient() {
                     const atLimit = aiState.status === 'limit_reached' || used >= cap;
                     const isNearLimit = used >= cap * 0.8;
                     const valueColor = atLimit ? '#EF4444' : isNearLimit ? '#F59E0B' : '#1A2E35';
-                    const accent = '#7C3AED';
-                    const pct = Math.min((used / cap) * 100, 100);
-                    const barGradient = atLimit
-                        ? 'linear-gradient(90deg, #EF4444, #F87171)'
-                        : isNearLimit
-                            ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
-                            : 'linear-gradient(90deg, #7C3AED, #A78BFA)';
 
                     return (
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'stretch' }}>
@@ -548,11 +541,7 @@ export default function CandidateSearchClient() {
                                 style={{
                                     ...cardBase,
                                     borderRadius: '16px',
-                                    border: atLimit
-                                        ? '1px solid rgba(239,68,68,0.30)'
-                                        : isNearLimit
-                                            ? '1px solid rgba(251,191,36,0.35)'
-                                            : '1px solid rgba(124,58,237,0.18)',
+                                    border: '1px solid rgba(0,0,0,0.06)',
                                     padding: '12px 16px',
                                     display: 'flex', alignItems: 'center', gap: '12px',
                                     flexShrink: 0, minWidth: '200px',
@@ -562,15 +551,14 @@ export default function CandidateSearchClient() {
                                     ? 'AI search limit reached for today. Resets at midnight Central Time.'
                                     : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
                             >
-                                {/* Icon square — soft purple gradient with inner highlight */}
+                                {/* Icon square — always the soft purple gradient.
+                                    The count value carries the at-limit signal in red
+                                    text; the icon stays calm so the chip doesn't
+                                    feel like an alert. */}
                                 <div style={{
                                     width: '34px', height: '34px', borderRadius: '11px',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    background: atLimit
-                                        ? 'linear-gradient(145deg, #FCA5A5, #F87171)'
-                                        : isNearLimit
-                                            ? 'linear-gradient(145deg, #FCD34D, #F59E0B)'
-                                            : 'linear-gradient(145deg, #C4B5FD, #A78BFA)',
+                                    background: 'linear-gradient(145deg, #C4B5FD, #A78BFA)',
                                     color: '#fff',
                                     flexShrink: 0,
                                     boxShadow: '3px 3px 8px rgba(124,58,237,0.18), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 1px rgba(0,0,0,0.05)',
@@ -593,21 +581,9 @@ export default function CandidateSearchClient() {
                                         {used}<span style={{ opacity: 0.4, fontWeight: 700 }}>/{cap}</span>
                                     </span>
                                 </div>
-                                {/* Inset progress trough pinned to the bottom edge */}
-                                <div style={{
-                                    position: 'absolute', left: '12px', right: '12px', bottom: '6px',
-                                    height: '3px', borderRadius: '2px',
-                                    background: 'rgba(0,0,0,0.05)',
-                                    boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.04)',
-                                    overflow: 'hidden',
-                                }}>
-                                    <div style={{
-                                        width: `${pct}%`, height: '100%', borderRadius: '2px',
-                                        background: barGradient,
-                                        transition: 'width 0.6s ease',
-                                        boxShadow: '0 0 4px rgba(124,58,237,0.25)',
-                                    }} />
-                                </div>
+                                {/* Progress bar removed — the count text alone is
+                                    a clean enough signal; the bar at the bottom
+                                    was visually noisy at the limit state. */}
                             </div>
 
                             {/* Search bar (clay) + inline AI submit */}
