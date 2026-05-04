@@ -654,20 +654,9 @@ export default function CandidateSearchClient() {
                     );
                 })()}
 
-                {/* ═══ Smart Match status banners ═══ */}
-                {aiMode && aiState.status === 'limit_reached' && (
-                    <div style={{
-                        ...cardBase, padding: '14px 18px', marginBottom: '16px',
-                        background: 'linear-gradient(145deg, #FEF3C7, #FDE68A)',
-                        border: '1px solid #FCD34D',
-                        display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-                    }}>
-                        <Lock size={16} style={{ color: '#D97706', flexShrink: 0 }} />
-                        <span style={{ fontSize: '13px', color: '#92400E', fontWeight: 600 }}>
-                            {aiState.limitMessage || 'Daily AI search limit reached. Resets at midnight Central Time.'}
-                        </span>
-                    </div>
-                )}
+                {/* Limit-reached banner removed — the tracker badge above
+                    already shows '10/10 — resets at midnight CT' in red,
+                    so this was redundant noise. */}
                 {aiMode && aiState.status === 'disabled' && (
                     <div style={{
                         ...cardRecessed, padding: '12px 16px', marginBottom: '16px',
