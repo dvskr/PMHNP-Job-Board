@@ -112,7 +112,10 @@ export const TASK_REGISTRY: Record<AiTaskId, TaskConfig> = {
         // are billed at $2/M for gpt-5-mini, so worst-case ~$0.016/call.
         maxOutputTokens: 8_000,
         timeoutMs: 45_000,
-        rateLimit: { limit: 50, windowSeconds: 3600 },
+        // 200/hour is well above any realistic per-employer load (the
+        // route enforces 10/day per employer separately) and gives eval
+        // suites of 30-40 cases enough headroom to complete in one run.
+        rateLimit: { limit: 200, windowSeconds: 3600 },
     },
     career_path_analysis: {
         primary:   { provider: 'openai',    model: 'gpt-5.4' },
