@@ -105,7 +105,7 @@ describe('POST /api/employer/talent/search', () => {
         expect(res.status).toBe(400);
     });
 
-    it('returns 429 with upgradeCta when daily rerank cap is reached', async () => {
+    it('returns 429 with reset-time message when daily rerank cap is reached', async () => {
         mockUser = { id: 'u1' };
         findUniqueMock.mockResolvedValue({ role: 'employer' });
         isFlagEnabledMock.mockResolvedValue(true);
@@ -114,8 +114,11 @@ describe('POST /api/employer/talent/search', () => {
         const res = await POST(makeRequest({ query: 'experienced PMHNP' }));
         expect(res.status).toBe(429);
         const body = await res.json();
-        expect(body.upgradeCta).toBe('/pricing');
         expect(body.error).toBeTruthy();
+        expect(body.message).toMatch(/midnight Central Time/i);
+        // upgrade CTA was deliberately removed — UI shows a clean
+        // reset-time message instead of pushing a paywall.
+        expect(body.upgradeCta).toBeUndefined();
     });
 
     it('does NOT return 429 when caller is below the daily cap', async () => {

@@ -206,8 +206,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (todayCalls >= RERANK_DAILY_CAP) {
         return NextResponse.json({
             error: 'Daily limit reached',
-            message: `You've used your ${RERANK_DAILY_CAP} smart searches for today. Resets at midnight Central Time.`,
-            upgradeCta: '/pricing',
+            message: `You've used your ${RERANK_DAILY_CAP} AI searches for today. Resets at midnight Central Time.`,
             tier,
         }, { status: 429 });
     }
