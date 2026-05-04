@@ -77,8 +77,15 @@ const clayBtn: React.CSSProperties = {
 type Candidate = any;
 
 interface SmartMatchState {
-    /** null when no Smart Match has run yet (or after toggling off). */
-    status: 'idle' | 'loading' | 'ready' | 'limit_reached' | 'unavailable';
+    /**
+     * 'idle' = Smart Match hasn't run yet (or just toggled off).
+     * 'loading' = request in flight.
+     * 'ready' = response with candidates.
+     * 'limit_reached' = 429 daily cap; banner + upgrade CTA.
+     * 'disabled' = 404 from the API (feature flag is off for this employer).
+     * 'unavailable' = transient error (network, 5xx); user should retry.
+     */
+    status: 'idle' | 'loading' | 'ready' | 'limit_reached' | 'disabled' | 'unavailable';
     /** Daily reranks remaining after the latest call. */
     usesRemaining: number | null;
     /** 429-message rendered as the limit banner. */
@@ -153,9 +160,10 @@ export default function CandidateSearchClient() {
                     }),
                 });
                 if (res.status === 404) {
-                    // Feature flag is off — surface as "unavailable" and fall
-                    // back to the standard browse so the user isn't blocked.
-                    setAiState({ status: 'unavailable', usesRemaining: null, limitMessage: null });
+                    // Feature flag is off for this employer — surface
+                    // distinct "disabled" state so the banner can be honest
+                    // about why (vs a transient outage).
+                    setAiState({ status: 'disabled', usesRemaining: null, limitMessage: null });
                 } else if (res.status === 429) {
                     const data = await res.json().catch(() => ({}));
                     setAiState({
@@ -516,12 +524,20 @@ export default function CandidateSearchClient() {
                         </Link>
                     </div>
                 )}
+                {aiMode && aiState.status === 'disabled' && (
+                    <div style={{
+                        ...cardRecessed, padding: '12px 16px', marginBottom: '16px',
+                        fontSize: '12px', color: '#92400E',
+                    }}>
+                        Smart Match isn&rsquo;t enabled on your account yet. Showing standard browse results — contact support if you&rsquo;d like early access.
+                    </div>
+                )}
                 {aiMode && aiState.status === 'unavailable' && (
                     <div style={{
                         ...cardRecessed, padding: '12px 16px', marginBottom: '16px',
                         fontSize: '12px', color: '#92400E',
                     }}>
-                        Smart Match is temporarily unavailable. Showing standard browse results.
+                        Smart Match is temporarily unavailable. Showing standard browse results — try again in a moment.
                     </div>
                 )}
                 {aiMode && query.trim().length < 3 && aiState.status !== 'limit_reached' && (
