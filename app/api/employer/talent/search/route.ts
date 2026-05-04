@@ -60,11 +60,18 @@ const bodySchema = z.union([
     }),
 ]);
 
+// Schema is intentionally permissive — the LLM occasionally returns
+// reasons longer than 500 chars, occasionally omits `reason`, and
+// sometimes returns more than 10 items even when told to cap. Strict
+// limits caused the entire response to fail validation and fall back
+// to vector order, wiping the rationale on every card. We trim to k
+// in code below; long reasons get truncated for display, missing ones
+// get a neutral placeholder.
 const rerankResultSchema = z.object({
     ranked: z.array(z.object({
         candidateIndex: z.number().int(),
-        reason: z.string().max(500),
-    })).max(10),
+        reason: z.string().optional(),
+    })),
 });
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -291,7 +298,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             cacheKey: ['rerank', prompt.version, query, ordered.map((c) => c.profile.supabaseId).join(',')],
             outputSchema: rerankResultSchema,
         });
-        ranked = result.parsed?.ranked ?? [];
+        // Normalize: trim long reasons (LLM sometimes ignores the
+        // one-sentence guidance), provide a placeholder when missing.
+        // Display layer caps lines visually anyway.
+        ranked = (result.parsed?.ranked ?? []).map((r) => ({
+            candidateIndex: r.candidateIndex,
+            reason: typeof r.reason === 'string' && r.reason.length > 0
+                ? r.reason.slice(0, 500)
+                : 'Strong match on the role criteria.',
+        }));
         if (ranked.length === 0) {
             rerankError = 'rerank returned empty ranking';
         }
