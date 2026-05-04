@@ -14,6 +14,19 @@ vi.mock('@/lib/supabase/server', () => ({
     }),
 }));
 
+// next/headers cookies() — Sprint 1.1.6 added cookie-based anon-tenant
+// stickiness for the experiment harness; the route now reads + writes a
+// cookie when the caller is signed-out. Provide an in-memory stub.
+vi.mock('next/headers', () => {
+    const store = new Map<string, string>();
+    return {
+        cookies: async () => ({
+            get: (name: string) => (store.has(name) ? { name, value: store.get(name)! } : undefined),
+            set: (name: string, value: string) => { store.set(name, value); },
+        }),
+    };
+});
+
 // Default: feature flag OFF.
 const isEnabledMock = vi.fn<(flag: string, tenant: unknown) => Promise<boolean>>();
 vi.mock('@/lib/ai/feature-flags', () => ({
