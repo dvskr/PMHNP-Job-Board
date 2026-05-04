@@ -41,11 +41,24 @@ import { logger } from '@/lib/logger';
 
 const RERANK_DAILY_CAP = 10;
 
-const bodySchema = z.object({
-    query: z.string().min(3).max(500),
-    states: z.array(z.string().length(2)).max(10).optional(),
-    k: z.number().int().min(1).max(20).optional(),
-});
+// Caller provides EITHER a free-text query OR a postingId to match against
+// the JD they already wrote. Both paths share the same downstream pipeline,
+// cost cap, tier gates, and privacy transform. The postingId path lets the
+// employer's existing JD effort do the work — no retyping requirements.
+const bodySchema = z.union([
+    z.object({
+        query: z.string().min(3).max(500),
+        postingId: z.undefined().optional(),
+        states: z.array(z.string().length(2)).max(10).optional(),
+        k: z.number().int().min(1).max(20).optional(),
+    }),
+    z.object({
+        query: z.undefined().optional(),
+        postingId: z.string().min(1).max(64),
+        states: z.array(z.string().length(2)).max(10).optional(),
+        k: z.number().int().min(1).max(20).optional(),
+    }),
+]);
 
 const rerankResultSchema = z.object({
     ranked: z.array(z.object({
@@ -93,7 +106,51 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!parsed.success) {
         return NextResponse.json({ error: 'Validation failed', details: parsed.error.issues }, { status: 400 });
     }
-    const { query, states, k = 10 } = parsed.data;
+    const { states, k = 10 } = parsed.data;
+
+    // ── Resolve the query — typed search OR JD from a posting ──────────
+    // When postingId is supplied, the employer is asking "find candidates
+    // for THIS posting." We embed the JD's title + description (capped to
+    // ~6k chars to stay under the embedder's token limit) and run the
+    // same downstream pipeline. The job must belong to this employer
+    // (or admin) — no cross-employer JD scraping.
+    let query: string;
+    let postingTitle: string | undefined;
+    if ('postingId' in parsed.data && parsed.data.postingId) {
+        const employerJob = await prisma.employerJob.findFirst({
+            where: {
+                id: parsed.data.postingId,
+                ...(isAdmin ? {} : { userId: user.id }),
+            },
+            select: {
+                jobId: true,
+                job: {
+                    select: { title: true, description: true, isPublished: true, archivedAt: true },
+                },
+            },
+        });
+        if (!employerJob || !employerJob.job) {
+            return NextResponse.json({ error: 'Posting not found' }, { status: 404 });
+        }
+        if (!employerJob.job.isPublished || employerJob.job.archivedAt) {
+            return NextResponse.json({ error: 'Posting is not active' }, { status: 400 });
+        }
+        postingTitle = employerJob.job.title;
+        // Trim to ~6000 chars — text-embedding-3-small handles ~8k tokens
+        // (~32k chars) but real JDs are usually <2k chars and longer ones
+        // dilute the signal anyway. Title up front because the embedder
+        // weights early tokens slightly higher.
+        const desc = (employerJob.job.description ?? '').slice(0, 6000);
+        query = `${employerJob.job.title}\n\n${desc}`.trim();
+        if (query.length < 3) {
+            return NextResponse.json({ error: 'Posting has no usable JD text' }, { status: 400 });
+        }
+    } else if ('query' in parsed.data && parsed.data.query) {
+        query = parsed.data.query;
+    } else {
+        // bodySchema's union should make this unreachable.
+        return NextResponse.json({ error: 'Provide either query or postingId' }, { status: 400 });
+    }
 
     // ── Per-employer per-day rerank cap (architecture doc §1.3.5) ───────
     const sinceMidnightUtc = new Date();
@@ -306,7 +363,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }).filter((x): x is NonNullable<typeof x> => x !== null);
 
     return NextResponse.json({
-        query,
+        // For postingId paths the raw query is the full JD text, which is
+        // noisy to display. Surface the posting title separately so the UI
+        // can render "Showing top candidates for {postingTitle}" without
+        // dumping the JD body.
+        query: postingTitle ? `Top matches for: ${postingTitle}` : query,
+        postingTitle: postingTitle ?? null,
         candidates,
         tier,
         hasActivePosting,

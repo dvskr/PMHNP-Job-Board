@@ -95,7 +95,20 @@ interface SmartMatchState {
 export default function CandidateSearchClient() {
     const searchParams = useSearchParams();
     /** Smart Match is on if `?ai=1` is in the URL, OR after the user clicks the toggle. */
-    const [aiMode, setAiMode] = useState(() => searchParams.get('ai') === '1');
+    // ?postingId=X deep-link → auto-fire JD-driven Smart Match against
+    // that posting on mount. ?ai=1 (legacy) just opens Smart Match in
+    // free-text mode.
+    const initialPostingId = searchParams.get('postingId');
+    const [aiMode, setAiMode] = useState(() => searchParams.get('ai') === '1' || !!initialPostingId);
+    /**
+     * When set, the next Smart Match call uses postingId instead of a
+     * typed query — embeds the JD's title + description against the
+     * candidate vectors. Clicking the action button next to the posting
+     * selector sets this; typing in the search bar clears it.
+     */
+    const [jdSearchPostingId, setJdSearchPostingId] = useState<string | null>(initialPostingId);
+    /** Title of the posting being JD-matched, for the result banner. */
+    const [jdSearchTitle, setJdSearchTitle] = useState<string | null>(null);
     const [aiState, setAiState] = useState<SmartMatchState>({
         status: 'idle', usesRemaining: null, limitMessage: null,
     });
@@ -144,20 +157,32 @@ export default function CandidateSearchClient() {
         setLoading(true);
 
         // ── Smart Match path — POST to /api/employer/talent/search ──────
-        // Requires a non-empty query (the embedder needs something to embed).
-        // When the query is too short we silently fall back to the standard
-        // browse so the page never feels empty after toggling Smart Match on.
-        if (aiMode && query.trim().length >= 3) {
+        // Two sub-modes:
+        //   - jdSearchPostingId set → JD-driven match. Server loads the
+        //     posting and embeds its title + description.
+        //   - free-text → user-typed query (≥3 chars).
+        // When neither applies in AI mode we silently fall back to the
+        // standard browse so the page never feels empty after toggling on.
+        const hasJd = aiMode && !!jdSearchPostingId;
+        const hasText = aiMode && query.trim().length >= 3;
+        if (hasJd || hasText) {
             setAiState((s) => ({ ...s, status: 'loading' }));
             try {
-                const res = await fetch('/api/employer/talent/search', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                const requestBody = hasJd
+                    ? {
+                        postingId: jdSearchPostingId,
+                        states: selectedStates.length > 0 ? selectedStates : undefined,
+                        k: 20,
+                    }
+                    : {
                         query: query.trim(),
                         states: selectedStates.length > 0 ? selectedStates : undefined,
                         k: 20,
-                    }),
+                    };
+                const res = await fetch('/api/employer/talent/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody),
                 });
                 if (res.status === 404) {
                     // Feature flag is off for this employer — surface
@@ -181,6 +206,9 @@ export default function CandidateSearchClient() {
                     setCandidates(data.candidates || []);
                     setTotalCount((data.candidates || []).length);
                     setTotalPages(1); // Smart Match returns a single ranked slate; no pagination.
+                    // For JD-driven matches the server returns the posting
+                    // title; surface it on the result banner.
+                    setJdSearchTitle(typeof data.postingTitle === 'string' ? data.postingTitle : null);
                     setAiState({
                         status: 'ready',
                         usesRemaining: typeof data.rerankUsesRemaining === 'number' ? data.rerankUsesRemaining : null,
@@ -230,7 +258,7 @@ export default function CandidateSearchClient() {
             }
         } catch { /* silent */ }
         setLoading(false);
-    }, [aiMode, query, experience, selectedSpecialties, selectedStates, workMode, hasResume, page]);
+    }, [aiMode, jdSearchPostingId, query, experience, selectedSpecialties, selectedStates, workMode, hasResume, page]);
 
     // Debounced search
     useEffect(() => {
@@ -422,6 +450,33 @@ export default function CandidateSearchClient() {
                                 </div>
                             );
                         })()}
+                        {/* JD-driven Smart Match — Sprint 1.3.6.
+                            Skip the typing step; embed the posting's JD
+                            against candidate vectors. Forces aiMode on and
+                            sets jdSearchPostingId so the next fetch fires
+                            against /api/employer/talent/search with
+                            { postingId } instead of { query }. */}
+                        {selectedPostingId && (
+                            <button
+                                onClick={() => {
+                                    setAiMode(true);
+                                    setQuery('');
+                                    setJdSearchPostingId(selectedPostingId);
+                                    setJdSearchTitle(null);
+                                }}
+                                className="tp-filter-btn"
+                                title="Use this posting's job description as the AI search query"
+                                style={{
+                                    ...clayBtn,
+                                    background: 'linear-gradient(145deg, #8B5CF6, #7C3AED)',
+                                    color: '#fff',
+                                    border: '1px solid #A78BFA',
+                                    boxShadow: '3px 3px 8px rgba(124,58,237,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                }}
+                            >
+                                <Sparkles size={13} /> Find AI Matches for this Posting
+                            </button>
+                        )}
                     </div>
                 )}
 
@@ -434,7 +489,18 @@ export default function CandidateSearchClient() {
                         <input
                             type="text"
                             value={query}
-                            onChange={e => setQuery(e.target.value)}
+                            onChange={e => {
+                                setQuery(e.target.value);
+                                // Typing in the search bar overrides any
+                                // active JD-driven match — it would be
+                                // confusing to keep the JD result banner
+                                // up while the user is typing a different
+                                // query.
+                                if (jdSearchPostingId) {
+                                    setJdSearchPostingId(null);
+                                    setJdSearchTitle(null);
+                                }
+                            }}
                             placeholder={aiMode
                                 ? 'Describe the candidate you need (e.g., "experienced CA-licensed telehealth PMHNP")'
                                 : 'Search by name, specialty, keyword...'}
@@ -677,10 +743,44 @@ export default function CandidateSearchClient() {
                     </div>
                 ) : (
                     <>
+                        {/* JD-match result banner — only when actively
+                            showing candidates ranked against a posting. */}
+                        {jdSearchPostingId && jdSearchTitle && aiState.status === 'ready' && (
+                            <div style={{
+                                background: 'linear-gradient(145deg, #F5F3FF, #EDE9FE)',
+                                border: '1px solid #DDD6FE',
+                                borderRadius: '12px',
+                                padding: '10px 14px',
+                                marginBottom: '14px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                gap: '10px', flexWrap: 'wrap',
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#4C1D95' }}>
+                                    <Sparkles size={14} style={{ color: '#7C3AED' }} />
+                                    <span>Showing top candidates for <strong>{jdSearchTitle}</strong></span>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setJdSearchPostingId(null);
+                                        setJdSearchTitle(null);
+                                    }}
+                                    style={{
+                                        fontSize: '12px', padding: '4px 10px', borderRadius: '8px',
+                                        background: '#FFFFFF', color: '#6B21A8',
+                                        border: '1px solid #DDD6FE', cursor: 'pointer', fontWeight: 600,
+                                    }}
+                                >
+                                    Clear posting filter
+                                </button>
+                            </div>
+                        )}
+
                         {/* Results count */}
                         <p style={{ fontSize: '12px', color: '#8A9BA6', marginBottom: '14px', fontWeight: 500 }}>
                             {aiMode && aiState.status === 'ready'
-                                ? `Top ${candidates.length} AI-ranked candidate${candidates.length !== 1 ? 's' : ''} for your query`
+                                ? jdSearchPostingId
+                                    ? `Top ${candidates.length} AI-ranked candidate${candidates.length !== 1 ? 's' : ''} for this posting`
+                                    : `Top ${candidates.length} AI-ranked candidate${candidates.length !== 1 ? 's' : ''} for your query`
                                 : `Showing ${(page - 1) * 20 + 1}–${Math.min(page * 20, totalCount)} of ${totalCount} candidate${totalCount !== 1 ? 's' : ''}`}
                         </p>
 
