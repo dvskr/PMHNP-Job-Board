@@ -201,13 +201,12 @@ export default function CandidateSearchClient() {
                     setAiState({
                         status: 'limit_reached',
                         usesRemaining: 0,
-                        limitMessage: data.message || 'Daily Smart Match limit reached.',
+                        limitMessage: data.message || 'Daily AI search limit reached.',
                     });
-                    setCandidates([]);
-                    setTotalCount(0);
-                    setTotalPages(1);
-                    setLoading(false);
-                    return;
+                    // Fall through to keyword browse so the page still works
+                    // — limit only blocks AI rerank, not regular search.
+                    // The user can type a name/specialty and get keyword
+                    // results until midnight CT.
                 } else if (res.ok) {
                     const data = await res.json();
                     setCandidates(data.candidates || []);
@@ -237,18 +236,22 @@ export default function CandidateSearchClient() {
             // Fall through to standard browse on unavailable — keep results visible.
         }
 
-        // Build params for the regular browse. When falling through from
-        // an AI-mode failure (flag off / 5xx / network), we DROP the query
-        // text — AI-style queries ("CA-licensed telehealth PMHNP with
-        // addiction experience") are sentences, not substrings, and
-        // passing them to the keyword endpoint reliably matches zero
-        // candidates and gives the user an empty page instead of the full
-        // talent pool.
-        const fallingBackFromAi = aiMode && (
-            query.trim().length >= 3 // user typed something AI-style
-        );
+        // Build params for the regular browse.
+        //
+        // When falling through from an AI flag-off or transient outage
+        // (status='disabled' or 'unavailable'), we DROP the query text —
+        // AI-style queries are sentences, not substrings, and passing
+        // them to the keyword endpoint reliably matches zero candidates.
+        //
+        // When falling through because the daily AI cap is hit
+        // (status='limit_reached'), we KEEP the query — the user is
+        // still actively trying to search; they should be able to keep
+        // working with keyword search the rest of the day.
+        const fallingBackFromAiSilently = aiMode
+            && query.trim().length >= 3
+            && (aiState.status === 'disabled' || aiState.status === 'unavailable');
         const params = new URLSearchParams();
-        if (query && !fallingBackFromAi) params.set('q', query);
+        if (query && !fallingBackFromAiSilently) params.set('q', query);
         if (experience) params.set('experience', experience);
         if (selectedSpecialties.length) params.set('specialties', selectedSpecialties.join(','));
         if (selectedStates.length) params.set('states', selectedStates.join(','));
@@ -296,6 +299,22 @@ export default function CandidateSearchClient() {
                 if (usageRes.ok) {
                     const usageData = await usageRes.json();
                     setUnlockUsage(usageData.usage?.candidateUnlocks || null);
+                    // Seed AI usage so the tracker badge shows the right
+                    // count on page load (used to start at 0/10 and only
+                    // update after the first search completed).
+                    const ai = usageData.usage?.aiSearches as
+                        | { used: number; limit: number; remaining: number }
+                        | undefined;
+                    if (ai) {
+                        const atLimit = ai.remaining <= 0;
+                        setAiState({
+                            status: atLimit ? 'limit_reached' : 'idle',
+                            usesRemaining: ai.remaining,
+                            limitMessage: atLimit
+                                ? `You've used your ${ai.limit} AI searches for today. Resets at midnight Central Time.`
+                                : null,
+                        });
+                    }
                     if (usageData.postings) {
                         setPostings(usageData.postings);
                         // Restore from sessionStorage or default to first
@@ -654,7 +673,7 @@ export default function CandidateSearchClient() {
                         ...cardRecessed, padding: '12px 16px', marginBottom: '16px',
                         fontSize: '12px', color: '#92400E',
                     }}>
-                        Smart Match isn&rsquo;t enabled on your account yet. Showing standard browse results — contact support if you&rsquo;d like early access.
+                        AI search isn&rsquo;t enabled on your account yet — contact support if you&rsquo;d like early access.
                     </div>
                 )}
                 {aiMode && aiState.status === 'unavailable' && (
@@ -662,7 +681,7 @@ export default function CandidateSearchClient() {
                         ...cardRecessed, padding: '12px 16px', marginBottom: '16px',
                         fontSize: '12px', color: '#92400E',
                     }}>
-                        Smart Match is temporarily unavailable. Showing standard browse results — try again in a moment.
+                        AI search is temporarily unavailable — try again in a moment.
                     </div>
                 )}
                 {/* Removed: helper text below the search bar — the placeholder
