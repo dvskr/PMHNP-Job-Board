@@ -102,7 +102,15 @@ export const TASK_REGISTRY: Record<AiTaskId, TaskConfig> = {
         outputMode: 'json',
         cacheTtlSeconds: 600, // 10 min — searches repeat fast within a session.
         temperature: 0.2,
-        maxOutputTokens: 1_200,
+        // gpt-5-mini and other reasoning-capable models use the
+        // max_completion_tokens budget for BOTH internal reasoning
+        // AND the visible output. With ~30 candidates in the input
+        // and a JSON envelope that needs 10 picks × one-sentence reason
+        // each, 1200 was getting cut off mid-array (truncated JSON →
+        // 'Unexpected end of JSON input'). 8000 leaves plenty of head-
+        // room for reasoning while keeping cost bounded — output tokens
+        // are billed at $2/M for gpt-5-mini, so worst-case ~$0.016/call.
+        maxOutputTokens: 8_000,
         timeoutMs: 45_000,
         rateLimit: { limit: 50, windowSeconds: 3600 },
     },
