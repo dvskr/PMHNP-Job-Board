@@ -41,6 +41,32 @@ import { logger } from '@/lib/logger';
 
 const RERANK_DAILY_CAP = 10;
 
+/**
+ * Returns the UTC moment corresponding to the most recent midnight in
+ * America/Chicago (CST/CDT). Used to reset the per-employer daily cap
+ * on a Central-Time clock — the product is US-based and employers think
+ * in their local day, not UTC.
+ *
+ * Handles DST automatically via Intl.DateTimeFormat's longOffset. In May
+ * the offset is -05:00 (CDT); in winter it's -06:00 (CST).
+ */
+function midnightCentralTimeAsUtc(): Date {
+    const now = new Date();
+    // Today's date in Chicago (e.g. "2026-05-04").
+    const dateStr = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Chicago',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(now);
+    // Chicago's current UTC offset (e.g. "GMT-05:00" → "-05:00").
+    const offsetParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Chicago',
+        timeZoneName: 'longOffset',
+    }).formatToParts(now);
+    const offsetRaw = offsetParts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT-06:00';
+    const isoOffset = offsetRaw.replace('GMT', '') || '-06:00';
+    return new Date(`${dateStr}T00:00:00${isoOffset}`);
+}
+
 // Caller provides EITHER a free-text query OR a postingId to match against
 // the JD they already wrote. Both paths share the same downstream pipeline,
 // cost cap, tier gates, and privacy transform. The postingId path lets the
@@ -164,20 +190,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // ── Per-employer per-day rerank cap (architecture doc §1.3.5) ───────
-    const sinceMidnightUtc = new Date();
-    sinceMidnightUtc.setUTCHours(0, 0, 0, 0);
+    // Reset at midnight America/Chicago (CST/CDT) — this is a US product
+    // and employers think in their local day, not UTC. The Intl helper
+    // automatically picks the right offset for DST so we don't have to
+    // hardcode -5/-6.
+    const sinceMidnightCst = midnightCentralTimeAsUtc();
     const todayCalls = await prisma.aiCallLog.count({
         where: {
             task: 'talent_search_rerank',
             tenantType: 'employer',
             tenantId: user.id,
-            createdAt: { gte: sinceMidnightUtc },
+            createdAt: { gte: sinceMidnightCst },
         },
     });
     if (todayCalls >= RERANK_DAILY_CAP) {
         return NextResponse.json({
             error: 'Daily limit reached',
-            message: `You've used your ${RERANK_DAILY_CAP} smart searches for today.`,
+            message: `You've used your ${RERANK_DAILY_CAP} smart searches for today. Resets at midnight Central Time.`,
             upgradeCta: '/pricing',
             tier,
         }, { status: 429 });
