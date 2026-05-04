@@ -213,8 +213,15 @@ export async function complete<T = unknown>(req: CompleteRequest<T>): Promise<Co
                         fallbackUsed: target.isFallback,
                         error: 'invalid_output',
                     });
+                    // Surface the underlying parse/validation reason inline
+                    // so callers (and the diagnostic banner in dev) can see
+                    // WHAT failed instead of the generic envelope. Truncate
+                    // to keep log lines + banners reasonable.
+                    const detail = err instanceof Error
+                        ? err.message.slice(0, 300)
+                        : String(err).slice(0, 300);
                     throw new AiGatewayError(
-                        `Output failed schema validation for task=${req.task}`,
+                        `Output failed schema validation for task=${req.task}: ${detail}`,
                         'invalid_output',
                         err,
                     );
