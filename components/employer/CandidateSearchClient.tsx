@@ -515,39 +515,65 @@ export default function CandidateSearchClient() {
                             style={{
                                 ...clayInput,
                                 paddingLeft: '38px',
+                                paddingRight: '110px',  // headroom for the inline AI toggle
                                 fontSize: '14px',
                                 ...(aiMode ? { border: '1px solid #C4B5FD', background: '#F5F3FF' } : {}),
                             }}
                         />
+                        {/* Inline AI toggle — sits inside the search bar
+                            instead of a separate button next to it.
+                            Clicking flips aiMode; the existing debounced
+                            effect re-fires with the AI path on next tick. */}
+                        <button
+                            type="button"
+                            onClick={toggleAiMode}
+                            title={aiMode
+                                ? 'AI search enabled — click to switch back to keyword search'
+                                : 'Use AI to rerank with explanations (10 searches/day)'}
+                            style={{
+                                position: 'absolute',
+                                right: '6px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                padding: '5px 10px',
+                                borderRadius: '8px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                background: aiMode
+                                    ? 'linear-gradient(145deg, #8B5CF6, #7C3AED)'
+                                    : '#FFFFFF',
+                                color: aiMode ? '#fff' : '#7C3AED',
+                                border: aiMode ? '1px solid #A78BFA' : '1px solid #DDD6FE',
+                                boxShadow: aiMode
+                                    ? '2px 2px 6px rgba(124,58,237,0.25)'
+                                    : 'inset 1px 1px 2px rgba(0,0,0,0.04)',
+                                transition: 'all 0.15s',
+                            }}
+                        >
+                            <Sparkles size={11} />
+                            {aiMode ? 'AI ON' : 'AI'}
+                            {aiMode && aiState.usesRemaining !== null && (
+                                <span style={{
+                                    background: 'rgba(255,255,255,0.25)',
+                                    fontSize: '9px',
+                                    padding: '1px 5px',
+                                    borderRadius: '6px',
+                                }}>
+                                    {aiState.usesRemaining}
+                                </span>
+                            )}
+                        </button>
                     </div>
-                    <button
-                        onClick={toggleAiMode}
-                        className="tp-filter-btn"
-                        title="Smart Match uses AI to rerank candidates with a one-line explanation per pick. 10 searches/day."
-                        style={{
-                            ...clayBtn,
-                            background: aiMode
-                                ? 'linear-gradient(145deg, #8B5CF6, #7C3AED)'
-                                : '#F7FBF8',
-                            color: aiMode ? '#fff' : '#2A4A5A',
-                            border: aiMode ? '1px solid #A78BFA' : '1px solid rgba(255,255,255,0.5)',
-                            boxShadow: aiMode
-                                ? '3px 3px 8px rgba(124,58,237,0.25), inset 0 1px 0 rgba(255,255,255,0.15)'
-                                : clayBtn.boxShadow,
-                        }}
-                    >
-                        <Sparkles size={14} />
-                        Smart Match
-                        {aiMode && aiState.usesRemaining !== null && (
-                            <span style={{
-                                background: 'rgba(255,255,255,0.25)', color: '#fff',
-                                fontSize: '10px', fontWeight: 700,
-                                padding: '1px 7px', borderRadius: '10px',
-                            }}>
-                                {aiState.usesRemaining} left
-                            </span>
-                        )}
-                    </button>
+                    {/* The standalone Smart Match toggle was removed —
+                        the JD-driven 'Find AI Matches for this Posting'
+                        button (top row) is the primary AI entry point.
+                        For free-text AI search, the user types in this
+                        bar and clicks the inline AI submit button below
+                        (rendered when there's text to submit). */}
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className="tp-filter-btn"
