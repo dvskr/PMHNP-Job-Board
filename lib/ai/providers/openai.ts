@@ -43,12 +43,29 @@ export const openaiProvider: ProviderClient = {
         const client = await getClient() as any;
 
         try {
+            // OpenAI's newer reasoning + GPT-5-family models require
+            // `max_completion_tokens` and reject `max_tokens` with a 400.
+            // Older chat models still accept `max_tokens`. Send the new
+            // param when the model name signals it; otherwise the legacy
+            // one. Send temperature only when the model supports it
+            // (some reasoning models reject anything other than 1.0).
+            const usesCompletionTokens = /^(gpt-5|o1|o3|o4)/.test(args.model);
+            const tokenParam = usesCompletionTokens
+                ? { max_completion_tokens: args.maxTokens }
+                : { max_tokens: args.maxTokens };
+            // Reasoning + GPT-5 family models reject non-default
+            // temperature with a 400 ("only the default (1) value is
+            // supported"). Suppress the param for those; older chat
+            // models still accept it as before.
+            const fixedTempOnly = /^(gpt-5|o1|o3|o4)/.test(args.model);
+            const temperatureParam = fixedTempOnly ? {} : { temperature: args.temperature };
+
             const response = await client.chat.completions.create(
                 {
                     model: args.model,
                     messages: args.messages,
-                    temperature: args.temperature,
-                    max_tokens: args.maxTokens,
+                    ...temperatureParam,
+                    ...tokenParam,
                     ...(args.jsonMode ? { response_format: { type: 'json_object' } } : {}),
                 },
                 args.signal ? { signal: args.signal } : undefined,
