@@ -202,21 +202,55 @@ export default function CandidateCard({
                         </p>
                     )}
                 </div>
-                {typeof aiMatchPercent === 'number' && (
-                    <span
-                        title="Vector similarity vs your search"
-                        style={{
-                            ...recessedPill,
-                            background: 'linear-gradient(145deg, #EDE9FE, #DDD6FE)',
+                {typeof aiMatchPercent === 'number' && (() => {
+                    // Cosine similarity is clustered in a narrow band
+                    // (~50-65% for most clinical text pairs) so showing
+                    // the raw percentage is misleading — a 55% match
+                    // sounds "half right" when it's actually a strong
+                    // signal in this data. Bucket into three tiers
+                    // calibrated against the empirical PMHNP query
+                    // distribution. Within a tier, ranking position
+                    // (the LLM rerank's order) is the source of truth.
+                    type Tier = { label: string; bg: string; color: string; border: string };
+                    let tier: Tier;
+                    if (aiMatchPercent >= 65) {
+                        tier = {
+                            label: 'Strong match',
+                            bg: 'linear-gradient(145deg, #DDD6FE, #C4B5FD)',
+                            color: '#5B21B6',
+                            border: '1px solid #A78BFA',
+                        };
+                    } else if (aiMatchPercent >= 50) {
+                        tier = {
+                            label: 'Good match',
+                            bg: 'linear-gradient(145deg, #EDE9FE, #DDD6FE)',
                             color: '#6D28D9',
                             border: '1px solid #C4B5FD',
-                            fontSize: '11px',
-                            flexShrink: 0,
-                        }}
-                    >
-                        <Sparkles size={11} /> {aiMatchPercent}% match
-                    </span>
-                )}
+                        };
+                    } else {
+                        tier = {
+                            label: 'Possible match',
+                            bg: '#F5F3FF',
+                            color: '#7C3AED',
+                            border: '1px solid #DDD6FE',
+                        };
+                    }
+                    return (
+                        <span
+                            title={`Cosine similarity ${aiMatchPercent}% — ranking is determined by the AI rerank, not this score`}
+                            style={{
+                                ...recessedPill,
+                                background: tier.bg,
+                                color: tier.color,
+                                border: tier.border,
+                                fontSize: '11px',
+                                flexShrink: 0,
+                            }}
+                        >
+                            <Sparkles size={11} /> {tier.label}
+                        </span>
+                    );
+                })()}
             </div>
 
             {/* AI rationale (Smart Match only) */}
