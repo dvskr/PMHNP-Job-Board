@@ -197,8 +197,18 @@ export default function CandidateSearchClient() {
             // Fall through to standard browse on unavailable — keep results visible.
         }
 
+        // Build params for the regular browse. When falling through from
+        // an AI-mode failure (flag off / 5xx / network), we DROP the query
+        // text — AI-style queries ("CA-licensed telehealth PMHNP with
+        // addiction experience") are sentences, not substrings, and
+        // passing them to the keyword endpoint reliably matches zero
+        // candidates and gives the user an empty page instead of the full
+        // talent pool.
+        const fallingBackFromAi = aiMode && (
+            query.trim().length >= 3 // user typed something AI-style
+        );
         const params = new URLSearchParams();
-        if (query) params.set('q', query);
+        if (query && !fallingBackFromAi) params.set('q', query);
         if (experience) params.set('experience', experience);
         if (selectedSpecialties.length) params.set('specialties', selectedSpecialties.join(','));
         if (selectedStates.length) params.set('states', selectedStates.join(','));
