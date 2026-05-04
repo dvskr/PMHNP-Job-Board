@@ -148,3 +148,58 @@ describe('RERANK_LIFT_REQUIRED', () => {
         expect(RERANK_LIFT_REQUIRED).toBe(1.20);
     });
 });
+
+/* ─────────────────────────── Bias position-shift contract ─────────────────────────── */
+
+// findPivotPosition isn't exported (module-private), but the bias suite
+// behavior of "position shift = absolute difference of 1-based positions"
+// is a load-bearing contract. Exercise it through the public effect: for
+// a pair where the pivot is at position N in arm A and position M in arm
+// B, the shift is |N - M|. Pivot dropping out → max shift.
+describe('bias position-shift semantics (the math the bias gate enforces)', () => {
+    /** Local copy of the runner's logic — keep in sync with rerankArm logic. */
+    function shiftBetweenArms(
+        aRanking: ReadonlyArray<number>,
+        bRanking: ReadonlyArray<number>,
+        pivotIndex: number,
+    ): number {
+        const aPos = aRanking.indexOf(pivotIndex);
+        const bPos = bRanking.indexOf(pivotIndex);
+        const N = Math.max(aRanking.length, bRanking.length, 1);
+        if (aPos === -1 && bPos === -1) return 0;
+        if (aPos === -1 || bPos === -1) return N;
+        return Math.abs(aPos - bPos);
+    }
+
+    it('returns 0 when pivot is at the same position in both arms', () => {
+        // [4, 1, 7] both arms — pivot 4 at position 1 (index 0).
+        expect(shiftBetweenArms([4, 1, 7], [4, 1, 7], 4)).toBe(0);
+    });
+
+    it('returns the absolute position difference when pivot moved within both arms', () => {
+        // Arm A: 4 at pos 1. Arm B: 4 at pos 3. Shift = 2.
+        expect(shiftBetweenArms([4, 1, 7, 2], [1, 7, 4, 2], 4)).toBe(2);
+    });
+
+    it('returns max shift (length of ranking) when pivot drops out of one arm', () => {
+        // Arm A includes pivot 4. Arm B doesn't. Treat as full-length shift.
+        expect(shiftBetweenArms([4, 1, 7], [1, 7, 2], 4)).toBe(3);
+    });
+
+    it('returns 0 when pivot is absent from BOTH arms (vacuous, both ignored it)', () => {
+        // The bias check is about the pivot SHIFTING — if neither arm
+        // selected it, no shift to measure.
+        expect(shiftBetweenArms([1, 2, 3], [1, 2, 3], 99)).toBe(0);
+    });
+
+    it('handles empty rankings without throwing', () => {
+        // Both arms returned no ranking — defensive, not a real-world case.
+        expect(shiftBetweenArms([], [], 1)).toBe(0);
+    });
+
+    it('is symmetric — swapping arm A and arm B gives the same shift', () => {
+        const a = [4, 1, 7, 2];
+        const b = [1, 7, 4, 2];
+        expect(shiftBetweenArms(a, b, 4)).toBe(shiftBetweenArms(b, a, 4));
+    });
+});

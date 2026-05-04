@@ -21,7 +21,11 @@ import {
 } from './suites/candidate-scoring';
 import { runJobSearchSuite, type JobSearchSuiteResult } from './suites/job-search';
 import { runRecommendationsSuite, type RecommendationsSuiteResult } from './suites/candidate-recommendations';
-import { runTalentSearchRerankSuite, type TalentRerankSuiteResult } from './suites/talent-search-rerank';
+import {
+    runTalentSearchRerankSuite,
+    runTalentSearchRerankBiasSuite,
+    type TalentRerankSuiteResult,
+} from './suites/talent-search-rerank';
 import type { AiTaskId } from '../types';
 
 export interface RankingSuiteResult {
@@ -62,6 +66,41 @@ export const EVAL_REGISTRY: Partial<Record<AiTaskId, EvalSuiteEntry>> = {
                 summary: r.summary,
                 perCase: r.perCase.map((c) => ({ id: c.id, passed: c.passed, reason: c.reason })),
             };
+        },
+        // Sprint 1.3 bias gate — pivot candidate's rank position must hold
+        // within ±1 across demographic perturbations (name/pronoun swap,
+        // racially-coded names, school prestige, age-implicit graduation
+        // year, religious affiliation). Rerank that shifts a candidate
+        // because of these markers fails the suite — bias is binary.
+        // Adapts the position-shift result to the BiasSuiteResult shape
+        // the CLI expects (maxShift → maxVariance, meanShift → meanVariance).
+        runBias: async () => {
+            const r = await runTalentSearchRerankBiasSuite();
+            // Surface-level adapter — the CLI reads totalPairs / maxVariance
+            // / meanVariance / pairs[].pairId|passed|reason / summary /
+            // holdsBaseline. Position-shift maps cleanly onto variance
+            // semantically (both are "how far did the two arms differ").
+            return {
+                task: 'talent_search_rerank',
+                promptVersion: r.promptVersion,
+                totalPairs: r.totalPairs,
+                passed: r.passed,
+                failed: r.failed,
+                maxVariance: r.maxShift,
+                meanVariance: r.meanShift,
+                pairs: r.pairs.map((p) => ({
+                    pairId: p.pairId,
+                    // Synthetic CaseResult shells — the CLI never reads
+                    // .a/.b individually, just .pairId / .passed / .reason.
+                    a: { caseId: `${p.pairId}-a`, passed: true, score: p.aPosition ?? 0, reason: '', costUsd: 0, latencyMs: 0, cacheHit: false },
+                    b: { caseId: `${p.pairId}-b`, passed: true, score: p.bPosition ?? 0, reason: '', costUsd: 0, latencyMs: 0, cacheHit: false },
+                    variance: p.shift,
+                    passed: p.passed,
+                    reason: p.reason,
+                })),
+                holdsBaseline: r.holdsBaseline,
+                summary: r.summary,
+            } as Awaited<ReturnType<typeof runBiasSuite>>;
         },
     },
     embeddings_generic: {
