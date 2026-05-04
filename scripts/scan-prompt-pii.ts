@@ -17,6 +17,7 @@
  */
 
 import path from 'path';
+import { promises as fs } from 'fs';
 import { listPrompts, loadPrompt } from '@/lib/ai/prompts/registry';
 import type { AiTaskId } from '@/lib/ai/types';
 
@@ -53,11 +54,17 @@ const PII_VALUE_PATTERNS: ReadonlyArray<{ name: string; re: RegExp }> = [
     { name: 'SSN with dashes',         re: /\b\d{3}-\d{2}-\d{4}\b/ },
 ];
 
-function findViolations(file: string, where: 'system' | 'user_template', text: string): Violation[] {
+function findViolations(
+    file: string,
+    where: 'system' | 'user_template',
+    text: string,
+    allow: ReadonlySet<string>,
+): Violation[] {
     const found: Violation[] = [];
     const lower = text.toLowerCase();
 
     for (const ref of FORBIDDEN_FIELD_REFS) {
+        if (allow.has(ref.toLowerCase())) continue;
         const idx = lower.indexOf(ref.toLowerCase());
         if (idx >= 0) {
             const snippet = text.slice(Math.max(0, idx - 30), idx + ref.length + 30);
@@ -88,8 +95,18 @@ async function main(): Promise<void> {
         for (const v of entry.versions) {
             const file = path.join('lib', 'ai', 'prompts', entry.task, `${v}.json`);
             const loaded = await loadPrompt(entry.task as AiTaskId, v);
-            total = total.concat(findViolations(file, 'system',        loaded.rawSystem));
-            total = total.concat(findViolations(file, 'user_template', loaded.rawUserTemplate));
+
+            // Read the raw JSON to honor a per-prompt `_pii_scan_allow` array.
+            // Prompts that LEGITIMATELY need to extract a forbidden field (e.g.,
+            // resume_parsing extracts npiNumber + deaNumber as professional
+            // credentials) declare the exemption + reason inline. The scanner
+            // reads this list and skips matching entries; everything else
+            // remains strict.
+            const raw = JSON.parse(await fs.readFile(file, 'utf-8')) as { _pii_scan_allow?: string[] };
+            const allow = new Set((raw._pii_scan_allow ?? []).map((s) => s.toLowerCase()));
+
+            total = total.concat(findViolations(file, 'system',        loaded.rawSystem,         allow));
+            total = total.concat(findViolations(file, 'user_template', loaded.rawUserTemplate,   allow));
         }
     }
 
@@ -118,4 +135,9 @@ if (typeof require !== 'undefined' && require.main === module) {
 }
 
 // Exposed for unit tests.
-export const __testing = { findViolations, FORBIDDEN_FIELD_REFS, PII_VALUE_PATTERNS };
+export const __testing = {
+    findViolations: (file: string, where: 'system' | 'user_template', text: string, allow: ReadonlySet<string> = new Set()) =>
+        findViolations(file, where, text, allow),
+    FORBIDDEN_FIELD_REFS,
+    PII_VALUE_PATTERNS,
+};
