@@ -24,6 +24,12 @@ export async function GET(request: Request) {
         const [profile, applicationCount, applications, alertCount, savedJobs, recommendedJobs, emailLead, unreadMessages] =
             await Promise.all([
                 // 1. User profile
+                // Selecting EVERY field calculateCompleteness reads from
+                // (lib/profile-completeness.ts ProfileDataV2 + _count
+                // relations). Without these, the dashboard's completeness
+                // gauge under-counts and disagrees with the percentage the
+                // user-menu dropdown shows (which queries /api/auth/profile
+                // with the full shape).
                 prisma.userProfile.findUnique({
                     where: { supabaseId: user.id },
                     select: {
@@ -43,6 +49,26 @@ export async function GET(request: Request) {
                         preferredJobType: true,
                         openToOffers: true,
                         profileVisible: true,
+                        // Address (Personal Info section in completeness)
+                        addressLine1: true,
+                        city: true,
+                        state: true,
+                        zipCode: true,
+                        // Credentials
+                        npiNumber: true,
+                        deaNumber: true,
+                        // Section scores read from these relation counts
+                        _count: {
+                            select: {
+                                licenses: true,
+                                certificationRecords: true,
+                                education: true,
+                                workExperience: true,
+                                screeningAnswers: true,
+                                openEndedResponses: true,
+                                candidateReferences: true,
+                            },
+                        },
                     },
                 }),
 

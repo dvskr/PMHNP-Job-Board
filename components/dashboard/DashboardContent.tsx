@@ -65,6 +65,24 @@ interface DashboardData {
         openToOffers: boolean
         profileVisible: boolean
         newsletterOptIn?: boolean
+        // Address fields — needed by calculateCompleteness's Personal Info section
+        addressLine1?: string | null
+        city?: string | null
+        state?: string | null
+        zipCode?: string | null
+        // Credentials
+        npiNumber?: string | null
+        deaNumber?: string | null
+        // Relation counts driving the section scores
+        _count?: {
+            licenses?: number
+            certificationRecords?: number
+            education?: number
+            workExperience?: number
+            screeningAnswers?: number
+            openEndedResponses?: number
+            candidateReferences?: number
+        }
     }
     stats: {
         savedJobs: number
@@ -873,36 +891,12 @@ export default function DashboardContent() {
                        small overlay badge top-right; the card itself is the
                        canonical clay-card from components/JobCard.tsx. */
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {/* Tier badge overlay removed — JobCard already renders
+                            the Easy Apply / Direct Apply pill on the right side
+                            of the card via its own apply CTA. The dashboard's
+                            outer overlay was a duplicate. */}
                         {recommendedJobs.map((job) => (
-                            <div key={job.id} style={{ position: 'relative' }}>
-                                {job.recommendationTier && job.recommendationTier !== 'external' && (
-                                    <span
-                                        aria-label={
-                                            job.recommendationTier === 'easy_apply'
-                                                ? 'Easy Apply — one-click on platform'
-                                                : 'Direct Apply — straight to employer'
-                                        }
-                                        style={{
-                                            position: 'absolute',
-                                            top: 12, right: 12, zIndex: 5,
-                                            display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                            padding: '4px 11px', borderRadius: '999px',
-                                            fontSize: '11px', fontWeight: 700,
-                                            background: job.recommendationTier === 'easy_apply' ? '#0D9488' : '#CCFBF1',
-                                            color:      job.recommendationTier === 'easy_apply' ? '#FFFFFF' : '#0F766E',
-                                            border: '1px solid rgba(255,255,255,0.5)',
-                                            boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
-                                            pointerEvents: 'none',
-                                        }}
-                                    >
-                                        {job.recommendationTier === 'easy_apply' ? '⚡ Easy Apply' : '↗ Direct Apply'}
-                                    </span>
-                                )}
-                                {/* JobCard expects the full Job shape; the dashboard
-                                    API selects every field it reads. Cast keeps the
-                                    types aligned without re-declaring DashboardJob. */}
-                                <JobCard job={job as unknown as JobCardJob} viewMode="list" />
-                            </div>
+                            <JobCard key={job.id} job={job as unknown as JobCardJob} viewMode="list" />
                         ))}
                     </div>
                 )}
