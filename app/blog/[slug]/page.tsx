@@ -112,12 +112,34 @@ export default async function BlogPostPage({ params }: Props) {
     // Extract headings for TOC
     const headings = extractHeadings(post.content);
 
+    // Inject Key Takeaways right before the first <h2> — positions it
+    // after the Quick Answer box and intro paragraphs but before Step 1.
+    const h2Matches = [...contentHtml.matchAll(/<h2[^>]*>/g)];
+    if (h2Matches.length >= 2) {
+        const firstH2Pos = h2Matches[0]?.index;
+        if (firstH2Pos !== undefined) {
+            const ktItems = headings
+                .filter(h => h.level === 2)
+                .slice(0, 5)
+                .map(h => `<li><a href="#${h.id}">${h.text}</a></li>`)
+                .join('');
+            const ktHtml = `<div class="ed-key-takeaways">`
+                + `<div class="ed-kt-header"><span class="ed-kt-icon">💡</span><span class="ed-kt-label">Key Takeaways</span></div>`
+                + `<ul class="ed-kt-list">${ktItems}</ul>`
+                + `</div>`;
+            contentHtml = contentHtml.slice(0, firstH2Pos)
+                + ktHtml
+                + contentHtml.slice(firstH2Pos);
+        }
+    }
+
     // F4: Inject mid-article email signup placeholder
     // Find the ~40% point of h2 tags and inject a marker
-    const h2Matches = [...contentHtml.matchAll(/<h2[^>]*>/g)];
-    if (h2Matches.length >= 3) {
-        const midIdx = Math.floor(h2Matches.length * 0.4);
-        const insertPos = h2Matches[midIdx]?.index;
+    // (re-scan after Key Takeaways injection)
+    const h2MatchesForSignup = [...contentHtml.matchAll(/<h2[^>]*>/g)];
+    if (h2MatchesForSignup.length >= 3) {
+        const midIdx = Math.floor(h2MatchesForSignup.length * 0.4);
+        const insertPos = h2MatchesForSignup[midIdx]?.index;
         if (insertPos !== undefined) {
             contentHtml = contentHtml.slice(0, insertPos)
                 + '<div id="mid-article-signup" class="mid-article-signup-slot"></div>'
@@ -421,20 +443,7 @@ export default async function BlogPostPage({ params }: Props) {
                 {/* Center - Article prose */}
                 <main className="ed-col-center">
                     <article>
-                        {/* Key Takeaways — GEO optimization for AI citation */}
-                        {headings.length >= 2 && (
-                            <div className="ed-key-takeaways">
-                                <div className="ed-kt-header">
-                                    <span className="ed-kt-icon">💡</span>
-                                    <span className="ed-kt-label">Key Takeaways</span>
-                                </div>
-                                <ul className="ed-kt-list">
-                                    {headings.filter(h => h.level === 2).slice(0, 5).map((h, i) => (
-                                        <li key={i}><a href={`#${h.id}`}>{h.text}</a></li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
+                        {/* Key Takeaways injected into contentHtml before first <h2> — see line ~115 */}
                         <div
                             className="editorial-prose"
                             dangerouslySetInnerHTML={{ __html: contentHtml }}

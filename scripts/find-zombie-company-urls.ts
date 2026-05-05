@@ -21,6 +21,8 @@
  *   npx tsx scripts/find-zombie-company-urls.ts --dry-run
  */
 import { config as dotenvConfig } from 'dotenv';
+dotenvConfig({ path: '.env.local' });
+dotenvConfig({ path: '.env' });
 dotenvConfig({ path: '.env.prod' });
 
 const DRY_RUN = process.argv.includes('--dry-run');
