@@ -834,7 +834,7 @@ export async function cleanupExpiredJobs(): Promise<number> {
       },
     });
 
-    // Sweep 2: Unpublish jobs older than 120 days (max lifetime cap)
+    // Sweep 2: Unpublish jobs older than 60 days (max lifetime cap)
     const agedOutResult = await prisma.job.updateMany({
       where: {
         originalPostedAt: {
