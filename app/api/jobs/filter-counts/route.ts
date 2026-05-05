@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { FilterState, FilterCounts } from '@/types/filters';
-import { buildWhereClause } from '@/lib/filters';
+import { buildWhereClause, freshnessClause, postedWithinToMs } from '@/lib/filters';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
@@ -124,42 +124,22 @@ export async function POST(request: NextRequest) {
         },
       }),
 
-      // Posted Within — uses originalPostedAt (the source's posting date)
-      // to match the filter logic in lib/filters.ts and the user-facing
-      // "Posted N days ago" labels. Standardized 2026-04-30.
+      // Posted Within — hybrid freshness, see lib/filters.ts:freshnessClause.
       // Past 24h
       prisma.job.count({
-        where: {
-          AND: [
-            postedBase,
-            { originalPostedAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
-          ],
-        },
+        where: { AND: [postedBase, freshnessClause(now, postedWithinToMs('24h')!)] },
       }),
       // Past 3 days
       prisma.job.count({
-        where: {
-          AND: [
-            postedBase,
-            { originalPostedAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
-          ],
-        },
+        where: { AND: [postedBase, freshnessClause(now, postedWithinToMs('3d')!)] },
       }),
+      // Past week
       prisma.job.count({
-        where: {
-          AND: [
-            postedBase,
-            { originalPostedAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
-          ],
-        },
+        where: { AND: [postedBase, freshnessClause(now, postedWithinToMs('7d')!)] },
       }),
+      // Past month
       prisma.job.count({
-        where: {
-          AND: [
-            postedBase,
-            { originalPostedAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
-          ],
-        },
+        where: { AND: [postedBase, freshnessClause(now, postedWithinToMs('30d')!)] },
       }),
 
       // Total
