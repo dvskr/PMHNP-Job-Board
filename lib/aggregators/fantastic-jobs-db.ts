@@ -80,18 +80,30 @@ function extractFantasticSalary(job: FantasticJobApiResponse): {
         return null;
     };
 
+    // Helpers to skip junk values: 0, empty string, "0", or null. The
+    // schema.org shape from this API often comes back populated-but-empty
+    // — `{value: "", unitText: ""}` or `{minValue: 0, maxValue: 0}`. Real
+    // PMHNP salaries are never below $20/hr ($40k/yr), so anything <100
+    // is treated as a placeholder.
+    const realNumber = (raw: unknown): number | null => {
+        if (raw == null || raw === '') return null;
+        const n = Number(raw);
+        if (!Number.isFinite(n) || n < 100) return null;
+        return n;
+    };
+
     // Try ai_salary_* flat fields first (cleaner shape).
-    const aiMin = job.ai_salary_minvalue != null ? Number(job.ai_salary_minvalue) : null;
-    const aiMax = job.ai_salary_maxvalue != null ? Number(job.ai_salary_maxvalue) : null;
-    const aiSingle = job.ai_salary_value != null ? Number(job.ai_salary_value) : null;
-    if ((aiMin && Number.isFinite(aiMin)) || (aiMax && Number.isFinite(aiMax))) {
+    const aiMin = realNumber(job.ai_salary_minvalue);
+    const aiMax = realNumber(job.ai_salary_maxvalue);
+    const aiSingle = realNumber(job.ai_salary_value);
+    if (aiMin != null || aiMax != null) {
         return {
-            minSalary: aiMin && Number.isFinite(aiMin) ? aiMin : null,
-            maxSalary: aiMax && Number.isFinite(aiMax) ? aiMax : null,
+            minSalary: aiMin,
+            maxSalary: aiMax,
             salaryPeriod: periodFromUnitText(job.ai_salary_unittext),
         };
     }
-    if (aiSingle && Number.isFinite(aiSingle)) {
+    if (aiSingle != null) {
         return {
             minSalary: aiSingle,
             maxSalary: aiSingle,
@@ -104,18 +116,18 @@ function extractFantasticSalary(job: FantasticJobApiResponse): {
     if (raw && typeof raw === 'object') {
         const r = raw as Record<string, unknown>;
         const value = (r.value && typeof r.value === 'object' ? r.value as Record<string, unknown> : r);
-        const min = value.minValue != null ? Number(value.minValue) : null;
-        const max = value.maxValue != null ? Number(value.maxValue) : null;
-        const single = value.value != null ? Number(value.value) : null;
+        const min = realNumber(value.minValue);
+        const max = realNumber(value.maxValue);
+        const single = realNumber(value.value);
         const unit = (value.unitText as string | null | undefined) ?? null;
-        if ((min && Number.isFinite(min)) || (max && Number.isFinite(max))) {
+        if (min != null || max != null) {
             return {
-                minSalary: min && Number.isFinite(min) ? min : null,
-                maxSalary: max && Number.isFinite(max) ? max : null,
+                minSalary: min,
+                maxSalary: max,
                 salaryPeriod: periodFromUnitText(unit),
             };
         }
-        if (single && Number.isFinite(single)) {
+        if (single != null) {
             return { minSalary: single, maxSalary: single, salaryPeriod: periodFromUnitText(unit) };
         }
     }
