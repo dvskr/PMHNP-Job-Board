@@ -42,9 +42,58 @@ export function extractSalary(text: string): { min: number | null; max: number |
   // Dollar amount: $120,000 or $120k or $55.50
   const amt = '\\$([\\d,]+(?:\\.\\d{1,2})?(?:k)?)';
 
+  // 0a. SINGLE-VALUE CAP: "up to $150k", "max $150,000", "up to $150k per year"
+  // Runs first so cap-style phrasing isn't intercepted by the period-specific
+  // patterns below (which would store the value as min instead of max).
+  const singleCap = new RegExp(
+    '(?:up\\s+to|max(?:imum)?\\s+(?:of\\s+)?)\\s*' + amt + '\\s*(?:per\\s*(year|hour|hr))?',
+    'gi',
+  );
+  let match = singleCap.exec(text);
+  if (match) {
+    const max = parseDollar(match[1]);
+    const explicitPeriod = match[2]?.toLowerCase() ?? null;
+    const period = explicitPeriod === 'year' ? 'year' : explicitPeriod === 'hour' || explicitPeriod === 'hr' ? 'hour' : max > 1000 ? 'year' : 'hour';
+    // Require salary-context within ~80 chars; reject sign-on / relocation / CME bonuses.
+    const context = text.substring(Math.max(0, (match.index || 0) - 80), (match.index || 0) + match[0].length + 30).toLowerCase();
+    const looksLikeSalary =
+      context.includes('salary') || context.includes('compensation') || context.includes('pay') ||
+      context.includes('rate') || context.includes('wage') || context.includes('earn') ||
+      context.includes('income') || /\bper\s*(year|hour|hr)\b/.test(context);
+    const looksLikeBonus =
+      context.includes('sign-on') || context.includes('sign on') || context.includes('bonus') ||
+      context.includes('relocat') || context.includes('cme') || context.includes('stipend');
+    if (looksLikeSalary && !looksLikeBonus) {
+      return { min: null, max, period };
+    }
+  }
+
+  // 0b. SINGLE-VALUE FLOOR: "starting at $120k", "from $90,000"
+  const singleFloor = new RegExp(
+    '(?:starting\\s+at|starting\\s+from|from|at\\s+least|min(?:imum)?\\s+(?:of\\s+)?)\\s*' + amt + '\\s*(?:per\\s*(year|hour|hr))?',
+    'gi',
+  );
+  match = singleFloor.exec(text);
+  if (match) {
+    const min = parseDollar(match[1]);
+    const explicitPeriod = match[2]?.toLowerCase() ?? null;
+    const period = explicitPeriod === 'year' ? 'year' : explicitPeriod === 'hour' || explicitPeriod === 'hr' ? 'hour' : min > 1000 ? 'year' : 'hour';
+    const context = text.substring(Math.max(0, (match.index || 0) - 80), (match.index || 0) + match[0].length + 30).toLowerCase();
+    const looksLikeSalary =
+      context.includes('salary') || context.includes('compensation') || context.includes('pay') ||
+      context.includes('rate') || context.includes('wage') || context.includes('earn') ||
+      context.includes('income') || /\bper\s*(year|hour|hr)\b/.test(context);
+    const looksLikeBonus =
+      context.includes('sign-on') || context.includes('sign on') || context.includes('bonus') ||
+      context.includes('relocat') || context.includes('cme') || context.includes('stipend');
+    if (looksLikeSalary && !looksLikeBonus) {
+      return { min, max: null, period };
+    }
+  }
+
   // 1. HOURLY: "$50/hour", "$45 - $55 per hour", "$40/hr"
   const hourly = new RegExp(amt + '(?:' + sep + '\\$?([\\d,]+(?:\\.\\d{1,2})?(?:k)?))?\\s*(?:per\\s*hour|per\\s*hr|\\/\\s*(?:hour|hr)|hourly)', 'gi');
-  let match = hourly.exec(text);
+  match = hourly.exec(text);
   if (match) {
     return { min: parseDollar(match[1]), max: match[2] ? parseDollar(match[2]) : null, period: 'hour' };
   }
@@ -196,8 +245,10 @@ export function canonicalizeJobType(raw: string | null | undefined): string | nu
 // most specific (mentions of "split between..." or "X days remote" are
 // indicators of Hybrid even if "remote" or "in-person" appear in the same
 // sentence).
-const MODE_HYBRID_RE = /\b(?:hybrid|split between|days (?:in[\s-]office|remote)|(?:\d+\s*)?days? (?:on[\s-]site|in[\s-]person)|flex(?:ible)? schedule|partial(?:ly)? remote)\b/i;
-const MODE_REMOTE_RE = /\b(?:fully remote|100% remote|100 ?% remote|wfh|work[\s-]from[\s-]home|remote[\s-]?friendly|remote[\s-]?eligible|telecommute|telework|virtual position|virtual role|home[\s-]based|telehealth|tele[\s-]psychiatry|tele[\s-]health|remote)\b/i;
+const MODE_HYBRID_RE = /\b(?:hybrid|split between|days (?:in[\s-]office|remote)|(?:\d+\s*)?days? (?:on[\s-]site|in[\s-]person)|flex(?:ible)? schedule|partial(?:ly)? remote|(?:\d+|two|three|four)\s*days?\s*(?:per|a)\s*week\s*(?:remote|on[\s-]?site|in[\s-]?office))\b/i;
+// Extended 2026-05-05: added 'fully virtual', 'work from anywhere',
+// '100% telework', 'remote-first', 'distributed team', 'wherever you are'.
+const MODE_REMOTE_RE = /\b(?:fully remote|100% remote|100 ?% remote|wfh|work[\s-]from[\s-]home|remote[\s-]?friendly|remote[\s-]?eligible|remote[\s-]?first|telecommute|telework|100% telework|fully virtual|virtual position|virtual role|home[\s-]based|telehealth|tele[\s-]psychiatry|tele[\s-]health|work\s+from\s+anywhere|distributed team|wherever you are|fully distributed|remote)\b/i;
 const MODE_ONSITE_RE = /\b(?:on[\s-]?site|onsite|in[\s-]?person|in person|office[\s-]?based|in[\s-]?office|office\s+location|clinic[\s-]?based|hospital[\s-]?based|outpatient (?:clinic|setting)|brick[\s-]and[\s-]mortar|on[\s-]premises?)\b/i;
 
 function detectMode(text: string): string | null {
@@ -486,6 +537,111 @@ export interface NormalizeResult {
   rejectionReason?: string;
 }
 
+/**
+ * Canonical rejection reasons emitted by `normalizeJobWithReason`.
+ * Stable strings — written verbatim to `rejected_jobs.rejection_reason`
+ * so admin queries / pipeline-event metrics can pivot on them.
+ *
+ * Old free-form strings ("missing_fields:title_or_apply_link",
+ * "stale_90d:2026-01-15", "error:...") are retired in favor of these.
+ */
+export type NormalizerRejectionReason =
+  | 'normalizer_missing_required_field'  // title or applyLink absent
+  | 'normalizer_missing_description'      // description empty / < MIN_DESCRIPTION_LENGTH
+  | 'normalizer_stale_post'               // originalPostedAt > 90 days ago, non-ATS source
+  | 'normalizer_indirect_apply'           // applyLink points at a known wrapper/redirect host
+  | 'normalizer_exception';               // try/catch caught a runtime error
+
+const MIN_DESCRIPTION_LENGTH = 50;
+
+/**
+ * Apply-link hosts we reject as "indirect" — these wrap the real
+ * employer page in their own preview/login flow, hurting attribution
+ * and click-through. Adzuna's redirect_url single-hops to the real
+ * employer site so it stays out of this list.
+ */
+const INDIRECT_APPLY_HOST_PATTERNS = [
+    'indeed.com/rc/clk',
+    'indeed.com/cmp/',
+    'indeed.com/viewjob',
+    'glassdoor.com/job-listing/',
+    'glassdoor.com/Job/',
+    'simplyhired.com/job/',
+    'ziprecruiter.com/c/',
+    'linkedin.com/jobs/view/',
+    'monster.com/job-openings/',
+    'dice.com/jobs/detail/',
+];
+
+function isIndirectApplyLink(url: string): boolean {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    return INDIRECT_APPLY_HOST_PATTERNS.some((p) => lower.includes(p));
+}
+
+/**
+ * Light-touch employer-name canonicalization. Strips legal suffixes and
+ * normalizes whitespace so that "LifeStance Health, LLC" / "LifeStance"
+ * / "LIFESTANCE HEALTH" all converge to the same key for downstream
+ * fuzzy dedup. Heavier company-record linking still happens later via
+ * `linkJobToCompany`; this just makes the string less noisy.
+ */
+const EMPLOYER_LEGAL_SUFFIX_RE =
+    /[,\s]+(?:llc|l\.l\.c\.|inc\.?|incorporated|corp\.?|corporation|ltd\.?|limited|co\.?|llp|p\.?l\.?l\.?c\.?|p\.?c\.?|p\.?a\.?)\.?$/i;
+
+export function canonicalizeEmployerName(raw: string | null | undefined): string {
+    if (!raw) return '';
+    let s = String(raw).trim();
+    // Collapse repeated whitespace.
+    s = s.replace(/\s+/g, ' ');
+    // Strip trailing legal suffix (one pass — multiple suffixes are rare).
+    s = s.replace(EMPLOYER_LEGAL_SUFFIX_RE, '').trim();
+    // Strip dangling trailing comma if any.
+    s = s.replace(/,$/, '').trim();
+    return s;
+}
+
+/**
+ * Section markers used to skip leading "About us" / "Equal Opportunity"
+ * boilerplate before truncating the SEO summary. If found within the
+ * first 800 chars, the summary starts from the marker.
+ */
+const SUMMARY_SECTION_MARKERS = [
+    'position summary',
+    'job description',
+    'job summary',
+    'job overview',
+    'role summary',
+    'responsibilities',
+    'what you will do',
+    "what you'll do",
+    'what you will be doing',
+    "what you'll be doing",
+    'we are seeking',
+    'we are looking for',
+    'looking for',
+    'in this role',
+    'as a ',
+    'the role',
+    'duties include',
+    'primary duties',
+];
+
+function smartSummarize(fullDescription: string, maxLength: number = 300): string {
+    if (!fullDescription) return '';
+    const lower = fullDescription.toLowerCase();
+    let bestIdx = -1;
+    for (const marker of SUMMARY_SECTION_MARKERS) {
+        const idx = lower.indexOf(marker);
+        if (idx >= 0 && idx <= 800 && (bestIdx === -1 || idx < bestIdx)) {
+            bestIdx = idx;
+        }
+    }
+    const start = bestIdx >= 0 ? bestIdx : 0;
+    const slice = fullDescription.slice(start, start + maxLength);
+    return slice + (fullDescription.length > start + maxLength ? '...' : '');
+}
+
 export function normalizeJob(rawJob: Record<string, unknown>, source: string): NormalizedJob | null {
   const result = normalizeJobWithReason(rawJob, source);
   return result.job;
@@ -506,25 +662,41 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     let salaryMax = extractNumericField(rawJob, config.salaryMax);
     const originalPostedAt = extractDateField(rawJob, config.datePosted);
 
-    // Validate required fields
+    // Gate 1: required fields
     if (!title || !applyLink) {
-      return { job: null, rejectionReason: 'missing_fields:title_or_apply_link' };
+      return { job: null, rejectionReason: 'normalizer_missing_required_field' };
     }
 
-    // Global Freshness Filter (90 Days)
-    // Skip for ATS sources — their APIs only return currently open positions
+    // Gate 2: indirect-apply check (catch wrapper hosts before any
+    // expensive parsing). Adzuna's redirect URL single-hops and is
+    // explicitly NOT in the indirect list — see INDIRECT_APPLY_HOST_PATTERNS.
+    if (isIndirectApplyLink(applyLink)) {
+      return { job: null, rejectionReason: 'normalizer_indirect_apply' };
+    }
+
+    // Gate 3: Stale-post (90 days). Skip for ATS sources — their APIs
+    // only return currently open positions.
     const atsSources = ['greenhouse', 'lever', 'ashby', 'bamboohr', 'smartrecruiters', 'icims', 'jazzhr', 'workday'];
     if (!atsSources.includes(source) && originalPostedAt && !isNaN(originalPostedAt.getTime())) {
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
       if (originalPostedAt < ninetyDaysAgo) {
-        return { job: null, rejectionReason: `stale_90d:${originalPostedAt.toISOString().split('T')[0]}` };
+        return { job: null, rejectionReason: 'normalizer_stale_post' };
       }
     }
 
     // Clean the description with proper formatting
     const fullDescription = cleanDescription(description);
-    const summary = fullDescription.slice(0, 300) + (fullDescription.length > 300 ? '...' : '');
+
+    // Gate 4: missing description. Empty / boilerplate-only descriptions
+    // hurt SEO + LLM enrichment + user trust. The threshold is intentionally
+    // low (50 chars) to drop only the worst cases.
+    if (fullDescription.length < MIN_DESCRIPTION_LENGTH) {
+      return { job: null, rejectionReason: 'normalizer_missing_description' };
+    }
+
+    // Smart summary — skip leading boilerplate when possible.
+    const summary = smartSummarize(fullDescription, 300);
     const fullText = `${title} ${fullDescription} ${location}`;
 
     // Extract salary from description if not provided
@@ -607,7 +779,9 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     return {
       job: {
         title,
-        employer,
+        // Strip legal suffixes ("LifeStance Health, LLC" → "LifeStance Health")
+        // so dedup's fuzzy match doesn't split the same company across rows.
+        employer: canonicalizeEmployerName(employer),
         location,
         jobType,
         mode,
@@ -650,7 +824,7 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     };
   } catch (error) {
     console.error('Error normalizing job:', error);
-    return { job: null, rejectionReason: `error:${error instanceof Error ? error.message : 'unknown'}` };
+    return { job: null, rejectionReason: 'normalizer_exception' };
   }
 }
 

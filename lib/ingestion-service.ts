@@ -1,7 +1,7 @@
 import { prisma } from './prisma';
 import { GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
 import { getLastRunDiagnostics as getFantasticJobsDiag } from './aggregators/fantastic-jobs-db';
-import { normalizeJob } from './job-normalizer';
+import { normalizeJobWithReason } from './job-normalizer';
 import { checkDuplicate } from './deduplicator';
 import { parseJobLocation } from './location-parser';
 import { linkJobToCompany } from './company-normalizer';
@@ -300,11 +300,16 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           }
         }
 
-        // Normalize the job (field extraction, salary parsing, location parsing, etc.)
-        const normalizedJob = normalizeJob(rawJob, source);
+        // Normalize the job (field extraction, salary parsing, gates, etc.)
+        const normalizeResult = normalizeJobWithReason(rawJob, source);
 
-        if (!normalizedJob) {
-          // Track normalizer rejections for accuracy analysis
+        if (!normalizeResult.job) {
+          // Sub-bucketed reasons:
+          //   normalizer_missing_required_field
+          //   normalizer_missing_description
+          //   normalizer_stale_post
+          //   normalizer_indirect_apply
+          //   normalizer_exception
           rejectedJobs.push({
             title: rawTitle || 'Unknown',
             employer: String(rawJob.employer || rawJob.company || rawJob.employer_name || rawJob.organizationName || null),
@@ -312,11 +317,12 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
             applyLink: String(rawJob.applyLink || rawJob.apply_link || rawJob.url || rawJob.link || null),
             externalId: String(rawJob.externalId || rawJob.id || rawJob.job_id || null),
             sourceProvider: source,
-            rejectionReason: 'normalizer',
+            rejectionReason: normalizeResult.rejectionReason ?? 'normalizer_exception',
             rawData: rawJob as object,
           });
           continue;
         }
+        const normalizedJob = normalizeResult.job;
 
         // Strategy 1: Fast in-memory lookup for exact externalId match
         if (normalizedJob.externalId && existingJobsMap.has(normalizedJob.externalId)) {
