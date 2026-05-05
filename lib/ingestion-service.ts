@@ -2,32 +2,8 @@ import { prisma } from './prisma';
 import { fetchAdzunaJobs } from './aggregators/adzuna';
 import { fetchGreenhouseJobs, GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
 import { fetchLeverJobs } from './aggregators/lever';
-// REMOVED 2026-04-29 — Jooble decommissioned. Quality 24.6 (2nd-lowest after JSearch),
-// blocks server-to-server probes (403 on every URL → can never verify alive/dead),
-// 93.2% of historical Jooble entries no longer in their fresh keyword search,
-// most are aggregations of sources we already ingest directly (Greenhouse/Lever).
-// Existing 2,124 published Jooble jobs will age out via 60-day expiry clock.
-// import { fetchJoobleJobs } from './aggregators/jooble';
-// REMOVED 2026-03-11 — JSearch subscription cancelled ($75/mo, lowest quality source)
-// import { fetchJSearchJobs } from './aggregators/jsearch';
-// REMOVED 2026-04-30 — usajobs/ashby/icims/jazzhr decommissioned per source
-// ROI audit (scripts/audit-source-roi.ts). 30-day numbers per source:
-//   usajobs: 0 added from 2,175 fetched
-//   ashby:   3 added from 85,985 fetched (0.003% add rate)
-//   icims:   2 added from 1,492 fetched
-//   jazzhr:  0 added from 3,345 fetched
-// All four were burning cron compute for negligible inventory. Existing
-// rows from these sources stay in catalog and age out naturally via the
-// 60-day expiry clock.
-// import { fetchUSAJobs } from './aggregators/usajobs';
-// import { fetchAshbyJobs } from './aggregators/ashby';
-// import { fetchICIMSJobs } from './aggregators/icims';
-// import { fetchJazzHRJobs } from './aggregators/jazzhr';
 import { fetchFantasticJobsDbJobs, getLastRunDiagnostics as getFantasticJobsDiag } from './aggregators/fantastic-jobs-db';
 import { fetchWorkdayJobs } from './aggregators/workday';
-import { fetchAtsJobsDbJobs } from './aggregators/ats-jobs-db';
-// REMOVED 2026-03-11 — 0 PMHNP jobs, dead endpoints
-// import { fetchBambooHRJobs } from './aggregators/bamboohr';
 import { fetchSmartRecruitersJobs } from './aggregators/smartrecruiters';
 import { normalizeJob } from './job-normalizer';
 import { checkDuplicate } from './deduplicator';
@@ -59,18 +35,10 @@ let globalApplyLinkMap: Map<string, string> | null = null; // normalizedUrl -> j
 import { pingAllSearchEnginesBatch } from './search-indexing';
 import { computeQualityScore } from './utils/quality-score';
 
-export type JobSource = 'adzuna' | 'greenhouse' | 'lever' | 'workday' | 'ats-jobs-db' | 'fantastic-jobs-db' | 'smartrecruiters';
+export type JobSource = 'adzuna' | 'greenhouse' | 'lever' | 'workday' | 'fantastic-jobs-db' | 'smartrecruiters';
 
 /** Single source of truth — add new sources here and they'll auto-register everywhere */
-// REMOVED bamboohr 2026-02-20 — 0 PMHNP jobs in production, 14/31 dead endpoints
-// ADDED smartrecruiters, icims, jazzhr 2026-02-20 — discovered via production DB mining
-// REMOVED jsearch 2026-03-11 — subscription cancelled
-// ADDED fantastic-jobs-db 2026-03-11 — replacing JSearch ($45/mo Pro, direct ATS links)
-// REMOVED bamboohr from ALL_SOURCES 2026-03-11 — was still running despite being dead
-// REMOVED jooble 2026-04-29 — see import comment above for rationale
-// REMOVED usajobs/ashby/icims/jazzhr 2026-04-30 — see import block; ROI audit
-// at scripts/audit-source-roi.ts shows 0-3 adds each over 30 days.
-export const ALL_SOURCES: JobSource[] = ['adzuna', 'greenhouse', 'lever', 'workday', 'ats-jobs-db', 'fantastic-jobs-db', 'smartrecruiters'];
+export const ALL_SOURCES: JobSource[] = ['adzuna', 'greenhouse', 'lever', 'workday', 'fantastic-jobs-db', 'smartrecruiters'];
 
 export interface IngestionResult {
   source: JobSource;
@@ -111,17 +79,10 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number; fa
       return await fetchGreenhouseJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
     case 'lever':
       return await fetchLeverJobs() as unknown as Array<Record<string, unknown>>;
-    // case 'jooble': REMOVED 2026-04-29 — see import-level comment
-    // case 'jsearch': REMOVED 2026-03-11
-    // case 'usajobs', 'ashby', 'icims', 'jazzhr': REMOVED 2026-04-30 — ROI audit
     case 'workday':
       return await fetchWorkdayJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
-    case 'ats-jobs-db':
-      return await fetchAtsJobsDbJobs() as unknown as Array<Record<string, unknown>>;
     case 'fantastic-jobs-db':
       return await fetchFantasticJobsDbJobs({ endpoint: options?.fantasticEndpoint }) as unknown as Array<Record<string, unknown>>;
-    // case 'bamboohr': REMOVED 2026-03-11 — dead source
-    //   return await fetchBambooHRJobs() as unknown as Array<Record<string, unknown>>;
     case 'smartrecruiters':
       return await fetchSmartRecruitersJobs() as unknown as Array<Record<string, unknown>>;
     default:

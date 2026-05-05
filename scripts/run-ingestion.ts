@@ -16,7 +16,8 @@ async function runIngestion() {
     const { ingestJobs, getIngestionStats } = await import('../lib/ingestion-service');
 
     // Run ingestion for all working sources
-    const sources = ['greenhouse', 'lever', 'usajobs', 'jsearch'] as JobSource[];
+    const { ALL_SOURCES } = await import('../lib/ingestion-service');
+    const sources: JobSource[] = [...ALL_SOURCES];
     console.log(`📡 Sources: ${sources.join(', ')}\n`);
 
     const results = await ingestJobs(sources);
