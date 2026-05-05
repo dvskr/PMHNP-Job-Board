@@ -1,0 +1,9 @@
+﻿2026-05-05T01:24:35.7584235Z ##[group]Run npm run lint:pii-prompts
+2026-05-05T01:24:35.7584505Z [36;1mnpm run lint:pii-prompts[0m
+2026-05-05T01:24:35.7602968Z shell: /usr/bin/bash -e {0}
+2026-05-05T01:24:35.7603171Z ##[endgroup]
+2026-05-05T01:24:36.0212712Z 
+2026-05-05T01:24:36.0213332Z > pmhnp-job-board@0.1.0 lint:pii-prompts
+2026-05-05T01:24:36.0214184Z > ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/scan-prompt-pii.ts
+2026-05-05T01:24:36.0214673Z 
+2026-05-05T01:24:37.5093435Z [pii-scan] PASS — 3 prompt files scanned, no violations.
