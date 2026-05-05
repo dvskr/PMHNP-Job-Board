@@ -21,22 +21,6 @@
       "schedule": "25 10,16 * * *"
     },
     {
-      "path": "/api/cron/ingest?source=greenhouse&chunk=4",
-      "schedule": "30 10,16 * * *"
-    },
-    {
-      "path": "/api/cron/ingest?source=greenhouse&chunk=5",
-      "schedule": "35 10,16 * * *"
-    },
-    {
-      "path": "/api/cron/ingest?source=greenhouse&chunk=6",
-      "schedule": "40 10,16 * * *"
-    },
-    {
-      "path": "/api/cron/ingest?source=greenhouse&chunk=7",
-      "schedule": "45 10,16 * * *"
-    },
-    {
       "path": "/api/cron/ingest?source=lever",
       "schedule": "50 10,16 * * *"
     },

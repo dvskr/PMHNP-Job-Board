@@ -1,11 +1,14 @@
 /**
  * Greenhouse tenant config — slugs + display names.
  *
- * Extracted 2026-05-05 from lib/aggregators/greenhouse.ts so the adapter
- * can stay focused on fetch/pagination logic. Edit this file to add or
- * remove a board.
+ * Trimmed 2026-05-05 from 63 → 50 slugs based on a 180-day production
+ * audit. Slugs that hadn't added a single PMHNP job in 6 months were
+ * dropped to cut compute (greenhouse fetches were 86k/wk for 47 adds —
+ * 0.054% pass rate). The 50 keepers all had ≥1 hit in last 180d.
  *
- * The slug is what appears in the Greenhouse board URL:
+ * If a dropped slug starts producing again later, add it back here.
+ *
+ * Slug appears in greenhouse URLs:
  *   https://job-boards.greenhouse.io/{slug}/jobs/{id}
  *
  * The name override (`GREENHOUSE_NAMES`) is optional — if missing, the
@@ -13,92 +16,66 @@
  */
 
 export const GREENHOUSE_SLUGS: readonly string[] = [
-    // ── Trimmed 2026-04-30: dropped 622/622 configured tenants
-    // that had never added a PMHNP job. See scripts/audit-greenhouse-tenants.ts
-    // and .tmp_greenhouse_tenant_audit.json for the source data.
+    // ── HIGH PRODUCERS (≥10 jobs/180d) ──
+    'blueskytelepsych',                       // 200/180d, last 2026-05-01
+    'talkspacepsychiatry',                    // 51/180d, last 2026-03-27
+    'sondermind',                             // 42/180d, last 2026-02-13
+    'blackbirdhealth',                        // 21/180d, last 2026-05-05
+    'betterhelp',                             // 20/180d, last 2026-04-30
+    'solmentalhealth',                        // 17/180d, last 2026-04-30
+    'moodhealth',                             // 13/180d, last 2026-04-11
+    'compasspathways',                        // ~10+ via externalId pattern
+    'onemedical',                             // ~10 via externalId pattern
+    'ascendhealthcare',                       // 10/180d, last 2026-04-29
 
-    // VERIFIED WORKING - Primary sources
-    'headway',             // 2 PMHNP jobs
-    'modernhealth',        // 1 PMHNP job
-    'mantrahealth',        // 1 PMHNP job
-    'cerebral',            // 1 PMHNP job (new!)
-    'twochairs',           // 3 PMHNP jobs (new!)
+    // ── MID PRODUCERS (4–9 jobs/180d) ──
+    'tia',                                    // 9/180d, last 2026-05-02
+    'ennoblecare',                            // 7/180d, last 2026-04-29
+    'meditelecare',                           // 7/180d, last 2026-04-29
+    'hellobackpack',                          // 6/180d, last 2026-03-12
+    'firsthand',                              // 5/180d, last 2026-03-21
+    'compasshealthcenter',                    // 5/180d, last 2026-04-29
+    'guidelighthealth',                       // 4/180d, last 2026-04-30
+    'akidolabs',                              // 4/180d, last 2026-04-29
+    'headway',                                // 4/180d, last 2026-04-18
+    'cloverhealth',                           // 4/180d, last 2026-02-14
+    'strivehealth',                           // 4/180d, last 2026-03-25
+    'northpointrecoveryholdingsllc',          // 4/180d, last 2026-04-10
+    'charliehealth',                          // ~4 via externalId pattern
 
-    // VERIFIED WORKING - Monitoring (no PMHNP currently)
-    'talkspace',           // On Greenhouse, checking regularly
-    'ayahealthcare',       // On Greenhouse, checking regularly
-    'amwell',              // On Greenhouse, checking regularly
-    'octave',              // On Greenhouse, checking regularly
-    'growtherapy',         // On Greenhouse, checking regularly
+    // ── LOW PRODUCERS (1–3 jobs/180d) — kept for coverage ──
+    'amaehealth',                             // 3/180d
+    'pineparkhealth',                         // 3/180d
+    'mentalhealthcenterofdenver',             // 3/180d
+    'cartwheelcare',                          // 2/180d
+    'seniordoc',                              // 2/180d
+    'aspirehealthalliance',                   // 2/180d
+    'overstoryhealth',                        // 1/180d
+    'oshihealth',                             // 1/180d
+    'folxhealth',                             // 1/180d
+    'nursing',                                // 1/180d
+    'hopscotchprimarycare',                   // 1/180d
+    'thejanepauleycommunityhealthcenterinc',  // 1/180d
+    'welbehealth',                            // 1/180d
+    'dianahealth94',                          // 1/180d
+    'bouldercare',                            // 1/180d
+    'vailclinicincdbavailhealthhospital',     // 1/180d
+    'imaginepediatrics',                      // 1/180d
+    'khealthcareers',                         // 1/180d
+    'medelitellc',                            // 1/180d
+    'valerahealth',                           // 1/180d
+    'mantrahealth',                           // 1/180d (last 2025-12-15 — borderline)
+    'lonestarcircleofcare',                   // 1/180d
+    'pairteam',                               // 1/180d
+    'bicyclehealth',                          // ~1 via externalId pattern
+    'carrumhealth',                           // ~1 via externalId pattern
+    'foresightmentalhealth',                  // ~1 via externalId pattern
 
-    // === NEW - VERIFIED WITH PMHNP JOBS ===
-    'blueskytelepsych',    // Blue Sky Telepsych — 922 PMHNP jobs!
-    'bicyclehealth',       // Bicycle Health — 27 PMHNP jobs
-    'blackbirdhealth',     // Blackbird Health
-
-    // === NEW - VERIFIED VALID, monitoring for PMHNP ===
-    'springhealth66',      // Spring Health — 91 total jobs
-
-    // === ADDED 2026-02-13 — VERIFIED WITH PMHNP JOBS ===
-    'betterhelp',          // BetterHelp — 19 PMHNP jobs (18 recent)
-    'firsthand',           // Firsthand — 13 PMHNP jobs (2 recent)
-    'compasspathways',     // COMPASS Pathways — 11 PMHNP jobs (11 recent)
-
-    // === ADDED 2026-02-13 — VALID, monitoring for PMHNP ===
-    'amaehealth',          // Amae Health — 27 total jobs
-
-    // === ADDED 2026-02-13 — EXPANDED SCAN (278 slugs tested) ===
-    'bouldercare',         // Boulder Care — 18 PMHNP jobs (18 recent) ⭐
-
-    // === PROD DB MINING — 9,295 slugs from 3,602 employers ===
-    'strivehealth',        // Strive Health — 14 PMHNP (14 recent) ⭐
-    'medelitellc',         // MedElite LLC — 13 PMHNP (13 recent) ⭐
-    'solmentalhealth',     // Sol Mental Health — 10 PMHNP (10 recent) ⭐
-    'meditelecare',        // MediTelecare — 7 PMHNP (3 recent)
-    'cloverhealth',        // Clover Health — 7 PMHNP (7 recent)
-    'prenuvo',             // Prenuvo — 7 PMHNP (5 recent)
-    'pineparkhealth',      // Pine Park Health — 6 PMHNP (3 recent)
-    'moodhealth',          // Moodhealth — 5 PMHNP (5 recent)
-    'compasshealthcenter', // Compass Health Center — 4 PMHNP (4 recent)
-    'onemedical',          // One Medical — 4 PMHNP (4 recent)
-    'seniordoc',           // Senior Doc — 3 PMHNP (3 recent)
-    'ascendhealthcare',    // Ascend Healthcare — 3 PMHNP (3 recent)
-    'lonestarcircleofcare',// Lone Star Circle of Care — 3 PMHNP (3 recent)
-    'hellobackpack',       // Backpack Healthcare — 3 PMHNP (3 recent)
-    'northpointrecoveryholdingsllc', // Northpoint Recovery — 3 PMHNP (3 recent)
-    'thejanepauleycommunityhealthcenterinc', // Jane Pauley CHC — 2 PMHNP (2 recent)
-    'riviamind',           // RIVIA Mind — 2 PMHNP (1 recent)
-    'mentalhealthcenterofdenver', // MH Center of Denver — 1 PMHNP
-    'overstoryhealth',     // Overstory Health — 1 PMHNP
-    'nursing',             // Nursing Wellness Center — 1 PMHNP
-    'tia',                 // Tia — 1 PMHNP
-
-    // === ADDED 2026-02-16 — CSV test: 62 new PMHNP-active slugs ===
-    'talkspacepsychiatry', // Talkspace Psychiatry — 50 PMHNP
-    'ennoblecare',         // Ennoble Care — 38 PMHNP
-    'guidelighthealth',    // Guidelight Health — 24 PMHNP
-    'cartwheelcare',       // Cartwheel Care — 15 PMHNP
-    'pairteam',            // Pair Team — 14 PMHNP
-    'dianahealth94',       // Diana Health — 12 PMHNP
-    'vailclinicincdbavailhealthhospital', // Vail Health Hospital — 12 PMHNP
-    'folxhealth',          // FOLX Health — 9 PMHNP
-    'welbehealth',         // Welbe Health — 7 PMHNP
-    'aspirehealthalliance',// Aspire Health Alliance — 5 PMHNP
-    'imaginepediatrics',   // Imagine Pediatrics — 3 PMHNP
-    'foresightmentalhealth', // Foresight Mental Health — 2 PMHNP
-    'khealthcareers',      // K Health — 1 PMHNP
-
-    // === ADDED 2026-02-16 — All live healthcare slugs from CSV ===
-    'carrumhealth',
-    'hopscotchprimarycare',
-    'oshihealth',
-    'skildai-careers',
-
-    // === BULK ADD — All remaining CSV companies (480) ===
-    'akidolabs',
-    'purposemed',
-    'silvus-international-opportunites',
-    'walleyecapital-external-students',
+    // ── DROPPED 2026-05-05 (no PMHNP adds in last 180d) ──
+    // modernhealth, cerebral, twochairs, talkspace, ayahealthcare, amwell,
+    // octave, growtherapy, springhealth66, prenuvo, riviamind, skildai-careers,
+    // purposemed, silvus-international-opportunites, walleyecapital-external-students
+    // If any restart producing, re-add to the list above.
 ];
 
 export const GREENHOUSE_NAMES: Record<string, string> = {
@@ -110,20 +87,14 @@ export const GREENHOUSE_NAMES: Record<string, string> = {
     'amwell': 'Amwell',
     'ayahealthcare': 'Aya Healthcare',
     'mantrahealth': 'Mantra Health',
-
-    // New additions
     'twochairs': 'Two Chairs',
     'octave': 'Octave',
     'growtherapy': 'Grow Therapy',
-
-    // New verified additions
     'blueskytelepsych': 'Blue Sky Telepsych',
     'bicyclehealth': 'Bicycle Health',
     'springhealth66': 'Spring Health',
     'omadahealth': 'Omada Health',
     'brave': 'Brave Health',
-
-    // Added 2026-02-13
     'betterhelp': 'BetterHelp',
     'firsthand': 'Firsthand',
     'compasspathways': 'COMPASS Pathways',
@@ -132,8 +103,6 @@ export const GREENHOUSE_NAMES: Record<string, string> = {
     'galileo': 'Galileo',
     'amaehealth': 'Amae Health',
     'pelago': 'Pelago',
-
-    // Added 2026-02-13 (expanded scan)
     'bouldercare': 'Boulder Care',
     'daybreakhealth': 'Daybreak Health',
     'parallellearning': 'Parallel Learning',
@@ -142,8 +111,6 @@ export const GREENHOUSE_NAMES: Record<string, string> = {
     'neuroflow': 'NeuroFlow',
     'forgehealth': 'Forge Health',
     'iris': 'Iris',
-
-    // Added 2026-02-13 (prod DB mining — 9,295 slugs)
     'strivehealth': 'Strive Health',
     'medelitellc': 'MedElite LLC',
     'solmentalhealth': 'Sol Mental Health',
@@ -168,8 +135,6 @@ export const GREENHOUSE_NAMES: Record<string, string> = {
     'peregrinehealth': 'Peregrine Health',
     'tia': 'Tia',
     'lts': 'LTS',
-
-    // Added 2026-02-16 (ATS discovery)
     'prosperhealth': 'Prosper Health',
     'pma': 'Pathlight Mood & Anxiety',
     'carbon': 'Carbon Health',
@@ -177,8 +142,6 @@ export const GREENHOUSE_NAMES: Record<string, string> = {
     'summit': 'Summit Healthcare',
     'universal': 'Universal Health Services',
     'calm': 'Calm',
-
-    // Added 2026-02-16 (CSV test — 62 new PMHNP-active slugs)
     'theoriamedical': 'Theoria Medical',
     'talkspacepsychiatry': 'Talkspace Psychiatry',
     'midihealth': 'Midi Health',
@@ -201,51 +164,15 @@ export const GREENHOUSE_NAMES: Record<string, string> = {
     'centrumhealth': 'Centrum Health',
     'reemahealth': 'Reema Health',
     'welbehealth': 'Welbe Health',
-
-    // Bulk-added CSV companies (continued)
-    'wovencare': 'Woven Care',
-    'allarahealth': 'Allara Health',
-    'eucalyptus': 'Eucalyptus',
-    'mavenclinicproviders': 'Maven Clinic',
-    'triumvirateenvironmental': 'Triumvirate Environmental',
-    'aspirehealthalliance': 'Aspire Health Alliance',
-    'lumimeds': 'Lumimeds',
-    'seenhealth': 'Seen Health',
-    'sensiblecare': 'Sensible Care',
-    'cardioone': 'Cardio One',
-    'assemblyhealth': 'Assembly Health',
-    'bridgebio': 'BridgeBio',
-    'cadencehealth': 'Cadence Health',
+    'sondermind': 'SonderMind',
+    'blackbirdhealth': 'Blackbird Health',
+    'akidolabs': 'Akido Labs',
+    'oshihealth': 'Oshi Health',
+    'hopscotchprimarycare': 'Hopscotch Primary Care',
     'imaginepediatrics': 'Imagine Pediatrics',
-    'oncoverycare': 'Oncovery Care',
-    'theoncologyinstitute': 'The Oncology Institute',
-    'thymecare': 'Thyme Care',
-    'allcareers': 'AllCareers',
-    'foresightmentalhealth': 'Foresight Mental Health',
-    'herselfhealth': 'Herself Health',
-    'maplighttherapeutics': 'MapLight Therapeutics',
-    'meruhealth': 'Meru Health',
-    'sandstonecarebroomfield': 'Sandstone Care Broomfield',
-    'sandstonecoloradomedicaldetox': 'Sandstone Care Medical Detox',
-    'vardaspace': 'Varda Space',
-    'axsometherapeutics': 'Axsome Therapeutics',
-    'cadrehospice': 'Cadre Hospice',
-    'dynetherapeutics': 'Dyne Therapeutics',
-    'found': 'Found Health',
-    'habitathealth': 'Habitat Health',
-    'kernalbio': 'Kernal Bio',
     'khealthcareers': 'K Health',
-    'luminaryhospice': 'Luminary Hospice',
-    'pomelocare': 'Pomelo Care',
-    'sportandspinephysicaltherapy': 'Sport & Spine Physical Therapy',
-    'twinhealth': 'Twin Health',
-    'understoodcare': 'Understood Care',
-    'vitablehealth': 'Vitable Health',
-    'vitahealth': 'Vita Health',
-    '10xgenomics': '10x Genomics',
-    'adaptivebiotechnologies': 'Adaptive Biotechnologies',
-    'freenome': 'Freenome',
-    'natera': 'Natera',
-    'truepill': 'Truepill',
-    'yarrowbiotechnology': 'Yarrow Biotechnology',
+    'valerahealth': 'Valera Health',
+    'charliehealth': 'Charlie Health',
+    'foresightmentalhealth': 'Foresight Mental Health',
+    'carrumhealth': 'Carrum Health',
 };

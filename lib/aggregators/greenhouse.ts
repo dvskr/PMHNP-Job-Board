@@ -81,9 +81,15 @@ async function fetchCompanyJobs(companySlug: string): Promise<GreenhouseJobRaw[]
       location: job.location?.name || job.offices?.[0]?.name || 'Remote',
       description: job.content || '',
       applyLink: job.absolute_url,
-      // NOTE: Greenhouse API only exposes updated_at (last-edit date), NOT a real posted date.
-      // Using updated_at caused old jobs to appear "new" when employers edited listings.
-      // Omitting it so the normalizer falls through to null → filter uses createdAt (ingestion time).
+      // Greenhouse only exposes updated_at (last-edit date). Pre-2026-05-05
+      // we omitted it so originalPostedAt defaulted to ingest time — but that
+      // broke the new 60-day-from-original lifecycle cap (every greenhouse
+      // job appeared fresh forever). Now we DO use updated_at: an old listing
+      // that hasn't been edited will have an old date and correctly age out;
+      // an old listing that just got edited will look fresh for 60 more days,
+      // which is acceptable since edit-activity is a real signal of the
+      // employer still hiring.
+      postedDate: job.updated_at,
     }));
 
     // Pre-filter for PMHNP relevance
@@ -98,9 +104,15 @@ async function fetchCompanyJobs(companySlug: string): Promise<GreenhouseJobRaw[]
 }
 
 /**
- * Total number of chunks for Greenhouse (769 companies / ~96 per chunk = 8)
+ * Total number of chunks for Greenhouse. Reduced from 8 → 4 on
+ * 2026-05-05 after trimming the tenant list from 63 → 50 producers.
+ * With ~12-13 boards per chunk and the tenant list reading from a
+ * config file, 4 chunks complete comfortably inside the 240s budget.
+ *
+ * MUST match the number of /api/cron/ingest?source=greenhouse&chunk=N
+ * entries in vercel.json — see tests/aggregators/chunk-count.test.ts.
  */
-export const GREENHOUSE_TOTAL_CHUNKS = 8;
+export const GREENHOUSE_TOTAL_CHUNKS = 4;
 const GREENHOUSE_CHUNK_SIZE = Math.ceil(GREENHOUSE_COMPANIES.length / GREENHOUSE_TOTAL_CHUNKS);
 
 export async function fetchGreenhouseJobs(options?: { chunk?: number }): Promise<GreenhouseJobRaw[]> {
