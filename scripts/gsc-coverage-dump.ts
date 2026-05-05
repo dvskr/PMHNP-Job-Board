@@ -33,6 +33,8 @@
  *   - Output a removal-ready CSV
  */
 import { config as dotenvConfig } from 'dotenv';
+dotenvConfig({ path: '.env.local' });
+dotenvConfig({ path: '.env' });
 dotenvConfig({ path: '.env.prod' });
 
 import { writeFileSync } from 'node:fs';

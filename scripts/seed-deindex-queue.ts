@@ -14,6 +14,8 @@
  * duplicate rows. Already-submitted rows are not reset.
  */
 import { config as dotenvConfig } from 'dotenv';
+dotenvConfig({ path: '.env.local' });
+dotenvConfig({ path: '.env' });
 dotenvConfig({ path: '.env.prod' });
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';

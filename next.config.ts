@@ -159,6 +159,12 @@ const nextConfig: NextConfig = {
         destination: '/job-alerts',
         permanent: true,
       },
+      // Consolidate duplicate interview question articles — keyword cannibalization fix
+      {
+        source: '/blog/pmhnp-interview-questions',
+        destination: '/blog/pmhnp-interview-questions-2026',
+        permanent: true,
+      },
     ];
   },
 };
