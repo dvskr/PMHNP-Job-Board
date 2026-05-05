@@ -20,7 +20,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { rateLimit } from '@/lib/rate-limit';
 import { createClient } from '@/lib/supabase/server';
-import { invalidateFlagCache } from '@/lib/ai/feature-flags';
+import { invalidateFlagCache, isAiFeatureEnabled } from '@/lib/ai/feature-flags';
 
 const FLAG = 'ai.candidate.recommendations_email';
 
@@ -38,19 +38,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const override = await prisma.aiFeatureFlagOverride.findFirst({
-        where: {
-            flag: FLAG,
-            tenantType: 'candidate',
-            tenantId: user.id,
-            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-        },
-        select: { enabled: true },
-    });
-
-    // Default state when no override exists = OFF (opt-in by design;
-    // the compiled default for this flag is false).
-    return NextResponse.json({ enabled: override?.enabled ?? false });
+    // Return the EFFECTIVE state (env kill > per-user override > global
+    // override > compiled default). isAiFeatureEnabled walks all three
+    // layers and returns the value the digest cron will actually use.
+    // Reading only the per-user row would misreport the toggle when an
+    // admin has flipped the global to on — users would see "off" but
+    // still receive emails.
+    const enabled = await isAiFeatureEnabled(FLAG, { type: 'candidate', id: user.id });
+    return NextResponse.json({ enabled });
 }
 
 const bodySchema = z.object({ enabled: z.boolean() });
