@@ -184,16 +184,38 @@ export function extractSalary(text: string): { min: number | null; max: number |
 export function detectJobType(text: string): string | null {
   const lowerText = text.toLowerCase();
 
-  if (lowerText.includes('per diem') || lowerText.includes('per-diem')) {
+  // Order matters: more specific signals first.
+  if (lowerText.includes('locum tenens') || lowerText.includes('locums') || /\blocum\b/.test(lowerText)) {
+    return 'Locum Tenens';
+  }
+  if (lowerText.includes('per diem') || lowerText.includes('per-diem') || /\bprn\b/.test(lowerText)) {
     return 'Per Diem';
   }
-  if (lowerText.includes('contract') || lowerText.includes('contractor')) {
+  if (
+    lowerText.includes('1099') ||
+    lowerText.includes('independent contractor') ||
+    lowerText.includes('contract') ||
+    lowerText.includes('contractor') ||
+    /\bffs\b/.test(lowerText) ||                            // fee-for-service
+    /\bfee[\s-]for[\s-]service\b/.test(lowerText)
+  ) {
     return 'Contract';
   }
-  if (lowerText.includes('part-time') || lowerText.includes('part time')) {
+  if (
+    lowerText.includes('part-time') ||
+    lowerText.includes('part time') ||
+    /\bpart[-\s]?time\b/.test(lowerText) ||
+    /\bp\/?t\b/.test(lowerText)                              // P/T abbreviation
+  ) {
     return 'Part-Time';
   }
-  if (lowerText.includes('full-time') || lowerText.includes('full time') || lowerText.includes('permanent')) {
+  if (
+    lowerText.includes('full-time') ||
+    lowerText.includes('full time') ||
+    lowerText.includes('permanent') ||
+    /\bw[\s-]?2\b/.test(lowerText) ||                         // W-2 employment
+    /\bf\/?t\b/.test(lowerText)                               // F/T abbreviation
+  ) {
     return 'Full-Time';
   }
 
@@ -306,8 +328,21 @@ export function detectExperienceLevel(title: string, description: string): strin
     'training program', 'preceptor', 'will train',
     'welcome new grads', 'new grads welcome', 'open to new grads',
     'graduate nurse practitioner',
+    'first job', 'just graduated', 'fresh out of school',
   ];
   if (newGradPatterns.some(p => text.includes(p))) return 'New Grad';
+
+  // ── "Open to all levels" / "any experience" — common pattern that
+  // indicates the employer doesn't restrict by experience. We return
+  // 'Mid-Level' as a safe default since these listings are broadly
+  // accessible (covering mid + senior). Returning null would leave
+  // the field empty, which our completeness score penalizes.
+  const anyLevelPatterns = [
+    'open to all levels', 'all levels welcome', 'any experience level',
+    'any level', 'experience varies', 'flexible experience',
+    'open to candidates of all experience levels',
+  ];
+  if (anyLevelPatterns.some(p => text.includes(p))) return 'Mid-Level';
 
   return null;
 }
@@ -556,11 +591,88 @@ export interface NormalizeResult {
 export type NormalizerRejectionReason =
   | 'normalizer_missing_required_field'  // title or applyLink absent
   | 'normalizer_missing_description'      // description empty / < MIN_DESCRIPTION_LENGTH
-  | 'normalizer_stale_post'               // originalPostedAt > 90 days ago, non-ATS source
+  | 'normalizer_stale_post'               // originalPostedAt > 60 days ago
   | 'normalizer_indirect_apply'           // applyLink points at a known wrapper/redirect host
+  | 'normalizer_low_completeness'         // not enough data points (see computeCompleteness)
   | 'normalizer_exception';               // try/catch caught a runtime error
 
 const MIN_DESCRIPTION_LENGTH = 50;
+
+/**
+ * Minimum completeness score required for a job to be admitted.
+ *
+ * 0–100 scale. Below this, the job is rejected with
+ * `normalizer_low_completeness`.
+ *
+ * Calibrated 2026-05-05 against the typical catalog distribution:
+ *   - greenhouse: avg ~50 (description + location + jobType + mode)
+ *   - lever:      avg ~50
+ *   - adzuna:     avg ~70 (almost always has salary)
+ *   - fantastic:  avg ~38 (often missing mode + salary)
+ *
+ * Threshold of 40 ensures a job has at minimum: a real description
+ * (≥50 chars), a location signal, AND at least one of (jobType, mode).
+ * That's the floor of "informative enough to display." Tuneable later.
+ */
+const MIN_COMPLETENESS_SCORE = 40;
+
+/**
+ * Score a normalized job 0-100 by which fields it has populated.
+ * Used as a soft quality gate (see MIN_COMPLETENESS_SCORE) and a
+ * sortable signal in the admin panel later.
+ *
+ * Weights reflect what users actually need to evaluate a job:
+ *   - description (15) — cannot read the role without this
+ *   - location (15)    — city OR state required for relevance
+ *   - salary (20)      — top user-asked-for filter
+ *   - jobType (10)     — FT/PT/Contract distinction matters for fit
+ *   - mode (10)        — Remote vs On-site is a hard filter
+ *   - clinical setting (10) — what kind of practice
+ *   - patient pop (5)
+ *   - benefits (5)
+ *   - experience level (5)
+ *   - employer linked  (5)
+ *
+ * Title and applyLink are required gates upstream — not counted here.
+ */
+export function computeCompleteness(job: {
+    description?: string | null;
+    descriptionSummary?: string | null;
+    city?: string | null;
+    state?: string | null;
+    isRemote?: boolean;
+    isHybrid?: boolean;
+    normalizedMinSalary?: number | null;
+    normalizedMaxSalary?: number | null;
+    jobType?: string | null;
+    mode?: string | null;
+    setting?: string | null;
+    population?: string | null;
+    benefits?: string[] | null;
+    experienceLevel?: string | null;
+    companyId?: string | null;
+}): number {
+    let score = 0;
+
+    if ((job.description?.length ?? 0) >= 200) score += 15;
+    else if ((job.description?.length ?? 0) >= 50) score += 8;
+
+    const hasLocation = !!job.city || !!job.state || job.isRemote || job.isHybrid;
+    if (hasLocation) score += 15;
+
+    const hasSalary = job.normalizedMinSalary != null || job.normalizedMaxSalary != null;
+    if (hasSalary) score += 20;
+
+    if (job.jobType) score += 10;
+    if (job.mode) score += 10;
+    if (job.setting) score += 10;
+    if (job.population) score += 5;
+    if (job.benefits && job.benefits.length > 0) score += 5;
+    if (job.experienceLevel) score += 5;
+    if (job.companyId) score += 5;
+
+    return score;
+}
 
 /**
  * Apply-link hosts we reject as "indirect" — these wrap the real
@@ -790,6 +902,31 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
       normalizedSalaryData.normalizedMaxSalary,
       salaryPeriod
     );
+
+    // Gate 5: completeness score. Soft floor — reject if score < threshold.
+    // The score is computed against the about-to-be-returned shape, so
+    // changes to NormalizedJob fields should be reflected in computeCompleteness.
+    // setting/population/benefits are filled later by enrich-jobs cron, so
+    // they don't count against fresh ingests; same for companyId.
+    const completenessScore = computeCompleteness({
+      description: fullDescription,
+      descriptionSummary: summary,
+      city: parsedLocationData.city,
+      state: parsedLocationData.state,
+      isRemote,
+      isHybrid,
+      normalizedMinSalary: normalizedSalaryData.normalizedMinSalary,
+      normalizedMaxSalary: normalizedSalaryData.normalizedMaxSalary,
+      jobType,
+      mode,
+      experienceLevel,
+      // setting/population/benefits/companyId are populated AFTER ingest by
+      // the enrich-jobs cron, so we don't pass them — gate would be too strict.
+    });
+
+    if (completenessScore < MIN_COMPLETENESS_SCORE) {
+      return { job: null, rejectionReason: 'normalizer_low_completeness' };
+    }
 
     return {
       job: {

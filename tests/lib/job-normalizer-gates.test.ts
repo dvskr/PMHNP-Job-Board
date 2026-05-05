@@ -15,6 +15,8 @@ import {
     normalizeJobWithReason,
     canonicalizeEmployerName,
     extractSalary,
+    computeCompleteness,
+    detectJobType,
 } from '@/lib/job-normalizer';
 
 const goodDesc = 'We are seeking a Psychiatric Nurse Practitioner to join our outpatient clinic full time.';
@@ -30,6 +32,109 @@ function rawJob(overrides: Record<string, unknown> = {}): Record<string, unknown
         ...overrides,
     };
 }
+
+describe('computeCompleteness — field-presence scoring', () => {
+    it('empty job scores 0', () => {
+        expect(computeCompleteness({})).toBe(0);
+    });
+
+    it('description ≥200 chars: +15', () => {
+        const desc = 'a'.repeat(250);
+        expect(computeCompleteness({ description: desc })).toBe(15);
+    });
+
+    it('description 50–199 chars: +8', () => {
+        const desc = 'a'.repeat(100);
+        expect(computeCompleteness({ description: desc })).toBe(8);
+    });
+
+    it('city alone: +15 (location signal)', () => {
+        expect(computeCompleteness({ city: 'Boston' })).toBe(15);
+    });
+
+    it('isRemote alone: +15', () => {
+        expect(computeCompleteness({ isRemote: true })).toBe(15);
+    });
+
+    it('full annual salary: +20', () => {
+        expect(computeCompleteness({ normalizedMinSalary: 100000, normalizedMaxSalary: 130000 })).toBe(20);
+    });
+
+    it('full job: 15+15+20+10+10+10+5+5+5+5 = 100', () => {
+        const score = computeCompleteness({
+            description: 'a'.repeat(300),
+            city: 'Boston',
+            state: 'Massachusetts',
+            normalizedMinSalary: 100000,
+            normalizedMaxSalary: 130000,
+            jobType: 'Full-Time',
+            mode: 'Hybrid',
+            setting: 'Outpatient',
+            population: 'Adults',
+            benefits: ['Health Insurance'],
+            experienceLevel: 'Mid-Level',
+            companyId: 'co-123',
+        });
+        expect(score).toBe(100);
+    });
+
+    it('the floor case: description+location+jobType+mode = 43', () => {
+        const score = computeCompleteness({
+            description: 'a'.repeat(60),  // +8
+            city: 'Boston',                // +15
+            jobType: 'Full-Time',          // +10
+            mode: 'In-Person',             // +10
+        });
+        expect(score).toBe(43); // just above MIN_COMPLETENESS_SCORE (40)
+    });
+});
+
+describe('normalizeJobWithReason — completeness gate', () => {
+    it('rejects job with weak data points', () => {
+        // Title and applyLink only — no description, no location, no jobType.
+        // Will fail at missing-description gate first (description < 50 chars).
+        const result = normalizeJobWithReason(
+            rawJob({ description: 'too short' }),
+            'lever',
+        );
+        expect(result.job).toBeNull();
+        expect(result.rejectionReason).toBe('normalizer_missing_description');
+    });
+
+    it('rejects job with description but no location/jobType/mode', () => {
+        // Description ≥200 (+15), but everything else missing → score = 15 < 40
+        const longDesc = 'a'.repeat(300) + ' generic text without any location, schedule, or work mode signals at all whatsoever.';
+        const result = normalizeJobWithReason(
+            rawJob({
+                description: longDesc,
+                location: '',  // strip location
+            }),
+            'lever',
+        );
+        expect(result.job).toBeNull();
+        expect(result.rejectionReason).toBe('normalizer_low_completeness');
+    });
+});
+
+describe('detectJobType — extended patterns', () => {
+    const cases: Array<[string, string]> = [
+        ['1099 contractor opportunity', 'Contract'],
+        ['independent contractor role', 'Contract'],
+        ['fee-for-service position', 'Contract'],
+        ['locum tenens coverage needed', 'Locum Tenens'],
+        ['PRN coverage', 'Per Diem'],
+        ['per-diem psychiatric NP', 'Per Diem'],
+        ['W-2 employed position', 'Full-Time'],
+        ['F/T outpatient clinic', 'Full-Time'],
+        ['P/T weekend role', 'Part-Time'],
+        ['Permanent salaried role', 'Full-Time'],
+    ];
+    for (const [text, expected] of cases) {
+        it(`"${text}" → ${expected}`, () => {
+            expect(detectJobType(text)).toBe(expected);
+        });
+    }
+});
 
 describe('normalizeJobWithReason — sub-bucketed rejection reasons', () => {
     it('passes a complete job', () => {
@@ -327,7 +432,13 @@ describe('smart description summary (smartSummarize via normalizer)', () => {
     });
 
     it('falls back to start when no section marker found within 800 chars', () => {
-        const longDesc = 'A '.repeat(50) + 'random text about psychiatric care which is interesting and informative for everyone.';
+        // Long enough to hit description+15. Includes "full time" so jobType
+        // signal fires (+10) and "outpatient clinic" so mode fires (+10) →
+        // completeness gate passes. No section marker → fallback start.
+        const longDesc =
+            'A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A ' +
+            'random text about psychiatric care delivered in an outpatient clinic. Full time role. ' +
+            'A A A A A A A A A A A A A A A A A A A A A A A A.';
         const result = normalizeJobWithReason(rawJob({ description: longDesc }), 'lever');
         expect(result.job).not.toBeNull();
         // No marker — summary just starts from beginning
