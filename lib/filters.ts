@@ -2,6 +2,52 @@ import { Prisma } from '@prisma/client';
 import { FilterState } from '@/types/filters';
 
 /**
+ * Hybrid "Posted Within" semantics.
+ *
+ * Effective post date = GREATEST(originalPostedAt, createdAt - FRESHNESS_FLOOR).
+ * A job counts as fresh-in-window W iff that effective date > now - W,
+ * which expands to:
+ *
+ *   originalPostedAt > now - W           (source says it's fresh)
+ *   OR createdAt    > now - W + FLOOR    (we ingested it within W + FLOOR)
+ *
+ * With FLOOR = 0 this means: a job is fresh-in-W if EITHER the source
+ * says it was posted in the last W, OR we ingested it in the last W —
+ * regardless of how old the source claims it is. Trade-off: aggregator
+ * re-listings of old jobs surface as "fresh" the day we re-ingest them.
+ */
+const FRESHNESS_FLOOR_MS = 0;
+
+export function freshnessClause(
+  now: Date,
+  windowMs: number,
+): Prisma.JobWhereInput {
+  const origCutoff = new Date(now.getTime() - windowMs);
+  const createdCutoff = new Date(now.getTime() - windowMs + FRESHNESS_FLOOR_MS);
+
+  if (createdCutoff.getTime() >= now.getTime()) {
+    return { originalPostedAt: { gte: origCutoff } };
+  }
+
+  return {
+    OR: [
+      { originalPostedAt: { gte: origCutoff } },
+      { createdAt: { gte: createdCutoff } },
+    ],
+  };
+}
+
+export function postedWithinToMs(window: string): number | null {
+  switch (window) {
+    case '24h': return 24 * 60 * 60 * 1000;
+    case '3d':  return 3 * 24 * 60 * 60 * 1000;
+    case '7d':  return 7 * 24 * 60 * 60 * 1000;
+    case '30d': return 30 * 24 * 60 * 60 * 1000;
+    default:    return null;
+  }
+}
+
+/**
  * Centralized Category Filter Registry
  * Single source of truth for all category page filters.
  * Used by both /jobs/[category]/page.tsx AND /jobs?category=[slug]
@@ -456,34 +502,12 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     });
   }
 
-  // Posted Within — uses createdAt (when the job appeared on PMHNPHiring.com)
-  // for all sources. This ensures newly ingested jobs always show under the
-  // correct time window regardless of the source site's original post date.
+  // Posted Within — see `freshnessClause` for the hybrid semantics.
   if (filters.postedWithin && filters.postedWithin !== 'all') {
-    const now = new Date();
-
-    let cutoff: Date;
-    switch (filters.postedWithin) {
-      case '24h':
-        cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      case '3d':
-        cutoff = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-        break;
-      case '7d':
-        cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case '30d':
-        cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        cutoff = new Date(0);
+    const windowMs = postedWithinToMs(filters.postedWithin);
+    if (windowMs !== null) {
+      andConditions.push(freshnessClause(new Date(), windowMs));
     }
-    // User-facing freshness filter uses ORIGINAL posting date, not when
-    // we ingested the row. After the 2026-04-30 backfill, every job has
-    // originalPostedAt set (defaulting to createdAt for sources that
-    // don't provide a date_posted), so this is a single-field clause.
-    andConditions.push({ originalPostedAt: { gte: cutoff } });
   }
 
   // Location
