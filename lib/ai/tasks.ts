@@ -55,7 +55,16 @@ export interface TaskConfig {
 
 const SCORING_LIKE: Pick<TaskConfig, 'temperature' | 'maxOutputTokens' | 'timeoutMs'> = {
     temperature: 0.1,
-    maxOutputTokens: 600,
+    // Bumped 600 → 4000 (2026-05-04) because gpt-5-mini and other reasoning
+    // models use the max_completion_tokens budget for INTERNAL reasoning
+    // PLUS the visible JSON output. 600 was being eaten by reasoning, the
+    // JSON envelope got cut off mid-stream, and Zod parse failed. Symptom:
+    // 'Output failed schema validation: Unexpected end of JSON input'.
+    // 4000 is comfortable for a single scoring object (~50 tokens output)
+    // plus several thousand reasoning tokens. Same fix that landed for
+    // talent_search_rerank (8000); this tier is half because output is
+    // smaller.
+    maxOutputTokens: 4_000,
     timeoutMs: 30_000,
 };
 const CREATIVE_LIKE: Pick<TaskConfig, 'temperature' | 'maxOutputTokens' | 'timeoutMs'> = {

@@ -79,13 +79,24 @@ jobs:
       # PRs run dry (validates wiring, free). Pushes to main + nightly cron
       # run live (catches regressions, costs ~$1/run). Force live on PRs by
       # setting EVAL_LIVE=1 as a repo secret.
-      - name: Eval — golden suites
+      #
+      # Gating suites (must pass for merge to succeed):
+      #   - candidate_scoring     (5 hand-rated cases)
+      #   - talent_search_rerank  (36 cases incl. 6 adversarial)
+      #
+      # Advisory-only suites (run for visibility, do NOT block merge):
+      #   - job_search            (golden file uses placeholder job IDs)
+      #   - candidate_recommendations (placeholder candidate-job IDs)
+      # These need a recruiter to map real prod job/candidate IDs into the
+      # golden files. Until that happens they always score 0; running them
+      # as gates blocks every push to main even though prod is healthy.
+      - name: Eval — gating suites (live on push to main / nightly / dispatch)
         env:
           EVAL_DRY_RUN: ${{ (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || secrets.EVAL_LIVE == '1') && '0' || '1' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/test' }}
           DIRECT_URL:   ${{ secrets.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/test' }}
-        run: npm run eval all
+        run: npm run eval candidate_scoring talent_search_rerank
 
       - name: Eval — bias pair sets
         env:
@@ -93,4 +104,16 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/test' }}
           DIRECT_URL:   ${{ secrets.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/test' }}
-        run: npm run eval -- all --bias
+        run: npm run eval -- candidate_scoring talent_search_rerank --bias
+
+      # Advisory: SEED_ONLY suites — track scores over time but do NOT
+      # gate merges. continue-on-error keeps the workflow green even
+      # when these report regression on placeholder data.
+      - name: Eval — advisory SEED_ONLY suites (informational)
+        continue-on-error: true
+        env:
+          EVAL_DRY_RUN: ${{ (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || secrets.EVAL_LIVE == '1') && '0' || '1' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/test' }}
+          DIRECT_URL:   ${{ secrets.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/test' }}
+        run: npm run eval job_search candidate_recommendations
