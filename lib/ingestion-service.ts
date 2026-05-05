@@ -27,6 +27,7 @@ const INGEST_DEAD_REASONS: ReadonlySet<HealthReason> = new Set([
   'http_404',
   'http_410',
   'greenhouse_api_404',
+  'lever_api_404',
 ]);
 
 // ── Global dedup maps (pre-loaded once at start of full ingestion run) ──

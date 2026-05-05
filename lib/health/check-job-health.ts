@@ -11,14 +11,17 @@
 import { probeUrl, type ProbeResult } from './probe';
 import { detectSoft404, type SoftMatch, SOFT_404_CHECKER_VERSION } from './soft-404-detector';
 import { probeGreenhouseApi, resolveGreenhouseRef, type GreenhouseProbeResult } from './probes/greenhouse-api';
+import { probeLeverApi, resolveLeverRef, type LeverProbeResult } from './probes/lever-api';
 
 export type HealthReason =
     | 'alive_2xx'
     | 'alive_greenhouse_api'
+    | 'alive_lever_api'
     | 'http_404'
     | 'http_410'
     | 'soft_404'
     | 'greenhouse_api_404'
+    | 'lever_api_404'
     | 'inconclusive_403'
     | 'inconclusive_429'
     | 'inconclusive_5xx'
@@ -35,12 +38,17 @@ export interface HealthEvidence {
     errorKind: ProbeResult['errorKind'];
     errorMessage: string | null;
     checkerVersion: string;
-    /** Set when a source-specific probe (e.g. greenhouse JSON API) was used. */
+    /** Set when a source-specific probe (e.g. greenhouse / lever JSON API) was used. */
     sourceProbe: {
         kind: 'greenhouse_api';
         apiUrl: string | null;
         httpStatus: number | null;
         reason: GreenhouseProbeResult['reason'];
+    } | {
+        kind: 'lever_api';
+        apiUrl: string | null;
+        httpStatus: number | null;
+        reason: LeverProbeResult['reason'];
     } | null;
 }
 
@@ -69,6 +77,10 @@ export interface CheckJobHealthOptions {
     greenhouseProbeImpl?: (
         ref: { boardSlug: string; jobId: string },
     ) => Promise<GreenhouseProbeResult>;
+    /** Override the lever-API probe (tests). */
+    leverProbeImpl?: (
+        ref: { companySlug: string; postingId: string },
+    ) => Promise<LeverProbeResult>;
     /** Override timeout / redirect caps. */
     timeoutMs?: number;
     maxRedirects?: number;
@@ -87,6 +99,7 @@ export async function checkJobHealth(
     const {
         probeImpl = probeUrl,
         greenhouseProbeImpl = probeGreenhouseApi,
+        leverProbeImpl = probeLeverApi,
         timeoutMs,
         maxRedirects,
         externalId,
@@ -102,6 +115,14 @@ export async function checkJobHealth(
             if (apiResult.status === 'dead') return decisionFromGreenhouseApi(apiResult, /*alive*/ false);
             if (apiResult.status === 'alive') return decisionFromGreenhouseApi(apiResult, /*alive*/ true);
             // 'unknown' falls through to the generic probe below.
+        }
+    } else if (sourceKey === 'lever') {
+        const ref = resolveLeverRef(applyUrl, externalId);
+        if (ref) {
+            const apiResult = await leverProbeImpl(ref);
+            if (apiResult.status === 'dead') return decisionFromLeverApi(apiResult, /*alive*/ false);
+            if (apiResult.status === 'alive') return decisionFromLeverApi(apiResult, /*alive*/ true);
+            // 'unknown' falls through.
         }
     }
 
@@ -126,6 +147,29 @@ function decisionFromGreenhouseApi(result: GreenhouseProbeResult, alive: boolean
             checkerVersion: SOFT_404_CHECKER_VERSION,
             sourceProbe: {
                 kind: 'greenhouse_api',
+                apiUrl: result.apiUrl,
+                httpStatus: result.httpStatus,
+                reason: result.reason,
+            },
+        },
+    };
+}
+
+function decisionFromLeverApi(result: LeverProbeResult, alive: boolean): HealthDecision {
+    return {
+        alive,
+        reason: alive ? 'alive_lever_api' : 'lever_api_404',
+        evidence: {
+            finalStatus: result.httpStatus,
+            finalUrl: result.apiUrl ?? '',
+            redirectHops: 0,
+            softMatch: null,
+            elapsedMs: result.elapsedMs,
+            errorKind: null,
+            errorMessage: result.errorMessage,
+            checkerVersion: SOFT_404_CHECKER_VERSION,
+            sourceProbe: {
+                kind: 'lever_api',
                 apiUrl: result.apiUrl,
                 httpStatus: result.httpStatus,
                 reason: result.reason,

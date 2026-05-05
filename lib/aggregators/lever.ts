@@ -1,4 +1,6 @@
 ﻿import { LEVER_SLUGS as LEVER_COMPANIES, LEVER_NAMES as COMPANY_NAMES } from './tenants/lever';
+import type { Aggregator, RawJobData } from './types';
+import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
 
 interface LeverPosting {
   id: string;
@@ -141,3 +143,20 @@ export async function fetchLeverJobs(): Promise<LeverJobRaw[]> {
     return allJobs;
   }
 }
+
+/**
+ * Standardised Aggregator implementation. The orchestrator's
+ * fetchFromSource() switch still calls fetchLeverJobs() for backward
+ * compat — the registered Aggregator is a Section-2 migration target
+ * that future code can use instead.
+ */
+export const leverAggregator: Aggregator = {
+    key: 'lever',
+    chunkCount: 1,
+    async fetch(): Promise<RawJobData[]> {
+        return fetchLeverJobs() as unknown as RawJobData[];
+    },
+    async probeJob(externalId: string, applyLink: string): Promise<HealthDecision | null> {
+        return checkJobHealth(applyLink, 'lever', { externalId });
+    },
+};

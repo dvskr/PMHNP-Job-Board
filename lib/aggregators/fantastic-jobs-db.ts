@@ -49,7 +49,12 @@ export interface FantasticJobOutput {
     applyLink: string;
     job_type: string | null;
     postedDate?: string;
-    source_ats?: string;
+    /**
+     * Underlying ATS platform reported by the API (greenhouse, paylocity,
+     * workday, etc.). Persisted to jobs.source_site so we can analyse
+     * which ATSes the aggregator catches.
+     */
+    sourceSite?: string;
 }
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
@@ -392,7 +397,7 @@ async function runPass(
                 applyLink: job.url,
                 job_type: mapEmploymentType(job),
                 postedDate: job.date_posted || job.date_created || undefined,
-                source_ats: job.source,
+                sourceSite: job.source,
             });
         }
 
