@@ -1,4 +1,6 @@
-﻿interface LeverPosting {
+﻿import { LEVER_SLUGS as LEVER_COMPANIES, LEVER_NAMES as COMPANY_NAMES } from './tenants/lever';
+
+interface LeverPosting {
   id: string;
   text: string;
   hostedUrl: string;
@@ -32,110 +34,6 @@ export interface LeverJobRaw {
   department: string | null;
   postedDate?: string;
 }
-
-const LEVER_COMPANIES = [
-  // === VERIFIED — Have PMHNP jobs ===
-  'lifestance',          // LifeStance Health — 100+ PMHNP jobs (BIGGEST SOURCE)
-  'synapticure',         // Synapticure — 1 PMHNP job
-  'ucsf',                // UCSF — 1 PMHNP job
-  'talkiatry',           // Talkiatry — 59 PMHNP jobs
-  'includedhealth',      // Included Health — 6 PMHNP jobs
-  'lyrahealth',          // Lyra Health — 1 PMHNP job
-
-  // === VERIFIED â€” Valid, monitoring for PMHNP ===
-  'carbonhealth',        // Carbon Health â€” 0 currently but valid endpoint
-
-  // === ADDED 2026-02-13 â€” VALID, monitoring for PMHNP ===
-  'prosper',             // Prosper â€” 11 total jobs
-
-  // === ADDED 2026-02-13 â€” EXPANDED SCAN ===
-  'bighealth',           // Big Health â€” 7 total jobs
-  'genesis',             // Genesis â€” 4 total jobs
-  'sesame',              // Sesame â€” 1 total jobs
-
-  // === PROD DB MINING â€” 9,295 slugs from 3,602 employers ===
-  'mindful',             // Mindful Haven â€” 5 PMHNP (0 recent)
-  'athenapsych',         // AthenaPsych â€” 4 PMHNP (0 recent)
-  'seven-starling',      // Seven Starling â€” 3 PMHNP (3 recent)
-  'beckley-clinical',    // Beckley Clinical â€” 1 PMHNP
-  'arundellodge',        // Arundel Lodge â€” 1 PMHNP
-
-  // === ADDED 2026-02-16 â€” Full ATS Discovery (189 companies scanned) ===
-  'ro',                  // Ro Health â€” 40 total jobs
-  'advocate',            // Advocate Health â€” 9 total jobs
-
-  // === ADDED 2026-02-16 â€” CSV test: 6 new PMHNP-active slugs ===
-  'lunaphysicaltherapy', // Luna Physical Therapy â€” 108 PMHNP
-  'guidestareldercare',  // Guidestar Eldercare â€” 31 PMHNP
-  'next-health',         // Next Health â€” 4 PMHNP
-  'ekohealth',           // Eko Health â€” 1 PMHNP
-  'heartbeathealth',     // Heartbeat Health â€” 1 PMHNP
-  'swordhealth',         // Sword Health â€” 1 PMHNP
-
-  // === Additional healthcare companies ===
-  'aledade',
-  'clarifyhealth',
-  // REMOVED 2026-02-20 — Dead endpoints (HTTP errors in audit):
-  // 'enter.health', 'heyjane.co', 'journeyclinical',
-  // 'myplacehealth', 'pplacareers.org', 'sprinterhealth'
-  'koalahealth',
-  'nimblerx',
-  'pointclickcare',
-  'salvohealth',
-  'vivo-care',
-  'wepclinical',
-  'zushealth',
-
-  // === ADDED 2026-03-10 — Phase 3 expansion (psychiatric/behavioral health employers) ===
-  'mindbloom',            // Mindbloom — ketamine-assisted therapy
-];
-
-
-const COMPANY_NAMES: Record<string, string> = {
-  'talkiatry': 'Talkiatry',
-  'includedhealth': 'Included Health',
-  'lyrahealth': 'Lyra Health',
-  'carbonhealth': 'Carbon Health',
-  'prosper': 'Prosper',
-  'bighealth': 'Big Health',
-  'genesis': 'Genesis',
-  'sesame': 'Sesame',
-
-  // Added 2026-02-13 (prod DB mining)
-  'mindful': 'Mindful Haven',
-  'athenapsych': 'AthenaPsych',
-  'seven-starling': 'Seven Starling',
-  'beckley-clinical': 'Beckley Clinical',
-  'arundellodge': 'Arundel Lodge',
-
-  // Added 2026-02-16 (ATS discovery)
-  'ro': 'Ro Health',
-  'advocate': 'Advocate Health',
-
-  // Added 2026-02-16 (CSV test)
-  'lunaphysicaltherapy': 'Luna Physical Therapy',
-  'guidestareldercare': 'GuideStar Eldercare',
-  'next-health': 'Next Health',
-  'ekohealth': 'Eko Health',
-  'heartbeathealth': 'Heartbeat Health',
-  'swordhealth': 'Sword Health',
-
-  // Bulk-added CSV companies
-  'cardiosense.com': 'Cardiosense',
-  'enter.health': 'ENTER',
-  'fishawack.com': 'Avalere Health',
-  'h1': 'H1',
-  'landmarkbio.com': 'Landmark Bio',
-  'medcarehouston.com': 'MedCare Pediatric Group',
-  'ollie.com': 'Ollie',
-  'outpacebio.com': 'Outpace Bio',
-  'peakped.com': 'Peak Pediatric Therapies',
-  'simulmedia': 'Simulmedia',
-  'theattractiongame.online': 'Furum Jobs',
-
-  // Added 2026-03-10 (Phase 3 expansion)
-  'mindbloom': 'Mindbloom',
-};
 
 function formatCompanyName(slug: string): string {
   return COMPANY_NAMES[slug] || slug

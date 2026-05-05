@@ -14,6 +14,9 @@
  * PMHNP-relevant postings incur the per-job HTTP call.
  */
 import { isRelevantJob } from '@/lib/utils/job-filter';
+import { SMARTRECRUITERS_TENANTS } from './tenants/smartrecruiters';
+
+const SMARTRECRUITERS_COMPANIES = SMARTRECRUITERS_TENANTS;
 
 
 interface SmartRecruitersPosting {
@@ -41,18 +44,6 @@ export interface SmartRecruitersJobRaw {
     jobType?: string;
 }
 
-const SMARTRECRUITERS_COMPANIES = [
-    // === ADDED 2026-02-20 — Production DB apply_link mining ===
-    // 3 with PMHNP jobs in sample
-    { slug: 'karecruitinginc', name: 'K.A. Recruiting' },                  // 60 total, 7 PMHNP
-    { slug: 'oleskyassociates', name: 'Olesky Associates' },                // 299 total, 7 PMHNP
-    { slug: 'newyorkpsychotherapyandcounselingcenter', name: 'NY Psychotherapy & Counseling' }, // 11 total, 6 PMHNP
-
-    // 3 alive, monitoring for PMHNP
-    { slug: 'internationalsosgovernmentmedicalservices', name: 'International SOS' },   // 598 total
-    { slug: 'kittitasvalleyhealthcare', name: 'Kittitas Valley Healthcare' },           // 63 total
-    { slug: 'mascmedicalrecruitmentfirm', name: 'MASC Medical' },                      // 82 total
-];
 
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
