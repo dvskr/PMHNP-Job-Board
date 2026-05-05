@@ -70,11 +70,13 @@ export async function GET(req: Request) {
       location: true,
       description: true,
       normalizedMinSalary: true,
+      salaryPeriod: true,
       jobType: true,
       mode: true,
       city: true,
       state: true,
       stateCode: true,
+      country: true,
       isRemote: true,
       isHybrid: true,
       experienceLevel: true,
@@ -177,25 +179,18 @@ export async function GET(req: Request) {
         };
 
         if (!extracted) {
-          // LLM found nothing. If the row STILL has no location signal at
-          // all (no city, no state, not remote, not hybrid), default to
-          // isRemote=true — most plausible read for "we don't know where"
-          // since PMHNP roles often are. Better than leaving the row
-          // un-locatable, which would later fail the completeness gate.
-          // (Added 2026-05-05.)
-          const noLocationSignal =
-            !job.city && !job.state && !job.isRemote && !job.isHybrid;
-          if (noLocationSignal) {
-            updateData.isRemote = true;
-          }
           stats.noData++;
-          try {
-            await prisma.job.update({ where: { id: job.id }, data: updateData });
-          } catch { /* ignore */ }
-          continue;
+          // Don't continue — fall through to the heuristic fallback block
+          // at the end of this iteration so missing mode/jobType/location
+          // still get filled by the default rules.
         }
 
         let fieldsUpdated = 0;
+
+        // Apply LLM-extracted fields when present. When extracted is null
+        // (LLM found nothing), we fall through to the heuristic-fallback
+        // block below, which doesn't depend on extracted.
+        if (extracted) {
 
         // Salary (only if missing)
         if (extracted.salary_min && !job.normalizedMinSalary) {
@@ -286,16 +281,58 @@ export async function GET(req: Request) {
         }
 
         if (fieldsUpdated > 0) stats.enriched++;
+        } // end if (extracted)
 
-        // Final location safety net: if neither the existing row nor the
-        // LLM extraction provided ANY location signal, default to remote
-        // (added 2026-05-05). Better than leaving the row un-locatable.
-        const finalCity   = updateData.city   ?? job.city;
-        const finalState  = updateData.state  ?? job.state;
-        const finalRemote = updateData.isRemote ?? job.isRemote;
-        const finalHybrid = updateData.isHybrid ?? job.isHybrid;
-        if (!finalCity && !finalState && !finalRemote && !finalHybrid) {
+        // ── FINAL FALLBACK PASS (2026-05-05) ───────────────────────────
+        // After source extraction, regex extraction, and LLM enrichment
+        // have all had their chance, fill any STILL-missing critical
+        // fields with heuristic defaults so every row leaves enrich-jobs
+        // with usable values. The completeness gate would otherwise
+        // reject borderline rows; these defaults nudge them above the
+        // floor with sensible, defensible guesses.
+        // Helper: resolve "what value the row will have after this update".
+        const fin = <K extends keyof typeof job>(key: K) =>
+          (updateData[key as string] !== undefined ? updateData[key as string] : job[key]) as (typeof job)[K];
+
+        // 1. Location signal: if NOTHING is set, mark remote.
+        if (!fin('city') && !fin('state') && !fin('isRemote') && !fin('isHybrid')) {
           updateData.isRemote = true;
+        }
+
+        // 2. Mode fallback. Derives from the now-populated isRemote/isHybrid.
+        if (!fin('mode')) {
+          if (fin('isRemote')) updateData.mode = 'Remote';
+          else if (fin('isHybrid')) updateData.mode = 'Hybrid';
+          else updateData.mode = 'In-Person';
+        }
+
+        // 3. JobType fallback. Salary period is the strongest signal —
+        // hourly/weekly/daily rates are almost always Contract;
+        // annual is almost always Full-Time. Missing salary entirely
+        // defaults to Full-Time (the modal PMHNP arrangement).
+        if (!fin('jobType')) {
+          const period = fin('salaryPeriod');
+          if (period === 'annual' || period === 'year' || period === 'yearly') {
+            updateData.jobType = 'Full-Time';
+          } else if (
+            period === 'hour' || period === 'hourly' ||
+            period === 'day'  || period === 'daily'  ||
+            period === 'week' || period === 'weekly' ||
+            period === 'biweekly' ||
+            period === 'month'|| period === 'monthly'
+          ) {
+            updateData.jobType = 'Contract';
+          } else {
+            updateData.jobType = 'Full-Time';
+          }
+        }
+
+        // 4. State fallback. If remote and no state, USA-wide.
+        // For in-person/hybrid with no state, leave null — phantom
+        // states would pollute /jobs/state/[state] SEO pages.
+        if (!fin('state') && fin('isRemote')) {
+          updateData.state = 'United States';
+          if (!fin('country')) updateData.country = 'US';
         }
 
         // Execute update (always writes lastEnrichedAt)
