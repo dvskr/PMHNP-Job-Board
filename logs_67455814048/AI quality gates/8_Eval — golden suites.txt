@@ -1,0 +1,39 @@
+﻿2026-05-05T01:24:37.5369147Z ##[group]Run npm run eval all
+2026-05-05T01:24:37.5369395Z [36;1mnpm run eval all[0m
+2026-05-05T01:24:37.5387280Z shell: /usr/bin/bash -e {0}
+2026-05-05T01:24:37.5387474Z env:
+2026-05-05T01:24:37.5387617Z   EVAL_DRY_RUN: 0
+2026-05-05T01:24:37.5388666Z   OPENAI_API_KEY: ***
+2026-05-05T01:24:37.5389180Z   DATABASE_URL: ***
+2026-05-05T01:24:37.5389604Z   DIRECT_URL: ***
+2026-05-05T01:24:37.5389755Z ##[endgroup]
+2026-05-05T01:24:37.6259465Z 
+2026-05-05T01:24:37.6260102Z > pmhnp-job-board@0.1.0 eval
+2026-05-05T01:24:37.6260896Z > ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-eval.ts all
+2026-05-05T01:24:37.6261364Z 
+2026-05-05T01:24:40.0637646Z [Prisma] Initializing connection pool...
+2026-05-05T01:24:40.4698901Z 
+2026-05-05T01:24:40.4699824Z [eval] candidate_scoring — GOLDEN SET
+2026-05-05T01:25:19.4505966Z   Mean score 0.400 < baseline 0.800 (1/5 cases passed) — REGRESSION
+2026-05-05T01:25:19.4506531Z   cost=$0.0060 p95=9357ms
+2026-05-05T01:25:19.4507164Z     ✗ license-mismatch-knockout: score=50 | expected=38±12 | missing_mentions=[texas]
+2026-05-05T01:25:19.4508033Z     ✗ junior-meets-most: model output failed schema validation; score=0
+2026-05-05T01:25:19.4508919Z     ✗ pediatric-specialty-mismatch: model output failed schema validation; score=0
+2026-05-05T01:25:19.4509698Z     ✗ non-pmhnp-applicant: model output failed schema validation; score=0
+2026-05-05T01:25:19.4510058Z 
+2026-05-05T01:25:19.4510291Z [eval] talent_search_rerank — RANKING SUITE
+2026-05-05T01:32:07.3390421Z   Rerank holds baseline — mean precision 0.944 ≥ floor 0.85 (vector 0.843, lift 1.12×). 36/36 cases passed per-case floor.
+2026-05-05T01:32:07.3391043Z 
+2026-05-05T01:32:07.3393440Z [eval] job_search — RANKING SUITE
+2026-05-05T01:32:09.1874490Z   Mean NDCG@10 0.000 < baseline 0.650 (0/4 cases passed) — REGRESSION
+2026-05-05T01:32:09.1875119Z     ✗ telehealth-ca: ndcg@10=0.000 (min=0.7)
+2026-05-05T01:32:09.1875639Z     ✗ child-adolescent-specialty: ndcg@10=0.000 (min=0.65)
+2026-05-05T01:32:09.1876132Z     ✗ geriatric-dementia: ndcg@10=0.000 (min=0.6)
+2026-05-05T01:32:09.1876632Z     ✗ fellowship-trained: ndcg@10=0.000 (min=0.6)
+2026-05-05T01:32:09.1876855Z 
+2026-05-05T01:32:09.1877076Z [eval] candidate_recommendations — RANKING SUITE
+2026-05-05T01:32:11.2126579Z   Mean hit rate 0.000 < baseline 0.400 (0/3 cases passed) — REGRESSION
+2026-05-05T01:32:11.2127087Z     ✗ telehealth-adult-west-coast: hit_rate=0.000 (min=0.4)
+2026-05-05T01:32:11.2127472Z     ✗ child-adolescent-east-coast: hit_rate=0.000 (min=0.4)
+2026-05-05T01:32:11.2127967Z     ✗ addiction-specialist: hit_rate=0.000 (min=0.4)
+2026-05-05T01:32:11.2497688Z ##[error]Process completed with exit code 1.

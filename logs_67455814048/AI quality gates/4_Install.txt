@@ -1,0 +1,39 @@
+﻿2026-05-05T01:23:31.5823336Z ##[group]Run npm ci
+2026-05-05T01:23:31.5823592Z [36;1mnpm ci[0m
+2026-05-05T01:23:31.5851361Z shell: /usr/bin/bash -e {0}
+2026-05-05T01:23:31.5851577Z env:
+2026-05-05T01:23:31.5852161Z   DIRECT_URL: ***
+2026-05-05T01:23:31.5852628Z   DATABASE_URL: ***
+2026-05-05T01:23:31.5852797Z ##[endgroup]
+2026-05-05T01:23:35.3733640Z npm warn deprecated serialize-error-cjs@0.1.4: Rolling release, please update to 0.2.0
+2026-05-05T01:23:36.1589851Z npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+2026-05-05T01:23:36.5011629Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-05-05T01:24:01.5297754Z 
+2026-05-05T01:24:01.5298638Z > pmhnp-job-board@0.1.0 postinstall
+2026-05-05T01:24:01.5299112Z > prisma generate
+2026-05-05T01:24:01.5299264Z 
+2026-05-05T01:24:02.3100625Z Loaded Prisma config from prisma.config.ts.
+2026-05-05T01:24:02.3100987Z 
+2026-05-05T01:24:02.3907596Z Prisma schema loaded from prisma/schema.prisma.
+2026-05-05T01:24:02.4011937Z warn Preview feature "driverAdapters" is deprecated. The functionality can be used without specifying it as a preview feature.
+2026-05-05T01:24:03.2673716Z 
+2026-05-05T01:24:03.2674878Z ✔ Generated Prisma Client (v7.4.1) to ./node_modules/@prisma/client in 567ms
+2026-05-05T01:24:03.2675432Z 
+2026-05-05T01:24:03.2675991Z Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+2026-05-05T01:24:03.2676519Z 
+2026-05-05T01:24:03.2676549Z 
+2026-05-05T01:24:03.3037216Z 
+2026-05-05T01:24:03.3038107Z added 1221 packages, and audited 1222 packages in 32s
+2026-05-05T01:24:03.3038683Z 
+2026-05-05T01:24:03.3038891Z 310 packages are looking for funding
+2026-05-05T01:24:03.3039268Z   run `npm fund` for details
+2026-05-05T01:24:03.5224103Z 
+2026-05-05T01:24:03.5224964Z 30 vulnerabilities (2 low, 16 moderate, 12 high)
+2026-05-05T01:24:03.5225490Z 
+2026-05-05T01:24:03.5225926Z To address issues that do not require attention, run:
+2026-05-05T01:24:03.5226561Z   npm audit fix
+2026-05-05T01:24:03.5226914Z 
+2026-05-05T01:24:03.5227188Z To address all issues (including breaking changes), run:
+2026-05-05T01:24:03.5227597Z   npm audit fix --force
+2026-05-05T01:24:03.5227753Z 
+2026-05-05T01:24:03.5227888Z Run `npm audit` for details.

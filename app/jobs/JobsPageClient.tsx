@@ -283,6 +283,13 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   return (
     <>
       <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 16px 0' }}>
+        {/* SEO: H1 required for page topic signal — visually hidden but accessible */}
+        <h1 style={{
+          position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px',
+          overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', borderWidth: 0,
+        }}>
+          Browse PMHNP &amp; Psychiatric Nurse Practitioner Jobs
+        </h1>
 
         {/* Main Content with Sidebar Layout */}
         <div style={{ display: 'flex', gap: '28px' }}>
