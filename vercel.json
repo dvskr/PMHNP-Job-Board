@@ -58,7 +58,7 @@
     },
     {
       "path": "/api/cron/enrich-jobs",
-      "schedule": "0 12,18 * * *"
+      "schedule": "0 6,12,18,22 * * *"
     },
     {
       "path": "/api/cron/cleanup-expired",
