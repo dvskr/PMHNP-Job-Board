@@ -12,16 +12,19 @@ import { probeUrl, type ProbeResult } from './probe';
 import { detectSoft404, type SoftMatch, SOFT_404_CHECKER_VERSION } from './soft-404-detector';
 import { probeGreenhouseApi, resolveGreenhouseRef, type GreenhouseProbeResult } from './probes/greenhouse-api';
 import { probeLeverApi, resolveLeverRef, type LeverProbeResult } from './probes/lever-api';
+import { probeSmartRecruitersApi, resolveSmartRecruitersRef, type SmartRecruitersProbeResult } from './probes/smartrecruiters-api';
 
 export type HealthReason =
     | 'alive_2xx'
     | 'alive_greenhouse_api'
     | 'alive_lever_api'
+    | 'alive_smartrecruiters_api'
     | 'http_404'
     | 'http_410'
     | 'soft_404'
     | 'greenhouse_api_404'
     | 'lever_api_404'
+    | 'smartrecruiters_api_404'
     | 'inconclusive_403'
     | 'inconclusive_429'
     | 'inconclusive_5xx'
@@ -38,7 +41,7 @@ export interface HealthEvidence {
     errorKind: ProbeResult['errorKind'];
     errorMessage: string | null;
     checkerVersion: string;
-    /** Set when a source-specific probe (e.g. greenhouse / lever JSON API) was used. */
+    /** Set when a source-specific probe (e.g. greenhouse / lever / SR JSON API) was used. */
     sourceProbe: {
         kind: 'greenhouse_api';
         apiUrl: string | null;
@@ -49,6 +52,11 @@ export interface HealthEvidence {
         apiUrl: string | null;
         httpStatus: number | null;
         reason: LeverProbeResult['reason'];
+    } | {
+        kind: 'smartrecruiters_api';
+        apiUrl: string | null;
+        httpStatus: number | null;
+        reason: SmartRecruitersProbeResult['reason'];
     } | null;
 }
 
@@ -81,6 +89,10 @@ export interface CheckJobHealthOptions {
     leverProbeImpl?: (
         ref: { companySlug: string; postingId: string },
     ) => Promise<LeverProbeResult>;
+    /** Override the SmartRecruiters-API probe (tests). */
+    smartRecruitersProbeImpl?: (
+        ref: { companySlug: string; postingId: string },
+    ) => Promise<SmartRecruitersProbeResult>;
     /** Override timeout / redirect caps. */
     timeoutMs?: number;
     maxRedirects?: number;
@@ -100,6 +112,7 @@ export async function checkJobHealth(
         probeImpl = probeUrl,
         greenhouseProbeImpl = probeGreenhouseApi,
         leverProbeImpl = probeLeverApi,
+        smartRecruitersProbeImpl = probeSmartRecruitersApi,
         timeoutMs,
         maxRedirects,
         externalId,
@@ -122,6 +135,14 @@ export async function checkJobHealth(
             const apiResult = await leverProbeImpl(ref);
             if (apiResult.status === 'dead') return decisionFromLeverApi(apiResult, /*alive*/ false);
             if (apiResult.status === 'alive') return decisionFromLeverApi(apiResult, /*alive*/ true);
+            // 'unknown' falls through.
+        }
+    } else if (sourceKey === 'smartrecruiters') {
+        const ref = resolveSmartRecruitersRef(applyUrl, externalId);
+        if (ref) {
+            const apiResult = await smartRecruitersProbeImpl(ref);
+            if (apiResult.status === 'dead') return decisionFromSmartRecruitersApi(apiResult, /*alive*/ false);
+            if (apiResult.status === 'alive') return decisionFromSmartRecruitersApi(apiResult, /*alive*/ true);
             // 'unknown' falls through.
         }
     }
@@ -170,6 +191,29 @@ function decisionFromLeverApi(result: LeverProbeResult, alive: boolean): HealthD
             checkerVersion: SOFT_404_CHECKER_VERSION,
             sourceProbe: {
                 kind: 'lever_api',
+                apiUrl: result.apiUrl,
+                httpStatus: result.httpStatus,
+                reason: result.reason,
+            },
+        },
+    };
+}
+
+function decisionFromSmartRecruitersApi(result: SmartRecruitersProbeResult, alive: boolean): HealthDecision {
+    return {
+        alive,
+        reason: alive ? 'alive_smartrecruiters_api' : 'smartrecruiters_api_404',
+        evidence: {
+            finalStatus: result.httpStatus,
+            finalUrl: result.apiUrl ?? '',
+            redirectHops: 0,
+            softMatch: null,
+            elapsedMs: result.elapsedMs,
+            errorKind: null,
+            errorMessage: result.errorMessage,
+            checkerVersion: SOFT_404_CHECKER_VERSION,
+            sourceProbe: {
+                kind: 'smartrecruiters_api',
                 apiUrl: result.apiUrl,
                 httpStatus: result.httpStatus,
                 reason: result.reason,

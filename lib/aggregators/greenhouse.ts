@@ -155,3 +155,19 @@ export async function fetchGreenhouseJobs(options?: { chunk?: number }): Promise
     return allJobs;
   }
 }
+
+import type { Aggregator, RawJobData, FetchOptions } from './types';
+import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+
+export const greenhouseAggregator: Aggregator = {
+    key: 'greenhouse',
+    chunkCount: GREENHOUSE_TOTAL_CHUNKS,
+    async fetch(opts: FetchOptions = {}): Promise<RawJobData[]> {
+        return (await fetchGreenhouseJobs({ chunk: opts.chunk })) as unknown as RawJobData[];
+    },
+    async probeJob(externalId: string, applyLink: string): Promise<HealthDecision | null> {
+        // Routes through checkJobHealth, which dispatches to the
+        // Greenhouse JSON API probe (lib/health/probes/greenhouse-api.ts).
+        return checkJobHealth(applyLink, 'greenhouse', { externalId });
+    },
+};

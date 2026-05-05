@@ -1,10 +1,6 @@
 import { prisma } from './prisma';
-import { fetchAdzunaJobs } from './aggregators/adzuna';
-import { fetchGreenhouseJobs, GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
-import { fetchLeverJobs } from './aggregators/lever';
-import { fetchFantasticJobsDbJobs, getLastRunDiagnostics as getFantasticJobsDiag } from './aggregators/fantastic-jobs-db';
-import { fetchWorkdayJobs } from './aggregators/workday';
-import { fetchSmartRecruitersJobs } from './aggregators/smartrecruiters';
+import { GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
+import { getLastRunDiagnostics as getFantasticJobsDiag } from './aggregators/fantastic-jobs-db';
 import { normalizeJob } from './job-normalizer';
 import { checkDuplicate } from './deduplicator';
 import { parseJobLocation } from './location-parser';
@@ -28,6 +24,7 @@ const INGEST_DEAD_REASONS: ReadonlySet<HealthReason> = new Set([
   'http_410',
   'greenhouse_api_404',
   'lever_api_404',
+  'smartrecruiters_api_404',
 ]);
 
 // ── Global dedup maps (pre-loaded once at start of full ingestion run) ──
@@ -36,10 +33,14 @@ let globalApplyLinkMap: Map<string, string> | null = null; // normalizedUrl -> j
 import { pingAllSearchEnginesBatch } from './search-indexing';
 import { computeQualityScore } from './utils/quality-score';
 
-export type JobSource = 'adzuna' | 'greenhouse' | 'lever' | 'workday' | 'fantastic-jobs-db' | 'smartrecruiters';
+// JobSource is defined in lib/aggregators/types.ts and re-exported here
+// so legacy callers (scripts, cron route) keep working unchanged.
+export type { JobSource } from './aggregators/types';
+import type { JobSource } from './aggregators/types';
+import { aggregators } from './aggregators/registry';
 
-/** Single source of truth — add new sources here and they'll auto-register everywhere */
-export const ALL_SOURCES: JobSource[] = ['adzuna', 'greenhouse', 'lever', 'workday', 'fantastic-jobs-db', 'smartrecruiters'];
+/** Single source of truth — derived from the registry. */
+export const ALL_SOURCES: JobSource[] = Object.keys(aggregators) as JobSource[];
 
 export interface IngestionResult {
   source: JobSource;
@@ -70,26 +71,25 @@ const CHUNKED_SOURCES: ReadonlySet<JobSource> = new Set(['greenhouse', 'workday'
 // false-positive risk of an unpublish gate. Last reviewed: 2026-04-30.
 
 /**
- * Fetch raw jobs from a specific source
+ * Fetch raw jobs from a specific source via the adapter registry.
+ *
+ * Adapters live in lib/aggregators/, register themselves in
+ * lib/aggregators/registry.ts, and implement the standard Aggregator
+ * interface from lib/aggregators/types.ts.
  */
-async function fetchFromSource(source: JobSource, options?: { chunk?: number; fantasticEndpoint?: '7d' | '6m' }): Promise<Array<Record<string, unknown>>> {
-  switch (source) {
-    case 'adzuna':
-      return await fetchAdzunaJobs();
-    case 'greenhouse':
-      return await fetchGreenhouseJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
-    case 'lever':
-      return await fetchLeverJobs() as unknown as Array<Record<string, unknown>>;
-    case 'workday':
-      return await fetchWorkdayJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
-    case 'fantastic-jobs-db':
-      return await fetchFantasticJobsDbJobs({ endpoint: options?.fantasticEndpoint }) as unknown as Array<Record<string, unknown>>;
-    case 'smartrecruiters':
-      return await fetchSmartRecruitersJobs() as unknown as Array<Record<string, unknown>>;
-    default:
-      console.warn(`[Ingestion] Unknown source: ${source}`);
-      return [];
+async function fetchFromSource(
+  source: JobSource,
+  options?: { chunk?: number; fantasticEndpoint?: '7d' | '6m' },
+): Promise<Array<Record<string, unknown>>> {
+  const aggregator = aggregators[source];
+  if (!aggregator) {
+    console.warn(`[Ingestion] Unknown source: ${source}`);
+    return [];
   }
+  const fetchOpts: { chunk?: number; endpoint?: '7d' | '6m' } = {};
+  if (options?.chunk !== undefined) fetchOpts.chunk = options.chunk;
+  if (options?.fantasticEndpoint !== undefined) fetchOpts.endpoint = options.fantasticEndpoint;
+  return (await aggregator.fetch(fetchOpts)) as unknown as Array<Record<string, unknown>>;
 }
 
 /**

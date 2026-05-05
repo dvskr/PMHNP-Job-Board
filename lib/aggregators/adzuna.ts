@@ -149,3 +149,17 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
 
   return allJobs;
 }
+
+import type { Aggregator, RawJobData } from './types';
+import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+
+export const adzunaAggregator: Aggregator = {
+    key: 'adzuna',
+    chunkCount: 1,
+    async fetch(): Promise<RawJobData[]> {
+        return (await fetchAdzunaJobs()) as unknown as RawJobData[];
+    },
+    async probeJob(externalId: string, applyLink: string): Promise<HealthDecision | null> {
+        return checkJobHealth(applyLink, 'adzuna', { externalId });
+    },
+};

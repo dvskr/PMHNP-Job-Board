@@ -297,3 +297,19 @@ export async function fetchWorkdayJobs(options?: { chunk?: number }): Promise<Wo
         return allJobs;
     }
 }
+
+import type { Aggregator, RawJobData, FetchOptions } from './types';
+import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+
+export const workdayAggregator: Aggregator = {
+    key: 'workday',
+    chunkCount: WORKDAY_TOTAL_CHUNKS,
+    async fetch(opts: FetchOptions = {}): Promise<RawJobData[]> {
+        return (await fetchWorkdayJobs({ chunk: opts.chunk })) as unknown as RawJobData[];
+    },
+    async probeJob(externalId: string, applyLink: string): Promise<HealthDecision | null> {
+        // Workday has no clean per-posting JSON API; checkJobHealth's
+        // generic HTTP probe + soft-404 detector handles it.
+        return checkJobHealth(applyLink, 'workday', { externalId });
+    },
+};

@@ -13,8 +13,20 @@
  * (2026-05-05).
  */
 
-import type { JobSource } from '@/lib/ingestion-service';
 import type { HealthDecision } from '@/lib/health/check-job-health';
+
+/**
+ * Stable provider key persisted to jobs.source_provider. Single source
+ * of truth — adding a new source means adding to this union AND the
+ * `aggregators` registry below.
+ */
+export type JobSource =
+    | 'adzuna'
+    | 'greenhouse'
+    | 'lever'
+    | 'workday'
+    | 'fantastic-jobs-db'
+    | 'smartrecruiters';
 
 /**
  * Canonical raw-job shape produced by adapters and consumed by the

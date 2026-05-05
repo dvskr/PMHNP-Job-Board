@@ -179,3 +179,19 @@ export async function fetchSmartRecruitersJobs(): Promise<SmartRecruitersJobRaw[
     console.log(`[SmartRecruiters] Total: ${allJobs.length} PMHNP jobs found across all companies`);
     return allJobs;
 }
+
+import type { Aggregator, RawJobData } from './types';
+import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+
+export const smartRecruitersAggregator: Aggregator = {
+    key: 'smartrecruiters',
+    chunkCount: 1,
+    async fetch(): Promise<RawJobData[]> {
+        return (await fetchSmartRecruitersJobs()) as unknown as RawJobData[];
+    },
+    async probeJob(externalId: string, applyLink: string): Promise<HealthDecision | null> {
+        // Routes through checkJobHealth, which dispatches to the
+        // SmartRecruiters JSON API probe (lib/health/probes/smartrecruiters-api.ts).
+        return checkJobHealth(applyLink, 'smartrecruiters', { externalId });
+    },
+};

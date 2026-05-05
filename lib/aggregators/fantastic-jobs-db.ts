@@ -492,3 +492,20 @@ export async function fetchFantasticJobsDbJobs(
     console.log(`[Fantastic-Jobs-DB] Total: ${allJobs.length} jobs (${callBudget.used} API calls used out of ${callBudget.cap} budget, endpoint=${endpointKey})`);
     return allJobs;
 }
+
+import type { Aggregator, RawJobData, FetchOptions } from './types';
+import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+
+export const fantasticJobsDbAggregator: Aggregator = {
+    key: 'fantastic-jobs-db',
+    chunkCount: 1,
+    async fetch(opts: FetchOptions = {}): Promise<RawJobData[]> {
+        return (await fetchFantasticJobsDbJobs({ endpoint: opts.endpoint })) as unknown as RawJobData[];
+    },
+    async probeJob(externalId: string, applyLink: string): Promise<HealthDecision | null> {
+        // Apply links here point at the underlying ATS (greenhouse,
+        // lever, etc.). checkJobHealth's source dispatch detects the
+        // host pattern and routes to the right native probe.
+        return checkJobHealth(applyLink, 'fantastic-jobs-db', { externalId });
+    },
+};
