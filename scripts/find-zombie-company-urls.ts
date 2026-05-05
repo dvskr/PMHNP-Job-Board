@@ -26,7 +26,11 @@ dotenvConfig({ path: '.env' });
 dotenvConfig({ path: '.env.prod' });
 
 const DRY_RUN = process.argv.includes('--dry-run');
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
+// Hardcoded — this script targets the production de-index queue. Reading
+// NEXT_PUBLIC_BASE_URL is unsafe because .env.local sets it to
+// http://localhost:3000 for dev; if those URLs land in prod, the cron
+// HEAD-check would 404 every one of them.
+const BASE_URL = 'https://pmhnphiring.com';
 
 type PrismaModule = typeof import('@/lib/prisma');
 let prismaCache: PrismaModule['prisma'] | null = null;
