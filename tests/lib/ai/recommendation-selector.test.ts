@@ -207,4 +207,71 @@ describe('selectRecommendations', () => {
         });
         expect(picks[0].jobId).toBe('clicked-emp');
     });
+
+    /* ─────────────────────────── Diversity cap (Sprint 1.2.5) ─────────────────────────── */
+    // Spec: "Top-10 must include ≥3 distinct employers (no clumping)."
+    // Selector enforces via `maxPerEmployer = ⌈totalSlots / 3⌉`. Lock the
+    // behavior so a future refactor that drops the cap is caught at CI time.
+
+    it('caps any single employer at ⌈totalSlots/3⌉ picks (default totalSlots=10 → cap of 4)', () => {
+        // Throw 12 high-similarity jobs from "MegaCorp" at the selector. Without
+        // a per-employer cap, all 10 slots would be MegaCorp; with the cap, at
+        // most 4 of the 10 picks should be MegaCorp.
+        const hits: VectorHit[] = [];
+        const m = new Map<string, JobMeta>();
+        for (let i = 0; i < 12; i++) {
+            const id = `mega-${i}`;
+            hits.push(hit(id, 0.9 - i * 0.001));
+            m.set(id, meta(id, { employer: 'MegaCorp', sourceType: 'employer', applyOnPlatform: true }));
+        }
+        // Plus a few alternative-employer jobs so the slate has somewhere to spill into.
+        for (let i = 0; i < 8; i++) {
+            const id = `alt-${i}`;
+            hits.push(hit(id, 0.5));
+            m.set(id, meta(id, { employer: `Alt-${i}`, sourceType: 'employer' }));
+        }
+
+        const picks = selectRecommendations(hits, m);
+        const megaPicks = picks.filter((p) => m.get(p.jobId)?.employer === 'MegaCorp').length;
+        expect(megaPicks).toBeLessThanOrEqual(4);
+    });
+
+    it('produces ≥3 distinct employers in the top-10 when 3+ employers are available', () => {
+        // 30 jobs spread across 4 employers, all easy_apply so they're all
+        // eligible. Cap of 4-per-employer guarantees no fewer than ⌈10/4⌉ = 3
+        // distinct employers in the final slate.
+        const hits: VectorHit[] = [];
+        const m = new Map<string, JobMeta>();
+        const employers = ['Acme', 'Beta', 'Gamma', 'Delta'];
+        for (let i = 0; i < 30; i++) {
+            const id = `j-${i}`;
+            const emp = employers[i % employers.length];
+            hits.push(hit(id, 0.9 - i * 0.005));
+            m.set(id, meta(id, { employer: emp, sourceType: 'employer', applyOnPlatform: true }));
+        }
+
+        const picks = selectRecommendations(hits, m);
+        const distinctEmployers = new Set(picks.map((p) => m.get(p.jobId)?.employer)).size;
+        expect(distinctEmployers).toBeGreaterThanOrEqual(3);
+    });
+
+    it('falls back gracefully when fewer than 3 distinct employers are available (no fake employers added)', () => {
+        // Only 2 employers exist with eligible jobs. The selector should still
+        // produce a slate (even if it falls below the 3-employer ideal); it
+        // must NOT silently invent or duplicate employers to hit the bar.
+        const hits: VectorHit[] = [];
+        const m = new Map<string, JobMeta>();
+        for (let i = 0; i < 6; i++) {
+            const empId = i < 3 ? 'OnlyOne' : 'OnlyTwo';
+            const id = `j-${i}`;
+            hits.push(hit(id, 0.9 - i * 0.01));
+            m.set(id, meta(id, { employer: empId, sourceType: 'employer', applyOnPlatform: true }));
+        }
+        const picks = selectRecommendations(hits, m);
+        const distinctEmployers = new Set(picks.map((p) => m.get(p.jobId)?.employer));
+        expect(distinctEmployers.size).toBeLessThanOrEqual(2);
+        // Each employer hits the per-employer cap of ⌈10/3⌉=4, so total picks
+        // is bounded at 2 employers × 4 cap = 8 (less than the 10-slot total).
+        expect(picks.length).toBeLessThanOrEqual(8);
+    });
 });
