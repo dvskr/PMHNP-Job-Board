@@ -6,7 +6,7 @@ import { checkDuplicate } from './deduplicator';
 import { parseJobLocation } from './location-parser';
 import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
-import { isRelevantJob } from './utils/job-filter';
+import { classifyRelevance } from './utils/job-filter';
 import { collectEmployerEmails } from './employer-email-collector';
 import { recordSourcePresence, loadHistoricalAvgFetched } from './health/source-presence';
 import { HealthRecorder } from './health/recorder';
@@ -277,18 +277,27 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         // but other sources don't.
         const rawTitle = extractRawTitle(rawJob);
         const rawDesc = String(rawJob.description || rawJob.job_description || '');
-        if (source !== null && rawTitle && !isRelevantJob(rawTitle, rawDesc)) {
-          rejectedJobs.push({
-            title: rawTitle,
-            employer: String(rawJob.employer || rawJob.company || rawJob.employer_name || rawJob.organizationName || null),
-            location: String(rawJob.location || rawJob.locationsText || rawJob.job_city || null),
-            applyLink: String(rawJob.applyLink || rawJob.apply_link || rawJob.url || rawJob.link || null),
-            externalId: String(rawJob.externalId || rawJob.id || rawJob.job_id || null),
-            sourceProvider: source,
-            rejectionReason: 'relevance_filter',
-            rawData: rawJob as object,
-          });
-          continue;
+        const rawEmployer = String(
+          rawJob.employer || rawJob.company || rawJob.employer_name || rawJob.organizationName || ''
+        );
+        if (source !== null && rawTitle) {
+          const classification = classifyRelevance(rawTitle, rawDesc, rawEmployer);
+          if (!classification.passes) {
+            rejectedJobs.push({
+              title: rawTitle,
+              employer: rawEmployer || null,
+              location: String(rawJob.location || rawJob.locationsText || rawJob.job_city || null),
+              applyLink: String(rawJob.applyLink || rawJob.apply_link || rawJob.url || rawJob.link || null),
+              externalId: String(rawJob.externalId || rawJob.id || rawJob.job_id || null),
+              sourceProvider: source,
+              // Sub-bucketed reason: 'relevance_no_keyword' | 'relevance_generic_title'
+              // | 'relevance_wrong_role'. Old single-bucket 'relevance_filter' is
+              // gone. Migrations / queries that filter by reason should be updated.
+              rejectionReason: classification.reason,
+              rawData: rawJob as object,
+            });
+            continue;
+          }
         }
 
         // Normalize the job (field extraction, salary parsing, location parsing, etc.)
