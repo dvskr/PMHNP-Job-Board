@@ -165,17 +165,15 @@ export default async function SalaryGuidePage() {
 
   const currentYear = new Date().getFullYear();
 
-  // FAQ Schema
+  // FAQ Schema — generated from visible faqData so schema + content stay in sync
   const faqSchema = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: [
-      { '@type': 'Question', name: 'What is the average PMHNP salary in 2026?', acceptedAnswer: { '@type': 'Answer', text: 'The average PMHNP salary in 2026 ranges from $140,000 to $175,000 annually, depending on state, experience, and practice setting. Top earners in states like California and New York can exceed $200,000.' } },
-      { '@type': 'Question', name: 'Which state pays PMHNPs the most?', acceptedAnswer: { '@type': 'Answer', text: 'California pays PMHNPs the highest average salary at $175,000+, followed by New York, New Jersey, and Massachusetts. However, cost of living should be factored in when comparing states.' } },
-      { '@type': 'Question', name: 'Do telehealth PMHNPs make more than in-person?', acceptedAnswer: { '@type': 'Answer', text: 'Telehealth PMHNP salaries are competitive with in-person roles, often ranging from $130,000 to $180,000 annually. Some telehealth positions offer higher hourly rates due to flexible scheduling, while in-person roles may include better benefits packages.' } },
-      { '@type': 'Question', name: 'How much do new grad PMHNPs make?', acceptedAnswer: { '@type': 'Answer', text: 'New graduate PMHNPs typically start between $115,000 and $140,000 annually. Salaries increase significantly with 2-3 years of experience, often reaching $155,000+ within the first few years.' } },
-      { '@type': 'Question', name: 'Are PMHNP salaries increasing?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. PMHNP salaries have increased approximately 12% over the past two years, driven by the mental health provider shortage. With 123 million Americans living in designated shortage areas, demand for PMHNPs continues to outpace supply.' } },
-    ],
+    mainEntity: faqData.map(faq => ({
+      '@type': 'Question' as const,
+      name: faq.q,
+      acceptedAnswer: { '@type': 'Answer' as const, text: faq.a },
+    })),
   };
 
   // Article Schema
