@@ -495,6 +495,19 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
           }))
         ) }} />
       )}
+      {/* AggregateOffer schema — shows salary range in SERPs */}
+      {stats.avgSalary > 0 && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'AggregateOffer',
+          name: `PMHNP Jobs in ${stateName}`,
+          offerCount: stats.totalJobs,
+          lowPrice: Math.round(stats.avgSalary * 0.8) * 1000,
+          highPrice: Math.round(stats.avgSalary * 1.2) * 1000,
+          priceCurrency: 'USD',
+          url: `https://pmhnphiring.com/jobs/state/${stateSlug}`,
+        }) }} />
+      )}
 
       {/* ═══ HERO ═══ */}
       <CategoryHero
