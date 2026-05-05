@@ -102,6 +102,78 @@ describe('normalizeJobWithReason — sub-bucketed rejection reasons', () => {
     });
 });
 
+describe('normalizeJobWithReason — salary period passthrough (Bug #1)', () => {
+    it('source-supplied salaryPeriod=annual is honored, not re-inferred', () => {
+        // Without the fix, $80,000 with no salaryPeriod hint was passed as
+        // null period to the validator. The validator's magnitude rule
+        // then bucketed values <= $40k as 'monthly'. We're testing that
+        // the explicit salaryPeriod='annual' from the adapter is now
+        // preserved through the validator → no period misinference.
+        const result = normalizeJobWithReason(
+            rawJob({
+                minSalary: 80000,
+                maxSalary: 100000,
+                salaryPeriod: 'annual',
+            }),
+            'adzuna',
+        );
+        expect(result.job).not.toBeNull();
+        expect(result.job!.salaryPeriod).toBe('annual');
+        // 80000 stays at 80000 because period is annual, not 12 * 80000.
+        expect(result.job!.normalizedMinSalary).toBe(80000);
+        expect(result.job!.normalizedMaxSalary).toBe(100000);
+    });
+
+    it('without the period hint, magnitude-based inference would mislabel as monthly', () => {
+        // No salaryPeriod hint → validator's magnitude rule kicks in. For
+        // a value <= 40000 with no period it'd bucket as 'monthly'. This
+        // test pins that legacy behavior so we know what we're protecting
+        // against. The fix above (Bug #1) is what makes this NOT happen
+        // when the source supplies the period.
+        const result = normalizeJobWithReason(
+            rawJob({
+                minSalary: 35000,
+                maxSalary: 35000,
+                // intentionally NO salaryPeriod
+            }),
+            'adzuna',
+        );
+        expect(result.job).not.toBeNull();
+        // Magnitude $35k → period inferred as 'monthly' → normalized to 12*35000 = 420000
+        // (which is now within the new $550k cap, so it actually appears as $420k annual)
+        expect(result.job!.salaryPeriod).toBe('monthly');
+    });
+
+    it('high annual salary $487k passes (Bug #2 — was killed by old $400k cap)', () => {
+        const result = normalizeJobWithReason(
+            rawJob({
+                minSalary: 486652,
+                maxSalary: 486652,
+                salaryPeriod: 'annual',
+            }),
+            'adzuna',
+        );
+        expect(result.job).not.toBeNull();
+        expect(result.job!.normalizedMinSalary).toBe(486652);
+        expect(result.job!.normalizedMaxSalary).toBe(486652);
+    });
+
+    it('above-cap salary $600k is still rejected', () => {
+        const result = normalizeJobWithReason(
+            rawJob({
+                minSalary: 700000,
+                maxSalary: 700000,
+                salaryPeriod: 'annual',
+            }),
+            'adzuna',
+        );
+        expect(result.job).not.toBeNull();
+        // $700k exceeds high-confidence cap of $550k → both null
+        expect(result.job!.normalizedMinSalary).toBeNull();
+        expect(result.job!.normalizedMaxSalary).toBeNull();
+    });
+});
+
 describe('normalizeJobWithReason — expiry policy (60d from originalPostedAt)', () => {
     it('expiresAt is exactly originalPostedAt + 60 days', () => {
         const postedAt = new Date('2026-04-01T12:00:00Z');

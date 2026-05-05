@@ -26,6 +26,7 @@ interface FantasticJobApiResponse {
     date_validthrough: string | null;
     date_created: string;
     description: string | null;
+    description_text: string | null;    // plain-text desc (when description_type=text)
     // Derived location fields
     cities_derived: string[];
     counties_derived: string[];
@@ -34,10 +35,92 @@ interface FantasticJobApiResponse {
     locations_derived: string[];        // e.g. "Vestavia Hills, Alabama, United States"
     remote_derived: boolean;
     domain_derived: string | null;
+    // Salary (schema.org JobPosting.baseSalary shape — often null)
+    salary_raw: unknown;
     // AI-enriched fields
     ai_employment_type: unknown;
     ai_work_arrangement: unknown;
     employment_type: unknown;
+    // Possible AI salary fields (Ultra tier — keys vary in spelling
+    // across API versions; we try all known variants in extractSalary).
+    ai_salary_currency?: string | null;
+    ai_salary_value?: number | string | null;
+    ai_salary_minvalue?: number | string | null;
+    ai_salary_maxvalue?: number | string | null;
+    ai_salary_unittext?: string | null;
+}
+
+/**
+ * Parse the Active Jobs DB salary fields into our canonical shape.
+ *
+ * The API populates salary in two possible places:
+ *   - `salary_raw`: object matching schema.org JobPosting.baseSalary, like
+ *       { "@type": "MonetaryAmount", "currency": "USD",
+ *         "value": { "@type": "QuantitativeValue",
+ *                    "minValue": 100000, "maxValue": 150000,
+ *                    "unitText": "YEAR" } }
+ *   - `ai_salary_*` flat fields (Ultra tier).
+ *
+ * Returns nulls when the source didn't provide salary at all (the
+ * common case — most postings omit it).
+ */
+function extractFantasticSalary(job: FantasticJobApiResponse): {
+    minSalary: number | null;
+    maxSalary: number | null;
+    salaryPeriod: string | null;
+} {
+    const periodFromUnitText = (u: string | null | undefined): string | null => {
+        if (!u) return null;
+        const upper = String(u).toUpperCase();
+        if (upper === 'YEAR' || upper === 'ANNUAL' || upper === 'YEARLY') return 'annual';
+        if (upper === 'MONTH' || upper === 'MONTHLY') return 'monthly';
+        if (upper === 'WEEK' || upper === 'WEEKLY') return 'weekly';
+        if (upper === 'DAY' || upper === 'DAILY') return 'daily';
+        if (upper === 'HOUR' || upper === 'HOURLY') return 'hourly';
+        return null;
+    };
+
+    // Try ai_salary_* flat fields first (cleaner shape).
+    const aiMin = job.ai_salary_minvalue != null ? Number(job.ai_salary_minvalue) : null;
+    const aiMax = job.ai_salary_maxvalue != null ? Number(job.ai_salary_maxvalue) : null;
+    const aiSingle = job.ai_salary_value != null ? Number(job.ai_salary_value) : null;
+    if ((aiMin && Number.isFinite(aiMin)) || (aiMax && Number.isFinite(aiMax))) {
+        return {
+            minSalary: aiMin && Number.isFinite(aiMin) ? aiMin : null,
+            maxSalary: aiMax && Number.isFinite(aiMax) ? aiMax : null,
+            salaryPeriod: periodFromUnitText(job.ai_salary_unittext),
+        };
+    }
+    if (aiSingle && Number.isFinite(aiSingle)) {
+        return {
+            minSalary: aiSingle,
+            maxSalary: aiSingle,
+            salaryPeriod: periodFromUnitText(job.ai_salary_unittext),
+        };
+    }
+
+    // Fall back to salary_raw (schema.org shape).
+    const raw = job.salary_raw;
+    if (raw && typeof raw === 'object') {
+        const r = raw as Record<string, unknown>;
+        const value = (r.value && typeof r.value === 'object' ? r.value as Record<string, unknown> : r);
+        const min = value.minValue != null ? Number(value.minValue) : null;
+        const max = value.maxValue != null ? Number(value.maxValue) : null;
+        const single = value.value != null ? Number(value.value) : null;
+        const unit = (value.unitText as string | null | undefined) ?? null;
+        if ((min && Number.isFinite(min)) || (max && Number.isFinite(max))) {
+            return {
+                minSalary: min && Number.isFinite(min) ? min : null,
+                maxSalary: max && Number.isFinite(max) ? max : null,
+                salaryPeriod: periodFromUnitText(unit),
+            };
+        }
+        if (single && Number.isFinite(single)) {
+            return { minSalary: single, maxSalary: single, salaryPeriod: periodFromUnitText(unit) };
+        }
+    }
+
+    return { minSalary: null, maxSalary: null, salaryPeriod: null };
 }
 
 export interface FantasticJobOutput {
@@ -55,6 +138,10 @@ export interface FantasticJobOutput {
      * which ATSes the aggregator catches.
      */
     sourceSite?: string;
+    // Salary fields populated when the source provides them (often null).
+    minSalary?: number | null;
+    maxSalary?: number | null;
+    salaryPeriod?: string | null;
 }
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
@@ -369,6 +456,7 @@ async function runPass(
             if (seenUrls.has(jobKey)) continue;
             seenUrls.add(jobKey);
 
+            const salary = extractFantasticSalary(job);
             out.push({
                 externalId: `fantasticjobs-${job.source || 'unknown'}-${job.id}`,
                 title: job.title,
@@ -379,6 +467,9 @@ async function runPass(
                 job_type: mapEmploymentType(job),
                 postedDate: job.date_posted || job.date_created || undefined,
                 sourceSite: job.source,
+                minSalary: salary.minSalary,
+                maxSalary: salary.maxSalary,
+                salaryPeriod: salary.salaryPeriod,
             });
         }
 

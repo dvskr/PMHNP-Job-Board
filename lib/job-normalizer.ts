@@ -448,6 +448,13 @@ interface SourceFieldConfig {
   externalId: string[];   // Field names to try for external ID
   salaryMin: string[];    // Field names to try for salary min
   salaryMax: string[];    // Field names to try for salary max
+  /**
+   * Field names to try for the salary period when the source supplies it
+   * (e.g. Adzuna sets salaryPeriod='annual'). Without this hint, the
+   * validator infers period from magnitude — which gets fooled by the
+   * $30k–$40k range (mistakenly classified as monthly).
+   */
+  salaryPeriod: string[];
   datePosted: string[];   // Field names to try for posted date
   defaultEmployer: string;
   defaultLocation: string;
@@ -462,6 +469,7 @@ const DEFAULT_CONFIG: SourceFieldConfig = {
   externalId: ['externalId', 'id', 'external_id'],
   salaryMin: ['minSalary'],
   salaryMax: ['maxSalary'],
+  salaryPeriod: ['salaryPeriod', 'salary_period', 'salaryUnit'],
   datePosted: ['postedAt', 'postedDate', 'posted_at', 'updated_at', 'createdAt', 'updated'],
   defaultEmployer: 'Unknown Company',
   defaultLocation: 'Unknown Location',
@@ -471,6 +479,7 @@ const SOURCE_CONFIGS: Record<string, Partial<SourceFieldConfig>> = {
   adzuna: {
     applyLink: ['applyLink', 'redirect_url'],
     datePosted: ['postedAt'],
+    salaryPeriod: ['salaryPeriod'],
   },
   jsearch: {
     datePosted: ['postedDate'],
@@ -659,6 +668,7 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     const externalId = extractField(rawJob, config.externalId, '');
     let salaryMin = extractNumericField(rawJob, config.salaryMin);
     let salaryMax = extractNumericField(rawJob, config.salaryMax);
+    const sourceSuppliedPeriod = extractField(rawJob, config.salaryPeriod, '') || null;
     const originalPostedAt = extractDateField(rawJob, config.datePosted);
 
     // Gate 1: required fields
@@ -705,13 +715,17 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     const summary = smartSummarize(fullDescription, 300);
     const fullText = `${title} ${fullDescription} ${location}`;
 
-    // Extract salary from description if not provided
-    let extractedPeriod: string | null = null;
+    // Period hint priority:
+    //   1. Source-supplied (e.g. adzuna sets salaryPeriod='annual')
+    //   2. Regex-extracted from description (only when source had no salary)
+    //   3. null → magnitude-based inference inside the validator
+    let extractedPeriod: string | null = sourceSuppliedPeriod;
     if (!salaryMin && !salaryMax) {
       const extracted = extractSalary(fullText);
       salaryMin = extracted.min;
       salaryMax = extracted.max;
-      extractedPeriod = extracted.period;
+      // Only override if regex got something AND source didn't already provide one.
+      if (!extractedPeriod) extractedPeriod = extracted.period;
     }
 
     // Validate and normalize salary data

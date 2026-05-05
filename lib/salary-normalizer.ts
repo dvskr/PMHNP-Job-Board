@@ -133,9 +133,14 @@ function isReasonableSalary(
     ? PMHNP_SALARY_RANGES.min * 0.6   // $48k minimum for low-confidence
     : PMHNP_SALARY_RANGES.min * 0.8;   // $64k minimum for high-confidence
 
+  // Raised 2026-05-05 from $400k → $550k. Locum / 1099 PMHNP roles in
+  // HCOL markets legitimately reach $450k–$500k+ annual. The previous
+  // $400k cap was silently dropping ~10% of real high-end annual postings
+  // (audit found multiple $457k–$487k jobs with valid bounds being
+  // rejected by this single threshold).
   const maxThreshold = confidence < 0.5
-    ? 500000   // $500k max for low-confidence (catches high contractor estimates)
-    : 400000;  // $400k max for high-confidence (PMHNP in HCOL areas / 1099 contracts)
+    ? 600000   // $600k max for low-confidence
+    : 550000;  // $550k max for high-confidence
 
   const isValid = annual >= minThreshold && annual <= maxThreshold;
 
