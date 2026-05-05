@@ -3,7 +3,6 @@ import { normalizeSalary } from './salary-normalizer';
 import { parseLocation } from './location-parser';
 import { formatDisplaySalary } from './salary-display';
 import { cleanDescription } from './description-cleaner';
-import { expiresFromNow } from './expires-at';
 
 type NormalizedJob = Omit<Job, 'id' | 'createdAt' | 'updatedAt' | 'viewCount' | 'applyClickCount'> & {
   originalPostedAt?: Date | null;
@@ -738,25 +737,20 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     const experienceLevel = detectExperienceLevel(title, fullText);
 
 
-    // Set expiration. UTC math via expiresFromNow — setDate() drifted across
-    // DST boundaries (caused production NYPCC posting to expire 2 days late).
-    let expiresAt: Date;
-
-    // Priority 1: Use explicit expiration from source (JSearch, USAJobs)
-    const explicitExpiry = rawJob.expiresAt || rawJob.expiresDate || rawJob.job_offer_expiration_datetime_utc;
-    if (explicitExpiry) {
-      const expDate = new Date(String(explicitExpiry));
-      // Only use if valid and in the future (or very recent)
-      if (!isNaN(expDate.getTime()) && expDate.getTime() > Date.now() - 24 * 60 * 60 * 1000) {
-        expiresAt = expDate;
-      } else {
-        // Fallback if expired: standard 30-day window from now
-        expiresAt = expiresFromNow(30);
-      }
-    } else {
-      // Priority 2: Default rule (60 days from now)
-      expiresAt = expiresFromNow(60);
-    }
+    // Expiration policy: 60 days from originalPostedAt. No more "now + 60d"
+    // and no more renewal extensions — once a job is set, this is its
+    // absolute lifecycle clock. The earlier explicit-expiry branch is
+    // gone because the only sources that ever provided one (JSearch,
+    // USAJobs) are decommissioned.
+    //
+    // Fallback: if originalPostedAt is null/invalid (shouldn't happen
+    // in practice — we default to new Date() below), use ingest time.
+    const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
+    const baseDate =
+      originalPostedAt && !isNaN(originalPostedAt.getTime())
+        ? originalPostedAt
+        : new Date();
+    const expiresAt = new Date(baseDate.getTime() + SIXTY_DAYS_MS);
 
     // Normalize salary to annual equivalent
     const normalizedSalaryData = normalizeSalary({

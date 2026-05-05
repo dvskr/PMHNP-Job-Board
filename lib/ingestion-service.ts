@@ -204,11 +204,14 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
       });
     }
 
-    const MAX_JOB_AGE_MS = 120 * 24 * 60 * 60 * 1000; // 120-day lifetime cap — hard cutoff for any job regardless of renewals
-    const RENEWAL_EXTENSION_MS = 14 * 24 * 60 * 60 * 1000; // 14-day renewal window — tighter expiry, cron runs 2x daily so 14 days is plenty of buffer
+    // Hard lifetime cap: 60 days from originalPostedAt. No renewal extensions.
+    // Once a job is set, expiresAt = originalPostedAt + 60d and stays there.
+    // The "renewal" path now ONLY: (a) revives jobs that were unpublished but
+    // are still within their 60-day window, (b) touches updatedAt for freshness
+    // scoring. It does NOT push expiresAt forward.
+    const MAX_JOB_AGE_MS = 60 * 24 * 60 * 60 * 1000;
     let expiredByAge = 0;
 
-    // Helper to renew a job (Auto-Renewal) — with max-age cap + manual unpublish guard
     const renewJob = async (id: string, title: string, existingPostedAt?: Date | null) => {
       try {
         // Check if manually unpublished — never override admin decisions
@@ -220,7 +223,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           return; // Skip — admin intentionally hid this job
         }
 
-        // Enforce max-age cap: if originalPostedAt > 120 days ago, unpublish instead
+        // Enforce 60-day-from-original cap. Past it → unpublish, do not renew.
         if (existingPostedAt) {
           const ageMs = Date.now() - new Date(existingPostedAt).getTime();
           if (ageMs > MAX_JOB_AGE_MS) {
@@ -228,7 +231,6 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
               where: { id },
               data: { isPublished: false },
             });
-            // Track age-expired for analysis
             rejectedJobs.push({
               title: title,
               employer: null,
@@ -244,13 +246,16 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           }
         }
 
+        // Within window: revive if it was unpublished, touch updatedAt.
+        // expiresAt is intentionally NOT extended — the original 60-day
+        // window from originalPostedAt is the absolute clock.
         await prisma.job.update({
           where: { id },
           data: {
-            expiresAt: new Date(Date.now() + RENEWAL_EXTENSION_MS),
             isPublished: true,
             updatedAt: new Date(),
-            // NOTE: Never overwrite originalPostedAt — first ingestion date is truth
+            // NOTE: Never overwrite originalPostedAt or expiresAt. First
+            // ingestion is truth for the lifecycle clock.
           }
         });
       } catch (e) {
@@ -791,7 +796,10 @@ export async function ingestJobs(
 export async function cleanupExpiredJobs(): Promise<number> {
   try {
     const now = new Date();
-    const maxAgeDate = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000);
+    // Hard lifetime cap = 60 days from originalPostedAt. Matches the
+    // initial expiresAt we now write at insert time (originalPostedAt + 60d)
+    // and the renewal cap. Belt-and-suspenders against any drift.
+    const maxAgeDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
 
     // First, find the jobs we're about to expire so we can build URLs for de-indexing
     const jobsToExpire = await prisma.job.findMany({

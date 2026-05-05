@@ -102,6 +102,50 @@ describe('normalizeJobWithReason — sub-bucketed rejection reasons', () => {
     });
 });
 
+describe('normalizeJobWithReason — expiry policy (60d from originalPostedAt)', () => {
+    it('expiresAt is exactly originalPostedAt + 60 days', () => {
+        const postedAt = new Date('2026-04-01T12:00:00Z');
+        const result = normalizeJobWithReason(
+            rawJob({ postedDate: postedAt.toISOString() }),
+            'lever',
+        );
+        expect(result.job).not.toBeNull();
+        const expectedExpiry = new Date(postedAt.getTime() + 60 * 24 * 60 * 60 * 1000);
+        // Allow ~1ms slack for Date construction
+        const diffMs = Math.abs(result.job!.expiresAt!.getTime() - expectedExpiry.getTime());
+        expect(diffMs).toBeLessThan(1000);
+    });
+
+    it('falls back to ingest-time + 60d when originalPostedAt is missing', () => {
+        const before = Date.now();
+        const result = normalizeJobWithReason(rawJob(), 'lever');
+        const after = Date.now();
+        expect(result.job).not.toBeNull();
+        // expiresAt should be ~60 days from now (with ~1s tolerance for clock drift between calls)
+        const expectedMin = before + 60 * 24 * 60 * 60 * 1000 - 2000;
+        const expectedMax = after + 60 * 24 * 60 * 60 * 1000 + 2000;
+        const actual = result.job!.expiresAt!.getTime();
+        expect(actual).toBeGreaterThanOrEqual(expectedMin);
+        expect(actual).toBeLessThanOrEqual(expectedMax);
+    });
+
+    it('expiresAt is BEFORE NOW for jobs older than 60 days at ingest', () => {
+        // Hypothetical edge case: source provides date 50 days ago. The
+        // job passes the staleness gate (50 < 60) but expires in just 10d.
+        const postedAt = new Date();
+        postedAt.setDate(postedAt.getDate() - 50);
+        const result = normalizeJobWithReason(
+            rawJob({ postedDate: postedAt.toISOString() }),
+            'lever',
+        );
+        expect(result.job).not.toBeNull();
+        const daysUntilExpiry = (result.job!.expiresAt!.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+        // Should be ~10 days from now (60 - 50)
+        expect(daysUntilExpiry).toBeGreaterThan(9);
+        expect(daysUntilExpiry).toBeLessThan(11);
+    });
+});
+
 describe('normalizeJobWithReason — indirect-apply gate', () => {
     const cases = [
         ['indeed.com/rc/clk', 'https://www.indeed.com/rc/clk?jk=abc123'],
