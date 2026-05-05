@@ -1,32 +1,10 @@
 /**
- * Shared constants for job aggregators.
- * Centralizing these helps maintain consistency and simplifies hyper-scaling strategies.
+ * Shared constants for job aggregators (location lists used across the
+ * site — STATES, TOP_500_CITIES, etc).
+ *
+ * Per-source search-term lists live in lib/aggregators/search-terms/
+ * (extracted 2026-05-05 from this file + fantastic-jobs-db.ts).
  */
-
-export const SEARCH_QUERIES = [
-    'PMHNP',
-    'Psychiatric Nurse Practitioner',
-    'Psychiatric Mental Health Nurse Practitioner',
-    'Behavioral Health Nurse Practitioner',
-    'Psychiatric APRN',
-    'Psych NP',
-    'Mental Health NP',
-    'PMHNP-BC',
-    'Psychiatric prescriber',
-    'Telepsychiatry Nurse Practitioner',
-    'Nurse Practitioner Psychiatry',
-    'Psychiatric ARNP',
-    'Psychiatry Nurse Practitioner',
-    'Psychiatric Mental Health NP-BC',
-    'New Grad PMHNP',
-    'Remote PMHNP',
-    'Telehealth Psychiatric Nurse Practitioner',
-    'Locum Tenens PMHNP',
-    'Travel Psychiatric Nurse Practitioner',
-    'Correctional Psychiatric Nurse Practitioner',
-    'Inpatient Psychiatric Nurse Practitioner',
-    'Outpatient PMHNP',
-];
 
 export const STATES = [
     "Alabama", "Alaska", "Arizona", "Arkansas", "California",

@@ -94,13 +94,22 @@ export class RateLimiter {
 
     constructor(private readonly minIntervalMs: number) {}
 
+    /**
+     * Reserve the next slot atomically, then wait until that slot fires.
+     *
+     * Slot reservation is synchronous (before the await), so two
+     * concurrent `throttle()` calls take consecutive slots instead of
+     * piling onto the same one — important when adapters fire requests
+     * in `Promise.allSettled`-style batches.
+     */
     async throttle(): Promise<void> {
         const now = Date.now();
-        const wait = this.nextEarliestAt - now;
+        const fireAt = Math.max(now, this.nextEarliestAt);
+        this.nextEarliestAt = fireAt + this.minIntervalMs;
+        const wait = fireAt - now;
         if (wait > 0) {
             await new Promise((resolve) => setTimeout(resolve, wait));
         }
-        this.nextEarliestAt = Math.max(now, this.nextEarliestAt) + this.minIntervalMs;
     }
 
     /** For tests / explicit reset. */

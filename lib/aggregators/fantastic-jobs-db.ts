@@ -85,37 +85,12 @@ const PAGE_SIZE = 100;
 //            description=psychiatric/mental-health/PMHNP. Catches the
 //            generic-titled jobs that title-only filtering missed.
 
-// Pass A: literal title-phrase matches. The API only accepts a single
-// literal phrase per `title_filter` query, so each variant is its own
-// pass. Most variants resolve in 1-3 pages so the marginal cost of
-// adding more terms is small (~5 calls per term added).
-const TITLE_TERMS = [
-    'PMHNP',
-    'Psychiatric Nurse Practitioner',
-    'Psychiatric Mental Health Nurse Practitioner',
-    'Mental Health Nurse Practitioner',
-    'Behavioral Health Nurse Practitioner',
-    'Psychiatric APRN',
-    'Mental Health APRN',
-    'Telepsychiatry',
-    'Psychiatric Mental Health',
-    'Psych Nurse Practitioner',
-    'Psych NP',
-    'Child Adolescent Psychiatric Nurse Practitioner',
-    'Geriatric Psychiatric Nurse Practitioner',
-    'Addiction Psychiatric Nurse Practitioner',
-];
-
-// Pass B: title=broad, description_filter narrows to psychiatric work.
-// Catches generic-titled postings that mention psychiatric in the body.
-const TITLE_FILTERS_BROAD = [
-    'Nurse Practitioner',
-    'APRN',
-    'Advanced Practice Provider',
-];
-// Description filter supports OR — broaden the net to all clinical
-// terms a PMHNP role would mention.
-const DESCRIPTION_FILTER_PSYCH = '"psychiatric" OR "mental health" OR "PMHNP" OR "psychiatry" OR "behavioral health" OR "telepsychiatry" OR "suboxone" OR "buprenorphine" OR "addiction medicine" OR "dual diagnosis"';
+import {
+    FANTASTIC_TITLE_TERMS as TITLE_TERMS,
+    FANTASTIC_TITLE_FILTERS_BROAD as TITLE_FILTERS_BROAD,
+    FANTASTIC_DESCRIPTION_FILTER_PSYCH as DESCRIPTION_FILTER_PSYCH,
+} from './search-terms/fantastic-jobs-db';
+import { RateLimiter } from './types';
 
 // ── Budget Protection ──
 // Ultra plan: 20,000 requests/month, 5 req/sec
@@ -352,6 +327,11 @@ interface PassResult {
     aborted: boolean;
 }
 
+// Per-page throttle: 1 req/sec (~5× under the published 5 req/sec cap),
+// safe under any plausible sliding-window enforcement.
+const FANTASTIC_PAGE_RATE_LIMIT_MS = 1000;
+const FANTASTIC_FILTER_GAP_MS = 2000;
+
 async function runPass(
     label: string,
     extraParams: Record<string, string>,
@@ -359,6 +339,7 @@ async function runPass(
     seenUrls: Set<string>,
     callBudget: { used: number; cap: number },
     endpoint: string,
+    pageRateLimiter: RateLimiter,
 ): Promise<PassResult> {
     let offset = 0;
     let hasMore = true;
@@ -404,14 +385,11 @@ async function runPass(
         hasMore = jobs.length === PAGE_SIZE;
         offset += PAGE_SIZE;
 
-        // Rate limiting — diagnostic mode (2026-04-30): 350ms still produced
-        // 429s. Pacing is now 1 req/sec which is well below ANY plausible
-        // sliding-window enforcement, even if the key is shared with
-        // another consumer or RapidAPI uses 1s buckets internally. A full
-        // run uses ~30-50 calls = 30-50 seconds wall-time, fits in Vercel's
-        // 5-min function ceiling with room to spare. Once we identify the
-        // root cause from the new 429-body diagnostics, we'll re-tune.
-        await sleep(1000);
+        // Rate-limit the next page request via the shared RateLimiter.
+        // Pacing is 1 req/sec — well below the published 5 req/sec cap,
+        // and well below any plausible sliding-window enforcement. The
+        // 2026-04-30 diagnostic showed 350ms produced sporadic 429s.
+        await pageRateLimiter.throttle();
     }
 
     const found = out.length - initialOut;
@@ -449,6 +427,7 @@ export async function fetchFantasticJobsDbJobs(
     const allJobs: FantasticJobOutput[] = [];
     const seenUrls = new Set<string>();
     const callBudget = { used: 0, cap: MAX_REQUESTS_PER_RUN };
+    const pageRateLimiter = new RateLimiter(FANTASTIC_PAGE_RATE_LIMIT_MS);
 
     // Cooldown buffer at run start.
     await sleep(1000);
@@ -465,8 +444,9 @@ export async function fetchFantasticJobsDbJobs(
             seenUrls,
             callBudget,
             endpointUrl,
+            pageRateLimiter,
         );
-        await sleep(2000);
+        await sleep(FANTASTIC_FILTER_GAP_MS);
     }
 
     // ── PASS B: description_filter widener ───────────────────────────────
@@ -485,8 +465,9 @@ export async function fetchFantasticJobsDbJobs(
             seenUrls,
             callBudget,
             endpointUrl,
+            pageRateLimiter,
         );
-        await sleep(2000);
+        await sleep(FANTASTIC_FILTER_GAP_MS);
     }
 
     console.log(`[Fantastic-Jobs-DB] Total: ${allJobs.length} jobs (${callBudget.used} API calls used out of ${callBudget.cap} budget, endpoint=${endpointKey})`);

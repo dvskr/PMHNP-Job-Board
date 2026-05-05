@@ -21,9 +21,16 @@ interface AdzunaResponse {
   count: number;
 }
 
-import { SEARCH_QUERIES } from './constants';
+import { ADZUNA_SEARCH_QUERIES as SEARCH_QUERIES } from './search-terms/adzuna';
+import { RateLimiter } from './types';
 
-// Helper function for delays
+// Adzuna's published rate limit is generous (no documented per-second
+// cap), but a 500ms gap between requests has been our healthy operating
+// point — fast enough to finish 22 terms × 20 pages within the 240s
+// budget, slow enough to never hit a soft 429.
+const ADZUNA_PAGE_RATE_LIMIT_MS = 500;
+const ADZUNA_QUERY_GAP_MS = 300;
+
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -42,6 +49,7 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
 
   const allJobs: Array<Record<string, unknown>> = [];
   const seenIds = new Set<string>();
+  const pageRateLimiter = new RateLimiter(ADZUNA_PAGE_RATE_LIMIT_MS);
 
   // VALIDATION STATS
   let totalRawJobs = 0;
@@ -125,8 +133,8 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
           });
         }
 
-        // Rate limiting - 500ms between requests
-        await sleep(500);
+        // Rate-limit the next page request via shared RateLimiter.
+        await pageRateLimiter.throttle();
 
         // If we got fewer than 50 results, no more pages
         if (jobs.length < 50) {
@@ -139,8 +147,8 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
       }
     }
 
-    // Small delay between different queries
-    await sleep(300);
+    // Small gap between different search terms.
+    await sleep(ADZUNA_QUERY_GAP_MS);
   }
 
   console.log(`[Adzuna] VALIDATION STATS:`);
