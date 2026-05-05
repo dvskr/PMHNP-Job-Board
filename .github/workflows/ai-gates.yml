@@ -45,7 +45,11 @@ jobs:
   gates:
     name: AI quality gates
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Bumped 15→30 (2026-05-04): live eval stack with 36 talent rerank
+    # cases (~5-10s each) + 5 bias pairs (2 calls each) + advisory SEED
+    # suites adds up. Previous 15-min cap was canceling jobs mid-bias-
+    # suite. 30 min gives comfortable headroom; nightly cron is fine.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 

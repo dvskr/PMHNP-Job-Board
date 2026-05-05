@@ -1,0 +1,155 @@
+﻿2026-05-05T02:05:21.6589993Z ##[group]Run npx vitest run tests/lib/ai
+2026-05-05T02:05:21.6590355Z [36;1mnpx vitest run tests/lib/ai[0m
+2026-05-05T02:05:21.6613457Z shell: /usr/bin/bash -e {0}
+2026-05-05T02:05:21.6613715Z ##[endgroup]
+2026-05-05T02:05:22.2372596Z [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+2026-05-05T02:05:22.2728179Z 
+2026-05-05T02:05:22.2729777Z [1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90m/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board[39m
+2026-05-05T02:05:22.2730450Z 
+2026-05-05T02:05:22.7105298Z  [32m✓[39m tests/lib/ai/precision-at-k.test.ts [2m([22m[2m31 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+2026-05-05T02:05:22.7110527Z  [32m✓[39m tests/lib/ai/recommendation-selector.test.ts [2m([22m[2m14 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+2026-05-05T02:05:22.8221717Z [90mstderr[2m | tests/lib/ai/gateway.test.ts[2m > [22m[2mlib/ai/gateway.complete[2m > [22m[2mfalls back to the next provider when the primary throws
+2026-05-05T02:05:22.8233952Z [22m[39m[33m[WARN][0m 2026-05-05T02:05:22.802Z - AI provider attempt failed (task=candidate_scoring provider=openai model=gpt-5-mini)
+2026-05-05T02:05:22.8236886Z   Error: primary boom
+2026-05-05T02:05:22.8237526Z   Stack: Error: primary boom
+2026-05-05T02:05:22.8238588Z     at /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/tests/lib/ai/gateway.test.ts:147:42
+2026-05-05T02:05:22.8240242Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:146:14
+2026-05-05T02:05:22.8242167Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:533:11
+2026-05-05T02:05:22.8243986Z     at runWithTimeout (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:39:7)
+2026-05-05T02:05:22.8245830Z     at runTest (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1056:17)
+2026-05-05T02:05:22.8247299Z     at processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-05-05T02:05:22.8248742Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:22.8250330Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:22.8252175Z     at runFiles (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1262:5)
+2026-05-05T02:05:22.8253871Z     at startTests (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1271:3)
+2026-05-05T02:05:22.8254933Z 
+2026-05-05T02:05:22.8292646Z [90mstderr[2m | tests/lib/ai/gateway.test.ts[2m > [22m[2mlib/ai/gateway.complete[2m > [22m[2mskips providers that are not configured (without tripping the breaker)
+2026-05-05T02:05:22.8294445Z  [32m✓[39m tests/lib/ai/gateway.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 28[2mms[22m[39m
+2026-05-05T02:05:22.8305982Z [22m[39m[33m[WARN][0m 2026-05-05T02:05:22.810Z - AI provider attempt failed (task=candidate_scoring provider=openai model=gpt-5-mini)
+2026-05-05T02:05:22.8329534Z   Error: primary down
+2026-05-05T02:05:22.8330232Z   Stack: Error: primary down
+2026-05-05T02:05:22.8331247Z     at /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/tests/lib/ai/gateway.test.ts:171:42
+2026-05-05T02:05:22.8333157Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:146:14
+2026-05-05T02:05:22.8334815Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:533:11
+2026-05-05T02:05:22.8336559Z     at runWithTimeout (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:39:7)
+2026-05-05T02:05:22.8338422Z     at runTest (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1056:17)
+2026-05-05T02:05:22.8340519Z     at processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-05-05T02:05:22.8342302Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:22.8344096Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:22.8346178Z     at runFiles (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1262:5)
+2026-05-05T02:05:22.8347849Z     at startTests (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1271:3)
+2026-05-05T02:05:22.8349885Z [33m[WARN][0m 2026-05-05T02:05:22.811Z - AI provider attempt failed (task=candidate_scoring provider=anthropic model=claude-sonnet-4-6)
+2026-05-05T02:05:22.8351388Z   Error: Provider "anthropic" is not configured
+2026-05-05T02:05:22.8352445Z   Stack: AiGatewayError: Provider "anthropic" is not configured
+2026-05-05T02:05:22.8353559Z     at tryProvider (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/lib/ai/gateway.ts:89:15)
+2026-05-05T02:05:22.8354950Z     at Module.complete (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/lib/ai/gateway.ts:174:31)
+2026-05-05T02:05:22.8356216Z     at processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-05-05T02:05:22.8357361Z     at /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/tests/lib/ai/gateway.test.ts:173:9
+2026-05-05T02:05:22.8358811Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:533:5
+2026-05-05T02:05:22.8360409Z     at runTest (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1056:11)
+2026-05-05T02:05:22.8362679Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:22.8364402Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:22.8366135Z     at runFiles (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1262:5)
+2026-05-05T02:05:22.8367845Z     at startTests (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1271:3)
+2026-05-05T02:05:22.8368920Z 
+2026-05-05T02:05:22.8370538Z [90mstderr[2m | tests/lib/ai/gateway.test.ts[2m > [22m[2mlib/ai/gateway.complete[2m > [22m[2mrefuses to merge when output fails schema validation (no silent retry on next provider)
+2026-05-05T02:05:22.8372965Z [22m[39m[33m[WARN][0m 2026-05-05T02:05:22.816Z - AI provider attempt failed (task=candidate_scoring provider=openai model=gpt-5-mini)
+2026-05-05T02:05:22.8374288Z   Error: Output failed schema validation for task=candidate_scoring: [
+2026-05-05T02:05:22.8375023Z   {
+2026-05-05T02:05:22.8379170Z     "expected": "number",
+2026-05-05T02:05:22.8379903Z     "code": "invalid_type",
+2026-05-05T02:05:22.8380439Z     "path": [
+2026-05-05T02:05:22.8380992Z       "score"
+2026-05-05T02:05:22.8381440Z     ],
+2026-05-05T02:05:22.8382304Z     "message": "Invalid input: expected number, received string"
+2026-05-05T02:05:22.8383024Z   }
+2026-05-05T02:05:22.8383531Z ]
+2026-05-05T02:05:22.8384312Z   Stack: AiGatewayError: Output failed schema validation for task=candidate_scoring: [
+2026-05-05T02:05:22.8385137Z   {
+2026-05-05T02:05:22.8385556Z     "expected": "number",
+2026-05-05T02:05:22.8386054Z     "code": "invalid_type",
+2026-05-05T02:05:22.8386533Z     "path": [
+2026-05-05T02:05:22.8386964Z       "score"
+2026-05-05T02:05:22.8387366Z     ],
+2026-05-05T02:05:22.8387970Z     "message": "Invalid input: expected number, received string"
+2026-05-05T02:05:22.8388641Z   }
+2026-05-05T02:05:22.8388922Z ]
+2026-05-05T02:05:22.8389773Z     at Module.complete (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/lib/ai/gateway.ts:223:27)
+2026-05-05T02:05:22.8390991Z     at processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-05-05T02:05:22.8392122Z     at /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/tests/lib/ai/gateway.test.ts:198:9
+2026-05-05T02:05:22.8393346Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:533:5
+2026-05-05T02:05:22.8394730Z     at runTest (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1056:11)
+2026-05-05T02:05:22.8396220Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:22.8397675Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:22.8399099Z     at runFiles (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1262:5)
+2026-05-05T02:05:22.8400784Z     at startTests (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1271:3)
+2026-05-05T02:05:22.8402817Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11
+2026-05-05T02:05:22.8403583Z 
+2026-05-05T02:05:22.8404783Z [90mstderr[2m | tests/lib/ai/gateway.test.ts[2m > [22m[2mlib/ai/gateway.complete[2m > [22m[2mraises all_providers_failed when every chain entry throws
+2026-05-05T02:05:22.8406584Z [22m[39m[33m[WARN][0m 2026-05-05T02:05:22.817Z - AI provider attempt failed (task=candidate_scoring provider=openai model=gpt-5-mini)
+2026-05-05T02:05:22.8407420Z   Error: openai down
+2026-05-05T02:05:22.8407741Z   Stack: Error: openai down
+2026-05-05T02:05:22.8408455Z     at /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/tests/lib/ai/gateway.test.ts:226:42
+2026-05-05T02:05:22.8409592Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:146:14
+2026-05-05T02:05:22.8410822Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:533:11
+2026-05-05T02:05:22.8412309Z     at runWithTimeout (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:39:7)
+2026-05-05T02:05:22.8413726Z     at runTest (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1056:17)
+2026-05-05T02:05:22.8414805Z     at processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-05-05T02:05:22.8415992Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:22.8417366Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:22.8418766Z     at runFiles (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1262:5)
+2026-05-05T02:05:22.8420246Z     at startTests (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1271:3)
+2026-05-05T02:05:22.8446748Z [33m[WARN][0m 2026-05-05T02:05:22.818Z - AI provider attempt failed (task=candidate_scoring provider=anthropic model=claude-sonnet-4-6)
+2026-05-05T02:05:22.8447868Z   Error: anthropic down
+2026-05-05T02:05:22.8448272Z   Stack: Error: anthropic down
+2026-05-05T02:05:22.8449020Z     at /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/tests/lib/ai/gateway.test.ts:227:45
+2026-05-05T02:05:22.8450215Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:146:14
+2026-05-05T02:05:22.8451537Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:533:11
+2026-05-05T02:05:22.8453213Z     at runWithTimeout (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:39:7)
+2026-05-05T02:05:22.8454746Z     at runTest (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1056:17)
+2026-05-05T02:05:22.8456677Z     at processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-05-05T02:05:22.8457911Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:22.8459297Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:22.8460778Z     at runFiles (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1262:5)
+2026-05-05T02:05:22.8462669Z     at startTests (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1271:3)
+2026-05-05T02:05:22.8463408Z 
+2026-05-05T02:05:23.0154886Z [90mstderr[2m | tests/lib/ai/feature-flags.test.ts[2m > [22m[2mlib/ai/feature-flags.isAiFeatureEnabled[2m > [22m[2mfalls back to default when DB lookup throws (does not block traffic)
+2026-05-05T02:05:23.0157838Z  [32m✓[39m tests/lib/ai/feature-flags.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+2026-05-05T02:05:23.0163433Z [22m[39m[33m[WARN][0m 2026-05-05T02:05:23.003Z - AI feature flag DB lookup failed; using default
+2026-05-05T02:05:23.0164394Z   Context: {
+2026-05-05T02:05:23.0164931Z   "flag": "ai.candidate.resume_parser",
+2026-05-05T02:05:23.0165530Z   "tenant": {
+2026-05-05T02:05:23.0166007Z     "type": "candidate",
+2026-05-05T02:05:23.0166528Z     "id": "user_x"
+2026-05-05T02:05:23.0166987Z   }
+2026-05-05T02:05:23.0167400Z }
+2026-05-05T02:05:23.0167821Z   Error: DB down
+2026-05-05T02:05:23.0168303Z   Stack: Error: DB down
+2026-05-05T02:05:23.0169288Z     at /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/tests/lib/ai/feature-flags.test.ts:52:106
+2026-05-05T02:05:23.0170771Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:146:14
+2026-05-05T02:05:23.0172507Z     at file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:533:11
+2026-05-05T02:05:23.0174073Z     at runWithTimeout (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:39:7)
+2026-05-05T02:05:23.0175729Z     at runTest (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1056:17)
+2026-05-05T02:05:23.0177033Z     at processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-05-05T02:05:23.0178427Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:23.0180030Z     at runSuite (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1205:15)
+2026-05-05T02:05:23.0181605Z     at runFiles (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1262:5)
+2026-05-05T02:05:23.0229362Z     at startTests (file:///home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/@vitest/runner/dist/index.js:1271:3)
+2026-05-05T02:05:23.0258817Z 
+2026-05-05T02:05:23.0878778Z  [32m✓[39m tests/lib/ai/experiments.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 25[2mms[22m[39m
+2026-05-05T02:05:23.0894582Z  [32m✓[39m tests/lib/ai/job-classifier.test.ts [2m([22m[2m14 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+2026-05-05T02:05:23.3038113Z  [32m✓[39m tests/lib/ai/query-parser.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 30[2mms[22m[39m
+2026-05-05T02:05:23.3467131Z  [32m✓[39m tests/lib/ai/pricing.test.ts [2m([22m[2m10 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+2026-05-05T02:05:23.4973558Z  [32m✓[39m tests/lib/ai/vector-search.test.ts [2m([22m[2m10 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+2026-05-05T02:05:23.5589820Z  [32m✓[39m tests/lib/ai/circuit-breaker.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+2026-05-05T02:05:23.6032713Z  [32m✓[39m tests/lib/ai/ndcg.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 4[2mms[22m[39m
+2026-05-05T02:05:23.8029720Z  [32m✓[39m tests/lib/ai/pii-scanner.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+2026-05-05T02:05:23.8549801Z  [32m✓[39m tests/lib/ai/cache.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+2026-05-05T02:05:23.8710935Z  [32m✓[39m tests/lib/ai/prompt-registry.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+2026-05-05T02:05:24.0317040Z  [32m✓[39m tests/lib/ai/hit-rate.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 3[2mms[22m[39m
+2026-05-05T02:05:24.0404859Z 
+2026-05-05T02:05:24.0414667Z [2m Test Files [22m [1m[32m15 passed[39m[22m[90m (15)[39m
+2026-05-05T02:05:24.0415737Z [2m      Tests [22m [1m[32m154 passed[39m[22m[90m (154)[39m
+2026-05-05T02:05:24.0416507Z [2m   Start at [22m 02:05:22
+2026-05-05T02:05:24.0418256Z [2m   Duration [22m 1.77s[2m (transform 485ms, setup 201ms, collect 1000ms, tests 195ms, environment 3ms, prepare 1.26s)[22m
+2026-05-05T02:05:24.0419039Z 

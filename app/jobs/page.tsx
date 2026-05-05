@@ -178,8 +178,26 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
     // Map employer logo onto job objects
     const jobs = rawJobs.map(j => ({ ...j, companyLogoUrl: j.employerJobs?.companyLogoUrl || null, employerJobs: undefined }));
 
+    // Build ItemList schema for job carousel rich results
+    const jobListSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'PMHNP & Psychiatric Nurse Practitioner Jobs',
+      numberOfItems: total,
+      itemListElement: jobs.slice(0, 10).map((job, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: job.title,
+        url: `https://pmhnphiring.com/jobs/${(job as Record<string, unknown>).id}`,
+      })),
+    };
+
     return (
       <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jobListSchema).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') }}
+        />
         <BreadcrumbSchema items={[
           { name: "Home", url: "https://pmhnphiring.com" },
           { name: "Jobs", url: "https://pmhnphiring.com/jobs" }

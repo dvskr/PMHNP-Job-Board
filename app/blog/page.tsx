@@ -102,6 +102,21 @@ export default async function BlogIndexPage({
                 { name: 'Home', url: 'https://pmhnphiring.com' },
                 { name: 'Blog', url: 'https://pmhnphiring.com/blog' },
             ]} />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                    '@context': 'https://schema.org',
+                    '@type': 'ItemList',
+                    name: 'PMHNP Career Blog',
+                    numberOfItems: totalCount,
+                    itemListElement: posts.slice(0, 10).map((post, i) => ({
+                        '@type': 'ListItem',
+                        position: i + 1,
+                        name: post.title,
+                        url: `https://pmhnphiring.com/blog/${post.slug}`,
+                    })),
+                }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') }}
+            />
 
             {/* ═══ HERO — Warm Cream ═══ */}
             <div style={{ background: 'linear-gradient(180deg, #FFF5EE 0%, #FDE8D8 40%, #FFF5EE 100%)' }}>

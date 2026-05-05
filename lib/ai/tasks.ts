@@ -120,7 +120,12 @@ export const TASK_REGISTRY: Record<AiTaskId, TaskConfig> = {
         // room for reasoning while keeping cost bounded — output tokens
         // are billed at $2/M for gpt-5-mini, so worst-case ~$0.016/call.
         maxOutputTokens: 8_000,
-        timeoutMs: 45_000,
+        // Bumped 45s → 90s (2026-05-04). With 50-candidate input,
+        // 8000 token reasoning budget, and gpt-5-mini's variable
+        // thinking time, single calls regularly hit 60-80s and the
+        // 45s cap was aborting mid-stream during eval suites. 90s is
+        // still well under the workflow timeout.
+        timeoutMs: 90_000,
         // 200/hour is well above any realistic per-employer load (the
         // route enforces 10/day per employer separately) and gives eval
         // suites of 30-40 cases enough headroom to complete in one run.

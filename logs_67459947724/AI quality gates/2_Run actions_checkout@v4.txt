@@ -1,0 +1,72 @@
+﻿2026-05-05T02:04:06.3252323Z ##[group]Run actions/checkout@v4
+2026-05-05T02:04:06.3253234Z with:
+2026-05-05T02:04:06.3253665Z   repository: dvskr/PMHNP-Job-Board
+2026-05-05T02:04:06.3254376Z   token: ***
+2026-05-05T02:04:06.3254778Z   ssh-strict: true
+2026-05-05T02:04:06.3255180Z   ssh-user: git
+2026-05-05T02:04:06.3255580Z   persist-credentials: true
+2026-05-05T02:04:06.3256036Z   clean: true
+2026-05-05T02:04:06.3256445Z   sparse-checkout-cone-mode: true
+2026-05-05T02:04:06.3256923Z   fetch-depth: 1
+2026-05-05T02:04:06.3257313Z   fetch-tags: false
+2026-05-05T02:04:06.3257720Z   show-progress: true
+2026-05-05T02:04:06.3258128Z   lfs: false
+2026-05-05T02:04:06.3258494Z   submodules: false
+2026-05-05T02:04:06.3258898Z   set-safe-directory: true
+2026-05-05T02:04:06.3259505Z ##[endgroup]
+2026-05-05T02:04:06.4363737Z Syncing repository: dvskr/PMHNP-Job-Board
+2026-05-05T02:04:06.4365548Z ##[group]Getting Git version info
+2026-05-05T02:04:06.4366451Z Working directory is '/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board'
+2026-05-05T02:04:06.4367798Z [command]/usr/bin/git version
+2026-05-05T02:04:06.4396669Z git version 2.53.0
+2026-05-05T02:04:06.4420841Z ##[endgroup]
+2026-05-05T02:04:06.4442942Z Temporarily overriding HOME='/home/runner/work/_temp/c3dde1a8-fbde-41f9-ba31-893acbe6b2cc' before making global git config changes
+2026-05-05T02:04:06.4444323Z Adding repository directory to the temporary git global config as a safe directory
+2026-05-05T02:04:06.4448296Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board
+2026-05-05T02:04:06.4482071Z Deleting the contents of '/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board'
+2026-05-05T02:04:06.4485683Z ##[group]Initializing the repository
+2026-05-05T02:04:06.4489682Z [command]/usr/bin/git init /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board
+2026-05-05T02:04:06.4550168Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-05-05T02:04:06.4551654Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-05-05T02:04:06.4553016Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-05-05T02:04:06.4553997Z hint: call:
+2026-05-05T02:04:06.4554368Z hint:
+2026-05-05T02:04:06.4555005Z hint: 	git config --global init.defaultBranch <name>
+2026-05-05T02:04:06.4555579Z hint:
+2026-05-05T02:04:06.4556341Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-05-05T02:04:06.4557538Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-05-05T02:04:06.4558235Z hint:
+2026-05-05T02:04:06.4558621Z hint: 	git branch -m <name>
+2026-05-05T02:04:06.4559057Z hint:
+2026-05-05T02:04:06.4559617Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-05-05T02:04:06.4560657Z Initialized empty Git repository in /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/.git/
+2026-05-05T02:04:06.4562877Z [command]/usr/bin/git remote add origin https://github.com/dvskr/PMHNP-Job-Board
+2026-05-05T02:04:06.4593286Z ##[endgroup]
+2026-05-05T02:04:06.4594073Z ##[group]Disabling automatic garbage collection
+2026-05-05T02:04:06.4597245Z [command]/usr/bin/git config --local gc.auto 0
+2026-05-05T02:04:06.4626170Z ##[endgroup]
+2026-05-05T02:04:06.4626872Z ##[group]Setting up auth
+2026-05-05T02:04:06.4632947Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-05-05T02:04:06.4662865Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-05-05T02:04:06.4962762Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-05-05T02:04:06.4995683Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-05-05T02:04:06.5237172Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-05-05T02:04:06.5279221Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-05-05T02:04:06.5545012Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-05-05T02:04:06.5585735Z ##[endgroup]
+2026-05-05T02:04:06.5586942Z ##[group]Fetching the repository
+2026-05-05T02:04:06.5597303Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +550e6ec71d583e60e791a664c8e995de56e524ba:refs/remotes/origin/main
+2026-05-05T02:04:08.3895467Z From https://github.com/dvskr/PMHNP-Job-Board
+2026-05-05T02:04:08.3897426Z  * [new ref]         550e6ec71d583e60e791a664c8e995de56e524ba -> origin/main
+2026-05-05T02:04:08.3924723Z ##[endgroup]
+2026-05-05T02:04:08.3926021Z ##[group]Determining the checkout info
+2026-05-05T02:04:08.3927524Z ##[endgroup]
+2026-05-05T02:04:08.3933041Z [command]/usr/bin/git sparse-checkout disable
+2026-05-05T02:04:08.3971140Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-05-05T02:04:08.3998209Z ##[group]Checking out the ref
+2026-05-05T02:04:08.4002765Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-05-05T02:04:08.7190514Z Switched to a new branch 'main'
+2026-05-05T02:04:08.7192454Z branch 'main' set up to track 'origin/main'.
+2026-05-05T02:04:08.7215148Z ##[endgroup]
+2026-05-05T02:04:08.7256403Z [command]/usr/bin/git log -1 --format=%H
+2026-05-05T02:04:08.7280538Z 550e6ec71d583e60e791a664c8e995de56e524ba

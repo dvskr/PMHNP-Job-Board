@@ -1,0 +1,43 @@
+﻿2026-05-05T02:05:26.1438961Z ##[group]Run npm run eval candidate_scoring talent_search_rerank
+2026-05-05T02:05:26.1439416Z [36;1mnpm run eval candidate_scoring talent_search_rerank[0m
+2026-05-05T02:05:26.1462076Z shell: /usr/bin/bash -e {0}
+2026-05-05T02:05:26.1462369Z env:
+2026-05-05T02:05:26.1462546Z   EVAL_DRY_RUN: 0
+2026-05-05T02:05:26.1463587Z   OPENAI_API_KEY: ***
+2026-05-05T02:05:26.1464210Z   DATABASE_URL: ***
+2026-05-05T02:05:26.1464744Z   DIRECT_URL: ***
+2026-05-05T02:05:26.1464934Z ##[endgroup]
+2026-05-05T02:05:26.2554700Z 
+2026-05-05T02:05:26.2555426Z > pmhnp-job-board@0.1.0 eval
+2026-05-05T02:05:26.2556426Z > ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-eval.ts candidate_scoring talent_search_rerank
+2026-05-05T02:05:26.2556937Z 
+2026-05-05T02:05:29.3244652Z [Prisma] Initializing connection pool...
+2026-05-05T02:05:29.8447392Z 
+2026-05-05T02:05:29.8448474Z [eval] candidate_scoring — GOLDEN SET
+2026-05-05T02:06:18.4728329Z   Mean score 0.950 ≥ baseline 0.800 (2/5 cases passed)
+2026-05-05T02:06:18.4729122Z   cost=$0.0064 p95=11491ms
+2026-05-05T02:06:18.4729697Z     ✗ license-mismatch-knockout: score=50 | expected=38±12 | missing_mentions=[texas]
+2026-05-05T02:06:18.4730773Z     ✗ pediatric-specialty-mismatch: score=25 | expected=50±12 | OUT_OF_BAND | missing_mentions=[adolescent]
+2026-05-05T02:06:18.4732124Z     ✗ non-pmhnp-applicant: score=25 | expected=18±12 | missing_mentions=[pmhnp]
+2026-05-05T02:06:18.4732633Z 
+2026-05-05T02:06:18.4732910Z [eval] talent_search_rerank — RANKING SUITE
+2026-05-05T02:08:48.9001199Z [33m[WARN][0m 2026-05-05T02:08:48.887Z - AI provider attempt failed (task=talent_search_rerank provider=openai model=gpt-5-mini)
+2026-05-05T02:08:48.9003174Z   Error: Request was aborted.
+2026-05-05T02:08:48.9032496Z   Stack: Error: Request was aborted.
+2026-05-05T02:08:48.9045077Z     at OpenAI.makeRequest (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/node_modules/openai/src/client.ts:639:13)
+2026-05-05T02:08:48.9049245Z     at async Object.complete (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/lib/ai/providers/openai.ts:63:30)
+2026-05-05T02:08:48.9050906Z     at async tryProvider (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/lib/ai/gateway.ts:96:16)
+2026-05-05T02:08:48.9052556Z     at async complete (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/lib/ai/gateway.ts:174:25)
+2026-05-05T02:08:48.9054319Z     at async runTalentSearchRerankSuite (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/lib/ai/eval/suites/talent-search-rerank.ts:285:28)
+2026-05-05T02:08:48.9056098Z     at async Object.runRanking (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/lib/ai/eval/index.ts:63:48)
+2026-05-05T02:08:48.9057534Z     at async main (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/scripts/run-eval.ts:98:28)
+2026-05-05T02:08:48.9059643Z [33m[WARN][0m 2026-05-05T02:08:48.899Z - AI provider attempt failed (task=talent_search_rerank provider=anthropic model=claude-sonnet-4-6)
+2026-05-05T02:08:48.9060956Z   Error: Provider "anthropic" is not configured
+2026-05-05T02:08:48.9062026Z   Stack: AiGatewayError: Provider "anthropic" is not configured
+2026-05-05T02:08:48.9063214Z     at tryProvider (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/lib/ai/gateway.ts:89:15)
+2026-05-05T02:08:48.9064554Z     at complete (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/lib/ai/gateway.ts:174:31)
+2026-05-05T02:08:48.9066667Z     at async runTalentSearchRerankSuite (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/lib/ai/eval/suites/talent-search-rerank.ts:285:28)
+2026-05-05T02:08:48.9068465Z     at async Object.runRanking (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/lib/ai/eval/index.ts:63:48)
+2026-05-05T02:08:48.9069891Z     at async main (/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/scripts/run-eval.ts:98:28)
+2026-05-05T02:15:49.5945853Z   Rerank holds baseline — mean precision 0.935 ≥ floor 0.85 (vector 0.815, lift 1.15×). 35/36 cases passed per-case floor.
+2026-05-05T02:15:49.5947308Z     ✗ veteran-ptsd-trauma: All providers failed for task=talent_search_rerank
