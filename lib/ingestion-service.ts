@@ -7,6 +7,8 @@ import { parseJobLocation } from './location-parser';
 import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
 import { classifyRelevance } from './utils/job-filter';
+import { computeCompleteness } from './job-normalizer';
+import { extractWithLLM, type LLMExtractResult } from './llm-enrichment';
 import { collectEmployerEmails } from './employer-email-collector';
 import { recordSourcePresence, loadHistoricalAvgFetched } from './health/source-presence';
 import { HealthRecorder } from './health/recorder';
@@ -69,6 +71,100 @@ const CHUNKED_SOURCES: ReadonlySet<JobSource> = new Set(['greenhouse', 'workday'
 // ~40% of inventory, while a gate lax enough to be safe (5) catches zero.
 // Ranking-by-quality already surfaces good jobs first without the
 // false-positive risk of an unpublish gate. Last reviewed: 2026-04-30.
+
+const STATE_NAME_TO_CODE: Record<string, string> = {
+  'alabama':'AL','alaska':'AK','arizona':'AZ','arkansas':'AR','california':'CA',
+  'colorado':'CO','connecticut':'CT','delaware':'DE','florida':'FL','georgia':'GA',
+  'hawaii':'HI','idaho':'ID','illinois':'IL','indiana':'IN','iowa':'IA',
+  'kansas':'KS','kentucky':'KY','louisiana':'LA','maine':'ME','maryland':'MD',
+  'massachusetts':'MA','michigan':'MI','minnesota':'MN','mississippi':'MS',
+  'missouri':'MO','montana':'MT','nebraska':'NE','nevada':'NV','new hampshire':'NH',
+  'new jersey':'NJ','new mexico':'NM','new york':'NY','north carolina':'NC',
+  'north dakota':'ND','ohio':'OH','oklahoma':'OK','oregon':'OR','pennsylvania':'PA',
+  'rhode island':'RI','south carolina':'SC','south dakota':'SD','tennessee':'TN',
+  'texas':'TX','utah':'UT','vermont':'VT','virginia':'VA','washington':'WA',
+  'west virginia':'WV','wisconsin':'WI','wyoming':'WY','district of columbia':'DC',
+};
+
+const EXPERIENCE_LLM_TO_CANONICAL: Record<string, string> = {
+  'entry level': 'New Grad',
+  'entry-level': 'New Grad',
+  'mid level': 'Mid-Level',
+  'mid-level': 'Mid-Level',
+  'senior level': 'Senior',
+  'senior-level': 'Senior',
+  'director': 'Senior',
+};
+
+/**
+ * Merge LLM-extracted fields into a normalized job WITHOUT overwriting
+ * already-present values. Used by the inline-rescue path for borderline-
+ * completeness jobs.
+ *
+ * Convention matches the enrich-jobs cron's update-data construction —
+ * if either codepath changes its merge logic, update the other to match.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mergeLlmIntoNormalized(job: any, llm: LLMExtractResult): any {
+  const next = { ...job };
+
+  // Salary — only fill when the regex pass came up empty. Salary_min from
+  // the LLM is already in annual USD per the prompt contract.
+  if (llm.salary_min && !next.normalizedMinSalary) {
+    const min = Math.round(llm.salary_min);
+    const max = Math.round(llm.salary_max ?? llm.salary_min);
+    next.normalizedMinSalary = min;
+    next.normalizedMaxSalary = max;
+    next.minSalary = min;
+    next.maxSalary = max;
+    next.salaryIsEstimated = true;
+    next.salaryConfidence = 0.7;
+    if (llm.salary_period) next.salaryPeriod = llm.salary_period;
+    next.displaySalary = `$${Math.round(min / 1000)}k - $${Math.round(max / 1000)}k/yr`;
+  }
+
+  if (llm.job_type && !next.jobType) next.jobType = llm.job_type;
+
+  if (llm.work_mode && !next.mode) {
+    const raw = llm.work_mode.trim();
+    const canon =
+      raw === 'Telehealth' ? 'Remote'
+        : raw === 'On-site' || raw === 'Onsite' ? 'In-Person'
+        : raw === 'Remote' || raw === 'Hybrid' || raw === 'In-Person' ? raw
+        : null;
+    if (canon) {
+      next.mode = canon;
+      if (canon === 'Remote') next.isRemote = true;
+      if (canon === 'Hybrid') next.isHybrid = true;
+    }
+  }
+
+  if (llm.city && !next.city) next.city = llm.city;
+
+  if (llm.state && !next.state) {
+    next.state = llm.state;
+    const code = STATE_NAME_TO_CODE[llm.state.toLowerCase()];
+    if (code && !next.stateCode) next.stateCode = code;
+  }
+
+  if (llm.experience_level && !next.experienceLevel) {
+    const canon = EXPERIENCE_LLM_TO_CANONICAL[llm.experience_level.toLowerCase()];
+    if (canon) next.experienceLevel = canon;
+  }
+
+  if (llm.clinical_setting && !next.setting) next.setting = llm.clinical_setting;
+  if (llm.patient_population && !next.population) next.population = llm.patient_population;
+  if (
+    llm.benefits &&
+    Array.isArray(llm.benefits) &&
+    llm.benefits.length > 0 &&
+    (!next.benefits || next.benefits.length === 0)
+  ) {
+    next.benefits = llm.benefits;
+  }
+
+  return next;
+}
 
 /**
  * Fetch raw jobs from a specific source via the adapter registry.
@@ -327,7 +423,52 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           });
           continue;
         }
-        const normalizedJob = normalizeResult.job;
+        let normalizedJob = normalizeResult.job;
+
+        // ── Inline LLM-rescue pass for borderline-completeness jobs ──
+        // If completeness score is between the hard floor (20, enforced by
+        // normalizer) and the soft floor (40), we give the job ONE shot at
+        // LLM enrichment before rejecting. Only fires when the description
+        // is substantive enough for the LLM to do something useful.
+        // Time-budgeted to keep us inside the 240s ingest envelope.
+        const SOFT_COMPLETENESS_FLOOR = 40;
+        const initialScore = computeCompleteness(normalizedJob);
+        if (
+          initialScore < SOFT_COMPLETENESS_FLOOR &&
+          (normalizedJob.description?.length ?? 0) >= 200 &&
+          // Don't burn LLM time when the orchestrator's clock is almost up.
+          Date.now() - startTime < MAX_INGESTION_MS - 30_000
+        ) {
+          try {
+            const llm = await extractWithLLM(
+              normalizedJob.description ?? '',
+              normalizedJob.title,
+              normalizedJob.employer ?? '',
+              normalizedJob.location ?? '',
+            );
+            if (llm.result) {
+              normalizedJob = mergeLlmIntoNormalized(normalizedJob, llm.result);
+            }
+          } catch (e) {
+            // LLM down / network error → fall through with original score.
+            console.warn(`[Ingest][${source}] inline LLM enrich failed:`, e);
+          }
+        }
+
+        const finalScore = computeCompleteness(normalizedJob);
+        if (finalScore < SOFT_COMPLETENESS_FLOOR) {
+          rejectedJobs.push({
+            title: normalizedJob.title,
+            employer: normalizedJob.employer || null,
+            location: normalizedJob.location || null,
+            applyLink: normalizedJob.applyLink || null,
+            externalId: normalizedJob.externalId || null,
+            sourceProvider: source,
+            rejectionReason: 'normalizer_low_completeness',
+            rawData: rawJob as object,
+          });
+          continue;
+        }
 
         // Strategy 1: Fast in-memory lookup for exact externalId match
         if (normalizedJob.externalId && existingJobsMap.has(normalizedJob.externalId)) {

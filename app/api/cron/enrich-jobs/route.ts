@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import OpenAI from 'openai';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { extractWithLLM } from '@/lib/llm-enrichment';
 
 export const maxDuration = 300; // 5 minutes
 
@@ -14,8 +14,6 @@ const BATCH_DELAY_MS = 200;
 // GPT-5-mini pricing (per 1M tokens)
 const INPUT_COST_PER_1M = 0.30;  // $0.30 per 1M input tokens
 const OUTPUT_COST_PER_1M = 1.25; // $1.25 per 1M output tokens
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // US state name -> code mapping
 const STATE_CODES: Record<string, string> = {
@@ -32,87 +30,8 @@ const STATE_CODES: Record<string, string> = {
   'west virginia':'WV','wisconsin':'WI','wyoming':'WY','district of columbia':'DC'
 };
 
-interface LLMResult {
-  salary_min?: number;
-  salary_max?: number;
-  salary_period?: string;
-  job_type?: string;
-  work_mode?: string;
-  city?: string;
-  state?: string;
-  experience_level?: string;
-  clinical_setting?: string;
-  patient_population?: string;
-  benefits?: string[];
-}
-
-interface LLMResponse {
-  result: LLMResult | null;
-  inputTokens: number;
-  outputTokens: number;
-}
-
-const SYSTEM_PROMPT = `You extract structured job posting data. Return JSON with ONLY fields you can CONFIDENTLY find. Never guess or fabricate.
-
-Fields:
-- salary_min: number, minimum annual salary in USD. Convert: hourly×2080, monthly×12, weekly×52
-- salary_max: number, maximum annual salary in USD
-- salary_period: "hour", "month", or "year" (original unit BEFORE conversion)
-- job_type: "Full-Time", "Part-Time", "Contract", "Per Diem", or "PRN"
-- work_mode: EXACTLY ONE of "Remote", "Hybrid", "In-Person" (use these strings verbatim — do NOT use "On-site", "Onsite", "Telehealth", or other variants; map "Telehealth" to "Remote" and "On-site"/"Onsite" to "In-Person")
-- city: string, job city (not employer HQ)
-- state: string, full US state name
-- experience_level: "Entry Level", "Mid Level", "Senior Level", or "Director"
-- clinical_setting: e.g. "Outpatient", "Inpatient", "Residential", "Emergency", "Community Health", "Private Practice", "Correctional", "Telehealth", "Hospital"
-- patient_population: e.g. "Adults", "Children", "Adolescents", "Geriatric", "All Ages", "Veterans", "Substance Abuse"
-- benefits: string array, e.g. ["Health Insurance", "401k", "PTO", "CME Allowance", "Malpractice Coverage", "Student Loan Repayment", "Signing Bonus", "Relocation Assistance"]
-
-Rules:
-- ONLY include if explicitly stated in text
-- Salary must be $40k-$500k/yr range for PMHNP roles
-- Return {} if nothing found`;
-
-async function extractWithLLM(description: string, title: string, employer: string, location: string): Promise<LLMResponse> {
-  try {
-    const truncated = description.substring(0, 2500);
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-5-mini',
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: `Title: ${title}\nEmployer: ${employer}\nLocation: ${location}\n\n${truncated}`
-        }
-      ],
-      // Note: gpt-5-mini does not support temperature (only default 1).
-      // max_completion_tokens includes internal reasoning tokens — 4096 gives
-      // ~3K for thinking + ~1K for the JSON output.
-      max_completion_tokens: 4096,
-    });
-
-    const inputTokens = response.usage?.prompt_tokens || 0;
-    const outputTokens = response.usage?.completion_tokens || 0;
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) return { result: null, inputTokens, outputTokens };
-
-    const parsed = JSON.parse(content);
-
-    // Validate salary
-    if (parsed.salary_min && (parsed.salary_min < 40000 || parsed.salary_min > 500000)) {
-      delete parsed.salary_min;
-      delete parsed.salary_max;
-      delete parsed.salary_period;
-    }
-
-    const result = Object.keys(parsed).length > 0 ? parsed : null;
-    return { result, inputTokens, outputTokens };
-  } catch {
-    return { result: null, inputTokens: 0, outputTokens: 0 };
-  }
-}
+// extractWithLLM and prompt now live in lib/llm-enrichment.ts (shared with
+// the inline-rescue path in lib/ingestion-service.ts).
 
 export async function GET(req: Request) {
   // Verify cron secret
@@ -258,7 +177,17 @@ export async function GET(req: Request) {
         };
 
         if (!extracted) {
-          // Even if no data found, mark as enriched so we don't re-process
+          // LLM found nothing. If the row STILL has no location signal at
+          // all (no city, no state, not remote, not hybrid), default to
+          // isRemote=true — most plausible read for "we don't know where"
+          // since PMHNP roles often are. Better than leaving the row
+          // un-locatable, which would later fail the completeness gate.
+          // (Added 2026-05-05.)
+          const noLocationSignal =
+            !job.city && !job.state && !job.isRemote && !job.isHybrid;
+          if (noLocationSignal) {
+            updateData.isRemote = true;
+          }
           stats.noData++;
           try {
             await prisma.job.update({ where: { id: job.id }, data: updateData });
@@ -357,6 +286,17 @@ export async function GET(req: Request) {
         }
 
         if (fieldsUpdated > 0) stats.enriched++;
+
+        // Final location safety net: if neither the existing row nor the
+        // LLM extraction provided ANY location signal, default to remote
+        // (added 2026-05-05). Better than leaving the row un-locatable.
+        const finalCity   = updateData.city   ?? job.city;
+        const finalState  = updateData.state  ?? job.state;
+        const finalRemote = updateData.isRemote ?? job.isRemote;
+        const finalHybrid = updateData.isHybrid ?? job.isHybrid;
+        if (!finalCity && !finalState && !finalRemote && !finalHybrid) {
+          updateData.isRemote = true;
+        }
 
         // Execute update (always writes lastEnrichedAt)
         try {

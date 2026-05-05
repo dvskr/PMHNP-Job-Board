@@ -418,47 +418,37 @@ export function validateAndNormalizeSalary(
     }
   }
 
-  // Step 2: Reject clearly fake values based on period
-  const isInvalid = (salary: number | null, period: string): boolean => {
-    if (!salary) return false;
-
-    if (period === 'hourly') {
-      return salary > 300 || salary < 20;
-    } else if (period === 'annual') {
-      return salary > 500000 || salary < 30000;
-    }
-    // For daily/weekly/biweekly/monthly, use reasonable ranges
-    if (period === 'daily') {
-      return salary > 2000 || salary < 100;
-    }
-    if (period === 'weekly') {
-      return salary > 10000 || salary < 400;
-    }
-    if (period === 'biweekly') {
-      return salary > 20000 || salary < 800;
-    }
-    if (period === 'monthly') {
-      return salary > 40000 || salary < 2000;
-    }
-
-    return false;
+  // Step 2: Clamp out-of-range values to the period's bounds rather than
+  // dropping them. The source TRIED to give us a salary, so a usable value
+  // is better than null. A $20k "annual" gets clamped up to $30k; a $700k
+  // "annual" gets clamped down to $500k. (Changed 2026-05-05 from drop-on-
+  // invalid to clamp-on-invalid per user request.)
+  const PERIOD_BOUNDS: Record<string, { min: number; max: number }> = {
+    hourly:    { min: 20,    max: 300 },
+    annual:    { min: 30000, max: 500000 },
+    daily:     { min: 100,   max: 2000 },
+    weekly:    { min: 400,   max: 10000 },
+    biweekly:  { min: 800,   max: 20000 },
+    monthly:   { min: 2000,  max: 40000 },
   };
 
-  if (isInvalid(min, period) && isInvalid(max, period)) {
-    // Both invalid, reject all
-    console.log(`Rejected suspicious salary: ${min}-${max} ${period}`);
-    return { minSalary: null, maxSalary: null, salaryPeriod: null };
-  }
+  const clampToBounds = (salary: number | null, p: string): number | null => {
+    if (!salary) return null;
+    const bounds = PERIOD_BOUNDS[p];
+    if (!bounds) return salary; // unknown period — leave alone
+    if (salary < bounds.min) {
+      console.log(`Clamped low salary ${salary} ${p} → ${bounds.min}`);
+      return bounds.min;
+    }
+    if (salary > bounds.max) {
+      console.log(`Clamped high salary ${salary} ${p} → ${bounds.max}`);
+      return bounds.max;
+    }
+    return salary;
+  };
 
-  if (isInvalid(min, period)) {
-    console.log(`Rejected suspicious salary: ${min} ${period}`);
-    min = null;
-  }
-
-  if (isInvalid(max, period)) {
-    console.log(`Rejected suspicious salary: ${max} ${period}`);
-    max = null;
-  }
+  min = clampToBounds(min, period);
+  max = clampToBounds(max, period);
 
   // Step 3: Swap if minSalary > maxSalary
   if (min && max && min > max) {
@@ -863,20 +853,17 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     const experienceLevel = detectExperienceLevel(title, fullText);
 
 
-    // Expiration policy: 60 days from originalPostedAt. No more "now + 60d"
-    // and no more renewal extensions — once a job is set, this is its
-    // absolute lifecycle clock. The earlier explicit-expiry branch is
-    // gone because the only sources that ever provided one (JSearch,
-    // USAJobs) are decommissioned.
-    //
-    // Fallback: if originalPostedAt is null/invalid (shouldn't happen
-    // in practice — we default to new Date() below), use ingest time.
+    // Expiration policy.
+    //   Source provided a date  → expiresAt = originalPostedAt + 60 days
+    //   Source did NOT          → expiresAt = now + 30 days  (shorter half-life
+    //                              for jobs we don't actually know the age of)
+    // Single clock — no renewal extensions. Once set, expiresAt stays.
     const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
-    const baseDate =
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const expiresAt =
       originalPostedAt && !isNaN(originalPostedAt.getTime())
-        ? originalPostedAt
-        : new Date();
-    const expiresAt = new Date(baseDate.getTime() + SIXTY_DAYS_MS);
+        ? new Date(originalPostedAt.getTime() + SIXTY_DAYS_MS)
+        : new Date(Date.now() + THIRTY_DAYS_MS);
 
     // Normalize salary to annual equivalent
     const normalizedSalaryData = normalizeSalary({
@@ -924,7 +911,13 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
       // the enrich-jobs cron, so we don't pass them — gate would be too strict.
     });
 
-    if (completenessScore < MIN_COMPLETENESS_SCORE) {
+    // Hard floor: anything under 20 is unsalvageable (no description signal,
+    // no location, nothing). Reject immediately without bothering LLM.
+    // Soft 40-floor enforcement is moved to the orchestrator (after the
+    // inline-LLM rescue pass) so borderline jobs get one chance at LLM
+    // enrichment before being rejected.
+    const HARD_COMPLETENESS_FLOOR = 20;
+    if (completenessScore < HARD_COMPLETENESS_FLOOR) {
       return { job: null, rejectionReason: 'normalizer_low_completeness' };
     }
 
