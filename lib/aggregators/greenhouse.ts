@@ -4,6 +4,14 @@ interface GreenhouseJob {
   id: number;
   title: string;
   updated_at: string;
+  /**
+   * The TRUE first-publish date. Confirmed via API probe 2026-05-05 —
+   * Greenhouse exposes BOTH `updated_at` (last-edit) AND `first_published`
+   * (original post). Earlier docs claimed only updated_at was available;
+   * that was wrong. We now read first_published for originalPostedAt
+   * accuracy, falling back to updated_at if absent.
+   */
+  first_published?: string;
   requisition_id: string;
   location: {
     name: string;
@@ -81,15 +89,12 @@ async function fetchCompanyJobs(companySlug: string): Promise<GreenhouseJobRaw[]
       location: job.location?.name || job.offices?.[0]?.name || 'Remote',
       description: job.content || '',
       applyLink: job.absolute_url,
-      // Greenhouse only exposes updated_at (last-edit date). Pre-2026-05-05
-      // we omitted it so originalPostedAt defaulted to ingest time — but that
-      // broke the new 60-day-from-original lifecycle cap (every greenhouse
-      // job appeared fresh forever). Now we DO use updated_at: an old listing
-      // that hasn't been edited will have an old date and correctly age out;
-      // an old listing that just got edited will look fresh for 60 more days,
-      // which is acceptable since edit-activity is a real signal of the
-      // employer still hiring.
-      postedDate: job.updated_at,
+      // Greenhouse exposes first_published (true original post date) AND
+      // updated_at (last-edit). Use first_published for accuracy so the
+      // 60-day-from-original lifecycle cap measures from the real post
+      // date. Fall back to updated_at when first_published is absent
+      // (rare; a few legacy boards omit it).
+      postedDate: job.first_published || job.updated_at,
     }));
 
     // Pre-filter for PMHNP relevance

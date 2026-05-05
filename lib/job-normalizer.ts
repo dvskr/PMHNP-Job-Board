@@ -589,27 +589,22 @@ export type NormalizerRejectionReason =
 const MIN_DESCRIPTION_LENGTH = 50;
 
 /**
- * Minimum completeness score required for a job to be admitted.
+ * Two-tier completeness gating.
  *
- * 0–100 scale. Below this, the job is rejected with
- * `normalizer_low_completeness`.
+ *   Hard floor (this file)       — score < 20 → reject as truly unsalvageable.
+ *   Soft floor (orchestrator)    — score < 40 → try inline LLM rescue, then
+ *                                    re-score and decide. See lib/ingestion-service.ts.
  *
  * Calibrated 2026-05-05 against the typical catalog distribution:
- *   - greenhouse: avg ~50 (description + location + jobType + mode)
- *   - lever:      avg ~50
- *   - adzuna:     avg ~70 (almost always has salary)
- *   - fantastic:  avg ~38 (often missing mode + salary)
- *
- * Threshold of 40 ensures a job has at minimum: a real description
- * (≥50 chars), a location signal, AND at least one of (jobType, mode).
- * That's the floor of "informative enough to display." Tuneable later.
+ *   - greenhouse / lever:  avg ~50 (description + location + jobType + mode)
+ *   - adzuna:              avg ~70 (almost always has salary)
+ *   - fantastic-jobs-db:   avg ~38 (often missing mode + salary; LLM rescue tries)
  */
-const MIN_COMPLETENESS_SCORE = 40;
 
 /**
  * Score a normalized job 0-100 by which fields it has populated.
- * Used as a soft quality gate (see MIN_COMPLETENESS_SCORE) and a
- * sortable signal in the admin panel later.
+ * Used by the two-tier completeness gate (hard floor here, soft floor
+ * in the orchestrator) and as a sortable signal in the admin panel.
  *
  * Weights reflect what users actually need to evaluate a job:
  *   - description (15) — cannot read the role without this

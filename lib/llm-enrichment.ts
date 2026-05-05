@@ -60,17 +60,24 @@ function getOpenAI(): OpenAI | null {
     return _openai;
 }
 
+export interface ExtractWithLLMOptions {
+    /** Per-call timeout (ms). Default 8s — caller should always set this for inline use. */
+    timeoutMs?: number;
+}
+
 export async function extractWithLLM(
     description: string,
     title: string,
     employer: string,
     location: string,
+    options: ExtractWithLLMOptions = {},
 ): Promise<LLMExtractResponse> {
     const start = Date.now();
     const openai = getOpenAI();
     if (!openai) {
         return { result: null, inputTokens: 0, outputTokens: 0, elapsedMs: 0 };
     }
+    const { timeoutMs = 8000 } = options;
     try {
         const truncated = description.substring(0, 2500);
 
@@ -85,6 +92,11 @@ export async function extractWithLLM(
                 },
             ],
             max_completion_tokens: 4096,
+        }, {
+            // Hard wall on per-call latency. Without this, a hung OpenAI
+            // request can starve the orchestrator's 240s ingest budget.
+            // 8s is generous — typical gpt-5-mini calls return in 1-2s.
+            timeout: timeoutMs,
         });
 
         const inputTokens = response.usage?.prompt_tokens || 0;
