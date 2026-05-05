@@ -62,26 +62,42 @@ describe('normalizeJobWithReason — sub-bucketed rejection reasons', () => {
         expect(result.rejectionReason).toBe('normalizer_missing_description');
     });
 
-    it('rejects stale post with normalizer_stale_post (non-ATS source)', () => {
+    it('rejects 70-day-old post with normalizer_stale_post (any source)', () => {
         const oldDate = new Date();
-        oldDate.setDate(oldDate.getDate() - 100);
+        oldDate.setDate(oldDate.getDate() - 70);
         // Adzuna's source config reads `postedAt` (see SOURCE_CONFIGS).
         const result = normalizeJobWithReason(
             rawJob({ postedAt: oldDate.toISOString() }),
-            'adzuna', // non-ATS
+            'adzuna',
         );
         expect(result.job).toBeNull();
         expect(result.rejectionReason).toBe('normalizer_stale_post');
     });
 
-    it('does NOT reject stale post for ATS sources', () => {
+    it('rejects 70-day-old post for ATS sources too (no more exemption)', () => {
         const oldDate = new Date();
-        oldDate.setDate(oldDate.getDate() - 100);
+        oldDate.setDate(oldDate.getDate() - 70);
         // Lever's source config reads `postedDate`.
         const result = normalizeJobWithReason(
             rawJob({ postedDate: oldDate.toISOString() }),
-            'lever', // ATS — only returns active reqs
+            'lever',
         );
+        expect(result.job).toBeNull();
+        expect(result.rejectionReason).toBe('normalizer_stale_post');
+    });
+
+    it('accepts 30-day-old post', () => {
+        const recentDate = new Date();
+        recentDate.setDate(recentDate.getDate() - 30);
+        const result = normalizeJobWithReason(
+            rawJob({ postedDate: recentDate.toISOString() }),
+            'lever',
+        );
+        expect(result.job).not.toBeNull();
+    });
+
+    it('accepts post with no date (treated as fresh)', () => {
+        const result = normalizeJobWithReason(rawJob(), 'lever');
         expect(result.job).not.toBeNull();
     });
 });
