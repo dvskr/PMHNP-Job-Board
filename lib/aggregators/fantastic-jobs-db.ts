@@ -80,6 +80,10 @@ const PAGE_SIZE = 100;
 //            description=psychiatric/mental-health/PMHNP. Catches the
 //            generic-titled jobs that title-only filtering missed.
 
+// Pass A: literal title-phrase matches. The API only accepts a single
+// literal phrase per `title_filter` query, so each variant is its own
+// pass. Most variants resolve in 1-3 pages so the marginal cost of
+// adding more terms is small (~5 calls per term added).
 const TITLE_TERMS = [
     'PMHNP',
     'Psychiatric Nurse Practitioner',
@@ -87,15 +91,26 @@ const TITLE_TERMS = [
     'Mental Health Nurse Practitioner',
     'Behavioral Health Nurse Practitioner',
     'Psychiatric APRN',
+    'Mental Health APRN',
     'Telepsychiatry',
+    'Psychiatric Mental Health',
+    'Psych Nurse Practitioner',
+    'Psych NP',
+    'Child Adolescent Psychiatric Nurse Practitioner',
+    'Geriatric Psychiatric Nurse Practitioner',
+    'Addiction Psychiatric Nurse Practitioner',
 ];
 
-// Title=NP/APRN, description filter widens the catch.
+// Pass B: title=broad, description_filter narrows to psychiatric work.
+// Catches generic-titled postings that mention psychiatric in the body.
 const TITLE_FILTERS_BROAD = [
     'Nurse Practitioner',
     'APRN',
+    'Advanced Practice Provider',
 ];
-const DESCRIPTION_FILTER_PSYCH = '"psychiatric" OR "mental health" OR "PMHNP" OR "psychiatry"';
+// Description filter supports OR — broaden the net to all clinical
+// terms a PMHNP role would mention.
+const DESCRIPTION_FILTER_PSYCH = '"psychiatric" OR "mental health" OR "PMHNP" OR "psychiatry" OR "behavioral health" OR "telepsychiatry" OR "suboxone" OR "buprenorphine" OR "addiction medicine" OR "dual diagnosis"';
 
 // ── Budget Protection ──
 // Ultra plan: 20,000 requests/month, 5 req/sec
