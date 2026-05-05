@@ -70,6 +70,7 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
       title: `${title} - Find Your Next Position`,
       description,
       type: 'website',
+      images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-og.webp', width: 1200, height: 630, alt: 'PMHNP Job Board — Browse psychiatric nurse practitioner jobs' }],
     },
     twitter: {
       card: 'summary_large_image',

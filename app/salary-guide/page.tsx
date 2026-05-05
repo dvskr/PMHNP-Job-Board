@@ -184,7 +184,7 @@ export default async function SalaryGuidePage() {
     "@type": "Article",
     "headline": "2026 PMHNP Salary Guide: Psychiatric NP Pay by State",
     "description": "Comprehensive PMHNP salary data for 2026 including state-by-state pay, experience levels, specialty premiums, and market trends. Based on BLS, ZipRecruiter, Indeed, and 10,000+ job postings.",
-    "image": "https://pmhnphiring.comhttps://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp",
+    "image": "https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp",
     "datePublished": "2026-01-01T00:00:00Z",
     "dateModified": new Date().toISOString(),
     "author": { "@type": "Organization", "name": "PMHNP Hiring", "url": "https://pmhnphiring.com", "logo": { "@type": "ImageObject", "url": "https://pmhnphiring.com/logo.png" } },
