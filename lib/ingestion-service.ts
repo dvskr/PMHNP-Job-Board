@@ -4,8 +4,7 @@ import { GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
 import { getLastRunDiagnostics as getFantasticJobsDiag } from './aggregators/fantastic-jobs-db';
 import { normalizeJobWithReason } from './job-normalizer';
 import { checkDuplicate, buildJobIdentityKey, buildApplyUrlPathKey } from './deduplicator';
-import { parseJobLocation } from './location-parser';
-import { linkJobToCompany } from './company-normalizer';
+import { getOrCreateCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
 import { classifyRelevance } from './utils/job-filter';
 import { computeCompleteness } from './job-normalizer';
@@ -630,12 +629,11 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           }
         }
 
-        // expiresAt is set authoritatively by the normalizer
-        // (originalPostedAt + 60d when source provided a date, else
-        // now + 30d). The orchestrator previously overrode it with
-        // a flat 60d, which silently disabled the 30d fallback —
-        // fixed 2026-05-06. Slug is generated up-front against a
-        // pre-allocated uuid so insert + slug land in one round-trip.
+        // Step 7 enrichment is folded INTO the create payload (was previously
+        // 3 SELECTs + 3 UPDATEs after the insert). parseJobLocation post-insert
+        // was dead work — the normalizer already populates city/state/etc.
+        // companyId and qualityScore can be resolved/computed from in-memory
+        // data, so they go into the same `prisma.job.create` call.
         const newId = randomUUID();
         const slug = `${(normalizedJob.title as string)
           .toLowerCase()
@@ -644,11 +642,37 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           .replace(/-+/g, '-')
           .trim()}-${newId}`;
 
+        // Resolve / create the Company row first so we can write companyId
+        // in the same insert. Errors are non-fatal — a null companyId is OK.
+        let companyId: string | null = null;
+        try {
+          if (normalizedJob.employer) {
+            companyId = await getOrCreateCompany(normalizedJob.employer as string);
+          }
+        } catch (companyError) {
+          console.error(`[${source.toUpperCase()}] Failed to resolve company for "${normalizedJob.title}":`, companyError);
+        }
+
+        // Quality score from in-memory normalizedJob — no extra SELECT.
+        const qualityScore = computeQualityScore({
+          applyLink: (normalizedJob.applyLink as string | null) ?? null,
+          displaySalary: (normalizedJob.displaySalary as string | null) ?? null,
+          normalizedMinSalary: (normalizedJob.normalizedMinSalary as number | null) ?? null,
+          normalizedMaxSalary: (normalizedJob.normalizedMaxSalary as number | null) ?? null,
+          descriptionSummary: (normalizedJob.descriptionSummary as string | null) ?? null,
+          description: (normalizedJob.description as string | null) ?? null,
+          city: (normalizedJob.city as string | null) ?? null,
+          state: (normalizedJob.state as string | null) ?? null,
+          isEmployerPosted: false, // aggregated jobs are never employer-posted
+        });
+
         const savedJob = await prisma.job.create({
           data: {
             id: newId,
             ...(normalizedJob as any),
             slug,
+            companyId,
+            qualityScore,
           },
         });
         added++;
@@ -674,49 +698,10 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           if (!globalTitleKeyMap.has(idKey)) globalTitleKeyMap.set(idKey, savedJob.id);
         }
 
-        // Slug + id are now set in the create above (single round-trip).
         newJobUrls.push(`https://pmhnphiring.com/jobs/${slug}`);
-
-        // Parse location
-        try {
-          await parseJobLocation(savedJob.id);
-        } catch (locationError) {
-          console.error(`Failed to parse location for job ${savedJob.id}:`, locationError);
-        }
-
-        // Link to company
-        try {
-          await linkJobToCompany(savedJob.id);
-        } catch (companyError) {
-          console.error(`Failed to link company for job ${savedJob.id}:`, companyError);
-        }
 
         // NOTE: Link validation (validateApplyLink) is skipped during ingestion
         // to avoid HTTP timeout overhead. It runs separately via check-dead-links cron.
-
-        // Compute quality score based on final resolved link and job data
-        try {
-          const currentJob = await prisma.job.findUnique({
-            where: { id: savedJob.id },
-            select: { applyLink: true, displaySalary: true, normalizedMinSalary: true, normalizedMaxSalary: true, descriptionSummary: true, description: true, city: true, state: true },
-          });
-          if (currentJob) {
-            const qScore = computeQualityScore({
-              applyLink: currentJob.applyLink,
-              displaySalary: currentJob.displaySalary,
-              normalizedMinSalary: currentJob.normalizedMinSalary,
-              normalizedMaxSalary: currentJob.normalizedMaxSalary,
-              descriptionSummary: currentJob.descriptionSummary,
-              description: currentJob.description,
-              city: currentJob.city,
-              state: currentJob.state,
-              isEmployerPosted: false,  // aggregated jobs are never employer-posted
-            });
-            await prisma.job.update({ where: { id: savedJob.id }, data: { qualityScore: qScore } });
-          }
-        } catch (qError) {
-          // Non-fatal — job remains with default score of 0
-        }
 
         // Log progress every 10 jobs
         if ((i + 1) % 10 === 0) {
