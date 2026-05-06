@@ -58,6 +58,14 @@ export interface IngestionResult {
   duration: number;
   newJobUrls: string[];
   newJobIds: string[];
+  /**
+   * Rejection counts grouped by `rejectionReason`. Captures the
+   * fetched→added funnel collapse — pre-2026-05-06 we saw `47,563 fetched
+   * → 37 added` for greenhouse with no visibility into where the other
+   * 47k went (relevance? normalizer? probe?). Now surfaced in the Discord
+   * summary so the funnel is observable.
+   */
+  rejectedByReason: Record<string, number>;
 }
 
 // Max time budget per cron invocation — stop gracefully before Vercel's 300s hard limit
@@ -278,7 +286,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           console.error('[Ingest] Failed to push fantastic-jobs diag to Discord', e);
         }
       }
-      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds };
+      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds, rejectedByReason: countRejectionsByReason(rejectedJobs) };
     }
 
     // Use global dedup maps (pre-loaded once at start of full run)
@@ -793,13 +801,27 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
       }
     }
 
-    return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds };
+    return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds, rejectedByReason: countRejectionsByReason(rejectedJobs) };
 
   } catch (error) {
     console.error(`[${source.toUpperCase()}] Fatal error during ingestion:`, error);
     const duration = Date.now() - startTime;
-    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [], newJobIds: [] };
+    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [], newJobIds: [], rejectedByReason: {} };
   }
+}
+
+/**
+ * Aggregate rejected_jobs entries by `rejectionReason` for the IngestionResult.
+ * Cheap O(n) over the in-memory buffer; called once at end of each source run.
+ */
+function countRejectionsByReason(
+  rejectedJobs: Array<{ rejectionReason: string }>,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const r of rejectedJobs) {
+    counts[r.rejectionReason] = (counts[r.rejectionReason] ?? 0) + 1;
+  }
+  return counts;
 }
 
 /**

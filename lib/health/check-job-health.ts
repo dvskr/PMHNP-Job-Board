@@ -78,6 +78,36 @@ const SOURCES_NEVER_NEED_BODY = new Set<string>([
     // is incapable of soft-404 (e.g. Jooble where 403 is universal).
 ]);
 
+/**
+ * Hosts that consistently return 403 to anonymous probes despite the
+ * underlying job listing being alive (anti-scraper protection on the
+ * search/redirect wrapper). Probing them just produces inconclusive_403
+ * noise — same outcome as not probing at all.
+ *
+ * Distribution from the 2026-05-06 prod audit: 86% of all weekly
+ * inconclusive_403 outcomes came from just 2 hosts (jooble.org +
+ * www.adzuna.com). Skipping them entirely shaves ~7k probe calls/week
+ * with no change in dead-job detection.
+ */
+const KNOWN_403_HOSTS: ReadonlySet<string> = new Set([
+    'jooble.org',
+    'www.jooble.org',
+    'adzuna.com',
+    'www.adzuna.com',
+    'ziprecruiter.com',
+    'www.ziprecruiter.com',
+    'tealhq.com',
+    'www.tealhq.com',
+]);
+
+function isKnown403Host(applyUrl: string): boolean {
+    try {
+        return KNOWN_403_HOSTS.has(new URL(applyUrl).hostname.toLowerCase());
+    } catch {
+        return false;
+    }
+}
+
 export interface CheckJobHealthOptions {
     /** Override probe options (mostly used in tests). */
     probeImpl?: typeof probeUrl;
@@ -147,7 +177,28 @@ export async function checkJobHealth(
         }
     }
 
-    // 2. Generic HTTP probe + soft-404 detection.
+    // 2. Known-403 host bypass — return inconclusive_403 directly without
+    //    probing. Same downstream effect (treated as alive, dead-link cron
+    //    re-probes later if voted) but saves the network roundtrip.
+    if (isKnown403Host(applyUrl)) {
+        return {
+            alive: true,
+            reason: 'inconclusive_403',
+            evidence: {
+                finalStatus: 403,
+                finalUrl: applyUrl,
+                redirectHops: 0,
+                softMatch: null,
+                elapsedMs: 0,
+                errorKind: null,
+                errorMessage: 'skipped: known-403 host',
+                checkerVersion: SOFT_404_CHECKER_VERSION,
+                sourceProbe: null,
+            },
+        };
+    }
+
+    // 3. Generic HTTP probe + soft-404 detection.
     const fetchBody = sourceKey === null || !SOURCES_NEVER_NEED_BODY.has(sourceKey);
     const probe = await probeImpl(applyUrl, { fetchBody, timeoutMs, maxRedirects });
     return decide(probe, sourceProvider);

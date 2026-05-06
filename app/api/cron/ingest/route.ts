@@ -30,6 +30,20 @@ function formatCST(d: Date): string {
  * ingest run touched 6 sources, the channel got 6 stacked notifications.
  * Now: one summary with a per-source table, sortable at a glance.
  */
+/**
+ * Group all `duplicate_*` reasons under a single "duplicates" bucket
+ * and collapse the rest into 4 funnel-stage buckets so the embed stays
+ * inside Discord's 1024-char field cap. The full breakdown is still in
+ * `rejected_jobs` for SQL queries.
+ */
+function bucketRejection(reason: string): 'relevance' | 'normalizer' | 'duplicate' | 'dead' | 'other' {
+  if (reason.startsWith('relevance_')) return 'relevance';
+  if (reason.startsWith('normalizer_')) return 'normalizer';
+  if (reason.startsWith('duplicate_')) return 'duplicate';
+  if (reason === 'dead_at_ingest') return 'dead';
+  return 'other';
+}
+
 async function sendIngestionSummary(args: {
   results: Array<{
     source: string;
@@ -38,6 +52,7 @@ async function sendIngestionSummary(args: {
     duplicates: number;
     errors: number;
     duration: number;
+    rejectedByReason: Record<string, number>;
   }>;
   totalDuration: number;
   startTime: Date;
@@ -57,12 +72,28 @@ async function sendIngestionSummary(args: {
   });
   const tableValue = tableLines.join('\n').slice(0, 1020);
 
+  // Funnel breakdown — answers "where did the 47k go?" for sources where
+  // fetched ≫ added. Per-source rolled into 4 buckets to fit in Discord.
+  const funnelLines = args.results
+    .filter((r) => r.fetched >= 100) // skip tiny sources to keep the embed scannable
+    .map((r) => {
+      const buckets = { relevance: 0, normalizer: 0, duplicate: 0, dead: 0, other: 0 };
+      for (const [reason, n] of Object.entries(r.rejectedByReason ?? {})) {
+        buckets[bucketRejection(reason)] += n;
+      }
+      return `\`${r.source.padEnd(18)}\` rel ${String(buckets.relevance).padStart(5)} · norm ${String(buckets.normalizer).padStart(4)} · dup ${String(buckets.duplicate).padStart(4)} · dead ${String(buckets.dead).padStart(3)}`;
+    });
+  const funnelValue = funnelLines.join('\n').slice(0, 1020);
+
   const embed = {
     title: `${hasWarning ? '⚠️' : '✅'} Ingest run complete · ${totalAdded} added`,
     description: `Started ${formatCST(args.startTime)} · ran ${(args.totalDuration / 1000).toFixed(0)}s`,
     color: hasWarning ? 16776960 : 5763719,
     fields: [
       { name: `Per-source (${args.results.length})`, value: tableValue || '_no sources processed_', inline: false },
+      ...(funnelLines.length > 0
+        ? [{ name: 'Rejection funnel (rel / norm / dup / dead)', value: funnelValue, inline: false }]
+        : []),
       { name: 'Totals', value: `**${totalAdded}** added · ${totalFetched.toLocaleString()} fetched · ${totalErrors} errors`, inline: false },
     ],
     timestamp: new Date().toISOString(),
