@@ -202,11 +202,17 @@ After all sources for this run finish:
   `isPublished = false` for any job where `expiresAt < now` OR
   `originalPostedAt < now - 60 days`. Submit those URLs to GSC
   (100/day quota) and IndexNow (unlimited) for de-indexing.
-- `cleanAllJobDescriptions()` — HTML-to-text + boilerplate strip for
-  jobs whose description was just inserted.
-- `collectEmployerEmails()` — mine emails out of descriptions, write to
-  `employer_lead`.
+- `collectEmployerEmails()` — copy contact emails from
+  `employer_jobs.contact_email` and `user_profile` rows where
+  `role='employer'` into `employer_lead`. Despite the name, this does
+  NOT mine emails out of job descriptions (no regex extraction
+  exists). If we ever want that capability it's a new feature.
 - `pingAllSearchEnginesBatch()` — submit new URLs to Google/Bing/IndexNow.
+
+`cleanAllJobDescriptions()` was previously called here too but was
+removed 2026-05-06 — both write paths (aggregator normalizer +
+employer-posted endpoints) now clean descriptions at insert/submit time,
+so the end-of-cron whole-table scan was a no-op on every run.
 
 ### Step 10 — Fail-safe
 - Any unhandled exception triggers `sendCronFailureAlert()` to Discord.

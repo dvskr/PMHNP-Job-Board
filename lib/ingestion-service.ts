@@ -1044,45 +1044,18 @@ export async function ingestJobs(
     console.error('[Discord] Failed to send ingestion summary:', discordError);
   }
 
-  // Run post-ingestion cleanup if any jobs were added
-  if (totals.added > 0) {
-    const { cleanAllJobDescriptions } = await import('./description-cleaner');
-    await cleanAllJobDescriptions();
-
-    // Recompute quality scores for newly added jobs after description cleaning
-    // This ensures scores reflect cleaned descriptions (description quality points)
-    const allNewJobIds = results.flatMap(r => r.newJobIds);
-    if (allNewJobIds.length > 0) {
-      console.log(`[Quality] Recomputing scores for ${allNewJobIds.length} newly added jobs...`);
-      let recomputed = 0;
-      for (const jobId of allNewJobIds) {
-        try {
-          const job = await prisma.job.findUnique({
-            where: { id: jobId },
-            select: { applyLink: true, displaySalary: true, normalizedMinSalary: true, normalizedMaxSalary: true, descriptionSummary: true, description: true, city: true, state: true },
-          });
-          if (job) {
-            const qScore = computeQualityScore({
-              applyLink: job.applyLink,
-              displaySalary: job.displaySalary,
-              normalizedMinSalary: job.normalizedMinSalary,
-              normalizedMaxSalary: job.normalizedMaxSalary,
-              descriptionSummary: job.descriptionSummary,
-              description: job.description,
-              city: job.city,
-              state: job.state,
-              isEmployerPosted: false,
-            });
-            await prisma.job.update({ where: { id: jobId }, data: { qualityScore: qScore } });
-            recomputed++;
-          }
-        } catch (e) {
-          // Non-fatal — keep existing score
-        }
-      }
-      console.log(`[Quality] Recomputed ${recomputed}/${allNewJobIds.length} quality scores`);
-    }
-  }
+  // Post-ingestion description cleanup REMOVED 2026-05-06.
+  // Both insertion paths now produce clean descriptions at write-time:
+  //   - Aggregated ingests: lib/job-normalizer.ts:813 calls cleanDescription()
+  //     before building the create payload.
+  //   - Employer-posted: /api/jobs/post-free + /api/jobs/update both call
+  //     summarizeForMeta() at submit-time.
+  // The end-of-cron `cleanAllJobDescriptions()` whole-table scan was
+  // therefore a no-op on every run (filters by `description contains '<'`
+  // → nothing matched). Quality-score recompute that depended on this
+  // step is also gone — Step 7 already writes the final score at insert.
+  // If legacy dirty rows ever surface, run cleanAllJobDescriptions
+  // manually as a one-off; the function is still exported.
 
   // Auto-collect employer emails into leads
   try {
@@ -1141,40 +1114,26 @@ export async function cleanupExpiredJobs(): Promise<number> {
       return 0;
     }
 
-    // Sweep 1: Unpublish jobs past their expiresAt date
-    const expiredResult = await prisma.job.updateMany({
+    // Single sweep — same OR clause used in the SELECT above. Previously
+    // this was two updateMany calls with overlapping conditions, so any
+    // job matching BOTH (past expiresAt AND past 60-day cap) was touched
+    // twice. Collapsed 2026-05-06.
+    //
+    // NOTE: ATS dead-link checking REMOVED 2026-03-11 — now handled by
+    // /api/cron/check-dead-links (3×/day, 1500 links/run).
+    const updateResult = await prisma.job.updateMany({
       where: {
-        expiresAt: {
-          lt: now,
-        },
         isPublished: true,
+        OR: [
+          { expiresAt: { lt: now } },
+          { originalPostedAt: { lt: maxAgeDate }, sourceProvider: { not: null } },
+        ],
       },
-      data: {
-        isPublished: false,
-      },
+      data: { isPublished: false },
     });
 
-    // Sweep 2: Unpublish jobs older than 60 days (max lifetime cap)
-    const agedOutResult = await prisma.job.updateMany({
-      where: {
-        originalPostedAt: {
-          lt: maxAgeDate,
-        },
-        isPublished: true,
-        // Only apply to aggregated jobs, not employer-posted
-        sourceProvider: { not: null },
-      },
-      data: {
-        isPublished: false,
-      },
-    });
-
-    // NOTE: Sweep 3 (ATS dead link checking) REMOVED 2026-03-11 — now handled by
-    // dedicated /api/cron/check-dead-links cron (3×/day, 1500 links/run, HEAD→GET fallback).
-    // Running it here after every ingestion cron (~21×/day) was redundant and wasteful.
-
-    const total = expiredResult.count + agedOutResult.count;
-    console.log(`[Cleanup] Total: ${expiredResult.count} expired + ${agedOutResult.count} aged-out = ${total}`);
+    const total = updateResult.count;
+    console.log(`[Cleanup] Unpublished ${total} expired/aged-out jobs (single sweep)`);
 
     // Notify search engines to de-index expired job URLs
     // Uses dedicated deletion quota (100/day Google, unlimited IndexNow)
