@@ -2,7 +2,7 @@ import { prisma } from './prisma';
 import { GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
 import { getLastRunDiagnostics as getFantasticJobsDiag } from './aggregators/fantastic-jobs-db';
 import { normalizeJobWithReason } from './job-normalizer';
-import { checkDuplicate } from './deduplicator';
+import { checkDuplicate, buildJobIdentityKey, buildApplyUrlPathKey } from './deduplicator';
 import { parseJobLocation } from './location-parser';
 import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
@@ -31,7 +31,12 @@ const INGEST_DEAD_REASONS: ReadonlySet<HealthReason> = new Set([
 
 // ── Global dedup maps (pre-loaded once at start of full ingestion run) ──
 let globalExternalIdMap: Map<string, { id: string; sourceProvider: string; originalPostedAt: Date | null }> | null = null;
-let globalApplyLinkMap: Map<string, string> | null = null; // normalizedUrl -> jobId
+let globalApplyLinkMap: Map<string, string> | null = null; // URL.pathname.slice(0,60) -> jobId
+// 2026-05-05: third map added after prod audit found Strategy 2 ("exact
+// title+employer+location") was silently dropping dupes whenever > 50
+// candidates shared a title prefix (LifeStance had 27× duplicates of one
+// identity). Memory-resident lookup eliminates that cap.
+let globalTitleKeyMap: Map<string, string> | null = null; // identityKey -> jobId
 import { pingAllSearchEnginesBatch } from './search-indexing';
 import { computeQualityScore } from './utils/quality-score';
 
@@ -493,14 +498,20 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         }
 
         // Strategy 2: Fuzzy matching (only if not found by ID)
-        const dupCheck = await checkDuplicate({
-          title: normalizedJob.title,
-          employer: normalizedJob.employer,
-          location: normalizedJob.location,
-          externalId: normalizedJob.externalId ?? undefined,
-          sourceProvider: normalizedJob.sourceProvider ?? undefined,
-          applyLink: normalizedJob.applyLink ?? undefined,
-        });
+        const dupCheck = await checkDuplicate(
+          {
+            title: normalizedJob.title,
+            employer: normalizedJob.employer,
+            location: normalizedJob.location,
+            externalId: normalizedJob.externalId ?? undefined,
+            sourceProvider: normalizedJob.sourceProvider ?? undefined,
+            applyLink: normalizedJob.applyLink ?? undefined,
+          },
+          {
+            globalTitleKeyMap: globalTitleKeyMap ?? undefined,
+            globalApplyLinkMap: globalApplyLinkMap ?? undefined,
+          },
+        );
 
         if (dupCheck.isDuplicate) {
           // AUTO-RENEWAL: Fuzzy match found, renew the matched job
@@ -597,6 +608,26 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         });
         added++;
         newJobIds.push(savedJob.id);
+
+        // Keep global dedup maps in sync so a later source in the same run
+        // recognises this job. Without this, source N+1 would re-ingest the
+        // job source N just inserted (the legacy lifestance lever+fantastic
+        // double-rows are exactly this pattern).
+        if (globalExternalIdMap && normalizedJob.externalId) {
+          globalExternalIdMap.set(normalizedJob.externalId, {
+            id: savedJob.id,
+            sourceProvider: source,
+            originalPostedAt: normalizedJob.originalPostedAt ?? null,
+          });
+        }
+        if (globalApplyLinkMap && normalizedJob.applyLink) {
+          const pathKey = buildApplyUrlPathKey(normalizedJob.applyLink);
+          if (pathKey && !globalApplyLinkMap.has(pathKey)) globalApplyLinkMap.set(pathKey, savedJob.id);
+        }
+        if (globalTitleKeyMap && normalizedJob.title && normalizedJob.employer && normalizedJob.location) {
+          const idKey = buildJobIdentityKey(normalizedJob.title, normalizedJob.employer, normalizedJob.location);
+          if (!globalTitleKeyMap.has(idKey)) globalTitleKeyMap.set(idKey, savedJob.id);
+        }
 
         // Generate and update slug
         const slug = `${normalizedJob.title
@@ -786,15 +817,25 @@ export async function ingestJobs(
   console.log(`Sources: ${sources.join(', ')}`);
   console.log('='.repeat(80) + '\n');
 
-  // ── Pre-load ALL externalIds + applyLinks globally (eliminates per-source queries) ──
+  // ── Pre-load ALL externalIds + applyLinks + identity keys (eliminates per-job DB roundtrips) ──
   try {
-    console.log('[Dedup] Pre-loading global externalId + applyLink maps...');
+    console.log('[Dedup] Pre-loading global externalId + applyLink + title-key maps...');
     const allJobs = await prisma.job.findMany({
       where: { isPublished: true },
-      select: { id: true, externalId: true, sourceProvider: true, originalPostedAt: true, applyLink: true },
+      select: {
+        id: true,
+        externalId: true,
+        sourceProvider: true,
+        originalPostedAt: true,
+        applyLink: true,
+        title: true,
+        employer: true,
+        location: true,
+      },
     });
     globalExternalIdMap = new Map();
     globalApplyLinkMap = new Map();
+    globalTitleKeyMap = new Map();
     for (const job of allJobs) {
       if (job.externalId) {
         globalExternalIdMap.set(job.externalId, {
@@ -804,17 +845,27 @@ export async function ingestJobs(
         });
       }
       if (job.applyLink) {
-        try {
-          const pathname = new URL(job.applyLink).pathname.slice(0, 60);
-          globalApplyLinkMap.set(pathname, job.id);
-        } catch { /* malformed URL */ }
+        const pathKey = buildApplyUrlPathKey(job.applyLink);
+        if (pathKey) globalApplyLinkMap.set(pathKey, job.id);
+      }
+      // Identity key only set if all three fields are present — missing
+      // fields would produce ambiguous keys ("|employer|") that collide.
+      if (job.title && job.employer && job.location) {
+        const key = buildJobIdentityKey(job.title, job.employer, job.location);
+        // First-write wins so we point new dupes at the original job we'll
+        // renew. (Map.set replaces, so guard explicitly.)
+        if (!globalTitleKeyMap.has(key)) globalTitleKeyMap.set(key, job.id);
       }
     }
-    console.log(`[Dedup] Loaded ${globalExternalIdMap.size} externalIds, ${globalApplyLinkMap.size} applyLinks`);
+    console.log(
+      `[Dedup] Loaded ${globalExternalIdMap.size} externalIds, ` +
+      `${globalApplyLinkMap.size} applyLinks, ${globalTitleKeyMap.size} identityKeys`,
+    );
   } catch (e) {
     console.error('[Dedup] Failed to pre-load global maps, falling back to per-source:', e);
     globalExternalIdMap = null;
     globalApplyLinkMap = null;
+    globalTitleKeyMap = null;
   }
 
   const results: IngestionResult[] = [];
@@ -835,6 +886,7 @@ export async function ingestJobs(
   // Clean up global maps after ingestion
   globalExternalIdMap = null;
   globalApplyLinkMap = null;
+  globalTitleKeyMap = null;
 
   // Calculate totals
   const totals = results.reduce(
