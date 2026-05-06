@@ -26,6 +26,7 @@ export type JobSource =
     | 'lever'
     | 'workday'
     | 'fantastic-jobs-db'
+    | 'ats-jobs-db'
     | 'smartrecruiters';
 
 /**

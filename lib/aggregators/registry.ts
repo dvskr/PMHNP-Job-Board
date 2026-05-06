@@ -19,6 +19,7 @@ import { greenhouseAggregator } from './greenhouse';
 import { leverAggregator } from './lever';
 import { workdayAggregator } from './workday';
 import { fantasticJobsDbAggregator } from './fantastic-jobs-db';
+import { atsJobsDbAggregator } from './ats-jobs-db';
 import { smartRecruitersAggregator } from './smartrecruiters';
 
 export const aggregators: Record<JobSource, Aggregator> = {
@@ -27,5 +28,6 @@ export const aggregators: Record<JobSource, Aggregator> = {
     lever: leverAggregator,
     workday: workdayAggregator,
     'fantastic-jobs-db': fantasticJobsDbAggregator,
+    'ats-jobs-db': atsJobsDbAggregator,
     smartrecruiters: smartRecruitersAggregator,
 };

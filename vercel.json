@@ -53,6 +53,10 @@
       "schedule": "0 0 1 1 *"
     },
     {
+      "path": "/api/cron/ingest?source=ats-jobs-db",
+      "schedule": "45 12 * * *"
+    },
+    {
       "path": "/api/cron/ingest?source=smartrecruiters",
       "schedule": "35 11,17 * * *"
     },
