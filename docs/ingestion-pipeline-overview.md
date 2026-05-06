@@ -385,15 +385,18 @@ Counted by [app/api/jobs/filter-counts/route.ts](../app/api/jobs/filter-counts/r
 
 ## 6. Database tables in scope
 
+Verified against prod 2026-05-06.
+
 | Table | Purpose | Approx size | Retention |
 |---|---|---|---|
-| `jobs` | The catalog. Aggregator-pulled + employer-posted both live here. | ~3,500 published, ~32k total | Unpublished rows kept for analytics; never hard-deleted |
-| `job_health_checks` | Append-only audit log of every probe outcome (HTTP / soft-404 / source-presence / vote) | ~100k/week | Permanent; partitioned monthly (Sprint 5) |
-| `source_stats` | Daily roll-up per source: fetched / added / duplicate / expired / avg quality | ~5/day = 1.8k/year | Permanent (analytics) |
-| `rejected_job` | Per-rejection log: relevance, normalizer, duplicate, dead-at-ingest | ~10k/week | Reviewed for tuning, then trimmed |
-| `companies` | Employer master record — fuzzy-matched on insert | ~2k | Permanent |
-| `employer_jobs` | 1:1 sidecar for `sourceType='employer'` rows: payment, logo, dashboard token | ~50 | Permanent |
-| `cron_runs` | Cron-execution audit log (started_at, finished_at, success, error, metrics jsonb) | **0 rows last 7d** ← currently broken; see Section 8 | — |
+| `jobs` | The catalog. Aggregator-pulled + employer-posted both live here. | ~5k published, ~33k total | Unpublished rows kept for analytics; never hard-deleted |
+| `job_health_checks` | Append-only audit log of every probe outcome (HTTP / soft-404 / source-presence / vote) | ~17k total today | Permanent; partitioned monthly (Sprint 5) |
+| `source_stats` | Daily roll-up per source: fetched / added / duplicate / rejected (with reason breakdown) / expired / avg quality | ~5/day = ~1.8k/year (~900 today) | Permanent (analytics) |
+| `rejected_jobs` | Per-rejection log: relevance, normalizer, duplicate, dead-at-ingest | **~125k/week** churn (2.7M historical pre-cleanup) | 30-day TTL via `/api/cron/cleanup-rejected-jobs` (added 2026-05-06) |
+| `companies` | Employer master record — fuzzy-matched on insert | ~4.5k (likely dup-heavy; canonical-name cleanup is open work) | Permanent |
+| `employer_jobs` | 1:1 sidecar for `sourceType='employer'` rows: payment, logo, dashboard token | ~20 | Permanent |
+| `cron_runs` | Cron-execution audit log (started_at, finished_at, success, error, metrics jsonb) | populated by `withCronTracking` from 2026-05-06 (ingest, enrich-jobs, freshness-decay wrapped) | — |
+| `employer_leads` | Mined contacts (email/phone/website/company) for outreach. Sources: employer signups, employer-posted jobs, **description regex** (added 2026-05-06) | ~460 today (recent backfill produced 435 new + 2,676 enriched) | Permanent |
 
 ---
 
