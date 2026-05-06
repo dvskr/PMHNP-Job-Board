@@ -14,75 +14,88 @@ export interface SourcePerformance {
 }
 
 /**
- * Record ingestion statistics for a source
+ * Record ingestion statistics for a source.
+ *
+ * 2026-05-06: signature changed to accept caller-supplied
+ * `avgQualityScore` and `rejectedByReason`. Previously this function did
+ * a `prisma.job.findMany` of today's jobs from this source just to
+ * recompute a quality score — but the orchestrator now sets `qualityScore`
+ * at insert time, so the per-job scores are already known and we can
+ * pass a running average instead of re-querying.
+ *
+ * `rejectedByReason` is a per-reason breakdown of in-run rejections;
+ * we persist it on `source_stats` so trend queries don't need to scan
+ * the unbounded `rejected_jobs` table for the same data.
  */
+export interface RecordStatsArgs {
+  source: string;
+  fetched: number;
+  added: number;
+  duplicates: number;
+  /** Mean of the qualityScore values written for jobs added this run (0-100 scale). */
+  avgQualityScore?: number;
+  /** Counts of rejection reasons captured in this run. */
+  rejectedByReason?: Record<string, number>;
+}
+
+export async function recordIngestionStats(args: RecordStatsArgs): Promise<void>;
+/** @deprecated Positional signature; pass an object instead. */
 export async function recordIngestionStats(
   source: string,
   fetched: number,
   added: number,
-  duplicates: number
+  duplicates: number,
+): Promise<void>;
+export async function recordIngestionStats(
+  sourceOrArgs: string | RecordStatsArgs,
+  fetched?: number,
+  added?: number,
+  duplicates?: number,
 ): Promise<void> {
+  const args: RecordStatsArgs =
+    typeof sourceOrArgs === 'string'
+      ? { source: sourceOrArgs, fetched: fetched ?? 0, added: added ?? 0, duplicates: duplicates ?? 0 }
+      : sourceOrArgs;
+
   try {
-    // Get today's date at midnight UTC
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    // Calculate quality score for jobs from this source
-    const sourceJobs = await prisma.job.findMany({
-      where: {
-        sourceProvider: source,
-        createdAt: {
-          gte: today,
-        },
-      },
-      select: {
-        minSalary: true,
-        descriptionSummary: true,
-        city: true,
-        state: true,
-      },
-    });
+    const totalRejected = args.rejectedByReason
+      ? Object.values(args.rejectedByReason).reduce((s, n) => s + n, 0)
+      : 0;
 
-    // Calculate quality score (0-1 scale)
-    let qualityScore = 0;
-    if (sourceJobs.length > 0) {
-      const scores = sourceJobs.map((job: { minSalary: number | null; descriptionSummary: string | null; city: string | null; state: string | null }) => {
-        let score = 0.5; // Base score
-        if (job.minSalary) score += 0.2; // Has salary
-        if (job.descriptionSummary && job.descriptionSummary.length > 100) score += 0.1; // Good description
-        if (job.city && job.state) score += 0.2; // Complete location
-        return score;
-      });
-      qualityScore = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
-    }
-
-    // Upsert SourceStats for today
     await prisma.sourceStats.upsert({
-      where: {
-        source_date: {
-          source,
-          date: today,
-        },
-      },
+      where: { source_date: { source: args.source, date: today } },
       create: {
-        source,
+        source: args.source,
         date: today,
-        jobsFetched: fetched,
-        jobsAdded: added,
-        jobsDuplicate: duplicates,
-        avgQualityScore: qualityScore,
+        jobsFetched: args.fetched,
+        jobsAdded: args.added,
+        jobsDuplicate: args.duplicates,
+        jobsRejected: totalRejected,
+        rejectedByReason: args.rejectedByReason ?? undefined,
+        avgQualityScore: args.avgQualityScore,
       },
       update: {
-        jobsFetched: { increment: fetched },
-        jobsAdded: { increment: added },
-        jobsDuplicate: { increment: duplicates },
-        avgQualityScore: qualityScore,
+        jobsFetched: { increment: args.fetched },
+        jobsAdded: { increment: args.added },
+        jobsDuplicate: { increment: args.duplicates },
+        jobsRejected: { increment: totalRejected },
+        // JSON merge isn't a Prisma primitive — overwrite with the latest
+        // run's breakdown. Multiple runs/day are rare and the difference
+        // gets smoothed out at the daily-aggregate level downstream.
+        rejectedByReason: args.rejectedByReason ?? undefined,
+        avgQualityScore: args.avgQualityScore,
       },
     });
 
-    console.log(`[Analytics] Recorded stats for ${source}: +${added} jobs, ${duplicates} duplicates, quality: ${qualityScore.toFixed(2)}`);
+    console.log(
+      `[Analytics] Recorded stats for ${args.source}: +${args.added} added, ${args.duplicates} dup, ${totalRejected} rej` +
+        (args.avgQualityScore !== undefined ? `, avgQ ${args.avgQualityScore.toFixed(1)}` : ''),
+    );
   } catch (error) {
-    console.error(`[Analytics] Error recording stats for ${source}:`, error);
+    console.error(`[Analytics] Error recording stats for ${args.source}:`, error);
     throw error;
   }
 }

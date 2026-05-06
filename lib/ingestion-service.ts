@@ -238,6 +238,10 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
   let errors = 0;
   const newJobUrls: string[] = [];
   const newJobIds: string[] = [];
+  // Running average of the per-insert qualityScore so we can write
+  // avgQualityScore to source_stats without a post-hoc SELECT.
+  let qualityScoreSum = 0;
+  let qualityScoreCount = 0;
 
   try {
     console.log(`\n[${source.toUpperCase()}] Starting ingestion...`);
@@ -677,6 +681,8 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         });
         added++;
         newJobIds.push(savedJob.id);
+        qualityScoreSum += qualityScore;
+        qualityScoreCount++;
 
         // Keep global dedup maps in sync so a later source in the same run
         // recognises this job. Without this, source N+1 would re-ingest the
@@ -727,9 +733,19 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
       duration: `${(duration / 1000).toFixed(1)}s`
     });
 
-    // Record stats
+    // Record stats — running quality average and per-reason rejection
+    // breakdown both come from in-memory state so this is a single
+    // upsert with no extra SELECT.
+    const rejectedByReason = countRejectionsByReason(rejectedJobs);
     try {
-      await recordIngestionStats(source, fetched, added, duplicates);
+      await recordIngestionStats({
+        source,
+        fetched,
+        added,
+        duplicates,
+        avgQualityScore: qualityScoreCount > 0 ? qualityScoreSum / qualityScoreCount : undefined,
+        rejectedByReason,
+      });
     } catch (statsError) {
       console.error(`Failed to record stats for ${source}:`, statsError);
     }
@@ -810,7 +826,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
       }
     }
 
-    return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds, rejectedByReason: countRejectionsByReason(rejectedJobs) };
+    return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds, rejectedByReason };
 
   } catch (error) {
     console.error(`[${source.toUpperCase()}] Fatal error during ingestion:`, error);
