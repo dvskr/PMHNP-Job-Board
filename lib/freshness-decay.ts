@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { computeQualityScore } from './utils/quality-score';
 
 /**
  * Calculate freshness score based on the original posted date
@@ -145,7 +146,6 @@ export async function applyFreshnessDecay(): Promise<{
             unpublished++;
           } else {
             // Recompute quality score (picks up freshness decay + any data changes)
-            const { computeQualityScore } = await import('./utils/quality-score');
             const newScore = computeQualityScore({
               applyLink: job.applyLink,
               displaySalary: job.displaySalary,

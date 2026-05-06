@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { extractWithLLM } from '@/lib/llm-enrichment';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 300; // 5 minutes
 
@@ -34,11 +35,9 @@ const STATE_CODES: Record<string, string> = {
 // the inline-rescue path in lib/ingestion-service.ts).
 
 export async function GET(req: Request) {
-  // Verify cron secret
   const authError = await verifyCronOrAdmin(req);
   if (authError) return authError;
 
-  // Check for OpenAI API key
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: 'OPENAI_API_KEY not configured' }, { status: 500 });
   }
@@ -46,6 +45,7 @@ export async function GET(req: Request) {
   const startTime = Date.now();
 
   try {
+   return await withCronTracking('enrich-jobs', async () => {
     console.log('[Enrich Jobs] Starting LLM enrichment...');
 
     // Find published jobs that need enrichment.
@@ -135,7 +135,10 @@ export async function GET(req: Request) {
     console.log(`[Enrich Jobs] Processing ${jobs.length} jobs...`);
 
     if (jobs.length === 0) {
-      return NextResponse.json({ success: true, message: 'No jobs need enrichment', processed: 0 });
+      return {
+        response: NextResponse.json({ success: true, message: 'No jobs need enrichment', processed: 0 }),
+        metrics: { processed: 0, enriched: 0, errors: 0 },
+      };
     }
 
     const stats = {
@@ -386,7 +389,18 @@ export async function GET(req: Request) {
 
     console.log('[Enrich Jobs] Complete:', JSON.stringify(summary, null, 2));
 
-    return NextResponse.json({ success: true, ...summary });
+    return {
+      response: NextResponse.json({ success: true, ...summary }),
+      metrics: {
+        processed: summary.processed,
+        enriched: summary.enriched,
+        errors: summary.errors,
+        inputTokens: summary.gptUsage.inputTokens,
+        outputTokens: summary.gptUsage.outputTokens,
+        estimatedCostUSD: summary.gptUsage.estimatedCostUSD,
+      },
+    };
+   });
   } catch (error) {
       await sendCronFailureAlert('enrich-jobs', error);
     console.error('[Enrich Jobs] Fatal error:', error);

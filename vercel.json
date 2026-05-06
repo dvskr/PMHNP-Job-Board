@@ -81,10 +81,6 @@
       "schedule": "30 12,18 * * *"
     },
     {
-      "path": "/api/cron/cleanup-descriptions",
-      "schedule": "40 12 * * *"
-    },
-    {
       "path": "/api/cron/daily-report",
       "schedule": "0 13 * * *"
     },

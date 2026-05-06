@@ -279,7 +279,7 @@ serving-layer concerns.
 | `cleanup-descriptions` | `40 12` | `jobs.description` | `jobs.description`, `jobs.descriptionSummary` | HTML-to-text + boilerplate strip |
 | `freshness-decay` | `20 12` | `jobs` (published) | `jobs.qualityScore`, `jobs.isPublished` | Recompute quality score with freshness penalty; unpublish jobs not renewed >120d |
 | `check-dead-links` | `30 12,18` | `jobs.applyLink` (1,500/run) | `job_health_checks`, `jobs.isPublished`, `jobs.lastLinkCheckedAt` | Re-probe URLs in batches of 15. Multi-signal voting before flipping `isPublished` |
-| `source-presence-unpublish` | `55 12` | `jobs.healthConsecutiveMissing` | `jobs.isPublished` (capped 1,000/run) | Unpublish jobs missing from source for ≥3 consecutive ingest runs (currently shadow-mode) |
+| `source-presence-unpublish` | `55 12` | `jobs.healthConsecutiveMissing` | `jobs.isPublished` (capped 1,000/run) | Unpublish jobs missing from source for ≥3 consecutive ingest runs (active — flips `is_published`; the recorder side in `lib/health/source-presence.ts` is what's labelled "shadow" historically) |
 | `health-anomaly-check` | `0 13` | `job_health_checks` (24h vs 7d baseline) | Discord/Sentry alerts | Detect σ-deviations in dead-rate / soft-404-rate / flip-rate |
 
 ### How they chain together
@@ -456,10 +456,13 @@ For the refactor — these are the rough edges showing up in the current shape:
    as 404" daily summary would have caught the dead-tenant problem
    weeks earlier.
 
-6. **The "jobs source has stopped returning this row" signal exists but
-   is shadow-mode.** `source-presence-unpublish` is wired but commented
-   as "until tuned after 1–2 weeks of baseline data." It's been months.
-   Either ship it or remove it.
+6. ~~The "jobs source has stopped returning this row" signal exists but
+   is shadow-mode.~~ Resolved 2026-05-06: `source-presence-unpublish`
+   is fully active (flips `is_published` for jobs missing ≥3 consecutive
+   runs, capped 1,000/run). The recorder side
+   (`lib/health/source-presence.ts`) is what the comment "shadow mode"
+   refers to historically — it writes counters; the unpublish cron acts
+   on them.
 
 7. **Daily ingest is concentrated in two narrow time windows** (10–11
    UTC and 16–17 UTC). All 25+ ingest crons fire in these two 1-hour
