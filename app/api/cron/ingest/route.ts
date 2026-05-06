@@ -8,6 +8,7 @@ import {
 } from '@/lib/ingestion-service';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 // Allow maximum execution time for Vercel Pro plan
 export const maxDuration = 300; // 5 minutes
@@ -115,108 +116,109 @@ async function sendIngestionSummary(args: {
  * Can be called by Vercel Cron or manually
  */
 export async function GET(request: NextRequest) {
+  const authError = await verifyCronOrAdmin(request);
+  if (authError) return authError;
+
+  // Wrapped with withCronTracking 2026-05-06 — every run gets logged
+  // to `cron_runs` (start/finish/success/duration/metrics) so
+  // missed-schedule and outlier-duration anomalies become observable.
+  // The wrapper re-throws on error; the outer try/catch keeps the
+  // existing user-facing alert path intact.
   try {
-    const authError = await verifyCronOrAdmin(request);
-    if (authError) return authError;
+    return await withCronTracking('ingest', async () => {
+      const startTime = Date.now();
+      const startedAt = new Date();
+      console.log('\n' + '='.repeat(80));
+      console.log('[CRON] JOB INGESTION CRON STARTED');
+      console.log('='.repeat(80));
 
-    const startTime = Date.now();
-    const startedAt = new Date();
-    console.log('\n' + '='.repeat(80));
-    console.log('[CRON] JOB INGESTION CRON STARTED');
-    console.log('='.repeat(80));
+      const searchParams = request.nextUrl.searchParams;
+      const sourceParam = searchParams.get('source');
+      const chunkParam = searchParams.get('chunk');
+      const endpointParam = searchParams.get('endpoint');
 
-    // Get source, chunk, and endpoint parameters from URL
-    const searchParams = request.nextUrl.searchParams;
-    const sourceParam = searchParams.get('source');
-    const chunkParam = searchParams.get('chunk');
-    const endpointParam = searchParams.get('endpoint'); // '7d' | '6m' (fantastic-jobs-db only)
-
-    // Determine which sources to run
-    let sources: JobSource[];
-    if (sourceParam) {
-      if (!ALL_SOURCES.includes(sourceParam as JobSource)) {
-        return NextResponse.json(
-          { error: `Invalid source: "${sourceParam}". Valid: ${ALL_SOURCES.join(', ')}` },
-          { status: 400 }
-        );
+      let sources: JobSource[];
+      if (sourceParam) {
+        if (!ALL_SOURCES.includes(sourceParam as JobSource)) {
+          return {
+            response: NextResponse.json(
+              { error: `Invalid source: "${sourceParam}". Valid: ${ALL_SOURCES.join(', ')}` },
+              { status: 400 },
+            ),
+          };
+        }
+        sources = [sourceParam as JobSource];
+      } else {
+        sources = ALL_SOURCES;
       }
-      sources = [sourceParam as JobSource];
-    } else {
-      sources = ALL_SOURCES;
-    }
 
-    const ingestOptions: { chunk?: number; fantasticEndpoint?: '7d' | '6m' } = {};
-    if (chunkParam !== null) ingestOptions.chunk = parseInt(chunkParam, 10);
-    if (endpointParam === '6m' || endpointParam === '7d') ingestOptions.fantasticEndpoint = endpointParam;
-    const ingestOption = Object.keys(ingestOptions).length > 0 ? ingestOptions : undefined;
+      const ingestOptions: { chunk?: number; fantasticEndpoint?: '7d' | '6m' } = {};
+      if (chunkParam !== null) ingestOptions.chunk = parseInt(chunkParam, 10);
+      if (endpointParam === '6m' || endpointParam === '7d') ingestOptions.fantasticEndpoint = endpointParam;
+      const ingestOption = Object.keys(ingestOptions).length > 0 ? ingestOptions : undefined;
 
-    console.log(`[CRON] Sources to process: ${sources.join(', ')}${ingestOption?.chunk !== undefined ? ` (chunk ${ingestOption.chunk})` : ''}${ingestOption?.fantasticEndpoint ? ` (endpoint ${ingestOption.fantasticEndpoint})` : ''}`);
+      console.log(`[CRON] Sources to process: ${sources.join(', ')}${ingestOption?.chunk !== undefined ? ` (chunk ${ingestOption.chunk})` : ''}${ingestOption?.fantasticEndpoint ? ` (endpoint ${ingestOption.fantasticEndpoint})` : ''}`);
 
-    // Step 1: Ingest jobs from all sources
-    console.log('\n[CRON] Step 1: Starting job ingestion...');
-    const ingestionResults = await ingestJobs(sources, ingestOption);
+      console.log('\n[CRON] Step 1: Starting job ingestion...');
+      const ingestionResults = await ingestJobs(sources, ingestOption);
 
-    // Calculate ingestion summary
-    const ingestionSummary = ingestionResults.reduce(
-      (acc, r) => ({
-        totalFetched: acc.totalFetched + r.fetched,
-        totalAdded: acc.totalAdded + r.added,
-        totalDuplicates: acc.totalDuplicates + r.duplicates,
-        totalErrors: acc.totalErrors + r.errors,
-      }),
-      { totalFetched: 0, totalAdded: 0, totalDuplicates: 0, totalErrors: 0 }
-    );
+      const ingestionSummary = ingestionResults.reduce(
+        (acc, r) => ({
+          totalFetched: acc.totalFetched + r.fetched,
+          totalAdded: acc.totalAdded + r.added,
+          totalDuplicates: acc.totalDuplicates + r.duplicates,
+          totalErrors: acc.totalErrors + r.errors,
+        }),
+        { totalFetched: 0, totalAdded: 0, totalDuplicates: 0, totalErrors: 0 },
+      );
 
-    console.log('\n[CRON] Ingestion Summary:', ingestionSummary);
+      console.log('\n[CRON] Ingestion Summary:', ingestionSummary);
 
-    // Step 2: Cleanup expired jobs
-    console.log('\n[CRON] Step 2: Cleaning up expired jobs...');
-    const expiredJobsRemoved = await cleanupExpiredJobs();
+      console.log('\n[CRON] Step 2: Cleaning up expired jobs...');
+      const expiredJobsRemoved = await cleanupExpiredJobs();
 
-    // Step 3: Get current database stats
-    console.log('\n[CRON] Step 3: Fetching current stats...');
-    const currentStats = await getIngestionStats();
+      console.log('\n[CRON] Step 3: Fetching current stats...');
+      const currentStats = await getIngestionStats();
 
-    const totalDuration = Date.now() - startTime;
+      const totalDuration = Date.now() - startTime;
 
-    // Single consolidated Discord summary at end of run (Goal #4).
-    await sendIngestionSummary({
-      results: ingestionResults,
-      totalDuration,
-      startTime: startedAt,
-    });
-
-    console.log('\n' + '='.repeat(80));
-    console.log('[CRON] JOB INGESTION CRON COMPLETE');
-    console.log(`[CRON] Total Duration: ${(totalDuration / 1000).toFixed(1)}s`);
-    console.log('='.repeat(80) + '\n');
-
-    // Return comprehensive response
-    return NextResponse.json({
-      success: true,
-      timestamp: new Date().toISOString(),
-      duration: totalDuration,
-      ingestion: {
+      await sendIngestionSummary({
         results: ingestionResults,
-        summary: ingestionSummary,
-      },
-      cleanup: {
-        expiredJobsRemoved,
-      },
-      currentStats,
+        totalDuration,
+        startTime: startedAt,
+      });
+
+      console.log('\n' + '='.repeat(80));
+      console.log('[CRON] JOB INGESTION CRON COMPLETE');
+      console.log(`[CRON] Total Duration: ${(totalDuration / 1000).toFixed(1)}s`);
+      console.log('='.repeat(80) + '\n');
+
+      return {
+        response: NextResponse.json({
+          success: true,
+          timestamp: new Date().toISOString(),
+          duration: totalDuration,
+          ingestion: {
+            results: ingestionResults,
+            summary: ingestionSummary,
+          },
+          cleanup: { expiredJobsRemoved },
+          currentStats,
+        }),
+        metrics: {
+          ...ingestionSummary,
+          expiredJobsRemoved,
+          sourcesProcessed: ingestionResults.length,
+          totalDurationMs: totalDuration,
+        },
+      };
     });
-
   } catch (error) {
-      await sendCronFailureAlert('ingest', error);
+    await sendCronFailureAlert('ingest', error);
     console.error('[CRON] Fatal error during cron execution:', error);
-
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Cron job failed',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 }
+      { success: false, error: 'Cron job failed', timestamp: new Date().toISOString() },
+      { status: 500 },
     );
   }
 }

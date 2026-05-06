@@ -67,6 +67,13 @@ export interface IngestionResult {
    * summary so the funnel is observable.
    */
   rejectedByReason: Record<string, number>;
+  /**
+   * Per-job exceptions classified by kind ("db_unique", "db_other",
+   * "fetch_or_network", "unknown"). Sums to `errors`. Lets the cron
+   * summary distinguish "ten DB write conflicts" from "ten normalizer
+   * crashes" without parsing logs.
+   */
+  errorsByKind: Record<string, number>;
 }
 
 // Max time budget per cron invocation — stop gracefully before Vercel's 300s hard limit
@@ -243,6 +250,8 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
   // avgQualityScore to source_stats without a post-hoc SELECT.
   let qualityScoreSum = 0;
   let qualityScoreCount = 0;
+  // Sub-bucketed counts of per-job exceptions. Sums to `errors`.
+  const errorsByKind: Record<string, number> = {};
 
   try {
     console.log(`\n[${source.toUpperCase()}] Starting ingestion...`);
@@ -291,7 +300,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           console.error('[Ingest] Failed to push fantastic-jobs diag to Discord', e);
         }
       }
-      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds, rejectedByReason: countRejectionsByReason(rejectedJobs) };
+      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds, rejectedByReason: countRejectionsByReason(rejectedJobs), errorsByKind };
     }
 
     // Use global dedup maps (pre-loaded once at start of full run)
@@ -731,6 +740,8 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
       } catch (error) {
         console.error(`[${source.toUpperCase()}] Error processing job:`, error);
         errors++;
+        const kind = classifyJobError(error);
+        errorsByKind[kind] = (errorsByKind[kind] ?? 0) + 1;
       }
     }
 
@@ -840,13 +851,54 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
       }
     }
 
-    return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds, rejectedByReason };
+    return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds, rejectedByReason, errorsByKind };
 
   } catch (error) {
     console.error(`[${source.toUpperCase()}] Fatal error during ingestion:`, error);
     const duration = Date.now() - startTime;
-    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [], newJobIds: [], rejectedByReason: {} };
+    // Per-source fatal: alert Discord with the source-namespaced cron
+    // key. The 30-min cooldown is per-name so different sources flapping
+    // independently each get one alert. Pre-2026-05-06 source-level
+    // fatals were silent — only top-level (whole-run) failures hit
+    // Discord, so a single broken source could go unnoticed in the
+    // funnel summary.
+    try {
+      const { sendCronFailureAlert } = await import('./discord-notifier');
+      await sendCronFailureAlert(`ingest:${source}`, error);
+    } catch (alertErr) {
+      console.error(`[${source.toUpperCase()}] Failed to send Discord alert:`, alertErr);
+    }
+    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [], newJobIds: [], rejectedByReason: {}, errorsByKind: { source_fatal: 1 } };
   }
+}
+
+/**
+ * Coarse classification of per-job exceptions for the errorsByKind
+ * bucket on IngestionResult. Resolves to one of:
+ *   - "db_unique"        — Prisma P2002 unique constraint
+ *   - "db_other"          — any other Prisma error code starting with "P"
+ *   - "fetch_or_network" — message mentions fetch / network / ECONN / EAI
+ *   - "unknown"           — everything else
+ *
+ * The labels are intentionally coarse — fine-grained error analysis
+ * happens via stack traces in logs; this is just for the Discord summary
+ * to distinguish "ten DB conflicts" from "ten normalizer crashes".
+ */
+export function classifyJobError(err: unknown): string {
+  if (err && typeof err === 'object') {
+    const e = err as { code?: unknown; name?: unknown; message?: unknown };
+    if (typeof e.code === 'string') {
+      if (e.code === 'P2002') return 'db_unique';
+      if (e.code.startsWith('P')) return 'db_other';
+    }
+    if (typeof e.message === 'string') {
+      const m = e.message.toLowerCase();
+      if (m.includes('fetch') || m.includes('network') || m.includes('econn') || m.includes('eai_') || m.includes('socket hang up')) {
+        return 'fetch_or_network';
+      }
+    }
+  }
+  return 'unknown';
 }
 
 /**
