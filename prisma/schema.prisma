@@ -382,6 +382,10 @@ model EmployerLead {
   contactName     String?   @map("contact_name")
   contactEmail    String?   @map("contact_email")
   contactTitle    String?   @map("contact_title")
+  // Added 2026-05-06 for description-mined leads (regex'd phone numbers
+  // out of job postings). Format kept as raw extracted string for now —
+  // a follow-up can normalize to E.164 if we ever auto-dial.
+  phone           String?
   website         String?
   linkedInUrl     String?   @map("linkedin_url")
   notes           String?
@@ -395,6 +399,7 @@ model EmployerLead {
 
   @@index([status])
   @@index([companyName])
+  @@index([contactEmail])
   @@map("employer_leads")
 }
 

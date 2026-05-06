@@ -10,6 +10,7 @@ import { classifyRelevance } from './utils/job-filter';
 import { computeCompleteness } from './job-normalizer';
 import { extractWithLLM, type LLMExtractResult } from './llm-enrichment';
 import { collectEmployerEmails } from './employer-email-collector';
+import { mineAndPersistFromJob } from './lead-persistence';
 import { recordSourcePresence, loadHistoricalAvgFetched } from './health/source-presence';
 import { HealthRecorder } from './health/recorder';
 import { recordChunkAndMaybeAggregate } from './health/chunked-presence';
@@ -683,6 +684,19 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         newJobIds.push(savedJob.id);
         qualityScoreSum += qualityScore;
         qualityScoreCount++;
+
+        // Lead-mining: regex emails / phones / websites out of the
+        // description and upsert into employer_leads. Non-fatal — a bad
+        // regex match must never block the ingest.
+        try {
+          await mineAndPersistFromJob({
+            id: savedJob.id,
+            employer: normalizedJob.employer as string,
+            description: (normalizedJob.description as string | null) ?? null,
+          });
+        } catch (leadErr) {
+          console.warn(`[Lead-Mining] Skipped job ${savedJob.id}:`, leadErr);
+        }
 
         // Keep global dedup maps in sync so a later source in the same run
         // recognises this job. Without this, source N+1 would re-ingest the
