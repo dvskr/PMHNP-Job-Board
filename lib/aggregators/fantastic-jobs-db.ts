@@ -259,6 +259,13 @@ interface RunDiagnostics {
     firstResponseUrl: string | null;
     firstResponseBodySample: string | null;
     rateLimitRemaining: number | null;
+    /**
+     * Total RapidAPI request count consumed by this run (sum of every
+     * paginated page across every search-term pass). Persisted to
+     * cron_runs.metrics so the monthly 20k Ultra-plan quota is queryable
+     * without leaving the codebase.
+     */
+    apiCallsUsed: number;
     statusCounts: Record<string, number>;
     abortReasons: string[];
 }
@@ -267,6 +274,7 @@ let runDiag: RunDiagnostics = {
     firstResponseUrl: null,
     firstResponseBodySample: null,
     rateLimitRemaining: null,
+    apiCallsUsed: 0,
     statusCounts: {},
     abortReasons: [],
 };
@@ -276,6 +284,7 @@ function resetDiag(): void {
         firstResponseUrl: null,
         firstResponseBodySample: null,
         rateLimitRemaining: null,
+        apiCallsUsed: 0,
         statusCounts: {},
         abortReasons: [],
     };
@@ -573,6 +582,7 @@ export async function fetchFantasticJobsDbJobs(
         await sleep(FANTASTIC_FILTER_GAP_MS);
     }
 
+    runDiag.apiCallsUsed = callBudget.used;
     console.log(`[Fantastic-Jobs-DB] Total: ${allJobs.length} jobs (${callBudget.used} API calls used out of ${callBudget.cap} budget, endpoint=${endpointKey})`);
     return allJobs;
 }

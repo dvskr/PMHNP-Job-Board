@@ -74,6 +74,13 @@ export interface IngestionResult {
    * crashes" without parsing logs.
    */
   errorsByKind: Record<string, number>;
+  /**
+   * External API request count consumed by this run, for sources that
+   * surface a quota (currently only fantastic-jobs-db on RapidAPI's
+   * 20k/mo Ultra plan). Persisted to cron_runs.metrics so weekly /
+   * monthly usage is queryable without leaving the codebase.
+   */
+  apiCallsUsed?: number;
 }
 
 // Max time budget per cron invocation — stop gracefully before Vercel's 300s hard limit
@@ -252,6 +259,9 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
   let qualityScoreCount = 0;
   // Sub-bucketed counts of per-job exceptions. Sums to `errors`.
   const errorsByKind: Record<string, number> = {};
+  // External API request count, only set for sources with a quota
+  // (currently fantastic-jobs-db / RapidAPI Ultra plan).
+  let apiCallsUsed: number | undefined;
 
   try {
     console.log(`\n[${source.toUpperCase()}] Starting ingestion...`);
@@ -259,6 +269,9 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
     // Fetch raw jobs from source
     const rawJobs = await fetchFromSource(source, options);
     fetched = rawJobs.length;
+    if (source === 'fantastic-jobs-db') {
+      apiCallsUsed = getFantasticJobsDiag().apiCallsUsed;
+    }
 
     console.log(`[${source.toUpperCase()}] Fetched ${fetched} jobs`);
 
@@ -300,7 +313,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           console.error('[Ingest] Failed to push fantastic-jobs diag to Discord', e);
         }
       }
-      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds, rejectedByReason: countRejectionsByReason(rejectedJobs), errorsByKind };
+      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds, rejectedByReason: countRejectionsByReason(rejectedJobs), errorsByKind, apiCallsUsed };
     }
 
     // Use global dedup maps (pre-loaded once at start of full run)
@@ -851,7 +864,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
       }
     }
 
-    return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds, rejectedByReason, errorsByKind };
+    return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds, rejectedByReason, errorsByKind, apiCallsUsed };
 
   } catch (error) {
     console.error(`[${source.toUpperCase()}] Fatal error during ingestion:`, error);
@@ -868,7 +881,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
     } catch (alertErr) {
       console.error(`[${source.toUpperCase()}] Failed to send Discord alert:`, alertErr);
     }
-    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [], newJobIds: [], rejectedByReason: {}, errorsByKind: { source_fatal: 1 } };
+    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [], newJobIds: [], rejectedByReason: {}, errorsByKind: { source_fatal: 1 }, apiCallsUsed };
   }
 }
 

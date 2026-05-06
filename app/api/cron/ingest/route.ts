@@ -210,6 +210,14 @@ export async function GET(request: NextRequest) {
           expiredJobsRemoved,
           sourcesProcessed: ingestionResults.length,
           totalDurationMs: totalDuration,
+          // Per-source API quota usage (only sources with a quota — currently
+          // fantastic-jobs-db / RapidAPI Ultra). Lets the monthly 20k cap be
+          // queried from cron_runs.metrics without external dashboards.
+          apiCallsBySource: Object.fromEntries(
+            ingestionResults
+              .filter((r) => typeof r.apiCallsUsed === 'number')
+              .map((r) => [r.source, r.apiCallsUsed]),
+          ),
         },
       };
     });
