@@ -517,7 +517,15 @@ async function runPass(
                 title: job.title,
                 company: job.organization || 'Unknown',
                 location: formatLocation(job),
-                description: job.description || '',
+                // BUGFIX 2026-05-06: when we pass description_type=text to
+                // the API (BASE_FILTERS.description_type = 'text'), the
+                // plain-text body lands in `description_text` and
+                // `description` is left null. Reading description alone
+                // produced 169/169 published rows with empty descriptions
+                // on prod. Try description_text first, fall back to
+                // description (in case the API ever swaps which field it
+                // uses), then to empty string.
+                description: job.description_text || job.description || '',
                 applyLink: job.url,
                 job_type: mapEmploymentType(job),
                 postedDate: job.date_posted || job.date_created || undefined,
