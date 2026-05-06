@@ -33,39 +33,51 @@ const PAGE_SIZE = 50;
 const MAX_PAGES_PER_RUN = 8;
 const MAX_REQUESTS_PER_RUN = 10;
 const MAX_JOBS_PER_RUN = 400;
-// 100-request buffer (1% of Pro's 10k cap) — refuses to start runs that
-// would chew the last sliver of monthly quota. Resize if downgrading
-// to Basic (5) or upgrading to Ultra (1000).
-const MIN_REMAINING_BUFFER = 100;
+// Don't start a run that could push us over the monthly cap. One run
+// burns at most MAX_REQUESTS_PER_RUN calls; the buffer adds a small
+// safety margin for any concurrent admin trigger. Plan-agnostic — works
+// on Basic (100/mo), Pro (10k), and Ultra (100k) alike.
+const MIN_REMAINING_BUFFER = MAX_REQUESTS_PER_RUN + 5;
 const PAGE_RATE_LIMIT_MS = 1000;
 
 import { ATS_JOBS_DB_QUERIES, ATS_JOBS_DB_SOURCES } from './search-terms/ats-jobs-db';
 
-interface AtsJobsDbApiResponse {
-    id?: string | number;
-    title?: string;
-    company?: string;
-    organization?: string;
-    employer?: string;
+// Schema confirmed via live probe 2026-05-06.
+interface AtsJobsDbLocation {
     location?: string;
-    locations?: string[];
     city?: string;
     state?: string;
     country?: string;
-    is_remote?: boolean;
+    latitude?: number;
+    longitude?: number;
+}
+
+interface AtsJobsDbCompensation {
+    min?: number | null;
+    max?: number | null;
+    currency?: string | null;
+    period?: string | null; // 'hour' | 'year' | 'month' | null (in our seen sample, null)
+    raw_text?: string | null;
+    is_estimated?: boolean;
+}
+
+interface AtsJobsDbApiResponse {
+    id?: string;
+    title?: string;
+    company?: { id?: string; name?: string } | string; // object in current API; string defensively
     description?: string;
-    url?: string;
+    listing_url?: string;
     apply_url?: string;
-    apply_link?: string;
-    date_posted?: string;
-    posted_at?: string;
-    posted_date?: string;
+    locations?: AtsJobsDbLocation[];
+    compensation?: AtsJobsDbCompensation | null;
+    employment_type?: string; // e.g. 'part_time' | 'full_time' | 'contract'
+    workplace_type?: string;  // 'onsite' | 'remote' | 'hybrid'
+    experience_level?: string | null;
     source?: string;
-    source_provider?: string;
-    employment_type?: string;
-    salary_min?: number;
-    salary_max?: number;
-    salary_period?: string;
+    source_id?: string;
+    date_posted?: string;
+    valid_through?: string;
+    is_remote?: boolean;
 }
 
 export interface AtsJobsDbOutput {
@@ -75,10 +87,16 @@ export interface AtsJobsDbOutput {
     location: string;
     description: string;
     applyLink: string;
-    employment_type: string | null;
+    /** Canonical jobType ("Full-Time" / "Part-Time" / "Contract" / "Per Diem"); the normalizer reads `rawJob.jobType`. */
+    jobType: string | null;
+    /** Canonical mode ("Remote" / "Hybrid" / "In-Person"). Currently informational; normalizer's text-scan handles mode detection. */
+    mode: string | null;
     postedDate?: string;
     sourceSite?: string;
     is_remote?: boolean;
+    minSalary?: number;
+    maxSalary?: number;
+    salaryPeriod?: string;
 }
 
 interface RunDiagnostics {
@@ -118,16 +136,73 @@ function pickFirst<T>(...vals: Array<T | undefined | null>): T | null {
     return null;
 }
 
+function extractCompanyName(c: AtsJobsDbApiResponse['company']): string {
+    if (!c) return 'Unknown';
+    if (typeof c === 'string') return c;
+    return c.name ?? 'Unknown';
+}
+
 function formatLocation(job: AtsJobsDbApiResponse): string {
     if (job.is_remote) return 'Remote';
-    const explicit = pickFirst(job.location, job.locations?.[0]);
-    if (explicit) return explicit;
-    const city = job.city;
-    const state = job.state;
-    if (city && state) return `${city}, ${state}`;
-    if (state) return state;
-    if (city) return city;
-    return job.country ?? 'United States';
+    const first = job.locations?.[0];
+    if (first) {
+        if (first.city && first.state) return `${first.city}, ${first.state}`;
+        if (first.location) return first.location;
+        if (first.state) return first.state;
+        if (first.city) return first.city;
+        if (first.country) return first.country;
+    }
+    return 'United States';
+}
+
+/**
+ * Map workplace_type ("onsite"/"remote"/"hybrid") to our canonical
+ * `mode` taxonomy ("In-Person"/"Remote"/"Hybrid"). Keeps the rest of
+ * the pipeline (filters, JobCard, schema.org JobPosting) on a single
+ * vocabulary regardless of source.
+ */
+function mapWorkplaceType(wt: string | undefined): string | null {
+    if (!wt) return null;
+    const v = wt.toLowerCase();
+    if (v === 'remote') return 'Remote';
+    if (v === 'hybrid') return 'Hybrid';
+    if (v === 'onsite' || v === 'on-site' || v === 'in-person') return 'In-Person';
+    return null;
+}
+
+/**
+ * Map employment_type to our canonical jobType ("Full-Time" /
+ * "Part-Time" / "Contract" / "Per Diem"). Read by job-normalizer's
+ * `rawJob.jobType` lookup before falling through to text detection.
+ */
+function mapEmploymentType(et: string | undefined): string | null {
+    if (!et) return null;
+    const v = et.toLowerCase();
+    if (v.includes('full')) return 'Full-Time';
+    if (v.includes('part')) return 'Part-Time';
+    if (v.includes('contract')) return 'Contract';
+    if (v.includes('temp') || v.includes('per_diem') || v.includes('per diem') || v.includes('prn')) return 'Per Diem';
+    return null;
+}
+
+/**
+ * Best-effort mapping from the API's compensation object to our
+ * (minSalary, maxSalary, salaryPeriod) tuple. The downstream salary
+ * normalizer converts everything to annual equivalents and applies
+ * sanity bounds (lib/salary-normalizer.ts), so we just pass values
+ * through as-is here.
+ */
+function extractCompensation(c: AtsJobsDbCompensation | null | undefined): {
+    minSalary?: number;
+    maxSalary?: number;
+    salaryPeriod?: string;
+} {
+    if (!c) return {};
+    const out: { minSalary?: number; maxSalary?: number; salaryPeriod?: string } = {};
+    if (typeof c.min === 'number' && c.min > 0) out.minSalary = c.min;
+    if (typeof c.max === 'number' && c.max > 0) out.maxSalary = c.max;
+    if (typeof c.period === 'string') out.salaryPeriod = c.period;
+    return out;
 }
 
 interface SearchBody {
@@ -234,23 +309,28 @@ export async function fetchAtsJobsDbJobs(): Promise<AtsJobsDbOutput[]> {
 
         for (const job of jobs) {
             const id = job.id != null ? String(job.id) : null;
-            const url = pickFirst(job.url, job.apply_url, job.apply_link);
+            // apply_url is the canonical apply destination; listing_url is
+            // a fallback when apply_url is missing.
+            const url = pickFirst(job.apply_url, job.listing_url);
             if (!id || !url) continue;
             const externalId = `atsjobsdb-${job.source ?? 'unknown'}-${id}`;
             if (seen.has(externalId)) continue;
             seen.add(externalId);
 
+            const comp = extractCompensation(job.compensation ?? null);
             out.push({
                 externalId,
                 title: job.title ?? '',
-                company: pickFirst(job.company, job.organization, job.employer) ?? 'Unknown',
+                company: extractCompanyName(job.company),
                 location: formatLocation(job),
                 description: job.description ?? '',
                 applyLink: url,
-                employment_type: job.employment_type ?? null,
-                postedDate: pickFirst(job.date_posted, job.posted_at, job.posted_date) ?? undefined,
-                sourceSite: job.source ?? job.source_provider ?? undefined,
+                jobType: mapEmploymentType(job.employment_type),
+                mode: mapWorkplaceType(job.workplace_type),
+                postedDate: job.date_posted ?? undefined,
+                sourceSite: job.source ?? undefined,
                 is_remote: job.is_remote,
+                ...comp,
             });
         }
 
