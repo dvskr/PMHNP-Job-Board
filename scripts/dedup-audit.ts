@@ -9,14 +9,15 @@ async function main() {
   console.log('--- DEDUP ACCURACY AUDIT ---\n');
 
   const total = await prisma.job.count();
-  console.log(`Total Jobs in DB: ${total}\n`);
+  const totalPublished = await prisma.job.count({ where: { isPublished: true } });
+  console.log(`Total Jobs in DB: ${total} (${totalPublished} published)\n`);
 
   // 1. False negatives: same applyLink, multiple Job rows
   const dupApplyLinks = await prisma.$queryRawUnsafe<Array<{ apply_link: string; n: bigint; sources: string }>>(`
     SELECT apply_link as apply_link, COUNT(*)::bigint as n,
            STRING_AGG(DISTINCT source_provider, ',') as sources
     FROM jobs
-    WHERE apply_link IS NOT NULL AND apply_link != ''
+    WHERE is_published = true AND apply_link IS NOT NULL AND apply_link != ''
     GROUP BY apply_link
     HAVING COUNT(*) > 1
     ORDER BY n DESC
@@ -33,7 +34,7 @@ async function main() {
   const dupExternalIds = await prisma.$queryRawUnsafe<Array<{ external_id: string; source_provider: string; n: bigint }>>(`
     SELECT external_id as external_id, source_provider as source_provider, COUNT(*)::bigint as n
     FROM jobs
-    WHERE external_id IS NOT NULL
+    WHERE is_published = true AND external_id IS NOT NULL
     GROUP BY external_id, source_provider
     HAVING COUNT(*) > 1
     ORDER BY n DESC
@@ -54,7 +55,7 @@ async function main() {
       COUNT(*)::bigint as n,
       STRING_AGG(DISTINCT source_provider, ',') as sources
     FROM jobs
-    WHERE title IS NOT NULL AND employer IS NOT NULL
+    WHERE is_published = true AND title IS NOT NULL AND employer IS NOT NULL
     GROUP BY LOWER(TRIM(title)), LOWER(TRIM(employer)), LOWER(TRIM(location))
     HAVING COUNT(*) > 1
     ORDER BY n DESC
