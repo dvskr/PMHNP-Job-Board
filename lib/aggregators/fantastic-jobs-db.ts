@@ -212,8 +212,23 @@ import { RateLimiter } from './types';
 //   MIN_REMAINING_BUFFER = 5000 — refuse to start a run when fewer than
 //     this many monthly requests remain. With 60 runs/month a 5k cushion
 //     covers ~10 admin-triggered manual runs without dipping below 0.
+// Max paginated depth per search-term pass.
+//   - Title-literal passes (PASS A): up to 15 pages — these match few rows
+//     so paginating deeply rarely fires anyway.
+//   - Broad title + description passes (PASS B): capped at 3 pages because
+//     these intentionally cast a wide net and burned 20k Jobs in 6 days
+//     of the 2026-05 billing cycle.
 const MAX_PAGES_PER_FILTER = 15;
-const MAX_REQUESTS_PER_RUN = 200;
+const MAX_PAGES_PER_FILTER_BROAD = 3;
+// Lowered 2026-05-06 200 → 50 after the cap blow-up. With the 24h endpoint
+// + capped PASS B + per-run JOBS budget below, no run should need this many.
+const MAX_REQUESTS_PER_RUN = 50;
+// Per-run hard cap on TOTAL jobs returned across all passes. Each call
+// can return up to 100 jobs and the Ultra plan's monthly cap is 20,000
+// JOBS (separate from the 20k Requests counter). 600/run × 30 days = 18k
+// — leaves a safety margin under the cap. Adapter aborts further passes
+// when the cumulative job count crosses this threshold.
+const MAX_JOBS_PER_RUN = 600;
 const MIN_REMAINING_BUFFER = 5000;
 
 function sleep(ms: number): Promise<void> {
@@ -457,8 +472,10 @@ async function runPass(
     out: FantasticJobOutput[],
     seenUrls: Set<string>,
     callBudget: { used: number; cap: number },
+    jobBudget: { used: number; cap: number },
     endpoint: string,
     pageRateLimiter: RateLimiter,
+    maxPages: number = MAX_PAGES_PER_FILTER,
 ): Promise<PassResult> {
     let offset = 0;
     let hasMore = true;
@@ -468,8 +485,9 @@ async function runPass(
 
     while (
         hasMore &&
-        offset / PAGE_SIZE < MAX_PAGES_PER_FILTER &&
-        callBudget.used < callBudget.cap
+        offset / PAGE_SIZE < maxPages &&
+        callBudget.used < callBudget.cap &&
+        jobBudget.used < jobBudget.cap
     ) {
         const jobs = await fetchPage(extraParams, offset, endpoint);
         callBudget.used++;
@@ -482,6 +500,11 @@ async function runPass(
         }
 
         if (jobs.length === 0) break;
+
+        // Track every row delivered against the per-run jobs budget — this
+        // is the metric that actually counts toward the Ultra plan's
+        // 20k Jobs/month cap (NOT the requests-remaining header).
+        jobBudget.used += jobs.length;
 
         for (const job of jobs) {
             const jobKey = job.url || job.id;
@@ -555,6 +578,7 @@ export async function fetchFantasticJobsDbJobs(
     const allJobs: FantasticJobOutput[] = [];
     const seenUrls = new Set<string>();
     const callBudget = { used: 0, cap: MAX_REQUESTS_PER_RUN };
+    const jobBudget = { used: 0, cap: MAX_JOBS_PER_RUN };
     const pageRateLimiter = new RateLimiter(FANTASTIC_PAGE_RATE_LIMIT_MS);
 
     // Cooldown buffer at run start.
@@ -564,15 +588,17 @@ export async function fetchFantasticJobsDbJobs(
     // The API doesn't accept OR in title_filter — verified via probe
     // 2026-04-30. Each term is a separate paginated query.
     for (const titleFilter of TITLE_TERMS) {
-        if (callBudget.used >= callBudget.cap) break;
+        if (callBudget.used >= callBudget.cap || jobBudget.used >= jobBudget.cap) break;
         await runPass(
             `title: ${titleFilter}`,
             { title_filter: titleFilter },
             allJobs,
             seenUrls,
             callBudget,
+            jobBudget,
             endpointUrl,
             pageRateLimiter,
+            MAX_PAGES_PER_FILTER,
         );
         await sleep(FANTASTIC_FILTER_GAP_MS);
     }
@@ -582,7 +608,7 @@ export async function fetchFantasticJobsDbJobs(
     // descriptions name psychiatric work. description_filter DOES support
     // OR — verified via probe.
     for (const titleFilter of TITLE_FILTERS_BROAD) {
-        if (callBudget.used >= callBudget.cap) break;
+        if (callBudget.used >= callBudget.cap || jobBudget.used >= jobBudget.cap) break;
         await runPass(
             `desc: ${titleFilter}`,
             {
@@ -592,14 +618,20 @@ export async function fetchFantasticJobsDbJobs(
             allJobs,
             seenUrls,
             callBudget,
+            jobBudget,
             endpointUrl,
             pageRateLimiter,
+            MAX_PAGES_PER_FILTER_BROAD, // 3 pages max — broad description matches, prone to runaway pagination
         );
         await sleep(FANTASTIC_FILTER_GAP_MS);
     }
 
     runDiag.apiCallsUsed = callBudget.used;
-    console.log(`[Fantastic-Jobs-DB] Total: ${allJobs.length} jobs (${callBudget.used} API calls used out of ${callBudget.cap} budget, endpoint=${endpointKey})`);
+    console.log(
+        `[Fantastic-Jobs-DB] Total: ${allJobs.length} unique jobs kept ` +
+        `(${callBudget.used}/${callBudget.cap} calls, ` +
+        `${jobBudget.used}/${jobBudget.cap} jobs delivered, endpoint=${endpointKey})`,
+    );
     return allJobs;
 }
 
