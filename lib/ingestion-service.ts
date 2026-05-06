@@ -203,14 +203,14 @@ function mergeLlmIntoNormalized(job: any, llm: LLMExtractResult): any {
  */
 async function fetchFromSource(
   source: JobSource,
-  options?: { chunk?: number; fantasticEndpoint?: '7d' | '6m' },
+  options?: { chunk?: number; fantasticEndpoint?: '24h' | '7d' | '6m' },
 ): Promise<Array<Record<string, unknown>>> {
   const aggregator = aggregators[source];
   if (!aggregator) {
     console.warn(`[Ingestion] Unknown source: ${source}`);
     return [];
   }
-  const fetchOpts: { chunk?: number; endpoint?: '7d' | '6m' } = {};
+  const fetchOpts: { chunk?: number; endpoint?: '24h' | '7d' | '6m' } = {};
   if (options?.chunk !== undefined) fetchOpts.chunk = options.chunk;
   if (options?.fantasticEndpoint !== undefined) fetchOpts.endpoint = options.fantasticEndpoint;
   return (await aggregator.fetch(fetchOpts)) as unknown as Array<Record<string, unknown>>;
@@ -245,7 +245,7 @@ function collectExternalIds(rawJobs: Array<Record<string, unknown>>): string[] {
 /**
  * Ingest jobs from a single source
  */
-async function ingestFromSource(source: JobSource, options?: { chunk?: number; fantasticEndpoint?: '7d' | '6m' }): Promise<IngestionResult> {
+async function ingestFromSource(source: JobSource, options?: { chunk?: number; fantasticEndpoint?: '24h' | '7d' | '6m' }): Promise<IngestionResult> {
   const startTime = Date.now();
   let fetched = 0;
   let added = 0;
@@ -1013,7 +1013,7 @@ export function buildRenewalEnrichmentDelta(
  */
 export async function ingestJobs(
   sources: JobSource[] = ALL_SOURCES,
-  options?: { chunk?: number; fantasticEndpoint?: '7d' | '6m' }
+  options?: { chunk?: number; fantasticEndpoint?: '24h' | '7d' | '6m' }
 ): Promise<IngestionResult[]> {
   const overallStartTime = Date.now();
   const timestamp = new Date().toISOString();

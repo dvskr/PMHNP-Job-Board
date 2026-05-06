@@ -152,9 +152,9 @@ export async function GET(request: NextRequest) {
         sources = ALL_SOURCES;
       }
 
-      const ingestOptions: { chunk?: number; fantasticEndpoint?: '7d' | '6m' } = {};
+      const ingestOptions: { chunk?: number; fantasticEndpoint?: '24h' | '7d' | '6m' } = {};
       if (chunkParam !== null) ingestOptions.chunk = parseInt(chunkParam, 10);
-      if (endpointParam === '6m' || endpointParam === '7d') ingestOptions.fantasticEndpoint = endpointParam;
+      if (endpointParam === '24h' || endpointParam === '6m' || endpointParam === '7d') ingestOptions.fantasticEndpoint = endpointParam;
       const ingestOption = Object.keys(ingestOptions).length > 0 ? ingestOptions : undefined;
 
       console.log(`[CRON] Sources to process: ${sources.join(', ')}${ingestOption?.chunk !== undefined ? ` (chunk ${ingestOption.chunk})` : ''}${ingestOption?.fantasticEndpoint ? ` (endpoint ${ingestOption.fantasticEndpoint})` : ''}`);

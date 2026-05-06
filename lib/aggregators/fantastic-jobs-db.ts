@@ -158,11 +158,22 @@ export interface FantasticJobOutput {
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 const API_HOST = 'active-jobs-db.p.rapidapi.com';
-// Production default: 7-day endpoint. The 6-month endpoint is used only
-// when an admin triggers a backfill via ?endpoint=6m. The job-normalizer
-// rejects rows older than 90 days for non-ATS sources (line 519), so a
-// 6m backfill effectively becomes a 90-day backfill — caps the useful
-// range without us needing a date filter on the API side.
+// 2026-05-06: PRODUCTION DEFAULT switched 7d → 24h after blowing through
+// the Ultra plan's 20k Jobs/month cap on day 6 of the billing cycle.
+// Root cause: re-fetching the same 7-day window twice a day means the
+// API counts every job ~14× (7 days × 2 polls/day), overwhelming the
+// jobs-delivered counter even though our internal `seenUrls` dedup
+// hides the overlap from us.
+//
+// The 24h endpoint returns jobs INDEXED in the last 24h (i.e. NEW
+// arrivals to Active Jobs DB), so polling once per day means each row
+// is delivered ~1× instead of ~14×.
+//
+// Other endpoints kept for explicit overrides:
+//   - 7d: legacy callers / catch-up after extended downtime
+//   - 6m: annual Jan-1 backfill (the normalizer's 90-day staleness
+//     filter caps the useful range to 90 days regardless).
+const ENDPOINT_24H = `https://${API_HOST}/active-ats-24h`;
 const ENDPOINT_7D = `https://${API_HOST}/active-ats-7d`;
 const ENDPOINT_6M = `https://${API_HOST}/active-ats-6m`;
 const PAGE_SIZE = 100;
@@ -512,14 +523,16 @@ async function runPass(
 export interface FantasticJobsFetchOptions {
     /**
      * Time-window endpoint to query.
-     *   '7d' (default) — jobs posted in the last 7 days. Right for the
-     *     scheduled cron since it runs 2x/day and 7d > worst-case skip.
-     *   '6m' — jobs posted in the last 6 months. Used for ONE-SHOT backfill
-     *     only. The job-normalizer's 90-day staleness filter (line 519,
-     *     non-ATS sources) already rejects rows older than 90 days, so a
-     *     6m fetch effectively becomes a 90-day backfill.
+     *   '24h' (default since 2026-05-06) — jobs INDEXED in the last
+     *     24h. Best for the scheduled cron at 1×/day cadence; minimises
+     *     the API's "jobs delivered" counter against the 20k/mo Ultra cap.
+     *   '7d' — jobs POSTED in the last 7 days. Use for catch-up after
+     *     extended downtime; not the daily cron's normal window any more.
+     *   '6m' — jobs posted in the last 6 months. Used for ONE-SHOT
+     *     backfill only (annual Jan-1 cron). The job-normalizer's
+     *     90-day staleness filter caps the useful range regardless.
      */
-    endpoint?: '7d' | '6m';
+    endpoint?: '24h' | '7d' | '6m';
 }
 
 export async function fetchFantasticJobsDbJobs(
@@ -531,8 +544,11 @@ export async function fetchFantasticJobsDbJobs(
     }
     resetDiag();
 
-    const endpointKey = opts.endpoint ?? '7d';
-    const endpointUrl = endpointKey === '6m' ? ENDPOINT_6M : ENDPOINT_7D;
+    const endpointKey = opts.endpoint ?? '24h';
+    const endpointUrl =
+        endpointKey === '6m' ? ENDPOINT_6M
+            : endpointKey === '7d' ? ENDPOINT_7D
+                : ENDPOINT_24H;
 
     console.log(`[Fantastic-Jobs-DB] endpoint=${endpointKey} — running 2-pass probe-validated strategy${endpointKey === '6m' ? ' (BACKFILL MODE)' : ''}`);
 
