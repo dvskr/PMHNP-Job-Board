@@ -19,8 +19,14 @@ import { greenhouseAggregator } from './greenhouse';
 import { leverAggregator } from './lever';
 import { workdayAggregator } from './workday';
 import { fantasticJobsDbAggregator } from './fantastic-jobs-db';
-import { atsJobsDbAggregator } from './ats-jobs-db';
 import { smartRecruitersAggregator } from './smartrecruiters';
+
+// ats-jobs-db decommissioned 2026-05-06: live-fetch analysis showed
+// only 3/171 (2%) of returned jobs were PMHNP-relevant, and 90% were
+// duplicates of sources we already scrape natively for free
+// (workday/greenhouse/smartrecruiters). Net incremental yield ~10-15
+// jobs/month for $49 = ~$3-5/job — not worth keeping. Adapter and
+// scripts removed; resurrect from git history if we revisit.
 
 export const aggregators: Record<JobSource, Aggregator> = {
     adzuna: adzunaAggregator,
@@ -28,6 +34,5 @@ export const aggregators: Record<JobSource, Aggregator> = {
     lever: leverAggregator,
     workday: workdayAggregator,
     'fantastic-jobs-db': fantasticJobsDbAggregator,
-    'ats-jobs-db': atsJobsDbAggregator,
     smartrecruiters: smartRecruitersAggregator,
 };
