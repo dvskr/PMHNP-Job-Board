@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { prisma } from './prisma';
 import { GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
 import { getLastRunDiagnostics as getFantasticJobsDiag } from './aggregators/fantastic-jobs-db';
@@ -321,14 +322,42 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
     const MAX_JOB_AGE_MS = 60 * 24 * 60 * 60 * 1000;
     let expiredByAge = 0;
 
-    const renewJob = async (id: string, title: string, existingPostedAt?: Date | null) => {
+    const renewJob = async (
+      id: string,
+      title: string,
+      existingPostedAt?: Date | null,
+      fresh?: Record<string, unknown> | null,
+    ) => {
       try {
-        // Check if manually unpublished — never override admin decisions
-        const job = await prisma.job.findUnique({
+        // Single SELECT — fetches `isManuallyUnpublished` AND all the
+        // fields we'd consider enriching with fresh source data. Avoids
+        // a second roundtrip per renewal at the per-source-loop scale.
+        const existing = await prisma.job.findUnique({
           where: { id },
-          select: { isManuallyUnpublished: true },
+          select: {
+            isManuallyUnpublished: true,
+            description: true,
+            descriptionSummary: true,
+            minSalary: true,
+            maxSalary: true,
+            salaryPeriod: true,
+            salaryRange: true,
+            displaySalary: true,
+            normalizedMinSalary: true,
+            normalizedMaxSalary: true,
+            city: true,
+            state: true,
+            stateCode: true,
+            jobType: true,
+            mode: true,
+            experienceLevel: true,
+            setting: true,
+            population: true,
+            benefits: true,
+          },
         });
-        if (job?.isManuallyUnpublished) {
+        if (!existing) return;
+        if (existing.isManuallyUnpublished) {
           return; // Skip — admin intentionally hid this job
         }
 
@@ -358,15 +387,17 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         // Within window: revive if it was unpublished, touch updatedAt.
         // expiresAt is intentionally NOT extended — the original 60-day
         // window from originalPostedAt is the absolute clock.
-        await prisma.job.update({
-          where: { id },
-          data: {
-            isPublished: true,
-            updatedAt: new Date(),
-            // NOTE: Never overwrite originalPostedAt or expiresAt. First
-            // ingestion is truth for the lifecycle clock.
-          }
-        });
+        // If fresh data is available, merge improvements (longer description,
+        // newly-present salary, missing location parts, etc.) — never
+        // overwrite richer existing data with leaner fresh data.
+        const update: Record<string, unknown> = {
+          isPublished: true,
+          updatedAt: new Date(),
+        };
+        if (fresh) {
+          Object.assign(update, buildRenewalEnrichmentDelta(existing, fresh));
+        }
+        await prisma.job.update({ where: { id }, data: update });
       } catch (e) {
         console.error(`[${source.toUpperCase()}] Failed to renew job ${id}:`, e);
       }
@@ -487,7 +518,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         if (normalizedJob.externalId && existingJobsMap.has(normalizedJob.externalId)) {
           // AUTO-RENEWAL: Job exists, so we extend its life instead of ignoring it
           const existing = existingJobsMap.get(normalizedJob.externalId)!;
-          await renewJob(existing.id, normalizedJob.title, existing.originalPostedAt);
+          await renewJob(existing.id, normalizedJob.title, existing.originalPostedAt, normalizedJob as Record<string, unknown>);
 
           // Track duplicate for analysis
           rejectedJobs.push({
@@ -529,7 +560,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
               where: { id: dupCheck.matchedJobId },
               select: { originalPostedAt: true },
             });
-            await renewJob(dupCheck.matchedJobId, normalizedJob.title, matchedJob?.originalPostedAt);
+            await renewJob(dupCheck.matchedJobId, normalizedJob.title, matchedJob?.originalPostedAt, normalizedJob as Record<string, unknown>);
           }
 
           // Track duplicate for analysis
@@ -599,19 +630,25 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           }
         }
 
-        // Set initial expiresAt based on original posting date + 60 days
-        // If source didn't provide a posted date, use now + 60 days
-        const INITIAL_EXPIRY_MS = 60 * 24 * 60 * 60 * 1000; // 60-day initial posting window
-        const baseDate = normalizedJob.originalPostedAt
-          ? new Date(normalizedJob.originalPostedAt as any).getTime()
-          : Date.now();
-        const initialExpiresAt = new Date(baseDate + INITIAL_EXPIRY_MS);
+        // expiresAt is set authoritatively by the normalizer
+        // (originalPostedAt + 60d when source provided a date, else
+        // now + 30d). The orchestrator previously overrode it with
+        // a flat 60d, which silently disabled the 30d fallback —
+        // fixed 2026-05-06. Slug is generated up-front against a
+        // pre-allocated uuid so insert + slug land in one round-trip.
+        const newId = randomUUID();
+        const slug = `${(normalizedJob.title as string)
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .trim()}-${newId}`;
 
-        // Insert the job
         const savedJob = await prisma.job.create({
           data: {
+            id: newId,
             ...(normalizedJob as any),
-            expiresAt: initialExpiresAt,
+            slug,
           },
         });
         added++;
@@ -637,20 +674,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           if (!globalTitleKeyMap.has(idKey)) globalTitleKeyMap.set(idKey, savedJob.id);
         }
 
-        // Generate and update slug
-        const slug = `${normalizedJob.title
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .replace(/-+/g, '-')
-          .trim()}-${savedJob.id}`;
-
-        await prisma.job.update({
-          where: { id: savedJob.id },
-          data: { slug },
-        });
-
-        // Collect URL for batch indexing
+        // Slug + id are now set in the create above (single round-trip).
         newJobUrls.push(`https://pmhnphiring.com/jobs/${slug}`);
 
         // Parse location
@@ -822,6 +846,86 @@ function countRejectionsByReason(
     counts[r.rejectionReason] = (counts[r.rejectionReason] ?? 0) + 1;
   }
   return counts;
+}
+
+/**
+ * Compute a Prisma update delta of fields the fresh source data would
+ * IMPROVE on the existing row. Renewal-time enrichment lets repeat
+ * ingests fill in fields that were missing the first time around (e.g.
+ * Adzuna ingests with no salary, then a Greenhouse ingest of the same
+ * job comes in with a salary range — the existing row should pick that
+ * up rather than waiting for the LLM enrichment cron).
+ *
+ * Conservative — never replaces a non-null with another non-null value
+ * except for description (where longer wins) and benefits (set union).
+ * Lifecycle fields (originalPostedAt, expiresAt) and identity/audit
+ * fields (title, employer, applyLink, externalId, isPublished, counters)
+ * are deliberately out of scope.
+ */
+export function buildRenewalEnrichmentDelta(
+  existing: {
+    description: string | null;
+    descriptionSummary: string | null;
+    minSalary: number | null;
+    maxSalary: number | null;
+    salaryPeriod: string | null;
+    salaryRange: string | null;
+    displaySalary: string | null;
+    normalizedMinSalary: number | null;
+    normalizedMaxSalary: number | null;
+    city: string | null;
+    state: string | null;
+    stateCode: string | null;
+    jobType: string | null;
+    mode: string | null;
+    experienceLevel: string | null;
+    setting: string | null;
+    population: string | null;
+    benefits: string[];
+  },
+  fresh: Record<string, unknown>,
+): Record<string, unknown> {
+  const delta: Record<string, unknown> = {};
+
+  const freshDesc = typeof fresh.description === 'string' ? fresh.description : null;
+  if (freshDesc && (!existing.description || freshDesc.length > existing.description.length + 50)) {
+    delta.description = freshDesc;
+    if (typeof fresh.descriptionSummary === 'string') delta.descriptionSummary = fresh.descriptionSummary;
+  }
+
+  const fillIfNull = (key: keyof typeof existing, freshKey: string = key as string) => {
+    if (existing[key] == null && fresh[freshKey] != null && fresh[freshKey] !== '') {
+      delta[key] = fresh[freshKey];
+    }
+  };
+  fillIfNull('minSalary');
+  fillIfNull('maxSalary');
+  fillIfNull('salaryPeriod');
+  fillIfNull('salaryRange');
+  fillIfNull('displaySalary');
+  fillIfNull('normalizedMinSalary');
+  fillIfNull('normalizedMaxSalary');
+  fillIfNull('city');
+  fillIfNull('state');
+  fillIfNull('stateCode');
+  fillIfNull('jobType');
+  fillIfNull('mode');
+  fillIfNull('experienceLevel');
+  fillIfNull('setting');
+  fillIfNull('population');
+
+  // Benefits: set-union when fresh has new entries
+  if (Array.isArray(fresh.benefits) && fresh.benefits.length > 0) {
+    const existingSet = new Set(existing.benefits ?? []);
+    const additions = (fresh.benefits as unknown[]).filter(
+      (b) => typeof b === 'string' && !existingSet.has(b),
+    ) as string[];
+    if (additions.length > 0) {
+      delta.benefits = [...existingSet, ...additions];
+    }
+  }
+
+  return delta;
 }
 
 /**
