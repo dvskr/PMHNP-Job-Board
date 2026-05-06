@@ -360,10 +360,8 @@ describe('normalizeJobWithReason — indirect-apply gate', () => {
     });
 });
 
-describe('canonicalizeEmployerName', () => {
+describe('canonicalizeEmployerName — suffix stripping', () => {
     const cases: Array<[string, string]> = [
-        ['LifeStance Health, LLC', 'LifeStance Health'],
-        ['LifeStance', 'LifeStance'],
         ['Acme Inc.', 'Acme'],
         ['Acme Inc', 'Acme'],
         ['Acme, Inc.', 'Acme'],
@@ -376,7 +374,7 @@ describe('canonicalizeEmployerName', () => {
     ];
 
     for (const [input, expected] of cases) {
-        it(`"${input}" → "${expected}"`, () => {
+        it(`"${input}" → "${expected}" (no canonical alias)`, () => {
             expect(canonicalizeEmployerName(input)).toBe(expected);
         });
     }
@@ -384,6 +382,34 @@ describe('canonicalizeEmployerName', () => {
     it('handles null/undefined gracefully', () => {
         expect(canonicalizeEmployerName(null)).toBe('');
         expect(canonicalizeEmployerName(undefined)).toBe('');
+    });
+});
+
+describe('canonicalizeEmployerName — KNOWN_COMPANIES alias mapping (added 2026-05-06)', () => {
+    // After suffix strip, a curated alias lookup converges spelling
+    // variants ("Lifestance", "Blue Sky", "Talkspace Psychiatry") onto
+    // the canonical display name from KNOWN_COMPANIES.
+    const cases: Array<[string, string]> = [
+        ['Lifestance', 'LifeStance Health'],
+        ['LifeStance', 'LifeStance Health'],
+        ['LifeStance Health, LLC', 'LifeStance Health'],
+        ['LifeStance Health', 'LifeStance Health'],
+        ['life stance', 'LifeStance Health'],
+        ['Blue Sky Telepsych', 'BlueSky Telepsych'],
+        ['BlueSky Telepsych', 'BlueSky Telepsych'],
+        ['Talkspace Psychiatry', 'Talkspace'],
+        ['Talkspace, Inc.', 'Talkspace'],
+        ['Core Civic', 'CoreCivic'],
+    ];
+
+    for (const [input, expected] of cases) {
+        it(`"${input}" → "${expected}"`, () => {
+            expect(canonicalizeEmployerName(input)).toBe(expected);
+        });
+    }
+
+    it('leaves unknown employers untouched (returns suffix-stripped form)', () => {
+        expect(canonicalizeEmployerName('Random Health Group LLC')).toBe('Random Health Group');
     });
 });
 

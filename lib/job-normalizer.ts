@@ -3,6 +3,7 @@ import { normalizeSalary } from './salary-normalizer';
 import { parseLocation } from './location-parser';
 import { formatDisplaySalary } from './salary-display';
 import { cleanDescription } from './description-cleaner';
+import { findCanonicalName } from './company-normalizer';
 
 type NormalizedJob = Omit<Job, 'id' | 'createdAt' | 'updatedAt' | 'viewCount' | 'applyClickCount'> & {
   originalPostedAt?: Date | null;
@@ -685,11 +686,19 @@ function isIndirectApplyLink(url: string): boolean {
 }
 
 /**
- * Light-touch employer-name canonicalization. Strips legal suffixes and
- * normalizes whitespace so that "LifeStance Health, LLC" / "LifeStance"
- * / "LIFESTANCE HEALTH" all converge to the same key for downstream
- * fuzzy dedup. Heavier company-record linking still happens later via
- * `linkJobToCompany`; this just makes the string less noisy.
+ * Light-touch employer-name canonicalization. Two stages:
+ *   1. Strip legal suffixes + whitespace ("LifeStance Health, LLC" →
+ *      "LifeStance Health").
+ *   2. Look up the result in the hand-vetted KNOWN_COMPANIES list via
+ *      findCanonicalName (e.g. "Lifestance" → "LifeStance Health",
+ *      "Blue Sky Telepsych" → "BlueSky Telepsych"). If unknown, return
+ *      the suffix-stripped string unchanged.
+ *
+ * Stage 2 was added 2026-05-06 after a prod audit found cards displaying
+ * the same company under different spellings depending on which source
+ * inserted the row first. Heavier company-record linking still happens
+ * later via `linkJobToCompany`; this just makes the displayed string
+ * canonical at ingest time.
  */
 const EMPLOYER_LEGAL_SUFFIX_RE =
     /[,\s]+(?:llc|l\.l\.c\.|inc\.?|incorporated|corp\.?|corporation|ltd\.?|limited|co\.?|llp|p\.?l\.?l\.?c\.?|p\.?c\.?|p\.?a\.?)\.?$/i;
@@ -703,7 +712,9 @@ export function canonicalizeEmployerName(raw: string | null | undefined): string
     s = s.replace(EMPLOYER_LEGAL_SUFFIX_RE, '').trim();
     // Strip dangling trailing comma if any.
     s = s.replace(/,$/, '').trim();
-    return s;
+    // Apply curated alias map (LifeStance / BlueSky / SonderMind / …).
+    const canonical = findCanonicalName(s);
+    return canonical ?? s;
 }
 
 /**
