@@ -2,7 +2,7 @@
  * ATS Jobs DB (RapidAPI) aggregator.
  *
  * API: https://ats-jobs-db.p.rapidapi.com
- * Plans: Basic (100 req/mo, free) · Pro ($49, 10k req/mo) · Ultra ($199, 100k/mo)
+ * Subscribed plan (2026-05-06): **Pro — $49/mo, 10,000 req/mo, 500 req/min**
  *
  * Strategy — single advanced-search call per run:
  *   POST /v1/jobs/search with `queries` = [all PMHNP variants] (OR'd
@@ -10,16 +10,16 @@
  *   per-run job budget is hit. One pass total — no second broadening
  *   pass like fantastic-jobs-db, because multi-query OR is built-in.
  *
- * Conservative defaults so the Basic plan (100 req/month) lasts:
+ * Sized for Pro plan with ~30× headroom so a busy day or a future
+ * additional pass (e.g. expired-jobs probe) doesn't tip us over:
  *   - 1 cron run/day
- *   - up to 5 pages × 50 = 250 jobs/run
- *   - ~5 calls/run × 30 days = 150 req/month — but Basic = 100, so
- *     adapter will land near 0 remaining by end of month. Recommend
- *     upgrading to Pro ($49/mo, 10k req/mo) for comfortable headroom.
+ *   - up to 8 pages × 50 = 400 jobs/run
+ *   - max 10 calls/run
+ *   - ~10 calls/run × 30 days = 300 req/month  (3% of 10k Pro cap)
  *
  * The endpoint reports remaining quota via `x-ratelimit-requests-remaining`
- * (same convention as Fantastic-Jobs-DB). MIN_REMAINING_BUFFER protects
- * against runaway runs near the cap.
+ * (same convention as Fantastic-Jobs-DB). MIN_REMAINING_BUFFER refuses
+ * to start a run when remaining drops near zero.
  */
 
 import { RateLimiter } from './types';
@@ -30,12 +30,13 @@ const SEARCH_URL = `https://${API_HOST}/v1/jobs/search`;
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY ?? '';
 
 const PAGE_SIZE = 50;
-const MAX_PAGES_PER_RUN = 5;
-const MAX_REQUESTS_PER_RUN = 6; // conservative — fits Basic plan with 1 run/day
-const MAX_JOBS_PER_RUN = 250;
-// Refuse to start a run when fewer than this many monthly requests
-// remain. Tuned for Basic (100/mo); set higher if upgrading to Pro/Ultra.
-const MIN_REMAINING_BUFFER = 5;
+const MAX_PAGES_PER_RUN = 8;
+const MAX_REQUESTS_PER_RUN = 10;
+const MAX_JOBS_PER_RUN = 400;
+// 100-request buffer (1% of Pro's 10k cap) — refuses to start runs that
+// would chew the last sliver of monthly quota. Resize if downgrading
+// to Basic (5) or upgrading to Ultra (1000).
+const MIN_REMAINING_BUFFER = 100;
 const PAGE_RATE_LIMIT_MS = 1000;
 
 import { ATS_JOBS_DB_QUERIES, ATS_JOBS_DB_SOURCES } from './search-terms/ats-jobs-db';
