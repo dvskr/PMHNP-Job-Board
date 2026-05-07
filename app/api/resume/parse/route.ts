@@ -14,6 +14,16 @@ import { downloadResumeBytes, extractRequestContext } from '@/lib/resume-storage
  *  - { resumeUrl: string } — path in Supabase Storage (e.g. "resumes/userId/file.pdf")
  *  - multipart/form-data with a "file" field
  */
+
+// gpt-5-mini's reasoning + verbatim-bullet output for a complex
+// resume regularly takes 60-150s. The Vercel default function
+// timeout is 10s on Hobby / 60s on Pro / 300s on Pro w/ Fluid;
+// without an explicit `maxDuration` export the function is killed
+// before the LLM finishes and the user sees "All providers failed".
+// 240s (4 min) gives the 180s LLM timeout (lib/ai/tasks.ts) some
+// headroom for PDF extraction + cold start + DB writes.
+export const maxDuration = 240;
+
 // Cap upload size to prevent OOM in the Vercel function (resumes are typically <2MB).
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
