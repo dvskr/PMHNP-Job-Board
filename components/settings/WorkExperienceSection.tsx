@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Edit3, Trash2, Save, Loader2, X, Briefcase, ChevronDown, ChevronUp, Check } from 'lucide-react'
+import {
+    clayCard, clayInnerCard, clayFormPanel, clayTitle, claySubTitle,
+    clayInput, clayLabel, clayBtnPrimary, clayBtnOutline, clayBtnOutlineSmall,
+    clayPalette,
+} from './clay-tokens'
 
 const US_STATES = [
     'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN',
@@ -41,11 +46,12 @@ const emptyForm: WForm = {
     practiceSetting: '',
 }
 
-const cardStyle: React.CSSProperties = { background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '28px' }
-const labelStyle: React.CSSProperties = { display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }
-const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }
-const btnPrimary: React.CSSProperties = { padding: '10px 28px', borderRadius: '10px', background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }
-const btnOutline: React.CSSProperties = { padding: '8px 16px', borderRadius: '8px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }
+// Local aliases keep JSX terse — clay-tokens.ts owns the actual values.
+const cardStyle = clayCard
+const labelStyle = clayLabel
+const inputStyle = clayInput
+const btnPrimary = clayBtnPrimary
+const btnOutline = clayBtnOutlineSmall
 
 function toMY(iso: string | null): { month: string; year: string } {
     if (!iso) return { month: '', year: '' }
@@ -151,9 +157,9 @@ export default function WorkExperienceSection({ showMsg }: Props) {
             {[true, false].map((v, i) => (
                 <button key={String(v)} type="button" onClick={() => onChange(v)} style={{
                     padding: '6px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s',
-                    border: current === v ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
-                    background: current === v ? 'rgba(45,212,191,0.1)' : 'var(--bg-primary)',
-                    color: current === v ? '#2DD4BF' : 'var(--text-secondary)',
+                    border: current === v ? `1.5px solid ${clayPalette.accentLight}` : `1.5px solid ${clayPalette.border}`,
+                    background: current === v ? 'rgba(45,212,191,0.12)' : clayPalette.inputFill,
+                    color: current === v ? clayPalette.accentLight : clayPalette.textSecondary,
                 }}>{labels[i]}</button>
             ))}
         </div>
@@ -165,10 +171,10 @@ export default function WorkExperienceSection({ showMsg }: Props) {
     // the end of the section. When editingId is null (Add mode), it
     // renders at the bottom where the Add button used to be.
     const renderForm = () => (
-        <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', marginBottom: '16px' }}>
+        <div style={clayFormPanel}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{editingId ? 'Edit Work Experience' : 'Add Work Experience'}</h4>
-                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={18} /></button>
+                <h4 style={claySubTitle}>{editingId ? 'Edit Work Experience' : 'Add Work Experience'}</h4>
+                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}><X size={18} /></button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -224,13 +230,13 @@ export default function WorkExperienceSection({ showMsg }: Props) {
                     </div>
                 </div>
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: clayPalette.textSecondary }}>
                     <div onClick={() => setForm({ ...form, isCurrent: !form.isCurrent })} style={{
                         width: '18px', height: '18px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                        border: form.isCurrent ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
-                        background: form.isCurrent ? 'rgba(45,212,191,0.12)' : 'var(--bg-primary)',
+                        border: form.isCurrent ? `1.5px solid ${clayPalette.accentLight}` : `1.5px solid ${clayPalette.border}`,
+                        background: form.isCurrent ? 'rgba(45,212,191,0.12)' : clayPalette.inputFill,
                     }}>
-                        {form.isCurrent && <Check size={12} style={{ color: '#2DD4BF' }} />}
+                        {form.isCurrent && <Check size={12} style={{ color: clayPalette.accentLight }} />}
                     </div>
                     I currently work here
                 </label>
@@ -268,47 +274,47 @@ export default function WorkExperienceSection({ showMsg }: Props) {
 
     return (
         <div style={cardStyle}>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                <Briefcase size={20} style={{ color: '#3B82F6' }} /> Work Experience
+            <h3 style={clayTitle}>
+                <Briefcase size={20} style={{ color: clayPalette.info }} /> Work Experience
             </h3>
 
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '24px' }}><Loader2 size={20} className="animate-spin" style={{ display: 'inline', color: 'var(--text-muted)' }} /></div>
+                <div style={{ textAlign: 'center', padding: '24px' }}><Loader2 size={20} className="animate-spin" style={{ display: 'inline', color: clayPalette.textMuted }} /></div>
             ) : (
                 <>
                     {entries.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: showForm ? '20px' : '16px' }}>
                             {entries.map((w) => (
                                 <div key={w.id}>
-                                    <div style={{ borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', overflow: 'hidden' }}>
+                                    <div style={{ ...clayInnerCard, padding: 0, overflow: 'hidden' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', cursor: 'pointer' }}
                                             onClick={() => setExpandedCard(expandedCard === w.id ? null : w.id)}>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                    <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>{w.jobTitle}</span>
-                                                    {w.isCurrent && <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600, background: 'rgba(45,212,191,0.12)', color: '#2DD4BF' }}>Current</span>}
+                                                    <span style={{ fontWeight: 700, fontSize: '14px', color: clayPalette.textPrimary }}>{w.jobTitle}</span>
+                                                    {w.isCurrent && <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600, background: 'rgba(45,212,191,0.12)', color: clayPalette.accentLight }}>Current</span>}
                                                 </div>
-                                                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                                <div style={{ fontSize: '13px', color: clayPalette.textSecondary, marginTop: '2px' }}>
                                                     {w.employerName}{w.practiceSetting && <> · {w.practiceSetting}</>} · {fmtDate(w.startDate)} — {w.isCurrent ? 'Present' : fmtDate(w.endDate)}
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>
-                                                <button onClick={(e) => { e.stopPropagation(); startEdit(w) }} style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}><Edit3 size={14} /> Edit</button>
+                                                <button onClick={(e) => { e.stopPropagation(); startEdit(w) }} style={btnOutline}><Edit3 size={14} /> Edit</button>
                                                 {confirmDeleteId === w.id ? (
                                                     <div style={{ display: 'flex', gap: '4px' }}>
                                                         <button onClick={(e) => { e.stopPropagation(); handleDelete(w.id) }} disabled={deletingId === w.id}
-                                                            style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px', borderColor: '#EF4444', color: '#EF4444' }}>
+                                                            style={{ ...btnOutline, borderColor: 'rgba(239,68,68,0.4)', color: clayPalette.dangerLight }}>
                                                             {deletingId === w.id ? <Loader2 size={14} className="animate-spin" /> : 'Yes'}
                                                         </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }} style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}>No</button>
+                                                        <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }} style={btnOutline}>No</button>
                                                     </div>
                                                 ) : (
-                                                    <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(w.id) }} style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px', color: '#EF4444' }}><Trash2 size={14} /></button>
+                                                    <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(w.id) }} style={{ ...btnOutline, color: clayPalette.dangerLight }}><Trash2 size={14} /></button>
                                                 )}
                                             </div>
                                         </div>
                                         {expandedCard === w.id && (
-                                            <div style={{ padding: '0 18px 14px', borderTop: '1px solid var(--border-color)', paddingTop: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                            <div style={{ padding: '0 18px 14px', borderTop: `1px solid ${clayPalette.border}`, paddingTop: '12px', fontSize: '13px', color: clayPalette.textSecondary }}>
                                                 {w.description && <p style={{ margin: '0 0 8px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{w.description}</p>}
                                                 {w.employerCity && <div><strong>Location:</strong> {w.employerCity}{w.employerState && `, ${w.employerState}`}</div>}
                                                 {w.supervisorName && <div><strong>Supervisor:</strong> {w.supervisorName}</div>}
@@ -325,14 +331,14 @@ export default function WorkExperienceSection({ showMsg }: Props) {
                         </div>
                     )}
 
-                    {entries.length === 0 && !showForm && <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>No work experience added yet.</p>}
+                    {entries.length === 0 && !showForm && <p style={{ color: clayPalette.textMuted, fontSize: '13px', marginBottom: '16px' }}>No work experience added yet.</p>}
 
                     {/* Add-mode form: only renders at the bottom when not editing. */}
                     {showForm && editingId === null && renderForm()}
 
                     {!showForm && (
                         <button onClick={() => { setForm({ ...emptyForm }); setEditingId(null); setShowForm(true) }}
-                            style={{ ...btnOutline, borderStyle: 'dashed', width: '100%', justifyContent: 'center', padding: '12px', color: '#2DD4BF', borderColor: 'rgba(45,212,191,0.4)' }}>
+                            style={{ ...btnOutline, borderStyle: 'dashed', width: '100%', justifyContent: 'center', padding: '12px', color: clayPalette.accentLight, borderColor: 'rgba(45,212,191,0.4)' }}>
                             <Plus size={16} /> Add Work Experience
                         </button>
                     )}

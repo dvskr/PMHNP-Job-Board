@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Edit3, Trash2, Save, Loader2, X, Award } from 'lucide-react'
+import {
+    clayCard, clayInnerCard, clayFormPanel, clayTitle, claySubTitle,
+    clayInput, clayLabel, clayBtnPrimary, clayBtnOutlineSmall, clayPalette,
+} from './clay-tokens'
 
 // ── Constants ──
 const US_STATES = [
@@ -37,69 +41,13 @@ const emptyForm: LicenseFormData = {
     status: 'active',
 }
 
-// ── Styles (matches settings page) ──
-const cardStyle: React.CSSProperties = {
-    background: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: '16px',
-    padding: '28px',
-}
-const cardTitle: React.CSSProperties = {
-    fontSize: '18px',
-    fontWeight: 700,
-    color: 'var(--text-primary)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    marginBottom: '20px',
-}
-const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: '13px',
-    fontWeight: 600,
-    color: 'var(--text-secondary)',
-    marginBottom: '6px',
-}
-const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '10px 14px',
-    borderRadius: '10px',
-    border: '1px solid var(--border-color)',
-    background: 'var(--bg-primary)',
-    color: 'var(--text-primary)',
-    fontSize: '14px',
-    outline: 'none',
-    transition: 'border-color 0.2s',
-    boxSizing: 'border-box',
-}
-const btnPrimary: React.CSSProperties = {
-    padding: '10px 28px',
-    borderRadius: '10px',
-    background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
-    color: '#fff',
-    fontSize: '14px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    border: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    transition: 'all 0.3s',
-}
-const btnOutline: React.CSSProperties = {
-    padding: '8px 16px',
-    borderRadius: '8px',
-    background: 'transparent',
-    border: '1px solid var(--border-color)',
-    color: 'var(--text-secondary)',
-    fontSize: '13px',
-    fontWeight: 500,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    transition: 'all 0.2s',
-}
+// ── Local aliases (clay-tokens.ts owns the values) ──
+const cardStyle = clayCard
+const cardTitle = clayTitle
+const labelStyle = clayLabel
+const inputStyle = clayInput
+const btnPrimary = clayBtnPrimary
+const btnOutline = clayBtnOutlineSmall
 
 function maskNumber(num: string): string {
     if (num.length <= 4) return num
@@ -226,18 +174,12 @@ export default function LicensesSection({ showMsg }: Props) {
     // Inline form: rendered under the active edit row, or at the
     // bottom in add mode. See WorkExperienceSection for the same pattern.
     const renderForm = () => (
-        <div style={{
-            padding: '20px',
-            borderRadius: '12px',
-            border: '1px solid var(--border-color)',
-            background: 'var(--bg-primary)',
-            marginBottom: '16px',
-        }}>
+        <div style={clayFormPanel}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                <h4 style={claySubTitle}>
                     {editingId ? 'Edit License' : 'Add License'}
                 </h4>
-                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}>
                     <X size={18} />
                 </button>
             </div>
@@ -328,12 +270,12 @@ export default function LicensesSection({ showMsg }: Props) {
     return (
         <div style={cardStyle}>
             <h3 style={cardTitle}>
-                <Award size={20} style={{ color: '#F59E0B' }} />
+                <Award size={20} style={{ color: clayPalette.warning }} />
                 Licenses
             </h3>
 
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                <div style={{ textAlign: 'center', padding: '24px', color: clayPalette.textMuted }}>
                     <Loader2 size={20} className="animate-spin" style={{ display: 'inline' }} />
                 </div>
             ) : (
@@ -343,20 +285,10 @@ export default function LicensesSection({ showMsg }: Props) {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: showForm ? '20px' : '16px' }}>
                             {licenses.map((lic) => (
                                 <div key={lic.id}>
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            padding: '14px 18px',
-                                            borderRadius: '12px',
-                                            border: '1px solid var(--border-color)',
-                                            background: 'var(--bg-primary)',
-                                        }}
-                                    >
+                                    <div style={{ ...clayInnerCard, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                                <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>
+                                                <span style={{ fontWeight: 700, fontSize: '14px', color: clayPalette.textPrimary }}>
                                                     {lic.licenseType}
                                                 </span>
                                                 <span style={{
@@ -367,7 +299,7 @@ export default function LicensesSection({ showMsg }: Props) {
                                                     {lic.status.charAt(0).toUpperCase() + lic.status.slice(1)}
                                                 </span>
                                             </div>
-                                            <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                            <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', fontSize: '13px', color: clayPalette.textSecondary }}>
                                                 <span>State: <strong>{lic.licenseState}</strong></span>
                                                 <span>No: <strong>{maskNumber(lic.licenseNumber)}</strong></span>
                                                 <span>Exp: <strong>{formatDate(lic.expirationDate)}</strong></span>
@@ -375,11 +307,7 @@ export default function LicensesSection({ showMsg }: Props) {
                                         </div>
 
                                         <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>
-                                            <button
-                                                onClick={() => startEdit(lic)}
-                                                style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}
-                                                title="Edit"
-                                            >
+                                            <button onClick={() => startEdit(lic)} style={btnOutline} title="Edit">
                                                 <Edit3 size={14} /> Edit
                                             </button>
 
@@ -388,29 +316,14 @@ export default function LicensesSection({ showMsg }: Props) {
                                                     <button
                                                         onClick={() => handleDelete(lic.id)}
                                                         disabled={deletingId === lic.id}
-                                                        style={{
-                                                            ...btnOutline,
-                                                            padding: '6px 10px',
-                                                            fontSize: '12px',
-                                                            borderColor: '#EF4444',
-                                                            color: '#EF4444',
-                                                        }}
+                                                        style={{ ...btnOutline, borderColor: 'rgba(239,68,68,0.4)', color: clayPalette.dangerLight }}
                                                     >
                                                         {deletingId === lic.id ? <Loader2 size={14} className="animate-spin" /> : 'Yes'}
                                                     </button>
-                                                    <button
-                                                        onClick={() => setConfirmDeleteId(null)}
-                                                        style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}
-                                                    >
-                                                        No
-                                                    </button>
+                                                    <button onClick={() => setConfirmDeleteId(null)} style={btnOutline}>No</button>
                                                 </div>
                                             ) : (
-                                                <button
-                                                    onClick={() => setConfirmDeleteId(lic.id)}
-                                                    style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px', color: '#EF4444' }}
-                                                    title="Delete"
-                                                >
+                                                <button onClick={() => setConfirmDeleteId(lic.id)} style={{ ...btnOutline, color: clayPalette.dangerLight }} title="Delete">
                                                     <Trash2 size={14} />
                                                 </button>
                                             )}
@@ -425,7 +338,7 @@ export default function LicensesSection({ showMsg }: Props) {
                     )}
 
                     {licenses.length === 0 && !showForm && (
-                        <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
+                        <p style={{ color: clayPalette.textMuted, fontSize: '13px', marginBottom: '16px' }}>
                             No licenses added yet. Add your professional licenses to autofill applications.
                         </p>
                     )}
@@ -442,7 +355,7 @@ export default function LicensesSection({ showMsg }: Props) {
                                 width: '100%',
                                 justifyContent: 'center',
                                 padding: '12px',
-                                color: '#2DD4BF',
+                                color: clayPalette.accentLight,
                                 borderColor: 'rgba(45,212,191,0.4)',
                             }}
                         >
