@@ -166,7 +166,12 @@ export async function POST(request: NextRequest) {
     // tables. The UI uses this to show a 'review-before-save' diff;
     // the user then re-POSTs without the preview flag (or via the apply
     // endpoint that takes a curated subset) to commit.
-    const previewMode = new URL(request.url).searchParams.get('preview') === '1';
+    const url = new URL(request.url);
+    const previewMode = url.searchParams.get('preview') === '1';
+    // ?overwrite=1 → replace scalar fields even when set, AND
+    // delete-then-recreate structured records (licenses, certs, etc).
+    // Default behavior remains "fill empty fields only".
+    const overwriteMode = url.searchParams.get('overwrite') === '1';
     if (previewMode) {
       logger.info('Resume parsed (preview mode — no DB writes)', { userId: user.id });
       return NextResponse.json({
@@ -176,8 +181,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Auto-fill profile (only update empty fields)
-    await autoFillProfile(user.id, parsed);
+    // Auto-fill profile. Behavior controlled by overwriteMode.
+    await autoFillProfile(user.id, parsed, { overwrite: overwriteMode });
 
     // Mark as completed
     await prisma.userProfile.updateMany({
@@ -226,40 +231,73 @@ async function markProfileFailed(supabaseId: string): Promise<void> {
   }
 }
 
+interface AutoFillOptions {
+  /** When true, overwrite existing profile values + replace structured
+   *  rows (delete + reinsert). When false (default), only empty fields
+   *  get filled and structured rows are inserted only when no duplicate
+   *  key exists. */
+  overwrite: boolean;
+}
+
 /**
- * Auto-fill empty profile fields with parsed resume data.
- * NEVER overwrites user-entered data — only fills empty/null fields.
+ * Apply parsed resume data to the user's profile.
+ *
+ * - overwrite=false (default): non-destructive merge. Scalar fields
+ *   that already have a value are kept; new structured rows are
+ *   inserted only when no duplicate exists by key fields.
+ * - overwrite=true: destructive replace. Scalar fields are written
+ *   from the parsed payload (only when the parser supplied a value
+ *   — null/undefined parser fields never clobber). Structured tables
+ *   (CandidateLicense / Certification / Education / WorkExperience)
+ *   are deleted and recreated from the parsed payload.
  */
-async function autoFillProfile(supabaseId: string, parsed: ParsedResume): Promise<void> {
+async function autoFillProfile(
+  supabaseId: string,
+  parsed: ParsedResume,
+  opts: AutoFillOptions,
+): Promise<void> {
   const profile = await prisma.userProfile.findUnique({
     where: { supabaseId },
   });
 
   if (!profile) return;
 
-  // Build update only for empty fields
+  const { overwrite } = opts;
+  // For each scalar field, write when:
+  //   overwrite=true AND parser produced a value
+  //   OR profile field is empty AND parser produced a value
+  const shouldWrite = (existing: unknown, incoming: unknown): boolean => {
+    if (incoming === undefined || incoming === null) return false;
+    if (Array.isArray(incoming) && incoming.length === 0) return false;
+    if (overwrite) return true;
+    if (existing === null || existing === undefined) return true;
+    if (typeof existing === 'string' && existing.trim() === '') return true;
+    if (Array.isArray(existing) && existing.length === 0) return true;
+    return false;
+  };
+
   const update: Record<string, unknown> = {};
 
-  if (!profile.firstName && parsed.firstName) update.firstName = parsed.firstName;
-  if (!profile.lastName && parsed.lastName) update.lastName = parsed.lastName;
-  if (!profile.phone && parsed.phone) update.phone = parsed.phone;
-  if (!profile.linkedinUrl && parsed.linkedinUrl) update.linkedinUrl = parsed.linkedinUrl;
-  if (!profile.headline && parsed.headline) update.headline = parsed.headline;
-  if (!profile.yearsExperience && parsed.yearsExperience) update.yearsExperience = parsed.yearsExperience;
-  if (!profile.certifications && parsed.certifications?.length) {
-    update.certifications = parsed.certifications.join(', ');
+  if (shouldWrite(profile.firstName, parsed.firstName)) update.firstName = parsed.firstName;
+  if (shouldWrite(profile.lastName, parsed.lastName)) update.lastName = parsed.lastName;
+  if (shouldWrite(profile.phone, parsed.phone)) update.phone = parsed.phone;
+  if (shouldWrite(profile.linkedinUrl, parsed.linkedinUrl)) update.linkedinUrl = parsed.linkedinUrl;
+  if (shouldWrite(profile.headline, parsed.headline)) update.headline = parsed.headline;
+  if (shouldWrite(profile.yearsExperience, parsed.yearsExperience)) update.yearsExperience = parsed.yearsExperience;
+  if (shouldWrite(profile.certifications, parsed.certifications)) {
+    update.certifications = parsed.certifications!.join(', ');
   }
-  if (!profile.licenseStates && parsed.licenseStates?.length) {
-    update.licenseStates = parsed.licenseStates.join(', ');
+  if (shouldWrite(profile.licenseStates, parsed.licenseStates)) {
+    update.licenseStates = parsed.licenseStates!.join(', ');
   }
-  if (!profile.specialties && parsed.specialties?.length) {
-    update.specialties = parsed.specialties.join(', ');
+  if (shouldWrite(profile.specialties, parsed.specialties)) {
+    update.specialties = parsed.specialties!.join(', ');
   }
-  if ((!profile.skills || profile.skills.length === 0) && parsed.skills?.length) {
+  if (shouldWrite(profile.skills, parsed.skills)) {
     update.skills = parsed.skills;
   }
-  if (!profile.npiNumber && parsed.npiNumber) update.npiNumber = parsed.npiNumber;
-  if (!profile.deaNumber && parsed.deaNumber) update.deaNumber = parsed.deaNumber;
+  if (shouldWrite(profile.npiNumber, parsed.npiNumber)) update.npiNumber = parsed.npiNumber;
+  if (shouldWrite(profile.deaNumber, parsed.deaNumber)) update.deaNumber = parsed.deaNumber;
 
   // Update profile if there are changes
   if (Object.keys(update).length > 0) {
@@ -270,143 +308,148 @@ async function autoFillProfile(supabaseId: string, parsed: ParsedResume): Promis
     logger.info('Profile auto-filled from resume', { supabaseId, fields: Object.keys(update) });
   }
 
-  // Upsert education records
+  // ── Structured rows ────────────────────────────────────────
+  // overwrite=true: nuke the existing rows first so the parsed set
+  // becomes the canonical truth. overwrite=false: dedupe by key
+  // fields and only insert what isn't already there.
+  if (overwrite) {
+    await prisma.$transaction([
+      prisma.candidateEducation.deleteMany({ where: { userId: profile.id } }),
+      prisma.candidateWorkExperience.deleteMany({ where: { userId: profile.id } }),
+      prisma.candidateLicense.deleteMany({ where: { userId: profile.id } }),
+      prisma.candidateCertification.deleteMany({ where: { userId: profile.id } }),
+    ]);
+  }
+
   if (parsed.education?.length) {
     for (const edu of parsed.education) {
-      // Check if a similar record already exists
-      const existing = await prisma.candidateEducation.findFirst({
-        where: {
-          userId: profile.id,
-          schoolName: edu.schoolName,
-          degreeType: edu.degreeType,
-        },
-      });
-
-      if (!existing) {
-        await prisma.candidateEducation.create({
-          data: {
+      if (!overwrite) {
+        const existing = await prisma.candidateEducation.findFirst({
+          where: {
             userId: profile.id,
-            degreeType: edu.degreeType,
-            fieldOfStudy: edu.fieldOfStudy || null,
             schoolName: edu.schoolName,
-            graduationDate: edu.graduationYear
-              ? new Date(`${edu.graduationYear}-06-01`)
-              : null,
+            degreeType: edu.degreeType,
           },
         });
+        if (existing) continue;
       }
+      await prisma.candidateEducation.create({
+        data: {
+          userId: profile.id,
+          degreeType: edu.degreeType,
+          fieldOfStudy: edu.fieldOfStudy || null,
+          schoolName: edu.schoolName,
+          graduationDate: edu.graduationYear
+            ? new Date(`${edu.graduationYear}-06-01`)
+            : null,
+        },
+      });
     }
   }
 
-  // Upsert work experience records
   if (parsed.workExperience?.length) {
     for (const exp of parsed.workExperience) {
-      // Check if a similar record already exists
-      const existing = await prisma.candidateWorkExperience.findFirst({
-        where: {
-          userId: profile.id,
-          jobTitle: exp.jobTitle,
-          employerName: exp.employerName,
-        },
-      });
-
-      if (!existing) {
-        await prisma.candidateWorkExperience.create({
-          data: {
+      if (!overwrite) {
+        const existing = await prisma.candidateWorkExperience.findFirst({
+          where: {
             userId: profile.id,
             jobTitle: exp.jobTitle,
             employerName: exp.employerName,
-            startDate: exp.startDate ? new Date(exp.startDate) : new Date(),
-            endDate: exp.endDate ? new Date(exp.endDate) : null,
-            isCurrent: exp.isCurrent || false,
-            description: exp.description || null,
-            practiceSetting: exp.practiceSetting || null,
           },
         });
+        if (existing) continue;
       }
+      await prisma.candidateWorkExperience.create({
+        data: {
+          userId: profile.id,
+          jobTitle: exp.jobTitle,
+          employerName: exp.employerName,
+          startDate: exp.startDate ? new Date(exp.startDate) : new Date(),
+          endDate: exp.endDate ? new Date(exp.endDate) : null,
+          isCurrent: exp.isCurrent || false,
+          description: exp.description || null,
+          practiceSetting: exp.practiceSetting || null,
+        },
+      });
     }
   }
 
   // ── Structured license records (Sprint 2.1) ─────────────────
-  // Insert one CandidateLicense row per (state, type, number) combo
-  // the parser found. These are richer than the CSV `licenseStates`
-  // string on UserProfile — they include the actual license number
-  // and expiration date for employer compliance verification.
   if (parsed.licenses?.length) {
     for (const lic of parsed.licenses) {
-      const existing = await prisma.candidateLicense.findFirst({
-        where: {
-          userId: profile.id,
-          licenseState: lic.licenseState,
-          licenseNumber: lic.licenseNumber,
-        },
-      });
-      if (!existing) {
-        let expirationDate: Date | null = null;
-        if (lic.expirationDate) {
-          const parsed = new Date(lic.expirationDate);
-          if (!Number.isNaN(parsed.getTime())) expirationDate = parsed;
-        }
-        await prisma.candidateLicense.create({
-          data: {
+      if (!overwrite) {
+        const existing = await prisma.candidateLicense.findFirst({
+          where: {
             userId: profile.id,
-            licenseType: lic.licenseType,
-            licenseNumber: lic.licenseNumber,
             licenseState: lic.licenseState,
-            expirationDate,
-            status: 'active',
+            licenseNumber: lic.licenseNumber,
           },
         });
+        if (existing) continue;
       }
+      let expirationDate: Date | null = null;
+      if (lic.expirationDate) {
+        const expParsed = new Date(lic.expirationDate);
+        if (!Number.isNaN(expParsed.getTime())) expirationDate = expParsed;
+      }
+      await prisma.candidateLicense.create({
+        data: {
+          userId: profile.id,
+          licenseType: lic.licenseType,
+          licenseNumber: lic.licenseNumber,
+          licenseState: lic.licenseState,
+          expirationDate,
+          status: 'active',
+        },
+      });
     }
   }
 
   // ── Structured certification records (Sprint 2.1) ────────────
-  // Prefer the structured payload (with certifyingBody + expiration)
-  // over the legacy flat-name payload. Falls back to the flat list
-  // for backward compatibility when the model returns names only.
   if (parsed.certificationRecords?.length) {
     for (const cert of parsed.certificationRecords) {
-      const existing = await prisma.candidateCertification.findFirst({
-        where: {
-          userId: profile.id,
-          certificationName: cert.certificationName,
-        },
-      });
-      if (!existing) {
-        let expirationDate: Date | null = null;
-        if (cert.expirationDate) {
-          const parsed = new Date(cert.expirationDate);
-          if (!Number.isNaN(parsed.getTime())) expirationDate = parsed;
-        }
-        await prisma.candidateCertification.create({
-          data: {
+      if (!overwrite) {
+        const existing = await prisma.candidateCertification.findFirst({
+          where: {
             userId: profile.id,
             certificationName: cert.certificationName,
-            certifyingBody: cert.certifyingBody ?? null,
-            certificationNumber: cert.certificationNumber ?? null,
-            expirationDate,
           },
         });
+        if (existing) continue;
       }
+      let expirationDate: Date | null = null;
+      if (cert.expirationDate) {
+        const expParsed = new Date(cert.expirationDate);
+        if (!Number.isNaN(expParsed.getTime())) expirationDate = expParsed;
+      }
+      await prisma.candidateCertification.create({
+        data: {
+          userId: profile.id,
+          certificationName: cert.certificationName,
+          certifyingBody: cert.certifyingBody ?? null,
+          certificationNumber: cert.certificationNumber ?? null,
+          expirationDate,
+        },
+      });
     }
   } else if (parsed.certifications?.length) {
     // Legacy fallback: flat name list with no structured metadata.
     for (const certName of parsed.certifications) {
-      const existing = await prisma.candidateCertification.findFirst({
-        where: {
-          userId: profile.id,
-          certificationName: certName,
-        },
-      });
-      if (!existing) {
-        await prisma.candidateCertification.create({
-          data: {
+      if (!overwrite) {
+        const existing = await prisma.candidateCertification.findFirst({
+          where: {
             userId: profile.id,
             certificationName: certName,
           },
         });
+        if (existing) continue;
       }
+      await prisma.candidateCertification.create({
+        data: {
+          userId: profile.id,
+          certificationName: certName,
+        },
+      });
     }
   }
 }

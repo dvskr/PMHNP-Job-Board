@@ -47,6 +47,12 @@ interface ResumeUploadProps {
   resumeMeta?: { name?: string; size?: number; uploadedAt?: string }
   onUploadComplete: (url: string, meta: { name: string; size: number }) => void
   onRemove?: () => void
+  /** Fired after the AI autofill modal commits a successful apply
+   *  (either fill-empty or overwrite mode). The parent should
+   *  re-fetch the profile so the form fields show the new values
+   *  immediately — without this the user has to refresh to see what
+   *  changed. */
+  onAutofillApplied?: () => void
 }
 
 export default function ResumeUpload({
@@ -55,6 +61,7 @@ export default function ResumeUpload({
   resumeMeta,
   onUploadComplete,
   onRemove,
+  onAutofillApplied,
 }: ResumeUploadProps) {
   /* state */
   const [uploading, setUploading] = useState(false)
@@ -209,7 +216,7 @@ export default function ResumeUpload({
     }
   }, [lastResumePath])
 
-  const applyAutofill = useCallback(async () => {
+  const applyAutofill = useCallback(async (overwrite: boolean) => {
     const path = lastResumePath
     if (!path) {
       setReviewOpen(false)
@@ -217,7 +224,8 @@ export default function ResumeUpload({
     }
     setReviewApplying(true)
     try {
-      const res = await fetch('/api/resume/parse', {
+      const qs = overwrite ? '?overwrite=1' : ''
+      const res = await fetch(`/api/resume/parse${qs}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resumeUrl: path }),
@@ -229,12 +237,15 @@ export default function ResumeUpload({
       setReviewOpen(false)
       setToast(true)
       setTimeout(() => setToast(false), 3500)
+      // Fire the parent callback so the form fields refresh in place
+      // — no page reload needed.
+      onAutofillApplied?.()
     } catch (err: unknown) {
       setReviewError(err instanceof Error ? err.message : 'Failed to apply autofill')
     } finally {
       setReviewApplying(false)
     }
-  }, [lastResumePath])
+  }, [lastResumePath, onAutofillApplied])
 
   /* view resume (server-side signed URL generation) */
   const handleView = async () => {

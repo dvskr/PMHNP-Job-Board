@@ -27,7 +27,10 @@ interface ResumeAutofillReviewProps {
     applying?: boolean;
     /** Set when preview fetch failed; shown to the user. */
     error?: string | null;
-    onApply: () => void;
+    /** `overwrite=false` → fill empty fields only (non-destructive merge).
+     *  `overwrite=true` → replace existing scalar values + delete-and-
+     *  recreate structured rows from the parsed payload. */
+    onApply: (overwrite: boolean) => void;
     onClose: () => void;
 }
 
@@ -151,7 +154,7 @@ export default function ResumeAutofillReview({
                                 margin: '2px 0 0',
                             }}
                         >
-                            Nothing is saved until you tap <strong>Apply</strong>. Empty profile fields will be filled — your existing values are kept.
+                            Nothing is saved until you choose. <strong>Fill empty fields</strong> keeps what you already have. <strong>Replace everything</strong> overwrites existing values and rewrites your licenses, certs, education and work history.
                         </p>
                     </div>
                     <button
@@ -256,42 +259,65 @@ export default function ResumeAutofillReview({
                     >
                         {error || !parsed ? 'Close' : 'Skip for now'}
                     </button>
-                    {/* Apply is only meaningful when we actually have
-                        parsed data. Hide it on error / loading-with-no-data
-                        instead of showing a disabled-but-still-bright
-                        button that invites a click. */}
+                    {/* Two distinct apply modes — see onApply prop docs.
+                        Replace is opt-in (red) since it deletes existing
+                        structured rows; Fill is the safer default. */}
                     {parsed && !error && (
-                        <button
-                            onClick={onApply}
-                            disabled={loading || applying}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '7px',
-                                padding: '10px 22px',
-                                borderRadius: '10px',
-                                background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
-                                color: '#FFFFFF',
-                                fontSize: '13px',
-                                fontWeight: 700,
-                                border: 'none',
-                                cursor: loading || applying ? 'not-allowed' : 'pointer',
-                                opacity: loading || applying ? 0.6 : 1,
-                                boxShadow: '0 4px 12px rgba(139,92,246,0.25)',
-                            }}
-                        >
-                            {applying ? (
-                                <>
-                                    <Loader2 size={14} className="animate-spin" />
-                                    Saving…
-                                </>
-                            ) : (
-                                <>
-                                    <CheckCircle size={14} />
-                                    Apply to Profile
-                                </>
-                            )}
-                        </button>
+                        <>
+                            <button
+                                onClick={() => onApply(true)}
+                                disabled={loading || applying}
+                                title="Overwrite existing fields and replace all licenses, certifications, education and work experience with what's in the resume."
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '7px',
+                                    padding: '10px 16px',
+                                    borderRadius: '10px',
+                                    background: 'rgba(239,68,68,0.08)',
+                                    color: '#B91C1C',
+                                    fontSize: '13px',
+                                    fontWeight: 700,
+                                    border: '1.5px solid rgba(239,68,68,0.35)',
+                                    cursor: loading || applying ? 'not-allowed' : 'pointer',
+                                    opacity: loading || applying ? 0.5 : 1,
+                                }}
+                            >
+                                Replace everything
+                            </button>
+                            <button
+                                onClick={() => onApply(false)}
+                                disabled={loading || applying}
+                                title="Only fill profile fields that are currently empty. Existing values and existing licenses/certs/education/work entries are kept."
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '7px',
+                                    padding: '10px 22px',
+                                    borderRadius: '10px',
+                                    background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                                    color: '#FFFFFF',
+                                    fontSize: '13px',
+                                    fontWeight: 700,
+                                    border: 'none',
+                                    cursor: loading || applying ? 'not-allowed' : 'pointer',
+                                    opacity: loading || applying ? 0.6 : 1,
+                                    boxShadow: '0 4px 12px rgba(139,92,246,0.25)',
+                                }}
+                            >
+                                {applying ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" />
+                                        Saving…
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle size={14} />
+                                        Fill empty fields
+                                    </>
+                                )}
+                            </button>
+                        </>
                     )}
                 </div>
             </div>

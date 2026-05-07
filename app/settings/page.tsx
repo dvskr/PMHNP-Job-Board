@@ -210,6 +210,30 @@ function SettingsPageInner() {
 
   }, [router])
 
+  // Re-fetch the profile in place. Called after AI autofill commits
+  // and after Clear All so the form fields show the new state without
+  // a page reload.
+  const refetchProfile = async () => {
+    try {
+      const res = await fetch('/api/auth/profile')
+      if (!res.ok) return
+      const data = await res.json()
+      setProfile(data)
+      if (data.availableDate) {
+        const d = new Date(data.availableDate)
+        const now = new Date()
+        const diffDays = Math.round((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        if (diffDays <= 1) setAvailabilityMode('Immediately')
+        else if (diffDays <= 16) setAvailabilityMode('2 Weeks')
+        else if (diffDays <= 35) setAvailabilityMode('1 Month')
+        else if (diffDays <= 95) setAvailabilityMode('3 Months')
+        else setAvailabilityMode('Custom')
+      }
+    } catch {
+      // Silent — the next user action will surface any persistent issue.
+    }
+  }
+
   // Poll for profile updates if resume parsing is pending
   useEffect(() => {
     if (profile?.resumeParseStatus === 'pending') {
@@ -322,11 +346,8 @@ function SettingsPageInner() {
         throw new Error(body?.error || `HTTP ${res.status}`)
       }
       // Re-fetch the profile so the form fields reflect the clear.
-      const refreshed = await fetch('/api/auth/profile')
-      if (refreshed.ok) {
-        setProfile(await refreshed.json())
-        setAvailabilityMode('Immediately')
-      }
+      await refetchProfile()
+      setAvailabilityMode('Immediately')
       showMsg('success', 'Profile cleared. Only your first name was kept.')
     } catch (err) {
       showMsg('error', err instanceof Error ? err.message : 'Failed to clear profile')
@@ -646,11 +667,54 @@ function SettingsPageInner() {
               <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
                 Upload your resume to quickly apply to jobs
               </p>
+
+              {/* AI autofill explainer — surfaces the feature so users
+                  don't blow past the modal that pops after upload. */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  padding: '14px 16px',
+                  marginBottom: '16px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(45,212,191,0.08))',
+                  border: '1px solid rgba(139,92,246,0.2)',
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: 'rgba(139,92,246,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ fontSize: '18px' }}>✨</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>
+                    AI extracts your profile from this resume
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#4A5E6A', margin: 0, lineHeight: 1.5 }}>
+                    After upload we read your name, contact, NPI/DEA, every state license,
+                    certifications, education and work history — then show you a review screen.
+                    Choose <strong>Fill empty fields</strong> to keep what you already have, or{' '}
+                    <strong>Replace everything</strong> to use the resume as the source of truth.
+                    Nothing saves until you confirm.
+                  </p>
+                </div>
+              </div>
+
               <ResumeUpload
                 currentResumeUrl={profile.resumeUrl}
                 resumeParseStatus={profile.resumeParseStatus}
                 onUploadComplete={handleResumeUpload}
                 onRemove={handleResumeRemove}
+                onAutofillApplied={refetchProfile}
               />
             </div>
           )}

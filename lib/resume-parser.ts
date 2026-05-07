@@ -270,7 +270,11 @@ export function sanitizeParsedResume(data: ParsedResume): ParsedResume {
                       startDate: typeof w.startDate === 'string' ? w.startDate.slice(0, 10) : undefined,
                       endDate: typeof w.endDate === 'string' ? w.endDate.slice(0, 10) : undefined,
                       isCurrent: typeof w.isCurrent === 'boolean' ? w.isCurrent : false,
-                      description: typeof w.description === 'string' ? w.description.slice(0, 500) : undefined,
+                      // Bumped 500 → 2000 chars (2026-05-06): the
+                      // prompt now asks for verbatim bullets instead of
+                      // a 1-2 sentence summary, and a single role can
+                      // easily have 4-6 substantive bullets.
+                      description: typeof w.description === 'string' ? w.description.slice(0, 2000) : undefined,
                       practiceSetting: typeof w.practiceSetting === 'string' ? w.practiceSetting.slice(0, 50) : undefined,
                   }))
             : [],
