@@ -10,7 +10,7 @@ import {
     Bookmark, Send, Eye, Bell, ArrowRight, Briefcase, MapPin,
     DollarSign, Loader2, TrendingUp, Clock, AlertTriangle,
     Search, FileText, Settings, BellRing, CheckCircle, ExternalLink, BookOpen,
-    HelpCircle, Star, MessageSquare
+    HelpCircle, Star, MessageSquare, Sparkles
 } from 'lucide-react'
 import HowItWorksSidebar from './HowItWorksSidebar'
 import JobCard from '@/components/JobCard'
@@ -667,6 +667,45 @@ export default function DashboardContent() {
                                 </span>
                             )}
                         </div>
+
+                        {/* AI resume-parsing shortcut — same callout as the
+                            settings page Resume section, surfaced here so
+                            the user sees the AI shortcut WITHOUT having to
+                            click into settings first. Routes directly to
+                            the resume section anchor. */}
+                        <Link
+                            href="/settings?tab=personal#section-resume"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                marginTop: '12px',
+                                padding: '10px 14px',
+                                borderRadius: '12px',
+                                background: 'linear-gradient(135deg, rgba(139,92,246,0.10), rgba(45,212,191,0.10))',
+                                border: '1px solid rgba(139,92,246,0.22)',
+                                textDecoration: 'none',
+                                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                            }}
+                        >
+                            <div style={{
+                                width: '28px', height: '28px', borderRadius: '8px',
+                                background: 'rgba(139,92,246,0.18)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                flexShrink: 0,
+                            }}>
+                                <Sparkles size={14} style={{ color: '#8B5CF6' }} />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35', margin: 0, lineHeight: 1.4 }}>
+                                    Skip the form — upload your resume
+                                </p>
+                                <p style={{ fontSize: '11px', color: '#4A5E6A', margin: '1px 0 0', lineHeight: 1.4 }}>
+                                    AI extracts your licenses, certifications, education and work history. You review before anything saves.
+                                </p>
+                            </div>
+                            <ArrowRight size={14} style={{ color: '#8B5CF6', flexShrink: 0 }} />
+                        </Link>
                     </div>
 
                     {/* CTA Button */}
