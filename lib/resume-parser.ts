@@ -13,13 +13,33 @@ export interface ParsedResume {
     firstName?: string;
     lastName?: string;
     headline?: string;
+    /** E.164 or "(555) 555-5555" formatted phone — sanitized to digits with min length. */
+    phone?: string;
+    /** Public LinkedIn URL (linkedin.com/in/xxx). */
+    linkedinUrl?: string;
     yearsExperience?: number;
+    /** Flat list of cert names — kept for the CSV column on UserProfile. */
     certifications?: string[];
+    /** 2-letter state codes — kept for the CSV column on UserProfile. */
     licenseStates?: string[];
     specialties?: string[];
     skills?: string[];
     npiNumber?: string;
     deaNumber?: string;
+    /** Structured license records → CandidateLicense table. */
+    licenses?: {
+        licenseType: string;
+        licenseNumber: string;
+        licenseState: string;
+        expirationDate?: string;
+    }[];
+    /** Structured certification records → CandidateCertification table. */
+    certificationRecords?: {
+        certificationName: string;
+        certifyingBody?: string;
+        certificationNumber?: string;
+        expirationDate?: string;
+    }[];
     education?: {
         degreeType: string;
         fieldOfStudy?: string;
@@ -119,12 +139,48 @@ export async function parseResume(
     return sanitizeParsedResume((result.parsed ?? {}) as ParsedResume);
 }
 
-/** Sanitize and validate parsed resume data. */
-function sanitizeParsedResume(data: ParsedResume): ParsedResume {
+/** Loose ISO/`YYYY-MM-DD` / `MM/YYYY` / `YYYY` date string passthrough.
+ *  We accept any short-ish string and let downstream code attempt to parse;
+ *  the schema's per-row date columns can hold null when parsing fails. */
+function sanitizeDateStr(v: unknown): string | undefined {
+    if (typeof v !== 'string') return undefined;
+    const s = v.trim();
+    if (s.length === 0 || s.length > 12) return undefined;
+    return s;
+}
+
+/** Phone — keep digits + common separators, drop anything below 7 digits. */
+function sanitizePhone(v: unknown): string | undefined {
+    if (typeof v !== 'string') return undefined;
+    const digitCount = (v.match(/\d/g) ?? []).length;
+    if (digitCount < 7 || digitCount > 15) return undefined;
+    return v.slice(0, 30);
+}
+
+/** LinkedIn URL — must be a linkedin.com URL or a partial path. */
+function sanitizeLinkedIn(v: unknown): string | undefined {
+    if (typeof v !== 'string') return undefined;
+    const s = v.trim().slice(0, 200);
+    if (!/linkedin\.com\/(in|pub|profile)\//i.test(s)) return undefined;
+    // Normalize to https:// if user wrote "linkedin.com/in/foo" without scheme.
+    return s.startsWith('http') ? s : `https://${s.replace(/^\/+/, '')}`;
+}
+
+/**
+ * Sanitize and validate parsed resume data.
+ *
+ * EXPORTED so the EEO negative test (Sprint 2.1.P6) can assert the
+ * output never includes protected-attribute keys, even when the model
+ * returns them. Production code should not call this directly —
+ * `parseResume()` is the boundary.
+ */
+export function sanitizeParsedResume(data: ParsedResume): ParsedResume {
     return {
         firstName: typeof data.firstName === 'string' ? data.firstName.slice(0, 50) : undefined,
         lastName: typeof data.lastName === 'string' ? data.lastName.slice(0, 50) : undefined,
         headline: typeof data.headline === 'string' ? data.headline.slice(0, 120) : undefined,
+        phone: sanitizePhone(data.phone),
+        linkedinUrl: sanitizeLinkedIn(data.linkedinUrl),
         yearsExperience:
             typeof data.yearsExperience === 'number' && data.yearsExperience >= 0 && data.yearsExperience <= 50
                 ? Math.round(data.yearsExperience)
@@ -143,6 +199,34 @@ function sanitizeParsedResume(data: ParsedResume): ParsedResume {
             : [],
         npiNumber: typeof data.npiNumber === 'string' && /^\d{10}$/.test(data.npiNumber) ? data.npiNumber : undefined,
         deaNumber: typeof data.deaNumber === 'string' && data.deaNumber.length <= 15 ? data.deaNumber : undefined,
+        // Structured license records — must have type + number + 2-letter state.
+        licenses: Array.isArray(data.licenses)
+            ? data.licenses
+                  .filter((l) => l
+                      && typeof l.licenseType === 'string'
+                      && typeof l.licenseNumber === 'string'
+                      && typeof l.licenseState === 'string'
+                      && l.licenseState.length === 2)
+                  .slice(0, 20)
+                  .map((l) => ({
+                      licenseType: l.licenseType.slice(0, 50),
+                      licenseNumber: l.licenseNumber.slice(0, 50),
+                      licenseState: l.licenseState.toUpperCase(),
+                      expirationDate: sanitizeDateStr(l.expirationDate),
+                  }))
+            : [],
+        // Structured certification records — name is the only required field.
+        certificationRecords: Array.isArray(data.certificationRecords)
+            ? data.certificationRecords
+                  .filter((c) => c && typeof c.certificationName === 'string')
+                  .slice(0, 15)
+                  .map((c) => ({
+                      certificationName: c.certificationName.slice(0, 100),
+                      certifyingBody: typeof c.certifyingBody === 'string' ? c.certifyingBody.slice(0, 100) : undefined,
+                      certificationNumber: typeof c.certificationNumber === 'string' ? c.certificationNumber.slice(0, 50) : undefined,
+                      expirationDate: sanitizeDateStr(c.expirationDate),
+                  }))
+            : [],
         education: Array.isArray(data.education)
             ? data.education
                   .filter((e) => e && typeof e.schoolName === 'string' && typeof e.degreeType === 'string')

@@ -21,6 +21,7 @@ import {
 } from './suites/candidate-scoring';
 import { runJobSearchSuite, type JobSearchSuiteResult } from './suites/job-search';
 import { runRecommendationsSuite, type RecommendationsSuiteResult } from './suites/candidate-recommendations';
+import { runResumeParsingSuite, type ResumeParsingSuiteResult } from './suites/resume-parsing';
 import {
     runTalentSearchRerankSuite,
     runTalentSearchRerankBiasSuite,
@@ -54,6 +55,19 @@ export const EVAL_REGISTRY: Partial<Record<AiTaskId, EvalSuiteEntry>> = {
         runGolden: async (opts) => runEvalSuite(await loadCandidateScoringGoldenSet(), candidateScoringContract as any, opts),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         runBias:   async (opts) => runBiasSuite(await loadCandidateScoringBiasSet() as any, candidateScoringContract as any, opts),
+    },
+    resume_parsing: {
+        // Sprint 2.1 — field-level F1 across 5 PMHNP resumes including an
+        // EEO-trap case (case 5 has DOB/gender/race/veteran in the resume
+        // text; expected extraction lists ONLY professional fields).
+        runRanking: async () => {
+            const r: ResumeParsingSuiteResult = await runResumeParsingSuite();
+            return {
+                holdsBaseline: r.holdsBaseline,
+                summary: r.summary,
+                perCase: r.perCase.map((c) => ({ id: c.id, passed: c.passed, reason: c.reason })),
+            };
+        },
     },
     talent_search_rerank: {
         // Sprint 1.3.4 — rerank precision@K must beat vector by 1.20×.

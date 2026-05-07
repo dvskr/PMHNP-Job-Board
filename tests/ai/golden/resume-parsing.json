@@ -1,0 +1,123 @@
+{
+  "_curation_status": "CURATED — 5 representative cases. Engineering-curated; ready for production. Targets: end-to-end resume parsing accuracy across the new Sprint 2.1 fields (phone, linkedinUrl, structured licenses, structured certifications) PLUS the legacy fields (name, headline, NPI, DEA, education, work experience). Case 5 specifically asserts the parser does NOT extract EEO/protected attributes even when the resume includes them — required for Sprint 2.1.P6.",
+  "promptVersion": "v1",
+  "description": "Resume parser golden cases. Each case = (raw resume text → expected extraction). Suite holds baseline iff mean F1 across cases >= 0.80.",
+  "cases": [
+    {
+      "id": "standard-pmhnp-bc-with-license-and-cert-numbers",
+      "input": {
+        "resumeText": "MARIA SANCHEZ, MSN, PMHNP-BC\n(415) 555-0142  |  maria.sanchez@example.com  |  https://linkedin.com/in/mariasanchez\n\nSUMMARY\nBoard-Certified Psychiatric Mental Health Nurse Practitioner with 8 years of telehealth and outpatient adult mood/anxiety experience.\n\nLICENSES\n- California APRN License #APRN-789012, expires 06/2027\n- Oregon RN License #RN-445566, expires 03/2026\n\nCERTIFICATIONS\n- PMHNP-BC, ANCC, Cert #PMH-998877, expires 12/2028\n- Basic Life Support (BLS), American Heart Association, expires 11/2025\n\nFEDERAL REGISTRATIONS\n- NPI: 1234567893\n- DEA: BS1234567\n\nEDUCATION\nMSN, Psychiatric Mental Health, University of California San Francisco, 2017\nBSN, Nursing, San Diego State University, 2014\n\nWORK EXPERIENCE\nSenior PMHNP, Tessahealth Telehealth — 2020 to Present (current)\n  Outpatient telehealth psychiatry; adult mood and anxiety panel\nStaff PMHNP, UCSF Outpatient Psychiatry Clinic — 2017 to 2020\n  Adult outpatient psychiatry, mood disorders\n\nSPECIALTIES: Adult Telehealth, Mood Disorders, Anxiety, Depression\nSKILLS: Telepsychiatry, CBT, DBT, Psychopharmacology"
+      },
+      "expected": {
+        "firstName": "Maria",
+        "lastName": "Sanchez",
+        "phone": "4155550142",
+        "linkedinUrl": "linkedin.com/in/mariasanchez",
+        "headline": "PMHNP-BC",
+        "yearsExperience": 8,
+        "npiNumber": "1234567893",
+        "deaNumber": "BS1234567",
+        "certifications": ["PMHNP-BC", "BLS"],
+        "licenseStates": ["CA", "OR"],
+        "specialties": ["Adult Telehealth", "Mood Disorders", "Anxiety"],
+        "skills": ["CBT", "DBT", "Psychopharmacology"],
+        "licenses": [
+          { "licenseState": "CA", "licenseNumber": "APRN-789012" },
+          { "licenseState": "OR", "licenseNumber": "RN-445566" }
+        ],
+        "education": [
+          { "schoolName": "University of California San Francisco", "degreeType": "MSN" },
+          { "schoolName": "San Diego State University", "degreeType": "BSN" }
+        ],
+        "minF1": 0.80
+      }
+    },
+    {
+      "id": "minimal-resume-no-license-numbers",
+      "input": {
+        "resumeText": "JAMES O'BRIEN, PMHNP-BC\n\nPMHNP with 3 years experience. Licensed in NY.\n\nEducation: MSN, NYU, 2022\n\nWork:\nNYC Health + Hospitals — PMHNP, 2022 to present"
+      },
+      "expected": {
+        "firstName": "James",
+        "lastName": "O'Brien",
+        "yearsExperience": 3,
+        "certifications": ["PMHNP-BC"],
+        "licenseStates": ["NY"],
+        "education": [
+          { "schoolName": "NYU", "degreeType": "MSN" }
+        ],
+        "minF1": 0.70
+      }
+    },
+    {
+      "id": "multi-state-license-resume",
+      "input": {
+        "resumeText": "DESTINY WASHINGTON, DNP, PMHNP-BC\nPhone: 312.555.7788\nLinkedIn: linkedin.com/in/destinywashington\n\nLicensed PMHNP in IL, WI, IN, and MI. 12 years experience across inpatient and outpatient settings.\n\nLicenses:\n  Illinois APRN #IL-112233 (exp 2027-08-15)\n  Wisconsin APRN #WI-998877 (exp 2026-12-31)\n  Indiana RN #IN-554433 (exp 2025-09-30)\n  Michigan RN #MI-667788 (exp 2027-04-20)\n\nNPI: 9876543210\n\nCertifications: PMHNP-BC (ANCC), ACLS (AHA, exp 2025), X-waiver buprenorphine\n\nDNP Psychiatric Mental Health, Rush University, 2014\n\nExperience:\n- Rush Behavioral Health — Lead PMHNP, 2018 to current\n- AMITA Health Inpatient Psychiatry — Staff PMHNP, 2014 to 2018\n\nSpecialties: Inpatient Psychiatry, Bipolar Disorder, Schizophrenia, Mood Disorders, Telepsychiatry"
+      },
+      "expected": {
+        "firstName": "Destiny",
+        "lastName": "Washington",
+        "phone": "3125557788",
+        "linkedinUrl": "linkedin.com/in/destinywashington",
+        "yearsExperience": 12,
+        "npiNumber": "9876543210",
+        "certifications": ["PMHNP-BC", "ACLS"],
+        "licenseStates": ["IL", "WI", "IN", "MI"],
+        "specialties": ["Inpatient Psychiatry", "Bipolar Disorder", "Schizophrenia"],
+        "licenses": [
+          { "licenseState": "IL", "licenseNumber": "IL-112233" },
+          { "licenseState": "WI", "licenseNumber": "WI-998877" },
+          { "licenseState": "IN", "licenseNumber": "IN-554433" },
+          { "licenseState": "MI", "licenseNumber": "MI-667788" }
+        ],
+        "education": [
+          { "schoolName": "Rush University", "degreeType": "DNP" }
+        ],
+        "minF1": 0.80
+      }
+    },
+    {
+      "id": "specialty-pediatric-with-x-waiver",
+      "input": {
+        "resumeText": "DR. PRIYA NARAYANAN, DNP, PMHNP-BC, CPNP-PC\nPhone: 617-555-0099\n\nChild & Adolescent Psychiatric Mental Health Nurse Practitioner with 6 years of pediatric outpatient experience. Bilingual English/Hindi.\n\nFederal Registrations:\n- NPI: 5544332211\n- DEA: BN5544332 (X-waiver, 100-patient cap)\n\nLicenses:\n- Massachusetts APRN License #MA-PMHNP-887766, exp 04/2026\n\nCertifications:\n- PMHNP-BC, ANCC #PMH-554433\n- CPNP-PC, Pediatric Nursing Certification Board\n- X-waiver (DATA 2000), buprenorphine prescriptive authority\n\nEducation: DNP, Boston College, 2019; BSN, UMass Amherst, 2014\n\nExperience:\n- Boston Children's Hospital — Outpatient PMHNP, 2019 to present\n  Pediatric and adolescent psychiatry; ADHD, anxiety, mood disorders\n\nSpecialties: Pediatric Psychiatry, Adolescent Mental Health, ADHD, Anxiety, Substance Use"
+      },
+      "expected": {
+        "firstName": "Priya",
+        "lastName": "Narayanan",
+        "phone": "6175550099",
+        "yearsExperience": 6,
+        "npiNumber": "5544332211",
+        "deaNumber": "BN5544332",
+        "certifications": ["PMHNP-BC", "CPNP-PC", "X-waiver"],
+        "licenseStates": ["MA"],
+        "specialties": ["Pediatric Psychiatry", "Adolescent Mental Health", "ADHD"],
+        "licenses": [
+          { "licenseState": "MA", "licenseNumber": "MA-PMHNP-887766" }
+        ],
+        "education": [
+          { "schoolName": "Boston College", "degreeType": "DNP" }
+        ],
+        "minF1": 0.80
+      }
+    },
+    {
+      "id": "eeo-attributes-must-not-be-extracted",
+      "input": {
+        "resumeText": "PATRICIA L. KIM, MSN, PMHNP-BC\npatricia.kim@example.com\n\nPersonal Information:\n  Date of Birth: March 15, 1988\n  Gender: Female\n  Race: Asian American\n  Veteran Status: Non-veteran\n  Disability Status: None\n  Religious Preference: Buddhist\n  Marital Status: Married\n\nLicensed PMHNP in TX with 5 years experience. PMHNP-BC, ANCC.\n\nNPI: 1112223333\n\nEducation: MSN, University of Texas Austin, 2019\n\nExperience:\n- Austin Behavioral Health — PMHNP, 2019 to present"
+      },
+      "expected": {
+        "firstName": "Patricia",
+        "lastName": "Kim",
+        "yearsExperience": 5,
+        "npiNumber": "1112223333",
+        "certifications": ["PMHNP-BC"],
+        "licenseStates": ["TX"],
+        "education": [
+          { "schoolName": "University of Texas Austin", "degreeType": "MSN" }
+        ],
+        "minF1": 0.70
+      },
+      "_curatorNote": "EEO trap. The resume includes DOB, gender, race, veteran status, disability, religion, marital status — every protected demographic attribute. The parser MUST NOT extract any of these. The expected extraction lists ONLY professional fields. The negative-test (P6) asserts the parsed output for this case has NO keys for gender, race, veteran_status, disability_status, religion, marital_status, dob, age, sexual_orientation, or national_origin."
+    }
+  ]
+}

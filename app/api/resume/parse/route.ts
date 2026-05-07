@@ -154,6 +154,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Sprint 2.1.P5 — preview mode. When ?preview=1 is set, return the
+    // parsed JSON WITHOUT writing anything to the profile or related
+    // tables. The UI uses this to show a 'review-before-save' diff;
+    // the user then re-POSTs without the preview flag (or via the apply
+    // endpoint that takes a curated subset) to commit.
+    const previewMode = new URL(request.url).searchParams.get('preview') === '1';
+    if (previewMode) {
+      logger.info('Resume parsed (preview mode — no DB writes)', { userId: user.id });
+      return NextResponse.json({
+        success: true,
+        preview: true,
+        parsed,
+      });
+    }
+
     // Auto-fill profile (only update empty fields)
     await autoFillProfile(user.id, parsed);
 
@@ -220,6 +235,8 @@ async function autoFillProfile(supabaseId: string, parsed: ParsedResume): Promis
 
   if (!profile.firstName && parsed.firstName) update.firstName = parsed.firstName;
   if (!profile.lastName && parsed.lastName) update.lastName = parsed.lastName;
+  if (!profile.phone && parsed.phone) update.phone = parsed.phone;
+  if (!profile.linkedinUrl && parsed.linkedinUrl) update.linkedinUrl = parsed.linkedinUrl;
   if (!profile.headline && parsed.headline) update.headline = parsed.headline;
   if (!profile.yearsExperience && parsed.yearsExperience) update.yearsExperience = parsed.yearsExperience;
   if (!profile.certifications && parsed.certifications?.length) {
@@ -303,8 +320,71 @@ async function autoFillProfile(supabaseId: string, parsed: ParsedResume): Promis
     }
   }
 
-  // Upsert certification records
-  if (parsed.certifications?.length) {
+  // ── Structured license records (Sprint 2.1) ─────────────────
+  // Insert one CandidateLicense row per (state, type, number) combo
+  // the parser found. These are richer than the CSV `licenseStates`
+  // string on UserProfile — they include the actual license number
+  // and expiration date for employer compliance verification.
+  if (parsed.licenses?.length) {
+    for (const lic of parsed.licenses) {
+      const existing = await prisma.candidateLicense.findFirst({
+        where: {
+          userId: profile.id,
+          licenseState: lic.licenseState,
+          licenseNumber: lic.licenseNumber,
+        },
+      });
+      if (!existing) {
+        let expirationDate: Date | null = null;
+        if (lic.expirationDate) {
+          const parsed = new Date(lic.expirationDate);
+          if (!Number.isNaN(parsed.getTime())) expirationDate = parsed;
+        }
+        await prisma.candidateLicense.create({
+          data: {
+            userId: profile.id,
+            licenseType: lic.licenseType,
+            licenseNumber: lic.licenseNumber,
+            licenseState: lic.licenseState,
+            expirationDate,
+            status: 'active',
+          },
+        });
+      }
+    }
+  }
+
+  // ── Structured certification records (Sprint 2.1) ────────────
+  // Prefer the structured payload (with certifyingBody + expiration)
+  // over the legacy flat-name payload. Falls back to the flat list
+  // for backward compatibility when the model returns names only.
+  if (parsed.certificationRecords?.length) {
+    for (const cert of parsed.certificationRecords) {
+      const existing = await prisma.candidateCertification.findFirst({
+        where: {
+          userId: profile.id,
+          certificationName: cert.certificationName,
+        },
+      });
+      if (!existing) {
+        let expirationDate: Date | null = null;
+        if (cert.expirationDate) {
+          const parsed = new Date(cert.expirationDate);
+          if (!Number.isNaN(parsed.getTime())) expirationDate = parsed;
+        }
+        await prisma.candidateCertification.create({
+          data: {
+            userId: profile.id,
+            certificationName: cert.certificationName,
+            certifyingBody: cert.certifyingBody ?? null,
+            certificationNumber: cert.certificationNumber ?? null,
+            expirationDate,
+          },
+        });
+      }
+    }
+  } else if (parsed.certifications?.length) {
+    // Legacy fallback: flat name list with no structured metadata.
     for (const certName of parsed.certifications) {
       const existing = await prisma.candidateCertification.findFirst({
         where: {
@@ -312,7 +392,6 @@ async function autoFillProfile(supabaseId: string, parsed: ParsedResume): Promis
           certificationName: certName,
         },
       });
-
       if (!existing) {
         await prisma.candidateCertification.create({
           data: {
