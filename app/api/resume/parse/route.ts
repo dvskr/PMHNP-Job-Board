@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { parseResume, ParsedResume } from '@/lib/resume-parser';
 import { rateLimit } from '@/lib/rate-limit';
+import { getPathFromUrl } from '@/lib/supabase-storage';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 /**
@@ -84,22 +85,52 @@ export async function POST(request: NextRequest) {
     if (ct.includes('application/json')) {
       // Download from Supabase Storage
       const body = await request.json().catch(() => null);
-      const resumePath = body?.resumeUrl;
+      const rawResumeUrl = body?.resumeUrl;
 
-      if (!resumePath || typeof resumePath !== 'string') {
+      if (!rawResumeUrl || typeof rawResumeUrl !== 'string') {
         return NextResponse.json({ error: 'resumeUrl is required' }, { status: 400 });
+      }
+
+      // The profile's `resumeUrl` field can be either:
+      //   - a bare storage path: "prod/<uid>/<ts>-<file>.pdf"
+      //   - a full signed URL (legacy): "https://xxx.supabase.co/storage/v1/object/sign/resumes/<path>?token=..."
+      // The storage `.download()` API expects the bare path WITHOUT
+      // the bucket prefix. getPathFromUrl handles the URL form;
+      // otherwise we strip a leading "resumes/" if present and use
+      // the value as-is.
+      const extractedPath = rawResumeUrl.startsWith('http')
+        ? getPathFromUrl(rawResumeUrl)
+        : rawResumeUrl.replace(/^resumes\//, '');
+
+      if (!extractedPath) {
+        logger.error('Could not derive storage path from resumeUrl', { rawResumeUrl });
+        await markProfileFailed(user.id);
+        return NextResponse.json(
+          { error: 'Could not locate the uploaded resume in storage. Try re-uploading.' },
+          { status: 400 },
+        );
       }
 
       const adminSupabase = createSupabaseClient(supabaseUrl, supabaseServiceKey);
 
       const { data: fileData, error: downloadError } = await adminSupabase.storage
         .from('resumes')
-        .download(resumePath.replace(/^resumes\//, ''));
+        .download(extractedPath);
 
       if (downloadError || !fileData) {
-        logger.error('Failed to download resume from storage', { resumePath, error: downloadError });
+        logger.error('Failed to download resume from storage', {
+          rawResumeUrl,
+          extractedPath,
+          error: downloadError,
+        });
         await markProfileFailed(user.id);
-        return NextResponse.json({ error: 'Failed to download resume' }, { status: 400 });
+        return NextResponse.json(
+          {
+            error: 'Failed to download resume',
+            detail: downloadError?.message ?? 'unknown',
+          },
+          { status: 400 },
+        );
       }
 
       if (fileData.size > MAX_FILE_BYTES) {
@@ -109,7 +140,7 @@ export async function POST(request: NextRequest) {
 
       const arrayBuffer = await fileData.arrayBuffer();
       buffer = Buffer.from(arrayBuffer);
-      contentType = inferContentTypeFromPath(resumePath);
+      contentType = inferContentTypeFromPath(extractedPath);
     } else {
       // Direct file upload via form-data
       const formData = await request.formData();
