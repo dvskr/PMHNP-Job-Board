@@ -10,6 +10,7 @@ import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
+import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
 /* Design Tokens */
@@ -292,6 +293,11 @@ export default async function SubstanceAbuseJobsPage({ searchParams }: PageProps
           </div>
         </section>
       </div>
+
+      {/* By Location — pseoStats-gated internal links */}
+
+      <CategoryLocationsExplore categorySlug="substance-abuse" categoryLabel="Substance Abuse" />
+
 
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>

@@ -10,6 +10,7 @@ import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
+import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 
 const clayCard: React.CSSProperties = { background: '#FFFFFF', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)' };
 export const revalidate = 3600;
@@ -192,6 +193,11 @@ export default async function EntryLevelPage({ searchParams }: PageProps) {
           </div>
         </section>
       </div>
+
+      {/* By Location — pseoStats-gated internal links */}
+
+      <CategoryLocationsExplore categorySlug="entry-level" categoryLabel="Entry-Level" />
+
 
       {/* FAQ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>

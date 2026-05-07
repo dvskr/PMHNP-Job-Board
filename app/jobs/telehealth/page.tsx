@@ -10,6 +10,7 @@ import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
+import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 
 // Force dynamic rendering - don't try to statically generate during build
 /* Design Tokens */
@@ -351,6 +352,11 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
           </div>
         </section>
       </div>
+
+      {/* By Location — pseoStats-gated internal links */}
+
+      <CategoryLocationsExplore categorySlug="telehealth" categoryLabel="Telehealth" />
+
 
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>

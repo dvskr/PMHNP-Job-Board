@@ -71,6 +71,16 @@ model Job {
   // Currently shadow-mode: written but not used to auto-unpublish until tuned.
   healthConsecutiveMissing Int                    @default(0) @map("health_consecutive_missing")
   healthLastSeenAt         DateTime?              @map("health_last_seen_at")
+  // ─── Category tags (P9 — kills cross-taxonomy duplication) ───
+  // Pre-computed canonical category slugs that this job qualifies for.
+  // Populated at ingest by lib/pseo/category-tagger.ts and at query time
+  // by buildWhere. Replaces the OR-on-`title.contains`/`description.contains`
+  // matchers that produced ~5x duplication across taxonomy×city pages.
+  // Empty array (default) means "not yet tagged" — buildWhere falls back
+  // to the legacy matcher in that case so the rollout is safe to deploy
+  // before backfill runs. After scripts/backfill-category-tags.ts has
+  // populated all rows, the legacy fallback is dead code.
+  categoryTags             String[]               @default([]) @map("category_tags")
   applyClicks              ApplyClick[]
   jobApplications          JobApplication[]
   jobReports               JobReport[]
@@ -95,6 +105,9 @@ model Job {
   @@index([externalId, sourceProvider])
   @@index([qualityScore(sort: Desc)])
   @@index([sourceProvider, healthConsecutiveMissing])
+  // GIN index for fast `categoryTags has 'X'` queries that drive every
+  // taxonomy×city and taxonomy×state page after P9 swap.
+  @@index([categoryTags], type: Gin)
   @@map("jobs")
 }
 

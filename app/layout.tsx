@@ -7,7 +7,6 @@ import "./globals.css";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import dynamic from 'next/dynamic';
-import ProfileNudgeBanner from '@/components/profile/ProfileNudgeWrapper';
 const BottomNav = dynamic(() => import('@/components/BottomNav'));
 
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -17,6 +16,7 @@ import MobileHideOnAppRoutes from '@/components/MobileHideOnAppRoutes';
 
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import ConsentGatedTelemetry from '@/components/ConsentGatedTelemetry';
+import ScrollIndicator from '@/components/ScrollIndicator';
 import { ToastProvider } from '@/components/ui/ToastProvider';
 const FeedbackWidget = dynamic(() => import('@/components/FeedbackWidget'));
 const ExitIntentPopup = dynamic(() => import('@/components/ExitIntentPopup'));
@@ -250,7 +250,6 @@ export default async function RootLayout({
               <ConsentGatedTelemetry initialConsent={initialConsent} />
               <LayoutShell>
                 <Header />
-                <ProfileNudgeBanner />
               </LayoutShell>
               <MainContent>{children}</MainContent>
               <LayoutShell>
@@ -259,6 +258,7 @@ export default async function RootLayout({
                   <FeedbackWidget />
                 </MobileHideOnAppRoutes>
                 <BottomNav />
+                <ScrollIndicator />
                 <ExitIntentPopup />
                 <PushNotificationPrompt />
                 <CookieConsent initialConsent={initialConsent} />

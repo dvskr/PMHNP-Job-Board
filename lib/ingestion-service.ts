@@ -1177,21 +1177,25 @@ export async function ingestJobs(
 /**
  * Clean up expired jobs by marking them as unpublished.
  *
- * This is called at the END of every ingest cron firing (13×/day). It's
- * a wider net than the daily /api/cron/cleanup-expired route — that one
- * only catches `expiresAt < NOW()`, this one ALSO catches the 60-day
- * `originalPostedAt` hard cap (covers jobs with null/future expiresAt
- * that nonetheless aged out).
+ * Called at the END of every ingest cron firing (13×/day) so the catalog
+ * stays fresh in near-real-time. Identical filter to the dedicated
+ * /api/cron/cleanup-expired daily safety-net cron — both paths converge
+ * on the same `expiresAt < NOW()` check.
+ *
+ * Simplification (2026-05-07): removed the legacy `originalPostedAt < 60d`
+ * OR-branch that was only there to catch rows with NULL or drifted
+ * `expiresAt` values. The live pipeline now sets
+ * `expiresAt = originalPostedAt + 60d` at insert and never mutates it,
+ * and there are no NULL-expiresAt rows left in the catalog. Any drifted
+ * legacy rows from past bulk migrations cycle out naturally via this
+ * single condition once their (drifted) expiresAt fires.
  *
  * Audit (G1, 2026-05-07): every unpublish writes a job_health_checks
- * row so the ~1,900 daily catalog churn isn't silent. Previously this
- * path used a bulk updateMany with no audit trail — the cron route had
- * the G1 fix but this twin path didn't.
+ * row with checkType='expiry' so the daily catalog churn is traceable.
  */
 export async function cleanupExpiredJobs(): Promise<number> {
   try {
     const now = new Date();
-    const maxAgeDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
 
     // Snapshot what we're about to unpublish so audit rows describe the
     // same set we flip. Includes sourceProvider + expiresAt for the
@@ -1199,13 +1203,7 @@ export async function cleanupExpiredJobs(): Promise<number> {
     const jobsToExpire = await prisma.job.findMany({
       where: {
         isPublished: true,
-        OR: [
-          { expiresAt: { lt: now } },
-          {
-            originalPostedAt: { lt: maxAgeDate },
-            sourceProvider: { not: null },
-          },
-        ],
+        expiresAt: { lt: now },
       },
       select: { id: true, title: true, sourceProvider: true, expiresAt: true },
     });

@@ -48,6 +48,45 @@ export async function POST(request: NextRequest) {
 }
 
 /**
+ * DELETE /api/applications — Remove an application row by jobId.
+ *
+ * Distinct from `/withdraw`: this is for "remove from my history" cases —
+ * mistaken click-throughs the user never actually submitted, or stale
+ * entries the user wants to prune. Hard-deletes the JobApplication row.
+ *
+ * Withdrawal (GDPR scrub of an actually-submitted in-platform app) is the
+ * `/withdraw` endpoint and keeps the record with status='withdrawn'.
+ *
+ * Body: { jobId: string }
+ */
+export async function DELETE(request: NextRequest) {
+    try {
+        const supabase = await createClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        const body = await request.json()
+        const { jobId } = body
+
+        if (!jobId || typeof jobId !== 'string') {
+            return NextResponse.json({ error: 'jobId is required' }, { status: 400 })
+        }
+
+        await prisma.jobApplication.deleteMany({
+            where: { userId: user.id, jobId },
+        })
+
+        return NextResponse.json({ success: true })
+    } catch (error) {
+        console.error('Error deleting application:', error)
+        return NextResponse.json({ error: 'Failed to delete application' }, { status: 500 })
+    }
+}
+
+/**
  * GET /api/applications — Fetch user's applications with job details
  */
 export async function GET() {

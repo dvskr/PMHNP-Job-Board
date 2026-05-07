@@ -414,6 +414,114 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                 { name: cityName, url: `https://pmhnphiring.com/jobs/city/${slug}` }
             ]} />
 
+            {/* ItemList — recovers Google Jobs eligibility on the generic city
+                surface (~4,135 URLs that previously emitted only Breadcrumb).
+                Mirrors the schema block in lib/pseo/category-city-template.tsx. */}
+            {jobs.length > 0 && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            '@context': 'https://schema.org',
+                            '@type': 'ItemList',
+                            name: `PMHNP Jobs in ${cityName}, ${stateCode}`,
+                            numberOfItems: stats.totalJobs,
+                            itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({
+                                '@type': 'ListItem',
+                                position: idx + 1,
+                                name: job.title,
+                                url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+                            })),
+                        }),
+                    }}
+                />
+            )}
+
+            {/* JobPosting array — one rich-result entry per top-10 listed job.
+                Per-job schema is what Google Jobs ingests; ItemList alone is
+                insufficient for Google Jobs eligibility. */}
+            {jobs.length > 0 && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify(jobs.slice(0, 10).map((job: Job) => {
+                            // Mirror JobStructuredData.tsx: deterministic
+                            // datePosted-anchored validThrough cap when expiresAt
+                            // is null, so old listings roll out of Google Jobs
+                            // naturally rather than appearing perpetually fresh.
+                            const datePosted = job.originalPostedAt
+                                ? new Date(job.originalPostedAt)
+                                : new Date(job.createdAt);
+                            const sixtyDaysAfterPost = new Date(datePosted);
+                            sixtyDaysAfterPost.setDate(sixtyDaysAfterPost.getDate() + 60);
+                            const validThrough = job.expiresAt
+                                ? new Date(job.expiresAt)
+                                : sixtyDaysAfterPost;
+
+                            return {
+                                '@context': 'https://schema.org',
+                                '@type': 'JobPosting',
+                                title: job.title,
+                                description: (job.descriptionSummary || job.description || '').slice(0, 500)
+                                    || `PMHNP position in ${cityName}, ${stateCode}`,
+                                datePosted: datePosted.toISOString().split('T')[0],
+                                validThrough: validThrough.toISOString().split('T')[0],
+                                employmentType: job.jobType === 'Part-Time' ? 'PART_TIME'
+                                    : job.jobType === 'Contract' ? 'CONTRACTOR'
+                                    : job.jobType === 'Per Diem' ? 'PER_DIEM'
+                                    : 'FULL_TIME',
+                                hiringOrganization: {
+                                    '@type': 'Organization',
+                                    name: job.employer || 'Confidential Employer',
+                                    ...(job.companyLogoUrl && { logo: job.companyLogoUrl }),
+                                },
+                                jobLocation: {
+                                    '@type': 'Place',
+                                    address: {
+                                        '@type': 'PostalAddress',
+                                        addressLocality: job.city || cityName,
+                                        addressRegion: job.stateCode || stateCode,
+                                        addressCountry: 'US',
+                                    },
+                                },
+                                ...(job.isRemote && { jobLocationType: 'TELECOMMUTE' }),
+                                ...((job.normalizedMinSalary || job.normalizedMaxSalary) && {
+                                    baseSalary: {
+                                        '@type': 'MonetaryAmount',
+                                        currency: 'USD',
+                                        value: {
+                                            '@type': 'QuantitativeValue',
+                                            ...(job.normalizedMinSalary && { minValue: job.normalizedMinSalary }),
+                                            ...(job.normalizedMaxSalary && { maxValue: job.normalizedMaxSalary }),
+                                            unitText: 'YEAR',
+                                        },
+                                    },
+                                }),
+                                url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+                            };
+                        })),
+                    }}
+                />
+            )}
+
+            {/* Place schema — strengthens the geographic relevance signal. */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        '@context': 'https://schema.org',
+                        '@type': 'Place',
+                        name: `${cityName}, ${stateCode}`,
+                        address: {
+                            '@type': 'PostalAddress',
+                            addressLocality: cityName,
+                            addressRegion: stateCode,
+                            addressCountry: 'US',
+                        },
+                    }),
+                }}
+            />
+
             {/* ═══ HERO ═══ */}
             <CategoryHero
                 bgColor="#7eb8c9"

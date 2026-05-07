@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { formatDate, getExpiryStatus } from '@/lib/utils';
 import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield, Pause, Play, Rocket, Users, Eye, MousePointerClick, User, Plus, Briefcase, BarChart3, Star, MessageSquare, Send, HelpCircle, Archive, ArchiveRestore, Info, FileText } from 'lucide-react';
 import { config } from '@/lib/config';
@@ -95,10 +96,32 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     const [unpublishNote, setUnpublishNote] = useState<string>('');
     const [localJobs, setLocalJobs] = useState(jobs);
     const [showSignupBanner, setShowSignupBanner] = useState(isTokenAccess);
-    const [activeTab, setActiveTab] = useState<'jobs' | 'applicants' | 'analytics' | 'saved' | 'messages'>('jobs');
+    // Tab can be deep-linked via `?tab=...` so the top-nav "Applicants" entry
+    // (and any external link) lands directly on the right tab.
+    const TAB_KEYS = ['jobs', 'applicants', 'analytics', 'saved', 'messages'] as const;
+    type TabKey = typeof TAB_KEYS[number];
+    const isValidTab = (t: string | null): t is TabKey =>
+        t !== null && (TAB_KEYS as readonly string[]).includes(t);
+
+    const searchParams = useSearchParams();
+    const tabFromUrl = searchParams.get('tab');
+    const [activeTab, setActiveTab] = useState<TabKey>(
+        isValidTab(tabFromUrl) ? tabFromUrl : 'jobs',
+    );
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => { setMounted(true); }, []);
+
+    // Sync internal tab state when the URL query changes (top-nav navigation
+    // between Dashboard and Applicants is the primary trigger).
+    useEffect(() => {
+        if (isValidTab(tabFromUrl) && tabFromUrl !== activeTab) {
+            setActiveTab(tabFromUrl);
+        }
+        // Intentionally only depend on tabFromUrl — depending on activeTab
+        // would create a loop with the user's manual tab clicks.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tabFromUrl]);
 
     const getStatusBadge = (job: Job) => {
         if (!job.isPublished) {

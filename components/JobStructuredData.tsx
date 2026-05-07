@@ -38,12 +38,18 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
   const rawDate = job.originalPostedAt || job.createdAt;
   const datePosted = rawDate instanceof Date ? rawDate : new Date(rawDate as string);
 
-  const thirtyDaysFromNow = new Date();
-  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  // GSC Fix: when expiresAt is null we used to emit `now + 30d` — recalculated
+  // on every render, which made stale jobs look perpetually fresh to Google
+  // ("validThrough always in future" is a quality-model red flag). Anchor the
+  // fallback to datePosted instead so the value is deterministic per job and
+  // old listings naturally roll out of Google Jobs after 60 days.
+  // When expiresAt IS set, we respect the employer's stated expiry as-is.
+  const sixtyDaysAfterPost = new Date(datePosted);
+  sixtyDaysAfterPost.setDate(sixtyDaysAfterPost.getDate() + 60);
 
   const validThrough = job.expiresAt
     ? (job.expiresAt instanceof Date ? job.expiresAt : new Date(job.expiresAt))
-    : thirtyDaysFromNow;
+    : sixtyDaysAfterPost;
 
   // GSC Fix: Guard against empty/whitespace description — fallback chain
   const description = (job.description && job.description.trim())

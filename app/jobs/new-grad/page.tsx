@@ -11,6 +11,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
+import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 
 // Force dynamic rendering - don't try to statically generate during build
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
@@ -365,6 +366,9 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
           </div>
         </section>
       </div>
+
+      {/* By Location — pseoStats-gated internal links */}
+      <CategoryLocationsExplore categorySlug="new-grad" categoryLabel="New Grad" />
 
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>

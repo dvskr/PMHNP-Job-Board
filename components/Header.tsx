@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, X, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search, HelpCircle, Info, Mail, PenSquare, GraduationCap, UserCheck, Users } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search, HelpCircle, Info, Mail, PenSquare, GraduationCap, UserCheck, Users, Bookmark, FileText, Activity, Workflow, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
@@ -43,22 +43,35 @@ export default function Header() {
     { href: '/resources', label: 'Resources', icon: BookOpen },
   ];
 
-  // Logged-in job seeker nav — minimal, app-focused
+  // Logged-in job seeker nav — high-frequency destinations only.
+  // Settings is accessible from the avatar dropdown; freeing the slot for
+  // Saved (a daily quick-check action) is the better UX trade.
   const seekerNavLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/jobs', label: 'Browse Jobs', icon: Briefcase },
+    { href: '/saved', label: 'Saved', icon: Bookmark },
     { href: '/messages', label: 'Messages', icon: MessageSquare },
-    { href: '/settings', label: 'Settings', icon: Settings },
   ];
 
-  // Logged-in employer nav — minimal, app-focused.
-  // Settings remains accessible from the user-menu dropdown; the top-nav
-  // slot is more valuable for surfacing the talent pool, which is the
-  // employer's primary daily action.
+  // Logged-in employer nav — high-frequency destinations only.
+  // Applicants gets its own dedicated route (not a dashboard tab) so the
+  // nav navigation feels like a destination, not a tab switch inside the
+  // dashboard. The dashboard still has an Applicants tab for in-context
+  // viewing alongside other dashboard data.
   const employerNavLinks = [
     { href: '/employer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/employer/candidates', label: 'Browse Talent Pool', icon: Users },
+    { href: '/employer/candidates', label: 'Talent Pool', icon: Users },
+    { href: '/employer/applicants', label: 'Applicants', icon: FileText },
     { href: '/messages', label: 'Messages', icon: MessageSquare },
+  ];
+
+  // Logged-in admin nav — admin-specific surfaces beat the public Browse
+  // Jobs / Messages defaults that admins rarely use day-to-day.
+  const adminNavLinks = [
+    { href: '/admin', label: 'Admin', icon: LayoutDashboard },
+    { href: '/admin/jobs', label: 'Jobs', icon: Briefcase },
+    { href: '/admin/outreach', label: 'Outreach', icon: Activity },
+    { href: '/admin/pipeline', label: 'Pipeline', icon: Workflow },
   ];
 
   // Mobile-only extra links for public users (pages not in top nav)
@@ -77,7 +90,7 @@ export default function Header() {
     : userRole === 'employer'
       ? employerNavLinks
       : userRole === 'admin'
-        ? [{ href: '/admin', label: 'Admin', icon: LayoutDashboard }, { href: '/jobs', label: 'Browse Jobs', icon: Briefcase }, { href: '/messages', label: 'Messages', icon: MessageSquare }, { href: '/settings', label: 'Settings', icon: Settings }]
+        ? adminNavLinks
         : publicNavLinks;
 
   const isActive = (href: string) => {
@@ -231,11 +244,13 @@ export default function Header() {
 
           {/* ═══ RIGHT: Auth ═══ */}
           <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
+            {userRole === 'employer' && <PostJobCTA />}
             <HeaderAuth onRoleChange={(role) => setUserRole(role)} />
           </div>
 
           {/* Mobile right side - just auth (hamburger is on left) */}
           <div className="lg:hidden flex items-center gap-2 ml-auto">
+            {userRole === 'employer' && <PostJobCTA mobile />}
             <HeaderAuth onRoleChange={(role) => setUserRole(role)} />
           </div>
         </header>
@@ -340,5 +355,46 @@ export default function Header() {
         }
       `}</style>
     </>
+  );
+}
+
+/**
+ * Primary employer CTA — `+ Post Job`. Filled-pill, branded primary color,
+ * visually distinct from the ghost-style nav pills next to it. Surfaces the
+ * employer's #1 money action from every page in one tap.
+ */
+function PostJobCTA({ mobile = false }: { mobile?: boolean }) {
+  return (
+    <Link
+      href="/post-job"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: mobile ? '7px 12px' : '8px 16px',
+        borderRadius: '12px',
+        fontSize: mobile ? '13px' : '13.5px',
+        fontWeight: 700,
+        color: '#FFFFFF',
+        background: 'linear-gradient(135deg, #0D9488, #0F766E)',
+        border: '1px solid rgba(255,255,255,0.25)',
+        boxShadow: '0 2px 8px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
+        textDecoration: 'none',
+        whiteSpace: 'nowrap',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-1px)';
+        e.currentTarget.style.boxShadow = '0 4px 14px rgba(13,148,136,0.35), inset 0 1px 0 rgba(255,255,255,0.25)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.2)';
+      }}
+      aria-label="Post a new job"
+    >
+      <Plus size={mobile ? 14 : 15} strokeWidth={2.5} />
+      {mobile ? 'Post' : 'Post Job'}
+    </Link>
   );
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkSourceHealth } from '@/lib/ingestion-monitor';
-import { sendDailyReport, sendHealthAlert } from '@/lib/discord-notifier';
+import { sendDailyReport } from '@/lib/discord-notifier';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
@@ -68,7 +68,9 @@ export async function GET(request: NextRequest) {
             .filter(h => h.alert)
             .map(h => h.alert!);
 
-        // Send Discord report
+        // Single embed only. The health-alerts list is rendered inside
+        // sendDailyReport's embed; the previous separate sendHealthAlert
+        // call was duplicating the same content as a second embed.
         await sendDailyReport({
             totalPublished,
             addedLast24h,
@@ -79,16 +81,6 @@ export async function GET(request: NextRequest) {
             topSources,
             healthAlerts,
         });
-
-        // Send separate health alerts if any
-        const alertSources = health.filter(h => h.alert);
-        if (alertSources.length > 0) {
-            await sendHealthAlert(alertSources.map(h => ({
-                source: h.source,
-                alert: h.alert!,
-                status: h.status,
-            })));
-        }
 
         const duration = Date.now() - startTime;
         const summary = {

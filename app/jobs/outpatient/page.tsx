@@ -10,6 +10,7 @@ import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
+import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 
 // Force dynamic rendering
 /* Design Tokens */
@@ -317,6 +318,11 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
           </div>
         </section>
       </div>
+
+      {/* By Location — pseoStats-gated internal links */}
+
+      <CategoryLocationsExplore categorySlug="outpatient" categoryLabel="Outpatient" />
+
 
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>

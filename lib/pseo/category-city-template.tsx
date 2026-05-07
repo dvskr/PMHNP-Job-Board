@@ -20,6 +20,7 @@ import {
   TrendingUp, Building2, Bell, MapPin, Lightbulb,
   DollarSign, Users, AlertTriangle, Activity, Heart, Shield, ArrowRight,
 } from 'lucide-react';
+import { withTagFallback } from './category-tagger';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -71,15 +72,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'addiction', mode: 'insensitive' } },
-        { title: { contains: 'substance', mode: 'insensitive' } },
-        { title: { contains: 'MAT', mode: 'insensitive' } },
-        { title: { contains: 'suboxone', mode: 'insensitive' } },
-        { title: { contains: 'buprenorphine', mode: 'insensitive' } },
-        { description: { contains: 'addiction', mode: 'insensitive' } },
-        { description: { contains: 'substance abuse', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('addiction'),
     }),
     benefits: [
       { title: 'High Demand', description: 'Addiction specialists are critically needed — over 40 million Americans have a substance use disorder.', iconName: 'Activity' },
@@ -106,14 +99,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'child', mode: 'insensitive' } },
-        { title: { contains: 'adolescent', mode: 'insensitive' } },
-        { title: { contains: 'pediatric', mode: 'insensitive' } },
-        { title: { contains: 'youth', mode: 'insensitive' } },
-        { description: { contains: 'child and adolescent', mode: 'insensitive' } },
-        { description: { contains: 'pediatric psych', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('child-adolescent'),
     }),
     benefits: [
       { title: 'Critical Need', description: 'Youth mental health crisis means massive demand — 1 in 5 children has a diagnosable mental disorder.', iconName: 'Users' },
@@ -140,14 +126,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'substance', mode: 'insensitive' } },
-        { title: { contains: 'detox', mode: 'insensitive' } },
-        { title: { contains: 'rehab', mode: 'insensitive' } },
-        { title: { contains: 'recovery', mode: 'insensitive' } },
-        { description: { contains: 'substance abuse', mode: 'insensitive' } },
-        { description: { contains: 'substance use disorder', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('substance-abuse'),
     }),
     benefits: [
       { title: 'Growing Field', description: 'Federal funding for addiction treatment has increased dramatically, creating new positions nationwide.', iconName: 'TrendingUp' },
@@ -174,15 +153,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'new grad', mode: 'insensitive' } },
-        { title: { contains: 'new graduate', mode: 'insensitive' } },
-        { title: { contains: 'entry level', mode: 'insensitive' } },
-        { title: { contains: 'fellowship', mode: 'insensitive' } },
-        { title: { contains: 'residency', mode: 'insensitive' } },
-        { description: { contains: 'new graduate', mode: 'insensitive' } },
-        { description: { contains: 'new grad', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('new-grad'),
     }),
     benefits: [
       { title: 'Mentorship', description: 'Many new grad positions include structured mentorship and supervision from experienced psychiatrists.', iconName: 'Users' },
@@ -209,14 +180,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'per diem', mode: 'insensitive' } },
-        { title: { contains: 'PRN', mode: 'insensitive' } },
-        { title: { contains: 'part-time', mode: 'insensitive' } },
-        { title: { contains: 'part time', mode: 'insensitive' } },
-        { description: { contains: 'per diem', mode: 'insensitive' } },
-        { description: { contains: 'PRN', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('per-diem'),
     }),
     benefits: [
       { title: 'Maximum Flexibility', description: 'Set your own schedule — work as many or as few shifts as you want, when you want.', iconName: 'Activity' },
@@ -247,13 +211,7 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { jobType: { equals: 'Full-Time', mode: 'insensitive' } },
-        { jobType: { equals: 'Full Time', mode: 'insensitive' } },
-        { title: { contains: 'full-time', mode: 'insensitive' } },
-        { title: { contains: 'full time', mode: 'insensitive' } },
-        { description: { contains: 'full-time position', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('full-time'),
     }),
     benefits: [
       { title: 'Comprehensive Benefits', description: 'Full health insurance, dental, vision, retirement plans, and PTO — typically 20-30 days off.', iconName: 'Heart' },
@@ -280,13 +238,7 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { jobType: { equals: 'Part-Time', mode: 'insensitive' } },
-        { jobType: { equals: 'Part Time', mode: 'insensitive' } },
-        { title: { contains: 'part-time', mode: 'insensitive' } },
-        { title: { contains: 'part time', mode: 'insensitive' } },
-        { description: { contains: 'part-time', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('part-time'),
     }),
     benefits: [
       { title: 'Work-Life Balance', description: 'Set your own schedule — work 2-3 days per week while maintaining clinical skills and income.', iconName: 'Activity' },
@@ -313,15 +265,7 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { jobType: { equals: 'Contract', mode: 'insensitive' } },
-        { jobType: { equals: 'Locum Tenens', mode: 'insensitive' } },
-        { title: { contains: 'contract', mode: 'insensitive' } },
-        { title: { contains: 'locum', mode: 'insensitive' } },
-        { title: { contains: '1099', mode: 'insensitive' } },
-        { description: { contains: 'contract position', mode: 'insensitive' } },
-        { description: { contains: 'locum tenens', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('contract'),
     }),
     benefits: [
       { title: 'Premium Pay', description: 'Contract rates are typically 30-60% higher than permanent positions — $85-$160+/hour.', iconName: 'DollarSign' },
@@ -352,16 +296,7 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'entry level', mode: 'insensitive' } },
-        { title: { contains: 'entry-level', mode: 'insensitive' } },
-        { title: { contains: 'new grad', mode: 'insensitive' } },
-        { title: { contains: 'junior', mode: 'insensitive' } },
-        { title: { contains: 'fellowship', mode: 'insensitive' } },
-        { description: { contains: 'new graduate', mode: 'insensitive' } },
-        { description: { contains: '0-2 years', mode: 'insensitive' } },
-        { description: { contains: 'entry level', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('entry-level'),
     }),
     benefits: [
       { title: 'Structured Mentorship', description: 'Most entry-level positions include 6-12 months of supervised practice with experienced psychiatrists or PMHNPs.', iconName: 'Users' },
@@ -388,15 +323,7 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { description: { contains: '3+ years', mode: 'insensitive' } },
-        { description: { contains: '3-5 years', mode: 'insensitive' } },
-        { description: { contains: '5+ years', mode: 'insensitive' } },
-        { description: { contains: 'experienced', mode: 'insensitive' } },
-        { description: { contains: 'mid-career', mode: 'insensitive' } },
-        { title: { contains: 'experienced', mode: 'insensitive' } },
-        { title: { contains: 'senior', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('mid-career'),
     }),
     benefits: [
       { title: 'Higher Compensation', description: 'Mid-career PMHNPs earn $135K-$175K with premium benefits, CME budgets, and leadership bonuses.', iconName: 'DollarSign' },
@@ -423,16 +350,7 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'senior', mode: 'insensitive' } },
-        { title: { contains: 'lead', mode: 'insensitive' } },
-        { title: { contains: 'director', mode: 'insensitive' } },
-        { title: { contains: 'supervisor', mode: 'insensitive' } },
-        { title: { contains: 'manager', mode: 'insensitive' } },
-        { description: { contains: '7+ years', mode: 'insensitive' } },
-        { description: { contains: '10+ years', mode: 'insensitive' } },
-        { description: { contains: 'leadership', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('senior'),
     }),
     benefits: [
       { title: 'Top-Tier Compensation', description: 'Senior PMHNPs earn $160K-$220K+ with equity, executive benefits, and performance bonuses.', iconName: 'DollarSign' },
@@ -463,15 +381,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'hospital', mode: 'insensitive' } },
-        { title: { contains: 'medical center', mode: 'insensitive' } },
-        { title: { contains: 'health system', mode: 'insensitive' } },
-        { employer: { contains: 'hospital', mode: 'insensitive' } },
-        { employer: { contains: 'medical center', mode: 'insensitive' } },
-        { employer: { contains: 'health system', mode: 'insensitive' } },
-        { description: { contains: 'hospital setting', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('hospital'),
     }),
     benefits: [
       { title: 'Full Benefits Package', description: 'Health/dental/vision, pension or 403(b) match, malpractice coverage, CME funding, and tuition reimbursement.', iconName: 'Heart' },
@@ -498,14 +408,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'private practice', mode: 'insensitive' } },
-        { title: { contains: 'group practice', mode: 'insensitive' } },
-        { title: { contains: 'independent', mode: 'insensitive' } },
-        { description: { contains: 'private practice', mode: 'insensitive' } },
-        { description: { contains: 'group practice', mode: 'insensitive' } },
-        { description: { contains: 'solo practice', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('private-practice'),
     }),
     benefits: [
       { title: 'Highest Earning Potential', description: 'Private practice PMHNPs can earn $200K-$250K+ with autonomy over fee schedules and patient volume.', iconName: 'DollarSign' },
@@ -532,15 +435,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'community', mode: 'insensitive' } },
-        { title: { contains: 'FQHC', mode: 'insensitive' } },
-        { title: { contains: 'public health', mode: 'insensitive' } },
-        { title: { contains: 'behavioral health', mode: 'insensitive' } },
-        { employer: { contains: 'community', mode: 'insensitive' } },
-        { description: { contains: 'community mental health', mode: 'insensitive' } },
-        { description: { contains: 'federally qualified', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('community-health'),
     }),
     benefits: [
       { title: 'Loan Repayment', description: 'NHSC loan repayment up to $50K for 2 years of service at qualifying FQHCs and underserved sites.', iconName: 'DollarSign' },
@@ -567,15 +462,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'VA ', mode: 'insensitive' } },
-        { title: { contains: 'veteran', mode: 'insensitive' } },
-        { title: { contains: 'Veterans Affairs', mode: 'insensitive' } },
-        { employer: { contains: 'VA ', mode: 'insensitive' } },
-        { employer: { contains: 'veteran', mode: 'insensitive' } },
-        { employer: { contains: 'Department of Veterans', mode: 'insensitive' } },
-        { description: { contains: 'veterans', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('va'),
     }),
     benefits: [
       { title: 'Federal Benefits', description: 'Federal pension (FERS), TSP retirement matching, FEHB health insurance, and 26 days PTO starting.', iconName: 'Shield' },
@@ -606,15 +493,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'geriatric', mode: 'insensitive' } },
-        { title: { contains: 'geri', mode: 'insensitive' } },
-        { title: { contains: 'older adult', mode: 'insensitive' } },
-        { title: { contains: 'senior living', mode: 'insensitive' } },
-        { description: { contains: 'geriatric', mode: 'insensitive' } },
-        { description: { contains: 'older adult', mode: 'insensitive' } },
-        { description: { contains: 'geropsych', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('geriatric'),
     }),
     benefits: [
       { title: 'Growing Demand', description: '10,000 baby boomers turn 65 daily — geriatric psych is one of the fastest-growing PMHNP niches.', iconName: 'TrendingUp' },
@@ -641,15 +520,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'veteran', mode: 'insensitive' } },
-        { title: { contains: 'military', mode: 'insensitive' } },
-        { title: { contains: 'PTSD', mode: 'insensitive' } },
-        { title: { contains: 'VA ', mode: 'insensitive' } },
-        { description: { contains: 'veteran', mode: 'insensitive' } },
-        { description: { contains: 'military', mode: 'insensitive' } },
-        { description: { contains: 'PTSD', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('veterans'),
     }),
     benefits: [
       { title: 'Critical Mission', description: '22 veterans die by suicide daily — veteran-focused PMHNPs directly save lives through expert care.', iconName: 'Heart' },
@@ -676,15 +547,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'LGBTQ', mode: 'insensitive' } },
-        { title: { contains: 'gender', mode: 'insensitive' } },
-        { title: { contains: 'affirming', mode: 'insensitive' } },
-        { title: { contains: 'transgender', mode: 'insensitive' } },
-        { description: { contains: 'LGBTQ', mode: 'insensitive' } },
-        { description: { contains: 'gender affirming', mode: 'insensitive' } },
-        { description: { contains: 'transgender', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('lgbtq'),
     }),
     benefits: [
       { title: 'Underserved Niche', description: 'LGBTQ+ individuals face 2.5× higher rates of mental health conditions — trained providers are critically needed.', iconName: 'Heart' },
@@ -711,15 +574,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'crisis', mode: 'insensitive' } },
-        { title: { contains: 'emergency', mode: 'insensitive' } },
-        { title: { contains: 'acute', mode: 'insensitive' } },
-        { title: { contains: 'urgent', mode: 'insensitive' } },
-        { title: { contains: '988', mode: 'insensitive' } },
-        { description: { contains: 'crisis', mode: 'insensitive' } },
-        { description: { contains: 'psychiatric emergency', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('crisis'),
     }),
     benefits: [
       { title: 'Premium Compensation', description: 'Crisis roles pay 15-30% more than standard positions — $130K-$195K with shift differentials for nights/weekends.', iconName: 'DollarSign' },
@@ -780,12 +635,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: '1099', mode: 'insensitive' } },
-        { title: { contains: 'independent contractor', mode: 'insensitive' } },
-        { title: { contains: 'independent practice', mode: 'insensitive' } },
-        { description: { contains: '1099', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('1099'),
     }),
     benefits: [
       { title: 'Higher Gross Pay', description: '1099 PMHNPs earn $75-$150+/hr — 20-40% higher than W2 rates with significant tax deduction opportunities.', iconName: 'DollarSign' },
@@ -812,13 +662,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'behavioral health', mode: 'insensitive' } },
-        { title: { contains: 'behavioral', mode: 'insensitive' } },
-        { title: { contains: 'mental health', mode: 'insensitive' } },
-        { description: { contains: 'behavioral health', mode: 'insensitive' } },
-        { description: { contains: 'behavioral health facility', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('behavioral-health'),
     }),
     benefits: [
       { title: 'Integrated Care', description: 'Work in multidisciplinary teams combining psychiatric care with therapy, social work, and primary care.', iconName: 'Users' },
@@ -845,15 +689,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'correctional', mode: 'insensitive' } },
-        { title: { contains: 'corrections', mode: 'insensitive' } },
-        { title: { contains: 'prison', mode: 'insensitive' } },
-        { title: { contains: 'forensic', mode: 'insensitive' } },
-        { title: { contains: 'jail', mode: 'insensitive' } },
-        { title: { contains: 'detention', mode: 'insensitive' } },
-        { title: { contains: 'incarcerat', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('correctional'),
     }),
     benefits: [
       { title: 'Premium Pay', description: 'Correctional PMHNPs earn $130K-$190K+ due to the challenging environment and high demand for mental health providers.', iconName: 'DollarSign' },
@@ -880,12 +716,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
-      OR: [
-        { title: { contains: 'locum', mode: 'insensitive' } },
-        { title: { contains: 'locums', mode: 'insensitive' } },
-        { title: { contains: 'temporary assignment', mode: 'insensitive' } },
-        { description: { contains: 'locum tenens', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('locum-tenens'),
     }),
     benefits: [
       { title: 'Highest Hourly Rates', description: 'Locum tenens PMHNPs earn $80-$160/hr — the highest hourly rates in psychiatric nursing with full travel expenses covered.', iconName: 'DollarSign' },
@@ -1067,12 +898,19 @@ export async function buildCategoryCityMetadata(
   const basePath = `/jobs/${config.slug}/city/${citySlug}`;
 
   const qualityScore = getPageQualityScore(city, stats.totalJobs);
-  const shouldIndex = qualityScore >= 25 && page === 1;
+  const isHighQuality = qualityScore >= 25;
+  const shouldIndex = isHighQuality && page === 1;
 
-  // Canonical consolidation: thin pages (1-2 jobs, score < 25) point canonical
-  // to the parent category page so Google consolidates ranking signals upward.
-  // High-quality pages (3+ jobs, good city signals) keep self-referential canonical.
-  const canonicalUrl = shouldIndex
+  // Canonical consolidation:
+  //   • Thin pages (1-2 jobs, score < 25)         → canonical to parent category
+  //     so Google consolidates ranking signals upward.
+  //   • High-quality page 1                        → self canonical.
+  //   • High-quality page N>1 (paginated view)     → canonical to page 1 of the
+  //     SAME city (basePath), NOT the parent. Pointing page-2 to the parent
+  //     (the prior bug) caused "Duplicate without canonical" in GSC because
+  //     Google expects pagination to canonical to the first page of the same
+  //     listing, not jump up two levels.
+  const canonicalUrl = isHighQuality
     ? `https://pmhnphiring.com${basePath}`
     : `https://pmhnphiring.com/jobs/${config.slug}`;
 

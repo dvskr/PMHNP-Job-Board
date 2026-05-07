@@ -10,6 +10,7 @@ import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
+import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 
 const clayCard: React.CSSProperties = {
   background: '#FFFFFF', borderRadius: '20px',
@@ -249,6 +250,11 @@ export default async function CrisisPage({ searchParams }: PageProps) {
           </div>
         </section>
       </div>
+
+      {/* By Location — pseoStats-gated internal links */}
+
+      <CategoryLocationsExplore categorySlug="crisis" categoryLabel="Crisis" />
+
 
       {/* --- FAQ --- */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>

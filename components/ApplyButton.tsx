@@ -38,6 +38,12 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPlatformApply, setShowPlatformApply] = useState(false);
   const [serverApplied, setServerApplied] = useState<{ applied: boolean; appliedAt?: string; status?: string } | null>(null);
+  // Tracks whether the user just clicked an EXTERNAL apply link. Drives the
+  // "Did you apply?" confirmation prompt — we don't auto-mark applied because
+  // a click only signals intent, not a completed application. Returning to
+  // the tab without applying (e.g. expired listing, changed mind) shouldn't
+  // pollute /my-applications or the dashboard.
+  const [awaitingApplyConfirm, setAwaitingApplyConfirm] = useState(false);
   const autoOpened = useRef(false);
 
   // Check server for existing application (for platform-apply jobs)
@@ -94,31 +100,31 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
       return;
     }
 
-    // External apply: open link in new tab
+    // External apply: open link in new tab. Track the click for engagement
+    // analytics, but do NOT mark applied — clicking the link only signals
+    // intent. The "Did you apply?" confirmation prompt below captures the
+    // actual outcome once the user returns from the employer's site.
     if (applyLink) {
-      // Track apply click (fire and forget — internal analytics)
       fireApplyClick();
-
-      // Track in Google Analytics (GA4 conversion event)
       trackJobApply(buildJobItem({ id: jobId, title: jobTitle }), 'external');
-
-      // Open apply link in new tab
       window.open(applyLink, '_blank', 'noopener,noreferrer');
-
-      // Mark as applied directly
       if (!isApplied(jobId)) {
-        markApplied(jobId);
-
-        // Also persist to database (fire-and-forget)
-        try {
-          fetch('/api/applications', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jobId, sourceUrl: applyLink }),
-          }).catch(() => { });
-        } catch { }
+        setAwaitingApplyConfirm(true);
       }
     }
+  };
+
+  /** User explicitly confirms they completed the application on the employer's site. */
+  const handleConfirmApplied = () => {
+    // The hook handles both localStorage and server persistence (when the
+    // user is authenticated), so we don't fire a separate POST here.
+    markApplied(jobId, applyLink ?? undefined);
+    setAwaitingApplyConfirm(false);
+  };
+
+  /** User dismisses the prompt — they didn't apply (yet). Reverts to Apply Now. */
+  const handleDismissApplyConfirm = () => {
+    setAwaitingApplyConfirm(false);
   };
 
   const handlePlatformApplySuccess = () => {
@@ -257,6 +263,69 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
           >
             ← Back
           </button>
+        </div>
+      ) : awaitingApplyConfirm ? (
+        /* Inline confirmation — user just clicked the external apply link.
+           Click alone doesn't prove they applied; ask explicitly so we don't
+           pollute /my-applications with phantom records. */
+        <div
+          className="w-full rounded-2xl p-4"
+          style={{
+            backgroundColor: 'rgba(13,148,136,0.06)',
+            border: '1px solid rgba(13,148,136,0.18)',
+          }}
+        >
+          <p
+            className="text-sm font-semibold mb-1"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            Did you finish applying?
+          </p>
+          <p
+            className="text-xs mb-3"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            Confirm only after you submit on the employer&apos;s site. We&apos;ll add it
+            to your applications.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={handleConfirmApplied}
+              className="apply-btn flex-1 inline-flex items-center justify-center gap-2 text-white px-4 py-2.5 font-semibold text-sm touch-manipulation"
+              style={{
+                borderRadius: '14px',
+                background: '#0d9488',
+                border: '1px solid rgba(255,255,255,0.3)',
+                boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.2)',
+              }}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              Yes, I applied
+            </button>
+            <button
+              onClick={handleDismissApplyConfirm}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2.5 font-semibold text-sm touch-manipulation"
+              style={{
+                borderRadius: '14px',
+                backgroundColor: 'transparent',
+                color: 'var(--text-secondary)',
+                border: '1px solid rgba(90,74,66,0.18)',
+              }}
+            >
+              Not yet
+            </button>
+          </div>
+          {applyLink && (
+            <button
+              onClick={() => window.open(applyLink, '_blank', 'noopener,noreferrer')}
+              className="text-xs hover:underline mt-3"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              ↗ Re-open the apply link
+            </button>
+          )}
         </div>
       ) : (
         <>

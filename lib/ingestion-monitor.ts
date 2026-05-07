@@ -33,12 +33,25 @@ export interface IngestionTimings {
 }
 
 /**
- * Check health of all sources — detects dead or degraded sources
+ * Check health of all sources — detects dead or degraded sources.
+ *
+ * Scopes the check to the ACTIVE source registry only (lib/aggregators/registry.ts).
+ * Decommissioned sources (jsearch, jooble, ats-jobs-db, usajobs, ashby,
+ * icims, jazzhr) used to trip dead/warning alerts forever because we
+ * stopped ingesting from them but their published rows hadn't aged out
+ * yet — that produced 7+ duplicate "🔴 DEAD" embeds per daily-report
+ * cron firing. Restricting to the active registry kills that noise.
  */
 export async function checkSourceHealth(): Promise<SourceHealthStatus[]> {
+    const { aggregators } = await import('./aggregators/registry');
+    const activeSources = new Set(Object.keys(aggregators));
+
     const sources = await prisma.job.groupBy({
         by: ['sourceProvider'],
-        where: { isPublished: true },
+        where: {
+            isPublished: true,
+            sourceProvider: { in: [...activeSources] },
+        },
         _count: { id: true },
         _max: { createdAt: true },
     });
