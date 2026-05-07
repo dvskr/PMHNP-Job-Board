@@ -341,6 +341,13 @@ model SourceStats {
   jobsAdded        Int      @default(0) @map("jobs_added")
   jobsDuplicate    Int      @default(0) @map("jobs_duplicate")
   jobsExpired      Int      @default(0) @map("jobs_expired")
+  // Sum of all rejection-reason counts in `rejectedByReason`. Captures
+  // the funnel collapse (e.g. greenhouse fetched=47k → added=37 →
+  // jobsRejected=39k+), so trend queries don't need to scan rejected_jobs.
+  jobsRejected     Int      @default(0) @map("jobs_rejected")
+  // Per-reason breakdown: { relevance_no_keyword: 12k, normalizer_low_completeness: 4k, ... }.
+  // Populated 2026-05-06+. NULL for rows from older runs.
+  rejectedByReason Json?    @map("rejected_by_reason")
   avgQualityScore  Float?   @map("avg_quality_score")
   totalViews       Int      @default(0) @map("total_views")
   totalApplyClicks Int      @default(0) @map("total_apply_clicks")
@@ -375,6 +382,10 @@ model EmployerLead {
   contactName     String?   @map("contact_name")
   contactEmail    String?   @map("contact_email")
   contactTitle    String?   @map("contact_title")
+  // Added 2026-05-06 for description-mined leads (regex'd phone numbers
+  // out of job postings). Format kept as raw extracted string for now —
+  // a follow-up can normalize to E.164 if we ever auto-dial.
+  phone           String?
   website         String?
   linkedInUrl     String?   @map("linkedin_url")
   notes           String?
@@ -388,6 +399,7 @@ model EmployerLead {
 
   @@index([status])
   @@index([companyName])
+  @@index([contactEmail])
   @@map("employer_leads")
 }
 

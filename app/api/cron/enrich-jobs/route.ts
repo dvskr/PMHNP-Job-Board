@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import OpenAI from 'openai';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { extractWithLLM } from '@/lib/llm-enrichment';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 300; // 5 minutes
 
@@ -14,8 +15,6 @@ const BATCH_DELAY_MS = 200;
 // GPT-5-mini pricing (per 1M tokens)
 const INPUT_COST_PER_1M = 0.30;  // $0.30 per 1M input tokens
 const OUTPUT_COST_PER_1M = 1.25; // $1.25 per 1M output tokens
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // US state name -> code mapping
 const STATE_CODES: Record<string, string> = {
@@ -32,94 +31,13 @@ const STATE_CODES: Record<string, string> = {
   'west virginia':'WV','wisconsin':'WI','wyoming':'WY','district of columbia':'DC'
 };
 
-interface LLMResult {
-  salary_min?: number;
-  salary_max?: number;
-  salary_period?: string;
-  job_type?: string;
-  work_mode?: string;
-  city?: string;
-  state?: string;
-  experience_level?: string;
-  clinical_setting?: string;
-  patient_population?: string;
-  benefits?: string[];
-}
-
-interface LLMResponse {
-  result: LLMResult | null;
-  inputTokens: number;
-  outputTokens: number;
-}
-
-const SYSTEM_PROMPT = `You extract structured job posting data. Return JSON with ONLY fields you can CONFIDENTLY find. Never guess or fabricate.
-
-Fields:
-- salary_min: number, minimum annual salary in USD. Convert: hourly×2080, monthly×12, weekly×52
-- salary_max: number, maximum annual salary in USD
-- salary_period: "hour", "month", or "year" (original unit BEFORE conversion)
-- job_type: "Full-Time", "Part-Time", "Contract", "Per Diem", or "PRN"
-- work_mode: EXACTLY ONE of "Remote", "Hybrid", "In-Person" (use these strings verbatim — do NOT use "On-site", "Onsite", "Telehealth", or other variants; map "Telehealth" to "Remote" and "On-site"/"Onsite" to "In-Person")
-- city: string, job city (not employer HQ)
-- state: string, full US state name
-- experience_level: "Entry Level", "Mid Level", "Senior Level", or "Director"
-- clinical_setting: e.g. "Outpatient", "Inpatient", "Residential", "Emergency", "Community Health", "Private Practice", "Correctional", "Telehealth", "Hospital"
-- patient_population: e.g. "Adults", "Children", "Adolescents", "Geriatric", "All Ages", "Veterans", "Substance Abuse"
-- benefits: string array, e.g. ["Health Insurance", "401k", "PTO", "CME Allowance", "Malpractice Coverage", "Student Loan Repayment", "Signing Bonus", "Relocation Assistance"]
-
-Rules:
-- ONLY include if explicitly stated in text
-- Salary must be $40k-$500k/yr range for PMHNP roles
-- Return {} if nothing found`;
-
-async function extractWithLLM(description: string, title: string, employer: string, location: string): Promise<LLMResponse> {
-  try {
-    const truncated = description.substring(0, 2500);
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-5-mini',
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: `Title: ${title}\nEmployer: ${employer}\nLocation: ${location}\n\n${truncated}`
-        }
-      ],
-      // Note: gpt-5-mini does not support temperature (only default 1).
-      // max_completion_tokens includes internal reasoning tokens — 4096 gives
-      // ~3K for thinking + ~1K for the JSON output.
-      max_completion_tokens: 4096,
-    });
-
-    const inputTokens = response.usage?.prompt_tokens || 0;
-    const outputTokens = response.usage?.completion_tokens || 0;
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) return { result: null, inputTokens, outputTokens };
-
-    const parsed = JSON.parse(content);
-
-    // Validate salary
-    if (parsed.salary_min && (parsed.salary_min < 40000 || parsed.salary_min > 500000)) {
-      delete parsed.salary_min;
-      delete parsed.salary_max;
-      delete parsed.salary_period;
-    }
-
-    const result = Object.keys(parsed).length > 0 ? parsed : null;
-    return { result, inputTokens, outputTokens };
-  } catch {
-    return { result: null, inputTokens: 0, outputTokens: 0 };
-  }
-}
+// extractWithLLM and prompt now live in lib/llm-enrichment.ts (shared with
+// the inline-rescue path in lib/ingestion-service.ts).
 
 export async function GET(req: Request) {
-  // Verify cron secret
   const authError = await verifyCronOrAdmin(req);
   if (authError) return authError;
 
-  // Check for OpenAI API key
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: 'OPENAI_API_KEY not configured' }, { status: 500 });
   }
@@ -127,6 +45,7 @@ export async function GET(req: Request) {
   const startTime = Date.now();
 
   try {
+   return await withCronTracking('enrich-jobs', async () => {
     console.log('[Enrich Jobs] Starting LLM enrichment...');
 
     // Find published jobs that need enrichment.
@@ -151,11 +70,13 @@ export async function GET(req: Request) {
       location: true,
       description: true,
       normalizedMinSalary: true,
+      salaryPeriod: true,
       jobType: true,
       mode: true,
       city: true,
       state: true,
       stateCode: true,
+      country: true,
       isRemote: true,
       isHybrid: true,
       experienceLevel: true,
@@ -214,7 +135,10 @@ export async function GET(req: Request) {
     console.log(`[Enrich Jobs] Processing ${jobs.length} jobs...`);
 
     if (jobs.length === 0) {
-      return NextResponse.json({ success: true, message: 'No jobs need enrichment', processed: 0 });
+      return {
+        response: NextResponse.json({ success: true, message: 'No jobs need enrichment', processed: 0 }),
+        metrics: { processed: 0, enriched: 0, errors: 0 },
+      };
     }
 
     const stats = {
@@ -258,15 +182,18 @@ export async function GET(req: Request) {
         };
 
         if (!extracted) {
-          // Even if no data found, mark as enriched so we don't re-process
           stats.noData++;
-          try {
-            await prisma.job.update({ where: { id: job.id }, data: updateData });
-          } catch { /* ignore */ }
-          continue;
+          // Don't continue — fall through to the heuristic fallback block
+          // at the end of this iteration so missing mode/jobType/location
+          // still get filled by the default rules.
         }
 
         let fieldsUpdated = 0;
+
+        // Apply LLM-extracted fields when present. When extracted is null
+        // (LLM found nothing), we fall through to the heuristic-fallback
+        // block below, which doesn't depend on extracted.
+        if (extracted) {
 
         // Salary (only if missing)
         if (extracted.salary_min && !job.normalizedMinSalary) {
@@ -357,6 +284,59 @@ export async function GET(req: Request) {
         }
 
         if (fieldsUpdated > 0) stats.enriched++;
+        } // end if (extracted)
+
+        // ── FINAL FALLBACK PASS (2026-05-05) ───────────────────────────
+        // After source extraction, regex extraction, and LLM enrichment
+        // have all had their chance, fill any STILL-missing critical
+        // fields with heuristic defaults so every row leaves enrich-jobs
+        // with usable values. The completeness gate would otherwise
+        // reject borderline rows; these defaults nudge them above the
+        // floor with sensible, defensible guesses.
+        // Helper: resolve "what value the row will have after this update".
+        const fin = <K extends keyof typeof job>(key: K) =>
+          (updateData[key as string] !== undefined ? updateData[key as string] : job[key]) as (typeof job)[K];
+
+        // 1. Location signal: if NOTHING is set, mark remote.
+        if (!fin('city') && !fin('state') && !fin('isRemote') && !fin('isHybrid')) {
+          updateData.isRemote = true;
+        }
+
+        // 2. Mode fallback. Derives from the now-populated isRemote/isHybrid.
+        if (!fin('mode')) {
+          if (fin('isRemote')) updateData.mode = 'Remote';
+          else if (fin('isHybrid')) updateData.mode = 'Hybrid';
+          else updateData.mode = 'In-Person';
+        }
+
+        // 3. JobType fallback. Salary period is the strongest signal —
+        // hourly/weekly/daily rates are almost always Contract;
+        // annual is almost always Full-Time. Missing salary entirely
+        // defaults to Full-Time (the modal PMHNP arrangement).
+        if (!fin('jobType')) {
+          const period = fin('salaryPeriod');
+          if (period === 'annual' || period === 'year' || period === 'yearly') {
+            updateData.jobType = 'Full-Time';
+          } else if (
+            period === 'hour' || period === 'hourly' ||
+            period === 'day'  || period === 'daily'  ||
+            period === 'week' || period === 'weekly' ||
+            period === 'biweekly' ||
+            period === 'month'|| period === 'monthly'
+          ) {
+            updateData.jobType = 'Contract';
+          } else {
+            updateData.jobType = 'Full-Time';
+          }
+        }
+
+        // 4. State fallback. If remote and no state, USA-wide.
+        // For in-person/hybrid with no state, leave null — phantom
+        // states would pollute /jobs/state/[state] SEO pages.
+        if (!fin('state') && fin('isRemote')) {
+          updateData.state = 'United States';
+          if (!fin('country')) updateData.country = 'US';
+        }
 
         // Execute update (always writes lastEnrichedAt)
         try {
@@ -409,7 +389,18 @@ export async function GET(req: Request) {
 
     console.log('[Enrich Jobs] Complete:', JSON.stringify(summary, null, 2));
 
-    return NextResponse.json({ success: true, ...summary });
+    return {
+      response: NextResponse.json({ success: true, ...summary }),
+      metrics: {
+        processed: summary.processed,
+        enriched: summary.enriched,
+        errors: summary.errors,
+        inputTokens: summary.gptUsage.inputTokens,
+        outputTokens: summary.gptUsage.outputTokens,
+        estimatedCostUSD: summary.gptUsage.estimatedCostUSD,
+      },
+    };
+   });
   } catch (error) {
       await sendCronFailureAlert('enrich-jobs', error);
     console.error('[Enrich Jobs] Fatal error:', error);

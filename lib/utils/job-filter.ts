@@ -210,46 +210,192 @@ const GENERIC_NP_TITLES = [
     'lpnp',
 ];
 
-export function isRelevantJob(title: string = '', description: string = ''): boolean {
+/**
+ * Reasons a job can be rejected at the relevance gate.
+ *
+ * `relevance_filter` is kept as a catch-all for backward compat — new
+ * code paths emit one of the more specific values so rejected_jobs
+ * audit becomes actionable. See lib/ingestion-service.ts for the
+ * caller that writes these strings.
+ */
+export type RelevanceReason =
+    | 'pass'
+    | 'relevance_no_keyword'           // No positive keyword AND no Tier-2/3 match
+    | 'relevance_generic_title'         // Tier passed but title is generic + no psych context in title itself
+    | 'relevance_wrong_role';           // Negative-keyword match (physician, social worker, etc.) without dual-role override
+
+export interface RelevanceResult {
+    passes: boolean;
+    reason: RelevanceReason;
+}
+
+/**
+ * Mental-health context terms — checked in title and description for
+ * Tier 2 (NP-in-title + psych-context) and the generic-title guard.
+ *
+ * Extended 2026-05-05 to cover substance-abuse / addiction / MAT
+ * vocabulary — these were missed before, causing roles at recovery
+ * centers and substance-abuse clinics to be rejected.
+ */
+const MENTAL_HEALTH_CONTEXT_TERMS = [
+    'mental health',
+    'psychiatric',
+    'behavioral health',
+    'psychiatry',
+    'addiction',
+    'substance use',
+    'substance abuse',
+    'mat program',
+    'medication-assisted treatment',
+    'medication assisted treatment',
+    'recovery center',
+    'dual diagnosis',
+    'suboxone',
+    'buprenorphine',
+];
+
+/**
+ * Employer name patterns that strongly suggest a psych-focused org.
+ * Used as an additional Tier 2.5 signal — a generic NP title at
+ * "Senior PsychCare" or "Kanza Mental Health" should pass even
+ * though title alone lacks psych context.
+ */
+const PSYCH_EMPLOYER_PATTERNS = [
+    'psych',          // PsychCare, Psychiatric, Psychotherapy, etc.
+    'mental health',
+    'behavioral health',
+    'recovery',       // Recovery centers, addiction
+    'addiction',
+    'substance',
+];
+
+/**
+ * Title patterns indicating a dual-role posting (NP OR PA, NP/PA, etc.).
+ * When a title is dual-role, the negative-keyword check skips
+ * `physician`, `physician assistant`, `pa-c`, ` pa ` — those words are
+ * structurally part of the dual-role offer, not a wrong-role signal.
+ */
+const DUAL_ROLE_PATTERNS = [
+    'nurse practitioner or physician assistant',
+    'physician assistant or nurse practitioner',
+    'np or pa',
+    'pa or np',
+    'np / pa',
+    'pa / np',
+    'np /pa',
+    'pa /np',
+    'np/ pa',
+    'pa/ np',
+    'np/pa',
+    'pa/np',
+    'np-pa',
+    'pa-np',
+    'nurse practitioner / physician assistant',
+    'physician assistant / nurse practitioner',
+    'nurse practitioner /pa',
+    'nurse practitioner / pa',
+    'pa / nurse practitioner',
+    'pa /nurse practitioner',
+    'np / physician assistant',
+    'physician assistant / np',
+];
+
+const DUAL_ROLE_NEGATIVE_KEYWORDS = new Set([
+    'physician',
+    'physician assistant',
+    'pa-c',
+    ' pa ',
+    'medical pa',
+]);
+
+/**
+ * Negative keywords that should be skipped when the title clearly
+ * announces an advanced-practice nurse role. APRNs ARE registered
+ * nurses with advanced training, so the bare 'registered nurse' /
+ * ' rn ' negatives wrongly catch valid APRN titles.
+ */
+const APRN_NEGATIVE_OVERRIDES = new Set([
+    'registered nurse',
+    ' rn ',
+    ' rn-',
+    '-rn ',
+]);
+
+function isAprnTitle(titleLower: string): boolean {
+    return (
+        titleLower.includes('advanced practice registered nurse') ||
+        titleLower.includes('aprn') ||
+        titleLower.includes('arnp')
+    );
+}
+
+function hasMentalHealthContext(combinedText: string): boolean {
+    return MENTAL_HEALTH_CONTEXT_TERMS.some((term) => combinedText.includes(term));
+}
+
+function isPsychEmployer(employer: string | null | undefined): boolean {
+    if (!employer) return false;
+    const lower = employer.toLowerCase();
+    return PSYCH_EMPLOYER_PATTERNS.some((p) => lower.includes(p));
+}
+
+function isDualRoleTitle(titleLower: string): boolean {
+    return DUAL_ROLE_PATTERNS.some((p) => titleLower.includes(p));
+}
+
+/**
+ * Classify a job's relevance and return the reason. The boolean
+ * `isRelevantJob` is preserved as a thin wrapper for legacy callers.
+ *
+ * @param title       Job title (raw from source).
+ * @param description Job description (raw — HTML is fine, we just lowercase-substring).
+ * @param employer    Employer name. Optional but improves Tier 2.5 detection.
+ */
+export function classifyRelevance(
+    title: string = '',
+    description: string = '',
+    employer: string = '',
+): RelevanceResult {
     const combinedText = `${title} ${description}`.toLowerCase();
     const titleLower = title.toLowerCase().trim();
+    const employerLower = employer.toLowerCase();
+    const dualRole = isDualRoleTitle(titleLower);
+    const aprn = isAprnTitle(titleLower);
 
     // 1. MUST have a Positive Keyword in Title OR Description
-    let hasPositive = POSITIVE_KEYWORDS.some(kw => combinedText.includes(kw));
+    let hasPositive = POSITIVE_KEYWORDS.some((kw) => combinedText.includes(kw));
 
-    // Supplement with combination logic for flexible titles (common in federal roles)
-    // STRICT: Title MUST mention NP/APRN, and mental health context must be present
     if (!hasPositive) {
-        const hasMentalHealthContext = combinedText.includes('mental health') ||
-            combinedText.includes('psychiatric') ||
-            combinedText.includes('behavioral health') ||
-            combinedText.includes('psychiatry');
-
-        const titleHasNP = titleLower.includes('nurse practitioner') ||
-            titleLower.includes(' np') ||
+        const psychContext = hasMentalHealthContext(combinedText);
+        // Word-boundary 'np' check so titles starting with NP/NP- match too.
+        const titleHasNP =
+            titleLower.includes('nurse practitioner') ||
+            /\bnp\b/.test(titleLower) ||
             titleLower.includes('aprn') ||
             titleLower.includes('arnp');
 
-        // Only allow combination match if TITLE has NP context
-        if (hasMentalHealthContext && titleHasNP) {
+        // Tier 2: NP-in-title + psych-context-anywhere
+        if (psychContext && titleHasNP) {
             hasPositive = true;
         } else if (combinedText.includes('pmhnp')) {
-            // Always allow if pmhnp appears anywhere
+            // Tier 3: catch-all PMHNP mention anywhere
+            hasPositive = true;
+        } else if (titleHasNP && isPsychEmployer(employer)) {
+            // Tier 2.5: NP-in-title + psych-employer (covers cases where
+            // title and description don't say psych but the employer
+            // clearly is one — e.g. Senior PsychCare, Kanza Mental Health).
             hasPositive = true;
         }
     }
 
     if (!hasPositive) {
-        return false;
+        return { passes: false, reason: 'relevance_no_keyword' };
     }
 
-    // 2. GENERIC TITLE CHECK: If the title is just "Nurse Practitioner" or similar generic title,
-    //    demand that the TITLE ITSELF has psychiatric/mental health context.
-    //    Description-only context is too weak (many non-psych NP jobs at mental health orgs).
-    const isGenericTitle = GENERIC_NP_TITLES.some(generic => {
-        // Match exactly or with location/qualifier suffix
-        // e.g. "Nurse Practitioner", "Nurse Practitioner - Memphis, TN", "Nurse Practitioner (NP)"
-        return titleLower === generic ||
+    // 2. GENERIC TITLE CHECK
+    const isGenericTitle = GENERIC_NP_TITLES.some((generic) => {
+        return (
+            titleLower === generic ||
             titleLower.startsWith(generic + ' -') ||
             titleLower.startsWith(generic + ' –') ||
             titleLower.startsWith(generic + ' (') ||
@@ -261,32 +407,36 @@ export function isRelevantJob(title: string = '', description: string = ''): boo
             titleLower.startsWith(generic + ' prn') ||
             titleLower.startsWith(generic + ' weekend') ||
             titleLower.startsWith(generic + ' part') ||
-            titleLower.startsWith(generic + ' full');
+            titleLower.startsWith(generic + ' full')
+        );
     });
 
     if (isGenericTitle) {
-        // For generic titles, the TITLE must contain psychiatric/mental health keywords
-        const titleHasPsych = titleLower.includes('psych') ||
+        const titleHasPsych =
+            titleLower.includes('psych') ||
             titleLower.includes('mental health') ||
             titleLower.includes('behavioral health') ||
             titleLower.includes('pmhnp');
 
-        if (!titleHasPsych) {
-            return false;
+        // Generic-title guard: title alone must signal psych UNLESS
+        // the employer is clearly a psych org.
+        if (!titleHasPsych && !isPsychEmployer(employer)) {
+            return { passes: false, reason: 'relevance_generic_title' };
         }
     }
 
-    // 3. Strong Filter on TITLE for wrong roles
-    // Exception: If title itself contains a positive PMHNP keyword, trust it
-    const titleHasPositive = POSITIVE_KEYWORDS.some(kw => titleLower.includes(kw));
+    // 3. Strong filter on TITLE for wrong roles.
+    // Exception: title itself contains a positive PMHNP keyword → trust it.
+    const titleHasPositive = POSITIVE_KEYWORDS.some((kw) => titleLower.includes(kw));
     if (titleHasPositive) {
-        return true;
+        return { passes: true, reason: 'pass' };
     }
 
-    const isWrongRole = NEGATIVE_KEYWORDS.some(neg => {
+    const isWrongRole = NEGATIVE_KEYWORDS.some((neg) => {
         if (!titleLower.includes(neg)) return false;
 
-        // Exception: Allow "psychiatrist" in title if it's a dual-role or collaborative post
+        // Exception A: psychiatrist allowed if a PMHNP indicator is present
+        // (collaborative-care or dual-role psychiatrist+PMHNP postings).
         if (neg === 'psychiatrist') {
             const hasPMHNPIndicator = [
                 'pmhnp',
@@ -294,18 +444,39 @@ export function isRelevantJob(title: string = '', description: string = ''): boo
                 'np-bc',
                 'aprn',
                 'arnp',
-                'psych np'
-            ].some(indicator => combinedText.includes(indicator));
-
+                'psych np',
+            ].some((indicator) => combinedText.includes(indicator));
             return !hasPMHNPIndicator;
+        }
+
+        // Exception B (NEW 2026-05-05): physician / PA negative keywords
+        // are skipped for dual-role NP-or-PA postings. Adzuna in particular
+        // emits many "Nurse Practitioner or Physician Assistant - Psychiatry"
+        // titles that the old filter killed because of the bare 'physician' /
+        // ' pa ' rules. Dual-role posts are exactly what we want to catch.
+        if (dualRole && DUAL_ROLE_NEGATIVE_KEYWORDS.has(neg)) {
+            return false;
+        }
+
+        // Exception C (NEW 2026-05-05): APRN titles legitimately contain
+        // 'registered nurse' / ' rn ' as part of "Advanced Practice
+        // Registered Nurse" — those negatives target staff RNs, not
+        // advanced-practice nurses. Skip them when the title is APRN-marked.
+        if (aprn && APRN_NEGATIVE_OVERRIDES.has(neg)) {
+            return false;
         }
 
         return true;
     });
 
     if (isWrongRole) {
-        return false;
+        return { passes: false, reason: 'relevance_wrong_role' };
     }
 
-    return true;
+    return { passes: true, reason: 'pass' };
+}
+
+/** Boolean wrapper around classifyRelevance for legacy callers. */
+export function isRelevantJob(title: string = '', description: string = ''): boolean {
+    return classifyRelevance(title, description, '').passes;
 }

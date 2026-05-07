@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { parseResume, ParsedResume } from '@/lib/resume-parser';
 import { rateLimit } from '@/lib/rate-limit';
+import { getPathFromUrl } from '@/lib/supabase-storage';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 /**
@@ -84,22 +85,52 @@ export async function POST(request: NextRequest) {
     if (ct.includes('application/json')) {
       // Download from Supabase Storage
       const body = await request.json().catch(() => null);
-      const resumePath = body?.resumeUrl;
+      const rawResumeUrl = body?.resumeUrl;
 
-      if (!resumePath || typeof resumePath !== 'string') {
+      if (!rawResumeUrl || typeof rawResumeUrl !== 'string') {
         return NextResponse.json({ error: 'resumeUrl is required' }, { status: 400 });
+      }
+
+      // The profile's `resumeUrl` field can be either:
+      //   - a bare storage path: "prod/<uid>/<ts>-<file>.pdf"
+      //   - a full signed URL (legacy): "https://xxx.supabase.co/storage/v1/object/sign/resumes/<path>?token=..."
+      // The storage `.download()` API expects the bare path WITHOUT
+      // the bucket prefix. getPathFromUrl handles the URL form;
+      // otherwise we strip a leading "resumes/" if present and use
+      // the value as-is.
+      const extractedPath = rawResumeUrl.startsWith('http')
+        ? getPathFromUrl(rawResumeUrl)
+        : rawResumeUrl.replace(/^resumes\//, '');
+
+      if (!extractedPath) {
+        logger.error('Could not derive storage path from resumeUrl', { rawResumeUrl });
+        await markProfileFailed(user.id);
+        return NextResponse.json(
+          { error: 'Could not locate the uploaded resume in storage. Try re-uploading.' },
+          { status: 400 },
+        );
       }
 
       const adminSupabase = createSupabaseClient(supabaseUrl, supabaseServiceKey);
 
       const { data: fileData, error: downloadError } = await adminSupabase.storage
         .from('resumes')
-        .download(resumePath.replace(/^resumes\//, ''));
+        .download(extractedPath);
 
       if (downloadError || !fileData) {
-        logger.error('Failed to download resume from storage', { resumePath, error: downloadError });
+        logger.error('Failed to download resume from storage', {
+          rawResumeUrl,
+          extractedPath,
+          error: downloadError,
+        });
         await markProfileFailed(user.id);
-        return NextResponse.json({ error: 'Failed to download resume' }, { status: 400 });
+        return NextResponse.json(
+          {
+            error: 'Failed to download resume',
+            detail: downloadError?.message ?? 'unknown',
+          },
+          { status: 400 },
+        );
       }
 
       if (fileData.size > MAX_FILE_BYTES) {
@@ -109,7 +140,7 @@ export async function POST(request: NextRequest) {
 
       const arrayBuffer = await fileData.arrayBuffer();
       buffer = Buffer.from(arrayBuffer);
-      contentType = inferContentTypeFromPath(resumePath);
+      contentType = inferContentTypeFromPath(extractedPath);
     } else {
       // Direct file upload via form-data
       const formData = await request.formData();
@@ -148,14 +179,50 @@ export async function POST(request: NextRequest) {
       // The user uploaded a file we couldn't read — return 422 (unprocessable),
       // not 500. Keeps the error budget honest and tells the client it's a
       // content problem, not a server outage.
+      // Include the underlying detail so the modal can show actionable info
+      // (e.g. "Failed to extract text from PDF: ..." vs "Resume text is too
+      // short or empty") instead of a generic "try a text-based PDF" line.
+      const detail = parseErr instanceof Error ? parseErr.message : String(parseErr);
       return NextResponse.json(
-        { error: 'We could not read this resume. Try a text-based PDF or DOCX.' },
+        {
+          error: 'We could not read this resume. Try a text-based PDF or DOCX.',
+          detail,
+        },
         { status: 422 }
       );
     }
 
-    // Auto-fill profile (only update empty fields)
-    await autoFillProfile(user.id, parsed);
+    // Sprint 2.1.P5 — preview mode. When ?preview=1 is set, return the
+    // parsed JSON WITHOUT writing anything to the profile or related
+    // tables. The UI uses this to show a 'review-before-save' diff;
+    // the user then re-POSTs without the preview flag (or via the apply
+    // endpoint that takes a curated subset) to commit.
+    const url = new URL(request.url);
+    const previewMode = url.searchParams.get('preview') === '1';
+    // ?overwrite=1 → replace scalar fields even when set, AND
+    // delete-then-recreate structured records (licenses, certs, etc).
+    // Default behavior remains "fill empty fields only".
+    const overwriteMode = url.searchParams.get('overwrite') === '1';
+    if (previewMode) {
+      // Clear the 'pending' status the upload route set — the parse
+      // succeeded, the badge "Analyzing resume…" is no longer accurate.
+      // Status stays null until the user clicks Apply (which sets it
+      // to 'completed'). If they skip, status remains null instead of
+      // hanging at 'pending' forever.
+      await prisma.userProfile.updateMany({
+        where: { supabaseId: user.id, resumeParseStatus: 'pending' },
+        data: { resumeParseStatus: null },
+      });
+      logger.info('Resume parsed (preview mode — no DB writes)', { userId: user.id });
+      return NextResponse.json({
+        success: true,
+        preview: true,
+        parsed,
+      });
+    }
+
+    // Auto-fill profile. Behavior controlled by overwriteMode.
+    await autoFillProfile(user.id, parsed, { overwrite: overwriteMode });
 
     // Mark as completed
     await prisma.userProfile.updateMany({
@@ -204,38 +271,76 @@ async function markProfileFailed(supabaseId: string): Promise<void> {
   }
 }
 
+interface AutoFillOptions {
+  /** When true, overwrite existing profile values + replace structured
+   *  rows (delete + reinsert). When false (default), only empty fields
+   *  get filled and structured rows are inserted only when no duplicate
+   *  key exists. */
+  overwrite: boolean;
+}
+
 /**
- * Auto-fill empty profile fields with parsed resume data.
- * NEVER overwrites user-entered data — only fills empty/null fields.
+ * Apply parsed resume data to the user's profile.
+ *
+ * - overwrite=false (default): non-destructive merge. Scalar fields
+ *   that already have a value are kept; new structured rows are
+ *   inserted only when no duplicate exists by key fields.
+ * - overwrite=true: destructive replace. Scalar fields are written
+ *   from the parsed payload (only when the parser supplied a value
+ *   — null/undefined parser fields never clobber). Structured tables
+ *   (CandidateLicense / Certification / Education / WorkExperience)
+ *   are deleted and recreated from the parsed payload.
  */
-async function autoFillProfile(supabaseId: string, parsed: ParsedResume): Promise<void> {
+async function autoFillProfile(
+  supabaseId: string,
+  parsed: ParsedResume,
+  opts: AutoFillOptions,
+): Promise<void> {
   const profile = await prisma.userProfile.findUnique({
     where: { supabaseId },
   });
 
   if (!profile) return;
 
-  // Build update only for empty fields
+  const { overwrite } = opts;
+  // For each scalar field, write when:
+  //   overwrite=true AND parser produced a value
+  //   OR profile field is empty AND parser produced a value
+  const shouldWrite = (existing: unknown, incoming: unknown): boolean => {
+    if (incoming === undefined || incoming === null) return false;
+    if (Array.isArray(incoming) && incoming.length === 0) return false;
+    if (overwrite) return true;
+    if (existing === null || existing === undefined) return true;
+    if (typeof existing === 'string' && existing.trim() === '') return true;
+    if (Array.isArray(existing) && existing.length === 0) return true;
+    return false;
+  };
+
   const update: Record<string, unknown> = {};
 
-  if (!profile.firstName && parsed.firstName) update.firstName = parsed.firstName;
-  if (!profile.lastName && parsed.lastName) update.lastName = parsed.lastName;
-  if (!profile.headline && parsed.headline) update.headline = parsed.headline;
-  if (!profile.yearsExperience && parsed.yearsExperience) update.yearsExperience = parsed.yearsExperience;
-  if (!profile.certifications && parsed.certifications?.length) {
-    update.certifications = parsed.certifications.join(', ');
+  if (shouldWrite(profile.firstName, parsed.firstName)) update.firstName = parsed.firstName;
+  if (shouldWrite(profile.lastName, parsed.lastName)) update.lastName = parsed.lastName;
+  if (shouldWrite(profile.phone, parsed.phone)) update.phone = parsed.phone;
+  if (shouldWrite(profile.linkedinUrl, parsed.linkedinUrl)) update.linkedinUrl = parsed.linkedinUrl;
+  if (shouldWrite(profile.headline, parsed.headline)) update.headline = parsed.headline;
+  // v2 prompt — verbatim "Professional Summary" paragraph from the
+  // resume routes to UserProfile.bio.
+  if (shouldWrite(profile.bio, parsed.professionalSummary)) update.bio = parsed.professionalSummary;
+  if (shouldWrite(profile.yearsExperience, parsed.yearsExperience)) update.yearsExperience = parsed.yearsExperience;
+  if (shouldWrite(profile.certifications, parsed.certifications)) {
+    update.certifications = parsed.certifications!.join(', ');
   }
-  if (!profile.licenseStates && parsed.licenseStates?.length) {
-    update.licenseStates = parsed.licenseStates.join(', ');
+  if (shouldWrite(profile.licenseStates, parsed.licenseStates)) {
+    update.licenseStates = parsed.licenseStates!.join(', ');
   }
-  if (!profile.specialties && parsed.specialties?.length) {
-    update.specialties = parsed.specialties.join(', ');
+  if (shouldWrite(profile.specialties, parsed.specialties)) {
+    update.specialties = parsed.specialties!.join(', ');
   }
-  if ((!profile.skills || profile.skills.length === 0) && parsed.skills?.length) {
+  if (shouldWrite(profile.skills, parsed.skills)) {
     update.skills = parsed.skills;
   }
-  if (!profile.npiNumber && parsed.npiNumber) update.npiNumber = parsed.npiNumber;
-  if (!profile.deaNumber && parsed.deaNumber) update.deaNumber = parsed.deaNumber;
+  if (shouldWrite(profile.npiNumber, parsed.npiNumber)) update.npiNumber = parsed.npiNumber;
+  if (shouldWrite(profile.deaNumber, parsed.deaNumber)) update.deaNumber = parsed.deaNumber;
 
   // Update profile if there are changes
   if (Object.keys(update).length > 0) {
@@ -246,81 +351,148 @@ async function autoFillProfile(supabaseId: string, parsed: ParsedResume): Promis
     logger.info('Profile auto-filled from resume', { supabaseId, fields: Object.keys(update) });
   }
 
-  // Upsert education records
+  // ── Structured rows ────────────────────────────────────────
+  // overwrite=true: nuke the existing rows first so the parsed set
+  // becomes the canonical truth. overwrite=false: dedupe by key
+  // fields and only insert what isn't already there.
+  if (overwrite) {
+    await prisma.$transaction([
+      prisma.candidateEducation.deleteMany({ where: { userId: profile.id } }),
+      prisma.candidateWorkExperience.deleteMany({ where: { userId: profile.id } }),
+      prisma.candidateLicense.deleteMany({ where: { userId: profile.id } }),
+      prisma.candidateCertification.deleteMany({ where: { userId: profile.id } }),
+    ]);
+  }
+
   if (parsed.education?.length) {
     for (const edu of parsed.education) {
-      // Check if a similar record already exists
-      const existing = await prisma.candidateEducation.findFirst({
-        where: {
-          userId: profile.id,
-          schoolName: edu.schoolName,
-          degreeType: edu.degreeType,
-        },
-      });
-
-      if (!existing) {
-        await prisma.candidateEducation.create({
-          data: {
+      if (!overwrite) {
+        const existing = await prisma.candidateEducation.findFirst({
+          where: {
             userId: profile.id,
-            degreeType: edu.degreeType,
-            fieldOfStudy: edu.fieldOfStudy || null,
             schoolName: edu.schoolName,
-            graduationDate: edu.graduationYear
-              ? new Date(`${edu.graduationYear}-06-01`)
-              : null,
+            degreeType: edu.degreeType,
           },
         });
+        if (existing) continue;
       }
+      await prisma.candidateEducation.create({
+        data: {
+          userId: profile.id,
+          degreeType: edu.degreeType,
+          fieldOfStudy: edu.fieldOfStudy || null,
+          schoolName: edu.schoolName,
+          graduationDate: edu.graduationYear
+            ? new Date(`${edu.graduationYear}-06-01`)
+            : null,
+        },
+      });
     }
   }
 
-  // Upsert work experience records
   if (parsed.workExperience?.length) {
     for (const exp of parsed.workExperience) {
-      // Check if a similar record already exists
-      const existing = await prisma.candidateWorkExperience.findFirst({
-        where: {
-          userId: profile.id,
-          jobTitle: exp.jobTitle,
-          employerName: exp.employerName,
-        },
-      });
-
-      if (!existing) {
-        await prisma.candidateWorkExperience.create({
-          data: {
+      if (!overwrite) {
+        const existing = await prisma.candidateWorkExperience.findFirst({
+          where: {
             userId: profile.id,
             jobTitle: exp.jobTitle,
             employerName: exp.employerName,
-            startDate: exp.startDate ? new Date(exp.startDate) : new Date(),
-            endDate: exp.endDate ? new Date(exp.endDate) : null,
-            isCurrent: exp.isCurrent || false,
-            description: exp.description || null,
-            practiceSetting: exp.practiceSetting || null,
           },
         });
+        if (existing) continue;
       }
+      await prisma.candidateWorkExperience.create({
+        data: {
+          userId: profile.id,
+          jobTitle: exp.jobTitle,
+          employerName: exp.employerName,
+          startDate: exp.startDate ? new Date(exp.startDate) : new Date(),
+          endDate: exp.endDate ? new Date(exp.endDate) : null,
+          isCurrent: exp.isCurrent || false,
+          description: exp.description || null,
+          practiceSetting: exp.practiceSetting || null,
+        },
+      });
     }
   }
 
-  // Upsert certification records
-  if (parsed.certifications?.length) {
-    for (const certName of parsed.certifications) {
-      const existing = await prisma.candidateCertification.findFirst({
-        where: {
+  // ── Structured license records (Sprint 2.1) ─────────────────
+  if (parsed.licenses?.length) {
+    for (const lic of parsed.licenses) {
+      if (!overwrite) {
+        const existing = await prisma.candidateLicense.findFirst({
+          where: {
+            userId: profile.id,
+            licenseState: lic.licenseState,
+            licenseNumber: lic.licenseNumber,
+          },
+        });
+        if (existing) continue;
+      }
+      let expirationDate: Date | null = null;
+      if (lic.expirationDate) {
+        const expParsed = new Date(lic.expirationDate);
+        if (!Number.isNaN(expParsed.getTime())) expirationDate = expParsed;
+      }
+      await prisma.candidateLicense.create({
+        data: {
           userId: profile.id,
-          certificationName: certName,
+          licenseType: lic.licenseType,
+          licenseNumber: lic.licenseNumber,
+          licenseState: lic.licenseState,
+          expirationDate,
+          status: 'active',
         },
       });
+    }
+  }
 
-      if (!existing) {
-        await prisma.candidateCertification.create({
-          data: {
+  // ── Structured certification records (Sprint 2.1) ────────────
+  if (parsed.certificationRecords?.length) {
+    for (const cert of parsed.certificationRecords) {
+      if (!overwrite) {
+        const existing = await prisma.candidateCertification.findFirst({
+          where: {
+            userId: profile.id,
+            certificationName: cert.certificationName,
+          },
+        });
+        if (existing) continue;
+      }
+      let expirationDate: Date | null = null;
+      if (cert.expirationDate) {
+        const expParsed = new Date(cert.expirationDate);
+        if (!Number.isNaN(expParsed.getTime())) expirationDate = expParsed;
+      }
+      await prisma.candidateCertification.create({
+        data: {
+          userId: profile.id,
+          certificationName: cert.certificationName,
+          certifyingBody: cert.certifyingBody ?? null,
+          certificationNumber: cert.certificationNumber ?? null,
+          expirationDate,
+        },
+      });
+    }
+  } else if (parsed.certifications?.length) {
+    // Legacy fallback: flat name list with no structured metadata.
+    for (const certName of parsed.certifications) {
+      if (!overwrite) {
+        const existing = await prisma.candidateCertification.findFirst({
+          where: {
             userId: profile.id,
             certificationName: certName,
           },
         });
+        if (existing) continue;
       }
+      await prisma.candidateCertification.create({
+        data: {
+          userId: profile.id,
+          certificationName: certName,
+        },
+      });
     }
   }
 }

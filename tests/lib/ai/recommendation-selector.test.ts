@@ -274,4 +274,111 @@ describe('selectRecommendations', () => {
         // is bounded at 2 employers × 4 cap = 8 (less than the 10-slot total).
         expect(picks.length).toBeLessThanOrEqual(8);
     });
+
+    /* ────────────────── Employer-posting pinning (Sprint 2026-05-06) ────────────────── */
+    // Two product invariants applied uniformly across homepage, recs, and emails:
+    //   1. Externals are never recommended (already covered above).
+    //   2. At least 2 sourceType='employer' postings are pinned per slate
+    //      when the live employer pool can fill them. Best-effort floor —
+    //      no padding when the pool is empty.
+
+    it('pins ≥2 employer postings when 2+ are available — even when an aggregator-with-ATS-link scores higher', () => {
+        // 8 high-similarity aggregator-with-ATS-link jobs (direct_apply via link
+        // detection, NOT sourceType='employer') and 2 lower-similarity employer
+        // postings. The 2 employer postings must still appear in the slate.
+        const hits: VectorHit[] = [];
+        const m = new Map<string, JobMeta>();
+        for (let i = 0; i < 8; i++) {
+            const id = `ats-${i}`;
+            hits.push(hit(id, 0.9 - i * 0.001));
+            m.set(id, meta(id, {
+                employer: `ats-emp-${i}`,
+                sourceType: 'aggregator',
+                applyLink: 'https://acme.greenhouse.io/jobs/123', // direct_apply via ATS rule
+            }));
+        }
+        for (let i = 0; i < 2; i++) {
+            const id = `emp-${i}`;
+            hits.push(hit(id, 0.3));
+            m.set(id, meta(id, { employer: `emp-${i}`, sourceType: 'employer' }));
+        }
+        const picks = selectRecommendations(hits, m);
+        const employerPicks = picks.filter((p) => m.get(p.jobId)!.sourceType === 'employer');
+        expect(employerPicks.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('pins fewer than the floor when the employer pool is smaller (no padding)', () => {
+        // Only 1 employer posting exists. Selector should pin 1, not 2.
+        const hits: VectorHit[] = [
+            hit('emp-only', 0.3),
+            hit('ats-1', 0.9),
+            hit('ats-2', 0.85),
+        ];
+        const m = new Map<string, JobMeta>([
+            ['emp-only', meta('emp-only', { sourceType: 'employer' })],
+            ['ats-1', meta('ats-1', { sourceType: 'aggregator', applyLink: 'https://acme.greenhouse.io/x' })],
+            ['ats-2', meta('ats-2', { sourceType: 'aggregator', applyLink: 'https://acme.lever.co/x' })],
+        ]);
+        const picks = selectRecommendations(hits, m);
+        const employerPicks = picks.filter((p) => m.get(p.jobId)!.sourceType === 'employer');
+        expect(employerPicks.length).toBe(1);
+        expect(picks.length).toBe(3); // all 3 still fill the slate
+    });
+
+    it('skips employer pinning when no employer postings exist (no padding from elsewhere)', () => {
+        // All-aggregator pool. Selector returns the top-N by score; pinning
+        // contributes zero extra slots (and never invents employer rows).
+        const hits: VectorHit[] = [];
+        const m = new Map<string, JobMeta>();
+        for (let i = 0; i < 5; i++) {
+            const id = `ats-${i}`;
+            hits.push(hit(id, 0.9 - i * 0.01));
+            m.set(id, meta(id, {
+                sourceType: 'aggregator',
+                applyLink: 'https://acme.greenhouse.io/x',
+            }));
+        }
+        const picks = selectRecommendations(hits, m);
+        expect(picks.length).toBe(5);
+        const employerPicks = picks.filter((p) => m.get(p.jobId)!.sourceType === 'employer');
+        expect(employerPicks.length).toBe(0);
+    });
+
+    it('rotation seed is deterministic — same seed produces the same picks across runs', () => {
+        // Build a wide employer pool with near-identical scores so rotation
+        // jitter ([0.9, 1.1]) actually has room to reorder.
+        const hits: VectorHit[] = [];
+        const m = new Map<string, JobMeta>();
+        for (let i = 0; i < 6; i++) {
+            const id = `emp-${i}`;
+            hits.push(hit(id, 0.5));
+            m.set(id, meta(id, { employer: `emp-${i}`, sourceType: 'employer' }));
+        }
+        const a = selectRecommendations(hits, m, { rotationSeed: 'seed-A' });
+        const b = selectRecommendations(hits, m, { rotationSeed: 'seed-A' });
+        expect(a.map((p) => p.jobId)).toEqual(b.map((p) => p.jobId));
+    });
+
+    it('different rotation seeds can pin different employer postings (when scores tie)', () => {
+        // Same identical-score pool of 6 employer postings. With 2 pinned per
+        // call and different seeds, the union of pinned picks across seeds
+        // should include more than 2 distinct ids — confirming rotation
+        // actually shifts the front of the slate.
+        const hits: VectorHit[] = [];
+        const m = new Map<string, JobMeta>();
+        for (let i = 0; i < 6; i++) {
+            const id = `emp-${i}`;
+            hits.push(hit(id, 0.5));
+            m.set(id, meta(id, { employer: `emp-${i}`, sourceType: 'employer' }));
+        }
+        const seeds = ['rot-mon', 'rot-tue', 'rot-wed', 'rot-thu', 'rot-fri'];
+        const front2: string[][] = seeds.map((s) =>
+            selectRecommendations(hits, m, { rotationSeed: s }).slice(0, 2).map((p) => p.jobId),
+        );
+        const distinctTopPair = new Set(front2.map((pair) => pair.join('|')));
+        // Across 5 different seeds with 6 candidates and 2 slots, we should
+        // see at least 2 distinct (top-pair) signatures — i.e. rotation
+        // doesn't always pin the same first 2 jobs.
+        expect(distinctTopPair.size).toBeGreaterThanOrEqual(2);
+    });
 });

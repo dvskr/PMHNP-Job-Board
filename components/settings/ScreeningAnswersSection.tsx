@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Save, Loader2, ShieldCheck } from 'lucide-react'
+import { clayCard, clayTitle, clayInput, clayBtnPrimary, clayPalette } from './clay-tokens'
 
 interface Question {
     questionKey: string; questionText: string; answerType: 'boolean' | 'boolean_with_details' | 'text'; category: string
@@ -24,8 +25,8 @@ const CATEGORIES = ['Background', 'Logistics']
 
 interface AnswerMap { [key: string]: { answerBool: boolean | null; answerText: string } }
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }
-const btnPrimary: React.CSSProperties = { padding: '10px 28px', borderRadius: '10px', background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }
+const inputStyle = clayInput
+const btnPrimary = clayBtnPrimary
 
 interface Props { showMsg: (type: 'success' | 'error', text: string) => void }
 
@@ -82,30 +83,30 @@ export default function ScreeningAnswersSection({ showMsg }: Props) {
     const answeredCount = Object.entries(answers).filter(([key, a]) => validKeys.has(key) && (a.answerBool !== null || a.answerText)).length
 
     return (
-        <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '28px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                <ShieldCheck size={20} style={{ color: '#10B981' }} /> Pre-filled Screening Answers
+        <div style={clayCard}>
+            <h3 style={{ ...clayTitle, marginBottom: '4px' }}>
+                <ShieldCheck size={20} style={{ color: clayPalette.success }} /> Pre-filled Screening Answers
             </h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px', marginTop: 0 }}>
+            <p style={{ fontSize: '13px', color: clayPalette.textMuted, marginBottom: '20px', marginTop: 0 }}>
                 {answeredCount} of {QUESTIONS.length} answered — these auto-fill screening questions on job applications
             </p>
 
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '24px' }}><Loader2 size={20} className="animate-spin" style={{ display: 'inline', color: 'var(--text-muted)' }} /></div>
+                <div style={{ textAlign: 'center', padding: '24px' }}><Loader2 size={20} className="animate-spin" style={{ display: 'inline', color: clayPalette.textMuted }} /></div>
             ) : (
                 <>
                     {CATEGORIES.map((cat) => {
                         const qs = QUESTIONS.filter((q) => q.category === cat)
                         return (
                             <div key={cat} style={{ marginBottom: '24px' }}>
-                                <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '14px', paddingBottom: '8px', borderBottom: '1px solid var(--border-color)' }}>{cat}</h4>
+                                <h4 style={{ fontSize: '14px', fontWeight: 700, color: clayPalette.textSecondary, marginBottom: '14px', paddingBottom: '8px', borderBottom: `1px solid ${clayPalette.border}` }}>{cat}</h4>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     {qs.map((q) => {
                                         const a = getAnswer(q.questionKey)
                                         const showDetails = q.answerType === 'boolean_with_details' && a.answerBool === true
                                         return (
                                             <div key={q.questionKey}>
-                                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px' }}>{q.questionText}</label>
+                                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: clayPalette.textPrimary, marginBottom: '8px' }}>{q.questionText}</label>
                                                 {q.answerType === 'text' ? (
                                                     <input type="text" value={a.answerText} onChange={(e) => setAnswer(q.questionKey, { answerText: e.target.value })} placeholder="Enter your answer" style={inputStyle} />
                                                 ) : (
@@ -114,9 +115,9 @@ export default function ScreeningAnswersSection({ showMsg }: Props) {
                                                             {[true, false].map((v) => (
                                                                 <button key={String(v)} type="button" onClick={() => setAnswer(q.questionKey, { answerBool: v })} style={{
                                                                     padding: '6px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s',
-                                                                    border: a.answerBool === v ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
-                                                                    background: a.answerBool === v ? 'rgba(45,212,191,0.1)' : 'var(--bg-primary)',
-                                                                    color: a.answerBool === v ? '#2DD4BF' : 'var(--text-secondary)',
+                                                                    border: a.answerBool === v ? `1.5px solid ${clayPalette.accentLight}` : `1.5px solid ${clayPalette.border}`,
+                                                                    background: a.answerBool === v ? 'rgba(45,212,191,0.12)' : clayPalette.inputFill,
+                                                                    color: a.answerBool === v ? clayPalette.accentLight : clayPalette.textSecondary,
                                                                 }}>{v ? 'Yes' : 'No'}</button>
                                                             ))}
                                                         </div>

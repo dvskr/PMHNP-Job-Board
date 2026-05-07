@@ -1,17 +1,14 @@
 /**
- * Hybrid `freshnessClause` semantics with FRESHNESS_FLOOR_MS = 0.
+ * `freshnessClause` semantics (revised 2026-05-06).
  *
- * Pins the rule:
- *   GREATEST(originalPostedAt, createdAt) > now - W
+ *   24h  → AND( createdAt ≥ now-24h, originalPostedAt ≥ now-3d )
+ *           "what's new on the board, capped so a 30-day-old original
+ *            post doesn't surface as fresh just because we re-ingested
+ *            it today"
+ *   3d / 7d / 30d → originalPostedAt ≥ now-window  (strict, no fallback)
  *
- * Which expands to:
- *   originalPostedAt >= now - W   OR   createdAt >= now - W
- *
- * Every window expands to the OR — there is no collapse case while
- * FRESHNESS_FLOOR_MS = 0 (createdAt cutoff is never in the future).
- *
- * If the floor is ever raised back above 0, add a collapse-case test
- * for windows ≤ floor.
+ * NULL originalPostedAt is excluded from every window — the normalizer
+ * defaults to `new Date()` at ingest, so this affects ~0% of inventory.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -21,55 +18,31 @@ const NOW = new Date('2026-05-04T12:00:00Z');
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
-describe('freshnessClause — floor = 0, all windows expand to OR', () => {
-    it('Past 24h matches either originalPostedAt or createdAt within 24h', () => {
-        const cutoff = new Date(NOW.getTime() - DAY);
-        expect(freshnessClause(NOW, postedWithinToMs('24h')!)).toEqual({
-            OR: [
-                { originalPostedAt: { gte: cutoff } },
-                { createdAt: { gte: cutoff } },
+describe('freshnessClause', () => {
+    it('24h → AND of createdAt ≥ now-24h and originalPostedAt ≥ now-3d', () => {
+        expect(freshnessClause(NOW, '24h')).toEqual({
+            AND: [
+                { createdAt: { gte: new Date(NOW.getTime() - DAY) } },
+                { originalPostedAt: { gte: new Date(NOW.getTime() - 3 * DAY) } },
             ],
         });
     });
 
-    it('Past 3 days uses identical cutoffs on both fields', () => {
-        const cutoff = new Date(NOW.getTime() - 3 * DAY);
-        expect(freshnessClause(NOW, postedWithinToMs('3d')!)).toEqual({
-            OR: [
-                { originalPostedAt: { gte: cutoff } },
-                { createdAt: { gte: cutoff } },
-            ],
+    it('3d → strict originalPostedAt ≥ now-3d', () => {
+        expect(freshnessClause(NOW, '3d')).toEqual({
+            originalPostedAt: { gte: new Date(NOW.getTime() - 3 * DAY) },
         });
     });
 
-    it('Past 7 days uses identical cutoffs on both fields', () => {
-        const cutoff = new Date(NOW.getTime() - 7 * DAY);
-        expect(freshnessClause(NOW, postedWithinToMs('7d')!)).toEqual({
-            OR: [
-                { originalPostedAt: { gte: cutoff } },
-                { createdAt: { gte: cutoff } },
-            ],
+    it('7d → strict originalPostedAt ≥ now-7d', () => {
+        expect(freshnessClause(NOW, '7d')).toEqual({
+            originalPostedAt: { gte: new Date(NOW.getTime() - 7 * DAY) },
         });
     });
 
-    it('Past 30 days uses identical cutoffs on both fields', () => {
-        const cutoff = new Date(NOW.getTime() - 30 * DAY);
-        expect(freshnessClause(NOW, postedWithinToMs('30d')!)).toEqual({
-            OR: [
-                { originalPostedAt: { gte: cutoff } },
-                { createdAt: { gte: cutoff } },
-            ],
-        });
-    });
-
-    it('arbitrary windowMs flows through symmetrically', () => {
-        const windowMs = 14 * DAY;
-        const cutoff = new Date(NOW.getTime() - windowMs);
-        expect(freshnessClause(NOW, windowMs)).toEqual({
-            OR: [
-                { originalPostedAt: { gte: cutoff } },
-                { createdAt: { gte: cutoff } },
-            ],
+    it('30d → strict originalPostedAt ≥ now-30d', () => {
+        expect(freshnessClause(NOW, '30d')).toEqual({
+            originalPostedAt: { gte: new Date(NOW.getTime() - 30 * DAY) },
         });
     });
 });

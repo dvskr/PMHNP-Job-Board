@@ -26,6 +26,7 @@ interface FantasticJobApiResponse {
     date_validthrough: string | null;
     date_created: string;
     description: string | null;
+    description_text: string | null;    // plain-text desc (when description_type=text)
     // Derived location fields
     cities_derived: string[];
     counties_derived: string[];
@@ -34,10 +35,104 @@ interface FantasticJobApiResponse {
     locations_derived: string[];        // e.g. "Vestavia Hills, Alabama, United States"
     remote_derived: boolean;
     domain_derived: string | null;
+    // Salary (schema.org JobPosting.baseSalary shape — often null)
+    salary_raw: unknown;
     // AI-enriched fields
     ai_employment_type: unknown;
     ai_work_arrangement: unknown;
     employment_type: unknown;
+    // Possible AI salary fields (Ultra tier — keys vary in spelling
+    // across API versions; we try all known variants in extractSalary).
+    ai_salary_currency?: string | null;
+    ai_salary_value?: number | string | null;
+    ai_salary_minvalue?: number | string | null;
+    ai_salary_maxvalue?: number | string | null;
+    ai_salary_unittext?: string | null;
+}
+
+/**
+ * Parse the Active Jobs DB salary fields into our canonical shape.
+ *
+ * The API populates salary in two possible places:
+ *   - `salary_raw`: object matching schema.org JobPosting.baseSalary, like
+ *       { "@type": "MonetaryAmount", "currency": "USD",
+ *         "value": { "@type": "QuantitativeValue",
+ *                    "minValue": 100000, "maxValue": 150000,
+ *                    "unitText": "YEAR" } }
+ *   - `ai_salary_*` flat fields (Ultra tier).
+ *
+ * Returns nulls when the source didn't provide salary at all (the
+ * common case — most postings omit it).
+ */
+function extractFantasticSalary(job: FantasticJobApiResponse): {
+    minSalary: number | null;
+    maxSalary: number | null;
+    salaryPeriod: string | null;
+} {
+    const periodFromUnitText = (u: string | null | undefined): string | null => {
+        if (!u) return null;
+        const upper = String(u).toUpperCase();
+        if (upper === 'YEAR' || upper === 'ANNUAL' || upper === 'YEARLY') return 'annual';
+        if (upper === 'MONTH' || upper === 'MONTHLY') return 'monthly';
+        if (upper === 'WEEK' || upper === 'WEEKLY') return 'weekly';
+        if (upper === 'DAY' || upper === 'DAILY') return 'daily';
+        if (upper === 'HOUR' || upper === 'HOURLY') return 'hourly';
+        return null;
+    };
+
+    // Helpers to skip junk values: 0, empty string, "0", or null. The
+    // schema.org shape from this API often comes back populated-but-empty
+    // — `{value: "", unitText: ""}` or `{minValue: 0, maxValue: 0}`. Real
+    // PMHNP salaries are never below $20/hr ($40k/yr), so anything <100
+    // is treated as a placeholder.
+    const realNumber = (raw: unknown): number | null => {
+        if (raw == null || raw === '') return null;
+        const n = Number(raw);
+        if (!Number.isFinite(n) || n < 100) return null;
+        return n;
+    };
+
+    // Try ai_salary_* flat fields first (cleaner shape).
+    const aiMin = realNumber(job.ai_salary_minvalue);
+    const aiMax = realNumber(job.ai_salary_maxvalue);
+    const aiSingle = realNumber(job.ai_salary_value);
+    if (aiMin != null || aiMax != null) {
+        return {
+            minSalary: aiMin,
+            maxSalary: aiMax,
+            salaryPeriod: periodFromUnitText(job.ai_salary_unittext),
+        };
+    }
+    if (aiSingle != null) {
+        return {
+            minSalary: aiSingle,
+            maxSalary: aiSingle,
+            salaryPeriod: periodFromUnitText(job.ai_salary_unittext),
+        };
+    }
+
+    // Fall back to salary_raw (schema.org shape).
+    const raw = job.salary_raw;
+    if (raw && typeof raw === 'object') {
+        const r = raw as Record<string, unknown>;
+        const value = (r.value && typeof r.value === 'object' ? r.value as Record<string, unknown> : r);
+        const min = realNumber(value.minValue);
+        const max = realNumber(value.maxValue);
+        const single = realNumber(value.value);
+        const unit = (value.unitText as string | null | undefined) ?? null;
+        if (min != null || max != null) {
+            return {
+                minSalary: min,
+                maxSalary: max,
+                salaryPeriod: periodFromUnitText(unit),
+            };
+        }
+        if (single != null) {
+            return { minSalary: single, maxSalary: single, salaryPeriod: periodFromUnitText(unit) };
+        }
+    }
+
+    return { minSalary: null, maxSalary: null, salaryPeriod: null };
 }
 
 export interface FantasticJobOutput {
@@ -49,16 +144,36 @@ export interface FantasticJobOutput {
     applyLink: string;
     job_type: string | null;
     postedDate?: string;
-    source_ats?: string;
+    /**
+     * Underlying ATS platform reported by the API (greenhouse, paylocity,
+     * workday, etc.). Persisted to jobs.source_site so we can analyse
+     * which ATSes the aggregator catches.
+     */
+    sourceSite?: string;
+    // Salary fields populated when the source provides them (often null).
+    minSalary?: number | null;
+    maxSalary?: number | null;
+    salaryPeriod?: string | null;
 }
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 const API_HOST = 'active-jobs-db.p.rapidapi.com';
-// Production default: 7-day endpoint. The 6-month endpoint is used only
-// when an admin triggers a backfill via ?endpoint=6m. The job-normalizer
-// rejects rows older than 90 days for non-ATS sources (line 519), so a
-// 6m backfill effectively becomes a 90-day backfill — caps the useful
-// range without us needing a date filter on the API side.
+// 2026-05-06: PRODUCTION DEFAULT switched 7d → 24h after blowing through
+// the Ultra plan's 20k Jobs/month cap on day 6 of the billing cycle.
+// Root cause: re-fetching the same 7-day window twice a day means the
+// API counts every job ~14× (7 days × 2 polls/day), overwhelming the
+// jobs-delivered counter even though our internal `seenUrls` dedup
+// hides the overlap from us.
+//
+// The 24h endpoint returns jobs INDEXED in the last 24h (i.e. NEW
+// arrivals to Active Jobs DB), so polling once per day means each row
+// is delivered ~1× instead of ~14×.
+//
+// Other endpoints kept for explicit overrides:
+//   - 7d: legacy callers / catch-up after extended downtime
+//   - 6m: annual Jan-1 backfill (the normalizer's 90-day staleness
+//     filter caps the useful range to 90 days regardless).
+const ENDPOINT_24H = `https://${API_HOST}/active-ats-24h`;
 const ENDPOINT_7D = `https://${API_HOST}/active-ats-7d`;
 const ENDPOINT_6M = `https://${API_HOST}/active-ats-6m`;
 const PAGE_SIZE = 100;
@@ -80,22 +195,12 @@ const PAGE_SIZE = 100;
 //            description=psychiatric/mental-health/PMHNP. Catches the
 //            generic-titled jobs that title-only filtering missed.
 
-const TITLE_TERMS = [
-    'PMHNP',
-    'Psychiatric Nurse Practitioner',
-    'Psychiatric Mental Health Nurse Practitioner',
-    'Mental Health Nurse Practitioner',
-    'Behavioral Health Nurse Practitioner',
-    'Psychiatric APRN',
-    'Telepsychiatry',
-];
-
-// Title=NP/APRN, description filter widens the catch.
-const TITLE_FILTERS_BROAD = [
-    'Nurse Practitioner',
-    'APRN',
-];
-const DESCRIPTION_FILTER_PSYCH = '"psychiatric" OR "mental health" OR "PMHNP" OR "psychiatry"';
+import {
+    FANTASTIC_TITLE_TERMS as TITLE_TERMS,
+    FANTASTIC_TITLE_FILTERS_BROAD as TITLE_FILTERS_BROAD,
+    FANTASTIC_DESCRIPTION_FILTER_PSYCH as DESCRIPTION_FILTER_PSYCH,
+} from './search-terms/fantastic-jobs-db';
+import { RateLimiter } from './types';
 
 // ── Budget Protection ──
 // Ultra plan: 20,000 requests/month, 5 req/sec
@@ -107,8 +212,23 @@ const DESCRIPTION_FILTER_PSYCH = '"psychiatric" OR "mental health" OR "PMHNP" OR
 //   MIN_REMAINING_BUFFER = 5000 — refuse to start a run when fewer than
 //     this many monthly requests remain. With 60 runs/month a 5k cushion
 //     covers ~10 admin-triggered manual runs without dipping below 0.
+// Max paginated depth per search-term pass.
+//   - Title-literal passes (PASS A): up to 15 pages — these match few rows
+//     so paginating deeply rarely fires anyway.
+//   - Broad title + description passes (PASS B): capped at 3 pages because
+//     these intentionally cast a wide net and burned 20k Jobs in 6 days
+//     of the 2026-05 billing cycle.
 const MAX_PAGES_PER_FILTER = 15;
-const MAX_REQUESTS_PER_RUN = 200;
+const MAX_PAGES_PER_FILTER_BROAD = 3;
+// Lowered 2026-05-06 200 → 50 after the cap blow-up. With the 24h endpoint
+// + capped PASS B + per-run JOBS budget below, no run should need this many.
+const MAX_REQUESTS_PER_RUN = 50;
+// Per-run hard cap on TOTAL jobs returned across all passes. Each call
+// can return up to 100 jobs and the Ultra plan's monthly cap is 20,000
+// JOBS (separate from the 20k Requests counter). 600/run × 30 days = 18k
+// — leaves a safety margin under the cap. Adapter aborts further passes
+// when the cumulative job count crosses this threshold.
+const MAX_JOBS_PER_RUN = 600;
 const MIN_REMAINING_BUFFER = 5000;
 
 function sleep(ms: number): Promise<void> {
@@ -165,6 +285,13 @@ interface RunDiagnostics {
     firstResponseUrl: string | null;
     firstResponseBodySample: string | null;
     rateLimitRemaining: number | null;
+    /**
+     * Total RapidAPI request count consumed by this run (sum of every
+     * paginated page across every search-term pass). Persisted to
+     * cron_runs.metrics so the monthly 20k Ultra-plan quota is queryable
+     * without leaving the codebase.
+     */
+    apiCallsUsed: number;
     statusCounts: Record<string, number>;
     abortReasons: string[];
 }
@@ -173,6 +300,7 @@ let runDiag: RunDiagnostics = {
     firstResponseUrl: null,
     firstResponseBodySample: null,
     rateLimitRemaining: null,
+    apiCallsUsed: 0,
     statusCounts: {},
     abortReasons: [],
 };
@@ -182,6 +310,7 @@ function resetDiag(): void {
         firstResponseUrl: null,
         firstResponseBodySample: null,
         rateLimitRemaining: null,
+        apiCallsUsed: 0,
         statusCounts: {},
         abortReasons: [],
     };
@@ -332,13 +461,21 @@ interface PassResult {
     aborted: boolean;
 }
 
+// Per-page throttle: 1 req/sec (~5× under the published 5 req/sec cap),
+// safe under any plausible sliding-window enforcement.
+const FANTASTIC_PAGE_RATE_LIMIT_MS = 1000;
+const FANTASTIC_FILTER_GAP_MS = 2000;
+
 async function runPass(
     label: string,
     extraParams: Record<string, string>,
     out: FantasticJobOutput[],
     seenUrls: Set<string>,
     callBudget: { used: number; cap: number },
+    jobBudget: { used: number; cap: number },
     endpoint: string,
+    pageRateLimiter: RateLimiter,
+    maxPages: number = MAX_PAGES_PER_FILTER,
 ): Promise<PassResult> {
     let offset = 0;
     let hasMore = true;
@@ -348,8 +485,9 @@ async function runPass(
 
     while (
         hasMore &&
-        offset / PAGE_SIZE < MAX_PAGES_PER_FILTER &&
-        callBudget.used < callBudget.cap
+        offset / PAGE_SIZE < maxPages &&
+        callBudget.used < callBudget.cap &&
+        jobBudget.used < jobBudget.cap
     ) {
         const jobs = await fetchPage(extraParams, offset, endpoint);
         callBudget.used++;
@@ -363,35 +501,49 @@ async function runPass(
 
         if (jobs.length === 0) break;
 
+        // Track every row delivered against the per-run jobs budget — this
+        // is the metric that actually counts toward the Ultra plan's
+        // 20k Jobs/month cap (NOT the requests-remaining header).
+        jobBudget.used += jobs.length;
+
         for (const job of jobs) {
             const jobKey = job.url || job.id;
             if (seenUrls.has(jobKey)) continue;
             seenUrls.add(jobKey);
 
+            const salary = extractFantasticSalary(job);
             out.push({
                 externalId: `fantasticjobs-${job.source || 'unknown'}-${job.id}`,
                 title: job.title,
                 company: job.organization || 'Unknown',
                 location: formatLocation(job),
-                description: job.description || '',
+                // BUGFIX 2026-05-06: when we pass description_type=text to
+                // the API (BASE_FILTERS.description_type = 'text'), the
+                // plain-text body lands in `description_text` and
+                // `description` is left null. Reading description alone
+                // produced 169/169 published rows with empty descriptions
+                // on prod. Try description_text first, fall back to
+                // description (in case the API ever swaps which field it
+                // uses), then to empty string.
+                description: job.description_text || job.description || '',
                 applyLink: job.url,
                 job_type: mapEmploymentType(job),
                 postedDate: job.date_posted || job.date_created || undefined,
-                source_ats: job.source,
+                sourceSite: job.source,
+                minSalary: salary.minSalary,
+                maxSalary: salary.maxSalary,
+                salaryPeriod: salary.salaryPeriod,
             });
         }
 
         hasMore = jobs.length === PAGE_SIZE;
         offset += PAGE_SIZE;
 
-        // Rate limiting — diagnostic mode (2026-04-30): 350ms still produced
-        // 429s. Pacing is now 1 req/sec which is well below ANY plausible
-        // sliding-window enforcement, even if the key is shared with
-        // another consumer or RapidAPI uses 1s buckets internally. A full
-        // run uses ~30-50 calls = 30-50 seconds wall-time, fits in Vercel's
-        // 5-min function ceiling with room to spare. Once we identify the
-        // root cause from the new 429-body diagnostics, we'll re-tune.
-        await sleep(1000);
+        // Rate-limit the next page request via the shared RateLimiter.
+        // Pacing is 1 req/sec — well below the published 5 req/sec cap,
+        // and well below any plausible sliding-window enforcement. The
+        // 2026-04-30 diagnostic showed 350ms produced sporadic 429s.
+        await pageRateLimiter.throttle();
     }
 
     const found = out.length - initialOut;
@@ -402,14 +554,16 @@ async function runPass(
 export interface FantasticJobsFetchOptions {
     /**
      * Time-window endpoint to query.
-     *   '7d' (default) — jobs posted in the last 7 days. Right for the
-     *     scheduled cron since it runs 2x/day and 7d > worst-case skip.
-     *   '6m' — jobs posted in the last 6 months. Used for ONE-SHOT backfill
-     *     only. The job-normalizer's 90-day staleness filter (line 519,
-     *     non-ATS sources) already rejects rows older than 90 days, so a
-     *     6m fetch effectively becomes a 90-day backfill.
+     *   '24h' (default since 2026-05-06) — jobs INDEXED in the last
+     *     24h. Best for the scheduled cron at 1×/day cadence; minimises
+     *     the API's "jobs delivered" counter against the 20k/mo Ultra cap.
+     *   '7d' — jobs POSTED in the last 7 days. Use for catch-up after
+     *     extended downtime; not the daily cron's normal window any more.
+     *   '6m' — jobs posted in the last 6 months. Used for ONE-SHOT
+     *     backfill only (annual Jan-1 cron). The job-normalizer's
+     *     90-day staleness filter caps the useful range regardless.
      */
-    endpoint?: '7d' | '6m';
+    endpoint?: '24h' | '7d' | '6m';
 }
 
 export async function fetchFantasticJobsDbJobs(
@@ -421,14 +575,19 @@ export async function fetchFantasticJobsDbJobs(
     }
     resetDiag();
 
-    const endpointKey = opts.endpoint ?? '7d';
-    const endpointUrl = endpointKey === '6m' ? ENDPOINT_6M : ENDPOINT_7D;
+    const endpointKey = opts.endpoint ?? '24h';
+    const endpointUrl =
+        endpointKey === '6m' ? ENDPOINT_6M
+            : endpointKey === '7d' ? ENDPOINT_7D
+                : ENDPOINT_24H;
 
     console.log(`[Fantastic-Jobs-DB] endpoint=${endpointKey} — running 2-pass probe-validated strategy${endpointKey === '6m' ? ' (BACKFILL MODE)' : ''}`);
 
     const allJobs: FantasticJobOutput[] = [];
     const seenUrls = new Set<string>();
     const callBudget = { used: 0, cap: MAX_REQUESTS_PER_RUN };
+    const jobBudget = { used: 0, cap: MAX_JOBS_PER_RUN };
+    const pageRateLimiter = new RateLimiter(FANTASTIC_PAGE_RATE_LIMIT_MS);
 
     // Cooldown buffer at run start.
     await sleep(1000);
@@ -437,16 +596,19 @@ export async function fetchFantasticJobsDbJobs(
     // The API doesn't accept OR in title_filter — verified via probe
     // 2026-04-30. Each term is a separate paginated query.
     for (const titleFilter of TITLE_TERMS) {
-        if (callBudget.used >= callBudget.cap) break;
+        if (callBudget.used >= callBudget.cap || jobBudget.used >= jobBudget.cap) break;
         await runPass(
             `title: ${titleFilter}`,
             { title_filter: titleFilter },
             allJobs,
             seenUrls,
             callBudget,
+            jobBudget,
             endpointUrl,
+            pageRateLimiter,
+            MAX_PAGES_PER_FILTER,
         );
-        await sleep(2000);
+        await sleep(FANTASTIC_FILTER_GAP_MS);
     }
 
     // ── PASS B: description_filter widener ───────────────────────────────
@@ -454,7 +616,7 @@ export async function fetchFantasticJobsDbJobs(
     // descriptions name psychiatric work. description_filter DOES support
     // OR — verified via probe.
     for (const titleFilter of TITLE_FILTERS_BROAD) {
-        if (callBudget.used >= callBudget.cap) break;
+        if (callBudget.used >= callBudget.cap || jobBudget.used >= jobBudget.cap) break;
         await runPass(
             `desc: ${titleFilter}`,
             {
@@ -464,11 +626,36 @@ export async function fetchFantasticJobsDbJobs(
             allJobs,
             seenUrls,
             callBudget,
+            jobBudget,
             endpointUrl,
+            pageRateLimiter,
+            MAX_PAGES_PER_FILTER_BROAD, // 3 pages max — broad description matches, prone to runaway pagination
         );
-        await sleep(2000);
+        await sleep(FANTASTIC_FILTER_GAP_MS);
     }
 
-    console.log(`[Fantastic-Jobs-DB] Total: ${allJobs.length} jobs (${callBudget.used} API calls used out of ${callBudget.cap} budget, endpoint=${endpointKey})`);
+    runDiag.apiCallsUsed = callBudget.used;
+    console.log(
+        `[Fantastic-Jobs-DB] Total: ${allJobs.length} unique jobs kept ` +
+        `(${callBudget.used}/${callBudget.cap} calls, ` +
+        `${jobBudget.used}/${jobBudget.cap} jobs delivered, endpoint=${endpointKey})`,
+    );
     return allJobs;
 }
+
+import type { Aggregator, RawJobData, FetchOptions } from './types';
+import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+
+export const fantasticJobsDbAggregator: Aggregator = {
+    key: 'fantastic-jobs-db',
+    chunkCount: 1,
+    async fetch(opts: FetchOptions = {}): Promise<RawJobData[]> {
+        return (await fetchFantasticJobsDbJobs({ endpoint: opts.endpoint })) as unknown as RawJobData[];
+    },
+    async probeJob(externalId: string, applyLink: string): Promise<HealthDecision | null> {
+        // Apply links here point at the underlying ATS (greenhouse,
+        // lever, etc.). checkJobHealth's source dispatch detects the
+        // host pattern and routes to the right native probe.
+        return checkJobHealth(applyLink, 'fantastic-jobs-db', { externalId });
+    },
+};

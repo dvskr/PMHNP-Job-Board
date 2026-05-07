@@ -70,14 +70,27 @@ const PATTERNS: ReadonlyArray<PatternRule> = [
 /**
  * Bumped whenever PATTERNS changes. Stored on every audit row so old data
  * stays comparable when rules evolve.
+ *
+ * v1.1.0 (2026-05-06): Gap G5. Body scan now bounded to first
+ * BODY_HEAD_SCAN_CHARS chars. Real "this position is no longer available"
+ * banners always render above the fold; matching deeper in the page
+ * surfaces false positives from employer testimonials / blog posts that
+ * happen to use the same phrasing.
  */
-export const SOFT_404_CHECKER_VERSION = 'v1.0.0';
+export const SOFT_404_CHECKER_VERSION = 'v1.1.0';
+
+/**
+ * Body-scan ceiling. Most HR ATS pages put the dead-job banner in the
+ * first 1-2k chars of HTML (header + hero). 4000 leaves headroom for
+ * server-rendered nav/menu code without admitting body-deep matches.
+ */
+const BODY_HEAD_SCAN_CHARS = 4000;
 
 /**
  * Detect soft-404 markers in a probe result.
  *
  * Returns the first match found, or null. Scans the final URL first
- * (cheap, length-bounded), then the body if provided.
+ * (cheap, length-bounded), then the head of the body if provided.
  */
 export function detectSoft404(
     sourceProvider: string | null,
@@ -100,12 +113,15 @@ export function detectSoft404(
         }
     }
 
-    // 2. Body patterns
+    // 2. Body patterns — bounded to head of HTML to keep false positives low.
     if (bodyHtml && bodyHtml.length > 0) {
+        const bodyHead = bodyHtml.length > BODY_HEAD_SCAN_CHARS
+            ? bodyHtml.slice(0, BODY_HEAD_SCAN_CHARS)
+            : bodyHtml;
         for (const rule of PATTERNS) {
             if (rule.location !== 'body') continue;
             if (rule.source !== null && rule.source !== sourceKey) continue;
-            const m = rule.pattern.exec(bodyHtml);
+            const m = rule.pattern.exec(bodyHead);
             if (m) {
                 return {
                     patternId: rule.id,

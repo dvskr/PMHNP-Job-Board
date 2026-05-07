@@ -13,13 +13,36 @@ export interface ParsedResume {
     firstName?: string;
     lastName?: string;
     headline?: string;
+    /** Verbatim "Professional Summary" / "Profile" paragraph from the
+     *  resume header. Routes to UserProfile.bio. v2 prompt only. */
+    professionalSummary?: string;
+    /** E.164 or "(555) 555-5555" formatted phone — sanitized to digits with min length. */
+    phone?: string;
+    /** Public LinkedIn URL (linkedin.com/in/xxx). */
+    linkedinUrl?: string;
     yearsExperience?: number;
+    /** Flat list of cert names — kept for the CSV column on UserProfile. */
     certifications?: string[];
+    /** 2-letter state codes — kept for the CSV column on UserProfile. */
     licenseStates?: string[];
     specialties?: string[];
     skills?: string[];
     npiNumber?: string;
     deaNumber?: string;
+    /** Structured license records → CandidateLicense table. */
+    licenses?: {
+        licenseType: string;
+        licenseNumber: string;
+        licenseState: string;
+        expirationDate?: string;
+    }[];
+    /** Structured certification records → CandidateCertification table. */
+    certificationRecords?: {
+        certificationName: string;
+        certifyingBody?: string;
+        certificationNumber?: string;
+        expirationDate?: string;
+    }[];
     education?: {
         degreeType: string;
         fieldOfStudy?: string;
@@ -32,22 +55,46 @@ export interface ParsedResume {
         startDate?: string;
         endDate?: string;
         isCurrent?: boolean;
+        /** Persisted form: bullets joined with '\n• ' for whiteSpace
+         *  pre-wrap rendering. The v2 prompt returns these as a string
+         *  array (`descriptionBullets`); the sanitizer joins them
+         *  here. v1 prompt returned `description` as a single string
+         *  which we accept as-is. */
         description?: string;
         practiceSetting?: string;
     }[];
 }
 
-/** Extract raw text from a PDF buffer. */
+/** Extract raw text from a PDF buffer using the pdf-parse v2 PDFParse
+ *  class API. v1's default-export-as-function (`pdfParse(buffer)`) was
+ *  removed in 2.x — calling the module like a function throws
+ *  `TypeError: pdfParse is not a function`, which is what made every
+ *  resume upload return 422 before this fix. */
+interface PdfParseV2Instance {
+    getText: () => Promise<{ text: string }>;
+    destroy: () => Promise<void>;
+}
+
 async function extractPdfText(buffer: Buffer): Promise<string> {
+    let parser: PdfParseV2Instance | null = null;
     try {
-        // pdf-parse is CJS-only, use require for Next.js compatibility
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require('pdf-parse');
-        const data = await pdfParse(buffer);
-        return data.text || '';
+        const { PDFParse } = await import('pdf-parse');
+        // pdf-parse prefers TypedArrays over Node Buffer for worker
+        // memory transfer; Buffer is a Uint8Array subclass but the
+        // explicit cast avoids ambiguity in the typed signature.
+        parser = new PDFParse({ data: new Uint8Array(buffer) }) as unknown as PdfParseV2Instance;
+        const result = await parser.getText();
+        return result.text || '';
     } catch (err) {
         logger.error('PDF text extraction failed', err);
-        throw new Error('Failed to extract text from PDF');
+        const detail = err instanceof Error ? err.message : String(err);
+        throw new Error(`Failed to extract text from PDF: ${detail}`);
+    } finally {
+        // Release the worker. Swallow destroy errors — the parse result
+        // (or the original throw) is what matters.
+        if (parser) {
+            try { await parser.destroy(); } catch { /* noop */ }
+        }
     }
 }
 
@@ -119,12 +166,52 @@ export async function parseResume(
     return sanitizeParsedResume((result.parsed ?? {}) as ParsedResume);
 }
 
-/** Sanitize and validate parsed resume data. */
-function sanitizeParsedResume(data: ParsedResume): ParsedResume {
+/** Loose ISO/`YYYY-MM-DD` / `MM/YYYY` / `YYYY` date string passthrough.
+ *  We accept any short-ish string and let downstream code attempt to parse;
+ *  the schema's per-row date columns can hold null when parsing fails. */
+function sanitizeDateStr(v: unknown): string | undefined {
+    if (typeof v !== 'string') return undefined;
+    const s = v.trim();
+    if (s.length === 0 || s.length > 12) return undefined;
+    return s;
+}
+
+/** Phone — keep digits + common separators, drop anything below 7 digits. */
+function sanitizePhone(v: unknown): string | undefined {
+    if (typeof v !== 'string') return undefined;
+    const digitCount = (v.match(/\d/g) ?? []).length;
+    if (digitCount < 7 || digitCount > 15) return undefined;
+    return v.slice(0, 30);
+}
+
+/** LinkedIn URL — must be a linkedin.com URL or a partial path. */
+function sanitizeLinkedIn(v: unknown): string | undefined {
+    if (typeof v !== 'string') return undefined;
+    const s = v.trim().slice(0, 200);
+    if (!/linkedin\.com\/(in|pub|profile)\//i.test(s)) return undefined;
+    // Normalize to https:// if user wrote "linkedin.com/in/foo" without scheme.
+    return s.startsWith('http') ? s : `https://${s.replace(/^\/+/, '')}`;
+}
+
+/**
+ * Sanitize and validate parsed resume data.
+ *
+ * EXPORTED so the EEO negative test (Sprint 2.1.P6) can assert the
+ * output never includes protected-attribute keys, even when the model
+ * returns them. Production code should not call this directly —
+ * `parseResume()` is the boundary.
+ */
+export function sanitizeParsedResume(data: ParsedResume): ParsedResume {
     return {
         firstName: typeof data.firstName === 'string' ? data.firstName.slice(0, 50) : undefined,
         lastName: typeof data.lastName === 'string' ? data.lastName.slice(0, 50) : undefined,
         headline: typeof data.headline === 'string' ? data.headline.slice(0, 120) : undefined,
+        // v2 only — verbatim summary paragraph routed to UserProfile.bio.
+        professionalSummary: typeof data.professionalSummary === 'string'
+            ? data.professionalSummary.slice(0, 1500)
+            : undefined,
+        phone: sanitizePhone(data.phone),
+        linkedinUrl: sanitizeLinkedIn(data.linkedinUrl),
         yearsExperience:
             typeof data.yearsExperience === 'number' && data.yearsExperience >= 0 && data.yearsExperience <= 50
                 ? Math.round(data.yearsExperience)
@@ -143,6 +230,34 @@ function sanitizeParsedResume(data: ParsedResume): ParsedResume {
             : [],
         npiNumber: typeof data.npiNumber === 'string' && /^\d{10}$/.test(data.npiNumber) ? data.npiNumber : undefined,
         deaNumber: typeof data.deaNumber === 'string' && data.deaNumber.length <= 15 ? data.deaNumber : undefined,
+        // Structured license records — must have type + number + 2-letter state.
+        licenses: Array.isArray(data.licenses)
+            ? data.licenses
+                  .filter((l) => l
+                      && typeof l.licenseType === 'string'
+                      && typeof l.licenseNumber === 'string'
+                      && typeof l.licenseState === 'string'
+                      && l.licenseState.length === 2)
+                  .slice(0, 20)
+                  .map((l) => ({
+                      licenseType: l.licenseType.slice(0, 50),
+                      licenseNumber: l.licenseNumber.slice(0, 50),
+                      licenseState: l.licenseState.toUpperCase(),
+                      expirationDate: sanitizeDateStr(l.expirationDate),
+                  }))
+            : [],
+        // Structured certification records — name is the only required field.
+        certificationRecords: Array.isArray(data.certificationRecords)
+            ? data.certificationRecords
+                  .filter((c) => c && typeof c.certificationName === 'string')
+                  .slice(0, 15)
+                  .map((c) => ({
+                      certificationName: c.certificationName.slice(0, 100),
+                      certifyingBody: typeof c.certifyingBody === 'string' ? c.certifyingBody.slice(0, 100) : undefined,
+                      certificationNumber: typeof c.certificationNumber === 'string' ? c.certificationNumber.slice(0, 50) : undefined,
+                      expirationDate: sanitizeDateStr(c.expirationDate),
+                  }))
+            : [],
         education: Array.isArray(data.education)
             ? data.education
                   .filter((e) => e && typeof e.schoolName === 'string' && typeof e.degreeType === 'string')
@@ -167,9 +282,29 @@ function sanitizeParsedResume(data: ParsedResume): ParsedResume {
                       startDate: typeof w.startDate === 'string' ? w.startDate.slice(0, 10) : undefined,
                       endDate: typeof w.endDate === 'string' ? w.endDate.slice(0, 10) : undefined,
                       isCurrent: typeof w.isCurrent === 'boolean' ? w.isCurrent : false,
-                      description: typeof w.description === 'string' ? w.description.slice(0, 500) : undefined,
+                      // v2 prompt: descriptionBullets is an array of
+                      // verbatim bullets — join with newline + bullet
+                      // marker for whiteSpace: pre-wrap rendering. v1
+                      // returned a single `description` string; fall
+                      // through if descriptionBullets is missing.
+                      description: bulletsToDescription(w),
                       practiceSetting: typeof w.practiceSetting === 'string' ? w.practiceSetting.slice(0, 50) : undefined,
                   }))
             : [],
     };
+}
+
+/** v2: descriptionBullets[] → "• line\n• line"; v1: description string → as-is. */
+function bulletsToDescription(w: unknown): string | undefined {
+    const we = w as { description?: unknown; descriptionBullets?: unknown };
+    const bullets = we.descriptionBullets;
+    if (Array.isArray(bullets)) {
+        const lines = bullets
+            .filter((b): b is string => typeof b === 'string' && b.trim().length > 0)
+            .slice(0, 12)
+            .map((b) => '• ' + b.trim().slice(0, 400));
+        if (lines.length > 0) return lines.join('\n').slice(0, 2500);
+    }
+    if (typeof we.description === 'string') return we.description.slice(0, 2500);
+    return undefined;
 }

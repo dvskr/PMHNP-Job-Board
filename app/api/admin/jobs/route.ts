@@ -41,7 +41,14 @@ export async function GET(request: NextRequest) {
             ];
         }
         if (source && source !== 'all') {
-            where.sourceProvider = source;
+            // Employer-posted jobs have sourceType='employer' and a null
+            // sourceProvider — filter on sourceType for that virtual bucket.
+            // Everything else filters on sourceProvider as before.
+            if (source === 'employer') {
+                where.sourceType = 'employer';
+            } else {
+                where.sourceProvider = source;
+            }
         }
         if (published === 'true') where.isPublished = true;
         if (published === 'false') where.isPublished = false;
@@ -91,12 +98,28 @@ export async function GET(request: NextRequest) {
             prisma.job.count({ where }),
         ]);
 
-        // Get unique source providers for filter options
-        const sources = await prisma.job.groupBy({
-            by: ['sourceProvider'],
+        // Get unique source providers for filter options. Group on both
+        // sourceProvider AND sourceType so we can split "employer-posted"
+        // out of the catch-all "unknown" bucket — employer postings
+        // (paid via Stripe) have sourceType='employer' and a null
+        // sourceProvider, but admins want them surfaced as their own
+        // first-class filter, not lumped with truly-unknown rows.
+        const sourceGroups = await prisma.job.groupBy({
+            by: ['sourceProvider', 'sourceType'],
             _count: true,
-            orderBy: { _count: { sourceProvider: 'desc' } },
         });
+        const sourceCounts = new Map<string, number>();
+        for (const g of sourceGroups) {
+            const label = g.sourceProvider
+                ? g.sourceProvider
+                : g.sourceType === 'employer'
+                    ? 'employer'
+                    : 'unknown';
+            sourceCounts.set(label, (sourceCounts.get(label) ?? 0) + g._count);
+        }
+        const sources = [...sourceCounts.entries()]
+            .map(([source, count]) => ({ source, count }))
+            .sort((a, b) => b.count - a.count);
 
         return NextResponse.json({
             success: true,
@@ -108,10 +131,7 @@ export async function GET(request: NextRequest) {
             total,
             page,
             totalPages: Math.ceil(total / limit),
-            sources: sources.map(s => ({
-                source: s.sourceProvider || 'unknown',
-                count: s._count,
-            })),
+            sources,
         });
     } catch (error) {
         console.error('[Admin Jobs] GET error:', error);

@@ -1,20 +1,19 @@
 /**
  * Workday Direct Scraper
- * 
+ *
  * Scrapes Workday career sites directly via their hidden JSON API.
  * Each employer has a POST endpoint at:
  *   https://{slug}.wd{instance}.myworkdayjobs.com/wday/cxs/{slug}/{site}/jobs
- * 
+ *
  * No API key required. Free and unlimited.
+ *
+ * Tenant list lives in tenants/workday.ts so the adapter stays focused
+ * on fetch/pagination logic.
  */
 
-
-interface WorkdayCompany {
-    slug: string;
-    instance: number;
-    site: string;
-    name: string;
-}
+import { WORKDAY_TENANTS, type WorkdayTenant } from './tenants/workday';
+type WorkdayCompany = WorkdayTenant;
+const WORKDAY_COMPANIES: readonly WorkdayCompany[] = WORKDAY_TENANTS;
 
 interface WorkdayJobPosting {
     title: string;
@@ -40,119 +39,6 @@ export interface WorkdayJobRaw {
     postedDate?: string;
 }
 
-// === Verified Workday career sites ===
-// Discovered via scripts/discover-workday-sites.ts on 2026-02-13
-// AUDIT 2026-02-20: removed 28 dead slugs (HTTP 404/422/500)
-const WORKDAY_COMPANIES: WorkdayCompany[] = [
-    // === ORIGINAL (pre-2026-02-16) ===
-    { slug: 'trinityhealth', instance: 1, site: 'jobs', name: 'Trinity Health' },
-    { slug: 'memorialhermann', instance: 5, site: 'External', name: 'Memorial Hermann' },
-    { slug: 'sharp', instance: 1, site: 'External', name: 'Sharp HealthCare' },
-    { slug: 'lifestance', instance: 5, site: 'Careers', name: 'LifeStance Health' },
-    { slug: 'chghealthcare', instance: 1, site: 'External', name: 'CHG Healthcare' },
-
-    // === ATS Discovery Script ===
-    { slug: 'aah', instance: 5, site: 'External', name: 'Advocate Health' },
-    { slug: 'ms', instance: 5, site: 'External', name: 'Mount Sinai' },
-    { slug: 'carbonhealth', instance: 1, site: 'Careers', name: 'Carbon Health' },
-    { slug: 'mc', instance: 1, site: 'External', name: 'Mayo Clinic' },
-
-    // === Verified Hospitals & Health Systems ===
-    { slug: 'adventhealth', instance: 12, site: 'AH_External_Career_Site', name: 'AdventHealth' },
-    { slug: 'archildrens', instance: 1, site: 'External_Career_Site', name: "Arkansas Children's" },
-    { slug: 'bannerhealth', instance: 108, site: 'Careers', name: 'Banner Health' },
-    { slug: 'baptistfirst', instance: 12, site: 'baptistfirst', name: 'Baptist Health (AL)' },
-    { slug: 'bhs', instance: 1, site: 'careers', name: 'Baptist Health (KY)' },
-    { slug: 'easyservice', instance: 5, site: 'MercyHealthCareers', name: 'Bon Secours Mercy Health' },
-    { slug: 'bronsonhg', instance: 1, site: 'newhires', name: 'Bronson Healthcare' },
-    { slug: 'carilionclinic', instance: 12, site: 'External_Careers', name: 'Carilion Clinic' },
-    { slug: 'chaptershealth', instance: 5, site: 'jobs', name: 'Chapters Health System' },
-    { slug: 'cincinnatichildrens', instance: 5, site: 'careersatcincinnatichildrens', name: "Cincinnati Children's" },
-    { slug: 'ccf', instance: 1, site: 'ClevelandClinicCareers', name: 'Cleveland Clinic' },
-    // REMOVED 2026-03-11 — Dead (HTTP 404): Cook Children's
-    { slug: 'spectrumhealth', instance: 5, site: 'CorewellHealthCareers', name: 'Corewell Health' },
-    { slug: 'coxhealth', instance: 5, site: 'CoxHealth_External', name: 'CoxHealth' },
-    { slug: 'davita', instance: 1, site: 'DKC_External', name: 'DaVita' },
-    { slug: 'denverhealth', instance: 1, site: 'DHHA-Main', name: 'Denver Health' },
-    { slug: 'nshs', instance: 1, site: 'ns-eeh', name: 'Endeavor Health' },
-    { slug: 'gbmc', instance: 1, site: 'GBMC', name: 'GBMC HealthCare' },
-    { slug: 'geisinger', instance: 5, site: 'GeisingerExternal', name: 'Geisinger' },
-    { slug: 'gohealthuc', instance: 12, site: 'External', name: 'GoHealth Urgent Care' },
-    { slug: 'halifaxhealth', instance: 12, site: 'HalifaxHealth', name: 'Halifax Health' },
-    { slug: 'hshs', instance: 1, site: 'hshscareers', name: 'Hospital Sisters Health' },
-    { slug: 'imh', instance: 108, site: 'IntermountainCareers', name: 'Intermountain Health' },
-    { slug: 'jeffersonhealth', instance: 5, site: 'ThomasJeffersonExternal', name: 'Jefferson Health' },
-    { slug: 'luriechildrens', instance: 1, site: 'externalportal', name: "Lurie Children's" },
-    { slug: 'massgeneralbrigham', instance: 1, site: 'MGBExternal', name: 'Mass General Brigham' },
-    { slug: 'memorialhealthcare', instance: 1, site: 'MHS_Careers', name: 'Memorial Healthcare (FL)' },
-    { slug: 'multicare', instance: 1, site: 'multicare', name: 'MultiCare Health' },
-    { slug: 'nationwidechildrens', instance: 5, site: 'NCHCareers', name: "Nationwide Children's" },
-    { slug: 'ochsner', instance: 1, site: 'Ochsner', name: 'Ochsner Health' },
-    { slug: 'oumedicine', instance: 5, site: 'OUHealthCareers', name: 'OU Health' },
-    { slug: 'rrhs', instance: 5, site: 'RRH', name: 'Rochester Regional Health' },
-    { slug: 'sanford', instance: 5, site: 'SanfordHealth', name: 'Sanford Health' },
-    { slug: 'sentara', instance: 1, site: 'SCS', name: 'Sentara Healthcare' },
-    { slug: 'ssmh', instance: 5, site: 'ssmhealth', name: 'SSM Health' },
-    { slug: 'stanfordhealthcare', instance: 5, site: 'SHC_External_Career_Site', name: 'Stanford Health Care' },
-    { slug: 'sutterhealth', instance: 1, site: 'sh', name: 'Sutter Health' },
-    { slug: 'uvmhealth', instance: 1, site: 'CVPH', name: 'UVM Health Network' },
-    { slug: 'vumc', instance: 1, site: 'vumccareers', name: 'Vanderbilt UMC' },
-
-    // === Health Insurance ===
-    { slug: 'elevancehealth', instance: 1, site: 'ANT', name: 'Elevance Health (Anthem)' },
-    { slug: 'cigna', instance: 5, site: 'cignacareers', name: 'Cigna' },
-    { slug: 'humana', instance: 5, site: 'Humana_External_Career_Site', name: 'Humana' },
-    { slug: 'centene', instance: 5, site: 'Centene_External', name: 'Centene' },
-    { slug: 'cvshealth', instance: 1, site: 'CVS_Health_Careers', name: 'CVS Health' },
-    { slug: 'highmarkhealth', instance: 1, site: 'highmark', name: 'Highmark Health' },
-
-    // === Healthcare IT ===
-    { slug: 'teladoc', instance: 503, site: 'teladochealth_is_hiring', name: 'Teladoc Health' },
-    { slug: 'athenahealth', instance: 1, site: 'External', name: 'athenahealth' },
-
-    // === Additional verified systems ===
-    { slug: 'essentiahealth', instance: 1, site: 'essentia_health', name: 'Essentia Health' },
-    { slug: 'solutionhealth', instance: 1, site: 'careers', name: 'Solution Health' },
-    { slug: 'gundersenhealth', instance: 5, site: 'gundersen', name: 'Gundersen Health' },
-    { slug: 'verawholehealth', instance: 1, site: 'External', name: 'Vera Whole Health' },
-    { slug: 'bozemanhealth', instance: 1, site: 'bozemanhealthcareers', name: 'Bozeman Health' },
-    { slug: 'hollandhospital', instance: 1, site: 'external', name: 'Holland Hospital' },
-    { slug: 'marshfieldclinichealthsystems', instance: 5, site: 'external', name: 'Marshfield Clinic Health System' },
-    { slug: 'adventisthealthcare', instance: 1, site: 'adventisthealthcarecareers', name: 'Adventist HealthCare' },
-    { slug: 'agilonhealth', instance: 1, site: 'external', name: 'Agilon Health' },
-    { slug: 'cambiahealth', instance: 1, site: 'external', name: 'Cambia Health Solutions' },
-    { slug: 'caresource', instance: 1, site: 'caresource', name: 'CareSource' },
-    { slug: 'crossoverhealth', instance: 1, site: 'careers', name: 'Crossover Health' },
-    { slug: 'devoted', instance: 1, site: 'devoted', name: 'Devoted Health' },
-    { slug: 'evolent', instance: 1, site: 'External', name: 'Evolent Health' },
-    // REMOVED 2026-03-11 — Dead (HTTP 404): Children's Wisconsin, St. Jude
-    { slug: 'sharecare', instance: 1, site: 'sharecare_careers', name: 'Sharecare' },
-    { slug: 'tuftsmedicine', instance: 1, site: 'jobs', name: 'Tufts Medicine' },
-    { slug: 'umchealthsystem', instance: 1, site: 'External', name: 'UMC Health System (Lubbock)' },
-
-    // === ADDED 2026-02-19 - ats-jobs-db API discovery ===
-    { slug: 'geodehealth', instance: 1, site: 'geode', name: 'Geode Health' },
-    { slug: 'lmh', instance: 1, site: 'lmhjobs', name: 'LMH Health' },
-    { slug: 'mainegeneral', instance: 5, site: 'mainegeneralcareers', name: 'MaineGeneral Health' },
-    { slug: 'monarch', instance: 5, site: 'monarch', name: 'Monarch' },
-    { slug: 'bmc', instance: 1, site: 'bmc', name: 'Boston Medical Center' },
-    { slug: 'brownhealth', instance: 12, site: 'External_Careers', name: 'Brown Medicine' },
-    { slug: 'centerstone', instance: 5, site: 'centerstonecareers', name: 'Centerstone' },
-    { slug: 'meharrymedicalcollege', instance: 12, site: 'External', name: 'Meharry Medical College' },
-    { slug: 'seamar', instance: 12, site: 'sea_mar', name: 'Sea Mar Community Health Centers' },
-
-    // === ADDED 2026-02-20 - Production DB apply_link mining ===
-    { slug: 'rogersbh', instance: 1, site: 'RBHCareer', name: 'Rogers Behavioral Health' },
-    { slug: 'tamus', instance: 1, site: 'TAMU_External', name: 'Texas A&M Health' },
-    { slug: 'saintlukes', instance: 1, site: 'saintlukeshealthcareers', name: "Saint Luke's Health System" },
-    { slug: 'brightli', instance: 5, site: 'BrightliTalent', name: 'Brightli' },
-    { slug: 'thriveworks', instance: 5, site: 'Thriveworks', name: 'Thriveworks' },
-
-    // REMOVED 2026-03-11 — Dead (HTTP 422): HCA, CommonSpirit, Kaiser, UHS, Acadia, Wellpath, Telecare, Providence, Ascension, Tenet
-
-    // === ADDED 2026-03-11 — Mined from ats-jobs-db apply links in production DB ===
-    { slug: 'benefis', instance: 1, site: 'BHS', name: 'Benefis Health System' },
-];
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -237,6 +123,30 @@ async function fetchJobDetails(company: WorkdayCompany, externalPath: string): P
 }
 
 /**
+ * Fetch job details for many externalPaths with bounded concurrency.
+ * Order of returned details matches the input `paths` order so callers
+ * can zip them back to the originating postings.
+ */
+async function fetchDetailsConcurrent(
+    company: WorkdayCompany,
+    paths: string[],
+    concurrency: number,
+): Promise<Array<{ description: string; realPostedDate?: string }>> {
+    const results: Array<{ description: string; realPostedDate?: string }> = new Array(paths.length);
+    let cursor = 0;
+    async function worker(): Promise<void> {
+        while (true) {
+            const idx = cursor++;
+            if (idx >= paths.length) return;
+            results[idx] = await fetchJobDetails(company, paths[idx]);
+        }
+    }
+    const workers = Array.from({ length: Math.min(concurrency, paths.length) }, () => worker());
+    await Promise.all(workers);
+    return results;
+}
+
+/**
  * Search for PMHNP jobs on a specific Workday company site
  */
 async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[]> {
@@ -290,32 +200,37 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
 
                 if (postings.length === 0) break;
 
-                for (const posting of postings) {
-                    // Skip already seen (different search terms may find same job)
-                    if (seenPaths.has(posting.externalPath)) continue;
+                // Pre-filter postings by title BEFORE fetching descriptions —
+                // most search hits match the title pre-filter, but a few don't,
+                // and skipping description fetches for those saves real time.
+                const eligiblePostings = postings.filter((posting) => {
+                    if (seenPaths.has(posting.externalPath)) return false;
                     seenPaths.add(posting.externalPath);
-
-                    // Extract job ID from external path: /job/Title-Here/JR123456
-                    const pathParts = posting.externalPath.split('/');
-                    const jobId = pathParts[pathParts.length - 1] || posting.externalPath;
-
-                    // Quick title pre-filter before fetching description
                     const titleLower = posting.title.toLowerCase();
-                    const likelyPMHNP = titleLower.includes('pmhnp') ||
+                    return (
+                        titleLower.includes('pmhnp') ||
                         titleLower.includes('psychiatric') ||
                         titleLower.includes('psych') ||
                         titleLower.includes('mental health') ||
                         titleLower.includes('behavioral health') ||
-                        titleLower.includes('nurse practitioner');
+                        titleLower.includes('nurse practitioner')
+                    );
+                });
 
-                    if (!likelyPMHNP) continue;
+                // Fetch descriptions in parallel (concurrency 5). The serial
+                // version with 200ms sleeps was the dominant cost — 20 jobs
+                // × ~500ms each = 10s/page. Parallel-5 drops this to ~2s.
+                const detailResults = await fetchDetailsConcurrent(
+                    company,
+                    eligiblePostings.map((p) => p.externalPath),
+                    5,
+                );
 
-                    // Fetch the full job description AND real posted date
-                    const details = await fetchJobDetails(company, posting.externalPath);
-                    await sleep(200); // Be polite
-
-                    // Prioritize the real date from detail endpoint, then fall back to
-                    // search API's postedOn (same "Posted X Days Ago" text, available on every listing)
+                for (let pIdx = 0; pIdx < eligiblePostings.length; pIdx++) {
+                    const posting = eligiblePostings[pIdx];
+                    const details = detailResults[pIdx];
+                    const pathParts = posting.externalPath.split('/');
+                    const jobId = pathParts[pathParts.length - 1] || posting.externalPath;
                     const postedDate = details.realPostedDate
                         || parsePostedAgoText(posting.postedOn)
                         || undefined;
@@ -333,8 +248,9 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
                 offset += limit;
                 hasMore = offset < total && postings.length === limit;
 
-                // Rate limiting between pages
-                await sleep(300);
+                // Rate limiting between pages — trimmed from 300ms now that
+                // descriptions are fetched in parallel.
+                await sleep(150);
             } catch (error) {
                 console.warn(`[Workday] ${company.name}: Error fetching "${searchText}" at offset ${offset}:`, error);
                 break;
@@ -342,7 +258,7 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
         }
 
         // Rate limiting between search terms
-        await sleep(500);
+        await sleep(250);
     }
 
     console.log(`[Workday] ${company.name}: ${allJobs.length} PMHNP jobs found (${seenPaths.size} total searched)`);
@@ -411,3 +327,19 @@ export async function fetchWorkdayJobs(options?: { chunk?: number }): Promise<Wo
         return allJobs;
     }
 }
+
+import type { Aggregator, RawJobData, FetchOptions } from './types';
+import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+
+export const workdayAggregator: Aggregator = {
+    key: 'workday',
+    chunkCount: WORKDAY_TOTAL_CHUNKS,
+    async fetch(opts: FetchOptions = {}): Promise<RawJobData[]> {
+        return (await fetchWorkdayJobs({ chunk: opts.chunk })) as unknown as RawJobData[];
+    },
+    async probeJob(externalId: string, applyLink: string): Promise<HealthDecision | null> {
+        // Workday has no clean per-posting JSON API; checkJobHealth's
+        // generic HTTP probe + soft-404 detector handles it.
+        return checkJobHealth(applyLink, 'workday', { externalId });
+    },
+};

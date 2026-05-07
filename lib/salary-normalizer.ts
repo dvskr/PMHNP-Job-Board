@@ -133,9 +133,14 @@ function isReasonableSalary(
     ? PMHNP_SALARY_RANGES.min * 0.6   // $48k minimum for low-confidence
     : PMHNP_SALARY_RANGES.min * 0.8;   // $64k minimum for high-confidence
 
+  // Raised 2026-05-05 from $400k → $550k. Locum / 1099 PMHNP roles in
+  // HCOL markets legitimately reach $450k–$500k+ annual. The previous
+  // $400k cap was silently dropping ~10% of real high-end annual postings
+  // (audit found multiple $457k–$487k jobs with valid bounds being
+  // rejected by this single threshold).
   const maxThreshold = confidence < 0.5
-    ? 500000   // $500k max for low-confidence (catches high contractor estimates)
-    : 400000;  // $400k max for high-confidence (PMHNP in HCOL areas / 1099 contracts)
+    ? 600000   // $600k max for low-confidence
+    : 550000;  // $550k max for high-confidence
 
   const isValid = annual >= minThreshold && annual <= maxThreshold;
 
@@ -149,7 +154,17 @@ function isReasonableSalary(
 }
 
 /**
- * Normalize a single salary value to annual
+ * Normalize a single salary value to annual.
+ *
+ * Changed 2026-05-05: out-of-range annuals are CLAMPED to the
+ * confidence-band bounds rather than dropped to null. The source
+ * tried to give us a number, so a clamped usable value is better
+ * than no signal. Behavior:
+ *
+ *   - Hourly $20–$300 stays as-is, then × 2080 to annual
+ *   - Annual < $64k → clamped UP to $64k (high-confidence floor)
+ *   - Annual > $550k → clamped DOWN to $550k
+ *   - confidence drops to 0.5 when we clamp (signals "approximate")
  */
 function normalizeSingleSalary(
   salary: number,
@@ -157,19 +172,39 @@ function normalizeSingleSalary(
   isEstimated: boolean
 ): { value: number; confidence: number } | null {
   const multiplier = PERIOD_MULTIPLIERS[period] || 1;
-  const annualSalary = Math.round(salary * multiplier);
+  let annualSalary = Math.round(salary * multiplier);
 
-  // Calculate confidence
-  let confidence = 1.0;
-  if (isEstimated) {
-    confidence = 0.6; // Lower confidence for estimated salaries
-  }
+  let confidence = isEstimated ? 0.6 : 1.0;
 
-  // Validate salary based on period and original value
-  // Pass the original salary and period for proper validation
-  if (!isReasonableSalary(annualSalary, period, salary, confidence)) {
-    // Salary rejected - original values are still preserved in the job record
-    return null;
+  // Hourly: validate the hourly rate itself, not the annual conversion.
+  if (period === 'hourly' || period === 'hour') {
+    const minHourly = PMHNP_SALARY_RANGES.contractorHourlyMin;
+    const maxHourly = PMHNP_SALARY_RANGES.contractorHourlyMax;
+    if (salary < minHourly) {
+      console.log(`[Salary] Clamped low hourly: $${salary}/hr → $${minHourly}/hr`);
+      annualSalary = minHourly * 2080;
+      confidence = 0.5;
+    } else if (salary > maxHourly) {
+      console.log(`[Salary] Clamped high hourly: $${salary}/hr → $${maxHourly}/hr`);
+      annualSalary = maxHourly * 2080;
+      confidence = 0.5;
+    }
+  } else {
+    // Annual + other-period-converted-to-annual: clamp to PMHNP-realistic
+    // band. Use the same caps as isReasonableSalary used to.
+    const minAnnual = confidence < 0.5
+      ? PMHNP_SALARY_RANGES.min * 0.6   // $48k for low-confidence
+      : PMHNP_SALARY_RANGES.min * 0.8;  // $64k for high-confidence
+    const maxAnnual = confidence < 0.5 ? 600000 : 550000;
+    if (annualSalary < minAnnual) {
+      console.log(`[Salary] Clamped low annual: $${annualSalary} → $${minAnnual}`);
+      annualSalary = minAnnual;
+      confidence = 0.5;
+    } else if (annualSalary > maxAnnual) {
+      console.log(`[Salary] Clamped high annual: $${annualSalary} → $${maxAnnual}`);
+      annualSalary = maxAnnual;
+      confidence = 0.5;
+    }
   }
 
   // Adjust confidence based on period (annual is most reliable)

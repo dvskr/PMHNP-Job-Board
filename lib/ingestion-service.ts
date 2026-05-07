@@ -1,41 +1,16 @@
+import { randomUUID } from 'crypto';
 import { prisma } from './prisma';
-import { fetchAdzunaJobs } from './aggregators/adzuna';
-import { fetchGreenhouseJobs, GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
-import { fetchLeverJobs } from './aggregators/lever';
-// REMOVED 2026-04-29 — Jooble decommissioned. Quality 24.6 (2nd-lowest after JSearch),
-// blocks server-to-server probes (403 on every URL → can never verify alive/dead),
-// 93.2% of historical Jooble entries no longer in their fresh keyword search,
-// most are aggregations of sources we already ingest directly (Greenhouse/Lever).
-// Existing 2,124 published Jooble jobs will age out via 60-day expiry clock.
-// import { fetchJoobleJobs } from './aggregators/jooble';
-// REMOVED 2026-03-11 — JSearch subscription cancelled ($75/mo, lowest quality source)
-// import { fetchJSearchJobs } from './aggregators/jsearch';
-// REMOVED 2026-04-30 — usajobs/ashby/icims/jazzhr decommissioned per source
-// ROI audit (scripts/audit-source-roi.ts). 30-day numbers per source:
-//   usajobs: 0 added from 2,175 fetched
-//   ashby:   3 added from 85,985 fetched (0.003% add rate)
-//   icims:   2 added from 1,492 fetched
-//   jazzhr:  0 added from 3,345 fetched
-// All four were burning cron compute for negligible inventory. Existing
-// rows from these sources stay in catalog and age out naturally via the
-// 60-day expiry clock.
-// import { fetchUSAJobs } from './aggregators/usajobs';
-// import { fetchAshbyJobs } from './aggregators/ashby';
-// import { fetchICIMSJobs } from './aggregators/icims';
-// import { fetchJazzHRJobs } from './aggregators/jazzhr';
-import { fetchFantasticJobsDbJobs, getLastRunDiagnostics as getFantasticJobsDiag } from './aggregators/fantastic-jobs-db';
-import { fetchWorkdayJobs } from './aggregators/workday';
-import { fetchAtsJobsDbJobs } from './aggregators/ats-jobs-db';
-// REMOVED 2026-03-11 — 0 PMHNP jobs, dead endpoints
-// import { fetchBambooHRJobs } from './aggregators/bamboohr';
-import { fetchSmartRecruitersJobs } from './aggregators/smartrecruiters';
-import { normalizeJob } from './job-normalizer';
-import { checkDuplicate } from './deduplicator';
-import { parseJobLocation } from './location-parser';
-import { linkJobToCompany } from './company-normalizer';
+import { GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
+import { getLastRunDiagnostics as getFantasticJobsDiag } from './aggregators/fantastic-jobs-db';
+import { normalizeJobWithReason } from './job-normalizer';
+import { checkDuplicate, buildJobIdentityKey, buildApplyUrlPathKey } from './deduplicator';
+import { getOrCreateCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
-import { isRelevantJob } from './utils/job-filter';
+import { classifyRelevance } from './utils/job-filter';
+import { computeCompleteness } from './job-normalizer';
+import { extractWithLLM, type LLMExtractResult } from './llm-enrichment';
 import { collectEmployerEmails } from './employer-email-collector';
+import { mineAndPersistFromJob } from './lead-persistence';
 import { recordSourcePresence, loadHistoricalAvgFetched } from './health/source-presence';
 import { HealthRecorder } from './health/recorder';
 import { recordChunkAndMaybeAggregate } from './health/chunked-presence';
@@ -51,26 +26,29 @@ const INGEST_DEAD_REASONS: ReadonlySet<HealthReason> = new Set([
   'http_404',
   'http_410',
   'greenhouse_api_404',
+  'lever_api_404',
+  'smartrecruiters_api_404',
 ]);
 
 // ── Global dedup maps (pre-loaded once at start of full ingestion run) ──
 let globalExternalIdMap: Map<string, { id: string; sourceProvider: string; originalPostedAt: Date | null }> | null = null;
-let globalApplyLinkMap: Map<string, string> | null = null; // normalizedUrl -> jobId
+let globalApplyLinkMap: Map<string, string> | null = null; // URL.pathname.slice(0,60) -> jobId
+// 2026-05-05: third map added after prod audit found Strategy 2 ("exact
+// title+employer+location") was silently dropping dupes whenever > 50
+// candidates shared a title prefix (LifeStance had 27× duplicates of one
+// identity). Memory-resident lookup eliminates that cap.
+let globalTitleKeyMap: Map<string, string> | null = null; // identityKey -> jobId
 import { pingAllSearchEnginesBatch } from './search-indexing';
 import { computeQualityScore } from './utils/quality-score';
 
-export type JobSource = 'adzuna' | 'greenhouse' | 'lever' | 'workday' | 'ats-jobs-db' | 'fantastic-jobs-db' | 'smartrecruiters';
+// JobSource is defined in lib/aggregators/types.ts and re-exported here
+// so legacy callers (scripts, cron route) keep working unchanged.
+export type { JobSource } from './aggregators/types';
+import type { JobSource } from './aggregators/types';
+import { aggregators } from './aggregators/registry';
 
-/** Single source of truth — add new sources here and they'll auto-register everywhere */
-// REMOVED bamboohr 2026-02-20 — 0 PMHNP jobs in production, 14/31 dead endpoints
-// ADDED smartrecruiters, icims, jazzhr 2026-02-20 — discovered via production DB mining
-// REMOVED jsearch 2026-03-11 — subscription cancelled
-// ADDED fantastic-jobs-db 2026-03-11 — replacing JSearch ($45/mo Pro, direct ATS links)
-// REMOVED bamboohr from ALL_SOURCES 2026-03-11 — was still running despite being dead
-// REMOVED jooble 2026-04-29 — see import comment above for rationale
-// REMOVED usajobs/ashby/icims/jazzhr 2026-04-30 — see import block; ROI audit
-// at scripts/audit-source-roi.ts shows 0-3 adds each over 30 days.
-export const ALL_SOURCES: JobSource[] = ['adzuna', 'greenhouse', 'lever', 'workday', 'ats-jobs-db', 'fantastic-jobs-db', 'smartrecruiters'];
+/** Single source of truth — derived from the registry. */
+export const ALL_SOURCES: JobSource[] = Object.keys(aggregators) as JobSource[];
 
 export interface IngestionResult {
   source: JobSource;
@@ -81,6 +59,28 @@ export interface IngestionResult {
   duration: number;
   newJobUrls: string[];
   newJobIds: string[];
+  /**
+   * Rejection counts grouped by `rejectionReason`. Captures the
+   * fetched→added funnel collapse — pre-2026-05-06 we saw `47,563 fetched
+   * → 37 added` for greenhouse with no visibility into where the other
+   * 47k went (relevance? normalizer? probe?). Now surfaced in the Discord
+   * summary so the funnel is observable.
+   */
+  rejectedByReason: Record<string, number>;
+  /**
+   * Per-job exceptions classified by kind ("db_unique", "db_other",
+   * "fetch_or_network", "unknown"). Sums to `errors`. Lets the cron
+   * summary distinguish "ten DB write conflicts" from "ten normalizer
+   * crashes" without parsing logs.
+   */
+  errorsByKind: Record<string, number>;
+  /**
+   * External API request count consumed by this run, for sources that
+   * surface a quota (currently only fantastic-jobs-db on RapidAPI's
+   * 20k/mo Ultra plan). Persisted to cron_runs.metrics so weekly /
+   * monthly usage is queryable without leaving the codebase.
+   */
+  apiCallsUsed?: number;
 }
 
 // Max time budget per cron invocation — stop gracefully before Vercel's 300s hard limit
@@ -100,34 +100,120 @@ const CHUNKED_SOURCES: ReadonlySet<JobSource> = new Set(['greenhouse', 'workday'
 // Ranking-by-quality already surfaces good jobs first without the
 // false-positive risk of an unpublish gate. Last reviewed: 2026-04-30.
 
+const STATE_NAME_TO_CODE: Record<string, string> = {
+  'alabama':'AL','alaska':'AK','arizona':'AZ','arkansas':'AR','california':'CA',
+  'colorado':'CO','connecticut':'CT','delaware':'DE','florida':'FL','georgia':'GA',
+  'hawaii':'HI','idaho':'ID','illinois':'IL','indiana':'IN','iowa':'IA',
+  'kansas':'KS','kentucky':'KY','louisiana':'LA','maine':'ME','maryland':'MD',
+  'massachusetts':'MA','michigan':'MI','minnesota':'MN','mississippi':'MS',
+  'missouri':'MO','montana':'MT','nebraska':'NE','nevada':'NV','new hampshire':'NH',
+  'new jersey':'NJ','new mexico':'NM','new york':'NY','north carolina':'NC',
+  'north dakota':'ND','ohio':'OH','oklahoma':'OK','oregon':'OR','pennsylvania':'PA',
+  'rhode island':'RI','south carolina':'SC','south dakota':'SD','tennessee':'TN',
+  'texas':'TX','utah':'UT','vermont':'VT','virginia':'VA','washington':'WA',
+  'west virginia':'WV','wisconsin':'WI','wyoming':'WY','district of columbia':'DC',
+};
+
+const EXPERIENCE_LLM_TO_CANONICAL: Record<string, string> = {
+  'entry level': 'New Grad',
+  'entry-level': 'New Grad',
+  'mid level': 'Mid-Level',
+  'mid-level': 'Mid-Level',
+  'senior level': 'Senior',
+  'senior-level': 'Senior',
+  'director': 'Senior',
+};
+
 /**
- * Fetch raw jobs from a specific source
+ * Merge LLM-extracted fields into a normalized job WITHOUT overwriting
+ * already-present values. Used by the inline-rescue path for borderline-
+ * completeness jobs.
+ *
+ * Convention matches the enrich-jobs cron's update-data construction —
+ * if either codepath changes its merge logic, update the other to match.
  */
-async function fetchFromSource(source: JobSource, options?: { chunk?: number; fantasticEndpoint?: '7d' | '6m' }): Promise<Array<Record<string, unknown>>> {
-  switch (source) {
-    case 'adzuna':
-      return await fetchAdzunaJobs();
-    case 'greenhouse':
-      return await fetchGreenhouseJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
-    case 'lever':
-      return await fetchLeverJobs() as unknown as Array<Record<string, unknown>>;
-    // case 'jooble': REMOVED 2026-04-29 — see import-level comment
-    // case 'jsearch': REMOVED 2026-03-11
-    // case 'usajobs', 'ashby', 'icims', 'jazzhr': REMOVED 2026-04-30 — ROI audit
-    case 'workday':
-      return await fetchWorkdayJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
-    case 'ats-jobs-db':
-      return await fetchAtsJobsDbJobs() as unknown as Array<Record<string, unknown>>;
-    case 'fantastic-jobs-db':
-      return await fetchFantasticJobsDbJobs({ endpoint: options?.fantasticEndpoint }) as unknown as Array<Record<string, unknown>>;
-    // case 'bamboohr': REMOVED 2026-03-11 — dead source
-    //   return await fetchBambooHRJobs() as unknown as Array<Record<string, unknown>>;
-    case 'smartrecruiters':
-      return await fetchSmartRecruitersJobs() as unknown as Array<Record<string, unknown>>;
-    default:
-      console.warn(`[Ingestion] Unknown source: ${source}`);
-      return [];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mergeLlmIntoNormalized(job: any, llm: LLMExtractResult): any {
+  const next = { ...job };
+
+  // Salary — only fill when the regex pass came up empty. Salary_min from
+  // the LLM is already in annual USD per the prompt contract.
+  if (llm.salary_min && !next.normalizedMinSalary) {
+    const min = Math.round(llm.salary_min);
+    const max = Math.round(llm.salary_max ?? llm.salary_min);
+    next.normalizedMinSalary = min;
+    next.normalizedMaxSalary = max;
+    next.minSalary = min;
+    next.maxSalary = max;
+    next.salaryIsEstimated = true;
+    next.salaryConfidence = 0.7;
+    if (llm.salary_period) next.salaryPeriod = llm.salary_period;
+    next.displaySalary = `$${Math.round(min / 1000)}k - $${Math.round(max / 1000)}k/yr`;
   }
+
+  if (llm.job_type && !next.jobType) next.jobType = llm.job_type;
+
+  if (llm.work_mode && !next.mode) {
+    const raw = llm.work_mode.trim();
+    const canon =
+      raw === 'Telehealth' ? 'Remote'
+        : raw === 'On-site' || raw === 'Onsite' ? 'In-Person'
+        : raw === 'Remote' || raw === 'Hybrid' || raw === 'In-Person' ? raw
+        : null;
+    if (canon) {
+      next.mode = canon;
+      if (canon === 'Remote') next.isRemote = true;
+      if (canon === 'Hybrid') next.isHybrid = true;
+    }
+  }
+
+  if (llm.city && !next.city) next.city = llm.city;
+
+  if (llm.state && !next.state) {
+    next.state = llm.state;
+    const code = STATE_NAME_TO_CODE[llm.state.toLowerCase()];
+    if (code && !next.stateCode) next.stateCode = code;
+  }
+
+  if (llm.experience_level && !next.experienceLevel) {
+    const canon = EXPERIENCE_LLM_TO_CANONICAL[llm.experience_level.toLowerCase()];
+    if (canon) next.experienceLevel = canon;
+  }
+
+  if (llm.clinical_setting && !next.setting) next.setting = llm.clinical_setting;
+  if (llm.patient_population && !next.population) next.population = llm.patient_population;
+  if (
+    llm.benefits &&
+    Array.isArray(llm.benefits) &&
+    llm.benefits.length > 0 &&
+    (!next.benefits || next.benefits.length === 0)
+  ) {
+    next.benefits = llm.benefits;
+  }
+
+  return next;
+}
+
+/**
+ * Fetch raw jobs from a specific source via the adapter registry.
+ *
+ * Adapters live in lib/aggregators/, register themselves in
+ * lib/aggregators/registry.ts, and implement the standard Aggregator
+ * interface from lib/aggregators/types.ts.
+ */
+async function fetchFromSource(
+  source: JobSource,
+  options?: { chunk?: number; fantasticEndpoint?: '24h' | '7d' | '6m' },
+): Promise<Array<Record<string, unknown>>> {
+  const aggregator = aggregators[source];
+  if (!aggregator) {
+    console.warn(`[Ingestion] Unknown source: ${source}`);
+    return [];
+  }
+  const fetchOpts: { chunk?: number; endpoint?: '24h' | '7d' | '6m' } = {};
+  if (options?.chunk !== undefined) fetchOpts.chunk = options.chunk;
+  if (options?.fantasticEndpoint !== undefined) fetchOpts.endpoint = options.fantasticEndpoint;
+  return (await aggregator.fetch(fetchOpts)) as unknown as Array<Record<string, unknown>>;
 }
 
 /**
@@ -159,7 +245,7 @@ function collectExternalIds(rawJobs: Array<Record<string, unknown>>): string[] {
 /**
  * Ingest jobs from a single source
  */
-async function ingestFromSource(source: JobSource, options?: { chunk?: number; fantasticEndpoint?: '7d' | '6m' }): Promise<IngestionResult> {
+async function ingestFromSource(source: JobSource, options?: { chunk?: number; fantasticEndpoint?: '24h' | '7d' | '6m' }): Promise<IngestionResult> {
   const startTime = Date.now();
   let fetched = 0;
   let added = 0;
@@ -167,6 +253,15 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
   let errors = 0;
   const newJobUrls: string[] = [];
   const newJobIds: string[] = [];
+  // Running average of the per-insert qualityScore so we can write
+  // avgQualityScore to source_stats without a post-hoc SELECT.
+  let qualityScoreSum = 0;
+  let qualityScoreCount = 0;
+  // Sub-bucketed counts of per-job exceptions. Sums to `errors`.
+  const errorsByKind: Record<string, number> = {};
+  // External API request count, only set for sources with a quota
+  // (currently fantastic-jobs-db / RapidAPI Ultra plan).
+  let apiCallsUsed: number | undefined;
 
   try {
     console.log(`\n[${source.toUpperCase()}] Starting ingestion...`);
@@ -174,6 +269,9 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
     // Fetch raw jobs from source
     const rawJobs = await fetchFromSource(source, options);
     fetched = rawJobs.length;
+    if (source === 'fantastic-jobs-db') {
+      apiCallsUsed = getFantasticJobsDiag().apiCallsUsed;
+    }
 
     console.log(`[${source.toUpperCase()}] Fetched ${fetched} jobs`);
 
@@ -197,25 +295,21 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         try {
           const diag = getFantasticJobsDiag();
           const { sendDiscordMessage } = await import('./discord-notifier');
+          // Lean diag: HTTP status + abort reason in the description.
+          // Full status counts / first body sample are persisted in the
+          // function logs and source_stats — not needed in the channel.
+          const summary = `HTTP ${diag.firstResponseStatus ?? '—'} · quota left: ${diag.rateLimitRemaining ?? '?'}`
+            + (diag.abortReasons.length > 0 ? ` · aborts: ${diag.abortReasons.join(', ').slice(0, 200)}` : '');
           await sendDiscordMessage('', [{
-            title: `⚠️ ${source}: zero rows fetched`,
+            title: `⚠️ ${source}: 0 rows fetched`,
+            description: summary,
             color: 0xFFAA00,
-            fields: [
-              { name: 'First HTTP status', value: String(diag.firstResponseStatus ?? 'no-response'), inline: true },
-              { name: 'Rate-limit remaining', value: String(diag.rateLimitRemaining ?? 'unknown'), inline: true },
-              { name: 'Status counts', value: '```' + JSON.stringify(diag.statusCounts) + '```', inline: false },
-              { name: 'Abort reasons', value: '```' + (diag.abortReasons.length > 0 ? diag.abortReasons.join(', ') : '(none)') + '```', inline: false },
-              { name: 'First URL', value: '```' + (diag.firstResponseUrl ?? '(none)').slice(0, 500) + '```', inline: false },
-              { name: 'First body sample', value: '```' + (diag.firstResponseBodySample ?? '(none)').slice(0, 500) + '```', inline: false },
-            ],
-            timestamp: new Date().toISOString(),
-            footer: { text: `PMHNP Job Board — ${source} diagnostic` },
           }]);
         } catch (e) {
           console.error('[Ingest] Failed to push fantastic-jobs diag to Discord', e);
         }
       }
-      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds };
+      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds, rejectedByReason: countRejectionsByReason(rejectedJobs), errorsByKind, apiCallsUsed };
     }
 
     // Use global dedup maps (pre-loaded once at start of full run)
@@ -242,23 +336,54 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
       });
     }
 
-    const MAX_JOB_AGE_MS = 120 * 24 * 60 * 60 * 1000; // 120-day lifetime cap — hard cutoff for any job regardless of renewals
-    const RENEWAL_EXTENSION_MS = 14 * 24 * 60 * 60 * 1000; // 14-day renewal window — tighter expiry, cron runs 2x daily so 14 days is plenty of buffer
+    // Hard lifetime cap: 60 days from originalPostedAt. No renewal extensions.
+    // Once a job is set, expiresAt = originalPostedAt + 60d and stays there.
+    // The "renewal" path now ONLY: (a) revives jobs that were unpublished but
+    // are still within their 60-day window, (b) touches updatedAt for freshness
+    // scoring. It does NOT push expiresAt forward.
+    const MAX_JOB_AGE_MS = 60 * 24 * 60 * 60 * 1000;
     let expiredByAge = 0;
 
-    // Helper to renew a job (Auto-Renewal) — with max-age cap + manual unpublish guard
-    const renewJob = async (id: string, title: string, existingPostedAt?: Date | null) => {
+    const renewJob = async (
+      id: string,
+      title: string,
+      existingPostedAt?: Date | null,
+      fresh?: Record<string, unknown> | null,
+    ) => {
       try {
-        // Check if manually unpublished — never override admin decisions
-        const job = await prisma.job.findUnique({
+        // Single SELECT — fetches `isManuallyUnpublished` AND all the
+        // fields we'd consider enriching with fresh source data. Avoids
+        // a second roundtrip per renewal at the per-source-loop scale.
+        const existing = await prisma.job.findUnique({
           where: { id },
-          select: { isManuallyUnpublished: true },
+          select: {
+            isManuallyUnpublished: true,
+            description: true,
+            descriptionSummary: true,
+            minSalary: true,
+            maxSalary: true,
+            salaryPeriod: true,
+            salaryRange: true,
+            displaySalary: true,
+            normalizedMinSalary: true,
+            normalizedMaxSalary: true,
+            city: true,
+            state: true,
+            stateCode: true,
+            jobType: true,
+            mode: true,
+            experienceLevel: true,
+            setting: true,
+            population: true,
+            benefits: true,
+          },
         });
-        if (job?.isManuallyUnpublished) {
+        if (!existing) return;
+        if (existing.isManuallyUnpublished) {
           return; // Skip — admin intentionally hid this job
         }
 
-        // Enforce max-age cap: if originalPostedAt > 120 days ago, unpublish instead
+        // Enforce 60-day-from-original cap. Past it → unpublish, do not renew.
         if (existingPostedAt) {
           const ageMs = Date.now() - new Date(existingPostedAt).getTime();
           if (ageMs > MAX_JOB_AGE_MS) {
@@ -266,7 +391,6 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
               where: { id },
               data: { isPublished: false },
             });
-            // Track age-expired for analysis
             rejectedJobs.push({
               title: title,
               employer: null,
@@ -282,15 +406,20 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           }
         }
 
-        await prisma.job.update({
-          where: { id },
-          data: {
-            expiresAt: new Date(Date.now() + RENEWAL_EXTENSION_MS),
-            isPublished: true,
-            updatedAt: new Date(),
-            // NOTE: Never overwrite originalPostedAt — first ingestion date is truth
-          }
-        });
+        // Within window: revive if it was unpublished, touch updatedAt.
+        // expiresAt is intentionally NOT extended — the original 60-day
+        // window from originalPostedAt is the absolute clock.
+        // If fresh data is available, merge improvements (longer description,
+        // newly-present salary, missing location parts, etc.) — never
+        // overwrite richer existing data with leaner fresh data.
+        const update: Record<string, unknown> = {
+          isPublished: true,
+          updatedAt: new Date(),
+        };
+        if (fresh) {
+          Object.assign(update, buildRenewalEnrichmentDelta(existing, fresh));
+        }
+        await prisma.job.update({ where: { id }, data: update });
       } catch (e) {
         console.error(`[${source.toUpperCase()}] Failed to renew job ${id}:`, e);
       }
@@ -315,25 +444,39 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         // but other sources don't.
         const rawTitle = extractRawTitle(rawJob);
         const rawDesc = String(rawJob.description || rawJob.job_description || '');
-        if (source !== null && rawTitle && !isRelevantJob(rawTitle, rawDesc)) {
-          rejectedJobs.push({
-            title: rawTitle,
-            employer: String(rawJob.employer || rawJob.company || rawJob.employer_name || rawJob.organizationName || null),
-            location: String(rawJob.location || rawJob.locationsText || rawJob.job_city || null),
-            applyLink: String(rawJob.applyLink || rawJob.apply_link || rawJob.url || rawJob.link || null),
-            externalId: String(rawJob.externalId || rawJob.id || rawJob.job_id || null),
-            sourceProvider: source,
-            rejectionReason: 'relevance_filter',
-            rawData: rawJob as object,
-          });
-          continue;
+        const rawEmployer = String(
+          rawJob.employer || rawJob.company || rawJob.employer_name || rawJob.organizationName || ''
+        );
+        if (source !== null && rawTitle) {
+          const classification = classifyRelevance(rawTitle, rawDesc, rawEmployer);
+          if (!classification.passes) {
+            rejectedJobs.push({
+              title: rawTitle,
+              employer: rawEmployer || null,
+              location: String(rawJob.location || rawJob.locationsText || rawJob.job_city || null),
+              applyLink: String(rawJob.applyLink || rawJob.apply_link || rawJob.url || rawJob.link || null),
+              externalId: String(rawJob.externalId || rawJob.id || rawJob.job_id || null),
+              sourceProvider: source,
+              // Sub-bucketed reason: 'relevance_no_keyword' | 'relevance_generic_title'
+              // | 'relevance_wrong_role'. Old single-bucket 'relevance_filter' is
+              // gone. Migrations / queries that filter by reason should be updated.
+              rejectionReason: classification.reason,
+              rawData: rawJob as object,
+            });
+            continue;
+          }
         }
 
-        // Normalize the job (field extraction, salary parsing, location parsing, etc.)
-        const normalizedJob = normalizeJob(rawJob, source);
+        // Normalize the job (field extraction, salary parsing, gates, etc.)
+        const normalizeResult = normalizeJobWithReason(rawJob, source);
 
-        if (!normalizedJob) {
-          // Track normalizer rejections for accuracy analysis
+        if (!normalizeResult.job) {
+          // Sub-bucketed reasons:
+          //   normalizer_missing_required_field
+          //   normalizer_missing_description
+          //   normalizer_stale_post
+          //   normalizer_indirect_apply
+          //   normalizer_exception
           rejectedJobs.push({
             title: rawTitle || 'Unknown',
             employer: String(rawJob.employer || rawJob.company || rawJob.employer_name || rawJob.organizationName || null),
@@ -341,7 +484,53 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
             applyLink: String(rawJob.applyLink || rawJob.apply_link || rawJob.url || rawJob.link || null),
             externalId: String(rawJob.externalId || rawJob.id || rawJob.job_id || null),
             sourceProvider: source,
-            rejectionReason: 'normalizer',
+            rejectionReason: normalizeResult.rejectionReason ?? 'normalizer_exception',
+            rawData: rawJob as object,
+          });
+          continue;
+        }
+        let normalizedJob = normalizeResult.job;
+
+        // ── Inline LLM-rescue pass for borderline-completeness jobs ──
+        // If completeness score is between the hard floor (20, enforced by
+        // normalizer) and the soft floor (40), we give the job ONE shot at
+        // LLM enrichment before rejecting. Only fires when the description
+        // is substantive enough for the LLM to do something useful.
+        // Time-budgeted to keep us inside the 240s ingest envelope.
+        const SOFT_COMPLETENESS_FLOOR = 40;
+        const initialScore = computeCompleteness(normalizedJob);
+        if (
+          initialScore < SOFT_COMPLETENESS_FLOOR &&
+          (normalizedJob.description?.length ?? 0) >= 200 &&
+          // Don't burn LLM time when the orchestrator's clock is almost up.
+          Date.now() - startTime < MAX_INGESTION_MS - 30_000
+        ) {
+          try {
+            const llm = await extractWithLLM(
+              normalizedJob.description ?? '',
+              normalizedJob.title,
+              normalizedJob.employer ?? '',
+              normalizedJob.location ?? '',
+            );
+            if (llm.result) {
+              normalizedJob = mergeLlmIntoNormalized(normalizedJob, llm.result);
+            }
+          } catch (e) {
+            // LLM down / network error → fall through with original score.
+            console.warn(`[Ingest][${source}] inline LLM enrich failed:`, e);
+          }
+        }
+
+        const finalScore = computeCompleteness(normalizedJob);
+        if (finalScore < SOFT_COMPLETENESS_FLOOR) {
+          rejectedJobs.push({
+            title: normalizedJob.title,
+            employer: normalizedJob.employer || null,
+            location: normalizedJob.location || null,
+            applyLink: normalizedJob.applyLink || null,
+            externalId: normalizedJob.externalId || null,
+            sourceProvider: source,
+            rejectionReason: 'normalizer_low_completeness',
             rawData: rawJob as object,
           });
           continue;
@@ -351,7 +540,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         if (normalizedJob.externalId && existingJobsMap.has(normalizedJob.externalId)) {
           // AUTO-RENEWAL: Job exists, so we extend its life instead of ignoring it
           const existing = existingJobsMap.get(normalizedJob.externalId)!;
-          await renewJob(existing.id, normalizedJob.title, existing.originalPostedAt);
+          await renewJob(existing.id, normalizedJob.title, existing.originalPostedAt, normalizedJob as Record<string, unknown>);
 
           // Track duplicate for analysis
           rejectedJobs.push({
@@ -370,14 +559,20 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         }
 
         // Strategy 2: Fuzzy matching (only if not found by ID)
-        const dupCheck = await checkDuplicate({
-          title: normalizedJob.title,
-          employer: normalizedJob.employer,
-          location: normalizedJob.location,
-          externalId: normalizedJob.externalId ?? undefined,
-          sourceProvider: normalizedJob.sourceProvider ?? undefined,
-          applyLink: normalizedJob.applyLink ?? undefined,
-        });
+        const dupCheck = await checkDuplicate(
+          {
+            title: normalizedJob.title,
+            employer: normalizedJob.employer,
+            location: normalizedJob.location,
+            externalId: normalizedJob.externalId ?? undefined,
+            sourceProvider: normalizedJob.sourceProvider ?? undefined,
+            applyLink: normalizedJob.applyLink ?? undefined,
+          },
+          {
+            globalTitleKeyMap: globalTitleKeyMap ?? undefined,
+            globalApplyLinkMap: globalApplyLinkMap ?? undefined,
+          },
+        );
 
         if (dupCheck.isDuplicate) {
           // AUTO-RENEWAL: Fuzzy match found, renew the matched job
@@ -387,7 +582,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
               where: { id: dupCheck.matchedJobId },
               select: { originalPostedAt: true },
             });
-            await renewJob(dupCheck.matchedJobId, normalizedJob.title, matchedJob?.originalPostedAt);
+            await renewJob(dupCheck.matchedJobId, normalizedJob.title, matchedJob?.originalPostedAt, normalizedJob as Record<string, unknown>);
           }
 
           // Track duplicate for analysis
@@ -423,12 +618,27 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           typeof normalizedJob.applyLink === 'string' ? normalizedJob.applyLink : null;
         if (applyLinkStr && applyLinkStr.length > 0) {
           try {
-            const probeDecision = await checkJobHealth(applyLinkStr, source, {
-              externalId:
-                typeof normalizedJob.externalId === 'string'
-                  ? normalizedJob.externalId
-                  : null,
-            });
+            const externalIdForProbe =
+              typeof normalizedJob.externalId === 'string'
+                ? normalizedJob.externalId
+                : null;
+            // G4 retry-once (2026-05-06): transient network/timeout/other
+            // failures shouldn't blind us to a real http_404. Retry exactly
+            // ONCE after a 250ms back-off if the first probe was inconclusive
+            // due to a transient error. We do not retry on inconclusive_403
+            // (anti-scraper signal — won't change on retry) or _429 (would
+            // make the rate-limit worse).
+            let probeDecision = await checkJobHealth(applyLinkStr, source, { externalId: externalIdForProbe });
+            const TRANSIENT_REASONS = new Set([
+              'inconclusive_network',
+              'inconclusive_other',
+              'inconclusive_3xx_loop',
+              'inconclusive_5xx',
+            ]);
+            if (TRANSIENT_REASONS.has(probeDecision.reason)) {
+              await new Promise((resolve) => setTimeout(resolve, 250));
+              probeDecision = await checkJobHealth(applyLinkStr, source, { externalId: externalIdForProbe });
+            }
             if (INGEST_DEAD_REASONS.has(probeDecision.reason)) {
               rejectedJobs.push({
                 title: normalizedJob.title as string,
@@ -457,80 +667,94 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           }
         }
 
-        // Set initial expiresAt based on original posting date + 60 days
-        // If source didn't provide a posted date, use now + 60 days
-        const INITIAL_EXPIRY_MS = 60 * 24 * 60 * 60 * 1000; // 60-day initial posting window
-        const baseDate = normalizedJob.originalPostedAt
-          ? new Date(normalizedJob.originalPostedAt as any).getTime()
-          : Date.now();
-        const initialExpiresAt = new Date(baseDate + INITIAL_EXPIRY_MS);
-
-        // Insert the job
-        const savedJob = await prisma.job.create({
-          data: {
-            ...(normalizedJob as any),
-            expiresAt: initialExpiresAt,
-          },
-        });
-        added++;
-        newJobIds.push(savedJob.id);
-
-        // Generate and update slug
-        const slug = `${normalizedJob.title
+        // Step 7 enrichment is folded INTO the create payload (was previously
+        // 3 SELECTs + 3 UPDATEs after the insert). parseJobLocation post-insert
+        // was dead work — the normalizer already populates city/state/etc.
+        // companyId and qualityScore can be resolved/computed from in-memory
+        // data, so they go into the same `prisma.job.create` call.
+        const newId = randomUUID();
+        const slug = `${(normalizedJob.title as string)
           .toLowerCase()
           .replace(/[^a-z0-9\s-]/g, '')
           .replace(/\s+/g, '-')
           .replace(/-+/g, '-')
-          .trim()}-${savedJob.id}`;
+          .trim()}-${newId}`;
 
-        await prisma.job.update({
-          where: { id: savedJob.id },
-          data: { slug },
+        // Resolve / create the Company row first so we can write companyId
+        // in the same insert. Errors are non-fatal — a null companyId is OK.
+        let companyId: string | null = null;
+        try {
+          if (normalizedJob.employer) {
+            companyId = await getOrCreateCompany(normalizedJob.employer as string);
+          }
+        } catch (companyError) {
+          console.error(`[${source.toUpperCase()}] Failed to resolve company for "${normalizedJob.title}":`, companyError);
+        }
+
+        // Quality score from in-memory normalizedJob — no extra SELECT.
+        const qualityScore = computeQualityScore({
+          applyLink: (normalizedJob.applyLink as string | null) ?? null,
+          displaySalary: (normalizedJob.displaySalary as string | null) ?? null,
+          normalizedMinSalary: (normalizedJob.normalizedMinSalary as number | null) ?? null,
+          normalizedMaxSalary: (normalizedJob.normalizedMaxSalary as number | null) ?? null,
+          descriptionSummary: (normalizedJob.descriptionSummary as string | null) ?? null,
+          description: (normalizedJob.description as string | null) ?? null,
+          city: (normalizedJob.city as string | null) ?? null,
+          state: (normalizedJob.state as string | null) ?? null,
+          isEmployerPosted: false, // aggregated jobs are never employer-posted
         });
 
-        // Collect URL for batch indexing
+        const savedJob = await prisma.job.create({
+          data: {
+            id: newId,
+            ...(normalizedJob as any),
+            slug,
+            companyId,
+            qualityScore,
+          },
+        });
+        added++;
+        newJobIds.push(savedJob.id);
+        qualityScoreSum += qualityScore;
+        qualityScoreCount++;
+
+        // Lead-mining: regex emails / phones / websites out of the
+        // description and upsert into employer_leads. Non-fatal — a bad
+        // regex match must never block the ingest.
+        try {
+          await mineAndPersistFromJob({
+            id: savedJob.id,
+            employer: normalizedJob.employer as string,
+            description: (normalizedJob.description as string | null) ?? null,
+          });
+        } catch (leadErr) {
+          console.warn(`[Lead-Mining] Skipped job ${savedJob.id}:`, leadErr);
+        }
+
+        // Keep global dedup maps in sync so a later source in the same run
+        // recognises this job. Without this, source N+1 would re-ingest the
+        // job source N just inserted (the legacy lifestance lever+fantastic
+        // double-rows are exactly this pattern).
+        if (globalExternalIdMap && normalizedJob.externalId) {
+          globalExternalIdMap.set(normalizedJob.externalId, {
+            id: savedJob.id,
+            sourceProvider: source,
+            originalPostedAt: normalizedJob.originalPostedAt ?? null,
+          });
+        }
+        if (globalApplyLinkMap && normalizedJob.applyLink) {
+          const pathKey = buildApplyUrlPathKey(normalizedJob.applyLink);
+          if (pathKey && !globalApplyLinkMap.has(pathKey)) globalApplyLinkMap.set(pathKey, savedJob.id);
+        }
+        if (globalTitleKeyMap && normalizedJob.title && normalizedJob.employer && normalizedJob.location) {
+          const idKey = buildJobIdentityKey(normalizedJob.title, normalizedJob.employer, normalizedJob.location);
+          if (!globalTitleKeyMap.has(idKey)) globalTitleKeyMap.set(idKey, savedJob.id);
+        }
+
         newJobUrls.push(`https://pmhnphiring.com/jobs/${slug}`);
-
-        // Parse location
-        try {
-          await parseJobLocation(savedJob.id);
-        } catch (locationError) {
-          console.error(`Failed to parse location for job ${savedJob.id}:`, locationError);
-        }
-
-        // Link to company
-        try {
-          await linkJobToCompany(savedJob.id);
-        } catch (companyError) {
-          console.error(`Failed to link company for job ${savedJob.id}:`, companyError);
-        }
 
         // NOTE: Link validation (validateApplyLink) is skipped during ingestion
         // to avoid HTTP timeout overhead. It runs separately via check-dead-links cron.
-
-        // Compute quality score based on final resolved link and job data
-        try {
-          const currentJob = await prisma.job.findUnique({
-            where: { id: savedJob.id },
-            select: { applyLink: true, displaySalary: true, normalizedMinSalary: true, normalizedMaxSalary: true, descriptionSummary: true, description: true, city: true, state: true },
-          });
-          if (currentJob) {
-            const qScore = computeQualityScore({
-              applyLink: currentJob.applyLink,
-              displaySalary: currentJob.displaySalary,
-              normalizedMinSalary: currentJob.normalizedMinSalary,
-              normalizedMaxSalary: currentJob.normalizedMaxSalary,
-              descriptionSummary: currentJob.descriptionSummary,
-              description: currentJob.description,
-              city: currentJob.city,
-              state: currentJob.state,
-              isEmployerPosted: false,  // aggregated jobs are never employer-posted
-            });
-            await prisma.job.update({ where: { id: savedJob.id }, data: { qualityScore: qScore } });
-          }
-        } catch (qError) {
-          // Non-fatal — job remains with default score of 0
-        }
 
         // Log progress every 10 jobs
         if ((i + 1) % 10 === 0) {
@@ -540,6 +764,8 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
       } catch (error) {
         console.error(`[${source.toUpperCase()}] Error processing job:`, error);
         errors++;
+        const kind = classifyJobError(error);
+        errorsByKind[kind] = (errorsByKind[kind] ?? 0) + 1;
       }
     }
 
@@ -556,9 +782,19 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
       duration: `${(duration / 1000).toFixed(1)}s`
     });
 
-    // Record stats
+    // Record stats — running quality average and per-reason rejection
+    // breakdown both come from in-memory state so this is a single
+    // upsert with no extra SELECT.
+    const rejectedByReason = countRejectionsByReason(rejectedJobs);
     try {
-      await recordIngestionStats(source, fetched, added, duplicates);
+      await recordIngestionStats({
+        source,
+        fetched,
+        added,
+        duplicates,
+        avgQualityScore: qualityScoreCount > 0 ? qualityScoreSum / qualityScoreCount : undefined,
+        rejectedByReason,
+      });
     } catch (statsError) {
       console.error(`Failed to record stats for ${source}:`, statsError);
     }
@@ -639,13 +875,148 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
       }
     }
 
-    return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds };
+    return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds, rejectedByReason, errorsByKind, apiCallsUsed };
 
   } catch (error) {
     console.error(`[${source.toUpperCase()}] Fatal error during ingestion:`, error);
     const duration = Date.now() - startTime;
-    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [], newJobIds: [] };
+    // Per-source fatal: alert Discord with the source-namespaced cron
+    // key. The 30-min cooldown is per-name so different sources flapping
+    // independently each get one alert. Pre-2026-05-06 source-level
+    // fatals were silent — only top-level (whole-run) failures hit
+    // Discord, so a single broken source could go unnoticed in the
+    // funnel summary.
+    try {
+      const { sendCronFailureAlert } = await import('./discord-notifier');
+      await sendCronFailureAlert(`ingest:${source}`, error);
+    } catch (alertErr) {
+      console.error(`[${source.toUpperCase()}] Failed to send Discord alert:`, alertErr);
+    }
+    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [], newJobIds: [], rejectedByReason: {}, errorsByKind: { source_fatal: 1 }, apiCallsUsed };
   }
+}
+
+/**
+ * Coarse classification of per-job exceptions for the errorsByKind
+ * bucket on IngestionResult. Resolves to one of:
+ *   - "db_unique"        — Prisma P2002 unique constraint
+ *   - "db_other"          — any other Prisma error code starting with "P"
+ *   - "fetch_or_network" — message mentions fetch / network / ECONN / EAI
+ *   - "unknown"           — everything else
+ *
+ * The labels are intentionally coarse — fine-grained error analysis
+ * happens via stack traces in logs; this is just for the Discord summary
+ * to distinguish "ten DB conflicts" from "ten normalizer crashes".
+ */
+export function classifyJobError(err: unknown): string {
+  if (err && typeof err === 'object') {
+    const e = err as { code?: unknown; name?: unknown; message?: unknown };
+    if (typeof e.code === 'string') {
+      if (e.code === 'P2002') return 'db_unique';
+      if (e.code.startsWith('P')) return 'db_other';
+    }
+    if (typeof e.message === 'string') {
+      const m = e.message.toLowerCase();
+      if (m.includes('fetch') || m.includes('network') || m.includes('econn') || m.includes('eai_') || m.includes('socket hang up')) {
+        return 'fetch_or_network';
+      }
+    }
+  }
+  return 'unknown';
+}
+
+/**
+ * Aggregate rejected_jobs entries by `rejectionReason` for the IngestionResult.
+ * Cheap O(n) over the in-memory buffer; called once at end of each source run.
+ */
+function countRejectionsByReason(
+  rejectedJobs: Array<{ rejectionReason: string }>,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const r of rejectedJobs) {
+    counts[r.rejectionReason] = (counts[r.rejectionReason] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/**
+ * Compute a Prisma update delta of fields the fresh source data would
+ * IMPROVE on the existing row. Renewal-time enrichment lets repeat
+ * ingests fill in fields that were missing the first time around (e.g.
+ * Adzuna ingests with no salary, then a Greenhouse ingest of the same
+ * job comes in with a salary range — the existing row should pick that
+ * up rather than waiting for the LLM enrichment cron).
+ *
+ * Conservative — never replaces a non-null with another non-null value
+ * except for description (where longer wins) and benefits (set union).
+ * Lifecycle fields (originalPostedAt, expiresAt) and identity/audit
+ * fields (title, employer, applyLink, externalId, isPublished, counters)
+ * are deliberately out of scope.
+ */
+export function buildRenewalEnrichmentDelta(
+  existing: {
+    description: string | null;
+    descriptionSummary: string | null;
+    minSalary: number | null;
+    maxSalary: number | null;
+    salaryPeriod: string | null;
+    salaryRange: string | null;
+    displaySalary: string | null;
+    normalizedMinSalary: number | null;
+    normalizedMaxSalary: number | null;
+    city: string | null;
+    state: string | null;
+    stateCode: string | null;
+    jobType: string | null;
+    mode: string | null;
+    experienceLevel: string | null;
+    setting: string | null;
+    population: string | null;
+    benefits: string[];
+  },
+  fresh: Record<string, unknown>,
+): Record<string, unknown> {
+  const delta: Record<string, unknown> = {};
+
+  const freshDesc = typeof fresh.description === 'string' ? fresh.description : null;
+  if (freshDesc && (!existing.description || freshDesc.length > existing.description.length + 50)) {
+    delta.description = freshDesc;
+    if (typeof fresh.descriptionSummary === 'string') delta.descriptionSummary = fresh.descriptionSummary;
+  }
+
+  const fillIfNull = (key: keyof typeof existing, freshKey: string = key as string) => {
+    if (existing[key] == null && fresh[freshKey] != null && fresh[freshKey] !== '') {
+      delta[key] = fresh[freshKey];
+    }
+  };
+  fillIfNull('minSalary');
+  fillIfNull('maxSalary');
+  fillIfNull('salaryPeriod');
+  fillIfNull('salaryRange');
+  fillIfNull('displaySalary');
+  fillIfNull('normalizedMinSalary');
+  fillIfNull('normalizedMaxSalary');
+  fillIfNull('city');
+  fillIfNull('state');
+  fillIfNull('stateCode');
+  fillIfNull('jobType');
+  fillIfNull('mode');
+  fillIfNull('experienceLevel');
+  fillIfNull('setting');
+  fillIfNull('population');
+
+  // Benefits: set-union when fresh has new entries
+  if (Array.isArray(fresh.benefits) && fresh.benefits.length > 0) {
+    const existingSet = new Set(existing.benefits ?? []);
+    const additions = (fresh.benefits as unknown[]).filter(
+      (b) => typeof b === 'string' && !existingSet.has(b),
+    ) as string[];
+    if (additions.length > 0) {
+      delta.benefits = [...existingSet, ...additions];
+    }
+  }
+
+  return delta;
 }
 
 /**
@@ -653,7 +1024,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
  */
 export async function ingestJobs(
   sources: JobSource[] = ALL_SOURCES,
-  options?: { chunk?: number; fantasticEndpoint?: '7d' | '6m' }
+  options?: { chunk?: number; fantasticEndpoint?: '24h' | '7d' | '6m' }
 ): Promise<IngestionResult[]> {
   const overallStartTime = Date.now();
   const timestamp = new Date().toISOString();
@@ -663,15 +1034,25 @@ export async function ingestJobs(
   console.log(`Sources: ${sources.join(', ')}`);
   console.log('='.repeat(80) + '\n');
 
-  // ── Pre-load ALL externalIds + applyLinks globally (eliminates per-source queries) ──
+  // ── Pre-load ALL externalIds + applyLinks + identity keys (eliminates per-job DB roundtrips) ──
   try {
-    console.log('[Dedup] Pre-loading global externalId + applyLink maps...');
+    console.log('[Dedup] Pre-loading global externalId + applyLink + title-key maps...');
     const allJobs = await prisma.job.findMany({
       where: { isPublished: true },
-      select: { id: true, externalId: true, sourceProvider: true, originalPostedAt: true, applyLink: true },
+      select: {
+        id: true,
+        externalId: true,
+        sourceProvider: true,
+        originalPostedAt: true,
+        applyLink: true,
+        title: true,
+        employer: true,
+        location: true,
+      },
     });
     globalExternalIdMap = new Map();
     globalApplyLinkMap = new Map();
+    globalTitleKeyMap = new Map();
     for (const job of allJobs) {
       if (job.externalId) {
         globalExternalIdMap.set(job.externalId, {
@@ -681,17 +1062,27 @@ export async function ingestJobs(
         });
       }
       if (job.applyLink) {
-        try {
-          const pathname = new URL(job.applyLink).pathname.slice(0, 60);
-          globalApplyLinkMap.set(pathname, job.id);
-        } catch { /* malformed URL */ }
+        const pathKey = buildApplyUrlPathKey(job.applyLink);
+        if (pathKey) globalApplyLinkMap.set(pathKey, job.id);
+      }
+      // Identity key only set if all three fields are present — missing
+      // fields would produce ambiguous keys ("|employer|") that collide.
+      if (job.title && job.employer && job.location) {
+        const key = buildJobIdentityKey(job.title, job.employer, job.location);
+        // First-write wins so we point new dupes at the original job we'll
+        // renew. (Map.set replaces, so guard explicitly.)
+        if (!globalTitleKeyMap.has(key)) globalTitleKeyMap.set(key, job.id);
       }
     }
-    console.log(`[Dedup] Loaded ${globalExternalIdMap.size} externalIds, ${globalApplyLinkMap.size} applyLinks`);
+    console.log(
+      `[Dedup] Loaded ${globalExternalIdMap.size} externalIds, ` +
+      `${globalApplyLinkMap.size} applyLinks, ${globalTitleKeyMap.size} identityKeys`,
+    );
   } catch (e) {
     console.error('[Dedup] Failed to pre-load global maps, falling back to per-source:', e);
     globalExternalIdMap = null;
     globalApplyLinkMap = null;
+    globalTitleKeyMap = null;
   }
 
   const results: IngestionResult[] = [];
@@ -712,6 +1103,7 @@ export async function ingestJobs(
   // Clean up global maps after ingestion
   globalExternalIdMap = null;
   globalApplyLinkMap = null;
+  globalTitleKeyMap = null;
 
   // Calculate totals
   const totals = results.reduce(
@@ -734,53 +1126,27 @@ export async function ingestJobs(
   console.log('\n' + generateIngestionSummary(results));
   console.log('='.repeat(80) + '\n');
 
-  // Send Discord notification
-  try {
-    const { sendIngestionSummary } = await import('./discord-notifier');
-    await sendIngestionSummary(results);
-  } catch (discordError) {
-    console.error('[Discord] Failed to send ingestion summary:', discordError);
-  }
+  // Discord summary REMOVED 2026-05-06.
+  //
+  // Was firing ~26 times/day (one per source cron) on top of the rich
+  // per-cron summary that app/api/cron/ingest/route.ts already sends.
+  // Net effect was a wall of duplicate embeds — exactly what Goal #4
+  // asks us to stop. The route-level summary stays; this redundant call
+  // is removed. Direct script invocations (scripts/run-ingestion.ts) no
+  // longer notify Discord, which is desirable — dev runs shouldn't.
 
-  // Run post-ingestion cleanup if any jobs were added
-  if (totals.added > 0) {
-    const { cleanAllJobDescriptions } = await import('./description-cleaner');
-    await cleanAllJobDescriptions();
-
-    // Recompute quality scores for newly added jobs after description cleaning
-    // This ensures scores reflect cleaned descriptions (description quality points)
-    const allNewJobIds = results.flatMap(r => r.newJobIds);
-    if (allNewJobIds.length > 0) {
-      console.log(`[Quality] Recomputing scores for ${allNewJobIds.length} newly added jobs...`);
-      let recomputed = 0;
-      for (const jobId of allNewJobIds) {
-        try {
-          const job = await prisma.job.findUnique({
-            where: { id: jobId },
-            select: { applyLink: true, displaySalary: true, normalizedMinSalary: true, normalizedMaxSalary: true, descriptionSummary: true, description: true, city: true, state: true },
-          });
-          if (job) {
-            const qScore = computeQualityScore({
-              applyLink: job.applyLink,
-              displaySalary: job.displaySalary,
-              normalizedMinSalary: job.normalizedMinSalary,
-              normalizedMaxSalary: job.normalizedMaxSalary,
-              descriptionSummary: job.descriptionSummary,
-              description: job.description,
-              city: job.city,
-              state: job.state,
-              isEmployerPosted: false,
-            });
-            await prisma.job.update({ where: { id: jobId }, data: { qualityScore: qScore } });
-            recomputed++;
-          }
-        } catch (e) {
-          // Non-fatal — keep existing score
-        }
-      }
-      console.log(`[Quality] Recomputed ${recomputed}/${allNewJobIds.length} quality scores`);
-    }
-  }
+  // Post-ingestion description cleanup REMOVED 2026-05-06.
+  // Both insertion paths now produce clean descriptions at write-time:
+  //   - Aggregated ingests: lib/job-normalizer.ts:813 calls cleanDescription()
+  //     before building the create payload.
+  //   - Employer-posted: /api/jobs/post-free + /api/jobs/update both call
+  //     summarizeForMeta() at submit-time.
+  // The end-of-cron `cleanAllJobDescriptions()` whole-table scan was
+  // therefore a no-op on every run (filters by `description contains '<'`
+  // → nothing matched). Quality-score recompute that depended on this
+  // step is also gone — Step 7 already writes the final score at insert.
+  // If legacy dirty rows ever surface, run cleanAllJobDescriptions
+  // manually as a one-off; the function is still exported.
 
   // Auto-collect employer emails into leads
   try {
@@ -814,7 +1180,10 @@ export async function ingestJobs(
 export async function cleanupExpiredJobs(): Promise<number> {
   try {
     const now = new Date();
-    const maxAgeDate = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000);
+    // Hard lifetime cap = 60 days from originalPostedAt. Matches the
+    // initial expiresAt we now write at insert time (originalPostedAt + 60d)
+    // and the renewal cap. Belt-and-suspenders against any drift.
+    const maxAgeDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
 
     // First, find the jobs we're about to expire so we can build URLs for de-indexing
     const jobsToExpire = await prisma.job.findMany({
@@ -836,40 +1205,26 @@ export async function cleanupExpiredJobs(): Promise<number> {
       return 0;
     }
 
-    // Sweep 1: Unpublish jobs past their expiresAt date
-    const expiredResult = await prisma.job.updateMany({
+    // Single sweep — same OR clause used in the SELECT above. Previously
+    // this was two updateMany calls with overlapping conditions, so any
+    // job matching BOTH (past expiresAt AND past 60-day cap) was touched
+    // twice. Collapsed 2026-05-06.
+    //
+    // NOTE: ATS dead-link checking REMOVED 2026-03-11 — now handled by
+    // /api/cron/check-dead-links (3×/day, 1500 links/run).
+    const updateResult = await prisma.job.updateMany({
       where: {
-        expiresAt: {
-          lt: now,
-        },
         isPublished: true,
+        OR: [
+          { expiresAt: { lt: now } },
+          { originalPostedAt: { lt: maxAgeDate }, sourceProvider: { not: null } },
+        ],
       },
-      data: {
-        isPublished: false,
-      },
+      data: { isPublished: false },
     });
 
-    // Sweep 2: Unpublish jobs older than 120 days (max lifetime cap)
-    const agedOutResult = await prisma.job.updateMany({
-      where: {
-        originalPostedAt: {
-          lt: maxAgeDate,
-        },
-        isPublished: true,
-        // Only apply to aggregated jobs, not employer-posted
-        sourceProvider: { not: null },
-      },
-      data: {
-        isPublished: false,
-      },
-    });
-
-    // NOTE: Sweep 3 (ATS dead link checking) REMOVED 2026-03-11 — now handled by
-    // dedicated /api/cron/check-dead-links cron (3×/day, 1500 links/run, HEAD→GET fallback).
-    // Running it here after every ingestion cron (~21×/day) was redundant and wasteful.
-
-    const total = expiredResult.count + agedOutResult.count;
-    console.log(`[Cleanup] Total: ${expiredResult.count} expired + ${agedOutResult.count} aged-out = ${total}`);
+    const total = updateResult.count;
+    console.log(`[Cleanup] Unpublished ${total} expired/aged-out jobs (single sweep)`);
 
     // Notify search engines to de-index expired job URLs
     // Uses dedicated deletion quota (100/day Google, unlimited IndexNow)

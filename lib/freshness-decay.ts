@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { computeQualityScore } from './utils/quality-score';
 
 /**
  * Calculate freshness score based on the original posted date
@@ -37,7 +38,7 @@ export function calculateFreshnessScore(originalPostedAt: Date | null, createdAt
  * Also checks expiresAt as a safety net: if expiresAt is still in the future,
  * the job was recently renewed enough to have a valid expiry, so keep it alive.
  * 
- * External jobs: unpublish if not renewed/seen for 120 days AND expiresAt is past
+ * External jobs: unpublish if not renewed/seen for 60 days AND expiresAt is past
  * Employer jobs: keep until expiresAt (they paid for the listing)
  */
 export function shouldUnpublish(updatedAt: Date, sourceType: string, expiresAt?: Date | null): boolean {
@@ -60,11 +61,14 @@ export function shouldUnpublish(updatedAt: Date, sourceType: string, expiresAt?:
       return true;
     }
 
-    // Fallback for legacy jobs without expiresAt: use updatedAt as proxy
+    // Fallback for legacy jobs without expiresAt: use updatedAt as proxy.
+    // 60-day threshold matches the catalog-wide hard lifetime cap (was 120
+    // before 2026-05-05 when expiresAt = originalPostedAt + 60d became the
+    // single source of truth).
     const now = new Date();
     const daysSinceLastSeen = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
 
-    return daysSinceLastSeen >= 120;
+    return daysSinceLastSeen >= 60;
   } catch (error) {
     console.error('Error determining unpublish status:', error);
     return false;
@@ -142,7 +146,6 @@ export async function applyFreshnessDecay(): Promise<{
             unpublished++;
           } else {
             // Recompute quality score (picks up freshness decay + any data changes)
-            const { computeQualityScore } = await import('./utils/quality-score');
             const newScore = computeQualityScore({
               applyLink: job.applyLink,
               displaySalary: job.displaySalary,

@@ -1,11 +1,22 @@
 /**
  * SmartRecruiters Direct Scraper
- * 
+ *
  * Fetches jobs from SmartRecruiters via their public JSON API.
  * Endpoint: https://api.smartrecruiters.com/v1/companies/{slug}/postings
- * 
+ *
  * No API key required. Free and unlimited.
+ *
+ * 2026-05-05 fix: previously fetched the full description for EVERY
+ * posting before filtering by title. Companies with hundreds of postings
+ * (International SOS: 598) consumed the orchestrator's 240s budget on
+ * description fetches alone, with zero source_stats rows ever recorded.
+ * The adapter now title-filters BEFORE the description fetch — only
+ * PMHNP-relevant postings incur the per-job HTTP call.
  */
+import { isRelevantJob } from '@/lib/utils/job-filter';
+import { SMARTRECRUITERS_TENANTS } from './tenants/smartrecruiters';
+
+const SMARTRECRUITERS_COMPANIES = SMARTRECRUITERS_TENANTS;
 
 
 interface SmartRecruitersPosting {
@@ -33,18 +44,6 @@ export interface SmartRecruitersJobRaw {
     jobType?: string;
 }
 
-const SMARTRECRUITERS_COMPANIES = [
-    // === ADDED 2026-02-20 — Production DB apply_link mining ===
-    // 3 with PMHNP jobs in sample
-    { slug: 'karecruitinginc', name: 'K.A. Recruiting' },                  // 60 total, 7 PMHNP
-    { slug: 'oleskyassociates', name: 'Olesky Associates' },                // 299 total, 7 PMHNP
-    { slug: 'newyorkpsychotherapyandcounselingcenter', name: 'NY Psychotherapy & Counseling' }, // 11 total, 6 PMHNP
-
-    // 3 alive, monitoring for PMHNP
-    { slug: 'internationalsosgovernmentmedicalservices', name: 'International SOS' },   // 598 total
-    { slug: 'kittitasvalleyhealthcare', name: 'Kittitas Valley Healthcare' },           // 63 total
-    { slug: 'mascmedicalrecruitmentfirm', name: 'MASC Medical' },                      // 82 total
-];
 
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -106,7 +105,13 @@ async function fetchCompanyJobs(company: { slug: string; name: string }): Promis
             if (postings.length === 0) break;
 
             for (const posting of postings) {
-                    // Fetch full description for all jobs
+                    // Title-only relevance check BEFORE fetching the full
+                    // description. Saves 1 HTTP call per non-PMHNP posting.
+                    // The orchestrator runs the same gate against title +
+                    // description; this just moves the title check earlier
+                    // so we don't waste API time on irrelevant titles.
+                    if (!isRelevantJob(posting.name, '')) continue;
+
                     const description = await fetchJobDescription(company.slug, posting.id);
 
                     const locationParts = [
@@ -174,3 +179,19 @@ export async function fetchSmartRecruitersJobs(): Promise<SmartRecruitersJobRaw[
     console.log(`[SmartRecruiters] Total: ${allJobs.length} PMHNP jobs found across all companies`);
     return allJobs;
 }
+
+import type { Aggregator, RawJobData } from './types';
+import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+
+export const smartRecruitersAggregator: Aggregator = {
+    key: 'smartrecruiters',
+    chunkCount: 1,
+    async fetch(): Promise<RawJobData[]> {
+        return (await fetchSmartRecruitersJobs()) as unknown as RawJobData[];
+    },
+    async probeJob(externalId: string, applyLink: string): Promise<HealthDecision | null> {
+        // Routes through checkJobHealth, which dispatches to the
+        // SmartRecruiters JSON API probe (lib/health/probes/smartrecruiters-api.ts).
+        return checkJobHealth(applyLink, 'smartrecruiters', { externalId });
+    },
+};

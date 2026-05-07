@@ -160,7 +160,7 @@ export default function CronHealthDashboard() {
                             const chunk = cron.path.includes('chunk=') ? new URLSearchParams(cron.path.split('?')[1]).get('chunk') : null;
 
                             return (
-                                <div key={cron.path} style={{ 
+                                <div key={`${cron.path}@${cron.schedule}`} style={{
                                     backgroundColor: '#FAFBF9', 
                                     border: '1px solid rgba(255,255,255,0.7)', 
                                     borderRadius: '18px', 

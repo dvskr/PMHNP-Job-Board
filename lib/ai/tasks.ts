@@ -89,8 +89,17 @@ export const TASK_REGISTRY: Record<AiTaskId, TaskConfig> = {
         outputMode: 'json',
         cacheTtlSeconds: 7 * 86_400,
         temperature: 0.1,
-        maxOutputTokens: 2_000,
-        timeoutMs: 60_000,
+        // Bumped 2_000 → 8_000 (2026-05-06). Same gpt-5-mini reasoning-token
+        // bug we hit on talent_search_rerank and candidate_scoring: the
+        // model spends part of max_completion_tokens on hidden reasoning,
+        // and a kitchen-sink PMHNP resume (6 licenses + 8 certs + 7 work
+        // experiences + 5 degrees) needs ~3-4k tokens just for the JSON
+        // payload. Symptom was "Unexpected end of JSON input" because the
+        // envelope got cut off mid-stream and Zod failed to parse.
+        maxOutputTokens: 8_000,
+        // Bumped 60s → 90s for the same reason — wider reasoning budget
+        // means longer wall-clock per call.
+        timeoutMs: 90_000,
         rateLimit: { limit: 20, windowSeconds: 3600 },
     },
     embeddings_generic: {

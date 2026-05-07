@@ -164,6 +164,8 @@ function SettingsPageInner() {
   const [sendingReset, setSendingReset] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showClearModal, setShowClearModal] = useState(false)
+  const [clearing, setClearing] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [availabilityMode, setAvailabilityMode] = useState('Immediately')
 
@@ -207,6 +209,30 @@ function SettingsPageInner() {
 
 
   }, [router])
+
+  // Re-fetch the profile in place. Called after AI autofill commits
+  // and after Clear All so the form fields show the new state without
+  // a page reload.
+  const refetchProfile = async () => {
+    try {
+      const res = await fetch('/api/auth/profile')
+      if (!res.ok) return
+      const data = await res.json()
+      setProfile(data)
+      if (data.availableDate) {
+        const d = new Date(data.availableDate)
+        const now = new Date()
+        const diffDays = Math.round((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        if (diffDays <= 1) setAvailabilityMode('Immediately')
+        else if (diffDays <= 16) setAvailabilityMode('2 Weeks')
+        else if (diffDays <= 35) setAvailabilityMode('1 Month')
+        else if (diffDays <= 95) setAvailabilityMode('3 Months')
+        else setAvailabilityMode('Custom')
+      }
+    } catch {
+      // Silent — the next user action will surface any persistent issue.
+    }
+  }
 
   // Poll for profile updates if resume parsing is pending
   useEffect(() => {
@@ -304,6 +330,31 @@ function SettingsPageInner() {
       setDeleting(false)
     }
     setShowDeleteModal(false)
+  }
+
+  // Wipes the profile to a near-blank state — preserves only firstName,
+  // email, role, and file references (avatar/resume). Hard-deletes
+  // every CandidateLicense/Cert/Education/Work/Reference/Screening row.
+  // Account, login credentials, and activity history (applications,
+  // saved jobs, conversations) are NOT touched.
+  const handleClearAll = async () => {
+    setClearing(true)
+    try {
+      const res = await fetch('/api/profile/clear', { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.error || `HTTP ${res.status}`)
+      }
+      // Re-fetch the profile so the form fields reflect the clear.
+      await refetchProfile()
+      setAvailabilityMode('Immediately')
+      showMsg('success', 'Profile cleared. Only your first name was kept.')
+    } catch (err) {
+      showMsg('error', err instanceof Error ? err.message : 'Failed to clear profile')
+    } finally {
+      setClearing(false)
+      setShowClearModal(false)
+    }
   }
 
   const handleSave = async () => {
@@ -449,26 +500,51 @@ function SettingsPageInner() {
             </h1>
             <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0 }}>Manage your profile and preferences</p>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              padding: '10px 24px',
-              borderRadius: '14px',
-              background: saving ? '#88CCBF' : '#0D9488',
-              color: '#fff',
-              fontSize: '14px',
-              fontWeight: 700,
-              cursor: saving ? 'not-allowed' : 'pointer',
-              border: '1px solid rgba(255,255,255,0.3)',
-              display: 'inline-flex', alignItems: 'center', gap: '8px',
-              boxShadow: '4px 4px 10px rgba(13,148,136,0.20), -2px -2px 6px rgba(255,255,255,0.3), inset 2px 2px 4px rgba(255,255,255,0.2)',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => setShowClearModal(true)}
+              disabled={saving || clearing}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '14px',
+                background: '#FFFFFF',
+                color: '#B91C1C',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: saving || clearing ? 'not-allowed' : 'pointer',
+                border: '1.5px solid rgba(185,28,28,0.35)',
+                display: 'inline-flex', alignItems: 'center', gap: '7px',
+                boxShadow: '2px 2px 6px rgba(185,28,28,0.08), inset 1px 1px 2px rgba(255,255,255,0.6)',
+                transition: 'all 0.2s ease',
+                opacity: saving || clearing ? 0.6 : 1,
+              }}
+              title="Reset all profile fields except your first name"
+            >
+              {clearing ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+              {clearing ? 'Clearing...' : 'Clear All Info'}
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving || clearing}
+              style={{
+                padding: '10px 24px',
+                borderRadius: '14px',
+                background: saving ? '#88CCBF' : '#0D9488',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: 700,
+                cursor: saving || clearing ? 'not-allowed' : 'pointer',
+                border: '1px solid rgba(255,255,255,0.3)',
+                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                boxShadow: '4px 4px 10px rgba(13,148,136,0.20), -2px -2px 6px rgba(255,255,255,0.3), inset 2px 2px 4px rgba(255,255,255,0.2)',
+                transition: 'all 0.2s ease',
+                opacity: saving || clearing ? 0.6 : 1,
+              }}
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </div>
 
         <SettingsTabs activeTab={activeTab} onTabChange={handleTabChange} isJobSeeker={profile.role !== 'employer'} />
@@ -591,11 +667,54 @@ function SettingsPageInner() {
               <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
                 Upload your resume to quickly apply to jobs
               </p>
+
+              {/* AI autofill explainer — surfaces the feature so users
+                  don't blow past the modal that pops after upload. */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  padding: '14px 16px',
+                  marginBottom: '16px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(45,212,191,0.08))',
+                  border: '1px solid rgba(139,92,246,0.2)',
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: 'rgba(139,92,246,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ fontSize: '18px' }}>✨</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>
+                    AI extracts your profile from this resume
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#4A5E6A', margin: 0, lineHeight: 1.5 }}>
+                    After upload we read your name, contact, NPI/DEA, every state license,
+                    certifications, education and work history — then show you a review screen.
+                    Choose <strong>Fill empty fields</strong> to keep what you already have, or{' '}
+                    <strong>Replace everything</strong> to use the resume as the source of truth.
+                    Nothing saves until you confirm.
+                  </p>
+                </div>
+              </div>
+
               <ResumeUpload
                 currentResumeUrl={profile.resumeUrl}
                 resumeParseStatus={profile.resumeParseStatus}
                 onUploadComplete={handleResumeUpload}
                 onRemove={handleResumeRemove}
+                onAutofillApplied={refetchProfile}
               />
             </div>
           )}
@@ -1637,6 +1756,117 @@ function SettingsPageInner() {
                 >
                   {deleting ? <Loader2 size={14} className="animate-spin" /> : null}
                   {deleting ? 'Deleting...' : 'Delete Account'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Clear All Info Confirmation Modal ── */}
+        {showClearModal && (
+          <div style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 100, padding: '16px',
+            backdropFilter: 'blur(4px)',
+          }}>
+            <div style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '20px',
+              maxWidth: '480px',
+              width: '100%',
+              padding: '32px',
+              position: 'relative',
+            }}>
+              <button
+                onClick={() => setShowClearModal(false)}
+                disabled={clearing}
+                style={{
+                  position: 'absolute', top: '16px', right: '16px',
+                  background: 'none', border: 'none', cursor: clearing ? 'not-allowed' : 'pointer',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                <X size={20} />
+              </button>
+
+              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                <div style={{
+                  width: '64px', height: '64px', borderRadius: '50%',
+                  background: 'rgba(239,68,68,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}>
+                  <AlertTriangle size={32} style={{ color: '#EF4444' }} />
+                </div>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  Clear all profile info?
+                </h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.5 }}>
+                  This wipes everything you&apos;ve filled in. Your account, login,
+                  and application history are not affected.
+                </p>
+              </div>
+
+              <div style={{
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '14px 16px',
+                marginBottom: '20px',
+                fontSize: '13px',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.6,
+              }}>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                  Will be cleared:
+                </div>
+                Last name, phone, headline, bio, LinkedIn, years of experience,
+                certifications, license states, specialties, skills, job
+                preferences, address, EEO info, NPI, DEA, and all licenses,
+                certifications, education, work experience, references, and
+                screening answers you&apos;ve added.
+
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)', margin: '12px 0 6px' }}>
+                  Will be kept:
+                </div>
+                First name, email, account, password, profile picture, resume
+                file, application history, saved jobs, and conversations.
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  onClick={() => setShowClearModal(false)}
+                  disabled={clearing}
+                  style={{
+                    flex: 1, padding: '10px', borderRadius: '10px',
+                    border: '1.5px solid var(--border-color)',
+                    background: 'var(--bg-primary)',
+                    color: 'var(--text-secondary)',
+                    fontSize: '14px', fontWeight: 600,
+                    cursor: clearing ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleClearAll}
+                  disabled={clearing}
+                  style={{
+                    flex: 1, padding: '10px', borderRadius: '10px',
+                    border: 'none',
+                    background: '#EF4444',
+                    color: '#fff',
+                    fontSize: '14px', fontWeight: 600,
+                    cursor: clearing ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    opacity: clearing ? 0.6 : 1,
+                  }}
+                >
+                  {clearing ? <Loader2 size={14} className="animate-spin" /> : null}
+                  {clearing ? 'Clearing...' : 'Yes, Clear All'}
                 </button>
               </div>
             </div>

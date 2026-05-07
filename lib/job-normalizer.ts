@@ -3,7 +3,7 @@ import { normalizeSalary } from './salary-normalizer';
 import { parseLocation } from './location-parser';
 import { formatDisplaySalary } from './salary-display';
 import { cleanDescription } from './description-cleaner';
-import { expiresFromNow } from './expires-at';
+import { findCanonicalName } from './company-normalizer';
 
 type NormalizedJob = Omit<Job, 'id' | 'createdAt' | 'updatedAt' | 'viewCount' | 'applyClickCount'> & {
   originalPostedAt?: Date | null;
@@ -42,9 +42,58 @@ export function extractSalary(text: string): { min: number | null; max: number |
   // Dollar amount: $120,000 or $120k or $55.50
   const amt = '\\$([\\d,]+(?:\\.\\d{1,2})?(?:k)?)';
 
+  // 0a. SINGLE-VALUE CAP: "up to $150k", "max $150,000", "up to $150k per year"
+  // Runs first so cap-style phrasing isn't intercepted by the period-specific
+  // patterns below (which would store the value as min instead of max).
+  const singleCap = new RegExp(
+    '(?:up\\s+to|max(?:imum)?\\s+(?:of\\s+)?)\\s*' + amt + '\\s*(?:per\\s*(year|hour|hr))?',
+    'gi',
+  );
+  let match = singleCap.exec(text);
+  if (match) {
+    const max = parseDollar(match[1]);
+    const explicitPeriod = match[2]?.toLowerCase() ?? null;
+    const period = explicitPeriod === 'year' ? 'year' : explicitPeriod === 'hour' || explicitPeriod === 'hr' ? 'hour' : max > 1000 ? 'year' : 'hour';
+    // Require salary-context within ~80 chars; reject sign-on / relocation / CME bonuses.
+    const context = text.substring(Math.max(0, (match.index || 0) - 80), (match.index || 0) + match[0].length + 30).toLowerCase();
+    const looksLikeSalary =
+      context.includes('salary') || context.includes('compensation') || context.includes('pay') ||
+      context.includes('rate') || context.includes('wage') || context.includes('earn') ||
+      context.includes('income') || /\bper\s*(year|hour|hr)\b/.test(context);
+    const looksLikeBonus =
+      context.includes('sign-on') || context.includes('sign on') || context.includes('bonus') ||
+      context.includes('relocat') || context.includes('cme') || context.includes('stipend');
+    if (looksLikeSalary && !looksLikeBonus) {
+      return { min: null, max, period };
+    }
+  }
+
+  // 0b. SINGLE-VALUE FLOOR: "starting at $120k", "from $90,000"
+  const singleFloor = new RegExp(
+    '(?:starting\\s+at|starting\\s+from|from|at\\s+least|min(?:imum)?\\s+(?:of\\s+)?)\\s*' + amt + '\\s*(?:per\\s*(year|hour|hr))?',
+    'gi',
+  );
+  match = singleFloor.exec(text);
+  if (match) {
+    const min = parseDollar(match[1]);
+    const explicitPeriod = match[2]?.toLowerCase() ?? null;
+    const period = explicitPeriod === 'year' ? 'year' : explicitPeriod === 'hour' || explicitPeriod === 'hr' ? 'hour' : min > 1000 ? 'year' : 'hour';
+    const context = text.substring(Math.max(0, (match.index || 0) - 80), (match.index || 0) + match[0].length + 30).toLowerCase();
+    const looksLikeSalary =
+      context.includes('salary') || context.includes('compensation') || context.includes('pay') ||
+      context.includes('rate') || context.includes('wage') || context.includes('earn') ||
+      context.includes('income') || /\bper\s*(year|hour|hr)\b/.test(context);
+    const looksLikeBonus =
+      context.includes('sign-on') || context.includes('sign on') || context.includes('bonus') ||
+      context.includes('relocat') || context.includes('cme') || context.includes('stipend');
+    if (looksLikeSalary && !looksLikeBonus) {
+      return { min, max: null, period };
+    }
+  }
+
   // 1. HOURLY: "$50/hour", "$45 - $55 per hour", "$40/hr"
   const hourly = new RegExp(amt + '(?:' + sep + '\\$?([\\d,]+(?:\\.\\d{1,2})?(?:k)?))?\\s*(?:per\\s*hour|per\\s*hr|\\/\\s*(?:hour|hr)|hourly)', 'gi');
-  let match = hourly.exec(text);
+  match = hourly.exec(text);
   if (match) {
     return { min: parseDollar(match[1]), max: match[2] ? parseDollar(match[2]) : null, period: 'hour' };
   }
@@ -136,16 +185,38 @@ export function extractSalary(text: string): { min: number | null; max: number |
 export function detectJobType(text: string): string | null {
   const lowerText = text.toLowerCase();
 
-  if (lowerText.includes('per diem') || lowerText.includes('per-diem')) {
+  // Order matters: more specific signals first.
+  if (lowerText.includes('locum tenens') || lowerText.includes('locums') || /\blocum\b/.test(lowerText)) {
+    return 'Locum Tenens';
+  }
+  if (lowerText.includes('per diem') || lowerText.includes('per-diem') || /\bprn\b/.test(lowerText)) {
     return 'Per Diem';
   }
-  if (lowerText.includes('contract') || lowerText.includes('contractor')) {
+  if (
+    lowerText.includes('1099') ||
+    lowerText.includes('independent contractor') ||
+    lowerText.includes('contract') ||
+    lowerText.includes('contractor') ||
+    /\bffs\b/.test(lowerText) ||                            // fee-for-service
+    /\bfee[\s-]for[\s-]service\b/.test(lowerText)
+  ) {
     return 'Contract';
   }
-  if (lowerText.includes('part-time') || lowerText.includes('part time')) {
+  if (
+    lowerText.includes('part-time') ||
+    lowerText.includes('part time') ||
+    /\bpart[-\s]?time\b/.test(lowerText) ||
+    /\bp\/?t\b/.test(lowerText)                              // P/T abbreviation
+  ) {
     return 'Part-Time';
   }
-  if (lowerText.includes('full-time') || lowerText.includes('full time') || lowerText.includes('permanent')) {
+  if (
+    lowerText.includes('full-time') ||
+    lowerText.includes('full time') ||
+    lowerText.includes('permanent') ||
+    /\bw[\s-]?2\b/.test(lowerText) ||                         // W-2 employment
+    /\bf\/?t\b/.test(lowerText)                               // F/T abbreviation
+  ) {
     return 'Full-Time';
   }
 
@@ -196,8 +267,10 @@ export function canonicalizeJobType(raw: string | null | undefined): string | nu
 // most specific (mentions of "split between..." or "X days remote" are
 // indicators of Hybrid even if "remote" or "in-person" appear in the same
 // sentence).
-const MODE_HYBRID_RE = /\b(?:hybrid|split between|days (?:in[\s-]office|remote)|(?:\d+\s*)?days? (?:on[\s-]site|in[\s-]person)|flex(?:ible)? schedule|partial(?:ly)? remote)\b/i;
-const MODE_REMOTE_RE = /\b(?:fully remote|100% remote|100 ?% remote|wfh|work[\s-]from[\s-]home|remote[\s-]?friendly|remote[\s-]?eligible|telecommute|telework|virtual position|virtual role|home[\s-]based|telehealth|tele[\s-]psychiatry|tele[\s-]health|remote)\b/i;
+const MODE_HYBRID_RE = /\b(?:hybrid|split between|days (?:in[\s-]office|remote)|(?:\d+\s*)?days? (?:on[\s-]site|in[\s-]person)|flex(?:ible)? schedule|partial(?:ly)? remote|(?:\d+|two|three|four)\s*days?\s*(?:per|a)\s*week\s*(?:remote|on[\s-]?site|in[\s-]?office))\b/i;
+// Extended 2026-05-05: added 'fully virtual', 'work from anywhere',
+// '100% telework', 'remote-first', 'distributed team', 'wherever you are'.
+const MODE_REMOTE_RE = /\b(?:fully remote|100% remote|100 ?% remote|wfh|work[\s-]from[\s-]home|remote[\s-]?friendly|remote[\s-]?eligible|remote[\s-]?first|telecommute|telework|100% telework|fully virtual|virtual position|virtual role|home[\s-]based|telehealth|tele[\s-]psychiatry|tele[\s-]health|work\s+from\s+anywhere|distributed team|wherever you are|fully distributed|remote)\b/i;
 const MODE_ONSITE_RE = /\b(?:on[\s-]?site|onsite|in[\s-]?person|in person|office[\s-]?based|in[\s-]?office|office\s+location|clinic[\s-]?based|hospital[\s-]?based|outpatient (?:clinic|setting)|brick[\s-]and[\s-]mortar|on[\s-]premises?)\b/i;
 
 function detectMode(text: string): string | null {
@@ -256,8 +329,21 @@ export function detectExperienceLevel(title: string, description: string): strin
     'training program', 'preceptor', 'will train',
     'welcome new grads', 'new grads welcome', 'open to new grads',
     'graduate nurse practitioner',
+    'first job', 'just graduated', 'fresh out of school',
   ];
   if (newGradPatterns.some(p => text.includes(p))) return 'New Grad';
+
+  // ── "Open to all levels" / "any experience" — common pattern that
+  // indicates the employer doesn't restrict by experience. We return
+  // 'Mid-Level' as a safe default since these listings are broadly
+  // accessible (covering mid + senior). Returning null would leave
+  // the field empty, which our completeness score penalizes.
+  const anyLevelPatterns = [
+    'open to all levels', 'all levels welcome', 'any experience level',
+    'any level', 'experience varies', 'flexible experience',
+    'open to candidates of all experience levels',
+  ];
+  if (anyLevelPatterns.some(p => text.includes(p))) return 'Mid-Level';
 
   return null;
 }
@@ -333,47 +419,37 @@ export function validateAndNormalizeSalary(
     }
   }
 
-  // Step 2: Reject clearly fake values based on period
-  const isInvalid = (salary: number | null, period: string): boolean => {
-    if (!salary) return false;
-
-    if (period === 'hourly') {
-      return salary > 300 || salary < 20;
-    } else if (period === 'annual') {
-      return salary > 500000 || salary < 30000;
-    }
-    // For daily/weekly/biweekly/monthly, use reasonable ranges
-    if (period === 'daily') {
-      return salary > 2000 || salary < 100;
-    }
-    if (period === 'weekly') {
-      return salary > 10000 || salary < 400;
-    }
-    if (period === 'biweekly') {
-      return salary > 20000 || salary < 800;
-    }
-    if (period === 'monthly') {
-      return salary > 40000 || salary < 2000;
-    }
-
-    return false;
+  // Step 2: Clamp out-of-range values to the period's bounds rather than
+  // dropping them. The source TRIED to give us a salary, so a usable value
+  // is better than null. A $20k "annual" gets clamped up to $30k; a $700k
+  // "annual" gets clamped down to $500k. (Changed 2026-05-05 from drop-on-
+  // invalid to clamp-on-invalid per user request.)
+  const PERIOD_BOUNDS: Record<string, { min: number; max: number }> = {
+    hourly:    { min: 20,    max: 300 },
+    annual:    { min: 30000, max: 500000 },
+    daily:     { min: 100,   max: 2000 },
+    weekly:    { min: 400,   max: 10000 },
+    biweekly:  { min: 800,   max: 20000 },
+    monthly:   { min: 2000,  max: 40000 },
   };
 
-  if (isInvalid(min, period) && isInvalid(max, period)) {
-    // Both invalid, reject all
-    console.log(`Rejected suspicious salary: ${min}-${max} ${period}`);
-    return { minSalary: null, maxSalary: null, salaryPeriod: null };
-  }
+  const clampToBounds = (salary: number | null, p: string): number | null => {
+    if (!salary) return null;
+    const bounds = PERIOD_BOUNDS[p];
+    if (!bounds) return salary; // unknown period — leave alone
+    if (salary < bounds.min) {
+      console.log(`Clamped low salary ${salary} ${p} → ${bounds.min}`);
+      return bounds.min;
+    }
+    if (salary > bounds.max) {
+      console.log(`Clamped high salary ${salary} ${p} → ${bounds.max}`);
+      return bounds.max;
+    }
+    return salary;
+  };
 
-  if (isInvalid(min, period)) {
-    console.log(`Rejected suspicious salary: ${min} ${period}`);
-    min = null;
-  }
-
-  if (isInvalid(max, period)) {
-    console.log(`Rejected suspicious salary: ${max} ${period}`);
-    max = null;
-  }
+  min = clampToBounds(min, period);
+  max = clampToBounds(max, period);
 
   // Step 3: Swap if minSalary > maxSalary
   if (min && max && min > max) {
@@ -398,6 +474,13 @@ interface SourceFieldConfig {
   externalId: string[];   // Field names to try for external ID
   salaryMin: string[];    // Field names to try for salary min
   salaryMax: string[];    // Field names to try for salary max
+  /**
+   * Field names to try for the salary period when the source supplies it
+   * (e.g. Adzuna sets salaryPeriod='annual'). Without this hint, the
+   * validator infers period from magnitude — which gets fooled by the
+   * $30k–$40k range (mistakenly classified as monthly).
+   */
+  salaryPeriod: string[];
   datePosted: string[];   // Field names to try for posted date
   defaultEmployer: string;
   defaultLocation: string;
@@ -412,6 +495,7 @@ const DEFAULT_CONFIG: SourceFieldConfig = {
   externalId: ['externalId', 'id', 'external_id'],
   salaryMin: ['minSalary'],
   salaryMax: ['maxSalary'],
+  salaryPeriod: ['salaryPeriod', 'salary_period', 'salaryUnit'],
   datePosted: ['postedAt', 'postedDate', 'posted_at', 'updated_at', 'createdAt', 'updated'],
   defaultEmployer: 'Unknown Company',
   defaultLocation: 'Unknown Location',
@@ -421,6 +505,7 @@ const SOURCE_CONFIGS: Record<string, Partial<SourceFieldConfig>> = {
   adzuna: {
     applyLink: ['applyLink', 'redirect_url'],
     datePosted: ['postedAt'],
+    salaryPeriod: ['salaryPeriod'],
   },
   jsearch: {
     datePosted: ['postedDate'],
@@ -486,6 +571,193 @@ export interface NormalizeResult {
   rejectionReason?: string;
 }
 
+/**
+ * Canonical rejection reasons emitted by `normalizeJobWithReason`.
+ * Stable strings — written verbatim to `rejected_jobs.rejection_reason`
+ * so admin queries / pipeline-event metrics can pivot on them.
+ *
+ * Old free-form strings ("missing_fields:title_or_apply_link",
+ * "stale_90d:2026-01-15", "error:...") are retired in favor of these.
+ */
+export type NormalizerRejectionReason =
+  | 'normalizer_missing_required_field'  // title or applyLink absent
+  | 'normalizer_missing_description'      // description empty / < MIN_DESCRIPTION_LENGTH
+  | 'normalizer_stale_post'               // originalPostedAt > 60 days ago
+  | 'normalizer_indirect_apply'           // applyLink points at a known wrapper/redirect host
+  | 'normalizer_low_completeness'         // not enough data points (see computeCompleteness)
+  | 'normalizer_exception';               // try/catch caught a runtime error
+
+const MIN_DESCRIPTION_LENGTH = 50;
+
+/**
+ * Two-tier completeness gating.
+ *
+ *   Hard floor (this file)       — score < 20 → reject as truly unsalvageable.
+ *   Soft floor (orchestrator)    — score < 40 → try inline LLM rescue, then
+ *                                    re-score and decide. See lib/ingestion-service.ts.
+ *
+ * Calibrated 2026-05-05 against the typical catalog distribution:
+ *   - greenhouse / lever:  avg ~50 (description + location + jobType + mode)
+ *   - adzuna:              avg ~70 (almost always has salary)
+ *   - fantastic-jobs-db:   avg ~38 (often missing mode + salary; LLM rescue tries)
+ */
+
+/**
+ * Score a normalized job 0-100 by which fields it has populated.
+ * Used by the two-tier completeness gate (hard floor here, soft floor
+ * in the orchestrator) and as a sortable signal in the admin panel.
+ *
+ * Weights reflect what users actually need to evaluate a job:
+ *   - description (15) — cannot read the role without this
+ *   - location (15)    — city OR state required for relevance
+ *   - salary (20)      — top user-asked-for filter
+ *   - jobType (10)     — FT/PT/Contract distinction matters for fit
+ *   - mode (10)        — Remote vs On-site is a hard filter
+ *   - clinical setting (10) — what kind of practice
+ *   - patient pop (5)
+ *   - benefits (5)
+ *   - experience level (5)
+ *   - employer linked  (5)
+ *
+ * Title and applyLink are required gates upstream — not counted here.
+ */
+export function computeCompleteness(job: {
+    description?: string | null;
+    descriptionSummary?: string | null;
+    city?: string | null;
+    state?: string | null;
+    isRemote?: boolean;
+    isHybrid?: boolean;
+    normalizedMinSalary?: number | null;
+    normalizedMaxSalary?: number | null;
+    jobType?: string | null;
+    mode?: string | null;
+    setting?: string | null;
+    population?: string | null;
+    benefits?: string[] | null;
+    experienceLevel?: string | null;
+    companyId?: string | null;
+}): number {
+    let score = 0;
+
+    if ((job.description?.length ?? 0) >= 200) score += 15;
+    else if ((job.description?.length ?? 0) >= 50) score += 8;
+
+    const hasLocation = !!job.city || !!job.state || job.isRemote || job.isHybrid;
+    if (hasLocation) score += 15;
+
+    const hasSalary = job.normalizedMinSalary != null || job.normalizedMaxSalary != null;
+    if (hasSalary) score += 20;
+
+    if (job.jobType) score += 10;
+    if (job.mode) score += 10;
+    if (job.setting) score += 10;
+    if (job.population) score += 5;
+    if (job.benefits && job.benefits.length > 0) score += 5;
+    if (job.experienceLevel) score += 5;
+    if (job.companyId) score += 5;
+
+    return score;
+}
+
+/**
+ * Apply-link hosts we reject as "indirect" — these wrap the real
+ * employer page in their own preview/login flow, hurting attribution
+ * and click-through. Adzuna's redirect_url single-hops to the real
+ * employer site so it stays out of this list.
+ */
+const INDIRECT_APPLY_HOST_PATTERNS = [
+    'indeed.com/rc/clk',
+    'indeed.com/cmp/',
+    'indeed.com/viewjob',
+    'glassdoor.com/job-listing/',
+    'glassdoor.com/Job/',
+    'simplyhired.com/job/',
+    'ziprecruiter.com/c/',
+    'linkedin.com/jobs/view/',
+    'monster.com/job-openings/',
+    'dice.com/jobs/detail/',
+];
+
+function isIndirectApplyLink(url: string): boolean {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    return INDIRECT_APPLY_HOST_PATTERNS.some((p) => lower.includes(p));
+}
+
+/**
+ * Light-touch employer-name canonicalization. Two stages:
+ *   1. Strip legal suffixes + whitespace ("LifeStance Health, LLC" →
+ *      "LifeStance Health").
+ *   2. Look up the result in the hand-vetted KNOWN_COMPANIES list via
+ *      findCanonicalName (e.g. "Lifestance" → "LifeStance Health",
+ *      "Blue Sky Telepsych" → "BlueSky Telepsych"). If unknown, return
+ *      the suffix-stripped string unchanged.
+ *
+ * Stage 2 was added 2026-05-06 after a prod audit found cards displaying
+ * the same company under different spellings depending on which source
+ * inserted the row first. Heavier company-record linking still happens
+ * later via `linkJobToCompany`; this just makes the displayed string
+ * canonical at ingest time.
+ */
+const EMPLOYER_LEGAL_SUFFIX_RE =
+    /[,\s]+(?:llc|l\.l\.c\.|inc\.?|incorporated|corp\.?|corporation|ltd\.?|limited|co\.?|llp|p\.?l\.?l\.?c\.?|p\.?c\.?|p\.?a\.?)\.?$/i;
+
+export function canonicalizeEmployerName(raw: string | null | undefined): string {
+    if (!raw) return '';
+    let s = String(raw).trim();
+    // Collapse repeated whitespace.
+    s = s.replace(/\s+/g, ' ');
+    // Strip trailing legal suffix (one pass — multiple suffixes are rare).
+    s = s.replace(EMPLOYER_LEGAL_SUFFIX_RE, '').trim();
+    // Strip dangling trailing comma if any.
+    s = s.replace(/,$/, '').trim();
+    // Apply curated alias map (LifeStance / BlueSky / SonderMind / …).
+    const canonical = findCanonicalName(s);
+    return canonical ?? s;
+}
+
+/**
+ * Section markers used to skip leading "About us" / "Equal Opportunity"
+ * boilerplate before truncating the SEO summary. If found within the
+ * first 800 chars, the summary starts from the marker.
+ */
+const SUMMARY_SECTION_MARKERS = [
+    'position summary',
+    'job description',
+    'job summary',
+    'job overview',
+    'role summary',
+    'responsibilities',
+    'what you will do',
+    "what you'll do",
+    'what you will be doing',
+    "what you'll be doing",
+    'we are seeking',
+    'we are looking for',
+    'looking for',
+    'in this role',
+    'as a ',
+    'the role',
+    'duties include',
+    'primary duties',
+];
+
+function smartSummarize(fullDescription: string, maxLength: number = 300): string {
+    if (!fullDescription) return '';
+    const lower = fullDescription.toLowerCase();
+    let bestIdx = -1;
+    for (const marker of SUMMARY_SECTION_MARKERS) {
+        const idx = lower.indexOf(marker);
+        if (idx >= 0 && idx <= 800 && (bestIdx === -1 || idx < bestIdx)) {
+            bestIdx = idx;
+        }
+    }
+    const start = bestIdx >= 0 ? bestIdx : 0;
+    const slice = fullDescription.slice(start, start + maxLength);
+    return slice + (fullDescription.length > start + maxLength ? '...' : '');
+}
+
 export function normalizeJob(rawJob: Record<string, unknown>, source: string): NormalizedJob | null {
   const result = normalizeJobWithReason(rawJob, source);
   return result.job;
@@ -504,36 +776,58 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     const externalId = extractField(rawJob, config.externalId, '');
     let salaryMin = extractNumericField(rawJob, config.salaryMin);
     let salaryMax = extractNumericField(rawJob, config.salaryMax);
+    const sourceSuppliedPeriod = extractField(rawJob, config.salaryPeriod, '') || null;
     const originalPostedAt = extractDateField(rawJob, config.datePosted);
 
-    // Validate required fields
+    // Gate 1: required fields
     if (!title || !applyLink) {
-      return { job: null, rejectionReason: 'missing_fields:title_or_apply_link' };
+      return { job: null, rejectionReason: 'normalizer_missing_required_field' };
     }
 
-    // Global Freshness Filter (90 Days)
-    // Skip for ATS sources — their APIs only return currently open positions
-    const atsSources = ['greenhouse', 'lever', 'ashby', 'bamboohr', 'smartrecruiters', 'icims', 'jazzhr', 'workday'];
-    if (!atsSources.includes(source) && originalPostedAt && !isNaN(originalPostedAt.getTime())) {
-      const ninetyDaysAgo = new Date();
-      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-      if (originalPostedAt < ninetyDaysAgo) {
-        return { job: null, rejectionReason: `stale_90d:${originalPostedAt.toISOString().split('T')[0]}` };
+    // Gate 2: indirect-apply check (catch wrapper hosts before any
+    // expensive parsing). Adzuna's redirect URL single-hops and is
+    // explicitly NOT in the indirect list — see INDIRECT_APPLY_HOST_PATTERNS.
+    if (isIndirectApplyLink(applyLink)) {
+      return { job: null, rejectionReason: 'normalizer_indirect_apply' };
+    }
+
+    // Gate 3: Stale-post (30 days). Tightened 2026-05-06 from 60 → 30d
+    // to align ingest inventory with user-facing "Posted Within" filter
+    // ceiling and reduce drift between source-claimed dates and what we
+    // present as "fresh". Applies to every source.
+    if (originalPostedAt && !isNaN(originalPostedAt.getTime())) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      if (originalPostedAt < thirtyDaysAgo) {
+        return { job: null, rejectionReason: 'normalizer_stale_post' };
       }
     }
 
     // Clean the description with proper formatting
     const fullDescription = cleanDescription(description);
-    const summary = fullDescription.slice(0, 300) + (fullDescription.length > 300 ? '...' : '');
+
+    // Gate 4: missing description. Empty / boilerplate-only descriptions
+    // hurt SEO + LLM enrichment + user trust. The threshold is intentionally
+    // low (50 chars) to drop only the worst cases.
+    if (fullDescription.length < MIN_DESCRIPTION_LENGTH) {
+      return { job: null, rejectionReason: 'normalizer_missing_description' };
+    }
+
+    // Smart summary — skip leading boilerplate when possible.
+    const summary = smartSummarize(fullDescription, 300);
     const fullText = `${title} ${fullDescription} ${location}`;
 
-    // Extract salary from description if not provided
-    let extractedPeriod: string | null = null;
+    // Period hint priority:
+    //   1. Source-supplied (e.g. adzuna sets salaryPeriod='annual')
+    //   2. Regex-extracted from description (only when source had no salary)
+    //   3. null → magnitude-based inference inside the validator
+    let extractedPeriod: string | null = sourceSuppliedPeriod;
     if (!salaryMin && !salaryMax) {
       const extracted = extractSalary(fullText);
       salaryMin = extracted.min;
       salaryMax = extracted.max;
-      extractedPeriod = extracted.period;
+      // Only override if regex got something AND source didn't already provide one.
+      if (!extractedPeriod) extractedPeriod = extracted.period;
     }
 
     // Validate and normalize salary data
@@ -559,25 +853,17 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     const experienceLevel = detectExperienceLevel(title, fullText);
 
 
-    // Set expiration. UTC math via expiresFromNow — setDate() drifted across
-    // DST boundaries (caused production NYPCC posting to expire 2 days late).
-    let expiresAt: Date;
-
-    // Priority 1: Use explicit expiration from source (JSearch, USAJobs)
-    const explicitExpiry = rawJob.expiresAt || rawJob.expiresDate || rawJob.job_offer_expiration_datetime_utc;
-    if (explicitExpiry) {
-      const expDate = new Date(String(explicitExpiry));
-      // Only use if valid and in the future (or very recent)
-      if (!isNaN(expDate.getTime()) && expDate.getTime() > Date.now() - 24 * 60 * 60 * 1000) {
-        expiresAt = expDate;
-      } else {
-        // Fallback if expired: standard 30-day window from now
-        expiresAt = expiresFromNow(30);
-      }
-    } else {
-      // Priority 2: Default rule (60 days from now)
-      expiresAt = expiresFromNow(60);
-    }
+    // Expiration policy.
+    //   Source provided a date  → expiresAt = originalPostedAt + 60 days
+    //   Source did NOT          → expiresAt = now + 30 days  (shorter half-life
+    //                              for jobs we don't actually know the age of)
+    // Single clock — no renewal extensions. Once set, expiresAt stays.
+    const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const expiresAt =
+      originalPostedAt && !isNaN(originalPostedAt.getTime())
+        ? new Date(originalPostedAt.getTime() + SIXTY_DAYS_MS)
+        : new Date(Date.now() + THIRTY_DAYS_MS);
 
     // Normalize salary to annual equivalent
     const normalizedSalaryData = normalizeSalary({
@@ -604,10 +890,43 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
       salaryPeriod
     );
 
+    // Gate 5: completeness score. Soft floor — reject if score < threshold.
+    // The score is computed against the about-to-be-returned shape, so
+    // changes to NormalizedJob fields should be reflected in computeCompleteness.
+    // setting/population/benefits are filled later by enrich-jobs cron, so
+    // they don't count against fresh ingests; same for companyId.
+    const completenessScore = computeCompleteness({
+      description: fullDescription,
+      descriptionSummary: summary,
+      city: parsedLocationData.city,
+      state: parsedLocationData.state,
+      isRemote,
+      isHybrid,
+      normalizedMinSalary: normalizedSalaryData.normalizedMinSalary,
+      normalizedMaxSalary: normalizedSalaryData.normalizedMaxSalary,
+      jobType,
+      mode,
+      experienceLevel,
+      // setting/population/benefits/companyId are populated AFTER ingest by
+      // the enrich-jobs cron, so we don't pass them — gate would be too strict.
+    });
+
+    // Hard floor: anything under 20 is unsalvageable (no description signal,
+    // no location, nothing). Reject immediately without bothering LLM.
+    // Soft 40-floor enforcement is moved to the orchestrator (after the
+    // inline-LLM rescue pass) so borderline jobs get one chance at LLM
+    // enrichment before being rejected.
+    const HARD_COMPLETENESS_FLOOR = 20;
+    if (completenessScore < HARD_COMPLETENESS_FLOOR) {
+      return { job: null, rejectionReason: 'normalizer_low_completeness' };
+    }
+
     return {
       job: {
         title,
-        employer,
+        // Strip legal suffixes ("LifeStance Health, LLC" → "LifeStance Health")
+        // so dedup's fuzzy match doesn't split the same company across rows.
+        employer: canonicalizeEmployerName(employer),
         location,
         jobType,
         mode,
@@ -650,7 +969,7 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     };
   } catch (error) {
     console.error('Error normalizing job:', error);
-    return { job: null, rejectionReason: `error:${error instanceof Error ? error.message : 'unknown'}` };
+    return { job: null, rejectionReason: 'normalizer_exception' };
   }
 }
 

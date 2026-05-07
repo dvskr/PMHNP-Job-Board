@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Edit3, Trash2, Save, Loader2, X, ShieldCheck } from 'lucide-react'
+import {
+    clayCard, clayInnerCard, clayFormPanel, clayTitle, claySubTitle,
+    clayInput, clayLabel, clayBtnPrimary, clayBtnOutlineSmall, clayPalette,
+} from './clay-tokens'
 
 // ── Constants ──
 const CERT_NAME_OPTIONS = [
@@ -36,69 +40,13 @@ const emptyForm: CertFormData = {
     expirationDate: '',
 }
 
-// ── Styles (matches settings page) ──
-const cardStyle: React.CSSProperties = {
-    background: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: '16px',
-    padding: '28px',
-}
-const cardTitle: React.CSSProperties = {
-    fontSize: '18px',
-    fontWeight: 700,
-    color: 'var(--text-primary)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    marginBottom: '20px',
-}
-const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: '13px',
-    fontWeight: 600,
-    color: 'var(--text-secondary)',
-    marginBottom: '6px',
-}
-const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '10px 14px',
-    borderRadius: '10px',
-    border: '1px solid var(--border-color)',
-    background: 'var(--bg-primary)',
-    color: 'var(--text-primary)',
-    fontSize: '14px',
-    outline: 'none',
-    transition: 'border-color 0.2s',
-    boxSizing: 'border-box',
-}
-const btnPrimary: React.CSSProperties = {
-    padding: '10px 28px',
-    borderRadius: '10px',
-    background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
-    color: '#fff',
-    fontSize: '14px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    border: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    transition: 'all 0.3s',
-}
-const btnOutline: React.CSSProperties = {
-    padding: '8px 16px',
-    borderRadius: '8px',
-    background: 'transparent',
-    border: '1px solid var(--border-color)',
-    color: 'var(--text-secondary)',
-    fontSize: '13px',
-    fontWeight: 500,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    transition: 'all 0.2s',
-}
+// ── Local aliases (clay-tokens.ts owns the values) ──
+const cardStyle = clayCard
+const cardTitle = clayTitle
+const labelStyle = clayLabel
+const inputStyle = clayInput
+const btnPrimary = clayBtnPrimary
+const btnOutline = clayBtnOutlineSmall
 
 function maskNumber(num: string | null): string {
     if (!num) return '—'
@@ -243,15 +191,112 @@ export default function CertificationsSection({ showMsg }: Props) {
         setForm({ ...emptyForm })
     }
 
+    // Inline form: rendered under the active edit row, or at the
+    // bottom in add mode. See WorkExperienceSection for the same pattern.
+    const renderForm = () => (
+        <div style={clayFormPanel}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h4 style={claySubTitle}>
+                    {editingId ? 'Edit Certification' : 'Add Certification'}
+                </h4>
+                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}>
+                    <X size={18} />
+                </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                    <label style={labelStyle}>Certification Name *</label>
+                    <select
+                        value={form.certificationName}
+                        onChange={(e) => setForm({ ...form, certificationName: e.target.value, certificationNameOther: '' })}
+                        style={{ ...inputStyle, cursor: 'pointer' }}
+                    >
+                        <option value="">Select certification</option>
+                        {CERT_NAME_OPTIONS.map((n) => (
+                            <option key={n} value={n}>{n}</option>
+                        ))}
+                    </select>
+                    {form.certificationName === 'Other' && (
+                        <input
+                            type="text"
+                            value={form.certificationNameOther}
+                            onChange={(e) => setForm({ ...form, certificationNameOther: e.target.value })}
+                            placeholder="Enter certification name"
+                            style={{ ...inputStyle, marginTop: '8px' }}
+                        />
+                    )}
+                </div>
+
+                <div>
+                    <label style={labelStyle}>Certifying Body</label>
+                    <select
+                        value={form.certifyingBody}
+                        onChange={(e) => setForm({ ...form, certifyingBody: e.target.value, certifyingBodyOther: '' })}
+                        style={{ ...inputStyle, cursor: 'pointer' }}
+                    >
+                        <option value="">Select body</option>
+                        {BODY_OPTIONS.map((b) => (
+                            <option key={b} value={b}>{b}</option>
+                        ))}
+                    </select>
+                    {form.certifyingBody === 'Other' && (
+                        <input
+                            type="text"
+                            value={form.certifyingBodyOther}
+                            onChange={(e) => setForm({ ...form, certifyingBodyOther: e.target.value })}
+                            placeholder="Enter certifying body name"
+                            style={{ ...inputStyle, marginTop: '8px' }}
+                        />
+                    )}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                    <div>
+                        <label style={labelStyle}>Certification Number</label>
+                        <input
+                            type="text"
+                            value={form.certificationNumber}
+                            onChange={(e) => setForm({ ...form, certificationNumber: e.target.value })}
+                            placeholder="Enter number"
+                            style={inputStyle}
+                        />
+                    </div>
+                    <div>
+                        <label style={labelStyle}>Expiration Date</label>
+                        <input
+                            type="date"
+                            value={form.expirationDate}
+                            onChange={(e) => setForm({ ...form, expirationDate: e.target.value })}
+                            style={inputStyle}
+                        />
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+                    <button onClick={cancelForm} disabled={saving} style={{ ...btnOutline, opacity: saving ? 0.5 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}>Cancel</button>
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        style={{ ...btnPrimary, ...(saving ? { opacity: 0.6, cursor: 'not-allowed' } : {}) }}
+                    >
+                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        {saving ? 'Saving...' : editingId ? 'Update' : 'Save Certification'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
     return (
         <div style={cardStyle}>
             <h3 style={cardTitle}>
-                <ShieldCheck size={20} style={{ color: '#818CF8' }} />
+                <ShieldCheck size={20} style={{ color: clayPalette.info }} />
                 Certifications
             </h3>
 
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                <div style={{ textAlign: 'center', padding: '24px', color: clayPalette.textMuted }}>
                     <Loader2 size={20} className="animate-spin" style={{ display: 'inline' }} />
                 </div>
             ) : (
@@ -260,177 +305,57 @@ export default function CertificationsSection({ showMsg }: Props) {
                     {certs.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: showForm ? '20px' : '16px' }}>
                             {certs.map((c) => (
-                                <div
-                                    key={c.id}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        padding: '14px 18px',
-                                        borderRadius: '12px',
-                                        border: '1px solid var(--border-color)',
-                                        background: 'var(--bg-primary)',
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-                                        <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>
-                                            {c.certificationName}
-                                        </span>
-                                        <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                            {c.certifyingBody && <span>Body: <strong>{c.certifyingBody}</strong></span>}
-                                            <span>No: <strong>{maskNumber(c.certificationNumber)}</strong></span>
-                                            <span>Exp: <strong>{formatDate(c.expirationDate)}</strong></span>
+                                <div key={c.id}>
+                                    <div style={{ ...clayInnerCard, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                                            <span style={{ fontWeight: 700, fontSize: '14px', color: clayPalette.textPrimary }}>
+                                                {c.certificationName}
+                                            </span>
+                                            <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', fontSize: '13px', color: clayPalette.textSecondary }}>
+                                                {c.certifyingBody && <span>Body: <strong>{c.certifyingBody}</strong></span>}
+                                                <span>No: <strong>{maskNumber(c.certificationNumber)}</strong></span>
+                                                <span>Exp: <strong>{formatDate(c.expirationDate)}</strong></span>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>
+                                            <button onClick={() => startEdit(c)} style={btnOutline}>
+                                                <Edit3 size={14} /> Edit
+                                            </button>
+
+                                            {confirmDeleteId === c.id ? (
+                                                <div style={{ display: 'flex', gap: '4px' }}>
+                                                    <button
+                                                        onClick={() => handleDelete(c.id)}
+                                                        disabled={deletingId === c.id}
+                                                        style={{ ...btnOutline, borderColor: 'rgba(239,68,68,0.4)', color: clayPalette.dangerLight }}
+                                                    >
+                                                        {deletingId === c.id ? <Loader2 size={14} className="animate-spin" /> : 'Yes'}
+                                                    </button>
+                                                    <button onClick={() => setConfirmDeleteId(null)} style={btnOutline}>No</button>
+                                                </div>
+                                            ) : (
+                                                <button onClick={() => setConfirmDeleteId(c.id)} style={{ ...btnOutline, color: clayPalette.dangerLight }}>
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
-
-                                    <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>
-                                        <button
-                                            onClick={() => startEdit(c)}
-                                            style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}
-                                        >
-                                            <Edit3 size={14} /> Edit
-                                        </button>
-
-                                        {confirmDeleteId === c.id ? (
-                                            <div style={{ display: 'flex', gap: '4px' }}>
-                                                <button
-                                                    onClick={() => handleDelete(c.id)}
-                                                    disabled={deletingId === c.id}
-                                                    style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px', borderColor: '#EF4444', color: '#EF4444' }}
-                                                >
-                                                    {deletingId === c.id ? <Loader2 size={14} className="animate-spin" /> : 'Yes'}
-                                                </button>
-                                                <button
-                                                    onClick={() => setConfirmDeleteId(null)}
-                                                    style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}
-                                                >
-                                                    No
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <button
-                                                onClick={() => setConfirmDeleteId(c.id)}
-                                                style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px', color: '#EF4444' }}
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        )}
-                                    </div>
+                                    {showForm && editingId === c.id && (
+                                        <div style={{ marginTop: '10px' }}>{renderForm()}</div>
+                                    )}
                                 </div>
                             ))}
                         </div>
                     )}
 
                     {certs.length === 0 && !showForm && (
-                        <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
+                        <p style={{ color: clayPalette.textMuted, fontSize: '13px', marginBottom: '16px' }}>
                             No certifications added yet. Add your professional certifications for autofilling applications.
                         </p>
                     )}
 
-                    {/* Inline form */}
-                    {showForm && (
-                        <div style={{
-                            padding: '20px',
-                            borderRadius: '12px',
-                            border: '1px solid var(--border-color)',
-                            background: 'var(--bg-primary)',
-                            marginBottom: '16px',
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                                    {editingId ? 'Edit Certification' : 'Add Certification'}
-                                </h4>
-                                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                                    <X size={18} />
-                                </button>
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                {/* Certification Name */}
-                                <div>
-                                    <label style={labelStyle}>Certification Name *</label>
-                                    <select
-                                        value={form.certificationName}
-                                        onChange={(e) => setForm({ ...form, certificationName: e.target.value, certificationNameOther: '' })}
-                                        style={{ ...inputStyle, cursor: 'pointer' }}
-                                    >
-                                        <option value="">Select certification</option>
-                                        {CERT_NAME_OPTIONS.map((n) => (
-                                            <option key={n} value={n}>{n}</option>
-                                        ))}
-                                    </select>
-                                    {form.certificationName === 'Other' && (
-                                        <input
-                                            type="text"
-                                            value={form.certificationNameOther}
-                                            onChange={(e) => setForm({ ...form, certificationNameOther: e.target.value })}
-                                            placeholder="Enter certification name"
-                                            style={{ ...inputStyle, marginTop: '8px' }}
-                                        />
-                                    )}
-                                </div>
-
-                                {/* Certifying Body */}
-                                <div>
-                                    <label style={labelStyle}>Certifying Body</label>
-                                    <select
-                                        value={form.certifyingBody}
-                                        onChange={(e) => setForm({ ...form, certifyingBody: e.target.value, certifyingBodyOther: '' })}
-                                        style={{ ...inputStyle, cursor: 'pointer' }}
-                                    >
-                                        <option value="">Select body</option>
-                                        {BODY_OPTIONS.map((b) => (
-                                            <option key={b} value={b}>{b}</option>
-                                        ))}
-                                    </select>
-                                    {form.certifyingBody === 'Other' && (
-                                        <input
-                                            type="text"
-                                            value={form.certifyingBodyOther}
-                                            onChange={(e) => setForm({ ...form, certifyingBodyOther: e.target.value })}
-                                            placeholder="Enter certifying body name"
-                                            style={{ ...inputStyle, marginTop: '8px' }}
-                                        />
-                                    )}
-                                </div>
-
-                                {/* Number + Expiration row */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                                    <div>
-                                        <label style={labelStyle}>Certification Number</label>
-                                        <input
-                                            type="text"
-                                            value={form.certificationNumber}
-                                            onChange={(e) => setForm({ ...form, certificationNumber: e.target.value })}
-                                            placeholder="Enter number"
-                                            style={inputStyle}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label style={labelStyle}>Expiration Date</label>
-                                        <input
-                                            type="date"
-                                            value={form.expirationDate}
-                                            onChange={(e) => setForm({ ...form, expirationDate: e.target.value })}
-                                            style={inputStyle}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
-                                    <button onClick={cancelForm} style={btnOutline}>Cancel</button>
-                                    <button
-                                        onClick={handleSave}
-                                        disabled={saving}
-                                        style={{ ...btnPrimary, ...(saving ? { opacity: 0.6, cursor: 'not-allowed' } : {}) }}
-                                    >
-                                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                        {saving ? 'Saving...' : editingId ? 'Update' : 'Save Certification'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {showForm && editingId === null && renderForm()}
 
                     {/* Add button */}
                     {!showForm && (
@@ -442,7 +367,7 @@ export default function CertificationsSection({ showMsg }: Props) {
                                 width: '100%',
                                 justifyContent: 'center',
                                 padding: '12px',
-                                color: '#2DD4BF',
+                                color: clayPalette.accentLight,
                                 borderColor: 'rgba(45,212,191,0.4)',
                             }}
                         >

@@ -74,4 +74,30 @@ describe('detectSoft404', () => {
         expect(patterns.length).toBeGreaterThan(10);
         expect(patterns.every((p) => typeof p.id === 'string')).toBe(true);
     });
+
+    // Gap G5 (2026-05-06): body scan is bounded to first 4000 chars to
+    // suppress false positives from long employer-history pages where
+    // the closing-banner phrasing legitimately appears further down.
+    describe('G5: head-of-body scan bound', () => {
+        it('matches a "position filled" banner that lives in the first 4000 chars', () => {
+            const html = '<header>Header</header>'.repeat(50) + '<h1>This position has been filled.</h1>' + 'x'.repeat(2000);
+            const m = detectSoft404(null, 'https://example.com/x', html);
+            expect(m?.patternId).toBe('position_filled');
+        });
+
+        it('does NOT match a phrase that appears past char 4000 (false-positive guard)', () => {
+            // 5000 chars of legitimate body, then the trigger phrase. With the new
+            // head-only scan this should not flip the job to dead.
+            const padding = 'x'.repeat(5000);
+            const html = padding + 'this position has been filled by Sarah Smith back in 2018';
+            expect(detectSoft404(null, 'https://example.com/x', html)).toBeNull();
+        });
+
+        it('still matches the same phrase when it appears at char 3000 (boundary in)', () => {
+            const padding = 'x'.repeat(3000);
+            const html = padding + 'this position has been filled';
+            const m = detectSoft404(null, 'https://example.com/x', html);
+            expect(m?.patternId).toBe('position_filled');
+        });
+    });
 });

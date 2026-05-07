@@ -8,9 +8,43 @@ interface DuplicateCheckResult {
 }
 
 /**
+ * Optional pre-loaded maps so `checkDuplicate` can do exact-title and
+ * apply-URL matching at memory speed instead of issuing per-job DB
+ * queries that miss results past `take(50)` on dense title prefixes.
+ *
+ * The orchestrator builds these once at run start; if absent (legacy
+ * callers, tests), we fall back to the original DB-based path.
+ */
+export interface DuplicateCheckOptions {
+  /** key = `${normalizeTitle}|${normalizeCompany}|${normalizeLocation}` → jobId */
+  globalTitleKeyMap?: Map<string, string>;
+  /** key = `URL.pathname.slice(0, 60)` → jobId */
+  globalApplyLinkMap?: Map<string, string>;
+}
+
+/**
+ * Build the composite identity key the orchestrator uses to populate
+ * `globalTitleKeyMap`. Exported so the producer (ingestion-service)
+ * and consumer (this module) stay in lock-step on normalization rules.
+ */
+export function buildJobIdentityKey(title: string, employer: string, location: string): string {
+  return `${normalizeTitle(title)}|${normalizeCompany(employer)}|${normalizeLocation(location)}`;
+}
+
+/** Same path-prefix rule the orchestrator applies when building globalApplyLinkMap. */
+export function buildApplyUrlPathKey(applyLink: string): string | null {
+  if (!applyLink) return null;
+  try {
+    return new URL(applyLink).pathname.slice(0, 60);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Normalize job title for comparison
  */
-function normalizeTitle(title: string): string {
+export function normalizeTitle(title: string): string {
   if (!title) return '';
 
   let normalized = title.toLowerCase();
@@ -31,7 +65,7 @@ function normalizeTitle(title: string): string {
 /**
  * Normalize company name for comparison
  */
-function normalizeCompany(company: string): string {
+export function normalizeCompany(company: string): string {
   if (!company) return '';
 
   let normalized = company.toLowerCase();
@@ -57,7 +91,7 @@ function normalizeCompany(company: string): string {
 /**
  * Normalize location for comparison
  */
-function normalizeLocation(location: string): string {
+export function normalizeLocation(location: string): string {
   if (!location) return '';
 
   // Keep alphanumeric, spaces, commas
@@ -79,6 +113,9 @@ function normalizeApplyUrl(url: string): string {
     // Remove tracking parameters
     const trackingParams = ['utm_source', 'utm_medium', 'utm_campaign', 'ref', 'source'];
     trackingParams.forEach((param: string) => urlObj.searchParams.delete(param));
+
+    // Canonicalize remaining param order so `?a=1&b=2` and `?b=2&a=1` collide.
+    urlObj.searchParams.sort();
 
     // Return normalized URL: hostname + pathname + remaining params
     return urlObj.hostname + urlObj.pathname + urlObj.search;
@@ -137,14 +174,17 @@ function calculateSimilarity(str1: string, str2: string): number {
 /**
  * Check if a job is a duplicate using multiple strategies
  */
-export async function checkDuplicate(job: {
-  title: string;
-  employer: string;
-  location: string;
-  externalId?: string;
-  sourceProvider?: string;
-  applyLink?: string;
-}): Promise<DuplicateCheckResult> {
+export async function checkDuplicate(
+  job: {
+    title: string;
+    employer: string;
+    location: string;
+    externalId?: string;
+    sourceProvider?: string;
+    applyLink?: string;
+  },
+  options: DuplicateCheckOptions = {},
+): Promise<DuplicateCheckResult> {
   try {
     // STRATEGY 1: Exact External ID Match (confidence: 1.0)
     if (job.externalId && job.sourceProvider) {
@@ -167,94 +207,81 @@ export async function checkDuplicate(job: {
     }
 
     // STRATEGY 2: Exact Title + Employer + Location (confidence: 0.95)
+    //
+    // Pre-2026-05-05 this used `title.contains(prefix30)` + `take: 50`,
+    // which silently dropped real duplicates whenever ≥ 50 jobs shared the
+    // first 30 chars of a title (LifeStance "Psychiatric Nurse Practitioner..."
+    // had 27+ collisions of one identity collapsed nowhere). Now we check
+    // a pre-loaded global identity map first; the DB fallback is only for
+    // legacy callers that don't pass options.
     const normalizedTitle = normalizeTitle(job.title);
     const normalizedEmployer = normalizeCompany(job.employer);
     const normalizedLocation = normalizeLocation(job.location);
 
-    // Query jobs with similar title (first 30 chars for performance)
-    const titlePrefix = job.title.substring(0, 30);
-    const potentialMatches = await prisma.job.findMany({
-      where: {
-        title: {
-          contains: titlePrefix,
-        },
-      },
-      select: {
-        id: true,
-        title: true,
-        employer: true,
-        location: true,
-        applyLink: true,
-      },
-      take: 50, // Limit for performance
-    });
-
-    // Check for exact normalized matches
-    for (const match of potentialMatches) {
-      const matchNormalizedTitle = normalizeTitle(match.title);
-      const matchNormalizedEmployer = normalizeCompany(match.employer);
-      const matchNormalizedLocation = normalizeLocation(match.location);
-
-      if (
-        matchNormalizedTitle === normalizedTitle &&
-        matchNormalizedEmployer === normalizedEmployer &&
-        matchNormalizedLocation === normalizedLocation
-      ) {
+    if (options.globalTitleKeyMap) {
+      const key = buildJobIdentityKey(job.title, job.employer, job.location);
+      const matchedId = options.globalTitleKeyMap.get(key);
+      if (matchedId) {
         return {
           isDuplicate: true,
           confidence: 0.95,
           matchType: 'exact_title',
-          matchedJobId: match.id,
+          matchedJobId: matchedId,
         };
+      }
+    } else {
+      // Legacy DB path — kept for tests / scripts that don't pre-load maps.
+      const titlePrefix = job.title.substring(0, 30);
+      const potentialMatches = await prisma.job.findMany({
+        where: { title: { contains: titlePrefix } },
+        select: { id: true, title: true, employer: true, location: true, applyLink: true },
+        take: 50,
+      });
+      for (const match of potentialMatches) {
+        if (
+          normalizeTitle(match.title) === normalizedTitle &&
+          normalizeCompany(match.employer) === normalizedEmployer &&
+          normalizeLocation(match.location) === normalizedLocation
+        ) {
+          return {
+            isDuplicate: true,
+            confidence: 0.95,
+            matchType: 'exact_title',
+            matchedJobId: match.id,
+          };
+        }
       }
     }
 
-    // STRATEGY 3: Apply URL Match — GLOBAL cross-source check (confidence: 0.90)
-    // This catches the same job posted across different sources (JSearch + Adzuna, etc.)
+    // STRATEGY 3: Apply URL match — GLOBAL cross-source check (confidence: 0.90)
+    // Catches the same job posted across different sources (e.g. fantastic
+    // scraping a lever board that we also ingest natively).
     if (job.applyLink) {
-      const normalizedUrl = normalizeApplyUrl(job.applyLink);
-
-      // First check within title-based matches
-      for (const match of potentialMatches) {
-        if (match.applyLink) {
-          const matchNormalizedUrl = normalizeApplyUrl(match.applyLink);
-          if (normalizedUrl === matchNormalizedUrl) {
-            return {
-              isDuplicate: true,
-              confidence: 0.90,
-              matchType: 'apply_url',
-              matchedJobId: match.id,
-            };
-          }
-        }
+      const pathKey = buildApplyUrlPathKey(job.applyLink);
+      if (pathKey && options.globalApplyLinkMap?.has(pathKey)) {
+        return {
+          isDuplicate: true,
+          confidence: 0.90,
+          matchType: 'apply_url',
+          matchedJobId: options.globalApplyLinkMap.get(pathKey)!,
+        };
       }
 
-      // Then do a global apply URL search across ALL sources
-      // This catches cross-source duplicates with different titles
-      try {
-        const urlPathname = new URL(job.applyLink).pathname.slice(0, 60);
+      // Legacy DB fallback when no map is provided.
+      if (!options.globalApplyLinkMap && pathKey) {
+        const normalizedUrl = normalizeApplyUrl(job.applyLink);
         const globalUrlMatch = await prisma.job.findFirst({
-          where: {
-            applyLink: {
-              contains: urlPathname,
-            },
-          },
+          where: { applyLink: { contains: pathKey } },
           select: { id: true, applyLink: true },
         });
-
-        if (globalUrlMatch && globalUrlMatch.applyLink) {
-          const matchNormalizedUrl = normalizeApplyUrl(globalUrlMatch.applyLink);
-          if (normalizedUrl === matchNormalizedUrl) {
-            return {
-              isDuplicate: true,
-              confidence: 0.90,
-              matchType: 'apply_url',
-              matchedJobId: globalUrlMatch.id,
-            };
-          }
+        if (globalUrlMatch?.applyLink && normalizeApplyUrl(globalUrlMatch.applyLink) === normalizedUrl) {
+          return {
+            isDuplicate: true,
+            confidence: 0.90,
+            matchType: 'apply_url',
+            matchedJobId: globalUrlMatch.id,
+          };
         }
-      } catch {
-        // Malformed URL — skip global URL check, fall through to fuzzy matching
       }
     }
 
@@ -291,12 +318,23 @@ export async function checkDuplicate(job: {
         // Otherwise require location similarity > 0.50 to account for minor formatting
         // differences ("New York, NY" vs "New York, New York") while blocking
         // clearly different cities ("Wilmington, Delaware" vs "Saint Louis, MO").
+        const matchNormalizedTitle = normalizeTitle(match.title);
         const matchNormLocation = normalizeLocation(match.location);
         const locationSimilarity = calculateSimilarity(normalizedLocation, matchNormLocation);
         const bothRemote = normalizedLocation.includes('remote') && matchNormLocation.includes('remote');
 
         if (!bothRemote && locationSimilarity <= 0.50) {
           // Same company + title but different location = different position, skip
+          continue;
+        }
+
+        // Both-remote guard (added 2026-05-05 after prod audit). When both
+        // postings are "Remote", the location field can no longer disambiguate
+        // — but state-licensed remote roles often encode the state in the
+        // title itself: "PMHNP (Ohio)" vs "PMHNP (Wisconsin)". Levenshtein
+        // similarity > 0.85 happily collapsed those. Require *exact* normalized
+        // title equality before treating two remote postings as the same job.
+        if (bothRemote && normalizedTitle !== matchNormalizedTitle) {
           continue;
         }
 

@@ -27,7 +27,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { semanticJobSearch, platformRevenueJobsWithSimilarity } from '@/lib/ai/vector-search';
 import { selectRecommendations, type JobMeta } from '@/lib/ai/recommendation-selector';
-import { RECOMMENDATION_QUOTA } from '@/lib/ai/job-classifier';
+import { isoDateUtc } from '@/lib/utils/rotation';
 
 const DEDUPE_WINDOW_DAYS = 30;
 const VECTOR_OVERFETCH = 80; // headroom so quota + filters have choices
@@ -124,11 +124,17 @@ export const recommendationsDaily = inngest.createFunction(
                 });
                 const metaByJob = new Map<string, JobMeta>(jobRows.map((j) => [j.id, j]));
 
+                // Per-candidate-per-day rotation seed — different seed each
+                // day means a different subset of the live employer pool gets
+                // pinned. Stable within the same day so a partial retry of
+                // the cron lands on the same picks.
+                const rotationSeed = `${row.supabase_id}-${isoDateUtc()}`;
+
                 const picked = selectRecommendations(hits, metaByJob, {
                     licensedStates: parseLicenseStates(row.license_states),
                     excludeJobIds: exclude,
                     clickedEmployers,
-                    quota: RECOMMENDATION_QUOTA,
+                    rotationSeed,
                 });
                 if (picked.length === 0) return;
 

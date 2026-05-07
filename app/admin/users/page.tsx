@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { formatCT } from '@/lib/format-ct';
 import {
     Users, Mail, Bell, Shield, Briefcase, UserCheck, Building2,
     Search, X, ChevronDown, Trash2,
@@ -301,7 +302,7 @@ export default function AdminUsersPage() {
                                                 {!user.profileVisible && badge('Hidden', 'red')}
                                             </div>
                                         </td>
-                                        <td style={td}>{new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                                        <td style={td}>{formatCT(user.createdAt, 'date')}</td>
                                         <td style={{ ...td, textAlign: 'center' }}>
                                             <button onClick={() => deactivateUser(user.id)} title="Deactivate"
                                                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#EF4444' }}>
@@ -346,7 +347,7 @@ export default function AdminUsersPage() {
                                         <td style={td}>{lead.isSubscribed ? badge('Active', 'green') : badge('Unsub', 'red')}</td>
                                         <td style={td}>{lead.newsletterOptIn ? badge('Yes', 'green') : badge('No', 'gray')}</td>
                                         <td style={td}>{lead.jobAlerts.length > 0 ? badge(`${lead.jobAlerts.filter(a => a.isActive).length} active`, 'blue') : badge('None', 'gray')}</td>
-                                        <td style={td}>{new Date(lead.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                                        <td style={td}>{formatCT(lead.createdAt, 'date')}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -396,7 +397,7 @@ export default function AdminUsersPage() {
                                             {!['prospect', 'contacted', 'active', 'declined'].includes(lead.status) && badge(lead.status, 'gray')}
                                         </td>
                                         <td style={td}>{lead.jobsPosted}</td>
-                                        <td style={td}>{new Date(lead.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                                        <td style={td}>{formatCT(lead.createdAt, 'date')}</td>
                                     </tr>
                                 ))}
                                 {filteredEmps.length === 0 && <tr><td colSpan={7} style={{ ...td, textAlign: 'center', padding: 40 }}>No employer leads</td></tr>}
@@ -431,7 +432,7 @@ export default function AdminUsersPage() {
                                             <td style={td}>{alert.isActive ? badge('Active', 'green') : badge('Paused', 'gray')}</td>
                                             <td style={td}>{alert.keyword || 'All jobs'}</td>
                                             <td style={td}>{alert.location || 'All locations'}</td>
-                                            <td style={td}>{alert.lastSentAt ? new Date(alert.lastSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</td>
+                                            <td style={td}>{formatCT(alert.lastSentAt, 'date')}</td>
                                         </tr>
                                     ))
                                 )}
@@ -464,7 +465,7 @@ export default function AdminUsersPage() {
                                 { l: 'Company', v: selectedUser.company || '—' },
                                 { l: 'Phone', v: selectedUser.phone || '—' },
                                 { l: 'Headline', v: selectedUser.headline || '—' },
-                                { l: 'Joined', v: new Date(selectedUser.createdAt).toLocaleDateString() },
+                                { l: 'Joined', v: formatCT(selectedUser.createdAt, 'date') },
                                 { l: 'Status', v: `${selectedUser.profileVisible ? 'Visible' : 'Hidden'} / ${selectedUser.openToOffers ? 'Open' : 'Closed'}` },
                             ].map(f => (
                                 <div key={f.l}>
@@ -502,7 +503,7 @@ export default function AdminUsersPage() {
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
                                                 {badge(app.status, app.status === 'applied' ? 'blue' : app.status === 'hired' ? 'green' : 'gray')}
-                                                <div style={{ ...muted, marginTop: 2 }}>{new Date(app.appliedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                                                <div style={{ ...muted, marginTop: 2 }}>{formatCT(app.appliedAt, 'date')}</div>
                                             </div>
                                         </div>
                                     ))}
@@ -521,7 +522,7 @@ export default function AdminUsersPage() {
                                                 <div style={{ fontSize: 13, fontWeight: 600, color: '#1A2E35' }}>{af.atsName || 'Unknown ATS'}</div>
                                                 <div style={muted}>{af.fieldsFilled} fields filled</div>
                                             </div>
-                                            <div style={muted}>{new Date(af.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                                            <div style={muted}>{formatCT(af.createdAt, 'date')}</div>
                                         </div>
                                     ))}
                                 </div>

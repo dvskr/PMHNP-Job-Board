@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Briefcase, Target, Users, Menu, X, Home, BarChart3, FileText, Settings, Mail, Activity, HeartPulse, Search } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Target, Users, Menu, X, Home, BarChart3, FileText, Settings, Mail, Activity, HeartPulse, Search, GitBranch } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Pipeline Flow', href: '/admin/pipeline', icon: GitBranch },
   { name: 'Jobs', href: '/admin/jobs', icon: Briefcase },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'SEO Health', href: '/admin/seo-health', icon: Search },

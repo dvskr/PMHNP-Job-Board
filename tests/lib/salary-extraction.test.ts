@@ -170,14 +170,16 @@ describe('validateAndNormalizeSalary', () => {
         expect(r.salaryPeriod).toBe('hourly');
     });
 
-    it('rejects impossibly high hourly rate', () => {
+    it('clamps impossibly high hourly rate to the 300/hr ceiling', () => {
+        // Behavior changed 2026-05-05: out-of-range values are clamped
+        // to the period's bound rather than dropped to null.
         const r = validateAndNormalizeSalary(500, null, 'hourly', 'PMHNP', 'hour');
-        expect(r.minSalary).toBeNull(); // $500/hr is suspicious
+        expect(r.minSalary).toBe(300); // clamped from 500 to bounds.max
     });
 
-    it('rejects impossibly low annual salary', () => {
+    it('clamps impossibly low annual salary to the $30k floor', () => {
         const r = validateAndNormalizeSalary(10000, null, 'annual', 'PMHNP', 'year');
-        expect(r.minSalary).toBeNull(); // $10k/year is not real
+        expect(r.minSalary).toBe(30000); // clamped from 10000 to bounds.min
     });
 
     it('swaps min/max if reversed', () => {

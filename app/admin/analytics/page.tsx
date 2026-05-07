@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatCT } from '@/lib/format-ct';
 import {
     Eye, MousePointerClick, FileCheck, TrendingUp, Activity, Users,
     BarChart3, MessageSquare, AlertTriangle, Zap, Globe,
@@ -433,7 +434,7 @@ export default function AnalyticsPage() {
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                                     <span style={{ color: '#F59E0B', fontWeight: 700 }}>{fb.rating != null ? '⭐'.repeat(fb.rating) : <span style={{ color: '#94A3B8', fontWeight: 400 }}>No rating</span>}</span>
-                                    <span style={muted}>{new Date(fb.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                    <span style={muted}>{formatCT(fb.createdAt, 'date')}</span>
                                 </div>
                                 {fb.message && <p style={{ ...sub, margin: 0 }}>{fb.message}</p>}
                                 {fb.page && <p style={{ ...muted, marginTop: 4 }}>Page: {fb.page}</p>}
@@ -471,7 +472,7 @@ export default function AnalyticsPage() {
                                         <span style={{ ...muted, marginLeft: 8 }}>by {r.job.employer}</span>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                                        <span style={muted}>{new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                        <span style={muted}>{formatCT(r.createdAt, 'date')}</span>
                                         {r.job.isPublished ? (
                                             <button
                                                 onClick={async () => {

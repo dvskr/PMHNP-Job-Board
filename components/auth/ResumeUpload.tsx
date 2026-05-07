@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   FileText, Loader2, Eye, Trash2, CheckCircle,
-  AlertCircle, RefreshCw, Shield, X
+  AlertCircle, RefreshCw, Shield, X, Sparkles
 } from 'lucide-react'
+import ResumeAutofillReview from '@/components/profile/ResumeAutofillReview'
+import type { ParsedResume } from '@/lib/resume-parser'
 
 /* ── Allowed MIME types (must match lib/supabase-storage.ts) ── */
 const ALLOWED_TYPES = [
@@ -45,6 +47,12 @@ interface ResumeUploadProps {
   resumeMeta?: { name?: string; size?: number; uploadedAt?: string }
   onUploadComplete: (url: string, meta: { name: string; size: number }) => void
   onRemove?: () => void
+  /** Fired after the AI autofill modal commits a successful apply
+   *  (either fill-empty or overwrite mode). The parent should
+   *  re-fetch the profile so the form fields show the new values
+   *  immediately — without this the user has to refresh to see what
+   *  changed. */
+  onAutofillApplied?: () => void
 }
 
 export default function ResumeUpload({
@@ -53,6 +61,7 @@ export default function ResumeUpload({
   resumeMeta,
   onUploadComplete,
   onRemove,
+  onAutofillApplied,
 }: ResumeUploadProps) {
   /* state */
   const [uploading, setUploading] = useState(false)
@@ -65,6 +74,20 @@ export default function ResumeUpload({
   const [viewing, setViewing] = useState(false)
   /* locally‑tracked meta (fallback when resumeMeta isn't provided) */
   const [localMeta, setLocalMeta] = useState<{ name: string; size: number } | null>(null)
+  /* Sprint 2.1.P5 — preview-then-apply state */
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewApplying, setReviewApplying] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
+  const [reviewParsed, setReviewParsed] = useState<ParsedResume | null>(null)
+  /* Storage path of the most recently uploaded resume — needed so the
+   * apply step can re-POST `/api/resume/parse` without a fresh upload.
+   * Seeded from `currentResumeUrl` (which IS the storage path on this
+   * profile, see app/api/upload/route.ts:64-70) so the "Review AI
+   * Autofill" recovery button stays available after a hard refresh
+   * — important when a user uploaded earlier, dismissed the modal,
+   * and is now stuck on a 'pending' parse status. */
+  const [lastResumePath, setLastResumePath] = useState<string | null>(currentResumeUrl)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -114,14 +137,20 @@ export default function ResumeUpload({
         throw new Error(data.error || 'Upload failed')
       }
 
-      const { url } = await res.json()
+      const { url, path } = await res.json()
       setProgress(100)
       setLocalMeta({ name: file.name, size: file.size })
       onUploadComplete(url, { name: file.name, size: file.size })
+      setLastResumePath(typeof path === 'string' ? path : null)
 
       /* toast */
       setToast(true)
       setTimeout(() => setToast(false), 3500)
+
+      /* Sprint 2.1.P5 — kick off preview-mode parse and open the
+         review modal. We do NOT block the toast on this; the parse
+         can take ~3-8s and the upload is already done. */
+      void openReviewWithPreview(typeof path === 'string' ? path : null)
     } catch (err: unknown) {
       if (progressTimer.current) clearInterval(progressTimer.current)
       setProgress(0)
@@ -147,6 +176,94 @@ export default function ResumeUpload({
     const file = e.target.files?.[0]
     if (file) processFile(file)
   }, [processFile])
+
+  /* Keep lastResumePath in sync with the prop. The initial useState seed
+   * only fires once; this picks up the prop arriving after the parent
+   * profile fetch resolves and after a Replace upload changes the URL. */
+  useEffect(() => {
+    if (currentResumeUrl && currentResumeUrl !== lastResumePath) {
+      setLastResumePath(currentResumeUrl)
+    }
+  }, [currentResumeUrl, lastResumePath])
+
+  /* ─── Sprint 2.1.P5 — preview + apply handlers ─────────────────
+   *
+   * `openReviewWithPreview` runs immediately after upload and after
+   * "Re-run AI" clicks. It fires `?preview=1`, which extracts and
+   * returns the parsed JSON without touching the profile.
+   *
+   * `applyAutofill` re-POSTs `/api/resume/parse` (no flag) to commit.
+   * The gateway cache key is `(prompt.version, contentHash)`, so the
+   * apply call hits the same cache entry as the preview and skips
+   * the LLM round-trip. The route then runs autoFillProfile() which
+   * only fills empty fields and inserts non-duplicate License/Cert/
+   * Education/Work rows. */
+  const openReviewWithPreview = useCallback(async (resumePath: string | null) => {
+    const path = resumePath ?? lastResumePath
+    if (!path) return
+
+    setReviewError(null)
+    setReviewParsed(null)
+    setReviewLoading(true)
+    setReviewOpen(true)
+
+    try {
+      const res = await fetch('/api/resume/parse?preview=1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeUrl: path }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok || !body?.parsed) {
+        const baseMsg = body?.error || `Failed to read resume (HTTP ${res.status})`
+        // Append underlying detail when present so the user (and we, in
+        // bug reports) see exactly what extraction failed and why,
+        // rather than a generic "try a text-based PDF" line.
+        const detail = typeof body?.detail === 'string' ? body.detail : null
+        throw new Error(detail ? `${baseMsg}\n\nDetails: ${detail}` : baseMsg)
+      }
+      setReviewParsed(body.parsed as ParsedResume)
+      // Tell the parent to refetch — the preview route clears the
+      // 'pending' resumeParseStatus on success, so the "Analyzing
+      // resume…" badge should disappear without waiting for an apply.
+      onAutofillApplied?.()
+    } catch (err: unknown) {
+      setReviewError(err instanceof Error ? err.message : 'Failed to read resume')
+    } finally {
+      setReviewLoading(false)
+    }
+  }, [lastResumePath, onAutofillApplied])
+
+  const applyAutofill = useCallback(async (overwrite: boolean) => {
+    const path = lastResumePath
+    if (!path) {
+      setReviewOpen(false)
+      return
+    }
+    setReviewApplying(true)
+    try {
+      const qs = overwrite ? '?overwrite=1' : ''
+      const res = await fetch(`/api/resume/parse${qs}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeUrl: path }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.error || `Failed to apply (HTTP ${res.status})`)
+      }
+      setReviewOpen(false)
+      setToast(true)
+      setTimeout(() => setToast(false), 3500)
+      // Fire the parent callback so the form fields refresh in place
+      // — no page reload needed.
+      onAutofillApplied?.()
+    } catch (err: unknown) {
+      setReviewError(err instanceof Error ? err.message : 'Failed to apply autofill')
+    } finally {
+      setReviewApplying(false)
+    }
+  }, [lastResumePath, onAutofillApplied])
 
   /* view resume (server-side signed URL generation) */
   const handleView = async () => {
@@ -317,6 +434,16 @@ export default function ResumeUpload({
         </p>
 
         {errorEl}
+
+        <ResumeAutofillReview
+          open={reviewOpen}
+          parsed={reviewParsed}
+          loading={reviewLoading}
+          applying={reviewApplying}
+          error={reviewError}
+          onApply={applyAutofill}
+          onClose={() => setReviewOpen(false)}
+        />
       </div>
     )
   }
@@ -426,6 +553,28 @@ export default function ResumeUpload({
           <RefreshCw size={15} />
           Replace Resume
         </button>
+
+        {/* AI review — only shown when we still have the storage path
+            (i.e. the user uploaded in this session). After a hard
+            refresh the path is gone; user can re-upload to re-trigger. */}
+        {lastResumePath && (
+          <button
+            onClick={() => openReviewWithPreview(lastResumePath)}
+            disabled={uploading || removing || reviewLoading}
+            style={{
+              flex: '1 1 0', minWidth: '120px',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+              padding: '10px 18px', borderRadius: '10px',
+              background: 'rgba(139,92,246,0.10)',
+              color: '#8B5CF6', fontSize: '13px', fontWeight: 600,
+              border: '1.5px solid rgba(139,92,246,0.25)', cursor: 'pointer', transition: 'all 0.2s',
+              opacity: reviewLoading ? 0.6 : 1,
+            }}
+          >
+            {reviewLoading ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+            Review AI Autofill
+          </button>
+        )}
       </div>
 
       {/* Delete link */}
@@ -494,6 +643,16 @@ export default function ResumeUpload({
       </p>
 
       {errorEl}
+
+      <ResumeAutofillReview
+        open={reviewOpen}
+        parsed={reviewParsed}
+        loading={reviewLoading}
+        applying={reviewApplying}
+        error={reviewError}
+        onApply={applyAutofill}
+        onClose={() => setReviewOpen(false)}
+      />
     </div>
   )
 }

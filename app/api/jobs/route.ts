@@ -35,7 +35,10 @@ export async function GET(request: NextRequest) {
             normalizedMaxSalary: true,
             salaryPeriod: true,
             salaryRange: true,
-            description: true,
+            // description intentionally excluded — anti-scrape (~500-3000 chars
+            // per row × 50/page is ~150KB pure scrape value with no UI need;
+            // JobCard renders descriptionSummary, the slug page reads full
+            // description by id directly).
             descriptionSummary: true,
             createdAt: true,
             isFeatured: true,
@@ -103,7 +106,9 @@ export async function GET(request: NextRequest) {
           salaryPeriod: true,
           salaryRange: true,
           // Other fields
-          description: true,
+          // NOTE: full `description` intentionally excluded from listing API
+          // for the same anti-scrape reason as applyLink — full description
+          // is ~500-3000 chars per row, only needed on the slug detail page.
           descriptionSummary: true,
           createdAt: true,
           isFeatured: true,

@@ -60,26 +60,19 @@ export async function POST(request: NextRequest) {
     if (uploadType === 'resume') {
       result = await uploadResume(buffer, file.name, file.type, user.id);
 
-      // Store the permanent storage path (not the signed URL which expires)
+      // Store the permanent storage path (not the signed URL which expires).
+      // Sprint 2.1.P5: status stays 'pending' until the client commits the
+      // preview via the ResumeAutofillReview modal (`/api/resume/parse`
+      // without `?preview=1`). We removed the fire-and-forget background
+      // trigger here so the user reviews the extraction before any
+      // profile/license/cert rows are written.
       await prisma.userProfile.update({
         where: { supabaseId: user.id },
-        data: { 
+        data: {
           resumeUrl: result.path,
           resumeParseStatus: 'pending'
         },
       });
-
-      // Trigger AI resume parsing in the background (fire-and-forget)
-      // This auto-fills empty profile fields from the resume content
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-      fetch(`${baseUrl}/api/resume/parse`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cookie': request.headers.get('cookie') || '',
-        },
-        body: JSON.stringify({ resumeUrl: result.path }),
-      }).catch(err => logger.error('Background resume parse trigger failed', err));
     } else {
       result = await uploadAvatar(buffer, file.name, file.type, user.id);
 
