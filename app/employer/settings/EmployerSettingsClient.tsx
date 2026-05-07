@@ -249,13 +249,23 @@ export default function EmployerSettingsClient() {
                 ]);
                 if (settingsRes.status === 401) { router.push('/login'); return; }
                 if (settingsRes.status === 403) { router.push('/'); return; }
+                if (!settingsRes.ok) {
+                    // Don't bounce to /login on a 5xx — the user is logged in,
+                    // the API just hiccuped. Show an error message instead so
+                    // the page doesn't disappear into a redirect loop.
+                    showMsg('error', 'Could not load settings. Please refresh.');
+                    return;
+                }
                 const settingsData = await settingsRes.json();
-                setProfile(settingsData.profile);
-                setCompany(settingsData.companyInfo);
+                if (settingsData?.profile) setProfile(settingsData.profile);
+                if (settingsData?.companyInfo) setCompany(settingsData.companyInfo);
 
                 if (billingRes.ok) {
                     const billingData = await billingRes.json();
-                    setPayments(billingData.payments);
+                    // Defensive — never set state to a non-array. A null/undefined
+                    // here used to crash the billing-section render with
+                    // "Cannot read properties of null (reading 'length')".
+                    setPayments(Array.isArray(billingData?.payments) ? billingData.payments : []);
                 }
 
                 // Fetch alert preferences
@@ -263,13 +273,14 @@ export default function EmployerSettingsClient() {
                     const alertRes = await fetch('/api/employer/candidate-alerts');
                     if (alertRes.ok) {
                         const alertData = await alertRes.json();
-                        if (alertData.alert) {
+                        if (alertData?.alert) {
                             setAlertPrefs(alertData.alert);
                         }
                     }
                 } catch { /* silent */ }
-            } catch {
-                router.push('/login');
+            } catch (err) {
+                console.error('Settings load failed:', err);
+                showMsg('error', 'Could not load settings. Please refresh.');
             } finally {
                 setLoading(false);
             }
@@ -358,7 +369,32 @@ export default function EmployerSettingsClient() {
         );
     }
 
-    if (!profile) return null;
+    if (!profile) {
+        return (
+            <div style={{ maxWidth: '720px', margin: '0 auto', padding: '32px 16px' }}>
+                <div style={{ ...clayCard, textAlign: 'center' }}>
+                    <AlertTriangle size={28} style={{ color: '#F59E0B', marginBottom: '12px' }} />
+                    <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>
+                        We couldn&apos;t load your settings
+                    </h3>
+                    <p style={{ fontSize: '13px', color: '#8A9BA6', margin: '0 0 16px' }}>
+                        Please refresh the page. If the problem persists, sign out and back in.
+                    </p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        style={{
+                            ...clayBtn,
+                            background: 'linear-gradient(135deg, #0D9488, #0F766E)',
+                            color: '#fff',
+                            border: '1px solid rgba(255,255,255,0.25)',
+                        }}
+                    >
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     const sections = [
         { key: 'company' as const, label: 'Company Profile', icon: <Building2 size={18} />, color: '#0D9488', bg: '#CCFBF1', desc: 'Brand & info' },
@@ -594,10 +630,16 @@ export default function EmployerSettingsClient() {
                                     {payments.map(p => {
                                         // Free posts have no charge → no invoice link.
                                         // Paid posts get a "Download" button that hits our PDF generator.
-                                        const latestCharge = p.charges[0];
-                                        const planLabel = p.isFree ? 'Free trial' : p.tier;
-                                        const planBg = p.isFree ? '#F0FDFA' : (p.tier.includes('Featured') ? '#FFF8E1' : '#F0FDFA');
-                                        const planColor = p.isFree ? '#0D9488' : (p.tier.includes('Featured') ? '#F59E0B' : '#0D9488');
+                                        // Defensive reads — historical payment rows occasionally have
+                                        // null `tier` or missing `charges`, and a render-time crash on
+                                        // those (`p.tier.includes` etc.) was producing the System
+                                        // Malfunction error in production.
+                                        const latestCharge = p.charges?.[0];
+                                        const tier = p.tier ?? '';
+                                        const isFeatured = tier.includes('Featured');
+                                        const planLabel = p.isFree ? 'Free trial' : (tier || 'Standard');
+                                        const planBg = p.isFree ? '#F0FDFA' : (isFeatured ? '#FFF8E1' : '#F0FDFA');
+                                        const planColor = p.isFree ? '#0D9488' : (isFeatured ? '#F59E0B' : '#0D9488');
                                         const statusLabel = p.isActive ? 'Active' : 'Expired';
                                         const downloadUrl = `/api/employer/invoice?jobId=${p.jobId}${latestCharge?.id ? `&chargeId=${latestCharge.id}` : ''}`;
                                         return (
