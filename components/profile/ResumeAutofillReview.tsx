@@ -193,7 +193,7 @@ export default function ResumeAutofillReview({
                         <div
                             style={{
                                 display: 'flex',
-                                alignItems: 'flex-start',
+                                flexDirection: 'column',
                                 gap: '10px',
                                 padding: '14px 16px',
                                 borderRadius: '12px',
@@ -203,8 +203,23 @@ export default function ResumeAutofillReview({
                                 fontSize: '13px',
                             }}
                         >
-                            <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
-                            <span>{error}</span>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
+                                <span style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{error}</span>
+                            </div>
+                            <ul
+                                style={{
+                                    margin: 0,
+                                    paddingLeft: '32px',
+                                    color: 'var(--text-secondary)',
+                                    fontSize: '12px',
+                                    lineHeight: 1.6,
+                                }}
+                            >
+                                <li>Use a <strong>text-based</strong> PDF (exported from Word/Google Docs), not a scan or screenshot.</li>
+                                <li>If your PDF was scanned, run it through OCR or re-export from the original source.</li>
+                                <li>DOCX usually works best if the PDF route fails.</li>
+                            </ul>
                         </div>
                     )}
 
@@ -222,6 +237,8 @@ export default function ResumeAutofillReview({
                         background: 'var(--bg-tertiary)',
                     }}
                 >
+                    {/* Close / Skip — label depends on whether we have
+                        parsed data the user could choose to apply. */}
                     <button
                         onClick={onClose}
                         disabled={applying}
@@ -237,39 +254,45 @@ export default function ResumeAutofillReview({
                             opacity: applying ? 0.5 : 1,
                         }}
                     >
-                        Skip for now
+                        {error || !parsed ? 'Close' : 'Skip for now'}
                     </button>
-                    <button
-                        onClick={onApply}
-                        disabled={loading || applying || !parsed || Boolean(error)}
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '7px',
-                            padding: '10px 22px',
-                            borderRadius: '10px',
-                            background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
-                            color: '#FFFFFF',
-                            fontSize: '13px',
-                            fontWeight: 700,
-                            border: 'none',
-                            cursor: loading || applying || !parsed || error ? 'not-allowed' : 'pointer',
-                            opacity: loading || applying || !parsed || error ? 0.6 : 1,
-                            boxShadow: '0 4px 12px rgba(139,92,246,0.25)',
-                        }}
-                    >
-                        {applying ? (
-                            <>
-                                <Loader2 size={14} className="animate-spin" />
-                                Saving…
-                            </>
-                        ) : (
-                            <>
-                                <CheckCircle size={14} />
-                                Apply to Profile
-                            </>
-                        )}
-                    </button>
+                    {/* Apply is only meaningful when we actually have
+                        parsed data. Hide it on error / loading-with-no-data
+                        instead of showing a disabled-but-still-bright
+                        button that invites a click. */}
+                    {parsed && !error && (
+                        <button
+                            onClick={onApply}
+                            disabled={loading || applying}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '7px',
+                                padding: '10px 22px',
+                                borderRadius: '10px',
+                                background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                                color: '#FFFFFF',
+                                fontSize: '13px',
+                                fontWeight: 700,
+                                border: 'none',
+                                cursor: loading || applying ? 'not-allowed' : 'pointer',
+                                opacity: loading || applying ? 0.6 : 1,
+                                boxShadow: '0 4px 12px rgba(139,92,246,0.25)',
+                            }}
+                        >
+                            {applying ? (
+                                <>
+                                    <Loader2 size={14} className="animate-spin" />
+                                    Saving…
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle size={14} />
+                                    Apply to Profile
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

@@ -194,7 +194,12 @@ export default function ResumeUpload({
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok || !body?.parsed) {
-        throw new Error(body?.error || `Failed to read resume (HTTP ${res.status})`)
+        const baseMsg = body?.error || `Failed to read resume (HTTP ${res.status})`
+        // Append underlying detail when present so the user (and we, in
+        // bug reports) see exactly what extraction failed and why,
+        // rather than a generic "try a text-based PDF" line.
+        const detail = typeof body?.detail === 'string' ? body.detail : null
+        throw new Error(detail ? `${baseMsg}\n\nDetails: ${detail}` : baseMsg)
       }
       setReviewParsed(body.parsed as ParsedResume)
     } catch (err: unknown) {

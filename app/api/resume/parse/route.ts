@@ -148,8 +148,15 @@ export async function POST(request: NextRequest) {
       // The user uploaded a file we couldn't read — return 422 (unprocessable),
       // not 500. Keeps the error budget honest and tells the client it's a
       // content problem, not a server outage.
+      // Include the underlying detail so the modal can show actionable info
+      // (e.g. "Failed to extract text from PDF: ..." vs "Resume text is too
+      // short or empty") instead of a generic "try a text-based PDF" line.
+      const detail = parseErr instanceof Error ? parseErr.message : String(parseErr);
       return NextResponse.json(
-        { error: 'We could not read this resume. Try a text-based PDF or DOCX.' },
+        {
+          error: 'We could not read this resume. Try a text-based PDF or DOCX.',
+          detail,
+        },
         { status: 422 }
       );
     }

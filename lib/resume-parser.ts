@@ -57,17 +57,36 @@ export interface ParsedResume {
     }[];
 }
 
-/** Extract raw text from a PDF buffer. */
+/** Extract raw text from a PDF buffer using the pdf-parse v2 PDFParse
+ *  class API. v1's default-export-as-function (`pdfParse(buffer)`) was
+ *  removed in 2.x — calling the module like a function throws
+ *  `TypeError: pdfParse is not a function`, which is what made every
+ *  resume upload return 422 before this fix. */
+interface PdfParseV2Instance {
+    getText: () => Promise<{ text: string }>;
+    destroy: () => Promise<void>;
+}
+
 async function extractPdfText(buffer: Buffer): Promise<string> {
+    let parser: PdfParseV2Instance | null = null;
     try {
-        // pdf-parse is CJS-only, use require for Next.js compatibility
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require('pdf-parse');
-        const data = await pdfParse(buffer);
-        return data.text || '';
+        const { PDFParse } = await import('pdf-parse');
+        // pdf-parse prefers TypedArrays over Node Buffer for worker
+        // memory transfer; Buffer is a Uint8Array subclass but the
+        // explicit cast avoids ambiguity in the typed signature.
+        parser = new PDFParse({ data: new Uint8Array(buffer) }) as unknown as PdfParseV2Instance;
+        const result = await parser.getText();
+        return result.text || '';
     } catch (err) {
         logger.error('PDF text extraction failed', err);
-        throw new Error('Failed to extract text from PDF');
+        const detail = err instanceof Error ? err.message : String(err);
+        throw new Error(`Failed to extract text from PDF: ${detail}`);
+    } finally {
+        // Release the worker. Swallow destroy errors — the parse result
+        // (or the original throw) is what matters.
+        if (parser) {
+            try { await parser.destroy(); } catch { /* noop */ }
+        }
     }
 }
 
