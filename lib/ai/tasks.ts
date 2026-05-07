@@ -89,17 +89,23 @@ export const TASK_REGISTRY: Record<AiTaskId, TaskConfig> = {
         outputMode: 'json',
         cacheTtlSeconds: 7 * 86_400,
         temperature: 0.1,
-        // Bumped 2_000 → 8_000 (2026-05-06). Same gpt-5-mini reasoning-token
-        // bug we hit on talent_search_rerank and candidate_scoring: the
-        // model spends part of max_completion_tokens on hidden reasoning,
-        // and a kitchen-sink PMHNP resume (6 licenses + 8 certs + 7 work
-        // experiences + 5 degrees) needs ~3-4k tokens just for the JSON
-        // payload. Symptom was "Unexpected end of JSON input" because the
-        // envelope got cut off mid-stream and Zod failed to parse.
-        maxOutputTokens: 8_000,
-        // Bumped 60s → 90s for the same reason — wider reasoning budget
-        // means longer wall-clock per call.
-        timeoutMs: 90_000,
+        // Bumped 8_000 → 16_000 (2026-05-07). The v2 prompt asks for
+        // verbatim bullets per work-experience role + a verbatim
+        // professionalSummary paragraph, both of which dramatically
+        // increase the OUTPUT side of the budget on top of gpt-5-mini's
+        // hidden reasoning tokens. A kitchen-sink resume (5 degrees,
+        // 6 licenses, 7 work entries with 3-5 bullets each, 8 certs,
+        // a long summary paragraph) easily needs 6-8k just for the
+        // visible JSON output, plus reasoning headroom.
+        maxOutputTokens: 16_000,
+        // Bumped 90_000 → 180_000 (2026-05-07). The 90s cap was hitting
+        // the abort signal mid-stream on real resumes — symptom was
+        // "OpenAI request aborted" / "All providers failed" with the
+        // total request time clocking in at ~92s. gpt-5-mini's reasoning
+        // pass on the v2 verbatim-bullet schema regularly takes 60-150s
+        // on complex inputs. 3 minutes gives realistic headroom while
+        // still bounded enough that runaway calls are caught.
+        timeoutMs: 180_000,
         rateLimit: { limit: 20, windowSeconds: 3600 },
     },
     embeddings_generic: {
