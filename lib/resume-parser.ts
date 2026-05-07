@@ -79,10 +79,20 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
     let parser: PdfParseV2Instance | null = null;
     try {
         const { PDFParse } = await import('pdf-parse');
-        // pdf-parse prefers TypedArrays over Node Buffer for worker
-        // memory transfer; Buffer is a Uint8Array subclass but the
-        // explicit cast avoids ambiguity in the typed signature.
-        parser = new PDFParse({ data: new Uint8Array(buffer) }) as unknown as PdfParseV2Instance;
+        // pdf-parse v2 wraps pdfjs-dist, which by default tries to spawn
+        // a worker thread loading `pdfjs-dist/legacy/build/pdf.worker.mjs`.
+        // Vercel's serverless bundler doesn't trace that worker file,
+        // so the import fails with "Cannot find module ... pdf.worker.mjs"
+        // at runtime. `disableWorker: true` runs the parser synchronously
+        // in the main thread — no worker file required, slightly slower
+        // for huge PDFs but resumes are <5MB so the cost is negligible.
+        // verbosity: 0 also suppresses pdfjs's noisy warn logs in serverless.
+        parser = new PDFParse({
+            data: new Uint8Array(buffer),
+            disableWorker: true,
+            verbosity: 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any) as unknown as PdfParseV2Instance;
         const result = await parser.getText();
         return result.text || '';
     } catch (err) {

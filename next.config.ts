@@ -16,6 +16,19 @@ const nextConfig: NextConfig = {
   // Native/WASM packages that must not be bundled by Turbopack
   serverExternalPackages: ['@resvg/resvg-js', '@napi-rs/canvas', 'pdf-parse'],
 
+  // Vercel's serverless bundler doesn't trace pdfjs-dist's worker file
+  // by default. lib/resume-parser.ts uses `disableWorker: true` so this
+  // isn't strictly required at the moment, but tracing the file keeps
+  // the resume-parse route working if a future version of pdf-parse
+  // re-enables the worker without us noticing.
+  outputFileTracingIncludes: {
+    '/api/resume/parse': [
+      './node_modules/pdf-parse/**/*',
+      './node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
+      './node_modules/pdfjs-dist/legacy/build/pdf.mjs',
+    ],
+  },
+
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],
