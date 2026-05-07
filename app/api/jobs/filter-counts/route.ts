@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { FilterState, FilterCounts } from '@/types/filters';
-import { buildWhereClause, freshnessClause, postedWithinToMs } from '@/lib/filters';
+import { buildWhereClause, freshnessClause } from '@/lib/filters';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
@@ -124,22 +124,22 @@ export async function POST(request: NextRequest) {
         },
       }),
 
-      // Posted Within — hybrid freshness, see lib/filters.ts:freshnessClause.
+      // Posted Within — see lib/filters.ts:freshnessClause for semantics.
       // Past 24h
       prisma.job.count({
-        where: { AND: [postedBase, freshnessClause(now, postedWithinToMs('24h')!)] },
+        where: { AND: [postedBase, freshnessClause(now, '24h')] },
       }),
       // Past 3 days
       prisma.job.count({
-        where: { AND: [postedBase, freshnessClause(now, postedWithinToMs('3d')!)] },
+        where: { AND: [postedBase, freshnessClause(now, '3d')] },
       }),
       // Past week
       prisma.job.count({
-        where: { AND: [postedBase, freshnessClause(now, postedWithinToMs('7d')!)] },
+        where: { AND: [postedBase, freshnessClause(now, '7d')] },
       }),
       // Past month
       prisma.job.count({
-        where: { AND: [postedBase, freshnessClause(now, postedWithinToMs('30d')!)] },
+        where: { AND: [postedBase, freshnessClause(now, '30d')] },
       }),
 
       // Total

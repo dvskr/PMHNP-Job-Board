@@ -365,11 +365,17 @@ salary range, summary excerpt, "Posted N days ago" (computed from
 
 ### Filter sidebar pill counts
 Counted by [app/api/jobs/filter-counts/route.ts](../app/api/jobs/filter-counts/route.ts).
-"Posted within" pills use `freshnessClause(now, windowMs)` from
-[lib/filters.ts](../lib/filters.ts) — currently floor=0 (changed
-2026-05-05), meaning a job is "fresh in window W" if EITHER source's
-`originalPostedAt` OR our `createdAt` is within W. See commit
-`b0e269b` for the rationale.
+"Posted within" pills use `freshnessClause(now, window)` from
+[lib/filters.ts](../lib/filters.ts) — semantics (revised 2026-05-06):
+- **24h** → `createdAt ≥ now-24h` AND `originalPostedAt ≥ now-3d`
+  (a "what's new on the board" view, capped so re-ingested old posts
+  don't surface as fresh)
+- **3d / 7d / 30d** → strict `originalPostedAt ≥ now-window`
+
+Aligned with the ingest-time staleness gate: jobs with
+`originalPostedAt > 30 days` are now rejected at the normalizer
+([lib/job-normalizer.ts](../lib/job-normalizer.ts) Gate 3, tightened
+from 60 → 30d on 2026-05-06).
 
 ### Other read surfaces fed by the same `jobs` table
 - `/jobs/[slug]` — single-job detail page.

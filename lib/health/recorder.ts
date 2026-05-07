@@ -18,7 +18,7 @@ import type { PresenceCheckResult } from './source-presence';
 
 const BATCH_SIZE = 100;
 
-export type CheckType = 'http_probe' | 'greenhouse_api' | 'source_presence';
+export type CheckType = 'http_probe' | 'greenhouse_api' | 'source_presence' | 'expiry' | 'engagement_anomaly';
 
 export interface JobHealthCheckRow {
     jobId: string;
@@ -127,6 +127,62 @@ export class HealthRecorder {
             presenceSource: job.sourceProvider ?? null,
             presenceMissing: job.healthConsecutiveMissing,
             checkerVersion: 'presence-unpublish-v1.0.0',
+        });
+        this.staged++;
+        if (this.buffer.length >= this.batchSize) {
+            await this.flush();
+        }
+    }
+
+    /**
+     * Stage a lifecycle-expiry unpublish event (Gap G1, 2026-05-06).
+     * Called by the cleanup-expired cron when `expiresAt < NOW()` causes
+     * `is_published` to flip. Closes the audit hole that previously made
+     * date-based unpublishes silent (no `job_health_checks` row).
+     */
+    async stageExpiry(job: {
+        id: string;
+        sourceProvider: string | null;
+        expiresAt: Date | null;
+    }): Promise<void> {
+        this.buffer.push({
+            jobId: job.id,
+            checkType: 'expiry',
+            outcome: 'lifecycle_expired',
+            alive: false,
+            presenceSource: job.sourceProvider ?? null,
+            errorMessage: job.expiresAt ? `expiresAt=${job.expiresAt.toISOString()}` : null,
+            checkerVersion: 'expiry-v1.0.0',
+        });
+        this.staged++;
+        if (this.buffer.length >= this.batchSize) {
+            await this.flush();
+        }
+    }
+
+    /**
+     * Stage an engagement-anomaly probe outcome (Gap G3, 2026-05-06).
+     * Used by the engagement-anomaly cron after probing a job that has
+     * many views but zero apply clicks — indicating the underlying page
+     * may be dead even though our last HTTP probe said alive.
+     */
+    async stageEngagementAnomaly(jobId: string, decision: HealthDecision, viewCount: number): Promise<void> {
+        const ev = decision.evidence;
+        this.buffer.push({
+            jobId,
+            checkType: 'engagement_anomaly',
+            outcome: decision.reason,
+            alive: decision.alive,
+            httpStatus: ev.finalStatus,
+            redirectHops: ev.redirectHops,
+            finalUrl: nullIfEmpty(ev.finalUrl),
+            apiUrl: ev.sourceProbe?.apiUrl ?? null,
+            softPatternId: ev.softMatch?.patternId ?? null,
+            softMatchText: ev.softMatch?.matchText ?? null,
+            errorKind: ev.errorKind,
+            errorMessage: `viewCount=${viewCount}, applyClicks=0; ${ev.errorMessage ?? ''}`.slice(0, 500),
+            elapsedMs: ev.elapsedMs,
+            checkerVersion: 'engagement-anomaly-v1.0.0',
         });
         this.staged++;
         if (this.buffer.length >= this.batchSize) {

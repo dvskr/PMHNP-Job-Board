@@ -5,7 +5,7 @@
  * can pivot on stable values:
  *   - normalizer_missing_required_field (title or applyLink missing)
  *   - normalizer_missing_description    (desc < 50 chars)
- *   - normalizer_stale_post             (>90 days, non-ATS)
+ *   - normalizer_stale_post             (>30 days)
  *   - normalizer_indirect_apply         (wrapper host)
  *   - normalizer_exception              (try/catch fallback)
  */
@@ -185,14 +185,25 @@ describe('normalizeJobWithReason — sub-bucketed rejection reasons', () => {
         expect(result.rejectionReason).toBe('normalizer_stale_post');
     });
 
-    it('accepts 30-day-old post', () => {
+    it('accepts 25-day-old post (inside 30d cutoff)', () => {
         const recentDate = new Date();
-        recentDate.setDate(recentDate.getDate() - 30);
+        recentDate.setDate(recentDate.getDate() - 25);
         const result = normalizeJobWithReason(
             rawJob({ postedDate: recentDate.toISOString() }),
             'lever',
         );
         expect(result.job).not.toBeNull();
+    });
+
+    it('rejects 35-day-old post (outside 30d cutoff)', () => {
+        const oldDate = new Date();
+        oldDate.setDate(oldDate.getDate() - 35);
+        const result = normalizeJobWithReason(
+            rawJob({ postedDate: oldDate.toISOString() }),
+            'lever',
+        );
+        expect(result.job).toBeNull();
+        expect(result.rejectionReason).toBe('normalizer_stale_post');
     });
 
     it('accepts post with no date (treated as fresh)', () => {
@@ -280,21 +291,22 @@ describe('normalizeJobWithReason — salary period passthrough (Bug #1)', () => 
 
 describe('normalizeJobWithReason — expiry policy (60d from originalPostedAt)', () => {
     it('expiresAt is exactly originalPostedAt + 60 days', () => {
-        const postedAt = new Date('2026-04-01T12:00:00Z');
+        // Use a 10-day-old post so it clears the 30d staleness gate.
+        const postedAt = new Date();
+        postedAt.setDate(postedAt.getDate() - 10);
         const result = normalizeJobWithReason(
             rawJob({ postedDate: postedAt.toISOString() }),
             'lever',
         );
         expect(result.job).not.toBeNull();
         const expectedExpiry = new Date(postedAt.getTime() + 60 * 24 * 60 * 60 * 1000);
-        // Allow ~1ms slack for Date construction
         const diffMs = Math.abs(result.job!.expiresAt!.getTime() - expectedExpiry.getTime());
         expect(diffMs).toBeLessThan(1000);
     });
 
     it('falls back to ingest-time + 30d when originalPostedAt is missing', () => {
-        // Changed 2026-05-05: when source provides NO post date, fallback
-        // is 30d (shorter half-life for un-known-age jobs) instead of 60d.
+        // When source provides NO post date, fallback is 30d (shorter
+        // half-life for un-known-age jobs) instead of 60d.
         const before = Date.now();
         const result = normalizeJobWithReason(rawJob(), 'lever');
         const after = Date.now();
@@ -306,20 +318,20 @@ describe('normalizeJobWithReason — expiry policy (60d from originalPostedAt)',
         expect(actual).toBeLessThanOrEqual(expectedMax);
     });
 
-    it('expiresAt is BEFORE NOW for jobs older than 60 days at ingest', () => {
-        // Hypothetical edge case: source provides date 50 days ago. The
-        // job passes the staleness gate (50 < 60) but expires in just 10d.
+    it('expiresAt for a 25-day-old post is ~35 days from now (in-window)', () => {
+        // The 30d staleness gate caps how old originalPostedAt can be.
+        // Verify the expiry math still lands at originalPostedAt + 60d
+        // for a post near the gate boundary.
         const postedAt = new Date();
-        postedAt.setDate(postedAt.getDate() - 50);
+        postedAt.setDate(postedAt.getDate() - 25);
         const result = normalizeJobWithReason(
             rawJob({ postedDate: postedAt.toISOString() }),
             'lever',
         );
         expect(result.job).not.toBeNull();
         const daysUntilExpiry = (result.job!.expiresAt!.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
-        // Should be ~10 days from now (60 - 50)
-        expect(daysUntilExpiry).toBeGreaterThan(9);
-        expect(daysUntilExpiry).toBeLessThan(11);
+        expect(daysUntilExpiry).toBeGreaterThan(34);
+        expect(daysUntilExpiry).toBeLessThan(36);
     });
 });
 

@@ -88,6 +88,19 @@ const SOURCES_NEVER_NEED_BODY = new Set<string>([
  * inconclusive_403 outcomes came from just 2 hosts (jooble.org +
  * www.adzuna.com). Skipping them entirely shaves ~7k probe calls/week
  * with no change in dead-job detection.
+ *
+ * GAP G2 trade-off (Dead-detection blind spot, 2026-05-06): for sources in
+ * this list that are ALSO our active sources (currently: adzuna), we lose
+ * the HTTP-probe layer of dead detection. A bypassed adzuna posting that
+ * silently goes dead will be caught by:
+ *   1. Source-presence (when its externalId is missing from N consecutive
+ *      adzuna fetches → unpublish via /api/cron/source-presence-unpublish).
+ *      Detection latency: N × 12h ≈ 36h with the current 3-miss threshold.
+ *   2. Engagement-anomaly cron (when it accumulates views with zero apply
+ *      clicks for ≥14 days → /api/cron/engagement-anomaly).
+ * Acceptable as long as we monitor both. If the latency becomes a problem,
+ * we'd need to register a paid Adzuna app key that the probe could attach
+ * for an authenticated request (no current contract for that).
  */
 const KNOWN_403_HOSTS: ReadonlySet<string> = new Set([
     'jooble.org',

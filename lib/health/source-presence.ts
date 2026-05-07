@@ -154,6 +154,14 @@ export async function recordSourcePresence(
             required: minRequired,
             avg: input.historicalAvgFetched,
         });
+        // Gap G6 (2026-05-06): surface partial-fetch guard fires to Discord
+        // so source outages don't silently disable orphan detection. Throttled
+        // in-memory to one alert per source per 6h.
+        await maybeAlertPartialFetch(input.source, {
+            fetched: input.fetchedCount,
+            required: minRequired,
+            avg: input.historicalAvgFetched,
+        });
         return recordSkip('skipped_partial_fetch', `fetched=${input.fetchedCount} < required=${minRequired}`);
     }
 
@@ -229,6 +237,35 @@ export async function recordSourcePresence(
 }
 
 /**
+ * Throttled Discord alert for partial-fetch guard fires (Gap G6).
+ * One alert per source per 6h. Vercel functions are stateless so this
+ * coalesces only within a single function instance — repeated cold starts
+ * may send a few extra alerts, which is acceptable for an outage signal.
+ */
+const partialFetchAlertSeen = new Map<string, number>();
+const PARTIAL_FETCH_ALERT_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+
+async function maybeAlertPartialFetch(
+    source: string,
+    args: { fetched: number; required: number; avg: number },
+): Promise<void> {
+    const last = partialFetchAlertSeen.get(source) ?? 0;
+    if (Date.now() - last < PARTIAL_FETCH_ALERT_COOLDOWN_MS) return;
+    partialFetchAlertSeen.set(source, Date.now());
+
+    try {
+        const { sendDiscordMessage } = await import('@/lib/discord-notifier');
+        await sendDiscordMessage('', [{
+            title: `⚠️ ${source} partial fetch — orphan check skipped`,
+            description: `${args.fetched} fetched · need ≥${args.required} (7d avg ${args.avg.toFixed(0)}/run)`,
+            color: 0xFFAA00,
+        }]);
+    } catch {
+        // Discord failures are never fatal here.
+    }
+}
+
+/**
  * Find any published job from a source — used to anchor presence audit rows
  * when no jobs were touched in the run (skip paths).
  */
@@ -261,18 +298,22 @@ async function findRepresentativeJobId(
  * the same divide-by-cycles math holds.
  */
 const RUNS_PER_DAY: Readonly<Record<string, number>> = {
-    adzuna: 2,
-    jooble: 2,
-    lever: 2,
-    usajobs: 2,
-    ashby: 2,
-    workday: 2,
-    greenhouse: 2,
+    // Bumped 2026-05-06 from 2 → 3 for the free sources after adding the
+    // evening wave at 23:00 UTC. fantastic-jobs-db runs 2× (morning +
+    // afternoon) — kept off the evening wave to keep the 20k-jobs/mo
+    // RapidAPI cap usage at ~47% with spike margin.
+    adzuna: 3,
+    jooble: 3,
+    lever: 3,
+    usajobs: 3,
+    ashby: 3,
+    workday: 3,
+    greenhouse: 3,
     'fantastic-jobs-db': 2,
-    smartrecruiters: 2,
-    icims: 2,
-    jazzhr: 2,
-    'ats-jobs-db': 2,
+    smartrecruiters: 3,
+    icims: 3,
+    jazzhr: 3,
+    'ats-jobs-db': 3,
 };
 
 /**

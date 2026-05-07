@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatCT } from '@/lib/format-ct';
 import {
     FileText, Plus, Pencil, Trash2, Eye, Globe, GlobeLock,
     X, ChevronDown, Tag, Calendar,
@@ -234,9 +235,9 @@ export default function AdminBlogPage() {
                                         </td>
                                         <td style={td}>{post.targetKeyword || '—'}</td>
                                         <td style={td}>
-                                            {post.publishDate ? new Date(post.publishDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                            {formatCT(post.publishDate, 'date')}
                                         </td>
-                                        <td style={td}>{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}</td>
+                                        <td style={td}>{formatCT(post.createdAt, 'date')}</td>
                                         <td style={{ ...td, textAlign: 'center' }}>
                                             <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
                                                 <button onClick={() => openEdit(post)} title="Edit"

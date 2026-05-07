@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { formatCT } from '@/lib/format-ct';
 import {
   Briefcase, Target, TrendingUp, ArrowRight, Users, BarChart3,
   Eye, MousePointerClick, FileCheck, Zap, UserPlus, Mail, Bell, Activity,
@@ -385,7 +386,7 @@ export default function AdminDashboard() {
                 <div style={{ fontSize: '12px', color: '#6B7F8A', marginTop: '2px' }}>
                   Applied to <strong>{app.job.title}</strong>
                 </div>
-                <div style={muted}>{new Date(app.appliedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
+                <div style={muted}>{formatCT(app.appliedAt)}</div>
               </div>
             ))}
             {recentActivity.applications.length === 0 && <p style={sub}>No recent applications</p>}
@@ -408,7 +409,7 @@ export default function AdminDashboard() {
                   <div style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {u.firstName ? `${u.firstName} ${u.lastName || ''}` : u.email}
                   </div>
-                  <div style={muted}>{new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                  <div style={muted}>{formatCT(u.createdAt, 'date')}</div>
                 </div>
                 <span style={{
                   padding: '4px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: 600,
@@ -439,7 +440,7 @@ export default function AdminDashboard() {
               }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.email}</div>
-                  <div style={muted}>{new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                  <div style={muted}>{formatCT(s.createdAt, 'date')}</div>
                 </div>
                 {s.source && (
                   <span style={{ ...muted, fontWeight: 600, textTransform: 'capitalize', whiteSpace: 'nowrap', flexShrink: 0 }}>{s.source}</span>

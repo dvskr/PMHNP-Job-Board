@@ -36,23 +36,35 @@ import type { Job } from '@/lib/types';
 export type JobTier = 'easy_apply' | 'direct_apply' | 'external';
 
 /**
- * Mirrors the ATS detection in components/JobCard.tsx so the server-side
- * classifier and the client-side "Direct Apply" badge agree on what counts.
+ * Substrings that identify an employer ATS in an applyLink. An aggregator job
+ * whose `applyLink` matches one of these is treated as direct_apply (one click
+ * to the employer ATS, no aggregator middleman).
+ *
+ * Exposed so DB-side WHERE builders (lib/job-alerts-service, FeaturedJobsSection)
+ * can replicate the filter without having to inline the list. Substring match
+ * is sufficient because applyLink hosts are known origins, not arbitrary text.
+ *
+ * Mirrors the detection in components/JobCard.tsx so the server-side classifier
+ * and the client-side "Direct Apply" badge agree on what counts.
  */
-const ATS_PATTERNS: ReadonlyArray<RegExp> = [
-    /\.myworkdayjobs\.com/i,
-    /greenhouse\.io/i,
-    /lever\.co/i,
-    /jobs\.ashbyhq\.com/i,
-    /smartrecruiters\.com/i,
-    /icims\.com/i,
-    /jazz\.co/i,
-    /bamboohr\.com/i,
-    /usajobs\.gov/i,
-    /apply\.workable\.com/i,
-    /careers\./i,
-    /jobs\./i,
+export const ATS_HOST_SUBSTRINGS: ReadonlyArray<string> = [
+    '.myworkdayjobs.com',
+    'greenhouse.io',
+    'lever.co',
+    'jobs.ashbyhq.com',
+    'smartrecruiters.com',
+    'icims.com',
+    'jazz.co',
+    'bamboohr.com',
+    'usajobs.gov',
+    'apply.workable.com',
+    'careers.',
+    'jobs.',
 ];
+
+const ATS_PATTERNS: ReadonlyArray<RegExp> = ATS_HOST_SUBSTRINGS.map(
+    (s) => new RegExp(s.replace(/\./g, '\\.'), 'i'),
+);
 
 function looksLikeAts(url: string | null | undefined): boolean {
     if (!url) return false;
@@ -110,6 +122,11 @@ export function classifyJob(job: ClassifiableJob): JobClassification {
     return { tier, isHealthy };
 }
 
+/** True iff the job was posted directly by an employer through our platform. */
+export function isEmployerPosting(job: Pick<ClassifiableJob, 'sourceType'>): boolean {
+    return job.sourceType === 'employer';
+}
+
 /** Convenience — true if this job earns its slot in the "platform revenue" sense. */
 export function isPlatformRevenueJob(job: ClassifiableJob): boolean {
     const { tier } = classifyJob(job);
@@ -124,15 +141,25 @@ export const TIER_BOOST: Record<JobTier, number> = {
 };
 
 /**
- * Quota for the standard top-10 recommendation slate. Tuned so employer +
- * direct-apply jobs always get visible-above-the-fold real estate even when
- * pure vector match would push them below external listings.
+ * Quota for the standard top-10 recommendation slate.
+ *
+ * Two product invariants:
+ *   1. External (aggregator-bounce) jobs are excluded entirely — every
+ *      recommended row goes either to our own apply form (easy_apply) or
+ *      straight to the employer's career page / ATS (direct_apply).
+ *   2. At least N slots are pinned to `sourceType='employer'` postings,
+ *      rotated daily across the live employer pool so different roles
+ *      surface across days. Employer postings are our revenue moat —
+ *      this guarantees they always have above-the-fold visibility,
+ *      whether the candidate's vector match is strong on them or not.
+ *
+ * `employerPostingReserved` is a best-effort floor: if the live employer
+ * pool is empty (or fewer than the floor), we don't pad with externals.
+ * The remaining slots fill from any non-external candidate by score.
  */
 export const RECOMMENDATION_QUOTA = {
-    /** Reserve at LEAST this many slots for Easy Apply (when available). */
-    easyApplyReserved: 3,
-    /** Plus this many slots for Direct Apply. */
-    directApplyReserved: 3,
+    /** Pin at least this many sourceType='employer' rows when available. */
+    employerPostingReserved: 2,
     /** Total slots in a standard rec batch. */
     totalSlots: 10,
 } as const;

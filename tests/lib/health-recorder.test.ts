@@ -210,4 +210,48 @@ describe('HealthRecorder', () => {
         expect(createMany).not.toHaveBeenCalled();
         expect(r.stats().staged).toBe(0);
     });
+
+    // Gap G1 (2026-05-06)
+    it('stageExpiry writes a lifecycle_expired row with the expiry timestamp', async () => {
+        const { prisma, createMany } = fakePrisma();
+        const r = new HealthRecorder(prisma, 1);
+        const expiresAt = new Date('2026-05-01T00:00:00Z');
+        await r.stageExpiry({ id: 'job-x', sourceProvider: 'lever', expiresAt });
+        expect(createMany).toHaveBeenCalledOnce();
+        const row = createMany.mock.calls[0][0].data[0];
+        expect(row.checkType).toBe('expiry');
+        expect(row.outcome).toBe('lifecycle_expired');
+        expect(row.alive).toBe(false);
+        expect(row.presenceSource).toBe('lever');
+        expect(row.errorMessage).toContain('2026-05-01');
+        expect(row.checkerVersion).toBe('expiry-v1.0.0');
+    });
+
+    // Gap G3 (2026-05-06)
+    it('stageEngagementAnomaly captures viewCount + probe outcome', async () => {
+        const { prisma, createMany } = fakePrisma();
+        const r = new HealthRecorder(prisma, 1);
+        await r.stageEngagementAnomaly('job-y', decision({
+            alive: false,
+            reason: 'http_404',
+            evidence: {
+                finalStatus: 404,
+                finalUrl: 'https://example.com/dead',
+                redirectHops: 0,
+                softMatch: null,
+                elapsedMs: 120,
+                errorKind: null,
+                errorMessage: null,
+                checkerVersion: 'v1.1.0',
+                sourceProbe: null,
+            },
+        }), 200);
+        expect(createMany).toHaveBeenCalledOnce();
+        const row = createMany.mock.calls[0][0].data[0];
+        expect(row.checkType).toBe('engagement_anomaly');
+        expect(row.outcome).toBe('http_404');
+        expect(row.alive).toBe(false);
+        expect(row.errorMessage).toContain('viewCount=200');
+        expect(row.errorMessage).toContain('applyClicks=0');
+    });
 });

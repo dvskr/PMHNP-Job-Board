@@ -9,6 +9,7 @@
  */
 import { useEffect, useState, useMemo } from 'react';
 import { Activity, AlertCircle, CheckCircle2, Clock, Filter, RefreshCw, XCircle } from 'lucide-react';
+import { formatCT } from '@/lib/format-ct';
 
 interface SourceFunnel {
     source: string;
@@ -57,7 +58,8 @@ const BUCKET_COLOR: Record<string, string> = {
     added: '#0D9488',
 };
 
-function fmt(n: number): string {
+function fmt(n: number | null | undefined): string {
+    if (n == null) return '—';
     return n.toLocaleString();
 }
 
@@ -65,17 +67,6 @@ function fmtDur(ms: number | null): string {
     if (ms == null) return '—';
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(1)}s`;
-}
-
-function fmtCST(iso: string): string {
-    return new Date(iso).toLocaleString('en-US', {
-        timeZone: 'America/Chicago',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-    }) + ' CT';
 }
 
 function FunnelBar({ funnel }: { funnel: SourceFunnel }) {
@@ -172,7 +163,7 @@ export default function PipelineFlowPage() {
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {lastFetched && (
                         <span style={{ fontSize: '12px', color: '#94A3B8' }}>
-                            Updated {lastFetched.toLocaleTimeString()}
+                            Updated {formatCT(lastFetched, 'time')}
                         </span>
                     )}
                     <button
@@ -305,7 +296,7 @@ export default function PipelineFlowPage() {
                         {(data?.recentRuns ?? []).map((r, i) => (
                             <tr key={i} style={{ borderTop: '1px solid #E8ECF0' }}>
                                 <td style={{ padding: '8px 14px', fontFamily: 'monospace' }}>{r.name}</td>
-                                <td style={{ padding: '8px 14px', color: '#6B7F8A' }}>{fmtCST(r.startedAt)}</td>
+                                <td style={{ padding: '8px 14px', color: '#6B7F8A' }}>{formatCT(r.startedAt)}</td>
                                 <td style={{ padding: '8px 14px', color: '#6B7F8A' }}>{fmtDur(r.durationMs)}</td>
                                 <td style={{ padding: '8px 14px' }}>
                                     {r.success ? (
@@ -329,11 +320,12 @@ export default function PipelineFlowPage() {
     );
 }
 
-function KpiCard({ label, value, accent }: { label: string; value: number; accent: string }) {
+function KpiCard({ label, value, accent }: { label: string; value: number | null | undefined; accent: string }) {
+    const display = value == null ? '—' : value.toLocaleString();
     return (
         <div style={{ background: '#FFFFFF', border: '1px solid #E8ECF0', borderRadius: '12px', padding: '16px 18px' }}>
             <div style={{ fontSize: '12px', color: '#6B7F8A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: accent, marginTop: '4px' }}>{value.toLocaleString()}</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: accent, marginTop: '4px' }}>{display}</div>
         </div>
     );
 }

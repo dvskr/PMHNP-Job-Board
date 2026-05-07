@@ -9,23 +9,29 @@
  *   1. Health filter — drop jobs likely to be dead aggregator links.
  *   2. License-state filter — only jobs in the candidate's licensed states
  *      OR remote roles. Empty license_states = no filter (sparse profile).
- *   3. Quota-based selection — guarantee Easy Apply + Direct Apply slots
- *      first (when available), then fill the rest from boosted-similarity
- *      order. This is the platform's revenue moat: employer + direct-apply
- *      jobs always get above-the-fold real estate even when pure vector
- *      would push them below external scrapes.
- *   4. Diversity cap — no employer takes more than ⌈totalSlots / 3⌉ slots.
- *   5. Boost the SCORE used for tie-break by tier (so within a tier, the
- *      vector-best wins; across tiers, easy_apply > direct_apply > external).
+ *   3. Freshness — drop jobs older than `maxAgeDays` (default 30).
+ *   4. External excluded — recommendations only surface easy_apply +
+ *      direct_apply. The browse + search experiences keep externals; this
+ *      feed is curated to one-click-to-employer paths only.
+ *   5. Employer-posting pinning — at least `EMPLOYER_PIN_POLICY.pinned`
+ *      slots reserved for `sourceType='employer'` rows when available.
+ *      Rotation seed shuffles which postings are pinned across days/visits.
+ *   6. Score-fill — remaining slots filled by boosted-similarity score.
+ *   7. Diversity cap — no employer takes more than ⌈totalSlots / 3⌉ slots.
+ *   8. Display order — easy_apply pinned first, then direct_apply.
  */
 
 import {
     classifyJob,
     TIER_BOOST,
-    RECOMMENDATION_QUOTA,
     type ClassifiableJob,
     type JobTier,
 } from './job-classifier';
+import {
+    EMPLOYER_PIN_POLICY,
+    isEmployerPosting,
+} from './recommendation-policy';
+import { jitterMultiplier } from '@/lib/utils/rotation';
 
 export interface VectorHit { jobId: string; similarity: number }
 
@@ -43,16 +49,15 @@ export interface JobMeta extends ClassifiableJob {
 export interface SelectorOptions {
     /** 2-letter codes the candidate is licensed in. Empty = no filter. */
     licensedStates?: ReadonlyArray<string>;
-    /** Override the default quota. */
-    quota?: typeof RECOMMENDATION_QUOTA;
+    /** Override the default policy (e.g. shrink totalSlots for tests). */
+    policy?: typeof EMPLOYER_PIN_POLICY;
     /** Already-recommended job ids to exclude (dedupe across batches). */
     excludeJobIds?: ReadonlySet<string>;
     /**
      * Drop external (aggregator-bounce) jobs entirely. Default true — recs
-     * only surface Easy Apply + Direct Apply because external listings send
-     * candidates through multiple aggregator pages and often have stale links.
-     * Browse + search still surface external listings; the RECOMMENDATION
-     * feed is intentionally curated to high-conversion paths only.
+     * only surface easy_apply + direct_apply because external listings send
+     * candidates through aggregator UIs and often have stale links. Browse
+     * + search still surface externals; recs are intentionally curated.
      */
     excludeExternal?: boolean;
     /**
@@ -68,6 +73,13 @@ export interface SelectorOptions {
      * interest. Empty = no boost.
      */
     clickedEmployers?: ReadonlySet<string>;
+    /**
+     * Stable rotation seed for picking which employer postings get pinned
+     * today. Same seed ⇒ same picks; different seed ⇒ different picks.
+     * The cron passes `${supabaseId}-${YYYY-MM-DD}` to rotate per-candidate
+     * per-day. Empty string = no rotation (top-N employer postings by score).
+     */
+    rotationSeed?: string;
 }
 
 export interface PickedRec {
@@ -81,6 +93,7 @@ export interface PickedRec {
 interface RankedCandidate extends VectorHit {
     employer: string;
     tier: JobTier;
+    isEmployer: boolean;
     boostedScore: number;
 }
 
@@ -90,18 +103,18 @@ export function selectRecommendations(
     metaByJob: ReadonlyMap<string, JobMeta>,
     options: SelectorOptions = {},
 ): PickedRec[] {
-    const quota = options.quota ?? RECOMMENDATION_QUOTA;
+    const policy = options.policy ?? EMPLOYER_PIN_POLICY;
     const licensedStates = new Set(
         (options.licensedStates ?? []).map((s) => s.toUpperCase()),
     );
     const exclude = options.excludeJobIds ?? new Set<string>();
-    // Default to TRUE: recommendations are intentionally curated to
-    // platform-revenue paths. The browse + search experiences keep showing
-    // external listings; recs do not.
+    // Default to TRUE: recommendations are intentionally curated to one-click
+    // paths only. Browse + search still show externals; recs do not.
     const excludeExternal = options.excludeExternal !== false;
     const maxAgeDays = options.maxAgeDays ?? 30;
     const freshSinceMs = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
     const clickedEmployers = options.clickedEmployers ?? new Set<string>();
+    const rotationSeed = options.rotationSeed ?? '';
     /**
      * Per-employer click-feedback multiplier. Modest by design — clicks are
      * a noisy signal at the start (a candidate might click a wrong-state
@@ -110,7 +123,7 @@ export function selectRecommendations(
      */
     const CLICK_BOOST = 1.10;
 
-    // ── 1+2. Filter (health + license + freshness + tier + dedupe) and classify ──
+    // ── 1+2+3+4. Filter (health + license + freshness + tier + dedupe) and classify ──
     const candidates: RankedCandidate[] = [];
     for (const hit of hits) {
         if (exclude.has(hit.jobId)) continue;
@@ -140,6 +153,7 @@ export function selectRecommendations(
             ...hit,
             employer: meta.employer,
             tier,
+            isEmployer: isEmployerPosting(meta),
             boostedScore: hit.similarity * tierMult * clickMult,
         });
     }
@@ -149,9 +163,13 @@ export function selectRecommendations(
     // Sort once by boosted score so every downstream loop walks best-first.
     candidates.sort((a, b) => b.boostedScore - a.boostedScore);
 
-    // ── 3. Quota fill ───────────────────────────────────────────────────
+    // ── 5. Employer-posting pinning ──────────────────────────────────────
+    // Pin up to `policy.pinned` employer postings before the score-fill so
+    // employer rows always have visibility — even when the candidate's vector
+    // match would otherwise bury them. Rotation seed reorders near-ties so
+    // different employer postings surface across days.
     const employerCount = new Map<string, number>();
-    const maxPerEmployer = Math.max(1, Math.ceil(quota.totalSlots / 3));
+    const maxPerEmployer = Math.max(1, Math.ceil(policy.totalSlots / 3));
     const taken = new Set<string>();
     const picked: PickedRec[] = [];
 
@@ -164,29 +182,32 @@ export function selectRecommendations(
         return true;
     }
 
-    // 3a. Reserved Easy Apply slots — fill first.
-    let easyTaken = 0;
-    for (const c of candidates) {
-        if (easyTaken >= quota.easyApplyReserved) break;
-        if (c.tier !== 'easy_apply') continue;
-        if (tryTake(c)) easyTaken += 1;
+    if (policy.pinned > 0) {
+        const employerPool = candidates.filter((c) => c.isEmployer);
+        // Apply rotation jitter only when a seed is provided — preserves
+        // deterministic test fixtures that don't pass a seed.
+        const employerSorted = rotationSeed
+            ? [...employerPool].sort((a, b) => {
+                  const aJ = jitterMultiplier(rotationSeed + a.jobId);
+                  const bJ = jitterMultiplier(rotationSeed + b.jobId);
+                  return b.boostedScore * bJ - a.boostedScore * aJ;
+              })
+            : employerPool;
+
+        let pinnedTaken = 0;
+        for (const c of employerSorted) {
+            if (pinnedTaken >= policy.pinned) break;
+            if (tryTake(c)) pinnedTaken += 1;
+        }
     }
 
-    // 3b. Reserved Direct Apply slots.
-    let directTaken = 0;
+    // ── 6. Fill remaining slots from any non-external candidate by score ──
     for (const c of candidates) {
-        if (directTaken >= quota.directApplyReserved) break;
-        if (c.tier !== 'direct_apply') continue;
-        if (tryTake(c)) directTaken += 1;
-    }
-
-    // 3c. Fill remaining slots from any tier in boosted-score order.
-    for (const c of candidates) {
-        if (picked.length >= quota.totalSlots) break;
+        if (picked.length >= policy.totalSlots) break;
         tryTake(c);
     }
 
-    // ── 4. Final display order: Easy Apply pinned first, then Direct, then External ──
+    // ── 8. Final display order: easy_apply pinned first, then direct, then external ──
     // Within a tier, preserve the boosted-score order from above.
     const tierRank: Record<JobTier, number> = { easy_apply: 0, direct_apply: 1, external: 2 };
     picked.sort((a, b) => tierRank[a.tier] - tierRank[b.tier]);

@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
+import { ctDayBounds } from '@/lib/format-ct';
 
 /**
  * GET /api/admin/analytics
@@ -23,14 +24,19 @@ export async function GET(request: NextRequest) {
         const section = searchParams.get('section');
         const jobId = searchParams.get('jobId');
 
-        const since = new Date();
-        since.setDate(since.getDate() - days);
-        since.setHours(0, 0, 0, 0);
-
-        // Helper date boundaries
+        // Anchor every "today / last N days" boundary on the CT calendar.
+        // Previously these were derived from server-local midnight (UTC on
+        // Vercel), which made "today" stats include up to 6h of the next
+        // UTC day for admins watching from CT. Goal #5 alignment.
         const now = new Date();
-        const oneDayAgo = new Date(now); oneDayAgo.setDate(now.getDate() - 1);
-        const sevenDaysAgo = new Date(now); sevenDaysAgo.setDate(now.getDate() - 7);
+        const { startUtc: todayStartCT } = ctDayBounds(now);
+        const since = new Date(todayStartCT.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+
+        // "Today / last 24h" = since CT-midnight. "Last 7 days" = since
+        // CT-midnight 6 calendar days ago (so a Monday afternoon view
+        // includes Monday + the prior Tuesday onward, 7 calendar days).
+        const oneDayAgo = todayStartCT;
+        const sevenDaysAgo = new Date(todayStartCT.getTime() - 6 * 24 * 60 * 60 * 1000);
 
         // ──────────────────────────────────────────
         // Per-job drill-down
@@ -333,10 +339,23 @@ export async function GET(request: NextRequest) {
 
 /* ─── Helpers ─── */
 
+/**
+ * Bucket events by CT calendar day (Goal #5).
+ * Previously used d.toISOString().split('T')[0] which buckets by UTC —
+ * a 9pm-CT signup landed in the next UTC day's bucket, mis-attributing
+ * evening activity to "tomorrow" on the chart. en-CA locale's
+ * formatToParts gives YYYY-MM-DD natively.
+ */
+const ctDayKeyFmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Chicago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+});
 function groupByDay(dates: Date[]): Array<{ date: string; count: number }> {
     const map = new Map<string, number>();
     dates.forEach(d => {
-        const key = d.toISOString().split('T')[0]!;
+        const key = ctDayKeyFmt.format(d); // "2026-05-06"
         map.set(key, (map.get(key) || 0) + 1);
     });
     return Array.from(map.entries())

@@ -13,6 +13,19 @@ import { logger } from '@/lib/logger'
 import { brand } from '@/config/brand'
 import { BEST_SORT_ORDER_BY, compareJobsBest } from '@/lib/utils/job-sort'
 import { renderJobCardHtml } from '@/lib/utils/render-job-card'
+import { classifyJob } from '@/lib/ai/job-classifier'
+import {
+  ATS_HOST_SUBSTRINGS,
+  isEmployerPosting,
+} from '@/lib/ai/recommendation-policy'
+import { isoDateUtc, sortByJitteredScore } from '@/lib/utils/rotation'
+
+// Pin up to 2 employer postings per recipient per send, rotated daily.
+const EMPLOYER_PIN_COUNT = 2
+// Bump fetch ceiling — the new direct-apply DB filter narrows ~50% of the
+// corpus, and the pinning + employer cap reduce further. 60 leaves headroom
+// for cross-alert dedup before we truncate to 10 cards in the email.
+const PER_ALERT_FETCH_CAP = 60
 
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -264,6 +277,20 @@ export async function sendJobAlerts(): Promise<{
                 { expiresAt: { gt: now } },
               ],
             },
+            // Direct-apply only: every alert row must be either an employer
+            // posting OR an aggregator job whose applyLink points to a known
+            // ATS host. JS post-filter (classifyJob) catches edge cases
+            // where the substring match was too loose. Mirrors the homepage
+            // and dashboard recs — alerts never send aggregator-bounce links.
+            {
+              OR: [
+                { sourceType: 'employer' },
+                { sourceType: 'direct' },
+                ...ATS_HOST_SUBSTRINGS.map((host) => ({
+                  applyLink: { contains: host, mode: 'insensitive' as const },
+                })),
+              ],
+            },
           ],
         }
 
@@ -359,17 +386,26 @@ export async function sendJobAlerts(): Promise<{
         const totalCount = await prisma.job.count({ where: whereClause })
 
         if (totalCount > 0) {
-          // Fetch 20 (vs the 10 we display) to leave headroom for cross-alert dedup
-          // when the same user has multiple alerts. Sort uses the canonical
-          // BEST_SORT_ORDER_BY (lib/utils/job-sort.ts) so email ordering matches
-          // the website's `best` sort exactly.
+          // Fetch PER_ALERT_FETCH_CAP rows so cross-alert dedup, JS-side
+          // direct-apply filtering, and employer-pinning all have headroom
+          // before we truncate to the 10-card display cap. Sort uses the
+          // canonical BEST_SORT_ORDER_BY (lib/utils/job-sort.ts) so email
+          // ordering matches the website's `best` sort exactly.
           const matchingJobs = await prisma.job.findMany({
             where: whereClause,
             orderBy: BEST_SORT_ORDER_BY,
-            take: 20,
+            take: PER_ALERT_FETCH_CAP,
           })
 
-          return { alert, matchingJobs, totalCount } satisfies AlertResult
+          // Belt-and-braces: drop anything the DB filter let through that
+          // classifyJob still considers external/unhealthy.
+          const filtered = matchingJobs.filter((j) => {
+            const { tier, isHealthy } = classifyJob(j)
+            return isHealthy && tier !== 'external'
+          })
+
+          if (filtered.length === 0) return null
+          return { alert, matchingJobs: filtered, totalCount: filtered.length } satisfies AlertResult
         }
         return null // no matching jobs
       }))
@@ -423,6 +459,29 @@ export async function sendJobAlerts(): Promise<{
       // matches what users see at /jobs?sort=best.
       merged.sort(compareJobsBest)
 
+      // ── Employer-posting pinning ──
+      // Pin up to EMPLOYER_PIN_COUNT employer postings at the top of the
+      // digest, rotated daily per recipient. Two recipients with overlapping
+      // alerts on the same day still see different employer postings because
+      // the seed includes their email. Same recipient on the next day sees
+      // a different rotation. Within rotation, qualityScore breaks ties.
+      const primaryEmail = group[0].alert.email.toLowerCase().trim()
+      const rotationSeed = `alerts-${isoDateUtc()}-${primaryEmail}`
+      const employerPool = merged.filter((j) => isEmployerPosting(j))
+      const pinnedRaw = sortByJitteredScore(
+        employerPool,
+        (j) => j.qualityScore ?? 0,
+        (j) => j.id,
+        rotationSeed,
+      ).slice(0, EMPLOYER_PIN_COUNT)
+      const pinnedIds = new Set(pinnedRaw.map((j) => j.id))
+
+      // Reorder: pinned employer postings first, then the rest in `best` order.
+      const ordered: AlertJob[] = [
+        ...pinnedRaw,
+        ...merged.filter((j) => !pinnedIds.has(j.id)),
+      ]
+
       // ── Employer diversity pass ──
       // Without this, a single employer with many listings (e.g. MindPath Health
       // with 50 jobs across 50 cities) can fill every slot and make the email
@@ -434,7 +493,7 @@ export async function sendJobAlerts(): Promise<{
       const employerCounts = new Map<string, number>()
       const diversified: AlertJob[] = []
       const overflow: AlertJob[] = []
-      for (const job of merged) {
+      for (const job of ordered) {
         const empKey = (job.employer || '').toLowerCase().trim()
         const count = employerCounts.get(empKey) ?? 0
         if (count < PER_EMPLOYER_CAP) {

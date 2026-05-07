@@ -6,6 +6,8 @@
  * daily quality reports, and ingestion summaries.
  */
 
+import { sanitizeForDiscord } from './sanitize-for-discord';
+
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 
 interface DiscordEmbed {
@@ -55,11 +57,9 @@ export async function sendHealthAlert(alerts: Array<{ source: string; alert: str
     if (alerts.length === 0) return;
 
     const embed: DiscordEmbed = {
-        title: '🚨 Source Health Alert',
-        description: alerts.map(a => a.alert).join('\n'),
-        color: alerts.some(a => a.status === 'dead') ? 0xFF0000 : 0xFFAA00, // Red for dead, orange for warning
-        timestamp: new Date().toISOString(),
-        footer: { text: 'PMHNP Job Board — Ingestion Monitor' },
+        title: alerts.some(a => a.status === 'dead') ? '🚨 Source dead' : '⚠️ Source warning',
+        description: alerts.map(a => a.alert).join('\n').slice(0, 1900),
+        color: alerts.some(a => a.status === 'dead') ? 0xFF0000 : 0xFFAA00,
     };
 
     await sendDiscordMessage('', [embed]);
@@ -78,86 +78,35 @@ export async function sendDailyReport(stats: {
     topSources: Array<{ source: string; count: number }>;
     healthAlerts: string[];
 }): Promise<void> {
-    const fields: Array<{ name: string; value: string; inline: boolean }> = [
-        { name: '📊 Total Published', value: stats.totalPublished.toLocaleString(), inline: true },
-        { name: '➕ Added (24h)', value: stats.addedLast24h.toString(), inline: true },
-        { name: '➖ Unpublished (24h)', value: stats.unpublishedLast24h.toString(), inline: true },
-        { name: '💰 Salary Coverage', value: `${stats.salaryPercent}%`, inline: true },
-        { name: '📍 City Coverage', value: `${stats.cityPercent}%`, inline: true },
-        { name: '⭐ Avg Quality', value: stats.avgQualityScore.toFixed(1), inline: true },
-    ];
+    // Lean format: one-line description with the headline numbers, top
+    // 3 sources inline, and an alerts field ONLY when something actually
+    // needs attention. Coverage / quality scalars dropped — they live in
+    // /admin/pipeline for anyone who actually wants to dig in.
+    const topSourcesLine = stats.topSources
+        .slice(0, 3)
+        .map((s) => `${s.source} +${s.count}`)
+        .join(' · ');
 
-    // Top sources
-    if (stats.topSources.length > 0) {
-        const topList = stats.topSources
-            .slice(0, 5)
-            .map((s, i) => `${i + 1}. ${s.source}: ${s.count}`)
-            .join('\n');
-        fields.push({ name: '🏆 Top Sources (24h)', value: topList, inline: false });
-    }
-
-    // Health alerts
-    if (stats.healthAlerts.length > 0) {
-        fields.push({ name: '⚠️ Alerts', value: stats.healthAlerts.join('\n'), inline: false });
-    }
+    const description = `+${stats.addedLast24h} added · −${stats.unpublishedLast24h} unpublished · ${stats.totalPublished.toLocaleString()} live`
+        + (topSourcesLine ? `\n${topSourcesLine}` : '');
 
     const embed: DiscordEmbed = {
-        title: '📋 Daily Job Board Report',
-        color: stats.healthAlerts.length > 0 ? 0xFFAA00 : 0x00AA00, // Orange if alerts, green if clean
-        fields,
-        timestamp: new Date().toISOString(),
-        footer: { text: 'PMHNP Job Board — Daily Report' },
+        title: stats.healthAlerts.length > 0 ? '📋 Daily report (with alerts)' : '📋 Daily report',
+        description,
+        color: stats.healthAlerts.length > 0 ? 0xFFAA00 : 0x00AA00,
+        ...(stats.healthAlerts.length > 0
+            ? { fields: [{ name: 'Alerts', value: stats.healthAlerts.join('\n').slice(0, 1020), inline: false }] }
+            : {}),
     };
 
     await sendDiscordMessage('', [embed]);
 }
 
-/**
- * Send ingestion completion summary to Discord
- */
-export async function sendIngestionSummary(results: Array<{
-    source: string;
-    fetched: number;
-    added: number;
-    duplicates: number;
-    errors: number;
-    duration: number;
-}>): Promise<void> {
-    const totalAdded = results.reduce((s, r) => s + r.added, 0);
-    const totalFetched = results.reduce((s, r) => s + r.fetched, 0);
-    const totalDuration = results.reduce((s, r) => s + r.duration, 0);
-
-    // Only send to Discord if we added jobs or had errors
-    const totalErrors = results.reduce((s, r) => s + r.errors, 0);
-    if (totalAdded === 0 && totalErrors === 0) return;
-
-    const topAdders = results
-        .filter(r => r.added > 0)
-        .sort((a, b) => b.added - a.added)
-        .slice(0, 5)
-        .map(r => `${r.source}: +${r.added}`)
-        .join(', ');
-
-    const embed: DiscordEmbed = {
-        title: totalErrors > 0 ? '⚠️ Ingestion Complete (with errors)' : '✅ Ingestion Complete',
-        color: totalErrors > 0 ? 0xFFAA00 : 0x00AA00,
-        fields: [
-            { name: 'Fetched', value: totalFetched.toLocaleString(), inline: true },
-            { name: 'Added', value: `+${totalAdded}`, inline: true },
-            { name: 'Duration', value: `${(totalDuration / 1000).toFixed(0)}s`, inline: true },
-            { name: 'Top Sources', value: topAdders || 'None', inline: false },
-        ],
-        timestamp: new Date().toISOString(),
-        footer: { text: 'PMHNP Job Board — Ingestion' },
-    };
-
-    if (totalErrors > 0) {
-        const errorSources = results.filter(r => r.errors > 0).map(r => `${r.source}: ${r.errors}`).join(', ');
-        embed.fields!.push({ name: '❌ Errors', value: errorSources, inline: false });
-    }
-
-    await sendDiscordMessage('', [embed]);
-}
+// Removed 2026-05-06: sendIngestionSummary (the simpler version) was
+// firing alongside the rich per-source summary in
+// app/api/cron/ingest/route.ts on every cron firing — net effect was
+// duplicate Discord embeds. The route's version is the single source
+// of truth now.
 
 /**
  * Send a cron-failure alert to Discord. Use from any cron's catch block
@@ -180,28 +129,21 @@ export async function sendCronFailureAlert(
     if (Date.now() - last < 30 * 60 * 1000) return;
     cronAlertSeen.set(cronName, Date.now());
 
-    const message = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack?.split('\n').slice(0, 3).join('\n') : undefined;
+    // Sanitize before sending: cron failure errors can include DB URLs,
+    // Bearer tokens, user emails, etc. Discord channels are persistent
+    // and searchable — don't pipe raw error contents straight in.
+    const rawMessage = err instanceof Error ? err.message : String(err);
+    const message = sanitizeForDiscord(rawMessage).slice(0, 400);
 
-    const fields: Array<{ name: string; value: string; inline?: boolean }> = [
-        { name: 'Cron', value: cronName, inline: true },
-        { name: 'When', value: new Date().toISOString(), inline: true },
-        { name: 'Error', value: '```\n' + message.slice(0, 800) + '\n```', inline: false },
-    ];
-    if (stack) fields.push({ name: 'Stack', value: '```\n' + stack.slice(0, 600) + '\n```', inline: false });
-    if (extras) {
-        for (const [k, v] of Object.entries(extras)) {
-            if (v === undefined) continue;
-            fields.push({ name: k, value: String(v).slice(0, 500), inline: true });
-        }
-    }
-
+    // Lean format: title carries the cron name, description carries the
+    // error. Stack trace + extras dropped from the embed — they bloat
+    // the channel for forensics that almost nobody actually uses.
+    // Full stack is still in cron_runs.error and Vercel function logs.
     const embed: DiscordEmbed = {
-        title: `🚨 Cron failed: ${cronName}`,
+        title: `🚨 ${cronName} failed`,
+        description: '```\n' + message + '\n```',
         color: 0xFF0000,
-        fields,
-        timestamp: new Date().toISOString(),
-        footer: { text: 'PMHNP Job Board — Cron Failure' },
     };
     await sendDiscordMessage('', [embed]);
+    void extras; // intentionally not surfaced in the embed; logged via console where the cron throws
 }

@@ -2,39 +2,38 @@ import { Prisma } from '@prisma/client';
 import { FilterState } from '@/types/filters';
 
 /**
- * Hybrid "Posted Within" semantics.
+ * "Posted Within" semantics (revised 2026-05-06).
  *
- * Effective post date = GREATEST(originalPostedAt, createdAt - FRESHNESS_FLOOR).
- * A job counts as fresh-in-window W iff that effective date > now - W,
- * which expands to:
+ *   24h  → ingested in last 24h AND original post ≤ 3 days old
+ *           ("what's new on the board, capped so 30-day-old originals
+ *            don't surface as fresh")
+ *   3d / 7d / 30d → originalPostedAt ≥ now − window  (strict)
  *
- *   originalPostedAt > now - W           (source says it's fresh)
- *   OR createdAt    > now - W + FLOOR    (we ingested it within W + FLOOR)
- *
- * With FLOOR = 0 this means: a job is fresh-in-W if EITHER the source
- * says it was posted in the last W, OR we ingested it in the last W —
- * regardless of how old the source claims it is. Trade-off: aggregator
- * re-listings of old jobs surface as "fresh" the day we re-ingest them.
+ * NULL originalPostedAt is excluded from every window. The normalizer
+ * defaults missing dates to `new Date()` at ingest, so this affects
+ * only legacy rows (~0% of current inventory).
  */
-const FRESHNESS_FLOOR_MS = 0;
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+export type PostedWithinWindow = '24h' | '3d' | '7d' | '30d';
 
 export function freshnessClause(
   now: Date,
-  windowMs: number,
+  window: PostedWithinWindow,
 ): Prisma.JobWhereInput {
-  const origCutoff = new Date(now.getTime() - windowMs);
-  const createdCutoff = new Date(now.getTime() - windowMs + FRESHNESS_FLOOR_MS);
-
-  if (createdCutoff.getTime() >= now.getTime()) {
-    return { originalPostedAt: { gte: origCutoff } };
+  if (window === '24h') {
+    return {
+      AND: [
+        { createdAt: { gte: new Date(now.getTime() - ONE_DAY_MS) } },
+        { originalPostedAt: { gte: new Date(now.getTime() - THREE_DAYS_MS) } },
+      ],
+    };
   }
 
-  return {
-    OR: [
-      { originalPostedAt: { gte: origCutoff } },
-      { createdAt: { gte: createdCutoff } },
-    ],
-  };
+  const ms = postedWithinToMs(window);
+  if (ms === null) return {};
+  return { originalPostedAt: { gte: new Date(now.getTime() - ms) } };
 }
 
 export function postedWithinToMs(window: string): number | null {
@@ -502,11 +501,12 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     });
   }
 
-  // Posted Within — see `freshnessClause` for the hybrid semantics.
+  // Posted Within — see `freshnessClause` for the windowed semantics.
   if (filters.postedWithin && filters.postedWithin !== 'all') {
-    const windowMs = postedWithinToMs(filters.postedWithin);
-    if (windowMs !== null) {
-      andConditions.push(freshnessClause(new Date(), windowMs));
+    if (postedWithinToMs(filters.postedWithin) !== null) {
+      andConditions.push(
+        freshnessClause(new Date(), filters.postedWithin as PostedWithinWindow),
+      );
     }
   }
 

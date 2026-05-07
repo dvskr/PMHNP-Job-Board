@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Mail, Copy, Check } from 'lucide-react';
+import { formatCT } from '@/lib/format-ct';
 
 interface EmployerLead {
   id: string;
@@ -419,7 +420,7 @@ export default function OutreachPage() {
 
                   {lead.lastContactedAt && (
                     <p style={{ ...muted, marginBottom: '8px' }}>
-                      Last contacted: {new Date(lead.lastContactedAt).toLocaleDateString()}
+                      Last contacted: {formatCT(lead.lastContactedAt, 'date')}
                     </p>
                   )}
 

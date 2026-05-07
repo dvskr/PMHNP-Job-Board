@@ -85,7 +85,7 @@ export async function runRecommendationsSuite(): Promise<RecommendationsSuiteRes
         platformRevenueJobsWithSimilarity,
     } = await import('@/lib/ai/vector-search');
     const { selectRecommendations } = await import('@/lib/ai/recommendation-selector');
-    const { RECOMMENDATION_QUOTA } = await import('@/lib/ai/job-classifier');
+    const { EMPLOYER_PIN_POLICY } = await import('@/lib/ai/recommendation-policy');
     const { prisma } = await import('@/lib/prisma');
 
     const file = path.join(process.cwd(), 'tests', 'ai', 'golden', 'candidate-recommendations.json');
@@ -126,14 +126,13 @@ export async function runRecommendationsSuite(): Promise<RecommendationsSuiteRes
                 .map((s) => s.trim().toUpperCase())
                 .filter((s) => /^[A-Z]{2}$/.test(s));
 
-            const totalSlots = c.expected.topN ?? RECOMMENDATION_QUOTA.totalSlots;
+            const totalSlots = c.expected.topN ?? EMPLOYER_PIN_POLICY.totalSlots;
             const picked = selectRecommendations([...merged.values()], metaByJob, {
                 licensedStates: states,
-                quota: {
-                    easyApplyReserved: RECOMMENDATION_QUOTA.easyApplyReserved,
-                    directApplyReserved: RECOMMENDATION_QUOTA.directApplyReserved,
+                policy: {
+                    pinned: EMPLOYER_PIN_POLICY.pinned,
                     totalSlots,
-                } as typeof RECOMMENDATION_QUOTA,
+                } as typeof EMPLOYER_PIN_POLICY,
             });
 
             const actual = picked.map((p) => p.jobId);

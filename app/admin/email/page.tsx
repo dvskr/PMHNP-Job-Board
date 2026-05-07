@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { formatCT } from '@/lib/format-ct';
 import {
     Send, Mail, History, FileText, Eye, Users, ChevronDown,
     Plus, Trash2, Loader2, CheckCircle2, XCircle, Clock, AlertTriangle,
@@ -530,7 +531,7 @@ export default function AdminEmailPage() {
                                             {statusBadge(b.status)}
                                         </td>
                                         <td style={{ padding: '14px 16px', fontSize: '12px', color: '#94A3B8', borderBottom: '1px solid #E8ECF0', whiteSpace: 'nowrap' }}>
-                                            {new Date(b.sentAt || b.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                            {formatCT(b.sentAt || b.createdAt)}
                                         </td>
                                     </tr>
                                 ))}
@@ -568,7 +569,7 @@ export default function AdminEmailPage() {
                                         <div>
                                             <h3 style={{ ...heading, fontSize: '15px', marginBottom: '2px' }}>{t.name}</h3>
                                             <p style={{ ...muted, fontSize: '11px' }}>
-                                                Updated {new Date(t.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                Updated {formatCT(t.updatedAt, 'date')}
                                             </p>
                                         </div>
                                         <button onClick={() => deleteTemplate(t.id)} style={btnDanger}>

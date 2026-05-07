@@ -295,19 +295,15 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         try {
           const diag = getFantasticJobsDiag();
           const { sendDiscordMessage } = await import('./discord-notifier');
+          // Lean diag: HTTP status + abort reason in the description.
+          // Full status counts / first body sample are persisted in the
+          // function logs and source_stats — not needed in the channel.
+          const summary = `HTTP ${diag.firstResponseStatus ?? '—'} · quota left: ${diag.rateLimitRemaining ?? '?'}`
+            + (diag.abortReasons.length > 0 ? ` · aborts: ${diag.abortReasons.join(', ').slice(0, 200)}` : '');
           await sendDiscordMessage('', [{
-            title: `⚠️ ${source}: zero rows fetched`,
+            title: `⚠️ ${source}: 0 rows fetched`,
+            description: summary,
             color: 0xFFAA00,
-            fields: [
-              { name: 'First HTTP status', value: String(diag.firstResponseStatus ?? 'no-response'), inline: true },
-              { name: 'Rate-limit remaining', value: String(diag.rateLimitRemaining ?? 'unknown'), inline: true },
-              { name: 'Status counts', value: '```' + JSON.stringify(diag.statusCounts) + '```', inline: false },
-              { name: 'Abort reasons', value: '```' + (diag.abortReasons.length > 0 ? diag.abortReasons.join(', ') : '(none)') + '```', inline: false },
-              { name: 'First URL', value: '```' + (diag.firstResponseUrl ?? '(none)').slice(0, 500) + '```', inline: false },
-              { name: 'First body sample', value: '```' + (diag.firstResponseBodySample ?? '(none)').slice(0, 500) + '```', inline: false },
-            ],
-            timestamp: new Date().toISOString(),
-            footer: { text: `PMHNP Job Board — ${source} diagnostic` },
           }]);
         } catch (e) {
           console.error('[Ingest] Failed to push fantastic-jobs diag to Discord', e);
@@ -622,12 +618,27 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
           typeof normalizedJob.applyLink === 'string' ? normalizedJob.applyLink : null;
         if (applyLinkStr && applyLinkStr.length > 0) {
           try {
-            const probeDecision = await checkJobHealth(applyLinkStr, source, {
-              externalId:
-                typeof normalizedJob.externalId === 'string'
-                  ? normalizedJob.externalId
-                  : null,
-            });
+            const externalIdForProbe =
+              typeof normalizedJob.externalId === 'string'
+                ? normalizedJob.externalId
+                : null;
+            // G4 retry-once (2026-05-06): transient network/timeout/other
+            // failures shouldn't blind us to a real http_404. Retry exactly
+            // ONCE after a 250ms back-off if the first probe was inconclusive
+            // due to a transient error. We do not retry on inconclusive_403
+            // (anti-scraper signal — won't change on retry) or _429 (would
+            // make the rate-limit worse).
+            let probeDecision = await checkJobHealth(applyLinkStr, source, { externalId: externalIdForProbe });
+            const TRANSIENT_REASONS = new Set([
+              'inconclusive_network',
+              'inconclusive_other',
+              'inconclusive_3xx_loop',
+              'inconclusive_5xx',
+            ]);
+            if (TRANSIENT_REASONS.has(probeDecision.reason)) {
+              await new Promise((resolve) => setTimeout(resolve, 250));
+              probeDecision = await checkJobHealth(applyLinkStr, source, { externalId: externalIdForProbe });
+            }
             if (INGEST_DEAD_REASONS.has(probeDecision.reason)) {
               rejectedJobs.push({
                 title: normalizedJob.title as string,
@@ -1115,13 +1126,14 @@ export async function ingestJobs(
   console.log('\n' + generateIngestionSummary(results));
   console.log('='.repeat(80) + '\n');
 
-  // Send Discord notification
-  try {
-    const { sendIngestionSummary } = await import('./discord-notifier');
-    await sendIngestionSummary(results);
-  } catch (discordError) {
-    console.error('[Discord] Failed to send ingestion summary:', discordError);
-  }
+  // Discord summary REMOVED 2026-05-06.
+  //
+  // Was firing ~26 times/day (one per source cron) on top of the rich
+  // per-cron summary that app/api/cron/ingest/route.ts already sends.
+  // Net effect was a wall of duplicate embeds — exactly what Goal #4
+  // asks us to stop. The route-level summary stays; this redundant call
+  // is removed. Direct script invocations (scripts/run-ingestion.ts) no
+  // longer notify Discord, which is desirable — dev runs shouldn't.
 
   // Post-ingestion description cleanup REMOVED 2026-05-06.
   // Both insertion paths now produce clean descriptions at write-time:

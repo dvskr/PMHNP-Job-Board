@@ -123,6 +123,30 @@ async function fetchJobDetails(company: WorkdayCompany, externalPath: string): P
 }
 
 /**
+ * Fetch job details for many externalPaths with bounded concurrency.
+ * Order of returned details matches the input `paths` order so callers
+ * can zip them back to the originating postings.
+ */
+async function fetchDetailsConcurrent(
+    company: WorkdayCompany,
+    paths: string[],
+    concurrency: number,
+): Promise<Array<{ description: string; realPostedDate?: string }>> {
+    const results: Array<{ description: string; realPostedDate?: string }> = new Array(paths.length);
+    let cursor = 0;
+    async function worker(): Promise<void> {
+        while (true) {
+            const idx = cursor++;
+            if (idx >= paths.length) return;
+            results[idx] = await fetchJobDetails(company, paths[idx]);
+        }
+    }
+    const workers = Array.from({ length: Math.min(concurrency, paths.length) }, () => worker());
+    await Promise.all(workers);
+    return results;
+}
+
+/**
  * Search for PMHNP jobs on a specific Workday company site
  */
 async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[]> {
@@ -176,32 +200,37 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
 
                 if (postings.length === 0) break;
 
-                for (const posting of postings) {
-                    // Skip already seen (different search terms may find same job)
-                    if (seenPaths.has(posting.externalPath)) continue;
+                // Pre-filter postings by title BEFORE fetching descriptions —
+                // most search hits match the title pre-filter, but a few don't,
+                // and skipping description fetches for those saves real time.
+                const eligiblePostings = postings.filter((posting) => {
+                    if (seenPaths.has(posting.externalPath)) return false;
                     seenPaths.add(posting.externalPath);
-
-                    // Extract job ID from external path: /job/Title-Here/JR123456
-                    const pathParts = posting.externalPath.split('/');
-                    const jobId = pathParts[pathParts.length - 1] || posting.externalPath;
-
-                    // Quick title pre-filter before fetching description
                     const titleLower = posting.title.toLowerCase();
-                    const likelyPMHNP = titleLower.includes('pmhnp') ||
+                    return (
+                        titleLower.includes('pmhnp') ||
                         titleLower.includes('psychiatric') ||
                         titleLower.includes('psych') ||
                         titleLower.includes('mental health') ||
                         titleLower.includes('behavioral health') ||
-                        titleLower.includes('nurse practitioner');
+                        titleLower.includes('nurse practitioner')
+                    );
+                });
 
-                    if (!likelyPMHNP) continue;
+                // Fetch descriptions in parallel (concurrency 5). The serial
+                // version with 200ms sleeps was the dominant cost — 20 jobs
+                // × ~500ms each = 10s/page. Parallel-5 drops this to ~2s.
+                const detailResults = await fetchDetailsConcurrent(
+                    company,
+                    eligiblePostings.map((p) => p.externalPath),
+                    5,
+                );
 
-                    // Fetch the full job description AND real posted date
-                    const details = await fetchJobDetails(company, posting.externalPath);
-                    await sleep(200); // Be polite
-
-                    // Prioritize the real date from detail endpoint, then fall back to
-                    // search API's postedOn (same "Posted X Days Ago" text, available on every listing)
+                for (let pIdx = 0; pIdx < eligiblePostings.length; pIdx++) {
+                    const posting = eligiblePostings[pIdx];
+                    const details = detailResults[pIdx];
+                    const pathParts = posting.externalPath.split('/');
+                    const jobId = pathParts[pathParts.length - 1] || posting.externalPath;
                     const postedDate = details.realPostedDate
                         || parsePostedAgoText(posting.postedOn)
                         || undefined;
@@ -219,8 +248,9 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
                 offset += limit;
                 hasMore = offset < total && postings.length === limit;
 
-                // Rate limiting between pages
-                await sleep(300);
+                // Rate limiting between pages — trimmed from 300ms now that
+                // descriptions are fetched in parallel.
+                await sleep(150);
             } catch (error) {
                 console.warn(`[Workday] ${company.name}: Error fetching "${searchText}" at offset ${offset}:`, error);
                 break;
@@ -228,7 +258,7 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
         }
 
         // Rate limiting between search terms
-        await sleep(500);
+        await sleep(250);
     }
 
     console.log(`[Workday] ${company.name}: ${allJobs.length} PMHNP jobs found (${seenPaths.size} total searched)`);

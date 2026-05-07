@@ -5,7 +5,11 @@ interface AdzunaJob {
     display_name: string;
   };
   location: {
+    // display_name is "City, County" (NOT "City, State"), so unusable
+    // for state extraction. Use `area` instead — Adzuna returns it as
+    // ["US", State, County, City] from broadest to narrowest.
     display_name: string;
+    area?: string[];
   };
   description: string;
   salary_min?: number;
@@ -14,6 +18,23 @@ interface AdzunaJob {
   contract_type?: string; // e.g., "permanent", "contract"
   redirect_url: string;
   created: string;
+}
+
+/**
+ * Build a clean "City, State" string from Adzuna's `location.area` array.
+ * Falls back to display_name (which is "City, County") when area is missing
+ * or malformed. Returns "United States" when the location is country-only.
+ */
+function buildAdzunaLocation(loc: AdzunaJob['location']): string {
+  const area = loc?.area;
+  if (Array.isArray(area) && area.length >= 2) {
+    // area[0] = "US", area[1] = State; city is the LAST element (depth varies).
+    const state = area[1];
+    const city = area.length >= 4 ? area[3] : area.length === 3 ? area[2] : null;
+    if (city && state) return `${city}, ${state}`;
+    if (state) return state;
+  }
+  return loc?.display_name || 'United States';
 }
 
 interface AdzunaResponse {
@@ -120,7 +141,7 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
           allJobs.push({
             title: job.title,
             employer: job.company?.display_name || 'Company Not Listed',
-            location: job.location?.display_name || 'United States',
+            location: buildAdzunaLocation(job.location),
             description: job.description || '',
             minSalary: job.salary_min || null,
             maxSalary: job.salary_max || null,

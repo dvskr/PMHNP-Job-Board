@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { formatCT } from '@/lib/format-ct';
 import {
   Search, Filter, ChevronLeft, ChevronRight, Eye, MousePointerClick,
   FileCheck, MoreHorizontal, Trash2, Star, StarOff, Globe, GlobeLock,
@@ -325,16 +326,16 @@ export default function AdminJobsPage() {
                   <th style={{ ...s.th, width: '36px' }}>
                     <input type="checkbox" checked={selected.size === jobs.length && jobs.length > 0} onChange={selectAll} style={{ cursor: 'pointer' }} />
                   </th>
-                  <th style={s.th}>Title</th>
-                  <th style={s.th}>Employer</th>
-                  <th style={s.th}>Source</th>
-                  <th style={{ ...s.th, textAlign: 'center' }}>Status</th>
-                  <th style={{ ...s.th, textAlign: 'center' }}>Featured</th>
-                  <th style={{ ...s.th, textAlign: 'right' }}><Eye size={13} /></th>
-                  <th style={{ ...s.th, textAlign: 'right' }}><MousePointerClick size={13} /></th>
-                  <th style={{ ...s.th, textAlign: 'right' }}><FileCheck size={13} /></th>
-                  <th style={s.th}>Created</th>
-                  <th style={{ ...s.th, textAlign: 'center' }}>Actions</th>
+                  <th style={{ ...s.th, width: '40%' }}>Title</th>
+                  <th style={{ ...s.th, width: '20%' }}>Employer</th>
+                  <th style={{ ...s.th, width: '110px' }}>Source</th>
+                  <th style={{ ...s.th, textAlign: 'center', width: '70px' }}>Status</th>
+                  <th style={{ ...s.th, textAlign: 'center', width: '80px' }}>Featured</th>
+                  <th style={{ ...s.th, textAlign: 'right', width: '60px' }}><Eye size={13} /></th>
+                  <th style={{ ...s.th, textAlign: 'right', width: '60px' }}><MousePointerClick size={13} /></th>
+                  <th style={{ ...s.th, textAlign: 'right', width: '60px' }}><FileCheck size={13} /></th>
+                  <th style={{ ...s.th, width: '110px' }}>Created</th>
+                  <th style={{ ...s.th, textAlign: 'center', width: '90px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -343,11 +344,13 @@ export default function AdminJobsPage() {
                     <td style={s.td}>
                       <input type="checkbox" checked={selected.has(job.id)} onChange={() => toggleSelect(job.id)} style={{ cursor: 'pointer' }} />
                     </td>
-                    <td style={{ ...s.tdBold, maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={job.title}>
+                    <td style={{ ...s.tdBold, maxWidth: '0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={job.title}>
                       {job.title}
                     </td>
-                    <td style={s.td}>{job.employer}</td>
-                    <td style={s.td}>
+                    <td style={{ ...s.td, maxWidth: '0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={job.employer}>
+                      {job.employer}
+                    </td>
+                    <td style={{ ...s.td, whiteSpace: 'nowrap' }}>
                       <span style={{ textTransform: 'capitalize' }}>{job.sourceProvider || '—'}</span>
                     </td>
                     <td style={{ ...s.td, textAlign: 'center' }}>
@@ -372,7 +375,7 @@ export default function AdminJobsPage() {
                     <td style={{ ...s.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{job.applyClickCount.toLocaleString()}</td>
                     <td style={{ ...s.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{job.applications}</td>
                     <td style={s.td}>
-                      {new Date(job.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                      {formatCT(job.createdAt, 'date')}
                     </td>
                     <td style={{ ...s.td, textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>

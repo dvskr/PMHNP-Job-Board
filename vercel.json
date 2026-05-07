@@ -49,12 +49,76 @@
       "schedule": "30 12 * * *"
     },
     {
+      "path": "/api/cron/ingest?source=fantastic-jobs-db&endpoint=24h",
+      "schedule": "30 17 * * *"
+    },
+    {
       "path": "/api/cron/ingest?source=fantastic-jobs-db&endpoint=6m",
       "schedule": "0 0 1 1 *"
     },
     {
       "path": "/api/cron/ingest?source=smartrecruiters",
       "schedule": "35 11,17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest-wave-summary",
+      "schedule": "50 12 * * *"
+    },
+    {
+      "path": "/api/cron/ingest-wave-summary",
+      "schedule": "55 17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=adzuna",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=greenhouse&chunk=0",
+      "schedule": "10 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=greenhouse&chunk=1",
+      "schedule": "15 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=greenhouse&chunk=2",
+      "schedule": "20 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=greenhouse&chunk=3",
+      "schedule": "25 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=lever",
+      "schedule": "50 23 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=0",
+      "schedule": "5 0 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=1",
+      "schedule": "10 0 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=2",
+      "schedule": "15 0 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=3",
+      "schedule": "20 0 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=4",
+      "schedule": "25 0 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=smartrecruiters",
+      "schedule": "35 0 * * *"
+    },
+    {
+      "path": "/api/cron/ingest-wave-summary",
+      "schedule": "55 0 * * *"
     },
     {
       "path": "/api/cron/enrich-jobs",
@@ -79,6 +143,10 @@
     {
       "path": "/api/cron/check-dead-links",
       "schedule": "30 12,18 * * *"
+    },
+    {
+      "path": "/api/cron/engagement-anomaly",
+      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/cron/daily-report",

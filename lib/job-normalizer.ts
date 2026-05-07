@@ -791,20 +791,14 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
       return { job: null, rejectionReason: 'normalizer_indirect_apply' };
     }
 
-    // Gate 3: Stale-post (60 days). Applies to EVERY source — even ATS
-    // feeds that "only return active reqs" can include reqs that have
-    // been open for 6+ months. We don't want stale postings in the
-    // catalog regardless of how the source labels them.
-    //
-    // Trade-off: hard-to-fill specialty PMHNP roles do legitimately
-    // stay open >60 days. The 60-day cap is a freshness signal for
-    // users; we accept some genuine-but-stale roles getting dropped
-    // in exchange for a tighter catalog. Original-posted-date accuracy
-    // varies by source — see normalizer_stale_post audit notes.
+    // Gate 3: Stale-post (30 days). Tightened 2026-05-06 from 60 → 30d
+    // to align ingest inventory with user-facing "Posted Within" filter
+    // ceiling and reduce drift between source-claimed dates and what we
+    // present as "fresh". Applies to every source.
     if (originalPostedAt && !isNaN(originalPostedAt.getTime())) {
-      const sixtyDaysAgo = new Date();
-      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-      if (originalPostedAt < sixtyDaysAgo) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      if (originalPostedAt < thirtyDaysAgo) {
         return { job: null, rejectionReason: 'normalizer_stale_post' };
       }
     }
