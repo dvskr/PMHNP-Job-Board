@@ -283,6 +283,9 @@ async function autoFillProfile(
   if (shouldWrite(profile.phone, parsed.phone)) update.phone = parsed.phone;
   if (shouldWrite(profile.linkedinUrl, parsed.linkedinUrl)) update.linkedinUrl = parsed.linkedinUrl;
   if (shouldWrite(profile.headline, parsed.headline)) update.headline = parsed.headline;
+  // v2 prompt — verbatim "Professional Summary" paragraph from the
+  // resume routes to UserProfile.bio.
+  if (shouldWrite(profile.bio, parsed.professionalSummary)) update.bio = parsed.professionalSummary;
   if (shouldWrite(profile.yearsExperience, parsed.yearsExperience)) update.yearsExperience = parsed.yearsExperience;
   if (shouldWrite(profile.certifications, parsed.certifications)) {
     update.certifications = parsed.certifications!.join(', ');

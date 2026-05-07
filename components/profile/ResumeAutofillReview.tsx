@@ -559,7 +559,13 @@ function ListBlock({ items }: { items: ListItem[] }) {
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.secondary}</div>
                     )}
                     {item.tertiary && (
-                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', lineHeight: 1.4 }}>
+                        <div style={{
+                            fontSize: '12px',
+                            color: 'var(--text-secondary)',
+                            marginTop: '6px',
+                            lineHeight: 1.5,
+                            whiteSpace: 'pre-wrap',
+                        }}>
                             {item.tertiary}
                         </div>
                     )}

@@ -13,6 +13,9 @@ export interface ParsedResume {
     firstName?: string;
     lastName?: string;
     headline?: string;
+    /** Verbatim "Professional Summary" / "Profile" paragraph from the
+     *  resume header. Routes to UserProfile.bio. v2 prompt only. */
+    professionalSummary?: string;
     /** E.164 or "(555) 555-5555" formatted phone — sanitized to digits with min length. */
     phone?: string;
     /** Public LinkedIn URL (linkedin.com/in/xxx). */
@@ -52,6 +55,11 @@ export interface ParsedResume {
         startDate?: string;
         endDate?: string;
         isCurrent?: boolean;
+        /** Persisted form: bullets joined with '\n• ' for whiteSpace
+         *  pre-wrap rendering. The v2 prompt returns these as a string
+         *  array (`descriptionBullets`); the sanitizer joins them
+         *  here. v1 prompt returned `description` as a single string
+         *  which we accept as-is. */
         description?: string;
         practiceSetting?: string;
     }[];
@@ -198,6 +206,10 @@ export function sanitizeParsedResume(data: ParsedResume): ParsedResume {
         firstName: typeof data.firstName === 'string' ? data.firstName.slice(0, 50) : undefined,
         lastName: typeof data.lastName === 'string' ? data.lastName.slice(0, 50) : undefined,
         headline: typeof data.headline === 'string' ? data.headline.slice(0, 120) : undefined,
+        // v2 only — verbatim summary paragraph routed to UserProfile.bio.
+        professionalSummary: typeof data.professionalSummary === 'string'
+            ? data.professionalSummary.slice(0, 1500)
+            : undefined,
         phone: sanitizePhone(data.phone),
         linkedinUrl: sanitizeLinkedIn(data.linkedinUrl),
         yearsExperience:
@@ -270,13 +282,29 @@ export function sanitizeParsedResume(data: ParsedResume): ParsedResume {
                       startDate: typeof w.startDate === 'string' ? w.startDate.slice(0, 10) : undefined,
                       endDate: typeof w.endDate === 'string' ? w.endDate.slice(0, 10) : undefined,
                       isCurrent: typeof w.isCurrent === 'boolean' ? w.isCurrent : false,
-                      // Bumped 500 → 2000 chars (2026-05-06): the
-                      // prompt now asks for verbatim bullets instead of
-                      // a 1-2 sentence summary, and a single role can
-                      // easily have 4-6 substantive bullets.
-                      description: typeof w.description === 'string' ? w.description.slice(0, 2000) : undefined,
+                      // v2 prompt: descriptionBullets is an array of
+                      // verbatim bullets — join with newline + bullet
+                      // marker for whiteSpace: pre-wrap rendering. v1
+                      // returned a single `description` string; fall
+                      // through if descriptionBullets is missing.
+                      description: bulletsToDescription(w),
                       practiceSetting: typeof w.practiceSetting === 'string' ? w.practiceSetting.slice(0, 50) : undefined,
                   }))
             : [],
     };
+}
+
+/** v2: descriptionBullets[] → "• line\n• line"; v1: description string → as-is. */
+function bulletsToDescription(w: unknown): string | undefined {
+    const we = w as { description?: unknown; descriptionBullets?: unknown };
+    const bullets = we.descriptionBullets;
+    if (Array.isArray(bullets)) {
+        const lines = bullets
+            .filter((b): b is string => typeof b === 'string' && b.trim().length > 0)
+            .slice(0, 12)
+            .map((b) => '• ' + b.trim().slice(0, 400));
+        if (lines.length > 0) return lines.join('\n').slice(0, 2500);
+    }
+    if (typeof we.description === 'string') return we.description.slice(0, 2500);
+    return undefined;
 }
