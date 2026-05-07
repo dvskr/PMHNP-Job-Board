@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
 import { sendEmployerMessageNotification, sendCandidateInquiryNotification } from '@/lib/email-service';
 import { sanitizeText } from '@/lib/sanitize';
 import { verifyCsrf } from '@/lib/csrf';
 import { rateLimit } from '@/lib/rate-limit';
+import { mintDocReadUrl, extractRequestContext } from '@/lib/document-storage';
 
 /**
  * GET /api/conversations/[id]
@@ -83,6 +83,9 @@ export async function GET(
                 attachmentUrl: true,
                 attachmentName: true,
                 deletedBySender: true,
+                // Sender supabaseId — needed for audit-logging
+                // attachment views (the sender is the doc "owner").
+                sender: { select: { supabaseId: true } },
             },
         });
 
@@ -127,23 +130,25 @@ export async function GET(
                 // Check if sender deleted this message
                 const isSenderDeleted = m.senderId !== profile.id && m.deletedBySender;
 
-                // Generate fresh signed URL for attachments stored as paths
-                let resolvedAttachmentUrl = isSenderDeleted ? null : (m.attachmentUrl || null);
-                if (resolvedAttachmentUrl && !resolvedAttachmentUrl.startsWith('http')) {
-                    try {
-                        const admin = createAdminClient(
-                            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                            process.env.SUPABASE_SERVICE_ROLE_KEY!
-                        );
-                        const { data: signedData } = await admin.storage
-                            .from('message-attachments')
-                            .createSignedUrl(resolvedAttachmentUrl, 3600); // 1 hour
-                        if (signedData?.signedUrl) {
-                            resolvedAttachmentUrl = signedData.signedUrl;
-                        }
-                    } catch {
-                        // If signing fails, keep the raw path — better than nothing
-                    }
+                // Mint a fresh 15-min signed URL via the centralized
+                // helper (audit-logged with audience='owner' when the
+                // sender is fetching their own thread, 'counterparty'
+                // for the other party).
+                let resolvedAttachmentUrl: string | null = isSenderDeleted ? null : (m.attachmentUrl || null);
+                if (resolvedAttachmentUrl) {
+                    const isFromMe = m.senderId === profile.id;
+                    resolvedAttachmentUrl = await mintDocReadUrl(
+                        resolvedAttachmentUrl,
+                        'message_attachment',
+                        {
+                            actorId: user.id,
+                            ownerId: m.sender?.supabaseId ?? user.id,
+                            audience: isFromMe ? 'owner' : 'counterparty',
+                            action: 'view',
+                            ...extractRequestContext(req),
+                            reason: `conversation thread message ${m.id}`,
+                        },
+                    );
                 }
 
                 return {
@@ -323,23 +328,23 @@ export async function POST(
             }
         }
 
-        // Generate a signed URL for the attachment if it's a storage path
-        let resolvedAttachmentUrl = message.attachmentUrl || null;
-        if (resolvedAttachmentUrl && !resolvedAttachmentUrl.startsWith('http')) {
-            try {
-                const admin = createAdminClient(
-                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                    process.env.SUPABASE_SERVICE_ROLE_KEY!
-                );
-                const { data: signedData } = await admin.storage
-                    .from('message-attachments')
-                    .createSignedUrl(resolvedAttachmentUrl, 3600);
-                if (signedData?.signedUrl) {
-                    resolvedAttachmentUrl = signedData.signedUrl;
-                }
-            } catch {
-                // Keep raw path as fallback
-            }
+        // Mint a signed URL for the just-sent attachment via the
+        // centralized helper. Sender is the actor here (POST = compose),
+        // and they're also the doc owner — audit-logged as 'owner'.
+        let resolvedAttachmentUrl: string | null = message.attachmentUrl || null;
+        if (resolvedAttachmentUrl) {
+            resolvedAttachmentUrl = await mintDocReadUrl(
+                resolvedAttachmentUrl,
+                'message_attachment',
+                {
+                    actorId: user.id,
+                    ownerId: user.id,
+                    audience: 'owner',
+                    action: 'view',
+                    ...extractRequestContext(req),
+                    reason: `compose echo — message ${message.id}`,
+                },
+            );
         }
 
         return NextResponse.json({
