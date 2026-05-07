@@ -46,6 +46,48 @@ function gone410(reason: string): NextResponse {
     );
 }
 
+// GSC Fix (P1.3): when the 410 DB check fails, we used to silently fall
+// through to the page handler — which returned 200 OK on what should have
+// been a 410, manufacturing soft-404s on every Supabase hiccup. For
+// crawlers we now return 503 + Retry-After so they retry instead of
+// recording a 200. Real users still fall through to the page handler
+// (better UX than a hard 503). isCrawlerForFailClosed() is a narrower
+// list than isKnownCrawler() — we only fail-closed for engines that
+// actually populate the index.
+const FAIL_CLOSED_CRAWLER_UAS = [
+    /Googlebot/i,
+    /Google-InspectionTool/i,
+    /AdsBot-Google/i,
+    /Bingbot/i,
+    /BingPreview/i,
+    /DuckDuckBot/i,
+    /Applebot/i,
+    /Yandex(?:Bot|Images)/i,
+    /Baiduspider/i,
+];
+
+function isFailClosedCrawler(ua: string | null | undefined): boolean {
+    if (!ua) return false;
+    return FAIL_CLOSED_CRAWLER_UAS.some((p) => p.test(ua));
+}
+
+function unavailable503(): NextResponse {
+    return new NextResponse(
+        `<!DOCTYPE html><html><head><meta name="robots" content="noindex"><title>Service Unavailable</title></head><body><h1>503 Service Unavailable</h1><p>This URL's status could not be verified. Please retry.</p></body></html>`,
+        {
+            status: 503,
+            headers: {
+                'Content-Type': 'text/html',
+                'X-Robots-Tag': 'noindex, nofollow',
+                // Retry in 5 minutes — long enough for transient DB outages to
+                // clear, short enough that Googlebot doesn't park the URL.
+                'Retry-After': '300',
+                'Cache-Control': 'no-store',
+            },
+        }
+    );
+}
+
 // ── Verified Search & AI Crawlers ─────────────────────────────────
 // Allowlist of well-known crawlers that bypass per-IP rate limits.
 // We trust the UA here because:
@@ -180,13 +222,21 @@ export async function middleware(request: NextRequest) {
                     }
                 }
             } catch (err) {
-                // GSC Fix (P1.3): silent fallback was masking DB hiccups that
-                // produce Soft 404 (200 OK on a deleted job). Log every failure;
-                // ops should alert if rate exceeds 0.5% over 5 min.
-                console.error('[middleware:job-410] DB check failed; falling through to page handler', {
+                // GSC Fix (P1.3 + P-fail-closed): silent fallback was
+                // masking DB hiccups that produce Soft 404 (200 OK on a
+                // deleted job). Log every failure; ops should alert if
+                // rate exceeds 0.5% over 5 min. For crawlers, we return
+                // 503 + Retry-After so they retry instead of recording
+                // a 200 on a possibly-gone URL. Real users still get
+                // the page handler (better UX than a 503 wall).
+                console.error('[middleware:job-410] DB check failed', {
                     jobId,
+                    failClosed: isFailClosedCrawler(request.headers.get('user-agent')),
                     error: err instanceof Error ? err.message : String(err),
                 });
+                if (isFailClosedCrawler(request.headers.get('user-agent'))) {
+                    return unavailable503();
+                }
             }
         }
     }
@@ -267,11 +317,16 @@ export async function middleware(request: NextRequest) {
                     }
                 }
             } catch (err) {
-                // GSC Fix (P1.3): see job-410 block above — log silent fallbacks.
-                console.error('[middleware:company-410] DB check failed; falling through to page handler', {
+                // GSC Fix (P1.3 + P-fail-closed): see job-410 block above
+                // for rationale. Same crawler-only 503 fallback applies.
+                console.error('[middleware:company-410] DB check failed', {
                     rawSlug,
+                    failClosed: isFailClosedCrawler(request.headers.get('user-agent')),
                     error: err instanceof Error ? err.message : String(err),
                 });
+                if (isFailClosedCrawler(request.headers.get('user-agent'))) {
+                    return unavailable503();
+                }
             }
         }
     }

@@ -13,7 +13,6 @@ import dynamic from 'next/dynamic';
 
 // Below-fold interactive components — defer from critical bundle
 const ExitIntentPopup = dynamic(() => import('@/components/ExitIntentPopup'));
-const StickyEmailBar = dynamic(() => import('@/components/StickyEmailBar'));
 
 
 
@@ -264,7 +263,6 @@ export default async function Home() {
         <HomepageBlogSection />
 
         <ExitIntentPopup />
-        <StickyEmailBar />
       </div>
     </>
   );

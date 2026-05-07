@@ -265,14 +265,24 @@ export default function ResumeUpload({
     }
   }, [lastResumePath, onAutofillApplied])
 
-  /* view resume (server-side signed URL generation) */
+  /* view resume — fetches a fresh 15-min signed URL from the server.
+     Replaces the prior `window.open(currentResumeUrl)` which silently
+     failed when the stored value was a bare storage path instead of a
+     URL. The server endpoint also audit-logs the access. */
   const handleView = async () => {
     if (!currentResumeUrl) return
     setViewing(true)
     try {
-      // Use the stored URL directly — it already has a valid signed URL
-      // The server generates fresh 1-hour signed URLs on upload
-      window.open(currentResumeUrl, '_blank')
+      const res = await fetch('/api/documents/resume/me/url', { credentials: 'include' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.error || `HTTP ${res.status}`)
+      }
+      const { url } = await res.json() as { url?: string }
+      if (!url) throw new Error('No download URL returned')
+      window.open(url, '_blank')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not open resume')
     } finally {
       setViewing(false)
     }

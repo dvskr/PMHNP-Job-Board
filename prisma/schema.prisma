@@ -71,6 +71,16 @@ model Job {
   // Currently shadow-mode: written but not used to auto-unpublish until tuned.
   healthConsecutiveMissing Int                    @default(0) @map("health_consecutive_missing")
   healthLastSeenAt         DateTime?              @map("health_last_seen_at")
+  // ─── Category tags (P9 — kills cross-taxonomy duplication) ───
+  // Pre-computed canonical category slugs that this job qualifies for.
+  // Populated at ingest by lib/pseo/category-tagger.ts and at query time
+  // by buildWhere. Replaces the OR-on-`title.contains`/`description.contains`
+  // matchers that produced ~5x duplication across taxonomy×city pages.
+  // Empty array (default) means "not yet tagged" — buildWhere falls back
+  // to the legacy matcher in that case so the rollout is safe to deploy
+  // before backfill runs. After scripts/backfill-category-tags.ts has
+  // populated all rows, the legacy fallback is dead code.
+  categoryTags             String[]               @default([]) @map("category_tags")
   applyClicks              ApplyClick[]
   jobApplications          JobApplication[]
   jobReports               JobReport[]
@@ -95,6 +105,9 @@ model Job {
   @@index([externalId, sourceProvider])
   @@index([qualityScore(sort: Desc)])
   @@index([sourceProvider, healthConsecutiveMissing])
+  // GIN index for fast `categoryTags has 'X'` queries that drive every
+  // taxonomy×city and taxonomy×state page after P9 swap.
+  @@index([categoryTags], type: Gin)
   @@map("jobs")
 }
 
@@ -816,6 +829,50 @@ model CandidateReference {
 
   @@index([userId])
   @@map("candidate_references")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Document Access Log — single audit table for resume reads
+// (and any future PII document type — cover letters, transcripts, etc.)
+//
+// Every signed-URL mint and every server-side read of a candidate
+// document writes a row here via lib/resume-storage.ts. Source of
+// truth for:
+//   - "Who viewed my resume" UX shown to candidates
+//   - SOC2 / HIPAA evidence: which employer pulled which resume
+//     when, with what justification
+//   - Incident forensics: did this leak come from inside the house?
+//   - Anomaly detection: employer downloading 500 resumes in 10
+//     minutes triggers a flag
+//
+// Deliberately denormalized — actorId/ownerId/audience/action are all
+// stored as raw strings so historical queries don't require joining
+// against a UserProfile.role that may have changed since the access.
+// ═══════════════════════════════════════════════════════════════
+
+model DocumentAccessLog {
+  id        String   @id @default(cuid())
+  /// 'resume' for now; add 'cover_letter' / 'transcript' / etc. later
+  docType   String   @map("doc_type")
+  /// supabaseId of who triggered the read; literal 'system' for
+  /// background jobs (AI parse worker, exports run on a schedule)
+  actorId   String   @map("actor_id")
+  /// supabaseId of the candidate whose document was accessed
+  ownerId   String   @map("owner_id")
+  /// owner | employer | admin | system | export | extension
+  audience  String
+  /// view | download | parse | export — free-form short label
+  action    String
+  ip        String?
+  userAgent String?  @map("user_agent")
+  /// optional context: request id, job name, justification text
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ownerId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([docType, createdAt])
+  @@map("document_access_log")
 }
 
 // ═══════════════════════════════════════════════════════════════

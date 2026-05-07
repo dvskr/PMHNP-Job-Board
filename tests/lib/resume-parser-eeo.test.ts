@@ -45,11 +45,14 @@ const EEO_KEYS = [
     'genderIdentity',
 ] as const;
 
-/** The full set of keys the sanitizer is allowed to emit. */
+/** The full set of keys the sanitizer is allowed to emit.
+ *  Mirrors the keys spread in `sanitizeParsedResume()` in lib/resume-parser.ts.
+ *  When a new professional field is added there, add it here too. */
 const ALLOWED_PARSED_KEYS = new Set<keyof ParsedResume>([
     'firstName',
     'lastName',
     'headline',
+    'professionalSummary',
     'phone',
     'linkedinUrl',
     'yearsExperience',

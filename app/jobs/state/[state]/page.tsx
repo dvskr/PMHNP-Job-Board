@@ -429,6 +429,15 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
     getNearbyStatesWithJobs(stateName),
   ]);
 
+  // GSC Fix: empty-state guard. Metadata-level noindex (line 392) is not
+  // enough on its own — the page would still render a $0/$0 + "0 active
+  // positions" shell that Google classifies as soft 404. Pull the plug
+  // entirely when there's nothing to show. Mirrors the pattern in
+  // lib/pseo/setting-state-template.tsx for category × state pages.
+  if (stats.totalJobs === 0) {
+    notFound();
+  }
+
   // GSC Fix (P1.5): only render setting pills for setting×state combos that
   // actually have ≥1 active job. Linking to empty pages generated thousands
   // of "Discovered — currently not indexed" entries.

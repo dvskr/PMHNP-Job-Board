@@ -11,6 +11,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
+import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 
 /* ═══ Design Tokens — matched to employer page ═══ */
 const clayCard: React.CSSProperties = {
@@ -494,6 +495,9 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
         </section>
       </div>
 
+
+      {/* By Location — pseoStats-gated internal links */}
+      <CategoryLocationsExplore categorySlug="remote" categoryLabel="Remote" />
 
       {/* FAQ Section with structured data */}
       <CategoryFAQ category="remote" totalJobs={stats.totalJobs} />

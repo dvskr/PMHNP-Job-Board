@@ -142,16 +142,26 @@ export interface SettingConfig {
   tips: string[];
 }
 
-function buildKeywordWhere(keywords: string[], stateName: string): Record<string, unknown> {
+/**
+ * Build a state-scoped where clause for a given canonical category tag.
+ *
+ * P9: queries `categoryTags has '<tag>'` for backfilled rows, with the
+ * legacy keyword OR matcher as fallback for rows whose categoryTags is
+ * still empty (deploy → backfill window). See `withTagFallback` in
+ * lib/pseo/category-tagger.ts. Once backfill is complete the fallback
+ * is dead code and can be removed.
+ *
+ * The legacy `keywords` parameter is preserved as a positional `_legacy`
+ * for call-site compatibility — it is no longer consulted at query time
+ * (the keyword list now lives inside category-tagger.ts RULES).
+ */
+import { withTagFallback, type CategoryTag } from './category-tagger';
+
+function buildKeywordWhere(_legacy: string[], stateName: string, tag: CategoryTag): Record<string, unknown> {
   return {
     isPublished: true,
     state: { equals: stateName, mode: 'insensitive' },
-    OR: keywords.map((kw) => ({
-      OR: [
-        { title: { contains: kw, mode: 'insensitive' } },
-        { description: { contains: kw, mode: 'insensitive' } },
-      ],
-    })),
+    ...withTagFallback(tag),
   };
 }
 
@@ -166,8 +176,8 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     faqCategory: 'remote',
     buildWhere: (stateName: string) => ({
       isPublished: true,
-      isRemote: true,
       state: { equals: stateName, mode: 'insensitive' },
+      ...withTagFallback('remote'),
     }),
     benefits: [
       { title: 'Flexible Schedule', description: 'Set your own hours and work from the comfort of your home while serving patients across the state.', iconName: 'Clock' },
@@ -193,14 +203,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     buildWhere: (stateName: string) => ({
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
-      OR: [
-        { title: { contains: 'telehealth', mode: 'insensitive' } },
-        { title: { contains: 'telemedicine', mode: 'insensitive' } },
-        { title: { contains: 'telepsych', mode: 'insensitive' } },
-        { title: { contains: 'virtual', mode: 'insensitive' } },
-        { description: { contains: 'telehealth', mode: 'insensitive' } },
-        { description: { contains: 'telemedicine', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('telehealth'),
     }),
     benefits: [
       { title: 'Growing Demand', description: 'Telehealth psychiatric care has seen explosive growth. Virtual providers are in high demand statewide.', iconName: 'TrendingUp' },
@@ -226,13 +229,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     buildWhere: (stateName: string) => ({
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
-      OR: [
-        { title: { contains: 'inpatient', mode: 'insensitive' } },
-        { title: { contains: 'in-patient', mode: 'insensitive' } },
-        { title: { contains: 'acute care', mode: 'insensitive' } },
-        { title: { contains: 'hospital', mode: 'insensitive' } },
-        { description: { contains: 'inpatient', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('inpatient'),
     }),
     benefits: [
       { title: 'Higher Base Pay', description: 'Inpatient PMHNPs earn $140K-$200K+ due to the demanding nature of acute psychiatric care.', iconName: 'DollarSign' },
@@ -258,14 +255,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     buildWhere: (stateName: string) => ({
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
-      OR: [
-        { title: { contains: 'outpatient', mode: 'insensitive' } },
-        { title: { contains: 'out-patient', mode: 'insensitive' } },
-        { title: { contains: 'clinic', mode: 'insensitive' } },
-        { title: { contains: 'private practice', mode: 'insensitive' } },
-        { title: { contains: 'community mental health', mode: 'insensitive' } },
-        { description: { contains: 'outpatient', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('outpatient'),
     }),
     benefits: [
       { title: 'Work-Life Balance', description: 'Most outpatient positions offer M-F schedules with no nights, weekends, or on-call requirements.', iconName: 'Clock' },
@@ -291,11 +281,13 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     buildWhere: (stateName: string) => ({
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
+      // Travel and locum-tenens are distinct canonical tags but the
+      // /jobs/travel/{state} page semantically covers both. The two
+      // withTagFallback(...) calls each return { OR: [...] }; we lift
+      // them into a single OR via spread + flat-map.
       OR: [
-        { title: { contains: 'travel', mode: 'insensitive' } },
-        { title: { contains: 'locum', mode: 'insensitive' } },
-        { description: { contains: 'travel', mode: 'insensitive' } },
-        { description: { contains: 'locum', mode: 'insensitive' } },
+        ...((withTagFallback('travel').OR as Record<string, unknown>[]) ?? []),
+        ...((withTagFallback('locum-tenens').OR as Record<string, unknown>[]) ?? []),
       ],
     }),
     benefits: [
@@ -321,7 +313,8 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     faqCategory: 'addiction',
     buildWhere: (stateName: string) => buildKeywordWhere(
       ['addiction', 'substance abuse', 'substance use', 'MAT', 'suboxone', 'buprenorphine', 'methadone', 'recovery', 'detox'],
-      stateName
+      stateName,
+      'addiction',
     ),
     benefits: [
       { title: 'Critical Need', description: 'The opioid epidemic has created unprecedented demand for addiction-trained PMHNPs across every state.', iconName: 'AlertTriangle' },
@@ -347,11 +340,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     buildWhere: (stateName: string) => ({
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
-      OR: [
-        { jobType: { contains: 'Full', mode: 'insensitive' } },
-        { title: { contains: 'full-time', mode: 'insensitive' } },
-        { title: { contains: 'full time', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('full-time'),
     }),
     benefits: [
       { title: 'Benefits Package', description: 'Full-time positions include health insurance, 401K match, PTO, CME allowance, and malpractice coverage.', iconName: 'Shield' },
@@ -377,12 +366,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     buildWhere: (stateName: string) => ({
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
-      OR: [
-        { jobType: { contains: 'Part', mode: 'insensitive' } },
-        { title: { contains: 'part-time', mode: 'insensitive' } },
-        { title: { contains: 'part time', mode: 'insensitive' } },
-        { title: { contains: 'PRN', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('part-time'),
     }),
     benefits: [
       { title: 'Schedule Flexibility', description: 'Work 2-3 days per week, freeing time for private practice, family, or other commitments.', iconName: 'Clock' },
@@ -408,12 +392,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     buildWhere: (stateName: string) => ({
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
-      OR: [
-        { jobType: { contains: 'Contract', mode: 'insensitive' } },
-        { title: { contains: 'contract', mode: 'insensitive' } },
-        { title: { contains: 'temp', mode: 'insensitive' } },
-        { description: { contains: 'contract position', mode: 'insensitive' } },
-      ],
+      ...withTagFallback('contract'),
     }),
     benefits: [
       { title: 'Premium Rates', description: 'Contract PMHNPs earn 20-50% more per hour than permanent staff, with rates of $70-130+/hr.', iconName: 'DollarSign' },
@@ -438,7 +417,8 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     faqCategory: 'new-grad',
     buildWhere: (stateName: string) => buildKeywordWhere(
       ['new grad', 'new graduate', 'entry level', 'entry-level', 'residency', 'fellowship', 'recent graduate', 'no experience required'],
-      stateName
+      stateName,
+      'new-grad',
     ),
     benefits: [
       { title: 'Mentorship Programs', description: 'Many new grad positions include structured mentorship with experienced psychiatrists and PMHNPs.', iconName: 'Users' },
@@ -463,7 +443,8 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     faqCategory: '1099',
     buildWhere: (stateName: string) => buildKeywordWhere(
       ['1099', 'independent contractor', 'contractor', 'self-employed', 'IC position'],
-      stateName
+      stateName,
+      '1099',
     ),
     benefits: [
       { title: 'Higher Gross Pay', description: '1099 PMHNPs earn $75-150+/hr — 20-40% higher than W-2 rates with significant tax deduction opportunities.', iconName: 'DollarSign' },
@@ -488,7 +469,8 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     faqCategory: 'behavioral-health',
     buildWhere: (stateName: string) => buildKeywordWhere(
       ['behavioral health', 'behavioral', 'integrated care', 'integrated behavioral'],
-      stateName
+      stateName,
+      'behavioral-health',
     ),
     benefits: [
       { title: 'Integrated Care Model', description: 'Work alongside primary care, social workers, and therapists in a collaborative care team.', iconName: 'Users' },
@@ -513,7 +495,8 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     faqCategory: 'correctional',
     buildWhere: (stateName: string) => buildKeywordWhere(
       ['correctional', 'corrections', 'forensic', 'prison', 'jail', 'detention', 'incarcerated'],
-      stateName
+      stateName,
+      'correctional',
     ),
     benefits: [
       { title: 'Premium Compensation', description: 'Correctional PMHNPs earn $130K-200K+ with government benefits, pension, and loan repayment programs.', iconName: 'DollarSign' },

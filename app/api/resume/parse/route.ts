@@ -4,8 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { parseResume, ParsedResume } from '@/lib/resume-parser';
 import { rateLimit } from '@/lib/rate-limit';
-import { getPathFromUrl } from '@/lib/supabase-storage';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { downloadResumeBytes, extractRequestContext } from '@/lib/resume-storage';
 
 /**
  * POST /api/resume/parse
@@ -83,7 +82,10 @@ export async function POST(request: NextRequest) {
     const ct = request.headers.get('content-type') || '';
 
     if (ct.includes('application/json')) {
-      // Download from Supabase Storage
+      // Download from Supabase Storage via the centralized helper.
+      // It handles legacy URL-shaped values vs bare paths, audit-logs
+      // the access (audience='system' for AI parse), and never leaks
+      // the underlying error to the response.
       const body = await request.json().catch(() => null);
       const rawResumeUrl = body?.resumeUrl;
 
@@ -91,56 +93,34 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'resumeUrl is required' }, { status: 400 });
       }
 
-      // The profile's `resumeUrl` field can be either:
-      //   - a bare storage path: "prod/<uid>/<ts>-<file>.pdf"
-      //   - a full signed URL (legacy): "https://xxx.supabase.co/storage/v1/object/sign/resumes/<path>?token=..."
-      // The storage `.download()` API expects the bare path WITHOUT
-      // the bucket prefix. getPathFromUrl handles the URL form;
-      // otherwise we strip a leading "resumes/" if present and use
-      // the value as-is.
-      const extractedPath = rawResumeUrl.startsWith('http')
-        ? getPathFromUrl(rawResumeUrl)
-        : rawResumeUrl.replace(/^resumes\//, '');
+      const reqCtx = extractRequestContext(request);
+      const downloaded = await downloadResumeBytes(rawResumeUrl, {
+        actorId: user.id,
+        ownerId: user.id,
+        audience: 'system',
+        action: 'parse',
+        ip: reqCtx.ip,
+        userAgent: reqCtx.userAgent,
+        reason: 'AI resume parse — preview-then-apply flow',
+      });
 
-      if (!extractedPath) {
-        logger.error('Could not derive storage path from resumeUrl', { rawResumeUrl });
-        await markProfileFailed(user.id);
-        return NextResponse.json(
-          { error: 'Could not locate the uploaded resume in storage. Try re-uploading.' },
-          { status: 400 },
-        );
-      }
-
-      const adminSupabase = createSupabaseClient(supabaseUrl, supabaseServiceKey);
-
-      const { data: fileData, error: downloadError } = await adminSupabase.storage
-        .from('resumes')
-        .download(extractedPath);
-
-      if (downloadError || !fileData) {
-        logger.error('Failed to download resume from storage', {
-          rawResumeUrl,
-          extractedPath,
-          error: downloadError,
-        });
+      if (!downloaded) {
         await markProfileFailed(user.id);
         return NextResponse.json(
           {
-            error: 'Failed to download resume',
-            detail: downloadError?.message ?? 'unknown',
+            error: 'Could not locate the uploaded resume in storage. Try re-uploading.',
           },
           { status: 400 },
         );
       }
 
-      if (fileData.size > MAX_FILE_BYTES) {
+      if (downloaded.buffer.length > MAX_FILE_BYTES) {
         await markProfileFailed(user.id);
         return NextResponse.json({ error: 'Resume file is too large (max 5MB)' }, { status: 413 });
       }
 
-      const arrayBuffer = await fileData.arrayBuffer();
-      buffer = Buffer.from(arrayBuffer);
-      contentType = inferContentTypeFromPath(extractedPath);
+      buffer = downloaded.buffer;
+      contentType = downloaded.contentType;
     } else {
       // Direct file upload via form-data
       const formData = await request.formData();

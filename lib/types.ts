@@ -47,6 +47,11 @@ export interface Job {
   expiresAt: Date | null;
   companyId: string | null;
   companyLogoUrl?: string | null;
+  // P9: precomputed canonical category tags. Populated at ingest by
+  // lib/pseo/category-tagger.ts. Optional in this hand-written interface
+  // so existing constructors compile; the underlying Prisma column is
+  // non-null with `@default([])`.
+  categoryTags?: string[];
 }
 
 export interface JobAlert {

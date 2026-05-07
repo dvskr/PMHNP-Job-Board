@@ -157,6 +157,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!stateName) return { title: 'State Not Found' };
 
     const code = STATE_CODES[stateName];
+
+    // Empty-state defense lives in the page handler (notFound() when
+    // salaryData.jobCount === 0). We deliberately do NOT duplicate that
+    // gate here: generateMetadata + the page handler run in parallel, so
+    // adding a count() query here would double the per-request DB load
+    // for marginal benefit (the 404 itself is the strongest signal Google
+    // needs to drop the URL).
     return {
         title: `PMHNP Salary in ${stateName} (${code}) 2026 — Average Pay, Jobs & Cost of Living`,
         description: `Explore PMHNP salary data for ${stateName}. See average pay by setting, top employers, and open positions. Updated daily.`,
@@ -188,6 +195,15 @@ export default async function StateSalaryPage({ params }: PageProps) {
         getTopCities(stateName),
         getNationalAvg(),
     ]);
+
+    // GSC Fix: empty-state guard. Without this, a state with 0 normalized-salary
+    // jobs renders the full guide showing "$0 – $0", "0 active jobs in WY",
+    // and a CTA pointing at /jobs/state/wy — classic soft-404 cluster.
+    // notFound() is preferable to a noindex render because the page also
+    // sits in the sitemap; a hard 404 lets Google drop it cleanly.
+    if (salaryData.jobCount === 0) {
+        notFound();
+    }
 
     const diff = salaryData.avgSalary - nationalAvg;
     const diffPct = nationalAvg > 0 ? Math.round((diff / nationalAvg) * 100) : 0;

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import JobCard from '@/components/JobCard';
 import JobsListSkeleton from '@/components/JobsListSkeleton';
 import { Job } from '@/lib/types';
-import { Bookmark, Trash2, FileCheck, Search, ArrowRight, SortAsc, Loader2 } from 'lucide-react';
+import { Bookmark, Trash2, FileCheck, Search, ArrowRight, SortAsc, Loader2, Archive } from 'lucide-react';
 import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
@@ -33,7 +33,7 @@ export default function SavedJobsPage() {
   const { savedJobs: savedIds, removeJob, clearAll: clearSavedJobs } = useSavedJobs();
 
   // Applied jobs hook
-  const { appliedJobs, getAppliedDate } = useAppliedJobs();
+  const { appliedJobs, getAppliedDate, removeApplied, clearAll: clearAppliedJobs } = useAppliedJobs();
   const [appliedJobsData, setAppliedJobsData] = useState<Job[]>([]);
   const [appliedLoading, setAppliedLoading] = useState(false);
   const [appliedError, setAppliedError] = useState<string | null>(null);
@@ -134,10 +134,10 @@ export default function SavedJobsPage() {
 
   const handleClearApplied = () => {
     if (confirm('Are you sure you want to clear your application history? This cannot be undone.')) {
-      localStorage.removeItem('appliedJobs');
+      // The hook wipes both localStorage and the user's server-side rows
+      // (when authenticated). No reload needed — state updates flow through.
+      clearAppliedJobs();
       setAppliedJobsData([]);
-      // Force a page reload to reset the hook state
-      window.location.reload();
     }
   };
 
@@ -449,8 +449,12 @@ export default function SavedJobsPage() {
             </div>
         )}
 
-        {/* ═══ Saved Jobs Grid ═══ */}
-        {!loading && !error && activeTab === 'saved' && sortedJobs.length > 0 && (
+        {/* ═══ Saved Jobs Grid ═══
+            Same count-vs-shown reconciliation as Applied: render placeholders
+            for saved IDs whose underlying job is no longer published, so the
+            badge count matches the rendered cards and stale entries are
+            visible-and-prunable rather than silently dropped. */}
+        {!loading && !error && activeTab === 'saved' && savedIds.length > 0 && (
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
@@ -479,11 +483,29 @@ export default function SavedJobsPage() {
                         </div>
                     </div>
                 ))}
+
+                {/* Placeholders for saved IDs the API didn't return. */}
+                {savedIds
+                    .filter((id) => !sortedJobs.some((j) => j.id === id))
+                    .map((id) => (
+                        <UnavailableJobPlaceholder
+                            key={id}
+                            onRemove={() => {
+                                removeJob(id);
+                                setJobs((prev) => prev.filter((j) => j.id !== id));
+                            }}
+                        />
+                    ))}
             </div>
         )}
 
-        {/* ═══ Applied Jobs Grid ═══ */}
-        {!appliedLoading && !appliedError && activeTab === 'applied' && appliedJobsData.length > 0 && (
+        {/* ═══ Applied Jobs Grid ═══
+            Renders one card per applied ID. When the source job has been
+            taken down by the employer (or auto-unpublished by freshness
+            decay), we still show a placeholder so the card count matches
+            the badge — and so the user's "I applied to this" record is
+            preserved. They can prune dead entries via "Remove from history". */}
+        {!appliedLoading && !appliedError && activeTab === 'applied' && appliedJobs.length > 0 && (
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
@@ -507,6 +529,21 @@ export default function SavedJobsPage() {
                         </div>
                     );
                 })}
+
+                {/* Placeholders for IDs the API didn't return (unpublished / removed). */}
+                {appliedJobs
+                    .filter((id) => !appliedJobsData.some((j) => j.id === id))
+                    .map((id) => {
+                        const appliedDate = getAppliedDate(id);
+                        return (
+                            <UnavailableJobPlaceholder
+                                key={id}
+                                appliedDate={appliedDate}
+                                formatDate={formatAppliedDate}
+                                onRemove={() => removeApplied(id)}
+                            />
+                        );
+                    })}
             </div>
         )}
 
@@ -525,4 +562,112 @@ export default function SavedJobsPage() {
       `}</style>
     </>
   );
+}
+
+/**
+ * Placeholder card for an applied/saved ID whose source job is no longer
+ * available (unpublished by the employer, expired, or deleted). Keeps the
+ * user's history visible-and-prunable rather than silently dropping it.
+ */
+function UnavailableJobPlaceholder({
+    appliedDate,
+    formatDate,
+    onRemove,
+}: {
+    appliedDate?: Date | null;
+    formatDate?: (d: Date) => string;
+    onRemove: () => void;
+}) {
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div
+                style={{
+                    background: '#F7FBF8',
+                    border: '1px solid rgba(213, 232, 224, 0.5)',
+                    borderRadius: '20px',
+                    padding: '24px',
+                    boxShadow: '6px 6px 14px rgba(0, 60, 50, 0.06), -2px -2px 8px rgba(255, 255, 255, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    minHeight: '180px',
+                    opacity: 0.85,
+                }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div
+                        style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
+                            background: '#EDF5F0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#8A9BA6',
+                            flexShrink: 0,
+                        }}
+                    >
+                        <Archive size={20} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <p
+                            style={{
+                                fontSize: '15px',
+                                fontWeight: 700,
+                                color: '#1A2E35',
+                                margin: 0,
+                                fontFamily: 'var(--font-lora), Georgia, serif',
+                            }}
+                        >
+                            Listing no longer available
+                        </p>
+                        <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '2px 0 0' }}>
+                            The employer has taken this posting down.
+                        </p>
+                    </div>
+                </div>
+
+                <div style={{ flex: 1 }} />
+
+                <button
+                    onClick={onRemove}
+                    style={{
+                        alignSelf: 'flex-start',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#EF4444',
+                        background: '#FEF2F2',
+                        border: '1px solid #FECACA',
+                        borderRadius: '10px',
+                        padding: '6px 12px',
+                        cursor: 'pointer',
+                    }}
+                >
+                    <Trash2 size={12} />
+                    Remove from history
+                </button>
+            </div>
+            {appliedDate && formatDate && (
+                <div
+                    style={{
+                        fontSize: '12px',
+                        color: '#8A9BA6',
+                        fontWeight: 600,
+                        marginTop: '8px',
+                        marginLeft: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                    }}
+                >
+                    <FileCheck size={12} />
+                    Applied on {formatDate(appliedDate)}
+                </div>
+            )}
+        </div>
+    );
 }

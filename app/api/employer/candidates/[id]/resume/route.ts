@@ -18,10 +18,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { mintResumeReadUrl, extractRequestContext } from '@/lib/resume-storage';
 
+// Employer-side: extra-short TTL because the URL goes through a 302
+// redirect and never lives in the browser address bar for long. 60s is
+// long enough to redirect and start streaming, short enough that a
+// shoulder-surf or screenshot leak window is bounded.
 const SIGNED_URL_TTL_SECONDS = 60;
 
 export async function GET(
@@ -83,26 +87,18 @@ export async function GET(
         return NextResponse.json({ error: 'Resume not available' }, { status: 404 });
     }
 
-    // Legacy rows store a full https URL; new rows store a storage path.
-    let downloadUrl: string | null = null;
-    if (candidate.resumeUrl.startsWith('http')) {
-        downloadUrl = candidate.resumeUrl;
-    } else {
-        try {
-            const admin = createAdminClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            );
-            const { data, error } = await admin.storage
-                .from('resumes')
-                .createSignedUrl(candidate.resumeUrl, SIGNED_URL_TTL_SECONDS);
-            if (error || !data?.signedUrl) {
-                return NextResponse.json({ error: 'Failed to generate download link' }, { status: 500 });
-            }
-            downloadUrl = data.signedUrl;
-        } catch {
-            return NextResponse.json({ error: 'Failed to generate download link' }, { status: 500 });
-        }
+    // Centralized helper handles both legacy URL and bare-path values
+    // and audit-logs the access (audience='employer' or 'admin').
+    const downloadUrl = await mintResumeReadUrl(candidate.resumeUrl, {
+        actorId: user.id,
+        ownerId: id,
+        audience: isAdmin ? 'admin' : 'employer',
+        action: 'download',
+        ...extractRequestContext(req),
+        reason: isAdmin ? 'admin candidate detail' : 'employer unlocked candidate',
+    }, { ttlSeconds: SIGNED_URL_TTL_SECONDS });
+    if (!downloadUrl) {
+        return NextResponse.json({ error: 'Failed to generate download link' }, { status: 500 });
     }
 
     // Default behavior: 302 to the signed URL so a plain `<a href>` works.

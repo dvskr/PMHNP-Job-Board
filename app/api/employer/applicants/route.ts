@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { getResumeUrl } from '@/lib/supabase-storage';
+import { mintResumeReadUrl, extractRequestContext } from '@/lib/resume-storage';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
@@ -92,18 +92,24 @@ export async function GET(req: NextRequest) {
         orderBy: { appliedAt: 'desc' },
     });
 
-    // Format response with signed resume URLs
+    // Format response with signed resume URLs. Each URL is minted via
+    // the centralized helper so the access is audit-logged
+    // (audience='employer'); admin role isn't checked here because this
+    // endpoint is employer-scoped — the upstream auth gate filters out
+    // non-employer roles before this point.
+    const reqCtx = extractRequestContext(req);
     const formatted = await Promise.all(applicants.map(async (app) => {
-        // Generate a signed download URL for the resume (1-hour expiry)
-        let signedResumeUrl: string | null = null;
-        if (app.resumeUrl) {
-            try {
-                signedResumeUrl = await getResumeUrl(app.resumeUrl);
-            } catch {
-                logger.warn('Failed to generate signed resume URL', { resumeUrl: app.resumeUrl });
-                signedResumeUrl = null;
-            }
-        }
+        const signedResumeUrl = app.resumeUrl
+            ? await mintResumeReadUrl(app.resumeUrl, {
+                  actorId: user.id,
+                  ownerId: app.user?.supabaseId ?? 'unknown',
+                  audience: 'employer',
+                  action: 'view',
+                  ip: reqCtx.ip,
+                  userAgent: reqCtx.userAgent,
+                  reason: `applicants list — application ${app.id}`,
+              })
+            : null;
 
         return {
             id: app.id,

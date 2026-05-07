@@ -4,6 +4,7 @@ import { parseLocation } from './location-parser';
 import { formatDisplaySalary } from './salary-display';
 import { cleanDescription } from './description-cleaner';
 import { findCanonicalName } from './company-normalizer';
+import { classifyJobTags } from './pseo/category-tagger';
 
 type NormalizedJob = Omit<Job, 'id' | 'createdAt' | 'updatedAt' | 'viewCount' | 'applyClickCount'> & {
   originalPostedAt?: Date | null;
@@ -921,6 +922,18 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
       return { job: null, rejectionReason: 'normalizer_low_completeness' };
     }
 
+    // P9: pre-compute canonical category tags so taxonomy×city / taxonomy×state
+    // queries can use exact array containment (`categoryTags has 'X'`) instead
+    // of brittle OR-on-`title.contains` matchers that produced 5x duplication
+    // across pages. Pure function — easy to unit-test, no DB access.
+    const categoryTags = classifyJobTags({
+      title,
+      description: fullDescription,
+      descriptionSummary: summary,
+      jobType,
+      isRemote,
+    });
+
     return {
       job: {
         title,
@@ -933,6 +946,7 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
         experienceLevel,
         description: fullDescription,
         descriptionSummary: summary,
+        categoryTags,
         salaryRange: salaryMin && salaryMax ? `$${salaryMin.toLocaleString()} - $${salaryMax.toLocaleString()}` : null,
         minSalary: salaryMin,
         maxSalary: salaryMax,

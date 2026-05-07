@@ -11,6 +11,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
+import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 
 // ISR caching
 const clayCard = {
@@ -359,6 +360,9 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
           </div>
         </section>
       </div>
+
+      {/* By Location — pseoStats-gated internal links */}
+      <CategoryLocationsExplore categorySlug="behavioral-health" categoryLabel="Behavioral Health" />
 
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>

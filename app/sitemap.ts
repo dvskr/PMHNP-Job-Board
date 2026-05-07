@@ -10,13 +10,6 @@ export const revalidate = 3600;
 
 const METRO_SLUGS = getAllMetroSlugs();
 
-// Type for job query result
-interface JobSitemapData {
-  id: string;
-  title: string;
-  updatedAt: Date;
-}
-
 // Shared filter: published AND not expired
 const ACTIVE_JOB_WHERE = {
   isPublished: true,
@@ -132,16 +125,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/resources/1099-vs-w2`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.8 },
   ]
 
-  // State pages
-  const statePages: MetadataRoute.Sitemap = US_STATES.map(state => ({
+  // State pages — DB-gated below in the try block so empty states never
+  // ship to Google. These `let`-bound defaults are the degraded-mode
+  // fallback used by the outer catch when the DB is unhealthy.
+  let statePages: MetadataRoute.Sitemap = US_STATES.map(state => ({
     url: `${baseUrl}/jobs/state/${state}`,
     lastModified: latestJobDate,
     changeFrequency: 'weekly',
     priority: 0.8,
   }))
 
-  // Salary guide state pages
-  const salaryGuideStatePages: MetadataRoute.Sitemap = US_STATES.map(state => ({
+  // Salary guide state pages — same gating treatment.
+  let salaryGuideStatePages: MetadataRoute.Sitemap = US_STATES.map(state => ({
     url: `${baseUrl}/salary-guide/${state}`,
     lastModified: latestJobDate,
     changeFrequency: 'weekly',
@@ -166,28 +161,44 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-    // Job detail pages — only published AND non-expired jobs
-    // Ordered by quality score so Google crawls the best pages first.
-    // No cap — all active jobs are in the sitemap. The deindex-expired cron
-    // ensures expired URLs are proactively removed from Google's index.
-    const jobs = await prisma.job.findMany({
-      where: ACTIVE_JOB_WHERE,
-      select: { id: true, title: true, updatedAt: true },
-      orderBy: [
-        { qualityScore: 'desc' },
-        { createdAt: 'desc' },
-      ],
-    })
+    // GSC Fix (P3.8): Job-detail URLs are now served by /api/sitemaps/jobs/[batch]
+    // (BATCH_SIZE=25000) and listed in /api/sitemaps/index. Keeping them out of
+    // the primary sitemap leaves headroom under Google's 50K-URL cap regardless
+    // of ingestion-volume bumps. We still need an active-jobs count for the
+    // per-section sanity floor below.
+    const activeJobCount = await prisma.job.count({ where: ACTIVE_JOB_WHERE });
 
-    const jobPages: MetadataRoute.Sitemap = jobs.map((job: JobSitemapData) => {
-      const slug = `${job.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${job.id}`
-      return {
-        url: `${baseUrl}/jobs/${slug}`,
-        lastModified: job.updatedAt,
-        changeFrequency: 'weekly',
-        priority: 0.8,
-      }
-    })
+    // GSC Fix: gate state and salary-guide-state URLs on actual job presence.
+    // The page handlers now notFound() on empty states, but the sitemap also
+    // needs to stop advertising them — otherwise Google keeps re-crawling
+    // and the URL bounces between "indexed → 404 → not indexed" until the
+    // state has data again. The state.toLowerCase().replace pattern matches
+    // US_STATES slugs (e.g. "Wyoming" → "wyoming", "New York" → "new-york").
+    const stateJobCounts = await prisma.job.groupBy({
+      by: ['state'],
+      where: { ...ACTIVE_JOB_WHERE, state: { not: null } },
+      _count: { state: true },
+    });
+    const stateSalaryCounts = await prisma.job.groupBy({
+      by: ['state'],
+      where: { ...ACTIVE_JOB_WHERE, state: { not: null }, normalizedMinSalary: { not: null } },
+      _count: { state: true },
+    });
+    const slugify = (s: string) => s.toLowerCase().replace(/\s+/g, '-');
+    const statesWithJobs = new Set(stateJobCounts.map(r => slugify((r.state || '').trim())));
+    const statesWithSalary = new Set(stateSalaryCounts.map(r => slugify((r.state || '').trim())));
+    statePages = US_STATES.filter(s => statesWithJobs.has(s)).map(state => ({
+      url: `${baseUrl}/jobs/state/${state}`,
+      lastModified: latestJobDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }));
+    salaryGuideStatePages = US_STATES.filter(s => statesWithSalary.has(s)).map(state => ({
+      url: `${baseUrl}/salary-guide/${state}`,
+      lastModified: latestJobDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }));
 
     // Top city pages (DB-driven, only active non-expired jobs)
     const topCities = await prisma.job.groupBy({
@@ -256,8 +267,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...categoryStatePages,
       ...cityPages,
       ...companyPages,
-      ...jobPages,
       ...blogPages,
+      // jobPages intentionally omitted — served by /api/sitemaps/jobs/[batch]
     ]
 
     // GSC Fix (P3.8): sitemap budget guard. Google's per-sitemap limit is
@@ -274,7 +285,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // the DB query likely silently failed and we'd be poisoning Google with
     // a near-empty sitemap. Better to fail-fast and let the outer catch return
     // the static-only sitemap.
-    if (jobs.length === 0) {
+    if (activeJobCount === 0) {
       throw new Error('Sitemap: 0 active jobs returned — DB likely degraded; aborting to avoid empty sitemap.');
     }
 

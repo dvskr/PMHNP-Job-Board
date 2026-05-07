@@ -10,6 +10,7 @@ import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
+import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 
 const clayCard: React.CSSProperties = {
   background: '#FFFFFF', borderRadius: '20px',
@@ -200,6 +201,9 @@ export default async function FullTimePage({ searchParams }: PageProps) {
           </div>
         </section>
       </div>
+
+      {/* ═══ 5b. BY LOCATION (pseoStats-gated internal links) ═══ */}
+      <CategoryLocationsExplore categorySlug="full-time" categoryLabel="Full-Time" />
 
       {/* ═══ 6. FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>

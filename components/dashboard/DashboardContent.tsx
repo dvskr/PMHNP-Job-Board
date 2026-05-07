@@ -711,10 +711,12 @@ export default function DashboardContent() {
                     {/* CTA Button */}
                     <Link href="/settings" className="clay-cta-btn" style={{
                         padding: '12px 24px', borderRadius: '14px',
-                        background: '#1A2E35', color: '#fff',
+                        background: 'linear-gradient(135deg, #0D9488, #0F766E)',
+                        color: '#fff',
                         fontSize: '14px', fontWeight: 700,
                         textDecoration: 'none',
-                        boxShadow: '4px 4px 10px rgba(26,46,53,0.2), -2px -2px 6px rgba(255,255,255,0.3), inset 1px 1px 2px rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.25)',
+                        boxShadow: '4px 4px 12px rgba(13,148,136,0.28), -2px -2px 6px rgba(255,255,255,0.3), inset 1px 1px 2px rgba(255,255,255,0.2)',
                         whiteSpace: 'nowrap', flexShrink: 0,
                     }}>
                         Complete Profile

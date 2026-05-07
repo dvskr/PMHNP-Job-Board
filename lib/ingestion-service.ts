@@ -1175,29 +1175,37 @@ export async function ingestJobs(
 }
 
 /**
- * Clean up expired jobs by marking them as unpublished
+ * Clean up expired jobs by marking them as unpublished.
+ *
+ * Called at the END of every ingest cron firing (13×/day) so the catalog
+ * stays fresh in near-real-time. Identical filter to the dedicated
+ * /api/cron/cleanup-expired daily safety-net cron — both paths converge
+ * on the same `expiresAt < NOW()` check.
+ *
+ * Simplification (2026-05-07): removed the legacy `originalPostedAt < 60d`
+ * OR-branch that was only there to catch rows with NULL or drifted
+ * `expiresAt` values. The live pipeline now sets
+ * `expiresAt = originalPostedAt + 60d` at insert and never mutates it,
+ * and there are no NULL-expiresAt rows left in the catalog. Any drifted
+ * legacy rows from past bulk migrations cycle out naturally via this
+ * single condition once their (drifted) expiresAt fires.
+ *
+ * Audit (G1, 2026-05-07): every unpublish writes a job_health_checks
+ * row with checkType='expiry' so the daily catalog churn is traceable.
  */
 export async function cleanupExpiredJobs(): Promise<number> {
   try {
     const now = new Date();
-    // Hard lifetime cap = 60 days from originalPostedAt. Matches the
-    // initial expiresAt we now write at insert time (originalPostedAt + 60d)
-    // and the renewal cap. Belt-and-suspenders against any drift.
-    const maxAgeDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
 
-    // First, find the jobs we're about to expire so we can build URLs for de-indexing
+    // Snapshot what we're about to unpublish so audit rows describe the
+    // same set we flip. Includes sourceProvider + expiresAt for the
+    // audit context (mirrors the cron route's stageExpiry payload).
     const jobsToExpire = await prisma.job.findMany({
       where: {
         isPublished: true,
-        OR: [
-          { expiresAt: { lt: now } },
-          {
-            originalPostedAt: { lt: maxAgeDate },
-            sourceProvider: { not: null },
-          },
-        ],
+        expiresAt: { lt: now },
       },
-      select: { id: true, title: true },
+      select: { id: true, title: true, sourceProvider: true, expiresAt: true },
     });
 
     if (jobsToExpire.length === 0) {
@@ -1205,26 +1213,36 @@ export async function cleanupExpiredJobs(): Promise<number> {
       return 0;
     }
 
-    // Single sweep — same OR clause used in the SELECT above. Previously
-    // this was two updateMany calls with overlapping conditions, so any
-    // job matching BOTH (past expiresAt AND past 60-day cap) was touched
-    // twice. Collapsed 2026-05-06.
-    //
-    // NOTE: ATS dead-link checking REMOVED 2026-03-11 — now handled by
-    // /api/cron/check-dead-links (3×/day, 1500 links/run).
+    const ids = jobsToExpire.map((j) => j.id);
     const updateResult = await prisma.job.updateMany({
-      where: {
-        isPublished: true,
-        OR: [
-          { expiresAt: { lt: now } },
-          { originalPostedAt: { lt: maxAgeDate }, sourceProvider: { not: null } },
-        ],
-      },
+      where: { id: { in: ids } },
       data: { isPublished: false },
     });
 
     const total = updateResult.count;
     console.log(`[Cleanup] Unpublished ${total} expired/aged-out jobs (single sweep)`);
+
+    // Write per-job audit rows so the catalog churn is traceable.
+    // Failures are non-fatal — losing an audit row is bad but not as
+    // bad as a flaky cleanup loop.
+    try {
+      const { HealthRecorder } = await import('./health/recorder');
+      const recorder = new HealthRecorder(prisma);
+      for (const j of jobsToExpire) {
+        await recorder.stageExpiry({
+          id: j.id,
+          sourceProvider: j.sourceProvider,
+          expiresAt: j.expiresAt,
+        });
+      }
+      await recorder.flush();
+      const stats = recorder.stats();
+      if (stats.failedFlushes > 0) {
+        console.warn(`[Cleanup] Audit flush had ${stats.failedFlushes} failures; ${stats.flushed}/${stats.staged} written`);
+      }
+    } catch (auditError) {
+      console.error('[Cleanup] Audit write failed (non-fatal):', auditError);
+    }
 
     // Notify search engines to de-index expired job URLs
     // Uses dedicated deletion quota (100/day Google, unlimited IndexNow)

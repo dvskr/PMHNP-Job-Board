@@ -1,35 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { prisma } from '@/lib/prisma'
 import { canUnlockCandidate, getEmployerTier } from '@/lib/tier-limits'
 import { PricingTier } from '@/lib/config'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit'
-
-/**
- * Generate a fresh signed URL for a resume stored as a storage path.
- * Handles both legacy full URLs and new storage paths.
- */
-async function generateResumeUrl(resumeUrl: string | null): Promise<string | null> {
-    if (!resumeUrl) return null;
-
-    // If it's already a full URL (legacy data), return as-is
-    if (resumeUrl.startsWith('http')) return resumeUrl;
-
-    // It's a storage path — generate a fresh signed URL
-    try {
-        const admin = createAdminClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        const { data } = await admin.storage
-            .from('resumes')
-            .createSignedUrl(resumeUrl, 3600); // 1 hour
-        return data?.signedUrl || null;
-    } catch {
-        return null;
-    }
-}
+import { mintResumeReadUrl, extractRequestContext } from '@/lib/resume-storage'
 
 /**
  * Check whether an employer has at least one active FEATURED job posting.
@@ -210,8 +185,19 @@ export async function GET(
         response.preferredJobType = candidate.preferredJobType
     }
 
-    // hasFullAccess fields — resume download, email, LinkedIn (unchanged)
-    const freshResumeUrl = hasFullAccess ? await generateResumeUrl(candidate.resumeUrl) : null
+    // hasFullAccess fields — resume download, email, LinkedIn (unchanged).
+    // Resume URL goes through the centralized minter for audit logging
+    // and 15-min default TTL.
+    const freshResumeUrl = hasFullAccess
+        ? await mintResumeReadUrl(candidate.resumeUrl, {
+              actorId: user.id,
+              ownerId: id,
+              audience: isAdmin ? 'admin' : 'employer',
+              action: 'view',
+              ...extractRequestContext(req),
+              reason: 'employer candidate detail page',
+          })
+        : null
     response.resumeUrl = freshResumeUrl
     response.contactEmail = hasFullAccess ? candidate.email : null
     response.linkedinUrl = hasFullAccess ? candidate.linkedinUrl : null

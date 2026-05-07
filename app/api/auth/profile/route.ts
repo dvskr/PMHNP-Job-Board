@@ -253,11 +253,22 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json()
 
-    // Sanitize basic fields
-    const firstName = body.firstName ? sanitizeText(body.firstName, 50) : undefined
-    const lastName = body.lastName ? sanitizeText(body.lastName, 50) : undefined
-    const phone = body.phone ? sanitizeText(body.phone, 20) : undefined
-    const company = body.company ? sanitizeText(body.company, 100) : undefined
+    // Sanitize basic fields.
+    //
+    // Each field distinguishes three states:
+    //   - key absent from body          → `undefined`  (don't touch the column)
+    //   - key present but empty/null    → `null`       (clear the column)
+    //   - key present with a value      → sanitized string
+    //
+    // Earlier this function used a `body.X ? ... : undefined` pattern, which
+    // collapsed "cleared by the user" (empty string, falsy) into the same
+    // `undefined` as "field omitted" — so clearing a field in the settings
+    // form never persisted, and the response refilled the user's edit with
+    // the stale DB value.
+    const firstName = body.firstName !== undefined ? (body.firstName ? sanitizeText(body.firstName, 50) : null) : undefined
+    const lastName = body.lastName !== undefined ? (body.lastName ? sanitizeText(body.lastName, 50) : null) : undefined
+    const phone = body.phone !== undefined ? (body.phone ? sanitizeText(body.phone, 20) : null) : undefined
+    const company = body.company !== undefined ? (body.company ? sanitizeText(body.company, 100) : null) : undefined
     const avatarUrl = body.avatarUrl !== undefined ? (body.avatarUrl ? sanitizeUrl(body.avatarUrl) : null) : undefined
     const resumeUrl = body.resumeUrl !== undefined ? (body.resumeUrl ? sanitizeUrl(body.resumeUrl) : null) : undefined
 
@@ -297,10 +308,10 @@ export async function PATCH(request: NextRequest) {
     const updatedProfile = await prisma.userProfile.update({
       where: { supabaseId: user.id },
       data: {
-        ...(firstName !== undefined && { firstName: firstName || null }),
-        ...(lastName !== undefined && { lastName: lastName || null }),
-        ...(phone !== undefined && { phone: phone || null }),
-        ...(company !== undefined && { company: company || null }),
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
+        ...(phone !== undefined && { phone }),
+        ...(company !== undefined && { company }),
         ...(avatarUrl !== undefined && { avatarUrl }),
         ...(resumeUrl !== undefined && { resumeUrl }),
         ...(headline !== undefined && { headline }),

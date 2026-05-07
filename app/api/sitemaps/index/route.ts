@@ -18,6 +18,9 @@ const SITEMAP_CATEGORIES = [
 ];
 
 const BATCH_SIZE = 10000;
+// Mirrors the constant in /api/sitemaps/jobs/[batch]/route.ts — must stay
+// in lockstep so the index reports the right batch count.
+const JOB_BATCH_SIZE = 25000;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
 export async function GET() {
@@ -74,7 +77,26 @@ export async function GET() {
 
   const totalBatches = Math.max(1, Math.ceil(totalUrls / BATCH_SIZE));
 
-  // Build sitemap entries: 1 primary + N city batches
+  // GSC Fix (P3.8): jobs-batch count. Splitting job-detail URLs into
+  // /api/sitemaps/jobs/{N} keeps each file under the 50K-URL cap so the
+  // sitemap is never rejected wholesale once ingestion volume scales.
+  let activeJobCount = 0;
+  try {
+    activeJobCount = await prisma.job.count({
+      where: {
+        isPublished: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+    });
+  } catch {
+    // Fall back to a single batch — better to under-list than to hide jobs entirely.
+    activeJobCount = 0;
+  }
+  const totalJobBatches = activeJobCount > 0
+    ? Math.max(1, Math.ceil(activeJobCount / JOB_BATCH_SIZE))
+    : 0;
+
+  // Build sitemap entries: 1 primary + N city batches + M job batches
   const sitemaps = [
     `  <sitemap>
     <loc>${BASE_URL}/sitemap.xml</loc>
@@ -85,6 +107,13 @@ export async function GET() {
   for (let i = 0; i < totalBatches; i++) {
     sitemaps.push(`  <sitemap>
     <loc>${BASE_URL}/api/sitemaps/cities/${i}</loc>
+    <lastmod>${lastmod}</lastmod>
+  </sitemap>`);
+  }
+
+  for (let i = 0; i < totalJobBatches; i++) {
+    sitemaps.push(`  <sitemap>
+    <loc>${BASE_URL}/api/sitemaps/jobs/${i}</loc>
     <lastmod>${lastmod}</lastmod>
   </sitemap>`);
   }
