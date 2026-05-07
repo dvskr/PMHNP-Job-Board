@@ -819,6 +819,50 @@ model CandidateReference {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Document Access Log — single audit table for resume reads
+// (and any future PII document type — cover letters, transcripts, etc.)
+//
+// Every signed-URL mint and every server-side read of a candidate
+// document writes a row here via lib/resume-storage.ts. Source of
+// truth for:
+//   - "Who viewed my resume" UX shown to candidates
+//   - SOC2 / HIPAA evidence: which employer pulled which resume
+//     when, with what justification
+//   - Incident forensics: did this leak come from inside the house?
+//   - Anomaly detection: employer downloading 500 resumes in 10
+//     minutes triggers a flag
+//
+// Deliberately denormalized — actorId/ownerId/audience/action are all
+// stored as raw strings so historical queries don't require joining
+// against a UserProfile.role that may have changed since the access.
+// ═══════════════════════════════════════════════════════════════
+
+model DocumentAccessLog {
+  id        String   @id @default(cuid())
+  /// 'resume' for now; add 'cover_letter' / 'transcript' / etc. later
+  docType   String   @map("doc_type")
+  /// supabaseId of who triggered the read; literal 'system' for
+  /// background jobs (AI parse worker, exports run on a schedule)
+  actorId   String   @map("actor_id")
+  /// supabaseId of the candidate whose document was accessed
+  ownerId   String   @map("owner_id")
+  /// owner | employer | admin | system | export | extension
+  audience  String
+  /// view | download | parse | export — free-form short label
+  action    String
+  ip        String?
+  userAgent String?  @map("user_agent")
+  /// optional context: request id, job name, justification text
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ownerId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([docType, createdAt])
+  @@map("document_access_log")
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Employer Screening Questions — per-job custom questions
 // ═══════════════════════════════════════════════════════════════
 

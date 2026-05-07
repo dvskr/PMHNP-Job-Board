@@ -1175,17 +1175,27 @@ export async function ingestJobs(
 }
 
 /**
- * Clean up expired jobs by marking them as unpublished
+ * Clean up expired jobs by marking them as unpublished.
+ *
+ * This is called at the END of every ingest cron firing (13×/day). It's
+ * a wider net than the daily /api/cron/cleanup-expired route — that one
+ * only catches `expiresAt < NOW()`, this one ALSO catches the 60-day
+ * `originalPostedAt` hard cap (covers jobs with null/future expiresAt
+ * that nonetheless aged out).
+ *
+ * Audit (G1, 2026-05-07): every unpublish writes a job_health_checks
+ * row so the ~1,900 daily catalog churn isn't silent. Previously this
+ * path used a bulk updateMany with no audit trail — the cron route had
+ * the G1 fix but this twin path didn't.
  */
 export async function cleanupExpiredJobs(): Promise<number> {
   try {
     const now = new Date();
-    // Hard lifetime cap = 60 days from originalPostedAt. Matches the
-    // initial expiresAt we now write at insert time (originalPostedAt + 60d)
-    // and the renewal cap. Belt-and-suspenders against any drift.
     const maxAgeDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
 
-    // First, find the jobs we're about to expire so we can build URLs for de-indexing
+    // Snapshot what we're about to unpublish so audit rows describe the
+    // same set we flip. Includes sourceProvider + expiresAt for the
+    // audit context (mirrors the cron route's stageExpiry payload).
     const jobsToExpire = await prisma.job.findMany({
       where: {
         isPublished: true,
@@ -1197,7 +1207,7 @@ export async function cleanupExpiredJobs(): Promise<number> {
           },
         ],
       },
-      select: { id: true, title: true },
+      select: { id: true, title: true, sourceProvider: true, expiresAt: true },
     });
 
     if (jobsToExpire.length === 0) {
@@ -1205,26 +1215,36 @@ export async function cleanupExpiredJobs(): Promise<number> {
       return 0;
     }
 
-    // Single sweep — same OR clause used in the SELECT above. Previously
-    // this was two updateMany calls with overlapping conditions, so any
-    // job matching BOTH (past expiresAt AND past 60-day cap) was touched
-    // twice. Collapsed 2026-05-06.
-    //
-    // NOTE: ATS dead-link checking REMOVED 2026-03-11 — now handled by
-    // /api/cron/check-dead-links (3×/day, 1500 links/run).
+    const ids = jobsToExpire.map((j) => j.id);
     const updateResult = await prisma.job.updateMany({
-      where: {
-        isPublished: true,
-        OR: [
-          { expiresAt: { lt: now } },
-          { originalPostedAt: { lt: maxAgeDate }, sourceProvider: { not: null } },
-        ],
-      },
+      where: { id: { in: ids } },
       data: { isPublished: false },
     });
 
     const total = updateResult.count;
     console.log(`[Cleanup] Unpublished ${total} expired/aged-out jobs (single sweep)`);
+
+    // Write per-job audit rows so the catalog churn is traceable.
+    // Failures are non-fatal — losing an audit row is bad but not as
+    // bad as a flaky cleanup loop.
+    try {
+      const { HealthRecorder } = await import('./health/recorder');
+      const recorder = new HealthRecorder(prisma);
+      for (const j of jobsToExpire) {
+        await recorder.stageExpiry({
+          id: j.id,
+          sourceProvider: j.sourceProvider,
+          expiresAt: j.expiresAt,
+        });
+      }
+      await recorder.flush();
+      const stats = recorder.stats();
+      if (stats.failedFlushes > 0) {
+        console.warn(`[Cleanup] Audit flush had ${stats.failedFlushes} failures; ${stats.flushed}/${stats.staged} written`);
+      }
+    } catch (auditError) {
+      console.error('[Cleanup] Audit write failed (non-fatal):', auditError);
+    }
 
     // Notify search engines to de-index expired job URLs
     // Uses dedicated deletion quota (100/day Google, unlimited IndexNow)

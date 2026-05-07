@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyExtensionToken } from '@/lib/verify-extension-token';
-import { getPathFromUrl, getResumeUrl } from '@/lib/supabase-storage';
+import { mintResumeReadUrl, extractRequestContext } from '@/lib/resume-storage';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
@@ -33,16 +33,19 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'No resume uploaded', education: [], experience: [] }, { status: 200 });
         }
 
-        // Generate a fresh signed URL (stored URL may have expired)
-        let freshResumeUrl = candidateProfile.resumeUrl;
-        const storagePath = getPathFromUrl(candidateProfile.resumeUrl);
-        if (storagePath) {
-            try {
-                freshResumeUrl = await getResumeUrl(storagePath);
-                console.log('[extract-resume] Generated fresh signed URL');
-            } catch (e) {
-                console.warn('[extract-resume] Could not refresh signed URL, using stored URL:', e);
-            }
+        // Mint a fresh 15-min signed URL via the centralized helper.
+        // It handles both bare-path and legacy-URL stored values, and
+        // audit-logs the access (audience='extension').
+        const freshResumeUrl = await mintResumeReadUrl(candidateProfile.resumeUrl, {
+            actorId: candidateProfile.supabaseId,
+            ownerId: candidateProfile.supabaseId,
+            audience: 'extension',
+            action: 'view',
+            ...extractRequestContext(req),
+            reason: 'chrome autofill — extract-resume-sections',
+        });
+        if (!freshResumeUrl) {
+            return NextResponse.json({ error: 'Could not access stored resume', education: [], experience: [] }, { status: 200 });
         }
 
         // Extract resume text

@@ -105,7 +105,11 @@ export default function Header() {
         <header
           className="transition-all duration-300"
           style={{
-            maxWidth: '1360px',
+            // Responsive cap — held at 1360px on viewports ≤ ~1448px (no
+            // change vs. the previous fixed value), then scales with the
+            // viewport up to a ceiling of 1680px on very wide screens.
+            // Wrapper padding (16px each side) still bounds it on narrow.
+            maxWidth: 'clamp(1360px, 94vw, 1680px)',
             margin: '0 auto',
             height: 64,
             borderRadius: '18px',
