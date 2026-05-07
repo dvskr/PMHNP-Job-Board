@@ -223,6 +223,108 @@ export default function LicensesSection({ showMsg }: Props) {
         return { bg: 'rgba(251,146,60,0.12)', text: '#FB923C' }
     }
 
+    // Inline form: rendered under the active edit row, or at the
+    // bottom in add mode. See WorkExperienceSection for the same pattern.
+    const renderForm = () => (
+        <div style={{
+            padding: '20px',
+            borderRadius: '12px',
+            border: '1px solid var(--border-color)',
+            background: 'var(--bg-primary)',
+            marginBottom: '16px',
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    {editingId ? 'Edit License' : 'Add License'}
+                </h4>
+                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                    <X size={18} />
+                </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                    <div>
+                        <label style={labelStyle}>License Type *</label>
+                        <select
+                            value={form.licenseType}
+                            onChange={(e) => setForm({ ...form, licenseType: e.target.value })}
+                            style={{ ...inputStyle, cursor: 'pointer' }}
+                        >
+                            <option value="">Select type</option>
+                            {LICENSE_TYPES.map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label style={labelStyle}>License State *</label>
+                        <select
+                            value={form.licenseState}
+                            onChange={(e) => setForm({ ...form, licenseState: e.target.value })}
+                            style={{ ...inputStyle, cursor: 'pointer' }}
+                        >
+                            <option value="">Select state</option>
+                            {US_STATES.map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label style={labelStyle}>License Number *</label>
+                    <input
+                        type="text"
+                        value={form.licenseNumber}
+                        onChange={(e) => setForm({ ...form, licenseNumber: e.target.value })}
+                        placeholder="Enter license number"
+                        style={inputStyle}
+                    />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                    <div>
+                        <label style={labelStyle}>Expiration Date</label>
+                        <input
+                            type="date"
+                            value={form.expirationDate || ''}
+                            onChange={(e) => setForm({ ...form, expirationDate: e.target.value })}
+                            style={inputStyle}
+                        />
+                    </div>
+                    <div>
+                        <label style={labelStyle}>Status</label>
+                        <select
+                            value={form.status}
+                            onChange={(e) => setForm({ ...form, status: e.target.value })}
+                            style={{ ...inputStyle, cursor: 'pointer' }}
+                        >
+                            {STATUSES.map((s) => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+                    <button onClick={cancelForm} disabled={saving} style={{ ...btnOutline, opacity: saving ? 0.5 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}>Cancel</button>
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        style={{
+                            ...btnPrimary,
+                            ...(saving ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
+                        }}
+                    >
+                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        {saving ? 'Saving...' : editingId ? 'Update License' : 'Save License'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
     return (
         <div style={cardStyle}>
             <h3 style={cardTitle}>
@@ -240,79 +342,83 @@ export default function LicensesSection({ showMsg }: Props) {
                     {licenses.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: showForm ? '20px' : '16px' }}>
                             {licenses.map((lic) => (
-                                <div
-                                    key={lic.id}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        padding: '14px 18px',
-                                        borderRadius: '12px',
-                                        border: '1px solid var(--border-color)',
-                                        background: 'var(--bg-primary)',
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                            <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>
-                                                {lic.licenseType}
-                                            </span>
-                                            <span style={{
-                                                padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600,
-                                                background: statusColor(lic.status).bg,
-                                                color: statusColor(lic.status).text,
-                                            }}>
-                                                {lic.status.charAt(0).toUpperCase() + lic.status.slice(1)}
-                                            </span>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                            <span>State: <strong>{lic.licenseState}</strong></span>
-                                            <span>No: <strong>{maskNumber(lic.licenseNumber)}</strong></span>
-                                            <span>Exp: <strong>{formatDate(lic.expirationDate)}</strong></span>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>
-                                        <button
-                                            onClick={() => startEdit(lic)}
-                                            style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}
-                                            title="Edit"
-                                        >
-                                            <Edit3 size={14} /> Edit
-                                        </button>
-
-                                        {confirmDeleteId === lic.id ? (
-                                            <div style={{ display: 'flex', gap: '4px' }}>
-                                                <button
-                                                    onClick={() => handleDelete(lic.id)}
-                                                    disabled={deletingId === lic.id}
-                                                    style={{
-                                                        ...btnOutline,
-                                                        padding: '6px 10px',
-                                                        fontSize: '12px',
-                                                        borderColor: '#EF4444',
-                                                        color: '#EF4444',
-                                                    }}
-                                                >
-                                                    {deletingId === lic.id ? <Loader2 size={14} className="animate-spin" /> : 'Yes'}
-                                                </button>
-                                                <button
-                                                    onClick={() => setConfirmDeleteId(null)}
-                                                    style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}
-                                                >
-                                                    No
-                                                </button>
+                                <div key={lic.id}>
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '14px 18px',
+                                            borderRadius: '12px',
+                                            border: '1px solid var(--border-color)',
+                                            background: 'var(--bg-primary)',
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                                <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>
+                                                    {lic.licenseType}
+                                                </span>
+                                                <span style={{
+                                                    padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600,
+                                                    background: statusColor(lic.status).bg,
+                                                    color: statusColor(lic.status).text,
+                                                }}>
+                                                    {lic.status.charAt(0).toUpperCase() + lic.status.slice(1)}
+                                                </span>
                                             </div>
-                                        ) : (
+                                            <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                                <span>State: <strong>{lic.licenseState}</strong></span>
+                                                <span>No: <strong>{maskNumber(lic.licenseNumber)}</strong></span>
+                                                <span>Exp: <strong>{formatDate(lic.expirationDate)}</strong></span>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>
                                             <button
-                                                onClick={() => setConfirmDeleteId(lic.id)}
-                                                style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px', color: '#EF4444' }}
-                                                title="Delete"
+                                                onClick={() => startEdit(lic)}
+                                                style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}
+                                                title="Edit"
                                             >
-                                                <Trash2 size={14} />
+                                                <Edit3 size={14} /> Edit
                                             </button>
-                                        )}
+
+                                            {confirmDeleteId === lic.id ? (
+                                                <div style={{ display: 'flex', gap: '4px' }}>
+                                                    <button
+                                                        onClick={() => handleDelete(lic.id)}
+                                                        disabled={deletingId === lic.id}
+                                                        style={{
+                                                            ...btnOutline,
+                                                            padding: '6px 10px',
+                                                            fontSize: '12px',
+                                                            borderColor: '#EF4444',
+                                                            color: '#EF4444',
+                                                        }}
+                                                    >
+                                                        {deletingId === lic.id ? <Loader2 size={14} className="animate-spin" /> : 'Yes'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setConfirmDeleteId(null)}
+                                                        style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}
+                                                    >
+                                                        No
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => setConfirmDeleteId(lic.id)}
+                                                    style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px', color: '#EF4444' }}
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
+                                    {showForm && editingId === lic.id && (
+                                        <div style={{ marginTop: '10px' }}>{renderForm()}</div>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -324,106 +430,7 @@ export default function LicensesSection({ showMsg }: Props) {
                         </p>
                     )}
 
-                    {/* Inline form */}
-                    {showForm && (
-                        <div style={{
-                            padding: '20px',
-                            borderRadius: '12px',
-                            border: '1px solid var(--border-color)',
-                            background: 'var(--bg-primary)',
-                            marginBottom: '16px',
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                                    {editingId ? 'Edit License' : 'Add License'}
-                                </h4>
-                                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                                    <X size={18} />
-                                </button>
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                                    <div>
-                                        <label style={labelStyle}>License Type *</label>
-                                        <select
-                                            value={form.licenseType}
-                                            onChange={(e) => setForm({ ...form, licenseType: e.target.value })}
-                                            style={{ ...inputStyle, cursor: 'pointer' }}
-                                        >
-                                            <option value="">Select type</option>
-                                            {LICENSE_TYPES.map((t) => (
-                                                <option key={t} value={t}>{t}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label style={labelStyle}>License State *</label>
-                                        <select
-                                            value={form.licenseState}
-                                            onChange={(e) => setForm({ ...form, licenseState: e.target.value })}
-                                            style={{ ...inputStyle, cursor: 'pointer' }}
-                                        >
-                                            <option value="">Select state</option>
-                                            {US_STATES.map((s) => (
-                                                <option key={s} value={s}>{s}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label style={labelStyle}>License Number *</label>
-                                    <input
-                                        type="text"
-                                        value={form.licenseNumber}
-                                        onChange={(e) => setForm({ ...form, licenseNumber: e.target.value })}
-                                        placeholder="Enter license number"
-                                        style={inputStyle}
-                                    />
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                                    <div>
-                                        <label style={labelStyle}>Expiration Date</label>
-                                        <input
-                                            type="date"
-                                            value={form.expirationDate || ''}
-                                            onChange={(e) => setForm({ ...form, expirationDate: e.target.value })}
-                                            style={inputStyle}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label style={labelStyle}>Status</label>
-                                        <select
-                                            value={form.status}
-                                            onChange={(e) => setForm({ ...form, status: e.target.value })}
-                                            style={{ ...inputStyle, cursor: 'pointer' }}
-                                        >
-                                            {STATUSES.map((s) => (
-                                                <option key={s.value} value={s.value}>{s.label}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
-                                    <button onClick={cancelForm} style={btnOutline}>Cancel</button>
-                                    <button
-                                        onClick={handleSave}
-                                        disabled={saving}
-                                        style={{
-                                            ...btnPrimary,
-                                            ...(saving ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
-                                        }}
-                                    >
-                                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                        {saving ? 'Saving...' : editingId ? 'Update License' : 'Save License'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {showForm && editingId === null && renderForm()}
 
                     {/* Add button */}
                     {!showForm && (

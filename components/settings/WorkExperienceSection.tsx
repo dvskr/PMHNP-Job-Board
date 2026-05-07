@@ -159,6 +159,113 @@ export default function WorkExperienceSection({ showMsg }: Props) {
         </div>
     )
 
+    // The Add/Edit form is rendered inline. When editingId is set, we
+    // render it directly under the active row inside the .map() so the
+    // panel appears where the user clicked Edit instead of jumping to
+    // the end of the section. When editingId is null (Add mode), it
+    // renders at the bottom where the Add button used to be.
+    const renderForm = () => (
+        <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{editingId ? 'Edit Work Experience' : 'Add Work Experience'}</h4>
+                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={18} /></button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                    <div><label style={labelStyle}>Job Title *</label><input type="text" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder="Psychiatric NP" style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Employer *</label><input type="text" value={form.employerName} onChange={(e) => setForm({ ...form, employerName: e.target.value })} placeholder="ABC Health System" style={inputStyle} /></div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr', gap: '14px' }}>
+                    <div><label style={labelStyle}>City</label><input type="text" value={form.employerCity} onChange={(e) => setForm({ ...form, employerCity: e.target.value })} style={inputStyle} /></div>
+                    <div>
+                        <label style={labelStyle}>State</label>
+                        <select value={form.employerState} onChange={(e) => setForm({ ...form, employerState: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
+                            <option value="">Select</option>
+                            {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label style={labelStyle}>Practice Setting</label>
+                        <select value={form.practiceSetting} onChange={(e) => setForm({ ...form, practiceSetting: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
+                            <option value="">Select setting</option>
+                            {PRACTICE_SETTINGS.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Dates */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                    <div>
+                        <label style={labelStyle}>Start Date *</label>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                            <select value={form.startMonth} onChange={(e) => setForm({ ...form, startMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
+                                <option value="">Month</option>
+                                {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
+                            </select>
+                            <select value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
+                                <option value="">Year</option>
+                                {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label style={labelStyle}>End Date</label>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                            <select value={form.endMonth} onChange={(e) => setForm({ ...form, endMonth: e.target.value })} disabled={form.isCurrent} style={{ ...inputStyle, cursor: form.isCurrent ? 'not-allowed' : 'pointer', opacity: form.isCurrent ? 0.5 : 1, flex: 1 }}>
+                                <option value="">Month</option>
+                                {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
+                            </select>
+                            <select value={form.endYear} onChange={(e) => setForm({ ...form, endYear: e.target.value })} disabled={form.isCurrent} style={{ ...inputStyle, cursor: form.isCurrent ? 'not-allowed' : 'pointer', opacity: form.isCurrent ? 0.5 : 1, flex: 1 }}>
+                                <option value="">Year</option>
+                                {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    <div onClick={() => setForm({ ...form, isCurrent: !form.isCurrent })} style={{
+                        width: '18px', height: '18px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                        border: form.isCurrent ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
+                        background: form.isCurrent ? 'rgba(45,212,191,0.12)' : 'var(--bg-primary)',
+                    }}>
+                        {form.isCurrent && <Check size={12} style={{ color: '#2DD4BF' }} />}
+                    </div>
+                    I currently work here
+                </label>
+
+                {/* Supervisor Info */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
+                    <div><label style={labelStyle}>Supervisor Name</label><input type="text" value={form.supervisorName} onChange={(e) => setForm({ ...form, supervisorName: e.target.value })} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Supervisor Phone</label><input type="tel" value={form.supervisorPhone} onChange={(e) => setForm({ ...form, supervisorPhone: e.target.value })} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Supervisor Email</label><input type="email" value={form.supervisorEmail} onChange={(e) => setForm({ ...form, supervisorEmail: e.target.value })} style={inputStyle} /></div>
+                </div>
+
+                <div><label style={labelStyle}>May we contact this supervisor?</label><RadioPill value={form.mayContact} current={form.mayContact} onChange={(v) => setForm({ ...form, mayContact: v })} labels={['Yes', 'No']} /></div>
+
+                {!form.isCurrent && (
+                    <div><label style={labelStyle}>Reason for Leaving</label><input type="text" value={form.reasonForLeaving} onChange={(e) => setForm({ ...form, reasonForLeaving: e.target.value })} style={inputStyle} /></div>
+                )}
+
+                <div>
+                    <label style={labelStyle}>Job Duties & Responsibilities</label>
+                    <textarea value={form.description} onChange={(e) => { if (e.target.value.length <= 2000) setForm({ ...form, description: e.target.value }) }}
+                        rows={4} placeholder="Describe your duties and responsibilities..." style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
+                    <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>{form.description.length}/2000</div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+                    <button onClick={cancelForm} disabled={saving} style={{ ...btnOutline, opacity: saving ? 0.5 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}>Cancel</button>
+                    <button onClick={handleSave} disabled={saving} style={{ ...btnPrimary, ...(saving ? { opacity: 0.6, cursor: 'not-allowed' } : {}) }}>
+                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        {saving ? 'Saving...' : editingId ? 'Update' : 'Save'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
     return (
         <div style={cardStyle}>
             <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
@@ -172,39 +279,46 @@ export default function WorkExperienceSection({ showMsg }: Props) {
                     {entries.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: showForm ? '20px' : '16px' }}>
                             {entries.map((w) => (
-                                <div key={w.id} style={{ borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', overflow: 'hidden' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', cursor: 'pointer' }}
-                                        onClick={() => setExpandedCard(expandedCard === w.id ? null : w.id)}>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>{w.jobTitle}</span>
-                                                {w.isCurrent && <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600, background: 'rgba(45,212,191,0.12)', color: '#2DD4BF' }}>Current</span>}
-                                            </div>
-                                            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                                {w.employerName}{w.practiceSetting && <> · {w.practiceSetting}</>} · {fmtDate(w.startDate)} — {w.isCurrent ? 'Present' : fmtDate(w.endDate)}
-                                            </div>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>
-                                            <button onClick={(e) => { e.stopPropagation(); startEdit(w) }} style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}><Edit3 size={14} /> Edit</button>
-                                            {confirmDeleteId === w.id ? (
-                                                <div style={{ display: 'flex', gap: '4px' }}>
-                                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(w.id) }} disabled={deletingId === w.id}
-                                                        style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px', borderColor: '#EF4444', color: '#EF4444' }}>
-                                                        {deletingId === w.id ? <Loader2 size={14} className="animate-spin" /> : 'Yes'}
-                                                    </button>
-                                                    <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }} style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}>No</button>
+                                <div key={w.id}>
+                                    <div style={{ borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', overflow: 'hidden' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', cursor: 'pointer' }}
+                                            onClick={() => setExpandedCard(expandedCard === w.id ? null : w.id)}>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                    <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>{w.jobTitle}</span>
+                                                    {w.isCurrent && <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600, background: 'rgba(45,212,191,0.12)', color: '#2DD4BF' }}>Current</span>}
                                                 </div>
-                                            ) : (
-                                                <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(w.id) }} style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px', color: '#EF4444' }}><Trash2 size={14} /></button>
-                                            )}
+                                                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                                    {w.employerName}{w.practiceSetting && <> · {w.practiceSetting}</>} · {fmtDate(w.startDate)} — {w.isCurrent ? 'Present' : fmtDate(w.endDate)}
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>
+                                                <button onClick={(e) => { e.stopPropagation(); startEdit(w) }} style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}><Edit3 size={14} /> Edit</button>
+                                                {confirmDeleteId === w.id ? (
+                                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                                        <button onClick={(e) => { e.stopPropagation(); handleDelete(w.id) }} disabled={deletingId === w.id}
+                                                            style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px', borderColor: '#EF4444', color: '#EF4444' }}>
+                                                            {deletingId === w.id ? <Loader2 size={14} className="animate-spin" /> : 'Yes'}
+                                                        </button>
+                                                        <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }} style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}>No</button>
+                                                    </div>
+                                                ) : (
+                                                    <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(w.id) }} style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px', color: '#EF4444' }}><Trash2 size={14} /></button>
+                                                )}
+                                            </div>
                                         </div>
+                                        {expandedCard === w.id && (
+                                            <div style={{ padding: '0 18px 14px', borderTop: '1px solid var(--border-color)', paddingTop: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                                {w.description && <p style={{ margin: '0 0 8px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{w.description}</p>}
+                                                {w.employerCity && <div><strong>Location:</strong> {w.employerCity}{w.employerState && `, ${w.employerState}`}</div>}
+                                                {w.supervisorName && <div><strong>Supervisor:</strong> {w.supervisorName}</div>}
+                                            </div>
+                                        )}
                                     </div>
-                                    {expandedCard === w.id && (
-                                        <div style={{ padding: '0 18px 14px', borderTop: '1px solid var(--border-color)', paddingTop: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                            {w.description && <p style={{ margin: '0 0 8px', lineHeight: 1.5 }}>{w.description}</p>}
-                                            {w.employerCity && <div><strong>Location:</strong> {w.employerCity}{w.employerState && `, ${w.employerState}`}</div>}
-                                            {w.supervisorName && <div><strong>Supervisor:</strong> {w.supervisorName}</div>}
-                                        </div>
+                                    {/* Inline edit form — appears RIGHT BELOW the
+                                        row the user clicked Edit on. */}
+                                    {showForm && editingId === w.id && (
+                                        <div style={{ marginTop: '10px' }}>{renderForm()}</div>
                                     )}
                                 </div>
                             ))}
@@ -213,107 +327,8 @@ export default function WorkExperienceSection({ showMsg }: Props) {
 
                     {entries.length === 0 && !showForm && <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>No work experience added yet.</p>}
 
-                    {showForm && (
-                        <div style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', marginBottom: '16px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{editingId ? 'Edit Work Experience' : 'Add Work Experience'}</h4>
-                                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={18} /></button>
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                                    <div><label style={labelStyle}>Job Title *</label><input type="text" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder="Psychiatric NP" style={inputStyle} /></div>
-                                    <div><label style={labelStyle}>Employer *</label><input type="text" value={form.employerName} onChange={(e) => setForm({ ...form, employerName: e.target.value })} placeholder="ABC Health System" style={inputStyle} /></div>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr', gap: '14px' }}>
-                                    <div><label style={labelStyle}>City</label><input type="text" value={form.employerCity} onChange={(e) => setForm({ ...form, employerCity: e.target.value })} style={inputStyle} /></div>
-                                    <div>
-                                        <label style={labelStyle}>State</label>
-                                        <select value={form.employerState} onChange={(e) => setForm({ ...form, employerState: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
-                                            <option value="">Select</option>
-                                            {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label style={labelStyle}>Practice Setting</label>
-                                        <select value={form.practiceSetting} onChange={(e) => setForm({ ...form, practiceSetting: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
-                                            <option value="">Select setting</option>
-                                            {PRACTICE_SETTINGS.map((s) => <option key={s} value={s}>{s}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {/* Dates */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                                    <div>
-                                        <label style={labelStyle}>Start Date *</label>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
-                                            <select value={form.startMonth} onChange={(e) => setForm({ ...form, startMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
-                                                <option value="">Month</option>
-                                                {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
-                                            </select>
-                                            <select value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
-                                                <option value="">Year</option>
-                                                {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label style={labelStyle}>End Date</label>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
-                                            <select value={form.endMonth} onChange={(e) => setForm({ ...form, endMonth: e.target.value })} disabled={form.isCurrent} style={{ ...inputStyle, cursor: form.isCurrent ? 'not-allowed' : 'pointer', opacity: form.isCurrent ? 0.5 : 1, flex: 1 }}>
-                                                <option value="">Month</option>
-                                                {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
-                                            </select>
-                                            <select value={form.endYear} onChange={(e) => setForm({ ...form, endYear: e.target.value })} disabled={form.isCurrent} style={{ ...inputStyle, cursor: form.isCurrent ? 'not-allowed' : 'pointer', opacity: form.isCurrent ? 0.5 : 1, flex: 1 }}>
-                                                <option value="">Year</option>
-                                                {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                    <div onClick={() => setForm({ ...form, isCurrent: !form.isCurrent })} style={{
-                                        width: '18px', height: '18px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                                        border: form.isCurrent ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
-                                        background: form.isCurrent ? 'rgba(45,212,191,0.12)' : 'var(--bg-primary)',
-                                    }}>
-                                        {form.isCurrent && <Check size={12} style={{ color: '#2DD4BF' }} />}
-                                    </div>
-                                    I currently work here
-                                </label>
-
-                                {/* Supervisor Info */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
-                                    <div><label style={labelStyle}>Supervisor Name</label><input type="text" value={form.supervisorName} onChange={(e) => setForm({ ...form, supervisorName: e.target.value })} style={inputStyle} /></div>
-                                    <div><label style={labelStyle}>Supervisor Phone</label><input type="tel" value={form.supervisorPhone} onChange={(e) => setForm({ ...form, supervisorPhone: e.target.value })} style={inputStyle} /></div>
-                                    <div><label style={labelStyle}>Supervisor Email</label><input type="email" value={form.supervisorEmail} onChange={(e) => setForm({ ...form, supervisorEmail: e.target.value })} style={inputStyle} /></div>
-                                </div>
-
-                                <div><label style={labelStyle}>May we contact this supervisor?</label><RadioPill value={form.mayContact} current={form.mayContact} onChange={(v) => setForm({ ...form, mayContact: v })} labels={['Yes', 'No']} /></div>
-
-                                {!form.isCurrent && (
-                                    <div><label style={labelStyle}>Reason for Leaving</label><input type="text" value={form.reasonForLeaving} onChange={(e) => setForm({ ...form, reasonForLeaving: e.target.value })} style={inputStyle} /></div>
-                                )}
-
-                                <div>
-                                    <label style={labelStyle}>Job Duties & Responsibilities</label>
-                                    <textarea value={form.description} onChange={(e) => { if (e.target.value.length <= 2000) setForm({ ...form, description: e.target.value }) }}
-                                        rows={4} placeholder="Describe your duties and responsibilities..." style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
-                                    <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>{form.description.length}/2000</div>
-                                </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
-                                    <button onClick={cancelForm} style={btnOutline}>Cancel</button>
-                                    <button onClick={handleSave} disabled={saving} style={{ ...btnPrimary, ...(saving ? { opacity: 0.6, cursor: 'not-allowed' } : {}) }}>
-                                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                        {saving ? 'Saving...' : editingId ? 'Update' : 'Save'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {/* Add-mode form: only renders at the bottom when not editing. */}
+                    {showForm && editingId === null && renderForm()}
 
                     {!showForm && (
                         <button onClick={() => { setForm({ ...emptyForm }); setEditingId(null); setShowForm(true) }}
