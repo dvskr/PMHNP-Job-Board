@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   FileText, Loader2, Eye, Trash2, CheckCircle,
   AlertCircle, RefreshCw, Shield, X, Sparkles
@@ -81,8 +81,13 @@ export default function ResumeUpload({
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [reviewParsed, setReviewParsed] = useState<ParsedResume | null>(null)
   /* Storage path of the most recently uploaded resume — needed so the
-   * apply step can re-POST `/api/resume/parse` without a fresh upload. */
-  const [lastResumePath, setLastResumePath] = useState<string | null>(null)
+   * apply step can re-POST `/api/resume/parse` without a fresh upload.
+   * Seeded from `currentResumeUrl` (which IS the storage path on this
+   * profile, see app/api/upload/route.ts:64-70) so the "Review AI
+   * Autofill" recovery button stays available after a hard refresh
+   * — important when a user uploaded earlier, dismissed the modal,
+   * and is now stuck on a 'pending' parse status. */
+  const [lastResumePath, setLastResumePath] = useState<string | null>(currentResumeUrl)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -172,6 +177,15 @@ export default function ResumeUpload({
     if (file) processFile(file)
   }, [processFile])
 
+  /* Keep lastResumePath in sync with the prop. The initial useState seed
+   * only fires once; this picks up the prop arriving after the parent
+   * profile fetch resolves and after a Replace upload changes the URL. */
+  useEffect(() => {
+    if (currentResumeUrl && currentResumeUrl !== lastResumePath) {
+      setLastResumePath(currentResumeUrl)
+    }
+  }, [currentResumeUrl, lastResumePath])
+
   /* ─── Sprint 2.1.P5 — preview + apply handlers ─────────────────
    *
    * `openReviewWithPreview` runs immediately after upload and after
@@ -209,12 +223,16 @@ export default function ResumeUpload({
         throw new Error(detail ? `${baseMsg}\n\nDetails: ${detail}` : baseMsg)
       }
       setReviewParsed(body.parsed as ParsedResume)
+      // Tell the parent to refetch — the preview route clears the
+      // 'pending' resumeParseStatus on success, so the "Analyzing
+      // resume…" badge should disappear without waiting for an apply.
+      onAutofillApplied?.()
     } catch (err: unknown) {
       setReviewError(err instanceof Error ? err.message : 'Failed to read resume')
     } finally {
       setReviewLoading(false)
     }
-  }, [lastResumePath])
+  }, [lastResumePath, onAutofillApplied])
 
   const applyAutofill = useCallback(async (overwrite: boolean) => {
     const path = lastResumePath

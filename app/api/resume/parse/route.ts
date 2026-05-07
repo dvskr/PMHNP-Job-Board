@@ -173,6 +173,15 @@ export async function POST(request: NextRequest) {
     // Default behavior remains "fill empty fields only".
     const overwriteMode = url.searchParams.get('overwrite') === '1';
     if (previewMode) {
+      // Clear the 'pending' status the upload route set — the parse
+      // succeeded, the badge "Analyzing resume…" is no longer accurate.
+      // Status stays null until the user clicks Apply (which sets it
+      // to 'completed'). If they skip, status remains null instead of
+      // hanging at 'pending' forever.
+      await prisma.userProfile.updateMany({
+        where: { supabaseId: user.id, resumeParseStatus: 'pending' },
+        data: { resumeParseStatus: null },
+      });
       logger.info('Resume parsed (preview mode — no DB writes)', { userId: user.id });
       return NextResponse.json({
         success: true,
