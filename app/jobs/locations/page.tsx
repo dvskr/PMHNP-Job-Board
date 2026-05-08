@@ -169,6 +169,28 @@ export default async function LocationsPage() {
     boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
   };
 
+  // SEO Fix #15: emit CollectionPage + ItemList schema for the state directory.
+  // Previously only BreadcrumbList was rendered, so Google had no signal that
+  // this page is a curated directory of 50 state hubs — losing eligibility for
+  // sitelinks-search-style rich treatment.
+  const collectionSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'PMHNP Jobs by Location',
+    description: `Directory of psychiatric mental health nurse practitioner jobs across ${stats.states.length} US states and ${stats.topCities.length} top metros.`,
+    url: 'https://pmhnphiring.com/jobs/locations',
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: stats.states.length,
+      itemListElement: stats.states.slice(0, 50).map((s: ProcessedState, idx: number) => ({
+        '@type': 'ListItem',
+        position: idx + 1,
+        name: `PMHNP Jobs in ${s.name}`,
+        url: `https://pmhnphiring.com/jobs/state/${s.slug}`,
+      })),
+    },
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FDFBF7' }}>
       {/* Breadcrumb Schema */}
@@ -177,6 +199,11 @@ export default async function LocationsPage() {
         { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
         { name: "Locations", url: "https://pmhnphiring.com/jobs/locations" }
       ]} />
+      {/* SEO Fix #15: CollectionPage + ItemList for the state directory */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+      />
       {/* ═══ HERO ═══ */}
       <CategoryHero
         bgColor="#0D9488"

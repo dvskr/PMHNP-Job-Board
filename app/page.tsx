@@ -65,7 +65,9 @@ export async function generateMetadata(): Promise<Metadata> {
     : totalJobs.toLocaleString();
 
   return {
-    title: `${jobCountDisplay} PMHNP Jobs Near Me | Psych NP & Psychiatric Nurse Practitioner Job Board`,
+    // SEO Fix #7: trim title to ≤60 chars (Google SERP cap). Previous title
+    // ran 77 chars and got truncated mid-phrase, costing CTR.
+    title: `${jobCountDisplay} PMHNP Jobs — Psychiatric NP Job Board`,
     description: `Browse ${jobCountDisplay} PMHNP jobs updated daily. Remote, telehealth & in-person psychiatric NP positions with salary transparency. Free for job seekers.`,
     openGraph: {
       title: `${jobCountDisplay} PMHNP Jobs - Find Your Next Position`,
@@ -222,26 +224,10 @@ export default async function Home() {
         }}
       />
 
-      {/* WebSite + SearchAction — enables Google Sitelinks Search Box */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'WebSite',
-            name: brand.name,
-            url: brand.baseUrl,
-            potentialAction: {
-              '@type': 'SearchAction',
-              target: {
-                '@type': 'EntryPoint',
-                urlTemplate: `${brand.baseUrl}/jobs?q={search_term_string}`,
-              },
-              'query-input': 'required name=search_term_string',
-            },
-          }),
-        }}
-      />
+      {/* SEO Fix #10: WebSite + SearchAction is already emitted globally
+          from app/layout.tsx (lines 215-232) inside the @graph block.
+          Re-emitting it here produced duplicate WebSite nodes that conflict
+          on the same URL. Removed. */}
       {/* Main content */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #F5D5C4 15%, #F0C4AF 50%, #FDFBF7 100%)' }}>
         {/* 1. Hero — above the fold */}

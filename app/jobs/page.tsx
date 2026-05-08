@@ -40,7 +40,9 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
 
   // Build dynamic title and description based on filters
   let title = `Browse ${jobCountDisplay} PMHNP & Psychiatric NP Jobs Near Me`;
-  let description = `Search ${jobCountDisplay} PMHNP, psychiatric NP & behavioral health nurse practitioner jobs near me by state, salary, and type. Remote, telehealth, in-person, travel, locum tenens, and per diem positions updated daily.`;
+  // SEO Fix #7: trim default desc to ≤160 chars (Google SERP cap). Previous
+  // 280-char default got truncated and lost the value-prop tail.
+  let description = `Search ${jobCountDisplay} PMHNP & psychiatric NP jobs by state, salary, and type — remote, telehealth, in-person, travel, locum & per diem. Updated daily.`;
 
   // Customize based on active filters
   const titleParts: string[] = [];

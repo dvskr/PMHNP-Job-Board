@@ -1,8 +1,5 @@
 import { Job } from '@/lib/types';
-
-interface JobStructuredDataProps {
-  job: Job;
-}
+import { slugify } from '@/lib/utils';
 
 function mapJobType(jobType: string | null): string {
   const mapping: Record<string, string> = {
@@ -15,6 +12,22 @@ function mapJobType(jobType: string | null): string {
     'Internship': 'INTERN',
   };
   return mapping[jobType || ''] || 'FULL_TIME';
+}
+
+// Map normalized salaryPeriod → schema.org JobPosting unitText.
+// Source ingestion stores values like 'annual', 'year', 'hour', 'month'.
+// schema.org accepts: HOUR, DAY, WEEK, MONTH, YEAR.
+function mapSalaryUnitText(period: string | null): 'HOUR' | 'DAY' | 'WEEK' | 'MONTH' | 'YEAR' {
+  const p = (period || '').toLowerCase();
+  if (p === 'hour' || p === 'hourly' || p === 'hr') return 'HOUR';
+  if (p === 'day' || p === 'daily') return 'DAY';
+  if (p === 'week' || p === 'weekly') return 'WEEK';
+  if (p === 'month' || p === 'monthly') return 'MONTH';
+  return 'YEAR'; // 'annual', 'year', 'yearly', null → annualized default
+}
+
+interface JobStructuredDataProps {
+  job: Job;
 }
 
 /**
@@ -56,63 +69,100 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
     || (job.descriptionSummary && job.descriptionSummary.trim())
     || `${job.title} position at ${job.employer}${job.city ? ` in ${job.city}, ${job.stateCode || job.state}` : ''}`;
 
-  // GSC Fix: Construct address fields from available data for non-remote jobs
-  const hasLocation = !job.isRemote && (job.city || job.state);
-  const addressLocality = hasLocation ? (job.city || undefined) : undefined;
-  const addressRegion = hasLocation ? (job.stateCode || job.state || undefined) : undefined;
-  // streetAddress: use "City, State" format when no street-level data exists
-  const streetAddress = hasLocation && job.city && (job.stateCode || job.state)
+  // SEO Fix #2: schema URL must match the canonical resolver. Live route reads
+  // the trailing UUID and renders any prefix, but Google penalizes URL/canonical
+  // mismatches. The DB-stored job.slug can drift from current slugify() output
+  // when titles contain '/', '&', or other punctuation — generate the slug from
+  // the same source the page uses so schema URL == <link rel=canonical>.
+  const canonicalSlug = job.slug || slugify(job.title, job.id);
+  const canonicalUrl = `https://pmhnphiring.com/jobs/${canonicalSlug}`;
+
+  // SEO Fix #1: location semantics for remote / hybrid / in-person.
+  // Google requires:
+  //   - Remote-only       → omit jobLocation, set jobLocationType TELECOMMUTE
+  //                          + applicantLocationRequirements
+  //   - Hybrid            → emit BOTH a physical jobLocation AND
+  //                          jobLocationType TELECOMMUTE
+  //   - In-person / null  → emit physical jobLocation only
+  // Previously remote jobs shipped a physical CA address with no TELECOMMUTE
+  // flag, so Google Jobs treated them as local CA postings.
+  const hasPhysicalLocation = !!(job.city || job.state || job.stateCode);
+  const addressLocality = hasPhysicalLocation ? (job.city || undefined) : undefined;
+  const addressRegion = hasPhysicalLocation ? (job.stateCode || job.state || undefined) : undefined;
+  const streetAddress = hasPhysicalLocation && job.city && (job.stateCode || job.state)
     ? `${job.city}, ${job.stateCode || job.state}`
     : undefined;
 
+  const physicalJobLocation = hasPhysicalLocation
+    ? {
+        '@type': 'Place',
+        address: stripUndefined({
+          '@type': 'PostalAddress',
+          streetAddress,
+          addressLocality,
+          addressRegion,
+          addressCountry: 'US',
+        }),
+      }
+    : undefined;
+
+  // Remote-only jobs: drop physical jobLocation entirely.
+  // Hybrid: keep physical jobLocation AND add TELECOMMUTE.
+  const jobLocation = job.isRemote && !job.isHybrid ? undefined : physicalJobLocation;
+  const jobLocationType = job.isRemote || job.isHybrid ? 'TELECOMMUTE' : undefined;
+  const applicantLocationRequirements = job.isRemote
+    ? { '@type': 'Country', name: 'US' }
+    : undefined;
+
+  // SEO Fix #3: emit salary in its NATIVE unit. Previously we always pushed
+  // normalizedMin/Max (annualized) with unitText: 'YEAR' even when the source
+  // posting was hourly, producing UI ($175/hr) ≠ schema ($364k/yr) mismatches.
+  // For non-annual periods, prefer the raw minSalary/maxSalary (original unit).
+  const unitText = mapSalaryUnitText(job.salaryPeriod);
+  const minForSchema = unitText === 'YEAR'
+    ? (job.normalizedMinSalary != null ? job.normalizedMinSalary : job.minSalary)
+    : (job.minSalary != null ? job.minSalary : job.normalizedMinSalary);
+  const maxForSchema = unitText === 'YEAR'
+    ? (job.normalizedMaxSalary != null ? job.normalizedMaxSalary : job.maxSalary)
+    : (job.maxSalary != null ? job.maxSalary : job.normalizedMaxSalary);
+
+  const baseSalary = minForSchema != null || maxForSchema != null
+    ? {
+        '@type': 'MonetaryAmount',
+        currency: 'USD',
+        value: stripUndefined({
+          '@type': 'QuantitativeValue',
+          minValue: minForSchema ?? undefined,
+          maxValue: maxForSchema ?? minForSchema ?? undefined,
+          unitText,
+        }),
+      }
+    : undefined;
+
   const structuredData = stripUndefined({
-    "@context": "https://schema.org",
-    "@type": "JobPosting",
-    "title": job.title,
-    "description": description,
-    "url": `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
-    "datePosted": datePosted.toISOString(),
-    "validThrough": validThrough.toISOString(),
-    "employmentType": mapJobType(job.jobType),
-    "hiringOrganization": {
-      "@type": "Organization",
-      "name": job.employer,
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
+    title: job.title,
+    description,
+    url: canonicalUrl,
+    datePosted: datePosted.toISOString(),
+    validThrough: validThrough.toISOString(),
+    employmentType: mapJobType(job.jobType),
+    hiringOrganization: {
+      '@type': 'Organization',
+      name: job.employer,
     },
-    "jobLocation": {
-      "@type": "Place",
-      "address": stripUndefined({
-        "@type": "PostalAddress",
-        "streetAddress": streetAddress,
-        "addressLocality": addressLocality,
-        "addressRegion": addressRegion,
-        "addressCountry": "US",
-      }),
-    },
-    // Remote-specific fields
-    "jobLocationType": job.isRemote ? "TELECOMMUTE" : undefined,
-    "applicantLocationRequirements": job.isRemote ? {
-      "@type": "Country",
-      "name": "US",
-    } : undefined,
-    // GSC Fix: Use != null instead of truthy check (0 is a valid salary but falsy)
-    "baseSalary": job.normalizedMinSalary != null ? {
-      "@type": "MonetaryAmount",
-      "currency": "USD",
-      "value": {
-        "@type": "QuantitativeValue",
-        "minValue": job.normalizedMinSalary,
-        "maxValue": job.normalizedMaxSalary ?? job.normalizedMinSalary,
-        "unitText": "YEAR",
-      },
-    } : undefined,
-    // Healthcare-specific
-    "industry": "Healthcare",
-    "occupationalCategory": "29-1171.00",
-    "directApply": true,
-    "identifier": {
-      "@type": "PropertyValue",
-      "name": "PMHNP Hiring",
-      "value": job.id,
+    jobLocation,
+    jobLocationType,
+    applicantLocationRequirements,
+    baseSalary,
+    industry: 'Healthcare',
+    occupationalCategory: '29-1171.00',
+    directApply: true,
+    identifier: {
+      '@type': 'PropertyValue',
+      name: 'PMHNP Hiring',
+      value: job.id,
     },
   });
 

@@ -102,19 +102,45 @@ export default async function BlogIndexPage({
                 { name: 'Home', url: 'https://pmhnphiring.com' },
                 { name: 'Blog', url: 'https://pmhnphiring.com/blog' },
             ]} />
+            {/* SEO Fix #16: wrap the post list in a Blog @graph alongside
+                ItemList. Previously only ItemList was emitted, so Google had
+                no signal that this is a blog index — losing eligibility for
+                blog-style rich result treatment. The Blog node carries the
+                publisher / mainEntity link to Organization defined in
+                app/layout.tsx, and ItemList stays as the listing payload. */}
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify({
                     '@context': 'https://schema.org',
-                    '@type': 'ItemList',
-                    name: 'PMHNP Career Blog',
-                    numberOfItems: totalCount,
-                    itemListElement: posts.slice(0, 10).map((post, i) => ({
-                        '@type': 'ListItem',
-                        position: i + 1,
-                        name: post.title,
-                        url: `https://pmhnphiring.com/blog/${post.slug}`,
-                    })),
+                    '@graph': [
+                        {
+                            '@type': 'Blog',
+                            '@id': 'https://pmhnphiring.com/blog#blog',
+                            name: 'PMHNP Career Blog',
+                            description: 'Career guides, salary insights, and job market trends for psychiatric mental health nurse practitioners.',
+                            url: 'https://pmhnphiring.com/blog',
+                            inLanguage: 'en-US',
+                            publisher: { '@id': 'https://pmhnphiring.com/#organization' },
+                            blogPost: posts.slice(0, 10).map((post) => ({
+                                '@type': 'BlogPosting',
+                                headline: post.title,
+                                url: `https://pmhnphiring.com/blog/${post.slug}`,
+                                datePublished: post.publish_date || post.created_at,
+                            })),
+                        },
+                        {
+                            '@type': 'ItemList',
+                            '@id': 'https://pmhnphiring.com/blog#postlist',
+                            name: 'PMHNP Career Blog',
+                            numberOfItems: totalCount,
+                            itemListElement: posts.slice(0, 10).map((post, i) => ({
+                                '@type': 'ListItem',
+                                position: i + 1,
+                                name: post.title,
+                                url: `https://pmhnphiring.com/blog/${post.slug}`,
+                            })),
+                        },
+                    ],
                 }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') }}
             />
 

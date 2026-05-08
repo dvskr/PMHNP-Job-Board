@@ -100,11 +100,22 @@ async function getActiveCategoryCityUrls(): Promise<string[]> {
   // unconditionally. Most had 0 matching jobs and 404'd, polluting GSC with
   // "Not found" entries. Now only emit URLs where ≥1 active job exists.
   // pseoStats is pre-aggregated by /api/cron/aggregate-pseo (every 12h).
+  // SEO Fix #18: gate on freshness too. If the aggregator has been failing
+  // and pseoStats is >36h stale, those rows might advertise pages whose
+  // underlying jobs already expired. The 36h window is 3x the 12h cron
+  // cadence — enough headroom for a single missed run, strict enough to
+  // catch sustained failures before Google sees dead URLs.
+  const PSEO_STALENESS_HOURS = 36;
+  const freshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
   const settingSlugs = new Set(getAllSettingSlugs());
   const validStateSlugs = new Set(getAllStateSlugs());
   try {
     const settingStateRows = await prisma.pseoStats.findMany({
-      where: { type: 'setting-state', totalJobs: { gte: 1 } },
+      where: {
+        type: 'setting-state',
+        totalJobs: { gte: 1 },
+        updatedAt: { gte: freshnessThreshold },
+      },
       select: { categorySlug: true, locationSlug: true },
     });
     for (const row of settingStateRows) {

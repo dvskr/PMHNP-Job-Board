@@ -24,7 +24,24 @@ const JOB_BATCH_SIZE = 25000;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
 export async function GET() {
-  const lastmod = new Date().toISOString().split('T')[0];
+  // SEO Fix #17: lastmod must reflect actual freshness, not "today". Using
+  // today's date on every request signals to Google that every child sitemap
+  // changed today — when most haven't — eroding the credibility of lastmod
+  // signals across the entire site. Anchor to the latest job updatedAt with
+  // the request day as a conservative ceiling.
+  let lastmod = new Date().toISOString().split('T')[0];
+  try {
+    const latestJob = await prisma.job.findFirst({
+      where: { isPublished: true },
+      orderBy: { updatedAt: 'desc' },
+      select: { updatedAt: true },
+    });
+    if (latestJob?.updatedAt) {
+      lastmod = latestJob.updatedAt.toISOString().split('T')[0];
+    }
+  } catch {
+    // fall back to today; underspecifying lastmod is safer than over-claiming
+  }
 
   // DB-driven: count how many category×city URLs meet quality thresholds
   // Must match the pruning logic in cities/[batch]/route.ts

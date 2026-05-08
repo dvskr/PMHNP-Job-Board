@@ -72,8 +72,9 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: `${stats.totalJobs} Telehealth PMHNP Jobs — Virtual Psych NP Positions ($130K-200K)`,
-        description: `Find ${stats.totalJobs} telehealth PMHNP and telepsychiatry jobs paying $130K-$200K+. Work from home as a psychiatric nurse practitioner — flexible hours, no commute, video-visit roles from top employers. Updated daily.`,
+        // SEO Fix #7: trim title to ≤60 chars and description to ≤160 chars.
+        title: `${stats.totalJobs} Telehealth PMHNP Jobs ($130K-200K)`,
+        description: `Find ${stats.totalJobs} telehealth PMHNP and telepsychiatry jobs paying $130K-$200K+. Work from home — flexible hours, no commute, video-visit roles. Updated daily.`,
         keywords: ['telehealth pmhnp', 'telepsychiatry jobs', 'virtual pmhnp', 'telemedicine psychiatric nurse practitioner', 'behavioral health NP telehealth', 'telepsychiatry nurse practitioner jobs', 'remote psych NP telehealth'],
         openGraph: {
             title: `${stats.totalJobs} Telehealth PMHNP Jobs - Virtual Psychiatric Care`,
