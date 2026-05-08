@@ -509,6 +509,24 @@ When the entire runbook is closed, archive this file by renaming to `docs/runboo
 
 ---
 
+## Schema-parity tooling (added 2026-05-08)
+
+A `category_tags` migration sat in the repo from 2026-05-07 and was deployed to **prod** but not to **dev** — the dev DB drifted, surfacing as `PrismaClientKnownRequestError P2022: column (not available) does not exist` on every job-detail page locally. To prevent recurrence:
+
+| Tool | Purpose |
+|---|---|
+| `npm run db:check-schema` | Verify expected columns + indexes + migrations on **prod** (default) |
+| `npm run db:check-schema:prod` | Same, explicit |
+| `npm run db:check-schema:dev` | Same, against **dev** DB (loads `.env`) |
+| `npm run db:migrate:prod` | Apply pending migrations to **prod** (loads `.env.prod`, remaps `PROD_DATABASE_URL` → `DATABASE_URL`, runs `prisma migrate deploy`) |
+| `build` script | Now runs `prisma migrate deploy && prisma generate && next build`, so every Vercel deploy auto-applies pending migrations against whatever `DATABASE_URL` is set |
+
+**When you add a load-bearing column or index in a future migration:** add it to the `EXPECTED_COLUMNS` / `EXPECTED_INDEXES` arrays in [scripts/check-schema.ts](scripts/check-schema.ts) so the parity check catches drift early.
+
+**Known gotcha:** `npm run dev` already runs `prisma migrate deploy` at startup, but a long-running dev server won't re-apply migrations added mid-session. After pulling new migrations: stop dev, run `npm run db:check-schema:dev`, restart.
+
+---
+
 ## Out-of-scope items (not in this runbook)
 
 - Vercel firewall rules (managed in Vercel dashboard, not repo)
