@@ -243,6 +243,28 @@ export default async function RootLayout({
           color: '#2D3748',
         }}
       >
+        {/* SEO Fix H6: skip-to-content link (WCAG 2.4.1 Bypass Blocks).
+            Visually hidden until focused; jumps keyboard users straight past
+            the header nav to <main id="main-content"> in MainContent.tsx. */}
+        <a
+          href="#main-content"
+          className="skip-to-content"
+          style={{
+            position: 'fixed',
+            left: '-9999px',
+            top: '0',
+            zIndex: 100000,
+            padding: '12px 18px',
+            background: '#0D9488',
+            color: '#FFFFFF',
+            fontWeight: 600,
+            textDecoration: 'none',
+            borderRadius: '0 0 8px 0',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }}
+        >
+          Skip to main content
+        </a>
         <ThemeProvider>
           <ToastProvider>
             <div style={{ width: '100%', maxWidth: '100vw', position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

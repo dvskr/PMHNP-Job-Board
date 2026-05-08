@@ -20,8 +20,10 @@ export default function MainContent({ children }: { children: React.ReactNode })
         className = 'pt-4 pb-24 md:pb-0'; // small gap below header spacer + bottom nav clearance
     }
 
+    // SEO Fix H6: id="main-content" is the target of the skip link rendered
+    // first inside <body> in app/layout.tsx (WCAG 2.4.1 Bypass Blocks).
     return (
-        <main className={className} suppressHydrationWarning style={{ flex: 1 }}>
+        <main id="main-content" className={className} suppressHydrationWarning style={{ flex: 1 }}>
             {children}
         </main>
     );

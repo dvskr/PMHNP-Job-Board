@@ -366,12 +366,14 @@ export default function LinkedInFilters() {
             {/* Search */}
             <form onSubmit={handleSearchSubmit} style={{ marginBottom: '12px' }}>
               <div style={{ position: 'relative' }}>
-                <Search style={{
+                <Search aria-hidden="true" style={{
                   position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
                   width: '15px', height: '15px', color: 'var(--text-tertiary)',
                 }} />
+                {/* SEO Fix C4: aria-label gives screen readers a name (WCAG 4.1.2). */}
                 <input
-                  type="text"
+                  aria-label="Search by job title or company"
+                  type="search"
                   placeholder="Job title, company..."
                   value={searchInput}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
@@ -383,7 +385,7 @@ export default function LinkedInFilters() {
                     border: '1px solid rgba(0,0,0,0.06)',
                     borderRadius: '14px', fontSize: '13px',
                     color: 'var(--text-primary)',
-                    outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
                     boxShadow: 'inset 1px 1px 3px rgba(0,0,0,0.04), 1px 1px 2px rgba(255,255,255,0.5)',
                   }}
                 />
@@ -393,11 +395,12 @@ export default function LinkedInFilters() {
             {/* Location */}
             <form onSubmit={handleLocationSubmit} style={{ marginBottom: '8px' }}>
               <div style={{ position: 'relative' }}>
-                <MapPin style={{
+                <MapPin aria-hidden="true" style={{
                   position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
                   width: '15px', height: '15px', color: 'var(--text-tertiary)',
                 }} />
                 <input
+                  aria-label="Filter by city, state, or remote"
                   type="text"
                   placeholder="City, state, or 'Remote'"
                   value={locationInput}
@@ -410,7 +413,7 @@ export default function LinkedInFilters() {
                     border: '1px solid rgba(0,0,0,0.06)',
                     borderRadius: '14px', fontSize: '13px',
                     color: 'var(--text-primary)',
-                    outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
                     boxShadow: 'inset 1px 1px 3px rgba(0,0,0,0.04), 1px 1px 2px rgba(255,255,255,0.5)',
                   }}
                 />

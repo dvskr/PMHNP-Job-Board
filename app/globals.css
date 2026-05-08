@@ -470,21 +470,35 @@ input[type="checkbox"].clay-check:checked::after {
   border-radius: var(--radius-pill);
 }
 
-/* Focus styles for accessibility */
-*:focus-visible:not(.hero-search-input) {
+/* SEO Fix H6: skip-to-content link (WCAG 2.4.1).
+   Hidden off-screen until focused, then snaps to top-left so a keyboard
+   user pressing Tab on page load can jump past the header nav. */
+.skip-to-content:focus,
+.skip-to-content:focus-visible {
+  left: 0 !important;
+  top: 0 !important;
+  outline: 2px solid #FFFFFF;
+  outline-offset: -4px;
+}
+
+/* Focus styles for accessibility (WCAG 2.4.7).
+   SEO Fix C3: previously this rule excluded `.hero-search-input` and a
+   second block forced `outline: none !important` on the most-clicked
+   control on the site — keyboard users had no visible focus indicator.
+   Now the focus ring renders for every focusable element including
+   hero/filter search inputs. */
+*:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--bg-primary, #fff), 0 0 0 4px var(--color-primary, #0D9488);
 }
-/* Hero search inputs: strip inherited styles but keep text-align: left */
-.hero-search-input,
-.hero-search-input:focus,
-.hero-search-input:focus-visible {
+/* Hero search inputs: strip inherited styles but keep text-align: left.
+   NOTE: `:focus` and `:focus-visible` selectors removed from this rule
+   so the global focus-visible ring above can take effect. */
+.hero-search-input {
   border: none !important;
   border-radius: 0 !important;
   background: transparent !important;
   background-color: transparent !important;
-  box-shadow: none !important;
-  outline: none !important;
   -webkit-appearance: none !important;
   appearance: none !important;
   padding: 0 !important;
@@ -495,8 +509,13 @@ input[type="checkbox"].clay-check:checked::after {
   color: #1f2937 !important;
   cursor: text !important;
   caret-color: #1f2937 !important;
-  --tw-ring-shadow: none !important;
-  --tw-ring-color: transparent !important;
+}
+/* Match the global focus-visible ring on hero inputs so it sits inside
+   the rounded clay search-bar without breaking layout. */
+.hero-search-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.45) !important;
+  border-radius: 6px !important;
 }
 
 /* Better text rendering for all text elements */

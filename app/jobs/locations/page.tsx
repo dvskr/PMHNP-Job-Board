@@ -5,6 +5,7 @@ import { MapPin, Wifi, TrendingUp, Globe, Video, Plane, GraduationCap, Calendar 
 import { prisma } from '@/lib/prisma';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryHero from '@/components/CategoryHero';
+import StateImage from '@/components/StateImage';
 
 // Force dynamic rendering - don't try to statically generate during build
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
@@ -405,8 +406,9 @@ export default async function LocationsPage() {
                         boxShadow: 'inset 4px 4px 10px rgba(255,255,255,0.3), inset -3px -3px 8px rgba(0,0,0,0.08), 0 6px 20px rgba(0,0,0,0.1)',
                       }}
                     >
-                      <img
-                        src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/states/${state.slug}.webp`}
+                      {/* SEO Fix H15: StateImage falls back if per-state webp is missing. */}
+                      <StateImage
+                        slug={state.slug}
                         alt={`${state.name} PMHNP Jobs`}
                         width={300}
                         height={300}
