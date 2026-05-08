@@ -438,7 +438,7 @@ Polish + harden. All MEDIUM items not already in earlier phases.
 | ID | Action | Time | Status |
 |---|---|---|---|
 | M2 | Audit 9 layout `dynamic()` imports — consolidate small chunks | 1 hr | `[-]` **closed as no-op** — bundle analyzer pass (2026-05-08) confirmed there are 6 (not 9) dynamic imports in layout, each gated by different conditions. Consolidating would force all 6 to load when only one is needed. Pattern is correct; leave alone. |
-| M3 | Move `style-src` off `'unsafe-inline'` (hash- or nonce-based) | 2 hr | `[!]` deferred — many inline `style={{}}` props would break; needs CSP-hash codemod |
+| M3 | Move `style-src` off `'unsafe-inline'` (hash- or nonce-based) | 2 hr | `[!]` **deferred (formal)** — codebase uses thousands of `style={{}}` React props; full migration is a major refactor. Threat (CSS injection data exfiltration) requires pre-existing HTML injection — at which point bigger problems. Re-entry option: keep `'unsafe-inline'` on `style-src-attr` (React props) but tighten `style-src-elem` to per-request nonce for `<style>` tags only — partial win, ~2hr work, requires adding nonces to every `<style jsx>` and `dangerouslySetInnerHTML` style block. |
 | M4 | Verify `/api/email-preview` is auth-gated in prod | 30 min | `[x]` verified — `requireApiAdmin` gate at route.ts:18 |
 | M5 | Replace edge-middleware `SUPABASE_SERVICE_ROLE_KEY` with anon key + RLS | 1 hr | `[!]` **deferred (formal)** — defense-in-depth, not urgent. Single-operator codebase; key isn't leaking; no near-term compliance review. Re-entry: when bringing on collaborators or before SOC2/HIPAA work. Steps: (1) audit existing RLS on `jobs`/`companies`; (2) add public-read policy for `isPublished=true`; (3) swap middleware client to anon key; (4) test 410-Gone behavior. |
 | M6 | Add explicit `secure: true` on semantic-search cookie | 5 min | `[x]` done — secure: process.env.NODE_ENV === 'production' |
@@ -446,7 +446,7 @@ Polish + harden. All MEDIUM items not already in earlier phases.
 | M8 | Bump hamburger button to `padding: 12px` (≥44×44) | 5 min | `[x]` done |
 | M9 | CookieConsent X button to `p-3` (≥44×44) | 5 min | `[x]` done |
 | M10 | Hero search inputs `fontSize: 16px` to prevent iOS zoom | 5 min | `[x]` done in Phase A |
-| M11 | Find and fix the actual horizontal-scroll bugs `overflow-x: hidden` is masking | 1 hr | `[!]` deferred — needs runtime browser audit at multiple breakpoints |
+| M11 | Find and fix the actual horizontal-scroll bugs `overflow-x: hidden` is masking | 1 hr | `[-]` **closed as no-op** — source-code audit (2026-05-08) found no fixed-width elements that would actually overflow mobile viewport. Inline `width:NNNpx` ≥ 400px appears only in OG image generators (server-side, not page layout). Header's `maxWidth: clamp(1360px, 94vw, 1680px)` is naturally constrained by parent on narrow viewports. The `overflow-x: hidden` on html/body is doing real work — defending against framer-motion transforms during scroll animations. Re-open if real horizontal scroll is spotted on a device. |
 | M12 | Promote footer `<h4>` → `<h3>` and wrap in `<nav aria-label>` | 15 min | `[x]` done |
 | M13 | Quick-filter pills bump padding to `12px 20px` | 10 min | `[x]` done |
 | M14 | Audit grays — replace `#9A8A7E` on white with `#7A6A62` (≥4.5:1) | 30 min | `[x]` done across 3 files |
