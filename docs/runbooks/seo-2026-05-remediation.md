@@ -442,7 +442,7 @@ Polish + harden. All MEDIUM items not already in earlier phases.
 | M4 | Verify `/api/email-preview` is auth-gated in prod | 30 min | `[x]` verified — `requireApiAdmin` gate at route.ts:18 |
 | M5 | Replace edge-middleware `SUPABASE_SERVICE_ROLE_KEY` with anon key + RLS | 1 hr | `[!]` **deferred (formal)** — defense-in-depth, not urgent. Single-operator codebase; key isn't leaking; no near-term compliance review. Re-entry: when bringing on collaborators or before SOC2/HIPAA work. Steps: (1) audit existing RLS on `jobs`/`companies`; (2) add public-read policy for `isPublished=true`; (3) swap middleware client to anon key; (4) test 410-Gone behavior. |
 | M6 | Add explicit `secure: true` on semantic-search cookie | 5 min | `[x]` done — secure: process.env.NODE_ENV === 'production' |
-| M7 | Tighten CORS `Allow-Methods` to per-route minimum (drop DELETE on read endpoints) | 30 min | `[!]` deferred — origin allowlist already mitigates; per-route Allow-Methods needs middleware refactor |
+| M7 | Tighten CORS `Allow-Methods` to per-route minimum (drop DELETE on read endpoints) | 30 min | `[~]` **partially closed**. Per-route Allow-Methods refactor declined: 30+ routes legitimately use DELETE/PUT/PATCH; origin allowlist is the actual security boundary and works correctly. **Real improvement made:** added `Vary: Origin` header so shared caches (Vercel edge / CDN) don't cross-pollinate CORS responses across origins. Defense-in-depth. |
 | M8 | Bump hamburger button to `padding: 12px` (≥44×44) | 5 min | `[x]` done |
 | M9 | CookieConsent X button to `p-3` (≥44×44) | 5 min | `[x]` done |
 | M10 | Hero search inputs `fontSize: 16px` to prevent iOS zoom | 5 min | `[x]` done in Phase A |
