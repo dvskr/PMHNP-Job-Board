@@ -440,7 +440,7 @@ Polish + harden. All MEDIUM items not already in earlier phases.
 | M2 | Audit 9 layout `dynamic()` imports — consolidate small chunks | 1 hr | `[-]` **closed as no-op** — bundle analyzer pass (2026-05-08) confirmed there are 6 (not 9) dynamic imports in layout, each gated by different conditions. Consolidating would force all 6 to load when only one is needed. Pattern is correct; leave alone. |
 | M3 | Move `style-src` off `'unsafe-inline'` (hash- or nonce-based) | 2 hr | `[!]` deferred — many inline `style={{}}` props would break; needs CSP-hash codemod |
 | M4 | Verify `/api/email-preview` is auth-gated in prod | 30 min | `[x]` verified — `requireApiAdmin` gate at route.ts:18 |
-| M5 | Replace edge-middleware `SUPABASE_SERVICE_ROLE_KEY` with anon key + RLS | 1 hr | `[!]` deferred — needs Supabase RLS-policy review to avoid breaking 410-Gone middleware lookups |
+| M5 | Replace edge-middleware `SUPABASE_SERVICE_ROLE_KEY` with anon key + RLS | 1 hr | `[!]` **deferred (formal)** — defense-in-depth, not urgent. Single-operator codebase; key isn't leaking; no near-term compliance review. Re-entry: when bringing on collaborators or before SOC2/HIPAA work. Steps: (1) audit existing RLS on `jobs`/`companies`; (2) add public-read policy for `isPublished=true`; (3) swap middleware client to anon key; (4) test 410-Gone behavior. |
 | M6 | Add explicit `secure: true` on semantic-search cookie | 5 min | `[x]` done — secure: process.env.NODE_ENV === 'production' |
 | M7 | Tighten CORS `Allow-Methods` to per-route minimum (drop DELETE on read endpoints) | 30 min | `[!]` deferred — origin allowlist already mitigates; per-route Allow-Methods needs middleware refactor |
 | M8 | Bump hamburger button to `padding: 12px` (≥44×44) | 5 min | `[x]` done |
