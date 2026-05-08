@@ -1398,6 +1398,55 @@ html:has(.ed-page) body {
 }
 
 /* ════════════════════════════════════
+   QUICK ANSWER — Featured-snippet box
+   Hoisted from the body of MDX posts to right before the first <h2>
+   so the answer appears immediately above the article body. The MDX
+   source uses Tailwind classes (bg-blue-50 etc.) that aren't scanned
+   from content/blog/, so we re-style here with the editorial palette.
+   ════════════════════════════════════ */
+.ed-quick-answer {
+  margin-bottom: 2em;
+  padding: 24px 28px;
+  background: color-mix(in oklch, var(--accent) 8%, var(--paper));
+  border: 1px solid color-mix(in oklch, var(--accent) 18%, transparent);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+}
+.ed-qa-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.ed-qa-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+.ed-qa-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+.ed-qa-body,
+.ed-qa-body p {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+.ed-qa-body p + p {
+  margin-top: 0.75em;
+}
+.ed-qa-body strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* ════════════════════════════════════
    KEY TAKEAWAYS — GEO Optimization Box
    ════════════════════════════════════ */
 .ed-key-takeaways {

@@ -53,7 +53,7 @@ When marking `[x]`, also add a `done:` line with date + commit SHA + verificatio
 | H9 | 4 overlays stacked in root layout (ExitIntent, Push, Cookie, PWA) — full-screen overlap risk on mobile | `app/layout.tsx:262-265` | `[ ]` |
 | H10 | Founder hidden — only "S.K." / "Kumar" visible; full name only in JSON-LD | `app/about/AboutClient.tsx:128-138` | `[ ]` |
 | H11 | Likely fabricated testimonials (no last names, no LinkedIn) | `app/about/AboutClient.tsx:153-155` | `[ ]` |
-| H12 | No `/authors/[slug]` pages — required for YMYL E-E-A-T | new file | `[ ]` |
+| H12 | No `/authors/[slug]` pages — required for YMYL E-E-A-T | new file | `[!]` blocked on B.1 path A (need real authors first) |
 | H13 | No "informational only, not medical advice" disclaimer on blog | `app/blog/[slug]/page.tsx` | `[ ]` |
 | H14 | AI-generated copy markers ("uncompromised ecosystem", em-dash spam) in About | `app/about/AboutClient.tsx` | `[ ]` |
 | H15 | DC state hero image 404 — breaks 5 components when DC appears | `app/jobs/locations/page.tsx`, `components/TopStatesList.tsx`, `LicensureChecker.tsx`, `app/resources/page.tsx` | `[ ]` |

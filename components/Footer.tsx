@@ -267,8 +267,16 @@ export default function Footer() {
 
               <span className="footer-pipe" style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.15)' }} />
 
-              <p style={{ fontSize: '13px', color: '#57534e', margin: 0, whiteSpace: 'nowrap' }}>
+              {/* SEO Fix M15: surface the legal mailing address. Trust signal
+                  for E-E-A-T (a real LLC operates this site, with a real
+                  registered address). Phone number intentionally omitted —
+                  add a Google Voice forwarding number here if/when one is
+                  set up. Until then, /contact is the canonical reach-us
+                  surface. */}
+              <p style={{ fontSize: '13px', color: '#57534e', margin: 0, lineHeight: 1.6 }}>
                 © {new Date().getFullYear()} {brand.name} · operated by {brand.legal.entityName}
+                <span className="footer-address-sep" style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
+                <span style={{ whiteSpace: 'nowrap' }}>{brand.legal.addressLine}, {brand.legal.addressCity}, {brand.legal.addressRegion} {brand.legal.addressPostalCode}</span>
               </p>
             </div>
           </div>

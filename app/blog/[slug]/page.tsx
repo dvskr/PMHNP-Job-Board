@@ -112,8 +112,58 @@ export default async function BlogPostPage({ params }: Props) {
     // Extract headings for TOC
     const headings = extractHeadings(post.content);
 
-    // Inject Key Takeaways right before the first <h2> — positions it
-    // after the Quick Answer box and intro paragraphs but before Step 1.
+    // Hoist Quick Answer block to right before the first <h2>.
+    //
+    // Supabase posts open with `**Quick answer:** ...` (markdown bold prefix
+    // followed by inline body, optionally with a `---` rule). The custom
+    // markdown→HTML converter in lib/blog.ts emits this as a bare
+    // `<strong>Quick answer:</strong> body` directly inside the prose
+    // container — no `<p>` wrapper — so the styling never lands and the
+    // text reads as plain inline content. We detect that bare form, the
+    // optional `<hr>` that may follow, plus a legacy MDX `<h3>` form, then
+    // strip from the source location and re-inject styled with the
+    // `.ed-quick-answer` class right before the first <h2>.
+    let quickAnswerHtml: string | null = null;
+
+    // Form A (current Supabase content): bare `<strong>Quick answer:</strong>`
+    // followed by inline body, terminated by either an `<hr>` or the next heading.
+    // Capture group 1 = body between the closing </strong> and the terminator.
+    // Optional surrounding <p> tags are tolerated for posts that wrap differently.
+    const qaParaPattern = /(?:<p[^>]*>\s*)?<strong>\s*Quick\s+[Aa]nswer\s*:?\s*<\/strong>([\s\S]*?)(?:<\/p>\s*)?(?=<hr\s*\/?>|<h\d\b|<div\s+class="ed-)/i;
+    const qaParaMatch = contentHtml.match(qaParaPattern);
+
+    // Form B: `<h3>Quick Answer</h3>` + adjacent block (legacy MDX shape).
+    const qaHeadingPattern = /<h3[^>]*>\s*Quick\s+Answer\s*<\/h3>\s*(<(?:div|p)[^>]*>[\s\S]*?<\/(?:div|p)>)/i;
+    const qaHeadingMatch = !qaParaMatch ? contentHtml.match(qaHeadingPattern) : null;
+
+    if (qaParaMatch) {
+        const inner = qaParaMatch[1].trim();
+        quickAnswerHtml = `<div class="ed-quick-answer">`
+            + `<div class="ed-qa-header"><span class="ed-qa-icon">💡</span><span class="ed-qa-label">Quick Answer</span></div>`
+            + `<div class="ed-qa-body"><p>${inner}</p></div>`
+            + `</div>`;
+        // Strip the original Quick Answer fragment AND any immediately-trailing
+        // <hr> (the `---` separator that usually follows in markdown). Leaving
+        // the <hr> behind would render an orphaned divider where the block was.
+        const trailingHr = /^<hr\s*\/?>\s*/i;
+        const after = contentHtml.slice((qaParaMatch.index ?? 0) + qaParaMatch[0].length);
+        const hrMatch = after.match(trailingHr);
+        const consume = qaParaMatch[0].length + (hrMatch ? hrMatch[0].length : 0);
+        contentHtml = contentHtml.slice(0, qaParaMatch.index)
+            + contentHtml.slice((qaParaMatch.index ?? 0) + consume);
+    } else if (qaHeadingMatch) {
+        const innerMatch = qaHeadingMatch[1].match(/^<(?:div|p)[^>]*>([\s\S]*)<\/(?:div|p)>$/);
+        const innerBody = innerMatch ? innerMatch[1] : qaHeadingMatch[1];
+        quickAnswerHtml = `<div class="ed-quick-answer">`
+            + `<div class="ed-qa-header"><span class="ed-qa-icon">💡</span><span class="ed-qa-label">Quick Answer</span></div>`
+            + `<div class="ed-qa-body">${innerBody}</div>`
+            + `</div>`;
+        contentHtml = contentHtml.replace(qaHeadingMatch[0], '');
+    }
+
+    // Inject Key Takeaways + (optionally) the hoisted Quick Answer right
+    // before the first <h2>. Quick Answer goes first so the snippet-style
+    // summary lands above the navigational takeaways list.
     const h2Matches = [...contentHtml.matchAll(/<h2[^>]*>/g)];
     if (h2Matches.length >= 2) {
         const firstH2Pos = h2Matches[0]?.index;
@@ -127,10 +177,15 @@ export default async function BlogPostPage({ params }: Props) {
                 + `<div class="ed-kt-header"><span class="ed-kt-icon">💡</span><span class="ed-kt-label">Key Takeaways</span></div>`
                 + `<ul class="ed-kt-list">${ktItems}</ul>`
                 + `</div>`;
+            const injection = (quickAnswerHtml ?? '') + ktHtml;
             contentHtml = contentHtml.slice(0, firstH2Pos)
-                + ktHtml
+                + injection
                 + contentHtml.slice(firstH2Pos);
         }
+    } else if (quickAnswerHtml) {
+        // Posts with fewer than 2 H2s skip the Key Takeaways list, but
+        // we still want the Quick Answer hoisted to the top of the body.
+        contentHtml = quickAnswerHtml + contentHtml;
     }
 
     // F4: Inject mid-article email signup placeholder
@@ -176,6 +231,15 @@ export default async function BlogPostPage({ params }: Props) {
     const readTime = `${Math.max(1, Math.ceil(wordCount / 238))} min`;
 
     // JSON-LD BlogPosting schema
+    //
+    // SEO Fix C1 (YMYL): the previous author/reviewedBy block named
+    // "PMHNP Hiring Editorial Team" and a fictional "PMHNP Clinical Review
+    // Board" — neither corresponds to a real, named person. Shipping
+    // fake clinical credentials in healthcare YMYL content is a manual
+    // action risk. Until a real PMHNP-BC reviewer is contracted (and
+    // their name + license number can be cited), the schema names the
+    // Organization as the author with NO `reviewedBy` field. Adding a
+    // real Person.author is the path forward — see runbook B.1.
     const jsonLd = {
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
@@ -183,21 +247,10 @@ export default async function BlogPostPage({ params }: Props) {
         description: post.meta_description || post.title,
         datePublished: post.publish_date || post.created_at,
         dateModified: post.updated_at,
-        author: [{
-            '@type': 'Person',
-            name: 'PMHNP Hiring Editorial Team',
-            jobTitle: 'Board-Certified Psychiatric-Mental Health Nurse Practitioners',
-            url: 'https://pmhnphiring.com/about',
-        }, {
+        author: {
             '@type': 'Organization',
             name: 'PMHNP Hiring',
             url: 'https://pmhnphiring.com',
-        }],
-        reviewedBy: {
-            '@type': 'Person',
-            name: 'PMHNP Clinical Review Board',
-            jobTitle: 'Board-Certified Psychiatric-Mental Health Nurse Practitioners',
-            url: 'https://pmhnphiring.com/about',
         },
         publisher: {
             '@type': 'Organization',
@@ -454,16 +507,21 @@ export default async function BlogPostPage({ params }: Props) {
                     <EditorialShare title={post.title} url={currentUrl} />
 
 
-                    {/* Author — Enhanced for E-E-A-T / GEO */}
+                    {/* SEO Fix C1: removed the "PMHNP-BC Reviewed" / "ANCC Certified"
+                        badges and the "Clinical Editorial Team" byline because no
+                        real, named PMHNP-BC reviewer can be cited. Shipping fake
+                        clinical credentials on YMYL healthcare content is a
+                        manual-action risk. The simplified author card below names
+                        the publishing organization and date only. Restore named
+                        authors when a real Person record is wired into lib/blog.ts
+                        (runbook H12). */}
                     <div className="ed-author">
-                        <div className="ed-author-avatar">P</div>
+                        <div className="ed-author-avatar" aria-hidden="true">P</div>
                         <div>
-                            <div className="ed-author-role">Clinical Editorial Team</div>
+                            <div className="ed-author-role">Published by</div>
                             <h4 className="ed-author-name">PMHNP Hiring</h4>
-                            <p className="ed-author-bio">Written and reviewed by board-certified psychiatric-mental health nurse practitioners (PMHNP-BC) with combined 20+ years of clinical experience across inpatient, outpatient, and telehealth settings.</p>
+                            <p className="ed-author-bio">PMHNP Hiring is a job board for psychiatric mental health nurse practitioners, operated by Akari Labs LLC. This article is editorial commentary aggregated from public sources and is not medical advice.</p>
                             <div className="ed-author-badges">
-                                <span className="ed-author-badge">PMHNP-BC Reviewed</span>
-                                <span className="ed-author-badge">ANCC Certified</span>
                                 <span className="ed-author-badge">Updated {new Date().getFullYear()}</span>
                             </div>
                         </div>
@@ -471,6 +529,29 @@ export default async function BlogPostPage({ params }: Props) {
                             About Us <ArrowRight size={14} />
                         </Link>
                     </div>
+
+                    {/* SEO Fix H13: medical disclaimer (YMYL).
+                        Required because PMHNP content discusses clinical scope,
+                        prescribing, and licensure. Without this, Google's quality
+                        raters can flag posts as offering medical advice. */}
+                    <aside
+                        role="note"
+                        aria-label="Editorial disclaimer"
+                        style={{
+                            marginTop: '32px',
+                            padding: '16px 20px',
+                            background: 'rgba(232,108,44,0.06)',
+                            border: '1px solid rgba(232,108,44,0.18)',
+                            borderLeft: '3px solid #E86C2C',
+                            borderRadius: '6px',
+                            fontSize: '13px',
+                            lineHeight: 1.6,
+                            color: '#5A4A42',
+                        }}
+                    >
+                        <strong style={{ display: 'block', marginBottom: '4px', color: '#1A2E35' }}>Editorial note</strong>
+                        This article is for informational purposes only and is not medical, clinical, legal, or financial advice. Always consult a licensed clinician, your state board of nursing, or a qualified professional for individual care, licensure, or career decisions. PMHNP Hiring is a job board operated by Akari Labs LLC and is not a medical, regulatory, or licensing authority.
+                    </aside>
                 </main>
 
                 {/* Right rail - Toolbar + Newsletter */}
