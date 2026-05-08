@@ -47,6 +47,21 @@ export const brand = {
     legal: {
         entityName: 'Akari Labs LLC',
         brandDisplayName: 'PMHNP Hiring',
+        /**
+         * Visible attribution name for everything the public sees — /about,
+         * blog post bylines, humans.txt, contact-page copy, etc.
+         * Operator and builder of pmhnphiring.com under the Akari Labs LLC
+         * legal umbrella.
+         */
+        creatorName: 'Sathish Kumar',
+        creatorTitle: 'Creator · AI Data Engineer',
+        /**
+         * Registered LLC member of record. Used ONLY in legal contexts
+         * where the registered owner of Akari Labs LLC must be named —
+         * contracts, KYC, payment processing onboarding. Do NOT render
+         * this in user-visible UI or schema. The Creator (above) is the
+         * face of the product.
+         */
         founderName: 'Pavan Kumar Reddy Daggula',
         foundingYear: '2026',
         jurisdiction: 'Wyoming, United States',

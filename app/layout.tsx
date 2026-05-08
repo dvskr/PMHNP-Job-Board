@@ -190,10 +190,9 @@ export default async function RootLayout({
                   "image": `${brand.baseUrl}/pmhnp_logo.png`,
                   "description": `The #1 job board for ${brand.niche.long}s`,
                   "foundingDate": brand.legal.foundingYear,
-                  "founder": {
-                    "@type": "Person",
-                    "name": brand.legal.founderName
-                  },
+                  // Per attribution rules: do NOT emit a `founder` Person on
+                  // the public Organization schema. The legal LLC member is
+                  // tracked in brand.legal.founderName for legal contexts only.
                   "address": {
                     "@type": "PostalAddress",
                     "streetAddress": brand.legal.addressLine,
