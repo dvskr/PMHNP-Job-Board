@@ -4,7 +4,34 @@ import './about.css';
 import { Briefcase, Users, MapPin, RefreshCw, CheckCircle, DollarSign, CalendarDays, Target, BarChart3, Layers, Shield, ArrowRight, Play } from 'lucide-react';
 import { brand } from '@/config/brand';
 
-export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: number; totalEmployers: number }) {
+interface DioramaCounts {
+  newGrad: number;
+  inpatient: number;
+  telehealth: number;
+  outpatient: number;
+}
+
+interface AboutClientProps {
+  totalJobs: number;
+  totalEmployers: number;
+  // Optional for safe deploy: components/parents that don't pass it fall
+  // back to the live aggregate counts (totalJobs) divided into rough
+  // proportions. Once parent always passes, this can become required.
+  dioramaCounts?: DioramaCounts;
+}
+
+export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }: AboutClientProps) {
+  // SEO Fix M16: render live counts from Prisma instead of the hardcoded
+  // 320/1,240/2,105/885 strings the audit flagged. Fallback: equal-ish
+  // splits of totalJobs so the page renders sensibly even if the parent
+  // forgot to pass dioramaCounts.
+  const counts: DioramaCounts = dioramaCounts ?? {
+    newGrad: Math.max(1, Math.round(totalJobs * 0.05)),
+    inpatient: Math.max(1, Math.round(totalJobs * 0.20)),
+    telehealth: Math.max(1, Math.round(totalJobs * 0.35)),
+    outpatient: Math.max(1, Math.round(totalJobs * 0.18)),
+  };
+  const fmt = (n: number) => n.toLocaleString();
   return (
     <div className="ab-body">
       {/* ═══ HERO ═══ */}
@@ -25,19 +52,19 @@ export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: 
             <div className="ab-diorama">
               <div className="ab-scene" style={{ minHeight: 320, background: 'linear-gradient(160deg, #D6E8DE, #B5D1C3)', padding: 0 }}>
                 <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_new_grad.webp" alt="New Grad residency" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
-                <div style={{ padding: '16px 20px' }}><div className="label">Residency<br />matches</div><div className="meta" style={{ marginTop: 10 }}>320 cohorts</div></div>
+                <div style={{ padding: '16px 20px' }}><div className="label">New&nbsp;Grad<br />friendly</div><div className="meta" style={{ marginTop: 10 }}>{fmt(counts.newGrad)} roles</div></div>
               </div>
               <div className="ab-scene teal" style={{ minHeight: 380, padding: 0 }}>
                 <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_inpatient.webp" alt="Inpatient psychiatric" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
-                <div style={{ padding: '16px 20px' }}><div className="label">Acute<br />psychiatric units</div><div className="meta" style={{ marginTop: 10 }}>1,240 roles</div></div>
+                <div style={{ padding: '16px 20px' }}><div className="label">Acute<br />psychiatric units</div><div className="meta" style={{ marginTop: 10 }}>{fmt(counts.inpatient)} roles</div></div>
               </div>
               <div className="ab-scene coral" style={{ minHeight: 350, padding: 0 }}>
                 <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_telehealth.webp" alt="Telehealth remote practice" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
-                <div style={{ padding: '16px 20px' }}><div className="label">Remote<br />practice</div><div className="meta" style={{ marginTop: 10 }}>2,105 listings</div></div>
+                <div style={{ padding: '16px 20px' }}><div className="label">Remote<br />practice</div><div className="meta" style={{ marginTop: 10 }}>{fmt(counts.telehealth)} listings</div></div>
               </div>
               <div className="ab-scene" style={{ minHeight: 310, background: 'linear-gradient(160deg, #F3D7A8, #E3BC7B)', padding: 0 }}>
                 <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_outpatient.webp" alt="Outpatient community clinics" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
-                <div style={{ padding: '16px 20px' }}><div className="label">Community<br />clinics</div><div className="meta" style={{ marginTop: 10 }}>885 openings</div></div>
+                <div style={{ padding: '16px 20px' }}><div className="label">Community<br />clinics</div><div className="meta" style={{ marginTop: 10 }}>{fmt(counts.outpatient)} openings</div></div>
               </div>
             </div>
           </div>

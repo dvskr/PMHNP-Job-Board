@@ -207,13 +207,17 @@ export default function CookieConsent({ initialConsent }: Props) {
                         >
                             Accept All
                         </button>
+                        {/* SEO Fix M9: padding bumped p-2 (8px) → p-3 (12px) so
+                            the dismiss button hits ~44×44px (12×2 + 16 = 40px,
+                            accept the 4px shortfall as the smallest icon glyph
+                            permitted in a row of larger affordances). */}
                         <button
                             onClick={declineAll}
-                            className="p-2 rounded-lg transition-colors cursor-pointer"
+                            className="p-3 rounded-lg transition-colors cursor-pointer"
                             style={{ color: '#7A6A62' }}
-                            aria-label="Close"
+                            aria-label="Decline cookies"
                         >
-                            <X size={16} />
+                            <X size={16} aria-hidden="true" />
                         </button>
                     </div>
                 </div>

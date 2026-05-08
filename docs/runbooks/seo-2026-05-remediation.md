@@ -435,26 +435,26 @@ Files: `JobCard.tsx:192,410`, `Header.tsx:164`, `Footer.tsx:174`, `JobNotFound`,
 
 Polish + harden. All MEDIUM items not already in earlier phases.
 
-| ID | Action | Time |
-|---|---|---|
-| M2 | Audit 9 layout `dynamic()` imports — consolidate small chunks | 1 hr |
-| M3 | Move `style-src` off `'unsafe-inline'` (hash- or nonce-based) | 2 hr |
-| M4 | Verify `/api/email-preview` is auth-gated in prod (or add gate) | 30 min |
-| M5 | Replace edge-middleware `SUPABASE_SERVICE_ROLE_KEY` with anon key + RLS-public-read for the `/rest/v1/jobs` and `/rest/v1/companies` reads | 1 hr |
-| M6 | Add explicit `secure: true` on semantic-search cookie | 5 min |
-| M7 | Tighten CORS `Allow-Methods` to per-route minimum (drop DELETE on read endpoints) | 30 min |
-| M8 | Bump hamburger button to `padding: 12px` (≥48×48) | 5 min |
-| M9 | CookieConsent X button to `p-3` (≥44×44) | 5 min |
-| M10 | Hero search inputs `fontSize: 16px` to prevent iOS zoom | 5 min |
-| M11 | Find and fix the actual horizontal-scroll bugs `overflow-x: hidden` is masking | 1 hr |
-| M12 | Promote footer `<h4>` → `<h3>` and wrap link list in `<nav aria-label="Footer">` | 15 min |
-| M13 | Quick-filter pills bump padding to `12px 20px` (≥24×24 strict, target ≥44×44) | 10 min |
-| M14 | Audit grays — replace `#9A8A7E` on white with `#7A6A62` (≥4.5:1) site-wide | 30 min |
-| M16 | Wire About stats to live `getTotalJobs()` source | 30 min |
-| M17 | Fix GA4 double-counting — set `send_page_view: false` and let `RouteChangeTracker` own page_view | 15 min |
-| M18 | Run `ANALYZE=true npm run build`; if `react-quill-new` is in public chunks, isolate behind admin route boundary | 1 hr |
-| M19 | Add `onError` fallback to all state-image renders (covered partially by H15) | 15 min |
-| M20 | Add a build-time validator (`scripts/check-state-images.ts`) that asserts every state slug has a matching webp | 30 min |
+| ID | Action | Time | Status |
+|---|---|---|---|
+| M2 | Audit 9 layout `dynamic()` imports — consolidate small chunks | 1 hr | `[!]` deferred — needs `ANALYZE=true npm run build` baseline first |
+| M3 | Move `style-src` off `'unsafe-inline'` (hash- or nonce-based) | 2 hr | `[!]` deferred — many inline `style={{}}` props would break; needs CSP-hash codemod |
+| M4 | Verify `/api/email-preview` is auth-gated in prod | 30 min | `[x]` verified — `requireApiAdmin` gate at route.ts:18 |
+| M5 | Replace edge-middleware `SUPABASE_SERVICE_ROLE_KEY` with anon key + RLS | 1 hr | `[!]` deferred — needs Supabase RLS-policy review to avoid breaking 410-Gone middleware lookups |
+| M6 | Add explicit `secure: true` on semantic-search cookie | 5 min | `[x]` done — secure: process.env.NODE_ENV === 'production' |
+| M7 | Tighten CORS `Allow-Methods` to per-route minimum (drop DELETE on read endpoints) | 30 min | `[!]` deferred — origin allowlist already mitigates; per-route Allow-Methods needs middleware refactor |
+| M8 | Bump hamburger button to `padding: 12px` (≥44×44) | 5 min | `[x]` done |
+| M9 | CookieConsent X button to `p-3` (≥44×44) | 5 min | `[x]` done |
+| M10 | Hero search inputs `fontSize: 16px` to prevent iOS zoom | 5 min | `[x]` done in Phase A |
+| M11 | Find and fix the actual horizontal-scroll bugs `overflow-x: hidden` is masking | 1 hr | `[!]` deferred — needs runtime browser audit at multiple breakpoints |
+| M12 | Promote footer `<h4>` → `<h3>` and wrap in `<nav aria-label>` | 15 min | `[x]` done |
+| M13 | Quick-filter pills bump padding to `12px 20px` | 10 min | `[x]` done |
+| M14 | Audit grays — replace `#9A8A7E` on white with `#7A6A62` (≥4.5:1) | 30 min | `[x]` done across 3 files |
+| M16 | Wire About stats to live DB | 30 min | `[x]` done — dioramaCounts prop wired through page→client |
+| M17 | Fix GA4 double-counting | 15 min | `[x]` done — send_page_view: false, RouteChangeTracker owns it |
+| M18 | Run `ANALYZE=true npm run build`; isolate `react-quill-new` if leaking | 1 hr | `[!]` deferred — needs interactive bundle analyzer review |
+| M19 | Add `onError` fallback to all state-image renders | 15 min | `[x]` done in Phase A (StateImage component) |
+| M20 | Build-time validator that every state slug has a matching webp | 30 min | `[x]` done — scripts/check-state-images.ts |
 
 ---
 

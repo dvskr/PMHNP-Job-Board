@@ -114,7 +114,12 @@ export default function GoogleAnalytics({ nonce, initialConsent = null }: Google
           gtag('js', new Date());
           
           gtag('config', '${GA_MEASUREMENT_ID}', {
-            send_page_view: true,
+            // SEO Fix M17: send_page_view: false. Previously this fired one
+            // page_view at config time AND RouteChangeTracker fired a second
+            // page_view 100ms later for the same initial load — double-counting
+            // every session and inflating TBT. RouteChangeTracker now owns
+            // the entire page_view lifecycle (initial + SPA route changes).
+            send_page_view: false,
             page_path: window.location.pathname,
             cookie_flags: 'SameSite=None;Secure',
             cookie_domain: 'auto',

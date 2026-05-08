@@ -114,10 +114,14 @@ export default function Footer() {
             }}
           >
 
-            {/* Link columns */}
+            {/* Link columns.
+                SEO Fix M12: <h4> with no preceding <h2>/<h3> in the footer
+                landmark broke heading order. Bumped to <h3> and wrapped the
+                column links in <nav aria-label> so the relationship is
+                exposed in the accessibility tree. */}
             {linkColumns.map((col) => (
-              <div key={col.title}>
-                <h4 style={columnTitleStyle}>{col.title}</h4>
+              <nav key={col.title} aria-label={col.title}>
+                <h3 style={columnTitleStyle}>{col.title}</h3>
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {col.links.map((link) => {
                     const isExternal = link.href.startsWith('http');
@@ -151,7 +155,7 @@ export default function Footer() {
                     );
                   })}
                 </ul>
-              </div>
+              </nav>
             ))}
           </div>
 

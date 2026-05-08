@@ -283,7 +283,7 @@ export default async function BlogIndexPage({
                                         {/* Content */}
                                         <div style={{ padding: '20px 22px 24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                                             {/* Date */}
-                                            <p style={{ fontSize: '12px', color: '#9A8A7E', fontWeight: 500, margin: '0 0 8px' }}>
+                                            <p style={{ fontSize: '12px', color: '#7A6A62', fontWeight: 500, margin: '0 0 8px' }}>
                                                 {formatDate(post.publish_date || post.created_at)}
                                             </p>
                                             {/* Title */}
@@ -320,7 +320,7 @@ export default async function BlogIndexPage({
                                 gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px',
                                 ...clayCard,
                             }}>
-                                <PenLine size={48} style={{ color: '#9A8A7E', margin: '0 auto 16px', display: 'block' }} />
+                                <PenLine size={48} style={{ color: '#7A6A62', margin: '0 auto 16px', display: 'block' }} />
                                 <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>
                                     No posts found
                                 </h3>
@@ -366,7 +366,7 @@ export default async function BlogIndexPage({
                                 }, [])
                                 .map((p, idx) =>
                                     typeof p === 'string' ? (
-                                        <span key={`ellipsis-${idx}`} style={{ padding: '0 4px', color: '#9A8A7E', fontSize: '14px' }}>
+                                        <span key={`ellipsis-${idx}`} style={{ padding: '0 4px', color: '#7A6A62', fontSize: '14px' }}>
                                             …
                                         </span>
                                     ) : (

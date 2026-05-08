@@ -147,12 +147,15 @@ export default function Header() {
         >
           {/* ═══ LEFT: Logo ═══ */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Mobile hamburger */}
+            {/* Mobile hamburger.
+                SEO Fix M8: padding bumped 7px → 12px so the button hits a
+                44×44px tap target (Apple HIG / Google ≥48 informal).
+                With the 20px icon: 12px*2 + 20 = 44px. */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="lg:hidden transition-all"
               style={{
-                padding: '7px',
+                padding: '12px',
                 borderRadius: '10px',
                 color: '#5A4A42',
                 backgroundColor: '#EDE7E0',
@@ -161,8 +164,10 @@ export default function Header() {
                 cursor: 'pointer',
               }}
               aria-label="Toggle menu"
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-nav-menu"
             >
-              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              {isMenuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
             </button>
 
             <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -265,6 +270,7 @@ export default function Header() {
       <AnimatePresence>
         {isMenuOpen && (
           <m.div
+            id="mobile-nav-menu"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

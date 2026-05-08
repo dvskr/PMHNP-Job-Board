@@ -18,9 +18,30 @@ export const metadata: Metadata = {
 };
 
 export default async function AboutPage() {
-  const [totalJobs, totalEmployers] = await Promise.all([
+  // SEO Fix M16: stop hardcoding About-page diorama numbers ("320 cohorts /
+  // 1,240 roles / 2,105 listings / 885 openings"). Pull live counts from
+  // Prisma so the page never lies when the catalog shifts. Buckets are
+  // approximate text-search heuristics, sufficient for editorial labeling
+  // and consistent with how other pSEO surfaces classify roles.
+  const baseWhere = {
+    isPublished: true,
+    OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+  } as const;
+
+  const [
+    totalJobs,
+    totalEmployers,
+    newGradCount,
+    inpatientCount,
+    remoteOrTelehealthCount,
+    outpatientCount,
+  ] = await Promise.all([
     prisma.job.count({ where: { isPublished: true } }),
     prisma.job.findMany({ where: { isPublished: true }, select: { companyId: true }, distinct: ['companyId'] }).then(r => r.length),
+    prisma.job.count({ where: { ...baseWhere, OR: [{ title: { contains: 'new grad', mode: 'insensitive' } }, { description: { contains: 'new graduate', mode: 'insensitive' } }, { experienceLevel: 'Entry-Level' }] } }),
+    prisma.job.count({ where: { ...baseWhere, OR: [{ title: { contains: 'inpatient', mode: 'insensitive' } }, { setting: { contains: 'inpatient', mode: 'insensitive' } }] } }),
+    prisma.job.count({ where: { ...baseWhere, OR: [{ isRemote: true }, { title: { contains: 'telehealth', mode: 'insensitive' } }, { setting: { contains: 'telehealth', mode: 'insensitive' } }] } }),
+    prisma.job.count({ where: { ...baseWhere, OR: [{ title: { contains: 'outpatient', mode: 'insensitive' } }, { setting: { contains: 'outpatient', mode: 'insensitive' } }] } }),
   ]);
 
   return (
@@ -30,7 +51,16 @@ export default async function AboutPage() {
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'About', url: 'https://pmhnphiring.com/about' },
       ]} />
-      <AboutClient totalJobs={totalJobs} totalEmployers={totalEmployers} />
+      <AboutClient
+        totalJobs={totalJobs}
+        totalEmployers={totalEmployers}
+        dioramaCounts={{
+          newGrad: newGradCount,
+          inpatient: inpatientCount,
+          telehealth: remoteOrTelehealthCount,
+          outpatient: outpatientCount,
+        }}
+      />
     </>
   );
 }

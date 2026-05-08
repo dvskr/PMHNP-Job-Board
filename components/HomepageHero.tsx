@@ -246,10 +246,15 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                                 href={`/jobs?q=${encodeURIComponent(filter.query)}`}
                                 className="hero-filter-badge"
                                 style={{
+                                    // SEO Fix M13: padding 8px 18px → 12px 20px
+                                    // gives the pill ~44px tap-target height
+                                    // (24px line + 12px*2 = 48px) — clears
+                                    // WCAG 2.5.8 (24px AA) with margin and
+                                    // Apple/Google's 44px informal target.
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: '5px',
-                                    padding: '8px 18px',
+                                    gap: '6px',
+                                    padding: '12px 20px',
                                     borderRadius: '24px',
                                     fontSize: '13px',
                                     fontWeight: 500,
