@@ -123,8 +123,9 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} Remote PMHNP Jobs — Work From Home Psych NP ($130K-200K)`,
-    description: `Find ${stats.totalJobs} remote PMHNP jobs paying $130K-$200K+. Work from home psychiatric nurse practitioner positions — telehealth, flexible schedules, no commute. Browse remote psych NP jobs updated daily.`,
+    title: `${stats.totalJobs} Remote PMHNP Jobs — Work From Home ($130K-200K)`,
+    // SEO Fix #7: trim to ≤160 chars (Google SERP cap).
+    description: `Find ${stats.totalJobs} remote PMHNP jobs paying $130K-$200K+. Work from home psychiatric nurse practitioner positions — telehealth, flexible, no commute.`,
     openGraph: {
       title: `${stats.totalJobs} Remote PMHNP Jobs - Work From Home`,
       description: 'Browse telehealth and remote psychiatric mental health nurse practitioner positions. Flexible schedules, competitive pay.',

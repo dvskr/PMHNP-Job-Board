@@ -23,7 +23,11 @@ export interface PageVideoSEO {
 
 const VBASE = '/videos';
 const IBASE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages';
-const UPLOAD_DATE = '2026-02-20';
+// SEO Fix: schema.org `uploadDate` requires ISO 8601 with a time zone. Previously
+// just `2026-02-20` (date only) — GSC flagged "Invalid datetime value" and
+// "missing a time zone". The VideoJsonLd renderer also normalizes, but anchor
+// the source-of-truth to a valid value too so video sitemaps inherit the same.
+const UPLOAD_DATE = '2026-02-20T00:00:00Z';
 
 export const PAGE_VIDEO_SEO: Record<string, PageVideoSEO> = {
     '/': {

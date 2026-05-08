@@ -31,6 +31,7 @@ import {
 } from './setting-state-config';
 import { CATEGORY_ASSET_REGISTRY } from './category-asset-registry';
 import { getStatePracticeAuthority, getAuthorityLabel } from '@/lib/state-practice-authority';
+import { buildSettingStateNarrative } from './state-narrative';
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -160,10 +161,15 @@ export async function buildSettingStateMetadata(
     alternates: {
       canonical: `https://pmhnphiring.com${basePath}`,
     },
-    ...(page > 1 && {
+    // SEO Fix #9: noindex thin state pages with 1-2 jobs (mirrors the
+    // category-city-template MIN_JOBS_FOR_INDEX=3 gate). 0-job pages still
+    // return 404 in the component below; pages with 1-2 jobs render with
+    // noindex,follow so PageRank flows through but the page doesn't compete
+    // for SERP space as a thin doorway. Paginated views (page > 1) are
+    // always noindexed.
+    ...((page > 1 || stats.totalJobs < 3) && {
       robots: { index: false, follow: true },
     }),
-    // 0-job pages now return 404 in the component, so no need for metadata-level noindex
   };
 }
 
@@ -215,6 +221,13 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
   // "Discovered — currently not indexed" entries before. One pseoStats fan-out
   // query per concern; all rows pre-aggregated, so this is fast.
   //
+  // SEO Fix #18: also gate on pseoStats freshness (36h, 3x the 12h aggregator
+  // cadence). If the aggregator silently fails, stale rows can advertise
+  // pages whose underlying jobs already expired — same root cause as the
+  // sitemap freshness gate.
+  const PSEO_STALENESS_HOURS = 36;
+  const pseoFreshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
+
   // Other-settings for THIS state with ≥1 job
   const otherSettingRows = await prisma.pseoStats.findMany({
     where: {
@@ -222,6 +235,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
       locationSlug: stateSlug,
       totalJobs: { gte: 1 },
       categorySlug: { not: config.slug },
+      updatedAt: { gte: pseoFreshnessThreshold },
     },
     select: { categorySlug: true },
   });
@@ -239,6 +253,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
           categorySlug: config.slug,
           locationSlug: { in: neighborSlugs },
           totalJobs: { gte: 1 },
+          updatedAt: { gte: pseoFreshnessThreshold },
         },
         select: { locationSlug: true },
       })
@@ -261,6 +276,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
           categorySlug: config.slug,
           locationSlug: { in: candidateSlugs },
           totalJobs: { gte: 1 },
+          updatedAt: { gte: pseoFreshnessThreshold },
         },
         select: { locationSlug: true },
       })
@@ -633,6 +649,34 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
         <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px' }}>
           <p className="font-lora" style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '6px' }}>State Insights</p>
           <h2 className="font-lora" style={{ fontSize: '22px', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '24px' }}>{stateName} at a Glance</h2>
+
+          {/* SEO Fix #8: per-(setting, state) narrative — defeats the
+              "Crawled — currently not indexed" thin-content flag by giving
+              every state page 2-3 sentences of facts that vary by setting AND
+              by state (practice authority, COL, shortage count, demand tier).
+              Layer 1 deterministic templates (lib/pseo/state-narrative.ts);
+              future Layer 2 can override per-pair via DB. */}
+          <p
+            className="font-lora"
+            style={{
+              fontSize: '15px',
+              lineHeight: 1.7,
+              color: '#3A4A53',
+              maxWidth: '760px',
+              margin: '0 auto 28px',
+              textAlign: 'center',
+            }}
+          >
+            {buildSettingStateNarrative(
+              config.slug,
+              stateName!,
+              stateCode || '',
+              avgCOL,
+              shortageCount,
+              stats.totalJobs,
+            )}
+          </p>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
             {/* Practice Authority */}
             {practiceAuthority && (

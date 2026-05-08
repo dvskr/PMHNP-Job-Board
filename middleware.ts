@@ -31,19 +31,223 @@ const CITY_ELIGIBLE_TAXONOMIES = new Set<string>([
 
 const METRO_SLUG_SET = new Set<string>(getAllMetroSlugs());
 
-// Reusable 410 Gone response factory
+/**
+ * Renders a styled HTML 410 Gone response that matches the site's
+ * claymorphic design language. Self-contained — no external CSS, no
+ * client JS — because middleware can't reach into the React tree, and
+ * we still want a real HTTP 410 status (which Next.js Server Components
+ * can't easily emit from a regular page render).
+ *
+ * Crawlers see the proper 410 + noindex; humans get a branded page
+ * that doesn't feel like a bare 404 dump.
+ */
+function styled410(opts: {
+    badge: string;
+    heading: string;
+    subtext: string;
+    title?: string; // browser tab title
+}): NextResponse {
+    const tabTitle = opts.title ?? `${opts.badge} — PMHNP Hiring`;
+    const safe = (s: string) => s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>${safe(tabTitle)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@600;700;800&display=swap">
+<style>
+  *,*::before,*::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #F5F0EB;
+    color: #1A2E35;
+    font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .header {
+    max-width: 1360px; margin: 0 auto;
+    padding: 24px 24px 0;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-mark {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg,#0D9488,#0F766E);
+    border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-family: 'Lora', Georgia, serif; font-weight: 800;
+    box-shadow: 4px 4px 10px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .logo-text {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 20px; font-weight: 700; color: #3D2E24; letter-spacing: -0.01em;
+  }
+  .logo-text .accent { color: #0D9488; font-style: italic; font-weight: 600; }
+  main {
+    max-width: 720px; margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+  .clay-card {
+    background: #FFFFFF;
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.5);
+    box-shadow:
+      8px 8px 20px rgba(0,0,0,0.06),
+      -3px -3px 10px rgba(255,255,255,0.85),
+      inset 1px 1px 2px rgba(255,255,255,0.6),
+      inset -1px -1px 1px rgba(0,0,0,0.02);
+  }
+  .hero {
+    padding: 48px 36px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 18px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    background: linear-gradient(135deg,#6B7280,#4B5563);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(75,85,99,0.20), inset 0 1px 0 rgba(255,255,255,0.20);
+  }
+  h1 {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 30px; font-weight: 800; line-height: 1.25;
+    color: #1A2E35;
+    margin: 22px 0 12px;
+    letter-spacing: -0.5px;
+  }
+  .subtext {
+    font-size: 15px; color: #6B7F8A;
+    max-width: 520px; margin: 0 auto;
+  }
+  .cta-row {
+    display: flex; justify-content: center; gap: 12px;
+    margin-top: 28px; flex-wrap: wrap;
+  }
+  .cta-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 26px; border-radius: 14px;
+    background: linear-gradient(135deg,#0D9488,#0F766E);
+    color: #fff !important; font-size: 14px; font-weight: 700;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.25);
+    box-shadow: 4px 4px 12px rgba(13,148,136,0.30), inset 0 1px 0 rgba(255,255,255,0.20);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .cta-primary:hover { transform: translateY(-2px); box-shadow: 6px 6px 18px rgba(13,148,136,0.40), inset 0 1px 0 rgba(255,255,255,0.20); }
+  .cta-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 22px; border-radius: 14px;
+    background: #F7FBF8; color: #1A2E35 !important;
+    font-size: 14px; font-weight: 600; text-decoration: none;
+    border: 1px solid rgba(213,232,224,0.55);
+    box-shadow: 4px 4px 10px rgba(0,60,50,0.06), inset 0 1px 0 rgba(255,255,255,0.6);
+    transition: transform 0.15s ease;
+  }
+  .cta-ghost:hover { transform: translateY(-2px); }
+  .quick-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .quick-card {
+    padding: 18px 16px; border-radius: 16px;
+    background: #FFFFFF;
+    border: 1px solid rgba(213,232,224,0.5);
+    box-shadow: 4px 4px 12px rgba(0,60,50,0.05), inset 0 1px 0 rgba(255,255,255,0.6);
+    text-decoration: none; color: inherit;
+    display: block;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .quick-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 6px 6px 16px rgba(0,60,50,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .quick-label { font-size: 14px; font-weight: 700; color: #1A2E35; margin-bottom: 4px; }
+  .quick-sub { font-size: 12px; color: #8A9BA6; }
+  .quick-section-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #8A9BA6;
+    margin: 0 0 16px; padding-left: 4px;
+  }
+  @media (max-width: 600px) {
+    .hero { padding: 36px 24px; }
+    h1 { font-size: 24px; }
+    main { padding: 32px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+<header class="header">
+  <a href="/" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;">
+    <span class="logo-mark">P</span>
+    <span class="logo-text">PMHNP <span class="accent">Hiring</span></span>
+  </a>
+</header>
+<main>
+  <section class="clay-card hero">
+    <span class="badge">${safe(opts.badge)}</span>
+    <h1>${safe(opts.heading)}</h1>
+    <p class="subtext">${safe(opts.subtext)}</p>
+    <div class="cta-row">
+      <a href="/jobs" class="cta-primary">Browse all PMHNP jobs &rarr;</a>
+      <a href="/" class="cta-ghost">Back to home</a>
+    </div>
+  </section>
+
+  <p class="quick-section-title">Or explore by category</p>
+  <div class="quick-grid">
+    <a href="/jobs/remote" class="quick-card">
+      <div class="quick-label">Remote jobs</div>
+      <div class="quick-sub">Work from anywhere</div>
+    </a>
+    <a href="/jobs/telehealth" class="quick-card">
+      <div class="quick-label">Telehealth</div>
+      <div class="quick-sub">Virtual psychiatric care</div>
+    </a>
+    <a href="/jobs/outpatient" class="quick-card">
+      <div class="quick-label">Outpatient</div>
+      <div class="quick-sub">Clinic-based roles</div>
+    </a>
+    <a href="/jobs/inpatient" class="quick-card">
+      <div class="quick-label">Inpatient</div>
+      <div class="quick-sub">Hospital settings</div>
+    </a>
+  </div>
+</main>
+</body>
+</html>`;
+
+    return new NextResponse(html, {
+        status: 410,
+        headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'X-Robots-Tag': 'noindex, nofollow',
+            'Cache-Control': 'public, max-age=86400',
+        },
+    });
+}
+
+// Reusable 410 Gone response factory — kept as a thin wrapper so existing
+// call sites that use a generic reason string still work without churn.
 function gone410(reason: string): NextResponse {
-    return new NextResponse(
-        `<!DOCTYPE html><html><head><meta name="robots" content="noindex"><title>Page Permanently Removed</title></head><body><h1>410 Gone</h1><p>${reason}</p><p><a href="/jobs">Browse current PMHNP jobs</a></p></body></html>`,
-        {
-            status: 410,
-            headers: {
-                'Content-Type': 'text/html',
-                'X-Robots-Tag': 'noindex, nofollow',
-                'Cache-Control': 'public, max-age=86400',
-            },
-        }
-    );
+    return styled410({
+        badge: 'Page Removed',
+        heading: 'This page is no longer available',
+        subtext: reason,
+        title: 'Page Permanently Removed — PMHNP Hiring',
+    });
 }
 
 // GSC Fix (P1.3): when the 410 DB check fails, we used to silently fall
@@ -204,17 +408,12 @@ export async function middleware(request: NextRequest) {
                         const rows = await res.json();
                         // Job doesn't exist OR is unpublished → 410 Gone
                         if (rows.length === 0 || !rows[0].is_published) {
-                            return new NextResponse(
-                                `<!DOCTYPE html><html><head><meta name="robots" content="noindex"><title>Position Removed</title></head><body><h1>410 Gone</h1><p>This job listing has been permanently removed.</p><p><a href="/jobs">Browse current PMHNP jobs</a></p></body></html>`,
-                                {
-                                    status: 410,
-                                    headers: {
-                                        'Content-Type': 'text/html',
-                                        'X-Robots-Tag': 'noindex, nofollow',
-                                        'Cache-Control': 'public, max-age=86400',
-                                    },
-                                }
-                            );
+                            return styled410({
+                                badge: 'Position Removed',
+                                heading: 'This position is no longer available',
+                                subtext: "This job listing has been permanently removed. Don't worry — we have hundreds of similar PMHNP positions open right now.",
+                                title: 'Position Removed — PMHNP Hiring',
+                            });
                         }
                     } else {
                         // Supabase responded with non-2xx — log so we can detect index/quota issues.
@@ -293,17 +492,12 @@ export async function middleware(request: NextRequest) {
                                 const totalMatch = contentRange.match(/\/(\d+)$/);
                                 const total = totalMatch ? parseInt(totalMatch[1], 10) : NaN;
                                 if (!Number.isNaN(total) && total === 0) {
-                                    return new NextResponse(
-                                        `<!DOCTYPE html><html><head><meta name="robots" content="noindex"><title>No Open Positions</title></head><body><h1>410 Gone</h1><p>This employer currently has no active PMHNP openings.</p><p><a href="/jobs">Browse current PMHNP jobs</a></p></body></html>`,
-                                        {
-                                            status: 410,
-                                            headers: {
-                                                'Content-Type': 'text/html',
-                                                'X-Robots-Tag': 'noindex, nofollow',
-                                                'Cache-Control': 'public, max-age=86400',
-                                            },
-                                        }
-                                    );
+                                    return styled410({
+                                        badge: 'No Open Positions',
+                                        heading: 'This employer has no current openings',
+                                        subtext: "This company doesn't have any active PMHNP openings right now. Browse positions from other employers below.",
+                                        title: 'No Open Positions — PMHNP Hiring',
+                                    });
                                 }
                             }
                         } else {
@@ -651,11 +845,17 @@ export async function middleware(request: NextRequest) {
         '/job-alerts/manage', '/job-alerts/unsubscribe',
         '/unauthorized', '/unsubscribe', '/messages', '/my-applications',
     ];
+    // SEO Fix: include the BARE prefix as well as `prefix/`. Previously
+    // `pathname.startsWith('/dashboard/')` failed to match `/dashboard` exactly,
+    // so app/dashboard/page.tsx (and app/admin/page.tsx) returned 200 with no
+    // X-Robots-Tag — leaking user-private surfaces into Google's index.
+    const hasNoindexPrefix = (prefix: string) =>
+        pathname === prefix || pathname.startsWith(prefix + '/');
     const isNoindexPath = noindexPaths.some(p => pathname === p || pathname.startsWith(p + '/'))
-        || pathname.startsWith('/employer/')
-        || pathname.startsWith('/admin/')
-        || pathname.startsWith('/dashboard/')
-        || pathname.startsWith('/auth/')
+        || hasNoindexPrefix('/employer')
+        || hasNoindexPrefix('/admin')
+        || hasNoindexPrefix('/dashboard')
+        || hasNoindexPrefix('/auth')
         || pathname.startsWith('/jobs/edit/')
         || (pathname.startsWith('/api/') && !pathname.startsWith('/api/og') && !pathname.startsWith('/api/sitemaps'));
     if (isNoindexPath) {

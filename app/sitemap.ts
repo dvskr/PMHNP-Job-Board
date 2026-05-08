@@ -143,12 +143,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }))
 
-  // Category × State pages — REMOVED from sitemap
-  // Previously: 26 categories × ~45 states with jobs = ~1,170 sitemap URLs,
-  // most pointing to pages with 0 matching jobs that now 404.
-  // These pages are reachable via internal links (category page → state links,
-  // state page → category links). Google will discover them naturally.
-  // Submitting them in the sitemap was causing 7K+ "discovered-not-indexed" issues.
+  // Category × State pages — handled by /api/sitemaps/cities/[batch] (which
+  // emits both category×city AND setting×state URLs via pseoStats with
+  // totalJobs ≥ 1). Keep this empty here to avoid duplicating URLs across
+  // sitemaps — Google treats duplicate <loc> entries across sitemap files as
+  // a quality signal hit.
   const categoryStatePages: MetadataRoute.Sitemap = [];
 
   try {

@@ -135,6 +135,36 @@ describe('P4.1: sitemap budget guard', () => {
         expect(disallow).not.toContain('/job-alerts/manage');
     });
 
+    it('SEO Fix #21: AUTH_REBLOCK_DATE deadline is enforced — once the date passes, those paths MUST be back in FULL_DISALLOW', () => {
+        // Mirror the source-of-truth in app/robots.ts. Update both together
+        // when the unblock window is extended.
+        const AUTH_REBLOCK_DATE = '2026-05-19';
+
+        const today = new Date().toISOString().slice(0, 10);
+        if (today < AUTH_REBLOCK_DATE) {
+            // Still inside the window — the previous test is the active guard.
+            return;
+        }
+
+        // Window has expired. The auth paths MUST be re-added to the
+        // catch-all disallow, and the previous "must NOT contain" test
+        // becomes invalid (it's a forward-looking marker; remove it when
+        // closing this gate). Failing here forces a human to verify GSC's
+        // "Indexed, though blocked by robots.txt" is at zero before merging.
+        const robots = robotsHandler();
+        const rules = Array.isArray(robots.rules) ? robots.rules : [robots.rules];
+        const catchAll = rules.find((r) => r.userAgent === '*');
+        const disallow = (catchAll!.disallow ?? []) as string[];
+        const required = ['/login', '/signup', '/messages', '/saved', '/job-alerts/manage'];
+        for (const path of required) {
+            expect(
+                disallow,
+                `AUTH_REBLOCK_DATE (${AUTH_REBLOCK_DATE}) has passed but ${path} is not back in FULL_DISALLOW. ` +
+                `Verify GSC "Indexed, though blocked by robots.txt" is at 0, then re-add to app/robots.ts FULL_DISALLOW.`,
+            ).toContain(path);
+        }
+    });
+
     it('robots.txt still blocks token-bearing and admin surfaces', () => {
         const robots = robotsHandler();
         const rules = Array.isArray(robots.rules) ? robots.rules : [robots.rules];
