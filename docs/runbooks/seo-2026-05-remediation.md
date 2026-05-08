@@ -437,7 +437,7 @@ Polish + harden. All MEDIUM items not already in earlier phases.
 
 | ID | Action | Time | Status |
 |---|---|---|---|
-| M2 | Audit 9 layout `dynamic()` imports — consolidate small chunks | 1 hr | `[!]` deferred — needs `ANALYZE=true npm run build` baseline first |
+| M2 | Audit 9 layout `dynamic()` imports — consolidate small chunks | 1 hr | `[-]` **closed as no-op** — bundle analyzer pass (2026-05-08) confirmed there are 6 (not 9) dynamic imports in layout, each gated by different conditions. Consolidating would force all 6 to load when only one is needed. Pattern is correct; leave alone. |
 | M3 | Move `style-src` off `'unsafe-inline'` (hash- or nonce-based) | 2 hr | `[!]` deferred — many inline `style={{}}` props would break; needs CSP-hash codemod |
 | M4 | Verify `/api/email-preview` is auth-gated in prod | 30 min | `[x]` verified — `requireApiAdmin` gate at route.ts:18 |
 | M5 | Replace edge-middleware `SUPABASE_SERVICE_ROLE_KEY` with anon key + RLS | 1 hr | `[!]` deferred — needs Supabase RLS-policy review to avoid breaking 410-Gone middleware lookups |
@@ -452,7 +452,7 @@ Polish + harden. All MEDIUM items not already in earlier phases.
 | M14 | Audit grays — replace `#9A8A7E` on white with `#7A6A62` (≥4.5:1) | 30 min | `[x]` done across 3 files |
 | M16 | Wire About stats to live DB | 30 min | `[x]` done — dioramaCounts prop wired through page→client |
 | M17 | Fix GA4 double-counting | 15 min | `[x]` done — send_page_view: false, RouteChangeTracker owns it |
-| M18 | Run `ANALYZE=true npm run build`; isolate `react-quill-new` if leaking | 1 hr | `[!]` deferred — needs interactive bundle analyzer review |
+| M18 | Run `ANALYZE=true npm run build`; isolate `react-quill-new` if leaking | 1 hr | `[x]` **already optimal** — bundle analyzer pass (2026-05-08) confirmed react-quill-new (200K chunk) loads only on `/post-job` via `dynamic(() => import('react-quill-new'), { ssr: false })`. Pattern is correct; leave alone. **Bonus fix:** spotted that `components/StatsCounter.tsx` was the last component still using full `motion` import; migrated to LazyMotion in same pass. |
 | M19 | Add `onError` fallback to all state-image renders | 15 min | `[x]` done in Phase A (StateImage component) |
 | M20 | Build-time validator that every state slug has a matching webp | 30 min | `[x]` done — scripts/check-state-images.ts |
 

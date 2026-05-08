@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Briefcase, Building2, TrendingUp, MapPin } from 'lucide-react';
-import { motion } from 'framer-motion';
+// Bundle-analyzer follow-up to Phase C H5: this was the last component still
+// importing the full `motion` namespace from framer-motion. Migrating to
+// LazyMotion + the lightweight `m` namespace shaves the framer-motion import
+// graph from this component, matching the pattern used elsewhere
+// (Header, HomepageHero, FeaturedJobs, etc.).
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 
 interface StatsCounterProps {
     totalJobs: number;
@@ -98,12 +103,13 @@ export default function StatsCounter({
     ];
 
     return (
+        <LazyMotion features={domAnimation}>
         <section
             ref={sectionRef}
             style={{ marginTop: '32px' }}
         >
             <div className="max-w-5xl mx-auto px-4 py-10 md:py-14">
-                <motion.div
+                <m.div
                     className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0"
                     initial="hidden"
                     whileInView="visible"
@@ -113,7 +119,7 @@ export default function StatsCounter({
                     {stats.map((stat, i) => {
                         const Icon = stat.icon;
                         return (
-                            <motion.div
+                            <m.div
                                 key={stat.label}
                                 variants={statItem}
                                 className="flex flex-col items-center text-center relative"
@@ -149,11 +155,12 @@ export default function StatsCounter({
                                 >
                                     {stat.label}
                                 </div>
-                            </motion.div>
+                            </m.div>
                         );
                     })}
-                </motion.div>
+                </m.div>
             </div>
         </section>
+        </LazyMotion>
     );
 }
