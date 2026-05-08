@@ -463,7 +463,7 @@ Polish + harden. All MEDIUM items not already in earlier phases.
 | ID | Action | Time | Status |
 |---|---|---|---|
 | L1 | Verify `UPSTASH_REDIS_REST_URL` set in Vercel env | 5 min | `[!]` external — manual check in Vercel dashboard |
-| L2 | Submit apex domain to hstspreload.org | 10 min | `[~]` in progress — first attempt failed "No HSTS header" because Vercel's edge redirects strip the next.config.ts header. Added Strict-Transport-Security to vercel.json `headers` (commit `4a29024`+). Wait 1–2 deploys, then re-submit at https://hstspreload.org |
+| L2 | Submit apex domain to hstspreload.org | 10 min | `[-]` **N/A — declined**. Marginal first-visit security benefit not worth the 3-6 month removal lockout + permanent HTTPS-on-every-subdomain commitment. Runtime HSTS header (next.config.ts + vercel.json) still protects returning visitors. Eligibility was confirmed (commit `b522561` made the apex pass hstspreload.org checks once Bot Protection was disabled), but submission was deliberately skipped. |
 | L3 | Add Cross-Origin-Opener-Policy | 1 hr | `[x]` done — `same-origin-allow-popups` site-wide; COEP intentionally skipped (would break Supabase/Google asset embeds) |
 | L5 | Add anonymous web-vitals shim for EU traffic | 2 hr | `[-]` **N/A** — pmhnphiring.com targets US-only; EU CWV measurement isn't relevant. Closed without action. |
 | L6 | Tighten PWA install banner trigger | 30 min | `[x]` done — 3→5 visits, iOS 2s→8s |

@@ -1,5 +1,5 @@
 import { Job } from '@/lib/types';
-import { slugify } from '@/lib/utils';
+import { slugify, canonicalSalaryPeriod, type SalaryPeriodKey } from '@/lib/utils';
 
 function mapJobType(jobType: string | null): string {
   const mapping: Record<string, string> = {
@@ -14,16 +14,22 @@ function mapJobType(jobType: string | null): string {
   return mapping[jobType || ''] || 'FULL_TIME';
 }
 
-// Map normalized salaryPeriod → schema.org JobPosting unitText.
-// Source ingestion stores values like 'annual', 'year', 'hour', 'month'.
-// schema.org accepts: HOUR, DAY, WEEK, MONTH, YEAR.
+// Schema.org accepts: HOUR, DAY, WEEK, MONTH, YEAR. We share the canonical
+// period key with formatSalary so the UI and schema never disagree on whether
+// a posting is hourly vs annual.
+const SCHEMA_UNIT_TEXT: Record<SalaryPeriodKey, 'HOUR' | 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'> = {
+  hourly: 'HOUR',
+  daily: 'DAY',
+  weekly: 'WEEK',
+  // Schema.org has no native 'biweekly'; report as WEEK with x2 multiplier
+  // would be confusing. Clamp to MONTH so Google bins it sensibly until we
+  // gain a per-period baseSalary helper.
+  biweekly: 'MONTH',
+  monthly: 'MONTH',
+  annual: 'YEAR',
+};
 function mapSalaryUnitText(period: string | null): 'HOUR' | 'DAY' | 'WEEK' | 'MONTH' | 'YEAR' {
-  const p = (period || '').toLowerCase();
-  if (p === 'hour' || p === 'hourly' || p === 'hr') return 'HOUR';
-  if (p === 'day' || p === 'daily') return 'DAY';
-  if (p === 'week' || p === 'weekly') return 'WEEK';
-  if (p === 'month' || p === 'monthly') return 'MONTH';
-  return 'YEAR'; // 'annual', 'year', 'yearly', null → annualized default
+  return SCHEMA_UNIT_TEXT[canonicalSalaryPeriod(period)];
 }
 
 interface JobStructuredDataProps {
@@ -118,11 +124,14 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
   // normalizedMin/Max (annualized) with unitText: 'YEAR' even when the source
   // posting was hourly, producing UI ($175/hr) ≠ schema ($364k/yr) mismatches.
   // For non-annual periods, prefer the raw minSalary/maxSalary (original unit).
-  const unitText = mapSalaryUnitText(job.salaryPeriod);
-  const minForSchema = unitText === 'YEAR'
+  // The canonical period key is shared with formatSalary in lib/utils.ts so
+  // UI and schema can never branch differently on the same DB value.
+  const periodKey = canonicalSalaryPeriod(job.salaryPeriod);
+  const unitText = SCHEMA_UNIT_TEXT[periodKey];
+  const minForSchema = periodKey === 'annual'
     ? (job.normalizedMinSalary != null ? job.normalizedMinSalary : job.minSalary)
     : (job.minSalary != null ? job.minSalary : job.normalizedMinSalary);
-  const maxForSchema = unitText === 'YEAR'
+  const maxForSchema = periodKey === 'annual'
     ? (job.normalizedMaxSalary != null ? job.normalizedMaxSalary : job.maxSalary)
     : (job.maxSalary != null ? job.maxSalary : job.normalizedMaxSalary);
 
