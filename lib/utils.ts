@@ -32,6 +32,26 @@ function getEffectiveDate(job: { originalPostedAt?: Date | null; createdAt: Date
   return new Date((job as any).createdAt);
 }
 
+/**
+ * Canonicalize the salary `period` string. The ingest pipeline writes BOTH
+ * `'hour'/'week'/'month'/'year'` (regex-extracted, singular) and
+ * `'hourly'/'weekly'/'monthly'/'annual'` (magnitude-inferred). Anything
+ * downstream that branches on period (formatSalary UI, JobPosting schema,
+ * salary backfill scripts) must accept both. Single source of truth here.
+ */
+export type SalaryPeriodKey = 'hourly' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'annual';
+
+export function canonicalSalaryPeriod(period?: string | null): SalaryPeriodKey {
+  const p = (period || '').toLowerCase().trim();
+  if (p === 'hour' || p === 'hourly' || p === 'hr') return 'hourly';
+  if (p === 'day' || p === 'daily') return 'daily';
+  if (p === 'week' || p === 'weekly') return 'weekly';
+  if (p === 'biweekly' || p === 'bi-weekly' || p === 'fortnightly') return 'biweekly';
+  if (p === 'month' || p === 'monthly' || p === 'mo') return 'monthly';
+  // Anything else (incl. 'year', 'yearly', 'annual', '', null) → annual
+  return 'annual';
+}
+
 export function formatSalary(
   min?: number | null,
   max?: number | null,
@@ -39,9 +59,16 @@ export function formatSalary(
 ): string {
   if (!min && !max) return '';
 
-  const formatNumber = (n: number, period: string): string => {
-    // For hourly/weekly/monthly, show the raw number with comma formatting
-    if (period === 'hourly' || period === 'weekly' || period === 'monthly') {
+  // SEO/UI consistency fix: canonicalize period upfront so 'hour' and 'hourly'
+  // (and 'year' vs 'annual') both render the same and match the JobPosting
+  // schema's unitText. Previously a job with salaryPeriod='hour' rendered as
+  // '/yr' in the UI while the schema correctly emitted 'HOUR' — a fresh
+  // mismatch. Both surfaces now agree.
+  const periodKey = canonicalSalaryPeriod(period);
+
+  const formatNumber = (n: number, p: SalaryPeriodKey): string => {
+    // For non-annual periods, show the raw number with comma formatting (e.g. $175/hr).
+    if (p !== 'annual') {
       return `$${n.toLocaleString()}`;
     }
     // Annual — values 20-999 are almost certainly stored in thousands (e.g. 125 = $125K)
@@ -54,15 +81,15 @@ export function formatSalary(
     return `$${n}`;
   };
 
-  const suffix: { [key: string]: string } = {
-    'hourly': '/hr',
-    'weekly': '/week',
-    'monthly': '/mo',
-    'annual': '/yr',
+  const suffix: Record<SalaryPeriodKey, string> = {
+    hourly: '/hr',
+    daily: '/day',
+    weekly: '/week',
+    biweekly: '/2wk',
+    monthly: '/mo',
+    annual: '/yr',
   };
-
-  const periodKey = period || 'annual';
-  const periodSuffix = suffix[periodKey] || '/yr';
+  const periodSuffix = suffix[periodKey];
 
   if (min && max && min !== max) {
     return `${formatNumber(min, periodKey)}-${formatNumber(max, periodKey)}${periodSuffix}`;
