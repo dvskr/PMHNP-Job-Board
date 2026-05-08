@@ -1274,11 +1274,11 @@ export async function sendPerformanceReportEmail(
       </td>`;
 
     const html = emailShellV2(`
-      ${headerBlockV2('Your Monthly Hiring Report', '')}
+      ${headerBlockV2(`Your ${periodLabel} Hiring Report`, '')}
       ${spacerV2(12)}
       ${simpleBlock('hero-performance.png', `Here is how your listings performed this ${periodLabel.toLowerCase()}. Use these insights to optimize your postings and attract stronger candidates.`)}
       ${spacerV2(24)}
-      <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(totalViews.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(totalClicks.toLocaleString(), 'Applies')}<td width="8"></td>${statBlockV2(totalApps.toLocaleString(), 'Messages')}</tr></table></td></tr>
+      <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(totalViews.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(totalClicks.toLocaleString(), 'Apply Clicks')}<td width="8"></td>${statBlockV2(totalApps.toLocaleString(), 'Applications')}</tr></table></td></tr>
       ${spacerV2(28)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('View Full Report', `${BASE_URL}/employer/dashboard/${jobs[0]?.dashboardToken || ''}`)}

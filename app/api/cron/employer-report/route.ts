@@ -71,20 +71,25 @@ export async function GET(request: NextRequest) {
             const totalViews = data.jobs.reduce((s, j) => s + j.views, 0)
             if (totalViews === 0) continue
 
+            // Throttle: pause 1s before every 10th send (other than the
+            // first batch). Previously the modulo check fired AFTER the
+            // increment, so the first 10 sends went out without pause and
+            // sends 11-20 paused twice. Net: provider rate-limit risk on
+            // the first burst.
+            if (sentCount > 0 && sentCount % 10 === 0) {
+                await new Promise(r => setTimeout(r, 1000))
+            }
+
             try {
                 await sendPerformanceReportEmail(
                     email,
                     data.employerName,
                     data.jobs,
-                    'Weekly'
+                    'Monthly'
                 )
                 sentCount++
             } catch (e) {
                 errors.push(`${email}: ${e}`)
-            }
-
-            if (sentCount % 10 === 0) {
-                await new Promise(r => setTimeout(r, 1000))
             }
         }
 
