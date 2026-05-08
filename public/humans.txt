@@ -1,7 +1,8 @@
 /* TEAM */
 
-Founder: Pavan Kumar Reddy Daggula
-Role: CEO & Founder
+Creator: Sathish Kumar
+Role: Creator & Software Engineer
+Operator: Akari Labs LLC
 Location: United States
 
 /* SITE */

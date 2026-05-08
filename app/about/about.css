@@ -110,14 +110,14 @@
 .ab-method-card p{color:var(--ink-soft);font-size:15.5px}
 .ab-method-card .num-tag{position:absolute;top:24px;right:28px;font-family:var(--font-lora),'Lora',serif;font-style:italic;color:var(--cream);font-size:56px;line-height:1;font-weight:400}
 
-/* FOUNDER */
-.ab-founder{background:linear-gradient(160deg,#F8ECDB,#F1DCC1);border-radius:var(--r-xl);padding:72px;box-shadow:var(--clay-shadow);display:grid;grid-template-columns:320px 1fr;gap:64px;align-items:center}
+/* CREATOR */
+.ab-creator{background:linear-gradient(160deg,#F8ECDB,#F1DCC1);border-radius:var(--r-xl);padding:72px;box-shadow:var(--clay-shadow);display:grid;grid-template-columns:320px 1fr;gap:64px;align-items:center}
 .ab-portrait{aspect-ratio:4/5;border-radius:36px;background:linear-gradient(160deg,#CDE8DD,#8FBFB0);box-shadow:var(--clay-shadow);position:relative;overflow:hidden;display:grid;place-items:center}
 .ab-portrait .bust{width:78%;height:82%;background:radial-gradient(circle at 50% 34%,#E8B99E 0 32%,transparent 33%),linear-gradient(180deg,transparent 56%,#2F7A73 56% 100%);border-radius:36px 36px 0 0;position:relative;box-shadow:inset -6px -8px 20px rgba(0,0,0,0.15);align-self:end}
 .ab-portrait .tag-flo{position:absolute;bottom:20px;left:20px;background:var(--clay);padding:8px 14px;border-radius:999px;font-weight:800;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;box-shadow:var(--clay-shadow-sm);color:var(--teal-deep)}
-.ab-founder-body h2{margin-bottom:20px}
-.ab-founder-body h2 em{font-style:italic;color:var(--coral);font-weight:400}
-.ab-founder-body p{color:var(--ink-soft);font-size:17px;margin-bottom:16px;text-wrap:pretty}
+.ab-creator-body h2{margin-bottom:20px}
+.ab-creator-body h2 em{font-style:italic;color:var(--coral);font-weight:400}
+.ab-creator-body p{color:var(--ink-soft);font-size:17px;margin-bottom:16px;text-wrap:pretty}
 .ab-sig{display:flex;align-items:center;gap:20px;margin-top:28px;padding-top:24px;border-top:1px dashed rgba(31,41,71,0.18)}
 .ab-sig .name{font-family:var(--font-lora),'Lora',serif;font-size:22px;font-weight:500}
 .ab-sig .role{font-size:11px;letter-spacing:0.14em;font-weight:800;color:var(--ink-soft);text-transform:uppercase;margin-top:2px}
@@ -154,7 +154,7 @@
   .ab-two-col,.ab-two-col.flip{grid-template-columns:1fr;gap:40px}
   .ab-stats{grid-template-columns:repeat(2,1fr)}
   .ab-method-grid,.ab-quotes{grid-template-columns:1fr}
-  .ab-founder{grid-template-columns:1fr;padding:40px;gap:32px}
+  .ab-creator{grid-template-columns:1fr;padding:40px;gap:32px}
   .ab-cta-card{grid-template-columns:1fr;padding:44px 32px}
   .ab-diorama{grid-template-columns:repeat(2,1fr)}
 }

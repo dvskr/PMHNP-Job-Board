@@ -149,25 +149,25 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
         </div>
       </div></section>
 
-      {/* ═══ FOUNDER ═══ */}
-      {/* SEO Fix H10/H14: replaced "S.K." mark and "Kumar" surname with the
-          founder's full legal name (already in Organization JSON-LD). Copy
-          rewritten in plain English, dropping LLM-tells like "uncompromised
-          ecosystem", "hyper-calibrated marketplace", "fractured ecosystem". */}
+      {/* ═══ CREATOR ═══ */}
+      {/* SEO Fix H10/H14: visible creator attribution with full name, plain
+          founder-voice English (no LLM-tells). Per attribution rules the
+          word "founder" is intentionally not used in user-visible content;
+          the legal LLC member appears only in legal contexts. */}
       <section className="ab-pad" style={{ paddingTop: 40 }}><div className="ab-wrap">
-        <div className="ab-founder">
-          <div className="ab-portrait"><div className="bust" /><div className="tag-flo">Founder · Software Engineer</div></div>
-          <div className="ab-founder-body">
+        <div className="ab-creator">
+          <div className="ab-portrait"><div className="bust" /><div className="tag-flo">{brand.legal.creatorTitle}</div></div>
+          <div className="ab-creator-body">
             <span className="ab-kicker"><Users size={12} /> Who built this</span>
             <h2 style={{ marginTop: 20 }}>One person, one focused job board.</h2>
             <p>I built PMHNP Hiring because every general nursing job site I looked at made psychiatric NPs do the same thing over and over: filter out hundreds of unrelated RN postings just to find the handful of psych roles. There was no good reason for that, so I built something focused on one specialty instead.</p>
             <p>I&apos;m a software engineer, not a clinician. My job here is the data pipeline — pulling job postings, normalizing salary fields, mapping state licensure rules, and surfacing the result through a fast, ad-light interface. The clinical content on this site is editorial commentary aggregated from public sources, not medical advice.</p>
             <p>If something on the site is wrong, missing, or could be better, the fastest way to reach me is the <Link href="/contact" style={{ color: 'inherit', textDecoration: 'underline' }}>contact page</Link>.</p>
             <div className="ab-sig">
-              <div className="ab-sig-mark">P</div>
+              <div className="ab-sig-mark">SK</div>
               <div>
-                <div className="name">{brand.legal.founderName}</div>
-                <div className="role">Founder · {brand.legal.entityName}</div>
+                <div className="name">{brand.legal.creatorName}</div>
+                <div className="role">Creator of {brand.name}</div>
               </div>
             </div>
             <p style={{ marginTop: 28, fontSize: 13, color: 'var(--ink-soft, #6B7F8A)', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 18 }}>
