@@ -17,6 +17,7 @@ import {
     getPrivacySignal,
     type ConsentCategories,
 } from '@/lib/consent';
+import { useOverlaySlot } from '@/components/OverlayCoordinator';
 
 interface Props {
     /** Server-rendered initial state from the HttpOnly consent cookie. */
@@ -141,7 +142,11 @@ export default function CookieConsent({ initialConsent }: Props) {
         setSavedCats(cats);
     };
 
-    if (!show) return null;
+    // SEO Fix H9: gate via OverlayCoordinator so only one overlay renders
+    // at a time. Cookie consent has the highest priority — when it wants
+    // to show, push/pwa/exit-intent are blocked from rendering.
+    const slotGranted = useOverlaySlot('cookie', show);
+    if (!slotGranted) return null;
 
     return (
         <div

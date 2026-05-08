@@ -171,7 +171,7 @@ export default function Footer() {
             {/* Left: Logo + Name + Tagline */}
             <div className="footer-bar-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
-                <img src="/logo.png" alt="PMHNP Hiring" width="36" height="36" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+                <img src="/logo.png" alt="PMHNP Hiring" width="36" height="36" loading="lazy" decoding="async" style={{ width: 36, height: 36, objectFit: 'contain' }} />
                 <span className="font-heading" style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginLeft: '-4px', whiteSpace: 'nowrap' }}>
                   PMHNP Hiring
                 </span>

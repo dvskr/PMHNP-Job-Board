@@ -87,6 +87,10 @@ export default function RelatedJobs({
                     <img
                       src={job.companyLogoUrl}
                       alt={`${job.employer} logo`}
+                      width={44}
+                      height={44}
+                      loading="lazy"
+                      decoding="async"
                       style={{
                         width: '44px', height: '44px', borderRadius: '50%',
                         objectFit: 'contain', border: '1px solid var(--border-color)',

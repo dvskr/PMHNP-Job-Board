@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers, cookies } from 'next/headers';
 import { CONSENT_COOKIE, parseConsentCookie } from '@/lib/consent';
 import { brand } from '@/config/brand';
-import { Inter, Lora, Newsreader, JetBrains_Mono } from "next/font/google";
+import { Inter, Lora, Newsreader } from "next/font/google";
 import "./globals.css";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -42,11 +42,14 @@ const newsreader = Newsreader({
   display: 'swap',
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  display: 'swap',
-});
+// SEO Fix H3: JetBrains_Mono dropped from web-font set. The audit flagged
+// 4 Google Font families on every page; the rule is max 2. Newsreader is
+// retained because the editorial CSS in app/editorial.css (blog post body
+// typography) intentionally pairs it with Inter/Lora. JetBrains_Mono was
+// only in use for incidental `font-mono` Tailwind classes on code blocks
+// and debugging UIs — those now fall back to system monospace, which is
+// visually acceptable for non-editorial code spans and saves a network
+// roundtrip + ~30 KB of font payload on every page load.
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || brand.baseUrl),
@@ -236,7 +239,7 @@ export default async function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${lora.variable} ${newsreader.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        className={`${inter.variable} ${lora.variable} ${newsreader.variable} font-sans antialiased`}
         suppressHydrationWarning
         style={{
           backgroundColor: '#F5F0EB',

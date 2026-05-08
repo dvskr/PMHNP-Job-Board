@@ -59,11 +59,16 @@ interface FilterSectionProps {
 
 function FilterSection({ title, defaultExpanded = true, children }: FilterSectionProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  // SEO Fix H7: stable id ties button (aria-controls) to the panel and lets
+  // assistive tech announce the disclosure relationship (WCAG 4.1.2).
+  const panelId = `filter-section-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
 
   return (
     <div style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', padding: '14px 0' }}>
       <button
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-controls={panelId}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           width: '100%', textAlign: 'left', background: 'none', border: 'none',
@@ -74,12 +79,14 @@ function FilterSection({ title, defaultExpanded = true, children }: FilterSectio
           {title}
         </h3>
         {expanded ? (
-          <ChevronUp style={{ width: '16px', height: '16px', color: 'var(--text-muted, var(--text-tertiary))' }} />
+          <ChevronUp aria-hidden="true" style={{ width: '16px', height: '16px', color: 'var(--text-muted, var(--text-tertiary))' }} />
         ) : (
-          <ChevronDown style={{ width: '16px', height: '16px', color: 'var(--text-muted, var(--text-tertiary))' }} />
+          <ChevronDown aria-hidden="true" style={{ width: '16px', height: '16px', color: 'var(--text-muted, var(--text-tertiary))' }} />
         )}
       </button>
-      {expanded && <div style={{ marginTop: '8px' }}>{children}</div>}
+      <div id={panelId} role="region" aria-label={title} hidden={!expanded} style={{ marginTop: expanded ? '8px' : 0 }}>
+        {children}
+      </div>
     </div>
   );
 }

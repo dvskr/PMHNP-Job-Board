@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Download } from 'lucide-react';
+import { useOverlaySlot } from '@/components/OverlayCoordinator';
 
 const STORAGE_KEY = 'pmhnp_pwa_install_dismissed';
 const SUPPRESS_DAYS = 30;
@@ -72,7 +73,9 @@ export default function PWAInstallBanner() {
         dismiss();
     };
 
-    if (!show) return null;
+    // SEO Fix H9: gate via OverlayCoordinator (priority 3).
+    const slotGranted = useOverlaySlot('pwa', show);
+    if (!slotGranted) return null;
 
     return (
         <div

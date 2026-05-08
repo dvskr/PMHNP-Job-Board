@@ -34,7 +34,13 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 2592000, // 30 days — avoids re-optimizing on every request
+    // SEO Fix H2: bumped from 30d → 1y. The hero LCP image is served by
+    // Supabase with `Cache-Control: no-cache`, but next/image's `/_next/image`
+    // proxy honors `minimumCacheTTL` regardless of upstream headers — so by
+    // raising this we keep the optimized variant immutable for a year on
+    // the Vercel CDN regardless of Supabase's bucket headers. The audit
+    // identified this as a high-impact LCP/CWV win.
+    minimumCacheTTL: 31536000, // 1 year
     remotePatterns: [
       {
         protocol: 'https',
@@ -206,9 +212,15 @@ export default withSentryConfig(
     // Proxy Sentry requests through /monitoring to bypass ad blockers
     tunnelRoute: '/monitoring',
 
-    // Automatically instrument Next.js data fetching and middleware
+    // SEO Fix H1: drop autoInstrumentAppDirectory + autoInstrumentMiddleware.
+    // The audit found ~224KB raw / ~75KB gz of Sentry code (incl. d3-color and
+    // d3-format from @sentry/replay-internal) in the rootMain bundle on every
+    // page. Auto-instrumenting every app-directory page is the dominant cost.
+    // Server-functions instrumentation stays on because it doesn't ship to
+    // the browser. Re-enable selectively after measuring with bundle-analyzer
+    // if granular Sentry tracing is genuinely needed.
     autoInstrumentServerFunctions: true,
-    autoInstrumentMiddleware: true,
-    autoInstrumentAppDirectory: true,
+    autoInstrumentMiddleware: false,
+    autoInstrumentAppDirectory: false,
   }
 );

@@ -3,7 +3,12 @@
 import Link from 'next/link';
 import { Menu, X, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search, HelpCircle, Info, Mail, PenSquare, GraduationCap, UserCheck, Users, Bookmark, FileText, Activity, Workflow, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// SEO Fix H5: use LazyMotion + the lightweight `m` namespace instead of the
+// full `motion` import. Header renders on every page, so importing the full
+// framer-motion namespace bloats every page's JS bundle. LazyMotion ships
+// only the animation features used and is the recommended pattern (matches
+// HomepageHero.tsx).
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import HeaderAuth from '@/components/auth/HeaderAuth';
 
@@ -103,7 +108,7 @@ export default function Header() {
   if (AUTH_ROUTES.some(r => pathname?.startsWith(r))) return null;
 
   return (
-    <>
+    <LazyMotion features={domAnimation}>
       {/* Spacer */}
       <div style={{ height: 84 }} />
 
@@ -259,7 +264,7 @@ export default function Header() {
       {/* ═══ Mobile Menu ═══ */}
       <AnimatePresence>
         {isMenuOpen && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -344,7 +349,7 @@ export default function Header() {
                 <HeaderAuth onNavigate={() => setIsMenuOpen(false)} onRoleChange={(role) => setUserRole(role)} />
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -354,7 +359,7 @@ export default function Header() {
           transform: translateY(0) scale(0.98) !important;
         }
       `}</style>
-    </>
+    </LazyMotion>
   );
 }
 

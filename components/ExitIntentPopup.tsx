@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, FormEvent } from 'react';
 import { X, Bell, ArrowRight } from 'lucide-react';
+import { useOverlaySlot } from '@/components/OverlayCoordinator';
 
 const STORAGE_KEY = 'pmhnp_exit_popup_dismissed';
 const SUPPRESS_DAYS = 14;
@@ -83,7 +84,9 @@ export default function ExitIntentPopup() {
         setTimeout(dismiss, 2000);
     };
 
-    if (!isOpen) return null;
+    // SEO Fix H9: gate via OverlayCoordinator (priority 4 — lowest).
+    const slotGranted = useOverlaySlot('exit', isOpen);
+    if (!slotGranted) return null;
 
     return (
         <div
