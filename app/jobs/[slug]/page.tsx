@@ -530,7 +530,7 @@ function renderRemovedPage({ badge, badgeGradient, heading, subtext, title, empl
           <p style={{ fontSize: '15px', color: '#7A6A62', marginBottom: '0', lineHeight: 1.6 }}>
             {subtext}
           </p>
-          <p style={{ fontSize: '14px', color: '#9A8A7E', marginTop: '8px' }}>
+          <p style={{ fontSize: '14px', color: '#7A6A62', marginTop: '8px' }}>
             Don&apos;t worry — we have hundreds of similar PMHNP positions available right now.
           </p>
         </div>

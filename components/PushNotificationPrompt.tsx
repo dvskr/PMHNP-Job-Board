@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Bell, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useOverlaySlot } from '@/components/OverlayCoordinator';
 
 const DISMISS_KEY = 'pmhnp_push_prompt_dismissed';
 const VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
@@ -88,7 +89,9 @@ export default function PushNotificationPrompt() {
         localStorage.setItem(DISMISS_KEY, '1');
     };
 
-    if (!show) return null;
+    // SEO Fix H9: gate via OverlayCoordinator (priority 2 — yields to cookie).
+    const slotGranted = useOverlaySlot('push', show);
+    if (!slotGranted) return null;
 
     return (
         <div

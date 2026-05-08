@@ -114,10 +114,14 @@ export default function Footer() {
             }}
           >
 
-            {/* Link columns */}
+            {/* Link columns.
+                SEO Fix M12: <h4> with no preceding <h2>/<h3> in the footer
+                landmark broke heading order. Bumped to <h3> and wrapped the
+                column links in <nav aria-label> so the relationship is
+                exposed in the accessibility tree. */}
             {linkColumns.map((col) => (
-              <div key={col.title}>
-                <h4 style={columnTitleStyle}>{col.title}</h4>
+              <nav key={col.title} aria-label={col.title}>
+                <h3 style={columnTitleStyle}>{col.title}</h3>
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {col.links.map((link) => {
                     const isExternal = link.href.startsWith('http');
@@ -151,7 +155,7 @@ export default function Footer() {
                     );
                   })}
                 </ul>
-              </div>
+              </nav>
             ))}
           </div>
 
@@ -171,7 +175,7 @@ export default function Footer() {
             {/* Left: Logo + Name + Tagline */}
             <div className="footer-bar-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
-                <img src="/logo.png" alt="PMHNP Hiring" width="36" height="36" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+                <img src="/logo.png" alt="PMHNP Hiring" width="36" height="36" loading="lazy" decoding="async" style={{ width: 36, height: 36, objectFit: 'contain' }} />
                 <span className="font-heading" style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginLeft: '-4px', whiteSpace: 'nowrap' }}>
                   PMHNP Hiring
                 </span>
@@ -267,8 +271,16 @@ export default function Footer() {
 
               <span className="footer-pipe" style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.15)' }} />
 
-              <p style={{ fontSize: '13px', color: '#57534e', margin: 0, whiteSpace: 'nowrap' }}>
+              {/* SEO Fix M15: surface the legal mailing address. Trust signal
+                  for E-E-A-T (a real LLC operates this site, with a real
+                  registered address). Phone number intentionally omitted —
+                  add a Google Voice forwarding number here if/when one is
+                  set up. Until then, /contact is the canonical reach-us
+                  surface. */}
+              <p style={{ fontSize: '13px', color: '#57534e', margin: 0, lineHeight: 1.6 }}>
                 © {new Date().getFullYear()} {brand.name} · operated by {brand.legal.entityName}
+                <span className="footer-address-sep" style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
+                <span style={{ whiteSpace: 'nowrap' }}>{brand.legal.addressLine}, {brand.legal.addressCity}, {brand.legal.addressRegion} {brand.legal.addressPostalCode}</span>
               </p>
             </div>
           </div>

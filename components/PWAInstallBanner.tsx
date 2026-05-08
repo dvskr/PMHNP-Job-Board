@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Download } from 'lucide-react';
+import { useOverlaySlot } from '@/components/OverlayCoordinator';
 
 const STORAGE_KEY = 'pmhnp_pwa_install_dismissed';
 const SUPPRESS_DAYS = 30;
@@ -27,11 +28,16 @@ export default function PWAInstallBanner() {
             }
         } catch { return; }
 
-        // Check visit count
+        // Check visit count.
+        // SEO Fix L6: previously triggered after 3 visits. Bumped to 5
+        // visits to keep this from feeling like an interstitial — Google's
+        // intrusive-interstitial doc cares about timing + frequency, and
+        // 5 visits implies a returning user who's invested enough that an
+        // install prompt is welcome rather than friction.
         try {
             const visits = parseInt(localStorage.getItem('pmhnp_visit_count') || '0', 10) + 1;
             localStorage.setItem('pmhnp_visit_count', visits.toString());
-            if (visits < 3) return;
+            if (visits < 5) return;
         } catch { return; }
 
         // Don't show if already installed (standalone mode)
@@ -46,11 +52,13 @@ export default function PWAInstallBanner() {
 
         window.addEventListener('beforeinstallprompt', handler);
 
-        // Fallback for iOS/Safari (no beforeinstallprompt) — show hint after 2s
+        // Fallback for iOS/Safari (no beforeinstallprompt). SEO Fix L6:
+        // bumped delay from 2s → 8s so the prompt appears after the user
+        // has demonstrably read content, not as an arrival modal.
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
         let timer: NodeJS.Timeout | null = null;
         if (isIOS) {
-            timer = setTimeout(() => setShow(true), 2000);
+            timer = setTimeout(() => setShow(true), 8000);
         }
 
         return () => {
@@ -72,7 +80,9 @@ export default function PWAInstallBanner() {
         dismiss();
     };
 
-    if (!show) return null;
+    // SEO Fix H9: gate via OverlayCoordinator (priority 3).
+    const slotGranted = useOverlaySlot('pwa', show);
+    if (!slotGranted) return null;
 
     return (
         <div

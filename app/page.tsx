@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 
 import { prisma } from '@/lib/prisma';
 import { brand } from '@/config/brand';
+import { STAT_SOURCES } from '@/lib/stats-sources';
 import EmployerTrustSection from '@/components/EmployerTrustSection';
 import FeaturedJobsSection from '@/components/FeaturedJobsSection';
 import TopStatesSection from '@/components/TopStatesSection';
@@ -135,8 +136,11 @@ export default async function Home() {
                 "@type": "Question",
                 name: "How much do PMHNPs make?",
                 acceptedAnswer: {
+                  // SEO Fix C5/C6: salary range pulled from lib/stats-sources.ts so the
+                  // same number lands on homepage, blog FAQ, and About copy. Source +
+                  // asOf appended in plain prose for verifiable citation.
                   "@type": "Answer",
-                  text: "PMHNPs earn an average salary of $155,000-$165,000 per year in 2026. Salaries range from $120,000 for new graduates to $200,000+ for experienced PMHNPs in high-demand areas. Remote and telehealth positions pay $130,000-$200,000, while private practice PMHNPs can earn $200,000-$300,000+. The highest paying states include California, New York, and New Jersey.",
+                  text: `PMHNPs earn an average annual salary of ${STAT_SOURCES.averageSalary.range} based on the ${STAT_SOURCES.averageSalary.source} (${STAT_SOURCES.averageSalary.asOf}). Salaries range from ~$120,000 for new graduates to $200,000+ for experienced PMHNPs in high-demand areas. Remote and telehealth positions typically pay $130,000–$200,000; private practice PMHNPs can earn $200,000+ depending on caseload and overhead.`,
                 },
               },
               {
@@ -144,7 +148,7 @@ export default async function Home() {
                 name: "What is the PMHNP job outlook?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "The PMHNP job outlook is exceptional, with the Bureau of Labor Statistics projecting 45% growth through 2032 — much faster than average. The mental health provider shortage (123 million Americans in designated shortage areas), expanded telehealth access, and growing awareness of mental health needs drive sustained demand nationwide.",
+                  text: `The PMHNP job outlook is strong: ${STAT_SOURCES.blsGrowth2032.source} projects ${STAT_SOURCES.blsGrowth2032.formatted} employment growth for nurse practitioners through 2032 — much faster than average. Roughly ${STAT_SOURCES.hrsaShortagePopulation.formatted} Americans live in mental-health Health Professional Shortage Areas (${STAT_SOURCES.hrsaShortagePopulation.source}, ${STAT_SOURCES.hrsaShortagePopulation.asOf}), so demand for psychiatric NPs continues to expand alongside telehealth access.`,
                 },
               },
               {
@@ -168,7 +172,7 @@ export default async function Home() {
                 name: "What is the difference between a PMHNP and a psychiatrist?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "PMHNPs hold a Master's or Doctoral degree in nursing with psychiatric specialization (2-4 years of graduate school), while psychiatrists complete medical school plus a 4-year residency. Both can diagnose mental health conditions and prescribe medications. In full practice authority states, PMHNPs practice independently. PMHNPs often earn $155,000-$200,000+ compared to psychiatrists' $250,000-$350,000+, but PMHNPs reach full practice much faster with less educational debt.",
+                  text: `PMHNPs hold a Master's or Doctoral degree in nursing with psychiatric specialization (2–4 years of graduate school), while psychiatrists complete medical school plus a 4-year residency. Both can diagnose mental health conditions and prescribe medications. In full practice authority states, PMHNPs practice independently. PMHNPs typically earn ${STAT_SOURCES.averageSalary.range} (${STAT_SOURCES.averageSalary.source}, ${STAT_SOURCES.averageSalary.asOf}) compared to psychiatrists at $250,000+, but PMHNPs reach full practice much faster with less educational debt.`,
                 },
               },
               {

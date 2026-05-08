@@ -59,11 +59,16 @@ interface FilterSectionProps {
 
 function FilterSection({ title, defaultExpanded = true, children }: FilterSectionProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  // SEO Fix H7: stable id ties button (aria-controls) to the panel and lets
+  // assistive tech announce the disclosure relationship (WCAG 4.1.2).
+  const panelId = `filter-section-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
 
   return (
     <div style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', padding: '14px 0' }}>
       <button
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-controls={panelId}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           width: '100%', textAlign: 'left', background: 'none', border: 'none',
@@ -74,12 +79,14 @@ function FilterSection({ title, defaultExpanded = true, children }: FilterSectio
           {title}
         </h3>
         {expanded ? (
-          <ChevronUp style={{ width: '16px', height: '16px', color: 'var(--text-muted, var(--text-tertiary))' }} />
+          <ChevronUp aria-hidden="true" style={{ width: '16px', height: '16px', color: 'var(--text-muted, var(--text-tertiary))' }} />
         ) : (
-          <ChevronDown style={{ width: '16px', height: '16px', color: 'var(--text-muted, var(--text-tertiary))' }} />
+          <ChevronDown aria-hidden="true" style={{ width: '16px', height: '16px', color: 'var(--text-muted, var(--text-tertiary))' }} />
         )}
       </button>
-      {expanded && <div style={{ marginTop: '8px' }}>{children}</div>}
+      <div id={panelId} role="region" aria-label={title} hidden={!expanded} style={{ marginTop: expanded ? '8px' : 0 }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -366,12 +373,14 @@ export default function LinkedInFilters() {
             {/* Search */}
             <form onSubmit={handleSearchSubmit} style={{ marginBottom: '12px' }}>
               <div style={{ position: 'relative' }}>
-                <Search style={{
+                <Search aria-hidden="true" style={{
                   position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
                   width: '15px', height: '15px', color: 'var(--text-tertiary)',
                 }} />
+                {/* SEO Fix C4: aria-label gives screen readers a name (WCAG 4.1.2). */}
                 <input
-                  type="text"
+                  aria-label="Search by job title or company"
+                  type="search"
                   placeholder="Job title, company..."
                   value={searchInput}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
@@ -383,7 +392,7 @@ export default function LinkedInFilters() {
                     border: '1px solid rgba(0,0,0,0.06)',
                     borderRadius: '14px', fontSize: '13px',
                     color: 'var(--text-primary)',
-                    outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
                     boxShadow: 'inset 1px 1px 3px rgba(0,0,0,0.04), 1px 1px 2px rgba(255,255,255,0.5)',
                   }}
                 />
@@ -393,11 +402,12 @@ export default function LinkedInFilters() {
             {/* Location */}
             <form onSubmit={handleLocationSubmit} style={{ marginBottom: '8px' }}>
               <div style={{ position: 'relative' }}>
-                <MapPin style={{
+                <MapPin aria-hidden="true" style={{
                   position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
                   width: '15px', height: '15px', color: 'var(--text-tertiary)',
                 }} />
                 <input
+                  aria-label="Filter by city, state, or remote"
                   type="text"
                   placeholder="City, state, or 'Remote'"
                   value={locationInput}
@@ -410,7 +420,7 @@ export default function LinkedInFilters() {
                     border: '1px solid rgba(0,0,0,0.06)',
                     borderRadius: '14px', fontSize: '13px',
                     color: 'var(--text-primary)',
-                    outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
                     boxShadow: 'inset 1px 1px 3px rgba(0,0,0,0.04), 1px 1px 2px rgba(255,255,255,0.5)',
                   }}
                 />

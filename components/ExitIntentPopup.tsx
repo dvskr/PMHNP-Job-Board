@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, FormEvent } from 'react';
 import { X, Bell, ArrowRight } from 'lucide-react';
+import { useOverlaySlot } from '@/components/OverlayCoordinator';
 
 const STORAGE_KEY = 'pmhnp_exit_popup_dismissed';
 const SUPPRESS_DAYS = 14;
@@ -9,7 +10,11 @@ const SUPPRESS_DAYS = 14;
 /**
  * Exit-intent popup for job alerts
  * Desktop: triggers on mouse leaving viewport
- * Mobile: triggers after 45s idle
+ * Mobile: DISABLED — Google's "intrusive interstitial" ranking penalty
+ *         specifically targets timed mobile popups blocking content. The
+ *         previous 45s mobile timer was the exact pattern Google calls
+ *         out as a soft penalty trigger. Desktop mouse-leave is not
+ *         affected because there's no mobile equivalent of the gesture.
  * Suppressed for 14 days after dismiss/submit
  * Skips logged-in users (they already have an account)
  */
@@ -44,27 +49,22 @@ export default function ExitIntentPopup() {
 
         let triggered = false;
 
-        // Desktop: mouse leave
+        // Desktop only: mouse leave (no mobile equivalent — see header comment).
         const handleMouseLeave = (e: MouseEvent) => {
+            // Hard-gate: never run on small viewports even if a desktop UA somehow
+            // ends up in a narrow window — defense in depth against the
+            // intrusive-interstitial penalty.
+            if (window.innerWidth < 768) return;
             if (e.clientY <= 5 && !triggered) {
                 triggered = true;
                 setIsOpen(true);
             }
         };
 
-        // Mobile: 45s idle timer (less aggressive)
-        const mobileTimer = setTimeout(() => {
-            if (!triggered && window.innerWidth < 768) {
-                triggered = true;
-                setIsOpen(true);
-            }
-        }, 45000);
-
         document.addEventListener('mouseleave', handleMouseLeave);
 
         return () => {
             document.removeEventListener('mouseleave', handleMouseLeave);
-            clearTimeout(mobileTimer);
         };
     }, []);
 
@@ -84,7 +84,9 @@ export default function ExitIntentPopup() {
         setTimeout(dismiss, 2000);
     };
 
-    if (!isOpen) return null;
+    // SEO Fix H9: gate via OverlayCoordinator (priority 4 — lowest).
+    const slotGranted = useOverlaySlot('exit', isOpen);
+    if (!slotGranted) return null;
 
     return (
         <div

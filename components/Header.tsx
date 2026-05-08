@@ -1,9 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Menu, X, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search, HelpCircle, Info, Mail, PenSquare, GraduationCap, UserCheck, Users, Bookmark, FileText, Activity, Workflow, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// SEO Fix H5: use LazyMotion + the lightweight `m` namespace instead of the
+// full `motion` import. Header renders on every page, so importing the full
+// framer-motion namespace bloats every page's JS bundle. LazyMotion ships
+// only the animation features used and is the recommended pattern (matches
+// HomepageHero.tsx).
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import HeaderAuth from '@/components/auth/HeaderAuth';
 
@@ -103,7 +109,7 @@ export default function Header() {
   if (AUTH_ROUTES.some(r => pathname?.startsWith(r))) return null;
 
   return (
-    <>
+    <LazyMotion features={domAnimation}>
       {/* Spacer */}
       <div style={{ height: 84 }} />
 
@@ -142,12 +148,15 @@ export default function Header() {
         >
           {/* ═══ LEFT: Logo ═══ */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Mobile hamburger */}
+            {/* Mobile hamburger.
+                SEO Fix M8: padding bumped 7px → 12px so the button hits a
+                44×44px tap target (Apple HIG / Google ≥48 informal).
+                With the 20px icon: 12px*2 + 20 = 44px. */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="lg:hidden transition-all"
               style={{
-                padding: '7px',
+                padding: '12px',
                 borderRadius: '10px',
                 color: '#5A4A42',
                 backgroundColor: '#EDE7E0',
@@ -156,16 +165,23 @@ export default function Header() {
                 cursor: 'pointer',
               }}
               aria-label="Toggle menu"
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-nav-menu"
             >
-              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              {isMenuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
             </button>
 
             <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
-              <img
+              {/* SEO Fix L8: next/image automatically picks the right format
+                  (avif/webp), generates a srcset, and sets fetchpriority on
+                  the LCP-relevant header logo. priority=true since this is
+                  above the fold on every page. */}
+              <Image
                 src="/logo.png"
                 alt="PMHNP Hiring"
-                width="56"
-                height="56"
+                width={56}
+                height={56}
+                priority
                 style={{ width: 56, height: 56, objectFit: 'contain', flexShrink: 0 }}
               />
               <span
@@ -259,7 +275,8 @@ export default function Header() {
       {/* ═══ Mobile Menu ═══ */}
       <AnimatePresence>
         {isMenuOpen && (
-          <motion.div
+          <m.div
+            id="mobile-nav-menu"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -344,7 +361,7 @@ export default function Header() {
                 <HeaderAuth onNavigate={() => setIsMenuOpen(false)} onRoleChange={(role) => setUserRole(role)} />
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -354,7 +371,7 @@ export default function Header() {
           transform: translateY(0) scale(0.98) !important;
         }
       `}</style>
-    </>
+    </LazyMotion>
   );
 }
 

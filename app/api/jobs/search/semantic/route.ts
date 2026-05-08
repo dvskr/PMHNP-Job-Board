@@ -75,8 +75,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             anonId = existing;
         } else {
             anonId = createHash('sha256').update(`${Date.now()}|${Math.random()}`).digest('hex').slice(0, 24);
+            // SEO Fix M6: explicitly set `secure: true` in production. Without
+            // it, this cookie relies on framework defaults — the audit flagged
+            // that as a security gap. Local dev (no HTTPS) keeps it off so
+            // the cookie still gets set during development.
             jar.set(ANON_COOKIE, anonId, {
-                httpOnly: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 365,
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                maxAge: 60 * 60 * 24 * 365,
+                secure: process.env.NODE_ENV === 'production',
             });
         }
     }

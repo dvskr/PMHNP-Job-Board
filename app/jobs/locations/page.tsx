@@ -5,6 +5,7 @@ import { MapPin, Wifi, TrendingUp, Globe, Video, Plane, GraduationCap, Calendar 
 import { prisma } from '@/lib/prisma';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryHero from '@/components/CategoryHero';
+import StateImage from '@/components/StateImage';
 
 // Force dynamic rendering - don't try to statically generate during build
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
@@ -285,7 +286,7 @@ export default async function LocationsPage() {
                         <div style={{ fontSize: '28px', fontWeight: 800, color: '#0D9488', lineHeight: 1.1 }}>
                           {stats.remoteCount}
                         </div>
-                        <div style={{ fontSize: '11px', fontWeight: 600, color: '#9A8A7E', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: '#7A6A62', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                           Open Positions
                         </div>
                       </div>
@@ -345,7 +346,7 @@ export default async function LocationsPage() {
                       <img src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/${cat.icon.replace('.png', '.webp')}`} alt="" width={34} height={34} style={{ objectFit: 'contain' }} />
                     </div>
                     <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>{cat.label}</h3>
-                    <p style={{ fontSize: '12px', color: '#9A8A7E', margin: '0 0 12px', lineHeight: 1.4 }}>{cat.sub}</p>
+                    <p style={{ fontSize: '12px', color: '#7A6A62', margin: '0 0 12px', lineHeight: 1.4 }}>{cat.sub}</p>
                     <div style={{
                       marginTop: 'auto', fontSize: '12px', fontWeight: 700, color: '#0D9488',
                       display: 'flex', alignItems: 'center', gap: '4px',
@@ -405,8 +406,9 @@ export default async function LocationsPage() {
                         boxShadow: 'inset 4px 4px 10px rgba(255,255,255,0.3), inset -3px -3px 8px rgba(0,0,0,0.08), 0 6px 20px rgba(0,0,0,0.1)',
                       }}
                     >
-                      <img
-                        src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/states/${state.slug}.webp`}
+                      {/* SEO Fix H15: StateImage falls back if per-state webp is missing. */}
+                      <StateImage
+                        slug={state.slug}
                         alt={`${state.name} PMHNP Jobs`}
                         width={300}
                         height={300}

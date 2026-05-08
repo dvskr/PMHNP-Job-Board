@@ -72,12 +72,17 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
       title: `${title} - Find Your Next Position`,
       description,
       type: 'website',
-      images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-og.webp', width: 1200, height: 630, alt: 'PMHNP Job Board — Browse psychiatric nurse practitioner jobs' }],
+      // SEO Fix C8: previously pointed at `pmhnp-job-board-og.webp` which
+      // returns 404 from Supabase, breaking every social share of /jobs and
+      // every filtered jobs URL. Pointing at the existing homepage asset
+      // until a dedicated OG image is uploaded.
+      images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp', width: 1280, height: 900, alt: 'PMHNP Job Board — Browse psychiatric nurse practitioner jobs' }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp'],
     },
     alternates: {
       canonical: `${brand.baseUrl}/jobs`,

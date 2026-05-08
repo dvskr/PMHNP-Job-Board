@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import StateImage from './StateImage';
 import CopyCitation from '@/components/CopyCitation';
 
 interface StateGuide {
@@ -131,7 +132,8 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
         {/* State diorama in header when selected */}
         {selectedState && (
           <div style={{ position: 'absolute', right: '-20px', top: '-20px', bottom: '-20px', width: '200px', opacity: 0.18 }}>
-            <Image src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/states/${stateSlug}.webp`} alt="" width={200} height={200} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {/* SEO Fix H15: StateImage falls back if per-state webp is missing. */}
+            <StateImage slug={stateSlug} alt="" width={200} height={200} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
         )}
         <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-chart.webp" alt="Licensure Checker" width={52} height={52} style={{
@@ -196,8 +198,9 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '16px',
             }}>
-              <Image
-                src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/states/${stateSlug}.webp`}
+              {/* SEO Fix H15: StateImage falls back if per-state webp is missing. */}
+              <StateImage
+                slug={stateSlug}
                 alt={`${selectedState} 3D illustration`}
                 width={200} height={200}
                 style={{ width: '160px', height: '160px', objectFit: 'contain' }}

@@ -166,28 +166,31 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                         }}
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 18px', flex: 1, minWidth: 0 }}>
-                            <Search size={18} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                            <Search size={18} style={{ color: '#9ca3af', flexShrink: 0 }} aria-hidden="true" />
+                            {/* SEO Fix C2/C3: aria-label gives screen readers a name (WCAG 4.1.2);
+                                onFocus outline-stripping removed so the focus-visible ring in
+                                globals.css is allowed to render (WCAG 2.4.7). */}
                             <input
+                                aria-label="Job title or keyword"
                                 placeholder="Job title or keyword"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 autoComplete="off"
                                 className="hero-search-input"
-                                style={{ boxShadow: 'none', outline: 'none', border: 'none', background: 'transparent', width: '100%', fontSize: '0.9rem', color: '#1f2937', textAlign: 'left' }}
-                                onFocus={(e) => { e.target.style.boxShadow = 'none'; e.target.style.outline = 'none'; }}
+                                style={{ border: 'none', background: 'transparent', width: '100%', fontSize: '16px', color: '#1f2937', textAlign: 'left' }}
                             />
                         </div>
                         <div className="hero-search-divider" style={{ width: '1px', background: '#e5e7eb', flexShrink: 0, margin: '10px 0' }} />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 18px', flex: 1, minWidth: 0 }}>
-                            <MapPin size={18} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                            <MapPin size={18} style={{ color: '#9ca3af', flexShrink: 0 }} aria-hidden="true" />
                             <input
+                                aria-label="City or remote"
                                 placeholder="City or 'Remote'"
                                 value={locationQuery}
                                 onChange={(e) => setLocationQuery(e.target.value)}
                                 autoComplete="off"
                                 className="hero-search-input"
-                                style={{ boxShadow: 'none', outline: 'none', border: 'none', background: 'transparent', width: '100%', fontSize: '0.9rem', color: '#1f2937', textAlign: 'left' }}
-                                onFocus={(e) => { e.target.style.boxShadow = 'none'; e.target.style.outline = 'none'; }}
+                                style={{ border: 'none', background: 'transparent', width: '100%', fontSize: '16px', color: '#1f2937', textAlign: 'left' }}
                             />
                         </div>
                         <button
@@ -243,10 +246,15 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                                 href={`/jobs?q=${encodeURIComponent(filter.query)}`}
                                 className="hero-filter-badge"
                                 style={{
+                                    // SEO Fix M13: padding 8px 18px → 12px 20px
+                                    // gives the pill ~44px tap-target height
+                                    // (24px line + 12px*2 = 48px) — clears
+                                    // WCAG 2.5.8 (24px AA) with margin and
+                                    // Apple/Google's 44px informal target.
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: '5px',
-                                    padding: '8px 18px',
+                                    gap: '6px',
+                                    padding: '12px 20px',
                                     borderRadius: '24px',
                                     fontSize: '13px',
                                     fontWeight: 500,

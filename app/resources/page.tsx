@@ -7,6 +7,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import VideoJsonLd from '@/components/VideoJsonLd';
 import ResourceDownloadGate from '@/components/ResourceDownloadGate';
 import LicensureChecker from '@/components/LicensureChecker';
+import StateImage from '@/components/StateImage';
 import { prisma } from '@/lib/prisma';
 import { STATE_PRACTICE_AUTHORITY } from '@/lib/state-practice-authority';
 
@@ -300,8 +301,9 @@ export default async function ResourcesPage() {
                       transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                     }}
                   >
-                    <Image
-                      src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/states/${slug}.webp`}
+                    {/* SEO Fix H15: StateImage falls back if per-state webp is missing. */}
+                    <StateImage
+                      slug={slug}
                       alt={`${s.name} PMHNP licensure guide`}
                       fill
                       className="object-cover"

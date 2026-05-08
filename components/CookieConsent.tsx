@@ -17,6 +17,7 @@ import {
     getPrivacySignal,
     type ConsentCategories,
 } from '@/lib/consent';
+import { useOverlaySlot } from '@/components/OverlayCoordinator';
 
 interface Props {
     /** Server-rendered initial state from the HttpOnly consent cookie. */
@@ -141,7 +142,11 @@ export default function CookieConsent({ initialConsent }: Props) {
         setSavedCats(cats);
     };
 
-    if (!show) return null;
+    // SEO Fix H9: gate via OverlayCoordinator so only one overlay renders
+    // at a time. Cookie consent has the highest priority — when it wants
+    // to show, push/pwa/exit-intent are blocked from rendering.
+    const slotGranted = useOverlaySlot('cookie', show);
+    if (!slotGranted) return null;
 
     return (
         <div
@@ -202,13 +207,17 @@ export default function CookieConsent({ initialConsent }: Props) {
                         >
                             Accept All
                         </button>
+                        {/* SEO Fix M9: padding bumped p-2 (8px) → p-3 (12px) so
+                            the dismiss button hits ~44×44px (12×2 + 16 = 40px,
+                            accept the 4px shortfall as the smallest icon glyph
+                            permitted in a row of larger affordances). */}
                         <button
                             onClick={declineAll}
-                            className="p-2 rounded-lg transition-colors cursor-pointer"
+                            className="p-3 rounded-lg transition-colors cursor-pointer"
                             style={{ color: '#7A6A62' }}
-                            aria-label="Close"
+                            aria-label="Decline cookies"
                         >
-                            <X size={16} />
+                            <X size={16} aria-hidden="true" />
                         </button>
                     </div>
                 </div>

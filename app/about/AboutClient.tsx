@@ -4,7 +4,34 @@ import './about.css';
 import { Briefcase, Users, MapPin, RefreshCw, CheckCircle, DollarSign, CalendarDays, Target, BarChart3, Layers, Shield, ArrowRight, Play } from 'lucide-react';
 import { brand } from '@/config/brand';
 
-export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: number; totalEmployers: number }) {
+interface DioramaCounts {
+  newGrad: number;
+  inpatient: number;
+  telehealth: number;
+  outpatient: number;
+}
+
+interface AboutClientProps {
+  totalJobs: number;
+  totalEmployers: number;
+  // Optional for safe deploy: components/parents that don't pass it fall
+  // back to the live aggregate counts (totalJobs) divided into rough
+  // proportions. Once parent always passes, this can become required.
+  dioramaCounts?: DioramaCounts;
+}
+
+export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }: AboutClientProps) {
+  // SEO Fix M16: render live counts from Prisma instead of the hardcoded
+  // 320/1,240/2,105/885 strings the audit flagged. Fallback: equal-ish
+  // splits of totalJobs so the page renders sensibly even if the parent
+  // forgot to pass dioramaCounts.
+  const counts: DioramaCounts = dioramaCounts ?? {
+    newGrad: Math.max(1, Math.round(totalJobs * 0.05)),
+    inpatient: Math.max(1, Math.round(totalJobs * 0.20)),
+    telehealth: Math.max(1, Math.round(totalJobs * 0.35)),
+    outpatient: Math.max(1, Math.round(totalJobs * 0.18)),
+  };
+  const fmt = (n: number) => n.toLocaleString();
   return (
     <div className="ab-body">
       {/* ═══ HERO ═══ */}
@@ -25,19 +52,19 @@ export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: 
             <div className="ab-diorama">
               <div className="ab-scene" style={{ minHeight: 320, background: 'linear-gradient(160deg, #D6E8DE, #B5D1C3)', padding: 0 }}>
                 <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_new_grad.webp" alt="New Grad residency" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
-                <div style={{ padding: '16px 20px' }}><div className="label">Residency<br />matches</div><div className="meta" style={{ marginTop: 10 }}>320 cohorts</div></div>
+                <div style={{ padding: '16px 20px' }}><div className="label">New&nbsp;Grad<br />friendly</div><div className="meta" style={{ marginTop: 10 }}>{fmt(counts.newGrad)} roles</div></div>
               </div>
               <div className="ab-scene teal" style={{ minHeight: 380, padding: 0 }}>
                 <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_inpatient.webp" alt="Inpatient psychiatric" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
-                <div style={{ padding: '16px 20px' }}><div className="label">Acute<br />psychiatric units</div><div className="meta" style={{ marginTop: 10 }}>1,240 roles</div></div>
+                <div style={{ padding: '16px 20px' }}><div className="label">Acute<br />psychiatric units</div><div className="meta" style={{ marginTop: 10 }}>{fmt(counts.inpatient)} roles</div></div>
               </div>
               <div className="ab-scene coral" style={{ minHeight: 350, padding: 0 }}>
                 <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_telehealth.webp" alt="Telehealth remote practice" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
-                <div style={{ padding: '16px 20px' }}><div className="label">Remote<br />practice</div><div className="meta" style={{ marginTop: 10 }}>2,105 listings</div></div>
+                <div style={{ padding: '16px 20px' }}><div className="label">Remote<br />practice</div><div className="meta" style={{ marginTop: 10 }}>{fmt(counts.telehealth)} listings</div></div>
               </div>
               <div className="ab-scene" style={{ minHeight: 310, background: 'linear-gradient(160deg, #F3D7A8, #E3BC7B)', padding: 0 }}>
                 <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_outpatient.webp" alt="Outpatient community clinics" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
-                <div style={{ padding: '16px 20px' }}><div className="label">Community<br />clinics</div><div className="meta" style={{ marginTop: 10 }}>885 openings</div></div>
+                <div style={{ padding: '16px 20px' }}><div className="label">Community<br />clinics</div><div className="meta" style={{ marginTop: 10 }}>{fmt(counts.outpatient)} openings</div></div>
               </div>
             </div>
           </div>
@@ -59,7 +86,7 @@ export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: 
           <div>
             <span className="ab-kicker"><Target size={12} /> For PMHNPs</span>
             <h2 style={{ marginTop: 20 }}>Stop scrolling past generic <em>RN postings.</em></h2>
-            <p style={{ marginTop: 22, color: 'var(--ink-soft)', fontSize: 18, maxWidth: 540 }}>General nursing boards are overflowing with irrelevant primary-care roles. We built a surgical, hyper-calibrated marketplace exclusively for psychiatric practitioners — filtered down to what you actually practice.</p>
+            <p style={{ marginTop: 22, color: 'var(--ink-soft)', fontSize: 18, maxWidth: 540 }}>General nursing boards bury psychiatric NP roles under thousands of primary-care postings. This site only lists psychiatric mental health NP jobs — filtered by setting, salary, license, and the actual scope of practice you train in.</p>
             <div className="ab-feat-list">
               <div className="ab-feat"><div className="ab-feat-ico"><CheckCircle size={22} /></div><div><h4>100% Specialized Filters</h4><p>Search by psychiatric setting — Inpatient, Outpatient, Telehealth, Correctional, Addiction, Geriatric — instead of typical nursing tags.</p></div></div>
               <div className="ab-feat"><div className="ab-feat-ico coral"><DollarSign size={22} /></div><div><h4>Unmatched Salary Transparency</h4><p>We pierce the veil on compensation, comparing state benchmarks with thousands of real-time listings so you can negotiate fairly.</p></div></div>
@@ -94,7 +121,7 @@ export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: 
           <div>
             <span className="ab-kicker coral"><ArrowRight size={12} /> For Employers</span>
             <h2 style={{ marginTop: 20 }}>Zero-waste <em>candidate sourcing.</em></h2>
-            <p style={{ marginTop: 22, color: 'var(--ink-soft)', fontSize: 18, maxWidth: 540 }}>Stop paying for clicks from underqualified applicants on massive generic aggregators. Deploy your roles directly into an ecosystem composed entirely of licensed PMHNPs plotting their next move.</p>
+            <p style={{ marginTop: 22, color: 'var(--ink-soft)', fontSize: 18, maxWidth: 540 }}>Skip generic aggregators where most applicants are unqualified. Post directly to a board where every visitor is a practicing or about-to-practice PMHNP.</p>
             <div className="ab-feat-list">
               <div className="ab-feat"><div className="ab-feat-ico coral"><Target size={22} /></div><div><h4>High-Intent Audience</h4><p>The talent on PMHNP Hiring is actively surveying psychiatric scopes — not casually browsing — leading to vastly higher conversion rates.</p></div></div>
               <div className="ab-feat"><div className="ab-feat-ico" style={{ color: '#6F63C0' }}><BarChart3 size={22} /></div><div><h4>Analytics & Placements</h4><p>Secure featured placements and monitor actionable apply-funnel analytics directly from your verified employer dashboard.</p></div></div>
@@ -123,18 +150,25 @@ export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: 
       </div></section>
 
       {/* ═══ FOUNDER ═══ */}
+      {/* SEO Fix H10/H14: replaced "S.K." mark and "Kumar" surname with the
+          founder's full legal name (already in Organization JSON-LD). Copy
+          rewritten in plain English, dropping LLM-tells like "uncompromised
+          ecosystem", "hyper-calibrated marketplace", "fractured ecosystem". */}
       <section className="ab-pad" style={{ paddingTop: 40 }}><div className="ab-wrap">
         <div className="ab-founder">
-          <div className="ab-portrait"><div className="bust" /><div className="tag-flo">Creator · Principal Engineer</div></div>
+          <div className="ab-portrait"><div className="bust" /><div className="tag-flo">Founder · Software Engineer</div></div>
           <div className="ab-founder-body">
-            <span className="ab-kicker"><Users size={12} /> Who built this infrastructure?</span>
-            <h2 style={{ marginTop: 20 }}>A fractured ecosystem needed <em>a focused response.</em></h2>
-            <p>The genesis of PMHNP Hiring was a direct response to a fractured market. Dedicated psychiatric nurses were wasting vital hours filtering out irrelevant generalized RN requirements on outdated job aggregators. We saw an immediate need for an uncompromised, hyper-focused ecosystem.</p>
-            <p>My expertise lies at the intersection of complex data pipelines and scalable software architecture. While I am not a clinician, my role is to construct the foundational layer that parses official board registries, federal algorithms, and active job telemetry into one elegant, uncompromised interface.</p>
-            <p>Every deployment on this platform — from latency optimizations to salary extraction accuracy — is engineered to respect the time of the professionals advancing mental healthcare.</p>
+            <span className="ab-kicker"><Users size={12} /> Who built this</span>
+            <h2 style={{ marginTop: 20 }}>One person, one focused job board.</h2>
+            <p>I built PMHNP Hiring because every general nursing job site I looked at made psychiatric NPs do the same thing over and over: filter out hundreds of unrelated RN postings just to find the handful of psych roles. There was no good reason for that, so I built something focused on one specialty instead.</p>
+            <p>I&apos;m a software engineer, not a clinician. My job here is the data pipeline — pulling job postings, normalizing salary fields, mapping state licensure rules, and surfacing the result through a fast, ad-light interface. The clinical content on this site is editorial commentary aggregated from public sources, not medical advice.</p>
+            <p>If something on the site is wrong, missing, or could be better, the fastest way to reach me is the <Link href="/contact" style={{ color: 'inherit', textDecoration: 'underline' }}>contact page</Link>.</p>
             <div className="ab-sig">
-              <div className="ab-sig-mark">S.K.</div>
-              <div><div className="name">Kumar</div><div className="role">Creator & Principal Engineer</div></div>
+              <div className="ab-sig-mark">P</div>
+              <div>
+                <div className="name">{brand.legal.founderName}</div>
+                <div className="role">Founder · {brand.legal.entityName}</div>
+              </div>
             </div>
             <p style={{ marginTop: 28, fontSize: 13, color: 'var(--ink-soft, #6B7F8A)', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 18 }}>
               {brand.name} is a service operated by <strong>{brand.legal.entityName}</strong>, a {brand.legal.jurisdiction.split(',')[0]} limited liability company headquartered at {brand.legal.address}.
@@ -144,17 +178,12 @@ export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: 
       </div></section>
 
       {/* ═══ TESTIMONIALS ═══ */}
-      <section className="ab-pad" style={{ paddingTop: 40 }}><div className="ab-wrap">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 40, gap: 24, flexWrap: 'wrap' }}>
-          <div><span className="ab-kicker"><Users size={12} /> From the field</span><h2 style={{ marginTop: 16 }}>Trusted by <em>practicing</em> PMHNPs.</h2></div>
-          <div style={{ color: 'var(--ink-soft)', fontSize: 15, maxWidth: 360 }}>A few of the thousands of practitioners who use the platform to shape the next stage of their career.</div>
-        </div>
-        <div className="ab-quotes">
-          <div className="ab-quote"><div className="mark">&ldquo;</div><p>Finally a job board that speaks the language I trained in. I filtered to C/L psychiatry and found three real roles in an afternoon.</p><div className="who"><div className="av a" /><div><div className="nm">Maya R., PMHNP-BC</div><div className="rl">Consult-Liaison · Seattle, WA</div></div></div></div>
-          <div className="ab-quote"><div className="mark">&ldquo;</div><p>The salary data is the sharpest I&apos;ve seen. My negotiation ceiling went up $14K because I came to the table with proof.</p><div className="who"><div className="av b" /><div><div className="nm">Daniel O., DNP, PMHNP</div><div className="rl">Telehealth · Austin, TX</div></div></div></div>
-          <div className="ab-quote"><div className="mark">&ldquo;</div><p>We hired two perinatal NPs in under three weeks. The audience is unbelievably targeted — no tire-kickers from unrelated specialties.</p><div className="who"><div className="av c" /><div><div className="nm">Dr. Priya M.</div><div className="rl">Chief of Staff · Meridian Behavioral</div></div></div></div>
-        </div>
-      </div></section>
+      {/* SEO Fix H11: testimonials section removed. The previous quotes named
+          "Maya R., PMHNP-BC", "Daniel O., DNP, PMHNP", and "Dr. Priya M."
+          with no last names, no LinkedIn links, and stylized avatars — they
+          read as fabricated, which is a direct E-E-A-T trust hit. Restore
+          this section ONLY when real quotes can be attributed to named users
+          who have explicitly opted in. */}
 
       {/* ═══ CTA ═══ */}
       <section className="ab-pad" style={{ paddingTop: 40 }}><div className="ab-wrap">

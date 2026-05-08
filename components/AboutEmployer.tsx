@@ -61,6 +61,10 @@ export default function AboutEmployer({
                         <img
                             src={company.logoUrl}
                             alt={`${company.name} logo`}
+                            width={52}
+                            height={52}
+                            loading="lazy"
+                            decoding="async"
                             style={{
                                 width: '52px', height: '52px', objectFit: 'contain',
                                 borderRadius: '14px',

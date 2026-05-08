@@ -2,7 +2,7 @@
 
 import { LazyMotion, domAnimation, m } from 'framer-motion';
 import Link from 'next/link';
-import Image from 'next/image';
+import StateImage from './StateImage';
 
 const DIORAMA_STATES = new Set([
     'alabama', 'alaska', 'arizona', 'arkansas', 'california',
@@ -89,15 +89,15 @@ export default function TopStatesList({ states }: TopStatesProps) {
                                             'inset 4px 4px 10px rgba(255,255,255,0.3), inset -3px -3px 8px rgba(0,0,0,0.08), 0 6px 20px rgba(0,0,0,0.1)';
                                     }}
                                 >
-                                    <Image
-                                        src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/states/${state.slug}.webp`}
+                                    {/* SEO Fix H15: StateImage falls back to a known-good asset
+                                        if the per-state webp is missing in Supabase. */}
+                                    <StateImage
+                                        slug={state.slug}
                                         alt={`${state.name} PMHNP jobs`}
                                         fill
                                         className="object-cover"
                                         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
                                         loading="lazy"
-                                        placeholder="blur"
-                                        blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U4ZTJkYiIvPjwvc3ZnPg=="
                                     />
                                 </div>
                                 <p className="text-sm font-semibold text-gray-800 group-hover:text-teal-700 transition-colors text-center">
