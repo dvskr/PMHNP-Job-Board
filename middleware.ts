@@ -802,6 +802,13 @@ export async function middleware(request: NextRequest) {
     // ── CORS Headers for API Routes ──────────────────────────────────
     // Restrict cross-origin API access to only our own domain.
     // Without this, any website can fetch our API and scrape data.
+    //
+    // SEO Fix M7: added `Vary: Origin` header (defense-in-depth).
+    // Without it, a shared cache (Vercel edge / CDN) could serve a
+    // response generated for origin A back to origin B because the cache
+    // key didn't include the Origin header. With it, caches keep separate
+    // entries per origin. The origin allowlist below is the actual
+    // security boundary; Vary just hardens the cache layer.
     if (pathname.startsWith('/api/')) {
         const origin = request.headers.get('origin');
         const allowedOrigins = [
@@ -818,6 +825,15 @@ export async function middleware(request: NextRequest) {
         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
         response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
         response.headers.set('Access-Control-Max-Age', '86400');
+        // Append (not set) to preserve any existing Vary value from the
+        // upstream response.
+        const existingVary = response.headers.get('Vary');
+        response.headers.set(
+            'Vary',
+            existingVary && !existingVary.toLowerCase().includes('origin')
+                ? `${existingVary}, Origin`
+                : existingVary ?? 'Origin',
+        );
     }
 
     // ── Additional Security Headers ──────────────────────────────────
