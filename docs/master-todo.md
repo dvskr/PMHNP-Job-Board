@@ -22,6 +22,7 @@ Effort: **S** = ≤2h · **M** = half-day · **L** = ≥1 day
 | 4. About page | `[x]` |
 | 6. Ingestion analysis | `[x]` |
 | 7. SEO remediation (75-issue runbook) | `[x]` — see [seo-2026-05-remediation.md](runbooks/seo-2026-05-remediation.md) |
+| 9. Code cleanup (initial pass) | `[x]` — final repeat pass at end of release cycle (B2) |
 | 11. Email campaign optimization + delivery test | `[x]` |
 | 12. AI features testing | `[x]` |
 | 14. Cookies + compliance | `[x]` |
@@ -36,10 +37,10 @@ Effort: **S** = ≤2h · **M** = half-day · **L** = ≥1 day
 
 | ID | Item | Priority | Effort | Notes |
 |---|---|---|---|---|
-| B1 | 5. Co-worker run-through for bugs | P1 | M | Pending second pass with fresh eyes |
-| B2 | 9. Final code cleanup pass | P1 | M | Initial pass done; redo near release date |
-| B3 | 10. Mobile view polish (footer, etc.) | P1 | M | Phase A/B/D fixed several mobile items; final QA at 320/375/768 still pending |
-| B4 | 22. Unit tests + GitHub Actions | P1 | L | 730 vitest tests passing; CI/Actions wiring still partial |
+| B1 | 5. Co-worker run-through for bugs | P1 | M | Partially done — pending second pass with fresh eyes |
+| B2 | Final code cleanup pass (re-do of item 9 at release time) | P1 | M | Initial pass already done; this is the pre-release sweep |
+| B3 | 10. Mobile view polish (footer, etc.) | P1 | M | Partially done — Phase A/B/D fixed several mobile items; final QA at 320/375/768 still pending |
+| B4 | 22. Unit tests + GitHub Actions | P1 | L | Partially done — 730 vitest tests passing; CI/Actions wiring still partial |
 
 ---
 
@@ -111,8 +112,8 @@ Effort: **S** = ≤2h · **M** = half-day · **L** = ≥1 day
 | ID | Item | Priority | Effort |
 |---|---|---|---|
 | C8a | Migrate all SaaS accounts under Akari Labs LLC (F1 visa compliance) | P0 | M | Same Sathish-as-Creator / Pavan-as-LLC-member pattern as the website |
-| C8b | 24. Supabase RLS / backup | P2 | L | Already tracked as M5 in SEO runbook (deferred) |
-| C8c | 23. Claude skills + MCPs setup for the project | P2 | S |
+| C8b | 24. Supabase RLS / backup | — | L | `[!]` **parked by you** — captured in SEO runbook as M5 with re-entry steps |
+| C8c | 23. Claude skills + MCPs setup for the project | P2 | S | |
 
 ---
 
