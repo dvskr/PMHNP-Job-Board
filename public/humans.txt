@@ -1,7 +1,7 @@
 /* TEAM */
 
 Creator: Sathish Kumar
-Role: Creator & Software Engineer
+Role: Creator & AI Data Engineer
 Operator: Akari Labs LLC
 Location: United States
 
