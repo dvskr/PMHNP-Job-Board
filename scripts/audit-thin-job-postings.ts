@@ -21,12 +21,38 @@
  *                       isPublished — should have been unpublished by cron).
  *
  * Usage:
- *   ts-node -r tsconfig-paths/register --project scripts/tsconfig.json \
- *     scripts/audit-thin-job-postings.ts
- *   ts-node ... scripts/audit-thin-job-postings.ts --csv > thin.csv
+ *   npm run audit:thin              → prod (default — most useful)
+ *   npm run audit:thin:dev          → local dev DB
+ *   npm run audit:thin -- --csv > thin.csv
  */
-import 'dotenv/config';
-import { prisma } from '@/lib/prisma';
+import { config as dotenvConfig } from 'dotenv';
+
+// ─── env selection (mirrors scripts/check-schema.ts pattern) ────────────────
+
+type EnvKind = 'dev' | 'prod';
+function parseEnvFlag(): EnvKind {
+    const flag = process.argv.find((a) => a.startsWith('--env='))?.split('=')[1];
+    if (flag === 'dev' || flag === 'prod') return flag;
+    if (process.argv.includes('--dev')) return 'dev';
+    if (process.argv.includes('--prod')) return 'prod';
+    return 'prod'; // safe default — the dev DB usually has stale fixture data
+}
+const ENV: EnvKind = parseEnvFlag();
+if (ENV === 'prod') {
+    dotenvConfig({ path: '.env.prod' });
+    if (process.env.PROD_DATABASE_URL && !process.env.DATABASE_URL) {
+        process.env.DATABASE_URL = process.env.PROD_DATABASE_URL;
+    }
+    if (process.env.PROD_DIRECT_URL && !process.env.DIRECT_URL) {
+        process.env.DIRECT_URL = process.env.PROD_DIRECT_URL;
+    }
+} else {
+    dotenvConfig({ path: '.env' });
+}
+
+// Lazy import after env is loaded so prisma reads the right DATABASE_URL.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { prisma } = require('@/lib/prisma') as typeof import('@/lib/prisma');
 
 const CSV_OUTPUT = process.argv.includes('--csv');
 
@@ -45,6 +71,7 @@ interface Finding {
 }
 
 async function main() {
+    console.log(`[audit-thin] env=${ENV}`);
     const now = new Date();
     const fourteenDaysOut = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 

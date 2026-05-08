@@ -15,12 +15,38 @@
  *   3. Output a CSV of changes (dry-run by default; --apply to write).
  *
  * Usage:
- *   ts-node -r tsconfig-paths/register --project scripts/tsconfig.json \
- *     scripts/backfill-missing-state-region.ts          # dry run
- *   ts-node ... scripts/backfill-missing-state-region.ts --apply
+ *   npm run backfill:region                   # dry-run against PROD (default)
+ *   npm run backfill:region -- --apply        # commit writes to PROD
+ *   npm run backfill:region:dev               # dry-run against dev
+ *   npm run backfill:region:dev -- --apply    # commit writes to dev
  */
-import 'dotenv/config';
-import { prisma } from '@/lib/prisma';
+import { config as dotenvConfig } from 'dotenv';
+
+// ─── env selection (mirrors scripts/check-schema.ts pattern) ────────────────
+
+type EnvKind = 'dev' | 'prod';
+function parseEnvFlag(): EnvKind {
+    const flag = process.argv.find((a) => a.startsWith('--env='))?.split('=')[1];
+    if (flag === 'dev' || flag === 'prod') return flag;
+    if (process.argv.includes('--dev')) return 'dev';
+    if (process.argv.includes('--prod')) return 'prod';
+    return 'prod'; // safe default — dev DB usually has stale fixture data
+}
+const ENV: EnvKind = parseEnvFlag();
+if (ENV === 'prod') {
+    dotenvConfig({ path: '.env.prod' });
+    if (process.env.PROD_DATABASE_URL && !process.env.DATABASE_URL) {
+        process.env.DATABASE_URL = process.env.PROD_DATABASE_URL;
+    }
+    if (process.env.PROD_DIRECT_URL && !process.env.DIRECT_URL) {
+        process.env.DIRECT_URL = process.env.PROD_DIRECT_URL;
+    }
+} else {
+    dotenvConfig({ path: '.env' });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { prisma } = require('@/lib/prisma') as typeof import('@/lib/prisma');
 import { CITIES } from '@/lib/pseo/city-data/cities';
 
 interface CityMatch {
@@ -43,7 +69,7 @@ function buildCityIndex(): Map<string, CityMatch[]> {
 }
 
 async function main() {
-    console.log(`[backfill-state-region] mode: ${APPLY ? 'APPLY (writes will be made)' : 'DRY RUN (no writes)'}`);
+    console.log(`[backfill-state-region] env=${ENV}  mode: ${APPLY ? 'APPLY (writes will be made)' : 'DRY RUN (no writes)'}`);
 
     const cityIdx = buildCityIndex();
 
