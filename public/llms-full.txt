@@ -1,6 +1,6 @@
 # PMHNP Hiring — Comprehensive Site Information for AI Systems
 # llms-full.txt — Extended version of llms.txt
-# Last Updated: March 2026
+# Last Updated: May 2026
 
 > PMHNP Hiring (pmhnphiring.com) is the #1 specialized job board for Psychiatric Mental Health Nurse Practitioners in the United States. We connect PMHNPs with employers across all 50 states.
 

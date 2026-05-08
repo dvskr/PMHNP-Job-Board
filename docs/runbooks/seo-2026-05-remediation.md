@@ -460,16 +460,16 @@ Polish + harden. All MEDIUM items not already in earlier phases.
 
 ## Phase E — when convenient
 
-| ID | Action | Time |
-|---|---|---|
-| L1 | Verify `UPSTASH_REDIS_REST_URL` set in Vercel env | 5 min |
-| L2 | Submit apex domain to hstspreload.org | 10 min |
-| L3 | Add `Cross-Origin-Opener-Policy: same-origin` + `Cross-Origin-Embedder-Policy: require-corp` to auth pages only | 1 hr |
-| L5 | Add anonymous, sampled web-vitals shim (no cookies) so EU CWV is observable | 2 hr |
-| L6 | Tighten PWA install banner trigger logic (currently 3 visits + iOS 2s timer) | 30 min |
-| L7 | Bump hero subtitle font from 13px → 14px or larger | 5 min |
-| L8 | Swap header logo `<img>` → `<Image>` | 10 min |
-| L9 | Refresh `public/llms.txt` timestamp to current month | 5 min |
+| ID | Action | Time | Status |
+|---|---|---|---|
+| L1 | Verify `UPSTASH_REDIS_REST_URL` set in Vercel env | 5 min | `[!]` external — manual check in Vercel dashboard |
+| L2 | Submit apex domain to hstspreload.org | 10 min | `[!]` external — submit at https://hstspreload.org |
+| L3 | Add Cross-Origin-Opener-Policy | 1 hr | `[x]` done — `same-origin-allow-popups` site-wide; COEP intentionally skipped (would break Supabase/Google asset embeds) |
+| L5 | Add anonymous web-vitals shim for EU traffic | 2 hr | `[!]` deferred — needs anonymous-RUM design + privacy review |
+| L6 | Tighten PWA install banner trigger | 30 min | `[x]` done — 3→5 visits, iOS 2s→8s |
+| L7 | Hero subtitle font bump | 5 min | `[x]` verified — already 17px; the 13px concerns are nav pills (acceptable on desktop) |
+| L8 | Swap header logo `<img>` → `<Image>` | 10 min | `[x]` done — next/image with priority |
+| L9 | Refresh `public/llms.txt` + `llms-full.txt` timestamp | 5 min | `[x]` done — March → May 2026 |
 
 ---
 

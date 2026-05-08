@@ -92,6 +92,18 @@ const nextConfig: NextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
           },
+          // SEO Fix L3: COOP `same-origin-allow-popups` provides cross-origin
+          // isolation against XS-Leak attacks (e.g. Spectre-like timing
+          // attacks via window.opener). `allow-popups` is intentional —
+          // strict `same-origin` would break OAuth redirect popups.
+          // COEP intentionally NOT set: requires CORP/CORS headers on every
+          // third-party asset (Supabase images, Google Fonts, GA, etc.) and
+          // breaks the embed flow without significant rework. Revisit when
+          // image optimization is fully self-hosted.
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
           // CSP is set dynamically in middleware.ts with per-request nonce
         ],
       },

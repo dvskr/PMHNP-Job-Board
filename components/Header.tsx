@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Menu, X, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search, HelpCircle, Info, Mail, PenSquare, GraduationCap, UserCheck, Users, Bookmark, FileText, Activity, Workflow, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 // SEO Fix H5: use LazyMotion + the lightweight `m` namespace instead of the
@@ -171,11 +172,16 @@ export default function Header() {
             </button>
 
             <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
-              <img
+              {/* SEO Fix L8: next/image automatically picks the right format
+                  (avif/webp), generates a srcset, and sets fetchpriority on
+                  the LCP-relevant header logo. priority=true since this is
+                  above the fold on every page. */}
+              <Image
                 src="/logo.png"
                 alt="PMHNP Hiring"
-                width="56"
-                height="56"
+                width={56}
+                height={56}
+                priority
                 style={{ width: 56, height: 56, objectFit: 'contain', flexShrink: 0 }}
               />
               <span
