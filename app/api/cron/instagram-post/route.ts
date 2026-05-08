@@ -1,7 +1,17 @@
 /**
  * Daily Instagram Carousel Cron
  *
- * Vercel Cron: 5 15 * * *  (3:05 PM UTC = 9:05 AM CST)
+ * PAUSED 2026-05-08 — schedule entry removed from vercel.json. The route
+ * handler stays intact so re-enabling is just a one-line add-back to
+ * vercel.json's `crons` array. Reason: pending optimization of social
+ * post strategy. Manual triggering (?dry=true / admin auth) still works.
+ *
+ * To re-enable, add this back to vercel.json (note: the previous entry
+ * used `5 14 * * *` in vercel.json even though the comment below says
+ * 15:05 UTC; vercel.json wins):
+ *   { "path": "/api/cron/instagram-post", "schedule": "5 14 * * *" }
+ *
+ * Original Vercel Cron: 5 15 * * *  (3:05 PM UTC = 9:05 AM CST)
  *
  * Posts a carousel of branded job card images to Instagram.
  * Runs 5 minutes after the Facebook cron to avoid any race conditions.
