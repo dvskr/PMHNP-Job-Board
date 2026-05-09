@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Send, Loader2, CheckCircle, AlertCircle, Mail } from 'lucide-react';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 interface ComposeMessageModalProps {
     recipientId: string;
@@ -29,6 +30,12 @@ export default function ComposeMessageModal({
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [errorMsg, setErrorMsg] = useState('');
     const [inmailUsage, setInmailUsage] = useState<{ used: number; limit: number | null; unlimited: boolean } | null>(null);
+    // Focus trap, ESC, focus restore. Block ESC during a send so users can't
+    // accidentally cancel a partially submitted message.
+    const trapRef = useFocusTrap<HTMLDivElement>({
+        isOpen: true,
+        onEscape: () => { if (!sending) onClose(); },
+    });
 
     // Fetch InMail usage on mount
     useEffect(() => {
@@ -93,6 +100,10 @@ export default function ComposeMessageModal({
             onClick={(e) => e.target === e.currentTarget && onClose()}
         >
             <div
+                ref={trapRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="compose-modal-title"
                 className="w-full max-w-lg rounded-2xl shadow-2xl animate-fade-in-up"
                 style={{ backgroundColor: 'var(--bg-secondary)' }}
             >
@@ -101,15 +112,16 @@ export default function ComposeMessageModal({
                     className="flex items-center justify-between px-6 py-4"
                     style={{ borderBottom: '1px solid var(--border-color)' }}
                 >
-                    <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                    <h2 id="compose-modal-title" className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                         New Message
                     </h2>
                     <button
                         onClick={onClose}
+                        aria-label="Close compose dialog"
                         className="p-1.5 rounded-lg transition-colors hover:bg-gray-100"
                         style={{ color: 'var(--text-tertiary)' }}
                     >
-                        <X size={20} />
+                        <X size={20} aria-hidden="true" />
                     </button>
                 </div>
 
@@ -165,15 +177,16 @@ export default function ComposeMessageModal({
 
                     {/* Subject */}
                     <div>
-                        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
+                        <label htmlFor="compose-subject" className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
                             Subject
                         </label>
                         <input
+                            id="compose-subject"
                             type="text"
                             value={subject}
                             onChange={(e) => setSubject(e.target.value)}
                             placeholder="Enter subject..."
-                            className="w-full px-3 py-2.5 rounded-lg text-sm"
+                            className="w-full px-3 py-2.5 rounded-lg text-base"
                             style={{
                                 backgroundColor: 'var(--bg-primary)',
                                 color: 'var(--text-primary)',
@@ -185,15 +198,16 @@ export default function ComposeMessageModal({
 
                     {/* Body */}
                     <div>
-                        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
+                        <label htmlFor="compose-body" className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
                             Message
                         </label>
                         <textarea
+                            id="compose-body"
                             value={body}
                             onChange={(e) => setBody(e.target.value)}
                             placeholder="Write your message..."
                             rows={6}
-                            className="w-full px-3 py-2.5 rounded-lg text-sm resize-none"
+                            className="w-full px-3 py-2.5 rounded-lg text-base resize-none"
                             style={{
                                 backgroundColor: 'var(--bg-primary)',
                                 color: 'var(--text-primary)',

@@ -493,14 +493,19 @@ function SettingsPageInner() {
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <div>
+        {/* Header: title + actions row.
+            Mobile (< sm): two-row stack so the buttons get full breathing
+              room on a 414px viewport instead of cramming next to the title
+              and wrapping each label across three lines.
+            Desktop (>= sm): single row with title left, actions right. */}
+        <div className="settings-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4" style={{ marginBottom: '16px' }}>
+          <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: '28px', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 4px' }}>
               Settings
             </h1>
             <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0 }}>Manage your profile and preferences</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="settings-header-actions flex items-center gap-[10px] flex-wrap">
             <button
               onClick={() => setShowClearModal(true)}
               disabled={saving || clearing}

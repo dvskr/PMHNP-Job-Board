@@ -211,10 +211,13 @@ export default function AnalyticsTab() {
             {/* Per-Job Breakdown */}
             {(data.jobs || []).length > 0 && (
                 <div
-                    className="rounded-xl overflow-hidden"
+                    // overflow-x-auto so a 4-column table can scroll horizontally
+                    // on phones rather than getting clipped or pushing the
+                    // dashboard layout past the viewport.
+                    className="rounded-xl overflow-hidden overflow-x-auto"
                     style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
                 >
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm" style={{ minWidth: '480px' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                                 <th className="text-left p-4 font-semibold" style={{ color: 'var(--text-secondary)' }}>Job</th>

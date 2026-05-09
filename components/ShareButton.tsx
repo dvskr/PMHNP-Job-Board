@@ -32,7 +32,10 @@ export default function ShareButton({ url, title, description = '', variant = 'b
         <button
           type="button"
           onClick={handleShare}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+          // p-3 (12px) + 20px icon = 44x44 (WCAG 2.5.8). focus-visible ring
+          // restores keyboard focus visibility since Tailwind's hover:bg fades
+          // to nothing for keyboard users.
+          className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
           aria-label="Share"
           aria-expanded={showMenu}
           aria-haspopup="menu"

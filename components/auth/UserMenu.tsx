@@ -148,7 +148,9 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
+            // Cap at 280px on phones >= 320px wide; shrink with viewport on narrower devices.
             width: '280px',
+            maxWidth: 'calc(100vw - 32px)',
             backgroundColor: '#FAFCFA',
             border: '1px solid rgba(213, 232, 224, 0.6)',
             borderRadius: '18px',

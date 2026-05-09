@@ -48,6 +48,7 @@ export default function SaveJobButton({ jobId }: SaveJobButtonProps) {
       onClick={toggleSave}
       aria-label={isSaved ? 'Remove saved job' : 'Save job'}
       aria-pressed={isSaved}
+      data-icon-btn
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
         padding: '10px 18px',

@@ -62,8 +62,23 @@ function applyMap(next: AppliedJobsMap, persistLocal = true) {
   notify();
 }
 
+/**
+ * Heuristic: if no Supabase auth cookie is present we are anonymous, and
+ * `GET /api/applications` will return 401 -- which the browser logs to the
+ * console even though we handle it. Skipping the call entirely keeps the
+ * console clean on every anonymous page view.
+ */
+function hasLikelyAuthCookie(): boolean {
+  if (typeof document === 'undefined') return false;
+  return /(?:^|;\s*)sb-[^=]+-auth-token=/.test(document.cookie);
+}
+
 async function syncFromServer(force = false): Promise<void> {
   if (typeof window === 'undefined') return;
+  if (!hasLikelyAuthCookie()) {
+    isAuth = false;
+    return;
+  }
   const now = Date.now();
   if (!force && now - lastSyncAt < FRESH_MS && lastSyncAt > 0) return;
   if (inflight) return inflight;

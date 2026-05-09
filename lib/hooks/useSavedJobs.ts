@@ -82,8 +82,21 @@ function applyMap(next: SavedJobsMap, persistLocal = true) {
   notify();
 }
 
+/**
+ * Heuristic: anonymous visitors have no Supabase auth cookie, so the GET
+ * is guaranteed to 401. Skip it to keep the browser console clean.
+ */
+function hasLikelyAuthCookie(): boolean {
+  if (typeof document === 'undefined') return false;
+  return /(?:^|;\s*)sb-[^=]+-auth-token=/.test(document.cookie);
+}
+
 async function syncFromServer(force = false): Promise<void> {
   if (typeof window === 'undefined') return;
+  if (!hasLikelyAuthCookie()) {
+    isAuth = false;
+    return;
+  }
   const now = Date.now();
   if (!force && now - lastSyncAt < FRESH_MS && lastSyncAt > 0) return;
   if (inflight) return inflight;

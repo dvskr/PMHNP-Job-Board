@@ -31,14 +31,42 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Body + html scroll lock + ESC + route-change reset, all in one effect so
+  // the cleanup ALWAYS restores whatever overflow values existed before this
+  // overlay locked the page. globals.css sets `html { overflow-y: scroll }`,
+  // so locking only `body.overflow` lets the html element keep scrolling
+  // underneath the menu -- which is the bug the user spotted ("contents are
+  // visible and scrollable when the menu is open"). We lock html.overflow
+  // too. The previous version blindly wrote `''` on cleanup -- if another
+  // overlay had also locked the page, that overlay's lock got stomped when
+  // this menu closed during its 0.15s exit animation; we now restore the
+  // exact prior values instead.
   useEffect(() => {
-    document.body.style.overflow = isMenuOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    if (!isMenuOpen) return;
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      if (document.body.style.overflow === 'hidden') {
+        document.body.style.overflow = prevBody;
+      }
+      if (document.documentElement.style.overflow === 'hidden') {
+        document.documentElement.style.overflow = prevHtml;
+      }
+      document.removeEventListener('keydown', onKey);
+    };
   }, [isMenuOpen]);
 
   useEffect(() => {
+    // Don't touch body.style.overflow here -- the [isMenuOpen] effect's
+    // cleanup handles that, and writing '' here can race with that cleanup
+    // if the user navigates during the drawer's exit animation.
     setIsMenuOpen(false);
-    document.body.style.overflow = '';
   }, [pathname]);
 
   // Public nav — shown when NOT logged in
@@ -155,6 +183,7 @@ export default function Header() {
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="lg:hidden transition-all"
+              data-icon-btn
               style={{
                 padding: '12px',
                 borderRadius: '10px',
@@ -182,6 +211,10 @@ export default function Header() {
                 width={56}
                 height={56}
                 priority
+                // Without `sizes`, next/image defaults to 100vw and the browser
+                // downloads a 1080px+ srcset candidate for a 56px logo on every
+                // page. `56px` lets it pick the smallest matching candidate.
+                sizes="56px"
                 style={{ width: 56, height: 56, objectFit: 'contain', flexShrink: 0 }}
               />
               <span
@@ -277,6 +310,9 @@ export default function Header() {
         {isMenuOpen && (
           <m.div
             id="mobile-nav-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobile navigation menu"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -285,8 +321,11 @@ export default function Header() {
             style={{ top: 80 }}
           >
             <div
+              // Fully opaque (1.0) -- 0.98 let the page content bleed through
+              // visibly underneath the menu, which combined with the scroll
+              // lock bug made the menu feel see-through.
               className="absolute inset-0"
-              style={{ backgroundColor: 'rgba(245, 240, 235, 0.98)' }}
+              style={{ backgroundColor: '#F5F0EB' }}
               onClick={() => setIsMenuOpen(false)}
             />
             <div className="relative px-6 pt-4 pb-8">
@@ -357,9 +396,15 @@ export default function Header() {
                   </nav>
                 </div>
               )}
-              <div className="mt-6 pt-5 px-4" style={{ borderTop: '1px solid rgba(90,74,66,0.08)' }}>
-                <HeaderAuth onNavigate={() => setIsMenuOpen(false)} onRoleChange={(role) => setUserRole(role)} />
-              </div>
+              {/* Auth section — only render when signed OUT, where it shows
+                  Login + Sign up CTAs that complement the link list. When
+                  signed IN, this would duplicate the bell + avatar that's
+                  already visible in the top header strip behind the menu. */}
+              {!userRole && (
+                <div className="mt-6 pt-5 px-4" style={{ borderTop: '1px solid rgba(90,74,66,0.08)' }}>
+                  <HeaderAuth onNavigate={() => setIsMenuOpen(false)} onRoleChange={(role) => setUserRole(role)} />
+                </div>
+              )}
             </div>
           </m.div>
         )}

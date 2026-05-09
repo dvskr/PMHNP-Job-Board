@@ -17,6 +17,9 @@
 | [job-health-architecture.md](job-health-architecture.md) | Architecture | You're changing how dead-link detection works |
 | [job-health-runbook.md](job-health-runbook.md) | Runbook | Jobs are getting flagged dead incorrectly, or alerts are firing |
 | [presence-threshold-rationale.md](presence-threshold-rationale.md) | Rationale | Tuning source-presence thresholds |
+| **Site-quality remediation** | | |
+| [runbooks/seo-2026-05-remediation.md](runbooks/seo-2026-05-remediation.md) | Remediation | Tracking the 52-issue SEO + site-quality audit |
+| [runbooks/mobile-2026-05-remediation.md](runbooks/mobile-2026-05-remediation.md) | Remediation | Tracking the 38-issue mobile-rendering audit (drawer z-index, iOS form zoom, pSEO overflow, etc.) |
 | **Educational (background, not policy)** | | |
 | [educational/README.md](educational/README.md) | Index | Browsing the educational folder |
 | [educational/cookies-and-tracking.md](educational/cookies-and-tracking.md) | Primer | Adding tracking, ad pixels, or analytics; explaining cookies to a stakeholder |
@@ -61,4 +64,4 @@ If 1 and 3 disagree, **fix the code, don't downgrade the public commitment**.
 3. Start the file with `> Audience:` and `> Last updated:`
 4. Reference, don't duplicate — if a fact is in another doc, link to it
 
-Last updated: 2026-04-30.
+Last updated: 2026-05-08.

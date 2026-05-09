@@ -569,7 +569,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
               {config.heroSubtitle}
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+            <div className="state-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
               {/* ROW 1: Hero card (8col) + Side card (4col) */}
               <div style={{ ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center' }}>
                 <div style={{ padding: '32px 28px' }}>
@@ -725,7 +725,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
           <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', marginBottom: '16px', textAlign: 'center' }}>
             Top Cities for {config.label} Jobs in {stateName}
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
             {topCities.map((c) => (
               <Link key={c.slug} href={`/jobs/${config.slug}/city/${c.slug}`}
                 className="pseo-pill"
@@ -787,7 +787,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
               <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#7A6A62', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
                 Explore More
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
                 <Link href={`/salary-guide/${stateSlug}`}
                   className="pseo-resource"
                   style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 16px', borderRadius: '14px', textDecoration: 'none', background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>

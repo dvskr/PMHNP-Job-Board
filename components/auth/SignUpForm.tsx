@@ -321,8 +321,9 @@ export default function SignUpForm() {
             </div>
           )}
 
-          {/* Name */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Name — stack on mobile so each input has a usable width;
+              two columns from sm: (640px) up where the form has room. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor="signup-firstName" style={labelStyle}>First name</label>
               <input id="signup-firstName" type="text" value={firstName}

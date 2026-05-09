@@ -56,7 +56,10 @@ export default function Breadcrumbs({ items }: BreadcrumbsProps) {
                 </Link>
               ) : (
                 <span
-                  className="font-medium truncate max-w-[200px] sm:max-w-none"
+                  // Tighter cap on phones (where parents + separators are
+                  // already eating row width) so the current crumb still
+                  // shows a useful chunk before truncating.
+                  className="font-medium truncate max-w-[140px] sm:max-w-none"
                   style={{ color: 'var(--text-primary)' }}
                 >
                   {item.label}

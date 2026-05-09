@@ -173,7 +173,11 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     return (
       <Link href={jobUrl} className="block touch-manipulation w-full" onClick={handleCardClick}>
         <div
-          className="jc-card"
+          // jc-list-card is the hook for the mobile media query in globals.css
+          // (jc-list-card responsive overrides) which collapses the row layout
+          // to a vertical stack so title + company stay readable when the
+          // right-column action buttons would otherwise eat all the row width.
+          className="jc-card jc-list-card"
           style={{
             display: 'flex', alignItems: 'flex-start', gap: '16px',
             padding: '18px 22px',
@@ -280,8 +284,8 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </div>
 
           {/* Right: Save + View Job */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="jc-list-actions" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
+            <div className="jc-list-action-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {viewed && !applied && <span title="Viewed" className="flex"><Eye size={18} color="var(--text-tertiary)" /></span>}
               <button
                 onClick={handleSaveClick}
@@ -479,9 +483,11 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               {viewed && !applied && <span title="Viewed" className="flex"><Eye size={18} color="var(--text-tertiary)" /></span>}
               <button
                 onClick={handleSaveClick}
-                className="jc-save-btn"
+                className="jc-save-btn jc-icon-btn"
                 style={{
-                  padding: '6px', borderRadius: '50%',
+                  // 13px padding + 18px icon = 44x44 (WCAG 2.5.8 minimum).
+                  padding: '13px', borderRadius: '50%',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   color: saved ? 'var(--color-primary)' : 'var(--text-tertiary)',
                   background: 'none', border: 'none', cursor: 'pointer',
                   transition: 'all 0.2s',
@@ -493,9 +499,10 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               </button>
               <button
                 onClick={handleShareClick}
-                className="jc-share-btn"
+                className="jc-share-btn jc-icon-btn"
                 style={{
-                  padding: '6px', borderRadius: '50%',
+                  padding: '13px', borderRadius: '50%',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   color: 'var(--text-tertiary)',
                   background: 'none', border: 'none', cursor: 'pointer',
                   transition: 'all 0.2s',

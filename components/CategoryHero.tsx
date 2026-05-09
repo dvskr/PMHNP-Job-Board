@@ -86,6 +86,28 @@ export default function CategoryHero({
       <div className="cath5-swatch" />
 
       <div style={{ position: 'relative' }}>
+        {/* ── Visible breadcrumb trail.
+            BreadcrumbSchema emits the JSON-LD for SEO; this renders the
+            same hierarchy in the DOM so users can orient themselves
+            (WCAG 2.4.8). The existing prop is `string[]` of labels only,
+            so we render spans here -- not clickable links yet. Last item
+            is marked aria-current="page". */}
+        {breadcrumbs && breadcrumbs.length > 0 && (
+          <nav aria-label="Breadcrumb" className="cath5-row1" style={{ marginBottom: 16 }}>
+            <ol className="cath5-crumbs" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap' }}>
+              {breadcrumbs.map((label, i) => {
+                const isLast = i === breadcrumbs.length - 1;
+                return (
+                  <li key={`${label}-${i}`} style={{ display: 'inline' }}>
+                    <span aria-current={isLast ? 'page' : undefined} className={isLast ? 'cath5-crumb-now' : undefined}>
+                      {label}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+        )}
         {/* ── STAGE: Oversized type + photo ── */}
         <div className="cath5-stage">
           <h1 className="cath5-h1">

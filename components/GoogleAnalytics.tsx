@@ -77,12 +77,18 @@ export default function GoogleAnalytics({ nonce, initialConsent = null }: Google
   return (
     <>
       {/*
-        1. Consent Mode v2 defaults — MUST be set BEFORE gtag.js loads.
+        1. Consent Mode v2 defaults — must run before gtag.js executes.
+           Both scripts use `afterInteractive`; Next.js executes
+           afterInteractive Scripts in source order so consent-defaults
+           runs first and gtag.js sees `dataLayer` + `gtag` already set up.
+           Using `beforeInteractive` here blocks the HTML parser before
+           paint on every page (~50–200ms TBT on mid-range mobile) and is
+           not necessary because gtag.js itself is afterInteractive.
            Defaults are baked from the HttpOnly cookie at SSR time so we
            never touch localStorage and the consent state is always
            authoritative on the first paint.
       */}
-      <Script id="ga-consent-defaults" strategy="beforeInteractive" nonce={nonce}>
+      <Script id="ga-consent-defaults" strategy="afterInteractive" nonce={nonce}>
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}

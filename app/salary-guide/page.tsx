@@ -233,21 +233,24 @@ export default async function SalaryGuidePage() {
             </p>
           </div>
 
-          {/* ─── Bento Grid ─── */}
-          <div className="sal-hero-bento" style={{
-            display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px',
-          }}>
+          {/* ─── Bento Grid ───
+              Grid template columns + child spans live in the stylesheet below
+              so the @media (max-width: 768px) rules can collapse to a single
+              column without fighting !important against inline styles.
+              `minWidth: 0` on children prevents intrinsic min-content from
+              blowing the row past the viewport on narrow screens. */}
+          <div className="sal-hero-bento" style={{ display: 'grid', gap: '14px' }}>
 
-            {/* Calculator (8 cols) */}
-            <div className="sal-hero-calc" style={{ gridColumn: 'span 8' }}>
+            {/* Calculator (8 cols on desktop, full row on mobile) */}
+            <div className="sal-hero-calc" style={{ minWidth: 0 }}>
               <SalaryCalculator
                 stateSalaries={stateSalaries.map(s => ({ state: s.state, stateCode: s.stateCode, avgSalary: s.avgSalary, minSalary: s.minSalary, maxSalary: s.maxSalary }))}
                 nationalAvg={overallStats.avgSalary}
               />
             </div>
 
-            {/* Right sidebar (4 cols): Stats + PDF */}
-            <div className="sal-hero-sidebar" style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Right sidebar (4 cols on desktop, full row on mobile): Stats + PDF */}
+            <div className="sal-hero-sidebar" style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
               {/* Stat pills — vertical stack */}
               <div className="emp-bento-card" style={{
@@ -535,8 +538,8 @@ export default async function SalaryGuidePage() {
             {currentYear} PMHNP Market Trends
           </h2>
 
-          <div className="emp-compare-table" style={{ ...clayCard, padding: '0', overflow: 'hidden', marginBottom: '20px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+          <div className="emp-compare-table" style={{ ...clayCard, padding: '0', overflowX: 'auto', marginBottom: '20px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', tableLayout: 'fixed', minWidth: '480px' }}>
               <thead>
                 <tr style={{ background: 'linear-gradient(135deg, rgba(13,148,136,0.08), rgba(13,148,136,0.02))' }}>
                   <th style={{ padding: '14px 24px', textAlign: 'left', fontWeight: 600, color: '#64748B', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '11px', textTransform: 'uppercase' }}>Metric</th>
@@ -701,6 +704,15 @@ export default async function SalaryGuidePage() {
 
       {/* ═══ Responsive + Hover ═══ */}
       <style>{`
+        /* Mobile-first: single column. Desktop bumps to 12-track bento via media query below. */
+        .sal-hero-bento { grid-template-columns: 1fr; }
+        .sal-hero-calc { grid-column: span 1; }
+        .sal-hero-sidebar { grid-column: span 1; }
+        @media (min-width: 769px) {
+          .sal-hero-bento { grid-template-columns: repeat(12, 1fr); }
+          .sal-hero-calc { grid-column: span 8; }
+          .sal-hero-sidebar { grid-column: span 4; }
+        }
         .emp-cta-primary {
           transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
         }
@@ -739,8 +751,6 @@ export default async function SalaryGuidePage() {
         }
 
         @media (max-width: 768px) {
-          .sal-hero-bento { grid-template-columns: 1fr !important; }
-          .sal-hero-calc, .sal-hero-sidebar { grid-column: span 1 !important; }
           .sal-hero-bento .quick-answer-box { grid-column: span 1 !important; }
           .sal-bento { grid-template-columns: 1fr !important; }
           .sal-bento > div { grid-column: span 1 !important; }
@@ -750,7 +760,6 @@ export default async function SalaryGuidePage() {
           .sal-roles-col { display: none; }
         }
         @media (min-width: 769px) and (max-width: 1024px) {
-          .sal-hero-bento { grid-template-columns: repeat(12, 1fr) !important; }
           .sal-hero-calc { grid-column: span 7 !important; }
           .sal-hero-sidebar { grid-column: span 5 !important; }
           .sal-bento { grid-template-columns: repeat(6, 1fr) !important; }

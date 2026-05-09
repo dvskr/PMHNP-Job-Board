@@ -149,8 +149,11 @@ export default function CookieConsent({ initialConsent }: Props) {
     if (!slotGranted) return null;
 
     return (
+        // On mobile, sit above the BottomNav (md:hidden, ~64px content + safe-area)
+        // so the bottom of the nav remains tappable while the banner is visible.
+        // On md+ where BottomNav is hidden, use the screen edge.
         <div
-            className="fixed bottom-0 left-0 right-0 z-[9990] p-4"
+            className="fixed left-0 right-0 z-[9990] p-4 bottom-[calc(64px+env(safe-area-inset-bottom))] md:bottom-0"
             style={{
                 backgroundColor: '#F5F0EB',
                 backdropFilter: 'blur(8px)',

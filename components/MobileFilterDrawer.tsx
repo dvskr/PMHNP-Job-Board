@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import LinkedInFilters from '@/components/jobs/LinkedInFilters';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 interface MobileFilterDrawerProps {
     isOpen: boolean;
@@ -10,6 +11,10 @@ interface MobileFilterDrawerProps {
 }
 
 export default function MobileFilterDrawer({ isOpen, onClose }: MobileFilterDrawerProps) {
+    // Focus trap, ESC handler, and focus restore are centralised in
+    // useFocusTrap so all dialogs in the app behave consistently.
+    const trapRef = useFocusTrap<HTMLDivElement>({ isOpen, onEscape: onClose });
+
     // Prevent body scroll when drawer is open
     useEffect(() => {
         if (isOpen) {
@@ -24,22 +29,10 @@ export default function MobileFilterDrawer({ isOpen, onClose }: MobileFilterDraw
         };
     }, [isOpen]);
 
-    // Handle escape key
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && isOpen) {
-                onClose();
-            }
-        };
-
-        document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
-    }, [isOpen, onClose]);
-
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div ref={trapRef} className="fixed inset-0 z-[110] lg:hidden">
             {/* Backdrop */}
             <div
                 className="fixed inset-0 bg-black/50 transition-opacity duration-300"

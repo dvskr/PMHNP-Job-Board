@@ -1,7 +1,15 @@
 /**
  * Daily Social Media Posting Cron — Facebook
  *
- * Vercel Cron: 0 14 * * *  (9 AM CST)
+ * PAUSED 2026-05-08 — schedule entry removed from vercel.json. The route
+ * handler stays intact so re-enabling is just a one-line add-back to
+ * vercel.json's `crons` array. Reason: pending optimization of social
+ * post strategy. Manual triggering (?dry=true / admin auth) still works.
+ *
+ * To re-enable, add this back to vercel.json:
+ *   { "path": "/api/cron/social-post", "schedule": "0 14 * * *" }
+ *
+ * Original Vercel Cron: 0 14 * * *  (9 AM CST)
  *
  * Posts the top PMHNP jobs to Facebook Page.
  * Supports ?dry=true for preview-only mode.

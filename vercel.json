@@ -181,16 +181,8 @@
       "schedule": "45 13 * * *"
     },
     {
-      "path": "/api/cron/social-post",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron/instagram-post",
-      "schedule": "5 14 * * *"
-    },
-{
       "path": "/api/cron/employer-report",
-      "schedule": "0 14 * * 1"
+      "schedule": "0 14 1 * *"
     },
     {
       "path": "/api/cron/saved-job-reminder",

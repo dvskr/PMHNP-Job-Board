@@ -1255,6 +1255,12 @@ export async function sendPerformanceReportEmail(
     const totalClicks = jobs.reduce((s, j) => s + j.applyClicks, 0);
     const totalApps = jobs.reduce((s, j) => s + j.applications, 0);
     const unsubToken = await getOrCreateUnsubToken(email);
+    // Convert adverb form to noun for "this {period}" prose. "Monthly"
+    // → "month" reads natural ("performed this month"), avoids the
+    // awkward "performed this monthly" the previous template produced.
+    const periodNoun: string =
+      ({ Monthly: 'month', Weekly: 'week', Daily: 'day', Quarterly: 'quarter' } as Record<string, string>)[periodLabel]
+      ?? periodLabel.toLowerCase().replace(/ly$/, '');
 
     const jobRowsHtml = jobs.slice(0, 5).map((job, i) => {
       const isLast = i === Math.min(jobs.length, 5) - 1;
@@ -1274,11 +1280,11 @@ export async function sendPerformanceReportEmail(
       </td>`;
 
     const html = emailShellV2(`
-      ${headerBlockV2('Your Monthly Hiring Report', '')}
+      ${headerBlockV2(`Your ${periodLabel} Hiring Report`, '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-performance.png', `Here is how your listings performed this ${periodLabel.toLowerCase()}. Use these insights to optimize your postings and attract stronger candidates.`)}
+      ${simpleBlock('hero-performance.png', `Here is how your listings performed this ${periodNoun}. Use these insights to optimize your postings and attract stronger candidates.`)}
       ${spacerV2(24)}
-      <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(totalViews.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(totalClicks.toLocaleString(), 'Applies')}<td width="8"></td>${statBlockV2(totalApps.toLocaleString(), 'Messages')}</tr></table></td></tr>
+      <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(totalViews.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(totalClicks.toLocaleString(), 'Apply Clicks')}<td width="8"></td>${statBlockV2(totalApps.toLocaleString(), 'Applications')}</tr></table></td></tr>
       ${spacerV2(28)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('View Full Report', `${BASE_URL}/employer/dashboard/${jobs[0]?.dashboardToken || ''}`)}
