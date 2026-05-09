@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { Flag, X, CheckCircle, AlertCircle, Loader2, LogIn } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 const REPORT_REASONS = [
     { value: 'expired', label: 'Expired / Closed', icon: '⏰' },
@@ -27,6 +28,14 @@ export default function ReportJobButton({ jobId, jobTitle }: ReportJobButtonProp
     const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
     const [errorMsg, setErrorMsg] = useState('');
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+    // Focus trap, ESC handler, and focus restore. We block ESC while a
+    // submission is in flight so users can't accidentally cancel a partially
+    // sent report; that matches the existing onClick guard on the X button.
+    const trapRef = useFocusTrap<HTMLDivElement>({
+        isOpen,
+        onEscape: () => { if (status !== 'submitting') setIsOpen(false); },
+    });
 
     useEffect(() => {
         const supabase = createClient();
@@ -73,16 +82,19 @@ export default function ReportJobButton({ jobId, jobTitle }: ReportJobButtonProp
 
     return (
         <>
-            {/* Trigger Button */}
+            {/* Trigger Button — 44x44 hit area for WCAG 2.5.8.
+                The 14px Flag icon stays visually small, but the surrounding
+                button gets enough padding to meet the minimum touch target. */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="inline-flex items-center gap-1.5 text-sm transition-colors"
-                style={{ color: 'var(--text-tertiary)' }}
+                className="jc-icon-btn inline-flex items-center justify-center gap-1.5 text-sm transition-colors"
+                style={{ color: 'var(--text-tertiary)', minWidth: '44px', minHeight: '44px', background: 'transparent', border: 'none', cursor: 'pointer' }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+                aria-label="Report this job"
                 title="Report this job"
             >
-                <Flag size={14} />
+                <Flag size={14} aria-hidden="true" />
             </button>
 
             {/* Modal via Portal */}
@@ -107,6 +119,10 @@ export default function ReportJobButton({ jobId, jobTitle }: ReportJobButtonProp
                 >
                     {/* Compact Modal */}
                     <div
+                        ref={trapRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="report-modal-title"
                         style={{
                             width: '100%',
                             maxWidth: '380px',
@@ -123,15 +139,16 @@ export default function ReportJobButton({ jobId, jobTitle }: ReportJobButtonProp
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Flag size={16} color="#ef4444" />
-                                <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                                <h3 id="report-modal-title" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                                     Report Job
                                 </h3>
                             </div>
                             <button
                                 onClick={() => status !== 'submitting' && setIsOpen(false)}
+                                aria-label="Close report dialog"
                                 style={{ padding: '4px', color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer' }}
                             >
-                                <X size={18} />
+                                <X size={18} aria-hidden="true" />
                             </button>
                         </div>
 
@@ -192,7 +209,10 @@ export default function ReportJobButton({ jobId, jobTitle }: ReportJobButtonProp
                                                 transition: 'all 0.15s',
                                             }}
                                         >
-                                            <span style={{ fontSize: '14px' }}>{reason.icon}</span>
+                                            {/* aria-hidden so screen readers don't announce
+                                                the emoji name (e.g. "money bag wrong salary").
+                                                The text label below is the accessible name. */}
+                                            <span aria-hidden="true" style={{ fontSize: '14px' }}>{reason.icon}</span>
                                             <span>{reason.label}</span>
                                         </button>
                                     ))}
@@ -208,7 +228,8 @@ export default function ReportJobButton({ jobId, jobTitle }: ReportJobButtonProp
                                         maxLength={500}
                                         style={{
                                             width: '100%', padding: '8px 10px', borderRadius: '8px',
-                                            fontSize: '12px', resize: 'none', marginBottom: '10px',
+                                            // 16px prevents iOS Safari from auto-zooming on focus.
+                                            fontSize: '16px', resize: 'none', marginBottom: '10px',
                                             backgroundColor: 'var(--bg-primary)',
                                             border: '1px solid var(--border-color)',
                                             color: 'var(--text-primary)',

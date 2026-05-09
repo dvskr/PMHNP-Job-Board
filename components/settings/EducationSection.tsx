@@ -208,9 +208,18 @@ export default function EducationSection({ showMsg }: Props) {
                         <input type="text" value={form.gpa} onChange={(e) => setForm({ ...form, gpa: e.target.value })} placeholder="e.g. 3.85" style={inputStyle} />
                     </div>
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: clayPalette.textSecondary }}>
-                    <div onClick={() => setForm({ ...form, isHighestDegree: !form.isHighestDegree })} style={{
-                        width: '18px', height: '18px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: clayPalette.textSecondary, position: 'relative' }}>
+                    {/* Real input keeps the control in the tab order and announced by
+                        screen readers. The styled <div> below is the visual indicator
+                        only; clicks on it forward to the input via the wrapping label. */}
+                    <input
+                        type="checkbox"
+                        checked={form.isHighestDegree}
+                        onChange={(e) => setForm({ ...form, isHighestDegree: e.target.checked })}
+                        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                    />
+                    <div aria-hidden="true" style={{
+                        width: '18px', height: '18px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center',
                         border: form.isHighestDegree ? `1.5px solid ${clayPalette.accentLight}` : `1.5px solid ${clayPalette.border}`,
                         background: form.isHighestDegree ? 'rgba(45,212,191,0.12)' : clayPalette.inputFill,
                     }}>

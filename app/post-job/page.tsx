@@ -380,6 +380,10 @@ function PostJobContent() {
   // empty — never overwrites a resumed draft or the user's in-progress edits.
   useEffect(() => {
     if (!draftLoaded) return;
+    // The endpoint requires a signed-in employer; firing it while
+    // unauthenticated produces a console 401 on every anonymous landing
+    // (the in-page block UI handles the unauth case anyway).
+    if (!user || (userRole !== 'employer' && userRole !== 'admin')) return;
     let cancelled = false;
     (async () => {
       try {
@@ -405,7 +409,7 @@ function PostJobContent() {
       } catch { /* silent — pre-fill is best-effort */ }
     })();
     return () => { cancelled = true; };
-  }, [draftLoaded, getValues, setValue]);
+  }, [draftLoaded, getValues, setValue, user, userRole]);
 
   const quillModules = useMemo(() => ({
     toolbar: [

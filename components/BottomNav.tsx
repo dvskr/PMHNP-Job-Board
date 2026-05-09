@@ -42,7 +42,9 @@ export default function BottomNav() {
   return (
     <>
       <nav
-        className="md:hidden fixed bottom-0 inset-x-0 z-50 shadow-lg safe-bottom"
+        // safe-area inset is applied once on the inner container via `pb-safe`;
+        // applying `safe-bottom` here too would double the bottom inset on iOS.
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 shadow-lg"
         style={{
           backgroundColor: 'var(--bg-primary)',
           borderTop: '1px solid var(--border-color)',
@@ -57,7 +59,10 @@ export default function BottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center flex-1 py-2 px-1 rounded-lg transition-all touch-manipulation`}
+                aria-current={active ? 'page' : undefined}
+                // min-h-[48px] meets WCAG 2.5.8 (24px) and Apple HIG (44px).
+                // py-2.5 + 24px icon + 4px gap + 16px text yields ~52px reachable area.
+                className={`flex flex-col items-center justify-center flex-1 min-h-[48px] py-2.5 px-2 rounded-lg transition-all touch-manipulation`}
                 style={{
                   backgroundColor: active ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)' : 'transparent',
                 }}

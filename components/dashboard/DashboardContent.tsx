@@ -926,18 +926,17 @@ export default function DashboardContent() {
                         </p>
                     </div>
                 ) : (
-                    /* Recommendation cards reuse the same <JobCard> the /jobs
-                       browse page renders, for visual consistency. The
-                       AI-generated tier (Easy Apply / Direct Apply) shows as a
-                       small overlay badge top-right; the card itself is the
-                       canonical clay-card from components/JobCard.tsx. */
+                    /* Recommendation cards now use the same default grid-view
+                       JobCard the /jobs page renders so the dashboard and the
+                       browse page are visually identical. The previous
+                       `viewMode="list"` was a horizontal flat row that
+                       collapsed badly on phones (title + company would clip
+                       to nothing once the right-column action buttons ate the
+                       row width). Grid view stacks: header (logo + title +
+                       company + save/share), badges, then apply CTA. */
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        {/* Tier badge overlay removed — JobCard already renders
-                            the Easy Apply / Direct Apply pill on the right side
-                            of the card via its own apply CTA. The dashboard's
-                            outer overlay was a duplicate. */}
                         {recommendedJobs.map((job) => (
-                            <JobCard key={job.id} job={job as unknown as JobCardJob} viewMode="list" />
+                            <JobCard key={job.id} job={job as unknown as JobCardJob} />
                         ))}
                     </div>
                 )}

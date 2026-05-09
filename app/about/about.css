@@ -35,7 +35,8 @@
 .ab-btn-primary{background:linear-gradient(145deg,#5EBCB0,#2F7A73);color:#fff;box-shadow:var(--clay-teal)}
 .ab-btn-primary:hover{transform:translateY(-2px)}
 .ab-btn-ghost{background:var(--clay);color:var(--ink);box-shadow:var(--clay-shadow-sm)}
-.ab-btn-dark{background:var(--ink);color:#fff;box-shadow:6px 6px 14px rgba(20,28,52,0.35),inset 2px 2px 4px rgba(255,255,255,0.12),inset -2px -2px 4px rgba(0,0,0,0.3)}
+.ab-btn-dark{background:var(--ink);color:#fff;box-shadow:6px 6px 14px rgba(20,28,52,0.35),inset 2px 2px 4px rgba(255,255,255,0.12),inset -2px -2px 4px rgba(0,0,0,0.3);text-decoration:none}
+.ab-btn-dark:hover{transform:translateY(-2px);box-shadow:8px 10px 22px rgba(20,28,52,0.45),inset 2px 2px 4px rgba(255,255,255,0.18),inset -2px -2px 4px rgba(0,0,0,0.3)}
 
 /* CLAY STAGE */
 .ab-clay-stage{margin:48px auto 0;background:linear-gradient(180deg,#F8D9B8 0%,#F3C79B 100%);border-radius:48px 48px 24px 24px;padding:48px 48px 0;box-shadow:24px 24px 60px rgba(170,110,70,0.25),inset 3px 3px 6px rgba(255,255,255,0.6),inset -6px -8px 16px rgba(170,110,70,0.18);position:relative;overflow:hidden}

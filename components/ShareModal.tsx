@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Mail, Link2, Check, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 // Custom SVG icons for brand accuracy
 const XIcon = ({ size = 24 }: { size?: number }) => (
@@ -45,6 +46,10 @@ interface ShareModalProps {
 export default function ShareModal({ url, title, description = '', onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
+  // Centralised focus-trap + ESC + focus-restore. The dialog is mounted via
+  // portal so we don't need to gate the trap on `mounted` -- the hook itself
+  // bails out when the ref hasn't attached yet.
+  const trapRef = useFocusTrap<HTMLDivElement>({ isOpen: true, onEscape: onClose });
 
   useEffect(() => {
     setMounted(true);
@@ -54,15 +59,6 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
       document.body.style.overflow = '';
     };
   }, []);
-
-  // Close on Escape
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
 
   const shareOptions = [
     {
@@ -145,6 +141,10 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
 
       {/* Modal */}
       <div
+        ref={trapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="share-modal-title"
         style={{
           position: 'relative', width: '100%', maxWidth: '380px',
           margin: '0 16px',
@@ -160,7 +160,7 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '16px 20px', borderBottom: '1px solid #D5E8E0',
         }}>
-          <h3 style={{
+          <h3 id="share-modal-title" style={{
             fontSize: '16px', fontWeight: 700,
             fontFamily: 'var(--font-lora), Georgia, serif',
             color: '#1A2E35', margin: 0,
@@ -208,6 +208,7 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
             {/* Copy Link */}
             <button
               onClick={handleCopyLink}
+              aria-label={copied ? 'Link copied' : 'Copy link'}
               title={copied ? 'Copied!' : 'Copy link'}
               className="clay-share-btn"
               style={{
@@ -224,8 +225,17 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
                 transition: 'all 0.25s ease',
               }}
             >
-              {copied ? <Check size={15} /> : <Link2 size={15} />}
+              {copied ? <Check size={15} aria-hidden="true" /> : <Link2 size={15} aria-hidden="true" />}
             </button>
+          </div>
+          {/* Polite live region announces "Link copied" to screen-reader users
+              when the visual state flips. Sits inside the dialog so it's part
+              of the same a11y context. */}
+          <div role="status" aria-live="polite" style={{
+            position: 'absolute', width: 1, height: 1, padding: 0,
+            margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0,
+          }}>
+            {copied ? 'Link copied to clipboard' : ''}
           </div>
         </div>
       </div>

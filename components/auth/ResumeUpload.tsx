@@ -311,7 +311,12 @@ export default function ResumeUpload({
   /* ─────── RENDER: success toast ─────── */
   const toastEl = toast && (
     <div style={{
-      position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
+      // env(safe-area-inset-top) keeps the toast clear of iOS notches /
+      // Dynamic Island; same for the trailing edge on landscape orientation.
+      position: 'fixed',
+      top: 'calc(24px + env(safe-area-inset-top))',
+      right: 'calc(24px + env(safe-area-inset-right))',
+      zIndex: 9999,
       display: 'flex', alignItems: 'center', gap: '10px',
       padding: '14px 22px', borderRadius: '12px',
       background: 'linear-gradient(135deg, #065F46, #047857)',

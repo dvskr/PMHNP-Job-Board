@@ -2,12 +2,19 @@ import type { Metadata } from "next";
 import { headers, cookies } from 'next/headers';
 import { CONSENT_COOKIE, parseConsentCookie } from '@/lib/consent';
 import { brand } from '@/config/brand';
-import { Inter, Lora, Newsreader } from "next/font/google";
+// Newsreader is loaded only in app/blog/layout.tsx (scoped to /blog/*) so
+// non-blog pages don't pay the cost of a font that's only used by editorial
+// body typography.
+import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import dynamic from 'next/dynamic';
-const BottomNav = dynamic(() => import('@/components/BottomNav'));
+// BottomNav was previously dynamic() with no SSR, which meant the 56px
+// fixed bar was injected after hydration -- causing a CLS spike on every
+// mobile route. Static-render it: the component only uses usePathname()
+// which is SSR-safe.
+import BottomNav from '@/components/BottomNav';
 
 import { ThemeProvider } from '@/components/ThemeProvider';
 import LayoutShell from '@/components/LayoutShell';
@@ -18,7 +25,6 @@ import GoogleAnalytics from '@/components/GoogleAnalytics';
 import ConsentGatedTelemetry from '@/components/ConsentGatedTelemetry';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import { ToastProvider } from '@/components/ui/ToastProvider';
-const FeedbackWidget = dynamic(() => import('@/components/FeedbackWidget'));
 const ExitIntentPopup = dynamic(() => import('@/components/ExitIntentPopup'));
 const PushNotificationPrompt = dynamic(() => import('@/components/PushNotificationPrompt'));
 const CookieConsent = dynamic(() => import('@/components/CookieConsent'));
@@ -36,20 +42,14 @@ const lora = Lora({
   display: 'swap',
 });
 
-const newsreader = Newsreader({
-  variable: "--font-newsreader",
-  subsets: ["latin"],
-  display: 'swap',
-});
-
-// SEO Fix H3: JetBrains_Mono dropped from web-font set. The audit flagged
-// 4 Google Font families on every page; the rule is max 2. Newsreader is
-// retained because the editorial CSS in app/editorial.css (blog post body
-// typography) intentionally pairs it with Inter/Lora. JetBrains_Mono was
-// only in use for incidental `font-mono` Tailwind classes on code blocks
-// and debugging UIs — those now fall back to system monospace, which is
-// visually acceptable for non-editorial code spans and saves a network
-// roundtrip + ~30 KB of font payload on every page load.
+// SEO Fix H3 / Mobile L2: JetBrains_Mono dropped from the web-font set, and
+// Newsreader has been moved to app/blog/layout.tsx where it's actually used
+// (editorial body typography). The audit flagged 4 Google Font families on
+// every page; the rule is max 2. Inter + Lora cover sans + display globally;
+// Newsreader loads only on /blog/* routes; JetBrains_Mono was only in use
+// for incidental `font-mono` Tailwind classes on code blocks and debugging
+// UIs -- those now fall back to system monospace, saving a network roundtrip
+// + ~30 KB of font payload on every page load.
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || brand.baseUrl),
@@ -238,7 +238,7 @@ export default async function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${lora.variable} ${newsreader.variable} font-sans antialiased`}
+        className={`${inter.variable} ${lora.variable} font-sans antialiased`}
         suppressHydrationWarning
         style={{
           backgroundColor: '#F5F0EB',
@@ -279,7 +279,6 @@ export default async function RootLayout({
               <LayoutShell>
                 <MobileHideOnAppRoutes>
                   <Footer />
-                  <FeedbackWidget />
                 </MobileHideOnAppRoutes>
                 <BottomNav />
                 <ScrollIndicator />

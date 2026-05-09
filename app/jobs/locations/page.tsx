@@ -1,6 +1,7 @@
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MapPin, Wifi, TrendingUp, Globe, Video, Plane, GraduationCap, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -251,7 +252,7 @@ export default async function LocationsPage() {
                         border: '1px solid rgba(255,255,255,0.6)',
                         boxShadow: '4px 4px 10px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)',
                       }}>
-                        <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_remote.webp" alt="" width={52} height={52} style={{ objectFit: 'contain' }} />
+                        <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_remote.webp" alt="" width={52} height={52} sizes="52px" style={{ objectFit: 'contain' }} />
                       </div>
 
                       <div>
@@ -316,7 +317,7 @@ export default async function LocationsPage() {
           {/* ═══ Browse by Job Type — Clay Icon Grid ═══ */}
           <div className="mb-12">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-              <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_location.webp" alt="" width={28} height={28} style={{ objectFit: 'contain' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_location.webp" alt="" width={28} height={28} sizes="28px" style={{ objectFit: 'contain' }} />
               <h2 style={{ fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 800, fontFamily: 'var(--font-lora, Georgia, serif)', color: '#1A2E35', margin: 0 }}>
                 Browse by Job Type
               </h2>
@@ -343,7 +344,7 @@ export default async function LocationsPage() {
                       border: '1px solid rgba(255,255,255,0.6)',
                       boxShadow: '3px 3px 8px rgba(0,0,0,0.04), -2px -2px 5px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.6)',
                     }}>
-                      <img src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/${cat.icon.replace('.png', '.webp')}`} alt="" width={34} height={34} style={{ objectFit: 'contain' }} />
+                      <Image src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/${cat.icon.replace('.png', '.webp')}`} alt="" width={34} height={34} sizes="34px" style={{ objectFit: 'contain' }} />
                     </div>
                     <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>{cat.label}</h3>
                     <p style={{ fontSize: '12px', color: '#7A6A62', margin: '0 0 12px', lineHeight: 1.4 }}>{cat.sub}</p>
@@ -362,7 +363,7 @@ export default async function LocationsPage() {
           {/* ═══ Browse by State — Diorama Cards ═══ */}
           <div className="mb-12">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-              <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_location.webp" alt="" width={28} height={28} style={{ objectFit: 'contain' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_location.webp" alt="" width={28} height={28} sizes="28px" style={{ objectFit: 'contain' }} />
               <h2 style={{ fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 800, fontFamily: 'var(--font-lora, Georgia, serif)', color: '#1A2E35', margin: 0 }}>
                 Browse by State
               </h2>

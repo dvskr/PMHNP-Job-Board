@@ -362,7 +362,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
 
             {/* Results Count, Sort, and View Toggle */}
             {!loading && !error && (
-              <div style={{
+              <div className="jp-search-row" style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 marginBottom: '20px', flexWrap: 'wrap', gap: '12px',
               }}>
@@ -377,12 +377,13 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                 */}
                 <form
                   onSubmit={handleAiSearch}
+                  className="jp-search-form"
                   style={{ flex: 1, minWidth: 0, maxWidth: '640px' }}
                   role="search"
                   aria-label="AI semantic job search"
                 >
                   <div
-                    className="hero-search-bar"
+                    className="hero-search-bar jp-jobs-search-bar"
                     style={{
                       display: 'flex',
                       alignItems: 'stretch',
@@ -433,13 +434,17 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                       onMouseLeave={(e) => { e.currentTarget.style.background = '#0D9488'; e.currentTarget.style.transform = 'scale(1)'; }}
                     >
                       <Sparkles size={14} aria-hidden="true" />
-                      {aiLoading ? 'Searching…' : 'AI Search'}
+                      {/* Hide the text on phones so the input gets full width;
+                          the Sparkles icon + aria-label still tell users this
+                          is the AI semantic-search submit. */}
+                      <span className="hidden sm:inline">{aiLoading ? 'Searching…' : 'AI Search'}</span>
+                      <span className="sr-only sm:hidden">{aiLoading ? 'Searching' : 'AI Search'}</span>
                     </button>
                   </div>
                 </form>
 
                 {/* Right: sort + view toggle */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="jp-sort-cluster" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   {/* Sort Dropdown */}
                   <div style={{ position: 'relative' }}>
                     <select

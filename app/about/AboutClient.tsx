@@ -51,19 +51,19 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
           <div className="ab-clay-stage">
             <div className="ab-diorama">
               <div className="ab-scene" style={{ minHeight: 320, background: 'linear-gradient(160deg, #D6E8DE, #B5D1C3)', padding: 0 }}>
-                <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_new_grad.webp" alt="New Grad residency" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
+                <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_new_grad.webp" alt="New Grad residency" width={800} height={600} loading="lazy" decoding="async" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
                 <div style={{ padding: '16px 20px' }}><div className="label">New&nbsp;Grad<br />friendly</div><div className="meta" style={{ marginTop: 10 }}>{fmt(counts.newGrad)} roles</div></div>
               </div>
               <div className="ab-scene teal" style={{ minHeight: 380, padding: 0 }}>
-                <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_inpatient.webp" alt="Inpatient psychiatric" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
+                <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_inpatient.webp" alt="Inpatient psychiatric" width={800} height={600} loading="lazy" decoding="async" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
                 <div style={{ padding: '16px 20px' }}><div className="label">Acute<br />psychiatric units</div><div className="meta" style={{ marginTop: 10 }}>{fmt(counts.inpatient)} roles</div></div>
               </div>
               <div className="ab-scene coral" style={{ minHeight: 350, padding: 0 }}>
-                <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_telehealth.webp" alt="Telehealth remote practice" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
+                <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_telehealth.webp" alt="Telehealth remote practice" width={800} height={600} loading="lazy" decoding="async" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
                 <div style={{ padding: '16px 20px' }}><div className="label">Remote<br />practice</div><div className="meta" style={{ marginTop: 10 }}>{fmt(counts.telehealth)} listings</div></div>
               </div>
               <div className="ab-scene" style={{ minHeight: 310, background: 'linear-gradient(160deg, #F3D7A8, #E3BC7B)', padding: 0 }}>
-                <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_outpatient.webp" alt="Outpatient community clinics" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
+                <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_outpatient.webp" alt="Outpatient community clinics" width={800} height={600} loading="lazy" decoding="async" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '28px 28px 0 0' }} />
                 <div style={{ padding: '16px 20px' }}><div className="label">Community<br />clinics</div><div className="meta" style={{ marginTop: 10 }}>{fmt(counts.outpatient)} openings</div></div>
               </div>
             </div>
@@ -96,7 +96,7 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
           </div>
           <div>
             <div className="ab-diorama-card mint" style={{ padding: 0 }}>
-              <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_candidates.webp" alt="Career growth for PMHNPs" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '40px 40px 0 0' }} />
+              <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_candidates.webp" alt="Career growth for PMHNPs" width={1000} height={750} loading="lazy" decoding="async" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '40px 40px 0 0' }} />
               <div style={{ padding: '20px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <b style={{ fontFamily: "var(--font-lora), 'Lora', serif", fontSize: 18 }}>Chart your path, step by step.</b>
                 <span className="chip">PMHNP · 2026</span>
@@ -111,7 +111,7 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
         <div className="ab-two-col flip">
           <div>
             <div className="ab-diorama-card peach" style={{ padding: 0 }}>
-              <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_employers.webp" alt="Employer hiring dashboard" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '40px 40px 0 0' }} />
+              <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/about/diorama_employers.webp" alt="Employer hiring dashboard" width={1000} height={750} loading="lazy" decoding="async" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '40px 40px 0 0' }} />
               <div style={{ padding: '20px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <b style={{ fontFamily: "var(--font-lora), 'Lora', serif", fontSize: 18 }}>A team room, not a newsstand.</b>
                 <span className="chip">Dashboard</span>
@@ -129,7 +129,6 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
             </div>
             <div style={{ display: 'flex', gap: 12, marginTop: 36, flexWrap: 'wrap' }}>
               <Link href="/employers" className="ab-btn ab-btn-primary">Post a role</Link>
-              <button className="ab-btn ab-btn-ghost">Download employer deck</button>
             </div>
           </div>
         </div>
@@ -191,12 +190,10 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
           <div>
             <span className="ab-kicker coral" style={{ background: 'rgba(255,255,255,0.28)', color: '#fff', boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.4), inset -2px -2px 4px rgba(170,80,55,0.2)' }}><CheckCircle size={12} /> Ready when you are</span>
             <h2 style={{ marginTop: 20 }}>Initialize <em>your search.</em></h2>
-            <p>Deploy a job alert tuned to your licensure and scope, or open a direct conduit with our team to talk through a role you&apos;ve had your eye on.</p>
-            <form className="ab-cta-form" onSubmit={(e) => e.preventDefault()}>
-              <input type="email" placeholder="you@practice.com" />
-              <button className="ab-btn ab-btn-dark" type="submit">Send me alerts</button>
-            </form>
-            <p style={{ marginTop: 18, fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>Or <Link href="/jobs" style={{ textDecoration: 'underline' }}>browse 5,000+ open roles</Link> · no sign-up required.</p>
+            <p>Browse open PMHNP roles by state, scope, and care setting — or open a direct conduit with our team to talk through a role you&apos;ve had your eye on.</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 32, flexWrap: 'wrap' }}>
+              <Link href="/jobs" className="ab-btn ab-btn-dark">Browse all jobs</Link>
+            </div>
           </div>
           <div className="ab-cta-visual"><div className="circle-big" /></div>
         </div>

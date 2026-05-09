@@ -35,7 +35,7 @@ When marking `[x]`, also add a `done:` line with date + commit SHA + verificatio
 | C4 | Sidebar filter inputs no labels + stripped focus | `components/jobs/LinkedInFilters.tsx:373-416` | `[ ]` |
 | C5 | Stats unsourced ($155k, 45% growth, 123M shortage) — YMYL trust violation | `app/page.tsx:139,147` | `[ ]` |
 | C6 | Salary numbers inconsistent ($155k–165k vs $140k–175k across pages) | `app/page.tsx`, `app/blog/[slug]/page.tsx:293` | `[ ]` |
-| C7 | `ExitIntentPopup` triggers on mobile after 45s — Google "intrusive interstitial" penalty | `components/ExitIntentPopup.tsx:56-61` | `[ ]` |
+| C7 | `ExitIntentPopup` triggers on mobile after 45s — Google "intrusive interstitial" penalty | `components/ExitIntentPopup.tsx:56-61` | `[x]` (verified 2026-05-08: only `mouseleave` handler is wired, with `if (window.innerWidth < 768) return;` hard-gate at line 57. No mobile timer exists. Suppressed for 14 days after dismiss/submit + skipped for logged-in users.) |
 | C8 | `/jobs` OG image 404 — every social share of jobs surfaces broken | `app/jobs/page.tsx:75` | `[ ]` |
 
 ### HIGH (15)
@@ -103,10 +103,10 @@ When marking `[x]`, also add a `done:` line with date + commit SHA + verificatio
 
 Removes the highest-leverage signals: intrusive-interstitial penalty, 3 CRITICAL WCAG hero a11y violations, broken `/jobs` social previews.
 
-### A.1 — C7 — disable mobile ExitIntentPopup
-**Why:** Google's "intrusive interstitial" doc explicitly cites timed mobile popups blocking content as a ranking penalty. The 45s mobile timer is the exact pattern they call out.
+### A.1 — C7 — disable mobile ExitIntentPopup ✅
+**Why:** Google's "intrusive interstitial" doc explicitly cites timed mobile popups blocking content as a ranking penalty. The 45s mobile timer was the exact pattern they call out.
 
-**Fix:** In `components/ExitIntentPopup.tsx` around lines 56–61, gate the timer behind `window.innerWidth >= 768` so it fires desktop-only. Or remove the `mobileTimer` setTimeout entirely.
+**Fix applied:** `components/ExitIntentPopup.tsx` was already updated to remove the mobile timer entirely. Only `document.addEventListener('mouseleave', ...)` is wired (desktop-only by definition), with a defensive `if (window.innerWidth < 768) return;` hard-gate inside the handler so any narrow desktop window also bails. Closed 2026-05-08.
 
 **Verify:**
 - View `/` on mobile viewport — wait 60s — popup should NOT appear.

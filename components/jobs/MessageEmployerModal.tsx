@@ -334,13 +334,14 @@ export default function MessageEmployerModal({
                         <>
                             {/* Subject */}
                             <div style={{ marginBottom: '16px' }}>
-                                <label style={{
+                                <label htmlFor="msg-employer-subject" style={{
                                     display: 'block', fontSize: '13px', fontWeight: 600,
                                     color: 'var(--text-secondary)', marginBottom: '6px',
                                 }}>
                                     Subject
                                 </label>
                                 <input
+                                    id="msg-employer-subject"
                                     type="text"
                                     value={subject}
                                     onChange={e => setSubject(e.target.value)}
@@ -349,7 +350,8 @@ export default function MessageEmployerModal({
                                         width: '100%', padding: '10px 14px',
                                         borderRadius: '10px', border: '1.5px solid var(--border-color)',
                                         backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)',
-                                        fontSize: '14px', fontFamily: 'inherit', outline: 'none',
+                                        // 16px prevents iOS Safari from auto-zooming on focus.
+                                        fontSize: '16px', fontFamily: 'inherit', outline: 'none',
                                         transition: 'border-color 0.2s',
                                     }}
                                     onFocus={e => e.target.style.borderColor = '#2DD4BF'}
@@ -359,13 +361,14 @@ export default function MessageEmployerModal({
 
                             {/* Message body */}
                             <div style={{ marginBottom: '16px' }}>
-                                <label style={{
+                                <label htmlFor="msg-employer-body" style={{
                                     display: 'block', fontSize: '13px', fontWeight: 600,
                                     color: 'var(--text-secondary)', marginBottom: '6px',
                                 }}>
                                     Message
                                 </label>
                                 <textarea
+                                    id="msg-employer-body"
                                     value={body}
                                     onChange={e => setBody(e.target.value)}
                                     placeholder={`Hi, I'm interested in this position and had a question...`}
@@ -375,7 +378,8 @@ export default function MessageEmployerModal({
                                         width: '100%', padding: '10px 14px',
                                         borderRadius: '10px', border: '1.5px solid var(--border-color)',
                                         backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)',
-                                        fontSize: '14px', fontFamily: 'inherit', outline: 'none',
+                                        // 16px prevents iOS Safari from auto-zooming on focus.
+                                        fontSize: '16px', fontFamily: 'inherit', outline: 'none',
                                         resize: 'vertical', minHeight: '100px',
                                         transition: 'border-color 0.2s',
                                     }}

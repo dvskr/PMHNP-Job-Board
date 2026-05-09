@@ -1378,13 +1378,13 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                     </p>
                   </div>
                   <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
-                    <Image src={assets.bentoImages[0]} alt={`${config.label} PMHNP`} width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                    <Image src={assets.bentoImages[0]} alt={`${config.label} PMHNP`} width={280} height={200} sizes="(max-width: 768px) 90vw, 280px" style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
                   </div>
                 </div>
 
                 <div className="pseo-bento-card" style={{ ...clayCard, gridColumn: 'span 4', padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ flex: '0 0 auto', background: 'linear-gradient(145deg, #FFFBEB, #FEF3C7)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Image src={assets.bentoImages[1]} alt={`${config.label} growth`} width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
+                    <Image src={assets.bentoImages[1]} alt={`${config.label} growth`} width={200} height={140} sizes="(max-width: 768px) 90vw, 200px" style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
                   </div>
                   <div style={{ padding: '24px 22px', flex: 1 }}>
                     <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>
@@ -1399,7 +1399,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                 {/* ROW 2: Icon cards — dynamic count based on benefits */}
                 {config.benefits.map((benefit, i) => (
                   <div key={`icon-${i}`} className="pseo-bento-card" style={{ ...clayCard, gridColumn: `span ${Math.floor(12 / config.benefits.length)}`, padding: '24px 18px', textAlign: 'center' }}>
-                    {assets.bentoIcons[i] && <Image src={assets.bentoIcons[i]} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />}
+                    {assets.bentoIcons[i] && <Image src={assets.bentoIcons[i]} alt="" width={48} height={48} sizes="48px" style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />}
                     <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>
                       {benefit.title}
                     </h3>
@@ -1420,7 +1420,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                       </p>
                     </div>
                     <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
-                      <Image src={assets.bentoImages[2]} alt="Salary growth" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                      <Image src={assets.bentoImages[2]} alt="Salary growth" width={280} height={200} sizes="(max-width: 768px) 90vw, 280px" style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
                     </div>
                   </div>
                 )}
@@ -1451,7 +1451,9 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
         <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px' }}>
           <p className="font-lora" style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '6px' }}>Local Insights</p>
           <h2 className="font-lora" style={{ fontSize: '22px', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '24px' }}>{city!.name} at a Glance</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+          {/* `auto-fit, minmax(260px, 1fr)` collapses to a single column on
+              375px viewports while preserving the 3-up bento on desktop. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
             {/* Community Profile */}
             <div className="pseo-bento-card" style={{ ...clayCard, padding: '24px' }}>
               <h2 className="font-lora" style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
@@ -1570,11 +1572,11 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>
             Other PMHNP Job Types in {city!.name}
           </h2>
-          <div className="pseo-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+          <div className="pseo-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
             {assets?.exploreCards && assets.exploreCards.length > 0 ? (
               assets.exploreCards.map(c => (
                 <Link key={c.href} href={c.href.includes('/city/') ? c.href : `${c.href}/city/${citySlug}`} className="pseo-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                  <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
+                  <Image src={c.icon} alt="" width={48} height={48} sizes="48px" style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                   <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                   <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
                 </Link>
@@ -1796,8 +1798,10 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
         }
         .pseo-faq-item { transition: box-shadow 0.3s ease; }
         .pseo-faq-item[open] { box-shadow: 6px 6px 20px rgba(0,0,0,0.08), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        /* .pseo-explore-grid uses auto-fit minmax(220px, 1fr) inline so it
+           collapses on its own at narrow widths -- no media override needed. */
+        .pseo-bento-grid > div { min-width: 0; }
         @media (max-width: 768px) {
-          .pseo-explore-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .pseo-bento-grid { grid-template-columns: 1fr !important; }
           .pseo-bento-grid > div { grid-column: span 1 !important; grid-template-columns: 1fr !important; }
         }

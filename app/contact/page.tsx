@@ -17,7 +17,8 @@ const clayCard: React.CSSProperties = {
 };
 
 const clayInput: React.CSSProperties = {
-    width: '100%', padding: '12px 16px', fontSize: '14px',
+    // 16px prevents iOS Safari from auto-zooming the viewport on input focus.
+    width: '100%', padding: '12px 16px', fontSize: '16px',
     borderRadius: '14px', border: '1px solid rgba(0,0,0,0.08)',
     background: '#F5F6F8', color: '#1A2E35',
     boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.05), inset -1px -1px 2px rgba(255,255,255,0.5)',

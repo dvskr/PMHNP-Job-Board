@@ -16,7 +16,8 @@ export const inputStyle: React.CSSProperties = {
   borderRadius: '12px',
   border: '1.5px solid #D1DBE0',
   background: '#FFFFFF',
-  fontSize: '14px',
+  // 16px prevents iOS Safari from auto-zooming the viewport on input focus.
+  fontSize: '16px',
   color: '#1A2E35',
   outline: 'none',
   transition: 'border-color 0.15s, box-shadow 0.15s',

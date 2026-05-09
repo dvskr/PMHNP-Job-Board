@@ -95,10 +95,10 @@ export default function PushNotificationPrompt() {
 
     return (
         <div
+            // On mobile, lift above the BottomNav (md:hidden, ~64px content +
+            // safe-area). On md+ where BottomNav is hidden, sit at 20px.
+            className="fixed left-4 bottom-[calc(64px+env(safe-area-inset-bottom))] md:bottom-5"
             style={{
-                position: 'fixed',
-                bottom: 20,
-                left: 16,
                 zIndex: 9988,
                 width: 300,
                 maxWidth: 'calc(100vw - 32px)',

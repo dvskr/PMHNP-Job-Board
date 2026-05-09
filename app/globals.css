@@ -172,7 +172,11 @@ html.dark select:-webkit-autofill {
   --text-primary-rgb: 45, 55, 72;
   --text-secondary: #4A5568;
   --text-tertiary: #718096;
-  --text-muted: #A0AEC0;
+  /* WCAG 1.4.3 AA fix: previous value #A0AEC0 had ~2.86:1 contrast on
+     --bg-primary, failing AA for any non-large text (placeholders,
+     floating-label idle state, optional metadata in forms). #64748B
+     gives ~4.99:1 which clears 4.5:1 with margin. */
+  --text-muted: #64748B;
 
   /* ══════ BORDERS — Structure Felt, Not Seen ══════ */
   --border-color: rgba(0, 0, 0, 0.08);
@@ -1448,7 +1452,92 @@ textarea::placeholder {
   box-shadow: 4px 4px 12px rgba(13, 148, 136, 0.3), -2px -2px 6px rgba(255, 255, 255, 0.2) !important;
 }
 
+/* ══════ FOCUS-VISIBLE FOR INLINE-STYLED ICON BUTTONS ══════
+   Many icon buttons across the app set inline `outline: none` for the
+   pressed look. That removes the keyboard focus ring entirely, so we
+   restore a visible 2px teal ring on `:focus-visible` (keyboard / switch
+   navigation) without re-introducing the click outline that designers
+   typically dislike. WCAG 2.4.7 + 2.4.11. */
+.jc-icon-btn:focus-visible,
+.icon-btn:focus-visible,
+[data-icon-btn]:focus-visible {
+  outline: 2px solid var(--color-primary, #0D9488);
+  outline-offset: 2px;
+}
+
+/* ══════ /jobs page search + sort layout (mobile) ══════
+   The /jobs page reuses .hero-search-bar from the homepage hero, which has
+   a 540px breakpoint that stacks input + button vertically. On the homepage
+   (two inputs + one CTA) that's correct; on /jobs (one input + one CTA)
+   it leaves the search input feeling cramped. We override the column-stack
+   for the /jobs scope only via .jp-jobs-search-bar so the input + AI Search
+   button stay on one row, with the AI Search button shrinking to an icon
+   (Sparkles) on phones. The Best Match sort dropdown drops to its own row
+   below, right-aligned, so the search bar can use the full row width. */
+@media (max-width: 540px) {
+  /* Compound selector raises specificity above the global
+     `.hero-search-bar { flex-direction: column }` rule defined later in the
+     cascade -- needed because both rules use !important and matching the
+     element on both classes wins on specificity. */
+  .hero-search-bar.jp-jobs-search-bar {
+    flex-direction: row !important;
+    border-radius: 20px !important;
+  }
+  .hero-search-bar.jp-jobs-search-bar .hero-search-divider {
+    display: none !important;
+  }
+  .hero-search-bar.jp-jobs-search-bar .hero-search-btn {
+    padding: 0 16px !important;
+    border-radius: 0 !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .jp-search-row .jp-search-form {
+    width: 100%;
+    max-width: 100% !important;
+    flex: 1 0 100%;
+  }
+  .jp-search-row .jp-sort-cluster {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ══════ JobCard list-view mobile layout ══════
+   The list-view JobCard renders as a horizontal row at desktop:
+   [logo] [title + company + badges] [save] [view] [apply] [posted]
+   At < 640px the right-column actions eat the row width and the title
+   gets clipped to nothing -- on iPhone XR (414px) the title and company
+   were visually missing entirely. This collapses the card to a vertical
+   stack on phones: actions wrap below the title/company instead of
+   competing with them for horizontal space. */
+@media (max-width: 639px) {
+  .jc-list-card {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .jc-list-card .jc-list-actions {
+    align-items: flex-start !important;
+    width: 100%;
+  }
+  .jc-list-card .jc-list-action-row {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+}
+
 /* ══════ MOBILE RESPONSIVE OVERRIDES ══════ */
+
+/* pSEO state-template 12-col bento — collapse to single column on mobile.
+   Inline `repeat(12, 1fr)` and child `gridColumn: 'span N'` styles get
+   overridden via !important here, and `min-width: 0` prevents intrinsic
+   min-content of nested images from blowing the row past the viewport. */
+.state-bento-grid > div { min-width: 0; }
+@media (max-width: 768px) {
+  .state-bento-grid { grid-template-columns: 1fr !important; }
+  .state-bento-grid > div { grid-column: span 1 !important; grid-template-columns: 1fr !important; }
+}
 
 /* Hero search bar — stack vertically on mobile */
 @media (max-width: 540px) {
@@ -1466,11 +1555,15 @@ textarea::placeholder {
   }
 }
 
-/* Footer link grid — 2 cols on tablet, 1 on mobile */
+/* Footer link grid — 2 cols on tablet, 1 on mobile.
+   Desktop: 4 equal-width columns inside a centered ~1100px track so the
+   columns spread evenly without stretching edge-to-edge of the wrapper. */
 @media (min-width: 769px) {
   .footer-link-grid {
     grid-template-columns: repeat(4, 1fr) !important;
-    gap: 48px 40px !important;
+    max-width: 1100px !important;
+    margin: 0 auto !important;
+    gap: 32px 40px !important;
     padding-top: 64px !important;
     padding-bottom: 64px !important;
   }

@@ -159,7 +159,63 @@ export default function Footer() {
             ))}
           </div>
 
-          {/* ── Bottom bar: single row on desktop, vertical stack on mobile ── */}
+          {/* ── Bottom area: legal sub-row + 3-cell brand row.
+              Split into two rows so 7 legal links + 5 social icons +
+              company info don't fight for one cramped flex row (which
+              was producing the wrapped "Sub-\nprocessors" / "Data\nRequest"
+              breaks). ── */}
+
+          {/* Sub-row 1: Legal links centered */}
+          <nav
+            className="footer-legal-row"
+            aria-label="Legal"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '24px',
+              padding: '20px 0 16px',
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
+            <Link href="/privacy" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none', whiteSpace: 'nowrap' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+            >Privacy</Link>
+            <Link href="/terms" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none', whiteSpace: 'nowrap' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+            >Terms</Link>
+            <Link href="/security" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none', whiteSpace: 'nowrap' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+            >Security</Link>
+            <Link href="/sub-processors" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none', whiteSpace: 'nowrap' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+            >Sub-processors</Link>
+            <Link href="/data-request" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none', whiteSpace: 'nowrap' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+            >Data Request</Link>
+            <Link href="/do-not-sell" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none', whiteSpace: 'nowrap' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+            >Do Not Sell or Share</Link>
+            <button
+              type="button"
+              onClick={reopenConsentBanner}
+              style={{
+                fontSize: '13px', color: '#78716c', background: 'none', border: 'none',
+                padding: 0, cursor: 'pointer', font: 'inherit', whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+            >Cookie Settings</button>
+          </nav>
+
+          {/* Sub-row 2: Logo+tagline | Socials | Copyright — 3-cell flex */}
           <div
             className="footer-bottom-bar"
             style={{
@@ -167,8 +223,7 @@ export default function Footer() {
               flexWrap: 'wrap',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '24px 0',
-              borderTop: '1px solid rgba(255,255,255,0.08)',
+              padding: '12px 0 24px',
               gap: '16px',
             }}
           >
@@ -186,44 +241,8 @@ export default function Footer() {
               </p>
             </div>
 
-            {/* Right: Privacy · Terms | Socials | Copyright */}
-            <div className="footer-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-              <Link href="/privacy" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
-              >Privacy</Link>
-              <Link href="/terms" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
-              >Terms</Link>
-              <Link href="/security" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
-              >Security</Link>
-              <Link href="/sub-processors" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
-              >Sub-processors</Link>
-              <Link href="/data-request" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
-              >Data Request</Link>
-              <Link href="/do-not-sell" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
-              >Do Not Sell or Share</Link>
-              <button
-                type="button"
-                onClick={reopenConsentBanner}
-                style={{
-                  fontSize: '13px', color: '#78716c', background: 'none', border: 'none',
-                  padding: 0, cursor: 'pointer', font: 'inherit',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
-              >Cookie Settings</button>
-
-              <span className="footer-pipe" style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.15)' }} />
+            {/* Center: Social icons */}
+            <div className="footer-bar-center" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
 
               {/* Pebble Social Icons — organic shapes from hero */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -268,16 +287,14 @@ export default function Footer() {
                   );
                 })}
               </div>
+            </div>
 
-              <span className="footer-pipe" style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.15)' }} />
-
-              {/* SEO Fix M15: surface the legal mailing address. Trust signal
-                  for E-E-A-T (a real LLC operates this site, with a real
-                  registered address). Phone number intentionally omitted —
-                  add a Google Voice forwarding number here if/when one is
-                  set up. Until then, /contact is the canonical reach-us
-                  surface. */}
-              <p style={{ fontSize: '13px', color: '#57534e', margin: 0, lineHeight: 1.6 }}>
+            {/* Right: Copyright + legal address.
+                SEO Fix M15: surface the legal mailing address as a trust
+                signal for E-E-A-T (a real LLC operates this site, with a
+                real registered address). */}
+            <div className="footer-bar-right" style={{ display: 'flex', alignItems: 'center' }}>
+              <p style={{ fontSize: '13px', color: '#57534e', margin: 0, lineHeight: 1.6, textAlign: 'right' }}>
                 © {new Date().getFullYear()} {brand.name} · operated by {brand.legal.entityName}
                 <span className="footer-address-sep" style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
                 <span style={{ whiteSpace: 'nowrap' }}>{brand.legal.addressLine}, {brand.legal.addressCity}, {brand.legal.addressRegion} {brand.legal.addressPostalCode}</span>
@@ -289,8 +306,13 @@ export default function Footer() {
           <style jsx>{`
             @media (min-width: 769px) {
               .footer-link-grid {
+                /* 4 equal-width columns inside a centered max-width track —
+                   columns spread evenly across the visual area without
+                   stretching edge-to-edge of the 1440px wrapper. */
                 grid-template-columns: repeat(4, 1fr) !important;
-                gap: 48px 40px !important;
+                max-width: 1100px !important;
+                margin: 0 auto !important;
+                gap: 32px 40px !important;
                 padding-top: 64px !important;
                 padding-bottom: 64px !important;
               }
