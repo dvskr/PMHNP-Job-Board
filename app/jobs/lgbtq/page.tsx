@@ -61,7 +61,7 @@ export default async function LgbtqPage({ searchParams }: PageProps) {
         bgColor="#e0c7a9"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_lgbtq.webp"
         heroAlt="LGBTQ+ affirming PMHNP psychiatric care"
-        badgeText={`${stats.totalJobs} live roles � updated today`}
+        badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'LGBTQ+']}
         indexLabel="? 25 / 28"
         headlineLine1="LGBTQ+"
@@ -84,7 +84,7 @@ export default async function LgbtqPage({ searchParams }: PageProps) {
         <div className="grid lg:grid-cols-4 gap-8">
           <div className="lg:col-span-3">
             <h2 className="font-lora mb-6" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35' }}>LGBTQ+ Affirming Positions {stats.totalJobs > 0 ? `(${stats.totalJobs})` : ''}</h2>
-            {jobs.length > 0 ? (<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">{jobs.map((job: Job) => (<JobCard key={job.id} job={job} />))}</div>) : (<div className="text-center py-12"><p style={{ color: '#7A6A62', marginBottom: '8px' }}>No explicitly labeled LGBTQ+ positions right now.</p><p style={{ fontSize: '13px', color: '#7A6A62' }}>Many inclusive employers don&apos;t tag roles � <Link href="/jobs" style={{ color: '#0D9488', fontWeight: 600 }}>browse all jobs</Link> and filter by employer.</p></div>)}
+            {jobs.length > 0 ? (<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">{jobs.map((job: Job) => (<JobCard key={job.id} job={job} />))}</div>) : (<div className="text-center py-12"><p style={{ color: '#7A6A62', marginBottom: '8px' }}>No explicitly labeled LGBTQ+ positions right now.</p><p style={{ fontSize: '13px', color: '#7A6A62' }}>Many inclusive employers don&apos;t tag roles —<Link href="/jobs" style={{ color: '#0D9488', fontWeight: 600 }}>browse all jobs</Link> and filter by employer.</p></div>)}
             <div style={{ textAlign: 'center', marginTop: '32px' }}><Link href="/jobs?category=lgbtq" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse All LGBTQ+ Jobs <ArrowRight size={16} /></Link></div>
           </div>
           <div className="lg:col-span-1">

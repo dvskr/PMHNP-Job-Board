@@ -45,12 +45,14 @@ const contractFaqs = [
   { question: 'Can contract roles convert to permanent?', answer: 'Yes — many facilities use contract-to-perm arrangements. This lets both parties evaluate fit before committing to a permanent position, reducing hiring risk.' },
 ];
 
-export async function generateMetadata(): Promise<Metadata> {
-  const stats = await getStats();
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const [stats, params] = await Promise.all([getStats(), searchParams]);
+  const page = Math.max(1, parseInt(params.page || '1'));
   return {
     title: `${stats.totalJobs} Contract PMHNP Jobs ($130K-180K)`,
     description: `Find ${stats.totalJobs} contract PMHNP jobs paying $130K-180K+. Browse psychiatric nurse practitioner contract positions with premium rates.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/contract` },
+    ...(page > 1 && { robots: { index: false, follow: true } }),
   };
 }
 

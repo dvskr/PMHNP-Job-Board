@@ -79,7 +79,7 @@ export default async function VeteransPage({ searchParams }: PageProps) {
         bgColor="#b8c8d4"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_veterans.webp"
         heroAlt="Veterans mental health PMHNP care"
-        badgeText={`${stats.totalJobs} live roles � updated today`}
+        badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Veterans']}
         indexLabel="? 28 / 28"
         headlineLine1="Veterans"

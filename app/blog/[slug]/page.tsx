@@ -377,7 +377,7 @@ export default async function BlogPostPage({ params }: Props) {
             name: `How to Get Your PMHNP License in ${sn}`,
             description: `Step-by-step guide to obtaining your Psychiatric-Mental Health Nurse Practitioner license in ${sn}.`,
             totalTime: 'P60D',
-            estimatedCost: { '@type': 'MonetaryCost', currency: 'USD', value: '500-1500' },
+            estimatedCost: { '@type': 'MonetaryAmount', currency: 'USD', value: '500-1500' },
             image: post.image_url || undefined,
             step: [
                 { '@type': 'HowToStep', position: 1, name: 'Complete MSN or DNP', text: `Earn a Master of Science in Nursing (MSN) or Doctor of Nursing Practice (DNP) degree with a Psychiatric-Mental Health Nurse Practitioner specialization from an CCNE or ACEN accredited program.` },

@@ -930,7 +930,7 @@ export default async function JobPage({ params }: JobPageProps) {
                   employerName={job.employer}
                   company={companyInfo}
                   otherJobsCount={employerJobCount}
-                  companyWebsite={(job as any).companyWebsite}
+                  companyWebsite={job.companyWebsite ?? undefined}
                 />
               </div>
 

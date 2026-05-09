@@ -1,9 +1,11 @@
 /**
  * Sitemap Index — lists the primary sitemap and all city sitemap batches.
- * 
- * DB-driven: batch count is now calculated from actual job data
- * instead of static category×city count.
- * 
+ *
+ * DB-driven: batch count is calculated from pseoStats (matching the per-batch
+ * route at /api/sitemaps/cities/[batch]) so the index and batches always
+ * agree on how many URLs are emitted. The two routes share thresholds and
+ * gating so a stale index never points at empty batches.
+ *
  * Route: /api/sitemaps/index
  */
 import { NextResponse } from 'next/server';
@@ -16,12 +18,22 @@ const SITEMAP_CATEGORIES = [
   'full-time', 'part-time', 'contract',
   'addiction', 'new-grad', '1099', 'behavioral-health', 'correctional',
 ];
+const SITEMAP_CATEGORY_SET = new Set(SITEMAP_CATEGORIES);
+const CITY_POPULATION_LOOKUP = new Map<string, number>(
+  CITIES.map(c => [c.slug, c.population])
+);
 
 const BATCH_SIZE = 10000;
 // Mirrors the constant in /api/sitemaps/jobs/[batch]/route.ts — must stay
 // in lockstep so the index reports the right batch count.
 const JOB_BATCH_SIZE = 25000;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
+
+// Mirror of thresholds + staleness window in cities/[batch]/route.ts.
+// If you change either, change both — the two routes must agree exactly.
+const MIN_SITEMAP_JOBS = 3;
+const MIN_SITEMAP_POPULATION = 10000;
+const PSEO_STALENESS_HOURS = 36;
 
 export async function GET() {
   // SEO Fix #17: lastmod must reflect actual freshness, not "today". Using
@@ -43,52 +55,42 @@ export async function GET() {
     // fall back to today; underspecifying lastmod is safer than over-claiming
   }
 
-  // DB-driven: count how many category×city URLs meet quality thresholds
-  // Must match the pruning logic in cities/[batch]/route.ts
-  const MIN_SITEMAP_JOBS = 3;
-  const MIN_SITEMAP_POPULATION = 10000;
+  // DB-driven: count how many URLs the batch route will actually emit.
+  // Must match the pruning logic in cities/[batch]/route.ts exactly — both
+  // routes now query pseoStats with identical thresholds so the index never
+  // over- or under-reports batch count.
+  const freshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
   let totalUrls = 0;
   try {
-    const citiesWithJobs = await prisma.job.groupBy({
-      by: ['city', 'state'],
+    // Category × City: pseoStats.totalJobs ≥ MIN_SITEMAP_JOBS, fresh, valid
+    // category, city population ≥ floor.
+    const categoryCityRows = await prisma.pseoStats.findMany({
       where: {
-        isPublished: true,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
-        ],
-        city: { not: null },
-        state: { not: null },
+        type: 'category-city',
+        totalJobs: { gte: MIN_SITEMAP_JOBS },
+        updatedAt: { gte: freshnessThreshold },
       },
-      _count: { city: true },
+      select: { categorySlug: true, locationSlug: true },
     });
-
-    // Build city→count lookup
-    const cityJobCounts = new Map(
-      citiesWithJobs
-        .filter(r => r.city && r.state)
-        .map(r => [`${r.city!.toLowerCase().trim()}|${r.state!.toLowerCase().trim()}`, r._count.city])
-    );
-
-    // Count matching category×city URLs that pass quality gates
-    for (const _category of SITEMAP_CATEGORIES) {
-      for (const city of CITIES) {
-        if (city.population < MIN_SITEMAP_POPULATION) continue;
-        const key = `${city.name.toLowerCase().trim()}|${city.state.toLowerCase().trim()}`;
-        const jobCount = cityJobCounts.get(key) || 0;
-        if (jobCount >= MIN_SITEMAP_JOBS) totalUrls++;
-      }
+    for (const row of categoryCityRows) {
+      if (!SITEMAP_CATEGORY_SET.has(row.categorySlug)) continue;
+      const population = CITY_POPULATION_LOOKUP.get(row.locationSlug);
+      if (population === undefined || population < MIN_SITEMAP_POPULATION) continue;
+      totalUrls++;
     }
 
-    // GSC Fix (P1.1): also count populated setting×state URLs that the batch
-    // route now emits. Without this the index's batch count under-reports
-    // and batch slicing could truncate the tail.
+    // Setting × State: pseoStats.totalJobs ≥ 1 and fresh.
     const settingStateCount = await prisma.pseoStats.count({
-      where: { type: 'setting-state', totalJobs: { gte: 1 } },
+      where: {
+        type: 'setting-state',
+        totalJobs: { gte: 1 },
+        updatedAt: { gte: freshnessThreshold },
+      },
     });
     totalUrls += settingStateCount;
   } catch {
-    // Fallback: estimate conservatively
+    // Fallback: conservative estimate. Better to under-list batches than
+    // to advertise empty ones.
     totalUrls = SITEMAP_CATEGORIES.length * Math.min(CITIES.length, 500);
   }
 

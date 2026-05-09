@@ -36,9 +36,16 @@ const faqs = [
   { q: 'How long are typical assignments?', a: 'Most travel PMHNP assignments are 13 weeks (one quarter), though 8-week and 26-week contracts are also common. Extensions are frequently offered if the facility and provider are a good fit.' },
 ];
 
-export async function generateMetadata(): Promise<Metadata> {
-  const stats = await getStats();
-  return { title: `${stats.totalJobs} Travel PMHNP Jobs — Locum Tenens ($80-150/hr)`, description: `Find ${stats.totalJobs} travel PMHNP and locum tenens positions paying $80-150/hr. Housing stipends, flexible nationwide assignments, premium pay.`, keywords: ['travel pmhnp jobs', 'locum tenens psych NP', 'travel psychiatric nurse practitioner', 'traveling PMHNP positions'], alternates: { canonical: `${brand.baseUrl}/jobs/travel` } };
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const [stats, params] = await Promise.all([getStats(), searchParams]);
+  const page = Math.max(1, parseInt(params.page || '1'));
+  return {
+    title: `${stats.totalJobs} Travel PMHNP Jobs — Locum Tenens ($80-150/hr)`,
+    description: `Find ${stats.totalJobs} travel PMHNP and locum tenens positions paying $80-150/hr. Housing stipends, flexible nationwide assignments, premium pay.`,
+    keywords: ['travel pmhnp jobs', 'locum tenens psych NP', 'travel psychiatric nurse practitioner', 'traveling PMHNP positions'],
+    alternates: { canonical: `${brand.baseUrl}/jobs/travel` },
+    ...(page > 1 && { robots: { index: false, follow: true } }),
+  };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }

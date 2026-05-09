@@ -95,16 +95,16 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
   const hasPhysicalLocation = !!(job.city || job.state || job.stateCode);
   const addressLocality = hasPhysicalLocation ? (job.city || undefined) : undefined;
   const addressRegion = hasPhysicalLocation ? (job.stateCode || job.state || undefined) : undefined;
-  const streetAddress = hasPhysicalLocation && job.city && (job.stateCode || job.state)
-    ? `${job.city}, ${job.stateCode || job.state}`
-    : undefined;
+  // Note: streetAddress is intentionally omitted. Job listings don't include a
+  // physical street, and previous code stuffed "City, ST" into streetAddress —
+  // a semantic error per schema.org PostalAddress (those values belong in
+  // addressLocality and addressRegion, which we already emit).
 
   const physicalJobLocation = hasPhysicalLocation
     ? {
         '@type': 'Place',
         address: stripUndefined({
           '@type': 'PostalAddress',
-          streetAddress,
           addressLocality,
           addressRegion,
           addressCountry: 'US',
@@ -157,17 +157,25 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
     datePosted: datePosted.toISOString(),
     validThrough: validThrough.toISOString(),
     employmentType: mapJobType(job.jobType),
-    hiringOrganization: {
+    hiringOrganization: stripUndefined({
       '@type': 'Organization',
       name: job.employer,
-    },
+      // sameAs lets Google deduplicate employer entities across postings; logo
+      // is what renders next to the listing in Google Jobs results.
+      sameAs: job.companyWebsite || undefined,
+      logo: job.companyLogoUrl || undefined,
+    }),
     jobLocation,
     jobLocationType,
     applicantLocationRequirements,
     baseSalary,
     industry: 'Healthcare',
     occupationalCategory: '29-1171.00',
-    directApply: true,
+    // Only emit directApply when the application actually completes on this
+    // page (in-platform ATS via applyOnPlatform). For employer-direct-link
+    // and aggregator listings we omit — the apply flow leaves the URL.
+    // Misclaiming directApply on off-site flows triggers Google Jobs demotion.
+    ...(job.applyOnPlatform ? { directApply: true } : {}),
     identifier: {
       '@type': 'PropertyValue',
       name: 'PMHNP Hiring',

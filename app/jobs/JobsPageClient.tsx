@@ -14,7 +14,6 @@ import MobileFilterDrawer from '@/components/MobileFilterDrawer';
 import { Job } from '@/lib/types';
 import { FilterState, DEFAULT_FILTERS } from '@/types/filters';
 import { parseFiltersFromParams } from '@/lib/filters';
-import { useFilterPersistence } from '@/lib/hooks/useFilterPersistence';
 import { useViewMode } from '@/lib/hooks/useViewMode';
 
 interface JobsContentProps {
@@ -28,16 +27,6 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   const searchParams = useSearchParams();
 
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
-
-  useEffect(() => {
-    if (jobs.length > 0) {
-      console.log('Client Job 0:', {
-        title: jobs[0].title,
-        originalPostedAt: jobs[0].originalPostedAt,
-        type: typeof jobs[0].originalPostedAt
-      });
-    }
-  }, [jobs]);
 
   // `total` was previously displayed in the "Showing X PMHNP jobs" header
   // (replaced by the AI Search bar). Kept as setter-only so future surfaces
@@ -113,9 +102,6 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     setAiError(null);
     setAiDegraded(false);
   }, []);
-
-  // Persist filter preferences across sessions
-  useFilterPersistence();
 
   const fetchJobs = useCallback(async (filters: FilterState, page: number = 1, sort: string = 'best') => {
     try {
@@ -218,7 +204,9 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
 
   // Fetch jobs when filters change
   useEffect(() => {
-    const filters = parseFiltersFromParams(new URLSearchParams(searchParams.toString()));
+    const params = new URLSearchParams(searchParams.toString());
+    const filters = parseFiltersFromParams(params);
+    const pageFromUrl = Math.max(1, parseInt(params.get('page') || '1'));
     setCurrentFilters(filters);
 
     // Skip fetch on initial load - we already have server-rendered data
@@ -227,8 +215,10 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
       return;
     }
 
-    setCurrentPage(1); // Reset to page 1 when filters change
-    fetchJobs(filters, 1, sortOption);
+    // URL is the single source of truth for page. Page-change clicks now write
+    // ?page=N via router.push, which lands here and drives the fetch.
+    setCurrentPage(pageFromUrl);
+    fetchJobs(filters, pageFromUrl, sortOption);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only depend on searchParams, not fetchJobs
 
@@ -246,11 +236,19 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     router.push(`/jobs?${params.toString()}`, { scroll: false });
   };
 
-  // Handle page change
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      fetchJobs(currentFilters, newPage, sortOption);
+  // Build a paginated URL for the given page number while preserving every
+  // other URL param (sort, filters). Pagination is rendered as real <Link>
+  // elements so Googlebot sees crawlable hrefs; the URL is the single source
+  // of truth — the searchParams effect above re-reads and drives the fetch.
+  const buildPageHref = (n: number): string => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (n <= 1) {
+      params.delete('page');
+    } else {
+      params.set('page', n.toString());
     }
+    const qs = params.toString();
+    return qs ? `/jobs?${qs}` : '/jobs';
   };
 
   // Count active filters (including search)
@@ -639,131 +637,110 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                   ))}
                 </div>
 
-                {/* Pagination — hidden in AI mode (semantic returns top-K, not paged) */}
-                {totalPages > 1 && aiResults === null && (
-                  <div style={{
-                    marginTop: '40px', paddingTop: '24px',
-                    borderTop: '1px solid var(--border-color)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                  }}>
-                    {/* Previous Button */}
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="jp-page-btn"
-                      style={{
-                        padding: '8px 16px', fontSize: '13px', fontWeight: 600,
-                        backgroundColor: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)', borderRadius: '8px',
-                        color: currentPage === 1 ? 'var(--text-tertiary)' : 'var(--text-primary)',
-                        cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                        opacity: currentPage === 1 ? 0.5 : 1,
-                        transition: 'all 0.2s',
-                      }}
-                      aria-label="Previous page"
-                    >
-                      Previous
-                    </button>
-
-                    {/* Page Numbers */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      {/* First Page */}
-                      {currentPage > 3 && (
-                        <>
-                          <button
-                            onClick={() => handlePageChange(1)}
-                            className="jp-page-btn"
-                            style={{
-                              padding: '8px 12px', fontSize: '13px', fontWeight: 600,
-                              backgroundColor: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)', borderRadius: '8px',
-                              color: 'var(--text-primary)', cursor: 'pointer',
-                              transition: 'all 0.2s',
-                            }}
-                          >
-                            1
-                          </button>
-                          {currentPage > 4 && (
-                            <span style={{ padding: '0 6px', color: 'var(--text-tertiary)', fontSize: '13px' }}>...</span>
-                          )}
-                        </>
+                {/* Pagination — hidden in AI mode (semantic returns top-K, not paged).
+                    Uses real <Link> elements so Googlebot sees crawlable hrefs;
+                    onClick is a no-op shim that lets Next.js intercept and call
+                    router.push (already attached via Link), giving us SPA nav. */}
+                {totalPages > 1 && aiResults === null && (() => {
+                  const numberedStyle = (active: boolean): React.CSSProperties => ({
+                    padding: '8px 12px', fontSize: '13px', fontWeight: 600,
+                    borderRadius: '8px', cursor: 'pointer', textDecoration: 'none',
+                    transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center',
+                    ...(active
+                      ? { backgroundColor: 'var(--color-primary)', color: '#fff', border: '1px solid var(--color-primary)' }
+                      : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }),
+                  });
+                  const navStyle = (disabled: boolean): React.CSSProperties => ({
+                    padding: '8px 16px', fontSize: '13px', fontWeight: 600,
+                    backgroundColor: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)', borderRadius: '8px',
+                    color: disabled ? 'var(--text-tertiary)' : 'var(--text-primary)',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    opacity: disabled ? 0.5 : 1,
+                    textDecoration: 'none', display: 'inline-flex', alignItems: 'center',
+                    transition: 'all 0.2s',
+                  });
+                  return (
+                    <div style={{
+                      marginTop: '40px', paddingTop: '24px',
+                      borderTop: '1px solid var(--border-color)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    }}>
+                      {/* Previous */}
+                      {currentPage === 1 ? (
+                        <span className="jp-page-btn" style={navStyle(true)} aria-disabled="true">Previous</span>
+                      ) : (
+                        <Link
+                          href={buildPageHref(currentPage - 1)}
+                          scroll={false}
+                          className="jp-page-btn"
+                          style={navStyle(false)}
+                          aria-label="Previous page"
+                        >
+                          Previous
+                        </Link>
                       )}
 
-                      {/* Pages around current */}
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(page => {
-                          const distance = Math.abs(page - currentPage);
-                          return distance <= 2 || page === 1 || page === totalPages;
-                        })
-                        .filter(page => page !== 1 && page !== totalPages)
-                        .map(page => (
-                          <button
-                            key={page}
-                            onClick={() => handlePageChange(page)}
-                            className="jp-page-btn"
-                            style={{
-                              padding: '8px 12px', fontSize: '13px', fontWeight: 600,
-                              borderRadius: '8px', cursor: 'pointer',
-                              transition: 'all 0.2s',
-                              ...(page === currentPage
-                                ? {
-                                  backgroundColor: 'var(--color-primary)', color: '#fff',
-                                  border: '1px solid var(--color-primary)',
-                                }
-                                : {
-                                  backgroundColor: 'var(--bg-secondary)',
-                                  color: 'var(--text-primary)',
-                                  border: '1px solid var(--border-color)',
-                                }),
-                            }}
-                          >
-                            {page}
-                          </button>
-                        ))}
+                      {/* Page Numbers */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {currentPage > 3 && (
+                          <>
+                            <Link href={buildPageHref(1)} scroll={false} className="jp-page-btn" style={numberedStyle(false)}>1</Link>
+                            {currentPage > 4 && (
+                              <span style={{ padding: '0 6px', color: 'var(--text-tertiary)', fontSize: '13px' }}>...</span>
+                            )}
+                          </>
+                        )}
 
-                      {/* Last Page */}
-                      {currentPage < totalPages - 2 && (
-                        <>
-                          {currentPage < totalPages - 3 && (
-                            <span style={{ padding: '0 6px', color: 'var(--text-tertiary)', fontSize: '13px' }}>...</span>
-                          )}
-                          <button
-                            onClick={() => handlePageChange(totalPages)}
-                            className="jp-page-btn"
-                            style={{
-                              padding: '8px 12px', fontSize: '13px', fontWeight: 600,
-                              backgroundColor: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)', borderRadius: '8px',
-                              color: 'var(--text-primary)', cursor: 'pointer',
-                              transition: 'all 0.2s',
-                            }}
-                          >
-                            {totalPages}
-                          </button>
-                        </>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                          .filter(page => {
+                            const distance = Math.abs(page - currentPage);
+                            return distance <= 2 || page === 1 || page === totalPages;
+                          })
+                          .filter(page => page !== 1 && page !== totalPages)
+                          .map(page => (
+                            page === currentPage ? (
+                              <span key={page} className="jp-page-btn" style={numberedStyle(true)} aria-current="page">{page}</span>
+                            ) : (
+                              <Link
+                                key={page}
+                                href={buildPageHref(page)}
+                                scroll={false}
+                                className="jp-page-btn"
+                                style={numberedStyle(false)}
+                              >
+                                {page}
+                              </Link>
+                            )
+                          ))}
+
+                        {currentPage < totalPages - 2 && (
+                          <>
+                            {currentPage < totalPages - 3 && (
+                              <span style={{ padding: '0 6px', color: 'var(--text-tertiary)', fontSize: '13px' }}>...</span>
+                            )}
+                            <Link href={buildPageHref(totalPages)} scroll={false} className="jp-page-btn" style={numberedStyle(false)}>{totalPages}</Link>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Next */}
+                      {currentPage === totalPages ? (
+                        <span className="jp-page-btn" style={navStyle(true)} aria-disabled="true">Next</span>
+                      ) : (
+                        <Link
+                          href={buildPageHref(currentPage + 1)}
+                          scroll={false}
+                          className="jp-page-btn"
+                          style={navStyle(false)}
+                          aria-label="Next page"
+                        >
+                          Next
+                        </Link>
                       )}
                     </div>
-
-                    {/* Next Button */}
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="jp-page-btn"
-                      style={{
-                        padding: '8px 16px', fontSize: '13px', fontWeight: 600,
-                        backgroundColor: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)', borderRadius: '8px',
-                        color: currentPage === totalPages ? 'var(--text-tertiary)' : 'var(--text-primary)',
-                        cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                        opacity: currentPage === totalPages ? 0.5 : 1,
-                        transition: 'all 0.2s',
-                      }}
-                      aria-label="Next page"
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
+                  );
+                })()}
               </>
             )}
           </main>

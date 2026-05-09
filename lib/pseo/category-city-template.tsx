@@ -1124,54 +1124,6 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
           }}
         />
       )}
-      {/* D9b: JobPosting schema for listed jobs */}
-      {jobs.length > 0 && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(jobs.slice(0, 10).map((job: Job) => ({
-              '@context': 'https://schema.org',
-              '@type': 'JobPosting',
-              title: job.title,
-              description: (job.descriptionSummary || job.description || '').slice(0, 500) || `${config.label} PMHNP position in ${city!.name}, ${city!.stateCode}`,
-              datePosted: job.originalPostedAt ? new Date(job.originalPostedAt).toISOString().split('T')[0] : new Date(job.createdAt).toISOString().split('T')[0],
-              ...(job.expiresAt && { validThrough: new Date(job.expiresAt).toISOString().split('T')[0] }),
-              employmentType: job.jobType === 'Part-Time' ? 'PART_TIME'
-                : job.jobType === 'Contract' ? 'CONTRACTOR'
-                : job.jobType === 'Per Diem' ? 'PER_DIEM'
-                : 'FULL_TIME',
-              hiringOrganization: {
-                '@type': 'Organization',
-                name: job.employer || 'Confidential Employer',
-                ...(job.companyLogoUrl && { logo: job.companyLogoUrl }),
-              },
-              jobLocation: {
-                '@type': 'Place',
-                address: {
-                  '@type': 'PostalAddress',
-                  addressLocality: job.city || city!.name,
-                  addressRegion: job.stateCode || city!.stateCode,
-                  addressCountry: 'US',
-                },
-              },
-              ...(job.isRemote && { jobLocationType: 'TELECOMMUTE' }),
-              ...((job.normalizedMinSalary || job.normalizedMaxSalary) && {
-                baseSalary: {
-                  '@type': 'MonetaryAmount',
-                  currency: 'USD',
-                  value: {
-                    '@type': 'QuantitativeValue',
-                    ...(job.normalizedMinSalary && { minValue: job.normalizedMinSalary }),
-                    ...(job.normalizedMaxSalary && { maxValue: job.normalizedMaxSalary }),
-                    unitText: 'YEAR',
-                  },
-                },
-              }),
-              url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
-            }))),
-          }}
-        />
-      )}
       {/* D10: Place schema */}
       <script
         type="application/ld+json"
@@ -1639,7 +1591,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
               {taxonomyCityNarrative}
             </p>
             <p style={{ fontSize: '11px', marginTop: '8px', color: '#A09080' }}>
-              Sources: U.S. Census Bureau, Bureau of Labor Statistics, HRSA HPSA data, AANP State Practice Environment. Updated {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
+              Sources: U.S. Census Bureau, Bureau of Labor Statistics, HRSA HPSA data, AANP State Practice Environment.
             </p>
           </section>
 
@@ -1648,7 +1600,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
             const faqs = [
               {
                 q: `How many ${config.label.toLowerCase()} PMHNP jobs are available in ${city!.name}, ${city!.stateCode}?`,
-                a: `As of ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}, there ${stats.totalJobs === 1 ? 'is' : 'are'} ${stats.totalJobs} ${config.label.toLowerCase()} PMHNP ${stats.totalJobs === 1 ? 'position' : 'positions'} available in ${city!.name}, ${city!.stateCode}. New positions are posted regularly as demand for psychiatric nurse practitioners continues to grow.`,
+                a: `There ${stats.totalJobs === 1 ? 'is' : 'are'} currently ${stats.totalJobs} ${config.label.toLowerCase()} PMHNP ${stats.totalJobs === 1 ? 'position' : 'positions'} available in ${city!.name}, ${city!.stateCode}. New positions are posted regularly as demand for psychiatric nurse practitioners continues to grow.`,
               },
               {
                 q: `What is the average PMHNP salary in ${city!.name}?`,
@@ -1727,7 +1679,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
               const faqs = [
                 {
                   q: `How many ${config.label.toLowerCase()} PMHNP jobs are available in ${city!.name}, ${city!.stateCode}?`,
-                  a: `As of ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}, there ${stats.totalJobs === 1 ? 'is' : 'are'} ${stats.totalJobs} ${config.label.toLowerCase()} PMHNP ${stats.totalJobs === 1 ? 'position' : 'positions'} available in ${city!.name}, ${city!.stateCode}. New positions are posted regularly as demand for psychiatric nurse practitioners continues to grow.`,
+                  a: `There ${stats.totalJobs === 1 ? 'is' : 'are'} currently ${stats.totalJobs} ${config.label.toLowerCase()} PMHNP ${stats.totalJobs === 1 ? 'position' : 'positions'} available in ${city!.name}, ${city!.stateCode}. New positions are posted regularly as demand for psychiatric nurse practitioners continues to grow.`,
                 },
                 {
                   q: `What is the average PMHNP salary in ${city!.name}?`,

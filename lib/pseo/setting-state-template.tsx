@@ -337,55 +337,6 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
           }}
         />
       )}
-      {/* JobPosting schema for listed jobs */}
-      {jobs.length > 0 && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(jobs.slice(0, 10).map((job: Job) => ({
-              '@context': 'https://schema.org',
-              '@type': 'JobPosting',
-              title: job.title,
-              description: (job.descriptionSummary || job.description || '').slice(0, 500) || `${config.label} PMHNP position in ${stateName}`,
-              datePosted: job.originalPostedAt ? new Date(job.originalPostedAt).toISOString().split('T')[0] : new Date(job.createdAt).toISOString().split('T')[0],
-              ...(job.expiresAt && { validThrough: new Date(job.expiresAt).toISOString().split('T')[0] }),
-              employmentType: job.jobType === 'Part-Time' ? 'PART_TIME'
-                : job.jobType === 'Contract' ? 'CONTRACTOR'
-                : job.jobType === 'Per Diem' ? 'PER_DIEM'
-                : 'FULL_TIME',
-              hiringOrganization: {
-                '@type': 'Organization',
-                name: job.employer || 'Confidential Employer',
-                ...(job.companyLogoUrl && { logo: job.companyLogoUrl }),
-              },
-              jobLocation: {
-                '@type': 'Place',
-                address: {
-                  '@type': 'PostalAddress',
-                  ...(job.city && { addressLocality: job.city }),
-                  addressRegion: job.stateCode || stateCode || '',
-                  addressCountry: 'US',
-                },
-              },
-              ...(job.isRemote && { jobLocationType: 'TELECOMMUTE' }),
-              ...((job.normalizedMinSalary || job.normalizedMaxSalary) && {
-                baseSalary: {
-                  '@type': 'MonetaryAmount',
-                  currency: 'USD',
-                  value: {
-                    '@type': 'QuantitativeValue',
-                    ...(job.normalizedMinSalary && { minValue: job.normalizedMinSalary }),
-                    ...(job.normalizedMaxSalary && { maxValue: job.normalizedMaxSalary }),
-                    unitText: 'YEAR',
-                  },
-                },
-              }),
-              url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
-            }))),
-          }}
-        />
-      )}
-
       {/* Analytics */}
       <PseoPageViewTracker
         pageType="setting_state"
