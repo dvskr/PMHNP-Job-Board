@@ -7,6 +7,11 @@ import { Suspense } from 'react'
 export const metadata = {
   title: 'Sign In | PMHNP Hiring',
   description: 'Sign in to your PMHNP Hiring account to manage saved jobs, job alerts, and applications.',
+  // Page is noindexed via middleware X-Robots-Tag (per app/robots.ts P2.3
+  // unblock window). Self-canonical still emitted so any inbound link
+  // variants (?redirectTo=…) consolidate to the bare /login URL.
+  alternates: { canonical: 'https://pmhnphiring.com/login' },
+  robots: { index: false, follow: true },
 }
 
 export default async function LoginPage({
