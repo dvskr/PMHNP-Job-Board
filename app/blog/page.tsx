@@ -11,7 +11,11 @@ import {
 import VideoJsonLd from '@/components/VideoJsonLd';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
-export const dynamic = 'force-dynamic';
+// ISR: blog index changes when posts publish/unpublish; 1-hour revalidate is
+// well within the editorial cadence. Previously force-dynamic meant every
+// Googlebot hit hit Supabase live — wasted DB and CPU on the highest-traffic
+// editorial surface.
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
     title: 'PMHNP Career Blog | Expert Guides & Insights',

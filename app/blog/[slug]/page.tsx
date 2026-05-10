@@ -21,7 +21,11 @@ import VideoLightbox from '@/components/blog/VideoLightbox';
 import BlogEmailSignup from '@/components/BlogEmailSignup';
 import '@/app/editorial.css';
 
-export const dynamic = 'force-dynamic';
+// ISR: blog post bodies change infrequently; 1-hour revalidate is appropriate.
+// Previously force-dynamic bypassed all caching, so every crawl plus every
+// share-driven traffic spike re-rendered the post and re-ran markdown +
+// auto-link processing. revalidate also lets Vercel serve from edge cache.
+export const revalidate = 3600;
 
 interface Props {
     params: Promise<{ slug: string }>;
