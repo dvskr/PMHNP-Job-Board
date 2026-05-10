@@ -259,7 +259,10 @@ export default async function BlogPostPage({ params }: Props) {
         headline: post.title,
         description: post.meta_description || post.title,
         datePublished: post.publish_date || post.created_at,
-        dateModified: post.updated_at,
+        // Audit 14 HIGH: prefer the editorial-review timestamp when set so
+        // dateModified reflects real freshness. Falls back to updated_at
+        // for legacy rows that haven't had a review pass yet.
+        dateModified: post.reviewed_at || post.updated_at,
         author: {
             '@type': 'Organization',
             name: 'PMHNP Hiring',
@@ -404,7 +407,16 @@ export default async function BlogPostPage({ params }: Props) {
         };
     })() : null;
 
-    const faqQuestions = blogFaqData[slug];
+    // Resolution order for FAQPage rich-result eligibility (audit 14 MEDIUM):
+    //   1. post.faq_json from the DB — populated via the n8n content
+    //      pipeline so any blog post can have its own FAQ.
+    //   2. blogFaqData[slug] hardcoded map — covers the 3 legacy posts
+    //      shipped before the column existed.
+    //   3. State-license dynamic generation populated into blogFaqData
+    //      above for /how-to-get-your-pmhnp-license-in-* slugs.
+    const faqQuestions = (post.faq_json && post.faq_json.length > 0)
+        ? post.faq_json
+        : blogFaqData[slug];
     const faqSchema = faqQuestions ? {
         '@context': 'https://schema.org',
         '@type': 'FAQPage',

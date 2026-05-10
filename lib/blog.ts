@@ -16,6 +16,15 @@ export interface BlogPost {
     image_url: string | null;
     youtube_video_id: string | null;
     video_url: string | null;
+    /** Editorial review timestamp. Takes precedence over updated_at as the
+     *  BlogPosting.dateModified value when set (audit 14 HIGH). Bump on
+     *  each review pass so dateModified reflects real freshness instead of
+     *  being permanently equal to publish_date. */
+    reviewed_at: string | null;
+    /** Per-post FAQ data emitted as FAQPage JSON-LD. Populated via the
+     *  n8n content pipeline. When null, the post page falls back to the
+     *  legacy hardcoded blogFaqData map (audit 14 MEDIUM). */
+    faq_json: Array<{ name: string; text: string }> | null;
     created_at: string;
     updated_at: string;
 }
@@ -206,7 +215,9 @@ export async function getAllPublishedSlugs(): Promise<
 // ─── Write Functions (service role) ──────────────────────────────────────────
 
 export async function createBlogPost(
-    data: Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>
+    // reviewed_at and faq_json are populated separately (editorial review
+    // pass and n8n content pipeline respectively), not at create time.
+    data: Omit<BlogPost, 'id' | 'created_at' | 'updated_at' | 'reviewed_at' | 'faq_json'>
 ): Promise<BlogPost> {
     const supabase = getSupabaseServiceClient();
 
