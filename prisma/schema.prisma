@@ -658,6 +658,19 @@ model BlogPost {
   imageUrl        String?   @map("image_url")
   youtubeVideoId  String?   @map("youtube_video_id")
   videoUrl        String?   @map("video_url")
+  // Editorial review timestamp. When set, takes precedence over updatedAt as
+  // the BlogPosting.dateModified emitted on the post page (audit 14 HIGH).
+  // Bump on each editorial review pass so dateModified reflects real
+  // freshness instead of being permanently equal to datePublished. Nullable
+  // so legacy rows don't need a backfill — the page falls back to updatedAt.
+  reviewedAt      DateTime? @map("reviewed_at")
+  // Per-post FAQ data ({ name, text }[]) emitted as FAQPage JSON-LD
+  // (audit 14 MEDIUM). Replaces the hardcoded blogFaqData lookup at
+  // app/blog/[slug]/page.tsx — populated via the n8n content pipeline.
+  // Nullable: the page falls back to the legacy hardcoded map for slugs
+  // that haven't been backfilled yet, then to dynamic state-license
+  // generation for /how-to-get-your-pmhnp-license-in-* slugs.
+  faqJson         Json?     @map("faq_json")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
