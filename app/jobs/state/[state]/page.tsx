@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import { stateToSlug } from '@/lib/pseo/setting-state-config';
 import StateFAQ from '@/components/StateFAQ';
 import { Job } from '@/lib/types';
 import {
@@ -56,7 +57,7 @@ const CODE_TO_STATE: Record<string, string> = Object.entries(STATE_CODES)
 // URL-friendly state name to proper state name
 const URL_TO_STATE: Record<string, string> = Object.keys(STATE_CODES)
   .reduce((acc, state) => {
-    const urlFriendly = state.toLowerCase().replace(/\s+/g, '-');
+    const urlFriendly = stateToSlug(state);
     acc[urlFriendly] = state;
     return acc;
   }, {} as Record<string, string>);
@@ -291,7 +292,7 @@ async function getNearbyStatesWithJobs(stateName: string): Promise<{ name: strin
         name: neighborState,
         code,
         count,
-        slug: neighborState.toLowerCase().replace(/\s+/g, '-'),
+        slug: stateToSlug(neighborState),
       };
     })
   );
@@ -389,7 +390,7 @@ export async function generateMetadata({ params, searchParams }: StatePageProps)
         // /jobs/state/ny, /jobs/state/CA, /jobs/state/New%20York all resolve to
         // the same state but each would emit a different canonical if we used
         // the raw param — splintering the indexed forms.
-        canonical: `https://pmhnphiring.com/jobs/state/${stateName.toLowerCase().replace(/\s+/g, '-')}`,
+        canonical: `https://pmhnphiring.com/jobs/state/${stateToSlug(stateName)}`,
       },
       // GSC Fix (P3.1 + P3.5): noindex empty-state pages AND any paginated view.
       // Empty state → soft 404 risk; paginated view → duplicate-canonical risk.
@@ -426,7 +427,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
   // space) to the canonical hyphenated lowercase slug. parseStateParam
   // accepts ny / CA / New%20York all as valid; without this redirect each
   // form would render its own copy of the page with conflicting canonicals.
-  const canonicalStateSlug = stateName.toLowerCase().replace(/\s+/g, '-');
+  const canonicalStateSlug = stateToSlug(stateName);
   if (stateParam !== canonicalStateSlug) {
     const qs = new URLSearchParams(sp as Record<string, string>).toString();
     permanentRedirect(`/jobs/state/${canonicalStateSlug}${qs ? `?${qs}` : ''}`);
@@ -455,7 +456,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
   // GSC Fix (P1.5): only render setting pills for setting×state combos that
   // actually have ≥1 active job. Linking to empty pages generated thousands
   // of "Discovered — currently not indexed" entries.
-  const stateSlugForLookup = stateName.toLowerCase().replace(/\s+/g, '-');
+  const stateSlugForLookup = stateToSlug(stateName);
   const validSettingRows = await prisma.pseoStats.findMany({
     where: {
       type: 'setting-state',
@@ -472,7 +473,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
   const practiceAuthority = getStatePracticeAuthority(stateName);
   const authorityColors = practiceAuthority ? getAuthorityColor(practiceAuthority.authority) : null;
 
-  const stateSlug = stateName.toLowerCase().replace(/\s+/g, '-');
+  const stateSlug = stateToSlug(stateName);
   const basePath = `/jobs/state/${stateSlug}`;
 
   /* Design Tokens */
