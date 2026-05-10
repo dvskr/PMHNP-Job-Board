@@ -708,8 +708,17 @@ export default async function JobPage({ params }: JobPageProps) {
         <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-8">
           {/* Main Content */}
           <div className="min-w-0">
-            {/* Header Section */}
-            <AnimatedContainer animation="fade-in-up" delay={0}>
+            {/* Header Section.
+                Audit 18 C-1 (CWV): AnimatedContainer is 'use client', so
+                wrapping the LCP card in it gated paint behind hydration —
+                even with delay={0}, the fade-in-up animation can't run
+                until React hydrates the boundary, leaving the h1 + hero
+                content invisible (opacity:0) on cold loads. Replaced
+                with a plain <div> so the LCP element renders
+                immediately. AnimatedContainer is still used for
+                below-the-fold cards (where the hydration gap is
+                imperceptible). */}
+            <div className="job-detail-hero-card">
               <div className="rounded-2xl overflow-hidden mb-5 lg:mb-6" style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '20px', boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)', position: 'relative', padding: '24px 24px 28px', }}>
                 {/* Report Button - Top Right */}
                 <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
@@ -802,7 +811,7 @@ export default async function JobPage({ params }: JobPageProps) {
                   }}>{salary}</p>
                 )}
               </div>
-            </AnimatedContainer>
+            </div>
 
             {/* Description Section */}
             <AnimatedContainer animation="fade-in-up" delay={200}>
