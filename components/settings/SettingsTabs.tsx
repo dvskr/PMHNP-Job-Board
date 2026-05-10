@@ -36,10 +36,6 @@ interface Props {
     isJobSeeker: boolean
 }
 
-export { JOB_SEEKER_TABS, EMPLOYER_TABS }
-// Keep TABS export for backward compat
-export const TABS = JOB_SEEKER_TABS
-
 export default function SettingsTabs({ activeTab, onTabChange, isJobSeeker }: Props) {
     const visibleTabs = isJobSeeker ? JOB_SEEKER_TABS : EMPLOYER_TABS
     const scrollRef = useRef<HTMLDivElement>(null)
