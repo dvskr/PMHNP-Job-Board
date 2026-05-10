@@ -1,4 +1,5 @@
 import { Newsreader } from 'next/font/google';
+import type { Metadata } from 'next';
 
 /**
  * Blog-segment layout: loads Newsreader only for /blog/* routes.
@@ -15,6 +16,20 @@ const newsreader = Newsreader({
     subsets: ['latin'],
     display: 'swap',
 });
+
+// Feed discovery — when a user lands on any /blog/* page, browsers and
+// feed readers (Feedly, Inoreader, NetNewsWire) auto-detect the blog RSS
+// feed via this <link rel="alternate"> tag. Companion to the jobs feed
+// link in app/layout.tsx (/feed.xml).
+export const metadata: Metadata = {
+    alternates: {
+        types: {
+            'application/rss+xml': [
+                { url: '/blog/feed.xml', title: 'PMHNP Hiring — Career Blog & Insights' },
+            ],
+        },
+    },
+};
 
 export default function BlogLayout({ children }: { children: React.ReactNode }) {
     return <div className={newsreader.variable}>{children}</div>;

@@ -68,8 +68,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                 : `Browse open Psychiatric Mental Health Nurse Practitioner (PMHNP) positions at ${company.name}. Find salary info, locations, and apply today.`,
             openGraph: {
                 title: `${company.name} — PMHNP Jobs`,
-                description: `Open PMHNP positions at ${company.name}`,
+                // Expanded from a 30-char default so social cards (LinkedIn,
+                // Facebook) have enough copy to render a usable preview.
+                description: company.description
+                    ? `${company.description.substring(0, 140)}... View ${activeJobCount} open PMHNP role${activeJobCount === 1 ? '' : 's'} at ${company.name}.`
+                    : `Browse ${activeJobCount} open PMHNP position${activeJobCount === 1 ? '' : 's'} at ${company.name}. Salary info, locations, and direct apply.`,
                 url: `https://pmhnphiring.com/companies/${slug}`,
+                type: 'website',
+                siteName: 'PMHNP Hiring',
             },
             alternates: {
                 canonical: `https://pmhnphiring.com/companies/${slug}`,

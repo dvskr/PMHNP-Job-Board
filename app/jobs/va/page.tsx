@@ -94,7 +94,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
   return {
     title: `${stats.totalJobs} VA PMHNP Jobs — Federal Benefits, EDRP & Pension ($120K-175K)`,
-    description: `Find ${stats.totalJobs} VA psychiatric nurse practitioner jobs with federal pension, EDRP student loan repayment up to $200K, FEHB health insurance, 5+ weeks PTO, and full practice authority nationwide. Browse VA PMHNP positions updated daily.`,
+    description: `Find ${stats.totalJobs} VA PMHNP jobs with federal pension, EDRP loan repayment up to $200K, FEHB coverage, and full practice authority nationwide. Updated daily.`,
     openGraph: {
       title: `${stats.totalJobs} VA PMHNP Jobs - Veterans Affairs`,
       description: 'Browse VA psychiatric mental health nurse practitioner positions. Federal benefits, loan repayment, clinical autonomy.',

@@ -164,10 +164,30 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // adding a count() query here would double the per-request DB load
     // for marginal benefit (the 404 itself is the strongest signal Google
     // needs to drop the URL).
+    // Title trimmed to <60 chars (was 77-82 — reliably truncated mid-phrase).
+    // The "Average Pay, Jobs & Cost of Living" suffix moved into the description.
+    const title = `PMHNP Salary in ${stateName} (${code}) 2026 — Avg Pay & Jobs`;
+    const description = `PMHNP salary data for ${stateName}: average pay by practice setting, top employers, and open positions. Updated daily.`;
+    const ogImage = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp';
+
     return {
-        title: `PMHNP Salary in ${stateName} (${code}) 2026 — Average Pay, Jobs & Cost of Living`,
-        description: `Explore PMHNP salary data for ${stateName}. See average pay by setting, top employers, and open positions. Updated daily.`,
+        title,
+        description,
         alternates: { canonical: `https://pmhnphiring.com/salary-guide/${slug}` },
+        openGraph: {
+            title: `PMHNP Salary in ${stateName} (${code}) — 2026 Data`,
+            description: `Average PMHNP salary in ${stateName} by practice setting, top employers, and open positions.`,
+            type: 'website',
+            url: `https://pmhnphiring.com/salary-guide/${slug}`,
+            siteName: 'PMHNP Hiring',
+            images: [{ url: ogImage, width: 1280, height: 900, alt: `PMHNP Salary in ${stateName} 2026` }],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: `PMHNP Salary in ${stateName} (${code}) 2026`,
+            description,
+            images: [ogImage],
+        },
     };
 }
 

@@ -5,6 +5,14 @@ import { Shield, MapPin, CheckCircle, AlertTriangle, XCircle } from 'lucide-reac
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { STATE_PRACTICE_AUTHORITY, getStatesByAuthority, getAuthorityColor, type PracticeAuthority } from '@/lib/state-practice-authority';
 
+// Bump on each editorial review pass — Article.dateModified should reflect
+// real freshness, not be permanently frozen at the original publish date.
+// Update at least quarterly; sooner if NLC membership or state authority
+// classifications change.
+const PUBLISHED_AT = '2026-03-19';
+const LAST_REVIEWED = '2026-03-19';
+const HERO_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp';
+
 export const metadata: Metadata = {
   title: 'PMHNP Full Practice Authority Guide 2026 — All 50 States',
   description: 'Complete state-by-state Full Practice Authority (FPA) guide for psychiatric nurse practitioners. See which states allow independent PMHNP practice, prescriptive authority rules, Nurse Licensure Compact states, and how FPA impacts salary (+12-15% premium).',
@@ -13,6 +21,12 @@ export const metadata: Metadata = {
     title: 'Full Practice Authority Guide for PMHNPs — 2026',
     description: 'State-by-state FPA classifications. See where psychiatric nurse practitioners can practice independently.',
     type: 'article',
+    images: [{ url: HERO_IMAGE, width: 1280, height: 900, alt: 'PMHNP Full Practice Authority Guide 2026' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'PMHNP Full Practice Authority Guide 2026',
+    images: [HERO_IMAGE],
   },
   alternates: { canonical: `${brand.baseUrl}/resources/fpa-guide` },
 };
@@ -76,8 +90,9 @@ export default function FPAGuidePage() {
             '@type': 'Article',
             headline: 'PMHNP Full Practice Authority Guide 2026 — All 50 States',
             description: 'Complete state-by-state guide to Full Practice Authority for psychiatric nurse practitioners.',
-            datePublished: '2026-03-19',
-            dateModified: '2026-03-19',
+            datePublished: PUBLISHED_AT,
+            dateModified: LAST_REVIEWED,
+            image: HERO_IMAGE,
             author: { '@type': 'Organization', name: 'PMHNP Hiring' },
             publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
           }),

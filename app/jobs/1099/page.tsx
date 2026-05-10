@@ -76,12 +76,22 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
   return {
     title: `${stats.totalJobs} 1099 PMHNP Jobs — Independent Contractor Psych NP`,
-    description: `Find ${stats.totalJobs} 1099 PMHNP and independent contractor psychiatric nurse practitioner jobs. Higher hourly rates ($75-$150+/hr), schedule flexibility, and tax advantages. Compare 1099 vs W2 psych NP positions.`,
+    description: `Find ${stats.totalJobs} 1099 PMHNP and independent contractor psychiatric nurse practitioner jobs paying $75-$150+/hr with schedule flexibility and tax advantages.`,
     keywords: ['1099 pmhnp jobs', '1099 pmhnp telehealth', 'independent contractor pmhnp', 'contract psychiatric nurse practitioner', '1099 psych NP', 'independent contractor psychiatric NP'],
     openGraph: {
       title: `${stats.totalJobs} 1099 PMHNP Jobs - Independent Contractor`,
       description: 'Browse 1099 and independent contractor psychiatric mental health nurse practitioner positions.',
       type: 'website',
+      url: `${brand.baseUrl}/jobs/1099`,
+      images: [{
+        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} 1099 PMHNP Jobs`)}&subtitle=${encodeURIComponent('Independent contractor psychiatric NP positions')}`,
+        width: 1200, height: 630, alt: '1099 PMHNP Jobs',
+      }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${stats.totalJobs} 1099 PMHNP Jobs`,
+      description: 'Independent contractor psychiatric NP positions paying $75-$150+/hr.',
     },
     alternates: { canonical: `${brand.baseUrl}/jobs/1099` },
     ...(page > 1 && { robots: { index: false, follow: true } }),

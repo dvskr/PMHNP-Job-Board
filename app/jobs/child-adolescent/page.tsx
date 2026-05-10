@@ -82,6 +82,16 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       title: `${stats.totalJobs} Child & Adolescent PMHNP Jobs`,
       description: 'Browse pediatric psychiatric nurse practitioner positions in schools, hospitals, and clinics.',
       type: 'website',
+      url: `${brand.baseUrl}/jobs/child-adolescent`,
+      images: [{
+        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Child & Adolescent PMHNP Jobs`)}&subtitle=${encodeURIComponent('Pediatric psychiatric NP positions in schools, hospitals & clinics')}`,
+        width: 1200, height: 630, alt: 'Child & Adolescent PMHNP Jobs',
+      }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${stats.totalJobs} Child & Adolescent PMHNP Jobs`,
+      description: 'Pediatric PMHNP positions with specialized training and family-centered care.',
     },
     alternates: { canonical: `${brand.baseUrl}/jobs/child-adolescent` },
     ...(page > 1 && { robots: { index: false, follow: true } }),

@@ -14,6 +14,20 @@ export const metadata: Metadata = {
     title: 'Companies Hiring PMHNPs — PMHNP Hiring',
     description: 'Explore employers with open psychiatric nurse practitioner positions.',
     url: 'https://pmhnphiring.com/companies',
+    type: 'website',
+    siteName: 'PMHNP Hiring',
+    images: [{
+      url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp',
+      width: 1280,
+      height: 900,
+      alt: 'Companies hiring PMHNPs',
+    }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Companies Hiring PMHNPs',
+    description: 'Browse 3,000+ employers actively hiring psychiatric nurse practitioners.',
+    images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp'],
   },
   alternates: {
     canonical: `${brand.baseUrl}/companies`,

@@ -16,10 +16,21 @@ const PUBLIC_ALLOW = [
   '/blog/',
   '/companies/',
   '/salary-guide',
+  '/salary-guide/',
   '/for-job-seekers',
   '/for-employers',
   '/faq',
   '/post-job',
+  // Static content / hub pages that appear in the sitemap. Previously
+  // these were implicitly crawlable (no FULL_DISALLOW prefix matched them)
+  // but explicit allows protect against future disallow patterns
+  // accidentally creating a prefix match. Mirrors the sitemap entry list.
+  '/about',
+  '/contact',
+  '/pricing',
+  '/resources',
+  '/resources/',
+  '/job-alerts',
   // Explicitly allow sitemap API and OG image API
   '/api/sitemaps/',
   '/api/og',
@@ -105,6 +116,15 @@ const AI_CRAWLERS = [
   'Amazonbot',         // Amazon AI
   'meta-externalagent', // Meta AI
   'Applebot-Extended', // Apple Intelligence training
+  // Newer 2025-2026 crawlers picked up since the original list was set —
+  // each was active in production logs but had no entry, falling through
+  // to the catch-all '*' rule (no crawl-delay, no per-bot throttle).
+  'MistralAI-User',    // Mistral AI live browsing
+  'AI2Bot',            // Allen Institute for AI
+  'iaskspider',        // iAsk.AI
+  'Kangaroo',          // Jina AI Reader
+  'Timpibot',          // Timpi search index
+  'img2dataset',       // Hugging Face dataset crawler
 ] as const
 
 const SOCIAL_BOTS = [

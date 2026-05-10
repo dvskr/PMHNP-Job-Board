@@ -11,47 +11,75 @@ import { brand } from '@/config/brand';
  *  bypass Tailwind compilation issues.
  * ────────────────────────────────────────────── */
 
+// Footer is the single biggest internal-linking lever for SEO. Audit 11
+// flagged ~18 category hubs as orphans (no inbound nav links anywhere in
+// the site), descriptive-anchor gaps ("Remote" vs "Remote PMHNP Jobs"),
+// and an audience mismatch ("Post a Job" in the For Job Seekers column).
+// Restructured into 5 columns that surface every primary category hub.
 const linkColumns = [
   {
     title: 'For Job Seekers',
     links: [
-      { label: 'Browse Jobs', href: '/jobs' },
+      { label: 'Browse PMHNP Jobs', href: '/jobs' },
       { label: 'Saved Jobs', href: '/saved' },
       { label: 'Job Alerts', href: '/job-alerts' },
-      { label: 'Salary Guide', href: '/salary-guide' },
+      { label: 'PMHNP Salary Guide', href: '/salary-guide' },
+      { label: 'FAQ', href: '/faq' },
+    ],
+  },
+  {
+    // Descriptive anchor text — Google uses footer link text as a
+    // category-relevance signal, and bare single-word labels ("Remote")
+    // are weaker than the noun phrase the page actually targets.
+    title: 'Browse by Setting',
+    links: [
+      { label: 'Remote PMHNP Jobs', href: '/jobs/remote' },
+      { label: 'Telehealth PMHNP Jobs', href: '/jobs/telehealth' },
+      { label: 'Inpatient PMHNP Jobs', href: '/jobs/inpatient' },
+      { label: 'Outpatient PMHNP Jobs', href: '/jobs/outpatient' },
+      { label: 'Hospital PMHNP Jobs', href: '/jobs/hospital' },
+      { label: 'Travel PMHNP Jobs', href: '/jobs/travel' },
+      { label: 'Locum Tenens', href: '/jobs/locum-tenens' },
+    ],
+  },
+  {
+    title: 'Browse by Specialty',
+    links: [
+      { label: 'VA PMHNP Jobs', href: '/jobs/va' },
+      { label: 'Veterans PMHNP Jobs', href: '/jobs/veterans' },
+      { label: 'New Grad PMHNP', href: '/jobs/new-grad' },
+      { label: 'Behavioral Health', href: '/jobs/behavioral-health' },
+      { label: 'Substance Abuse', href: '/jobs/substance-abuse' },
+      { label: 'Child & Adolescent', href: '/jobs/child-adolescent' },
+    ],
+  },
+  {
+    title: 'Browse by Location',
+    links: [
+      { label: 'PMHNP Jobs in New York', href: '/jobs/state/new-york' },
+      { label: 'PMHNP Jobs in California', href: '/jobs/state/california' },
+      { label: 'PMHNP Jobs in Florida', href: '/jobs/state/florida' },
+      { label: 'PMHNP Jobs in Texas', href: '/jobs/state/texas' },
+      { label: 'PMHNP Jobs in Massachusetts', href: '/jobs/state/massachusetts' },
+      { label: 'Browse All 50 States', href: '/jobs/locations' },
+    ],
+  },
+  {
+    // Employer-side actions broken out so they're not mixed with
+    // job-seeker actions (audit 11 audience-mismatch fix).
+    title: 'For Employers',
+    links: [
       { label: 'Post a Job', href: '/post-job' },
+      { label: 'Pricing', href: '/pricing' },
+      { label: 'Browse Companies', href: '/companies' },
+      { label: 'For Employers', href: '/for-employers' },
     ],
   },
   {
-    title: 'Categories',
-    links: [
-      { label: 'Remote', href: '/jobs/remote' },
-      { label: 'Telehealth', href: '/jobs/telehealth' },
-      { label: 'Inpatient', href: '/jobs/inpatient' },
-      { label: 'Outpatient', href: '/jobs/outpatient' },
-      { label: 'New Grad', href: '/jobs/new-grad' },
-      { label: 'Travel', href: '/jobs/travel' },
-    ],
-  },
-  {
-    title: 'Locations',
-    links: [
-      { label: 'New York', href: '/jobs/state/new-york' },
-      { label: 'California', href: '/jobs/state/california' },
-      { label: 'Florida', href: '/jobs/state/florida' },
-      { label: 'Texas', href: '/jobs/state/texas' },
-      { label: 'Massachusetts', href: '/jobs/state/massachusetts' },
-      { label: 'All States', href: '/jobs/locations' },
-    ],
-  },
-  {
-    title: 'Resources',
+    title: 'About',
     links: [
       { label: 'Blog', href: '/blog' },
-      { label: 'Salary Guide', href: '/salary-guide' },
-      { label: 'New Grad Hub', href: '/new-grad' },
-      { label: 'For Employers', href: '/for-employers' },
-      { label: 'FAQ', href: '/faq' },
+      { label: 'Resources', href: '/resources' },
       { label: 'About', href: '/about' },
       { label: 'Contact', href: '/contact' },
     ],
@@ -306,13 +334,16 @@ export default function Footer() {
           <style jsx>{`
             @media (min-width: 769px) {
               .footer-link-grid {
-                /* 4 equal-width columns inside a centered max-width track —
-                   columns spread evenly across the visual area without
-                   stretching edge-to-edge of the 1440px wrapper. */
-                grid-template-columns: repeat(4, 1fr) !important;
-                max-width: 1100px !important;
+                /* auto-fit lets the column count breathe with the viewport:
+                   6 columns at ~1280px+, 5 at ~1100px, 4 at ~900px, 3 at
+                   ~720px. Was hardcoded to 4 — now there are 6 link
+                   columns (For Employers and About were split out per the
+                   audience-mismatch / orphan-coverage fixes), and a fixed
+                   4-col grid would overflow or wrap awkwardly. */
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+                max-width: 1280px !important;
                 margin: 0 auto !important;
-                gap: 32px 40px !important;
+                gap: 32px 32px !important;
                 padding-top: 64px !important;
                 padding-bottom: 64px !important;
               }

@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, TrendingUp, Building2, Bell, Navigation, Shield, MapPinned, DollarSign, Users, ArrowRight } from 'lucide-react';
@@ -385,7 +385,11 @@ export async function generateMetadata({ params, searchParams }: StatePageProps)
       alternates: {
         // Canonical always points to page 1 (no ?page query) — paginated
         // views are not indexable on their own (P3.5).
-        canonical: `https://pmhnphiring.com/jobs/state/${stateParam}`,
+        // Canonical anchored on the normalized slug, NOT the request param.
+        // /jobs/state/ny, /jobs/state/CA, /jobs/state/New%20York all resolve to
+        // the same state but each would emit a different canonical if we used
+        // the raw param — splintering the indexed forms.
+        canonical: `https://pmhnphiring.com/jobs/state/${stateName.toLowerCase().replace(/\s+/g, '-')}`,
       },
       // GSC Fix (P3.1 + P3.5): noindex empty-state pages AND any paginated view.
       // Empty state → soft 404 risk; paginated view → duplicate-canonical risk.
@@ -417,6 +421,16 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
   }
 
   const { name: stateName, code: stateCode } = stateInfo;
+
+  // 308 redirect any non-canonical form (state code, mixed case, encoded
+  // space) to the canonical hyphenated lowercase slug. parseStateParam
+  // accepts ny / CA / New%20York all as valid; without this redirect each
+  // form would render its own copy of the page with conflicting canonicals.
+  const canonicalStateSlug = stateName.toLowerCase().replace(/\s+/g, '-');
+  if (stateParam !== canonicalStateSlug) {
+    const qs = new URLSearchParams(sp as Record<string, string>).toString();
+    permanentRedirect(`/jobs/state/${canonicalStateSlug}${qs ? `?${qs}` : ''}`);
+  }
   const page = Math.max(1, parseInt(sp.page || '1'));
   const limit = 10;
   const skip = (page - 1) * limit;
