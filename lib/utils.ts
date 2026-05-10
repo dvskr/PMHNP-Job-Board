@@ -103,13 +103,30 @@ export function formatSalary(
   return '';
 }
 
+// Cap on the title-derived prefix before the UUID suffix. Slugs over ~75
+// chars truncate in SERP display and become harder to remember/type. The
+// UUID is 36 chars + 1 hyphen = 37, leaving 38 chars for the title prefix
+// to stay under 75. Conservative trim to 60 leaves headroom for very-long
+// employer/title combos without ever overflowing.
+const SLUG_TITLE_MAX = 60;
+
 export function slugify(title: string, id: string): string {
-  const slug = title
+  let slug = title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .trim();
+
+  // Truncate the title prefix at a word boundary when possible so the URL
+  // doesn't end mid-word before the UUID suffix.
+  if (slug.length > SLUG_TITLE_MAX) {
+    const trimmed = slug.slice(0, SLUG_TITLE_MAX);
+    const lastDash = trimmed.lastIndexOf('-');
+    slug = lastDash > SLUG_TITLE_MAX - 15 ? trimmed.slice(0, lastDash) : trimmed;
+    // Strip a trailing hyphen left by the cut so we don't get "title--uuid".
+    slug = slug.replace(/-+$/, '');
+  }
 
   // Use full UUID to match database slugs
   return `${slug}-${id}`;
