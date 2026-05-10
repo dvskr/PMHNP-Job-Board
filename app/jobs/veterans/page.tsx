@@ -37,19 +37,50 @@ async function getStats() {
   return { totalJobs, avgSalary, topEmployers: topEmployers.map((e: EmployerGroupResult) => ({ name: e.employer, count: e._count.employer })) };
 }
 
+// FAQs deliberately differentiated from /jobs/va (federal VA employment)
+// to avoid keyword cannibalization. /jobs/veterans = serving veterans as
+// patients across all sectors (VA, Vet Centers, CCN civilian providers,
+// trauma practices). /jobs/va = federal employment with GS pay + FEHB.
 const veteransFaqs = [
-  { question: 'What is a Veterans PMHNP role?', answer: 'Veterans PMHNP positions focus on psychiatric mental health care in veterans settings, offering specialized clinical opportunities.' },
-  { question: 'What does a Veterans PMHNP earn?', answer: 'Veterans PMHNPs typically earn $130K-180K annually depending on location, experience, and setting.' },
-  { question: 'What qualifications are needed?', answer: 'You need an active PMHNP-BC certification, state APRN licensure, DEA registration, and relevant clinical experience.' },
-  { question: 'How do I find veterans positions?', answer: 'Browse our curated veterans job listings above, set up alerts, and apply directly through our platform.' },
+  {
+    question: "What's the difference between Veterans PMHNP roles and federal VA employment?",
+    answer: 'Veterans PMHNP roles span multiple sectors — VA medical centers (federal employment), Vet Centers (community-readjustment counseling), Community Care Network (CCN) civilian providers, and private trauma practices specializing in veterans care. /jobs/va focuses specifically on federal Veterans Affairs employment with the GS pay scale, FEHB benefits, and EDRP loan repayment.',
+  },
+  {
+    question: 'What clinical specialties matter most in veterans-focused PMHNP work?',
+    answer: 'PTSD, combat stress, military sexual trauma (MST), traumatic brain injury (TBI), substance use disorders, and family reintegration. Trauma-informed care training is essential. Credentials in EMDR, prolonged exposure therapy (PE), or cognitive processing therapy (CPT) are valued by veterans-care employers.',
+  },
+  {
+    question: 'Do I need military experience to work in veterans care?',
+    answer: 'No — military experience is not required, but cultural competency is. Many employers value veterans-care training certificates such as Star Behavioral Health Providers, PsychArmor, and the VA Center for Compassionate Care training. Prior experience in trauma services, addiction medicine, or community mental health translates well.',
+  },
+  {
+    question: 'How does the VA Community Care Network (CCN) affect PMHNP employment?',
+    answer: 'CCN contracts civilian providers to deliver mental health care to eligible veterans. PMHNPs in private practice, telehealth platforms, and community clinics can join CCN to expand their caseload with VA-funded patients while keeping their existing employer relationship — an alternative path to serving veterans without entering federal employment.',
+  },
 ];
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
   return {
-    title: `${stats.totalJobs} Veterans PMHNP Jobs ($130K-180K)`,
-    description: `Find ${stats.totalJobs} veterans PMHNP jobs paying $130K-180K+. Browse psychiatric nurse practitioner positions.`,
+    title: `${stats.totalJobs} Veterans PMHNP Jobs — Trauma-Informed Care ($130K-180K)`,
+    description: `Find ${stats.totalJobs} PMHNP jobs serving veterans across VA, Vet Centers, Community Care Network civilian providers, and trauma practices. PTSD, MST, and TBI specialty roles.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/veterans` },
+    openGraph: {
+      title: `${stats.totalJobs} Veterans PMHNP Jobs`,
+      description: 'Trauma-informed psychiatric NP roles serving veterans across VA, Vet Centers, and civilian providers.',
+      type: 'website',
+      url: `${brand.baseUrl}/jobs/veterans`,
+      images: [{
+        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Veterans PMHNP Jobs`)}&subtitle=${encodeURIComponent('Trauma-informed care across VA, Vet Centers & CCN')}`,
+        width: 1200, height: 630, alt: 'Veterans PMHNP Jobs',
+      }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${stats.totalJobs} Veterans PMHNP Jobs`,
+      description: 'PMHNP roles serving veterans across VA, Vet Centers, CCN, and trauma practices.',
+    },
   };
 }
 
