@@ -132,8 +132,27 @@ export default function LinkedInFilters() {
     }
   }, [searchParams]);
 
+  // Defer the filter-count POST off the critical render path. Audit 07
+  // M-3: this fired on every page load before any user interaction,
+  // racing with hydration on the highest-traffic surface. requestIdleCallback
+  // (with setTimeout fallback) lets the initial render finish first;
+  // the count badges fill in shortly after with no user-visible delay.
   useEffect(() => {
-    fetchCounts();
+    type IdleHandle = number;
+    const idleApi = (typeof window !== 'undefined' && 'requestIdleCallback' in window)
+      ? (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => IdleHandle; cancelIdleCallback: (h: IdleHandle) => void })
+      : null;
+    let handle: number | null = null;
+    if (idleApi) {
+      handle = idleApi.requestIdleCallback(() => fetchCounts(), { timeout: 2000 });
+    } else {
+      handle = window.setTimeout(() => fetchCounts(), 250) as unknown as number;
+    }
+    return () => {
+      if (handle == null) return;
+      if (idleApi) idleApi.cancelIdleCallback(handle);
+      else window.clearTimeout(handle);
+    };
   }, [fetchCounts]);
 
   // Toggle array-based filter (workMode, jobType, specialty)
