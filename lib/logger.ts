@@ -190,5 +190,3 @@ export function createRequestLogger(request: Request): Logger {
     const requestId = crypto.randomUUID().slice(0, 8);
     return logger.withRequest(requestId, url.pathname, request.method);
 }
-
-export default logger;

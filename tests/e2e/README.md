@@ -55,7 +55,7 @@ Tests load credentials from `.env.test` (gitignored). If a credential is missing
 To create the seeker + employer test users in your local DB:
 
 ```bash
-npx ts-node create-test-users.ts
+npx ts-node scripts/create-test-users.ts
 ```
 
 ## Suite map
