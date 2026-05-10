@@ -1,29 +1,44 @@
-'use client';
-
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Mail, Clock, HelpCircle, ArrowRight } from 'lucide-react';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import { Mail, Clock, HelpCircle, CheckCircle, AlertCircle, ChevronDown, Send, Loader2, ArrowRight } from 'lucide-react';
+import { brand } from '@/config/brand';
+import ContactForm from './ContactForm';
+import ContactFAQ from './ContactFAQ';
 
-interface ContactFormData { name: string; email: string; subject: string; message: string; }
+// Single source of truth for FAQ content. Both the FAQPage JSON-LD (server-
+// rendered into <head>-adjacent script) and the visible accordion (client-
+// rendered for the toggle UX) consume this list — they cannot diverge.
+const FAQ_ITEMS = [
+    { q: 'Is PMHNP Hiring free for job seekers?', a: 'Yes! Browsing jobs, setting up alerts, and applying are completely free. We never charge job seekers.' },
+    { q: 'How often are jobs updated?', a: 'Our pipeline runs twice daily, pulling from 3,000+ companies across major job boards and direct career pages.' },
+    { q: 'How do I post a job as an employer?', a: 'Create a free employer account and post your job listing. Featured listings are available for enhanced visibility.' },
+    { q: 'Can I get daily job alerts?', a: 'Absolutely! Sign up for free and set your preferences (location, job type, salary range). We\'ll email you matching jobs daily.' },
+    { q: 'How do I delete my account?', a: 'Go to Settings > Account and click "Delete Account", or email us at support@pmhnphiring.com and we\'ll handle it within 24 hours.' },
+    { q: 'Why did a job listing disappear?', a: 'Jobs are automatically removed when they expire, get filled, or are reported by multiple users as invalid. Check the employer\'s site for the latest openings.' },
+];
 
-/* ═══ Clay Tokens ═══ */
+export const metadata: Metadata = {
+    // `absolute` opts out of the layout title template so we don't
+    // double-suffix " | PMHNP Hiring".
+    title: { absolute: 'Contact PMHNP Hiring — Support, Employer & Partnership Inquiries' },
+    description: 'Reach the PMHNP Hiring team for job-seeker support, employer questions, partnerships, or feedback. We respond within 24-48 hours.',
+    alternates: { canonical: `${brand.baseUrl}/contact` },
+    openGraph: {
+        title: 'Contact PMHNP Hiring',
+        description: 'Get in touch with the team behind the #1 PMHNP job board — support, employer, and partnership inquiries.',
+        type: 'website',
+        url: `${brand.baseUrl}/contact`,
+        siteName: 'PMHNP Hiring',
+    },
+    twitter: { card: 'summary_large_image', title: 'Contact PMHNP Hiring', description: 'Get in touch with the team — support, employer, and partnership inquiries.' },
+};
+
 const clayCard: React.CSSProperties = {
     background: '#FFFFFF', borderRadius: '20px',
     border: '1px solid rgba(0,0,0,0.06)',
     boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
-};
-
-const clayInput: React.CSSProperties = {
-    // 16px prevents iOS Safari from auto-zooming the viewport on input focus.
-    width: '100%', padding: '12px 16px', fontSize: '16px',
-    borderRadius: '14px', border: '1px solid rgba(0,0,0,0.08)',
-    background: '#F5F6F8', color: '#1A2E35',
-    boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.05), inset -1px -1px 2px rgba(255,255,255,0.5)',
-    outline: 'none', fontFamily: 'inherit', transition: 'all 0.2s ease',
-    boxSizing: 'border-box' as const,
 };
 
 const clayIconWrap = (gradient: string): React.CSSProperties => ({
@@ -35,38 +50,36 @@ const clayIconWrap = (gradient: string): React.CSSProperties => ({
 });
 
 export default function ContactPage() {
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-    const [errorMessage, setErrorMessage] = useState('');
-    const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-    const FAQ_ITEMS = [
-        { q: 'Is PMHNP Hiring free for job seekers?', a: 'Yes! Browsing jobs, setting up alerts, and applying are completely free. We never charge job seekers.' },
-        { q: 'How often are jobs updated?', a: 'Our pipeline runs twice daily, pulling from 3,000+ companies across major job boards and direct career pages.' },
-        { q: 'How do I post a job as an employer?', a: 'Create a free employer account and post your job listing. Featured listings are available for enhanced visibility.' },
-        { q: 'Can I get daily job alerts?', a: 'Absolutely! Sign up for free and set your preferences (location, job type, salary range). We\'ll email you matching jobs daily.' },
-        { q: 'How do I delete my account?', a: 'Go to Settings > Account and click "Delete Account", or email us at support@pmhnphiring.com and we\'ll handle it within 24 hours.' },
-        { q: 'Why did a job listing disappear?', a: 'Jobs are automatically removed when they expire, get filled, or are reported by multiple users as invalid. Check the employer\'s site for the latest openings.' },
-    ];
-
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<ContactFormData>();
-
-    const onSubmit = async (data: ContactFormData) => {
-        setIsSubmitting(true); setSubmitStatus('idle'); setErrorMessage('');
-        try {
-            const response = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            const result = await response.json();
-            if (response.ok && result.success) { setSubmitStatus('success'); reset(); }
-            else { setSubmitStatus('error'); setErrorMessage(result.error || 'Failed to send message. Please try again.'); }
-        } catch (error) {
-            console.error('Contact form error:', error);
-            setSubmitStatus('error'); setErrorMessage('Failed to send message. Please try again or email us directly.');
-        } finally { setIsSubmitting(false); }
+    const contactPageSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'ContactPage',
+        '@id': `${brand.baseUrl}/contact#contactpage`,
+        url: `${brand.baseUrl}/contact`,
+        name: 'Contact PMHNP Hiring',
+        description: 'Reach the PMHNP Hiring team for support, employer, and partnership inquiries.',
+        mainEntity: {
+            '@type': 'Organization',
+            name: 'PMHNP Hiring',
+            url: brand.baseUrl,
+            contactPoint: {
+                '@type': 'ContactPoint',
+                contactType: 'customer support',
+                email: 'support@pmhnphiring.com',
+                availableLanguage: 'English',
+                areaServed: 'US',
+            },
+        },
     };
 
-    const Label = ({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) => (
-        <label htmlFor={htmlFor} style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#1A2E35', marginBottom: '8px' }}>{children}</label>
-    );
+    const faqSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: FAQ_ITEMS.map((item) => ({
+            '@type': 'Question',
+            name: item.q,
+            acceptedAnswer: { '@type': 'Answer', text: item.a },
+        })),
+    };
 
     return (
         <div style={{ background: '#F5F6F8', minHeight: '100vh' }}>
@@ -74,6 +87,15 @@ export default function ContactPage() {
                 { name: 'Home', url: 'https://pmhnphiring.com' },
                 { name: 'Contact', url: 'https://pmhnphiring.com/contact' },
             ]} />
+
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(contactPageSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
 
             {/* Hero */}
             <section style={{ padding: '80px 16px 64px', maxWidth: '1000px', margin: '0 auto' }}>
@@ -100,97 +122,17 @@ export default function ContactPage() {
                 <h2 style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', textAlign: 'center', marginBottom: '20px' }}>
                     Quick Answers
                 </h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {FAQ_ITEMS.map((item, i) => (
-                        <div key={i} style={{ ...clayCard, overflow: 'hidden', padding: 0 }}>
-                            <button onClick={() => setOpenFaq(openFaq === i ? null : i)} style={{
-                                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                padding: '16px 20px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer',
-                            }}>
-                                <span style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35', paddingRight: '16px' }}>{item.q}</span>
-                                <ChevronDown size={16} style={{ color: '#B0BEC5', flexShrink: 0, transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
-                            </button>
-                            {openFaq === i && (
-                                <div style={{ padding: '0 20px 16px', fontSize: '13px', color: '#6B7F8A', lineHeight: 1.6 }}>{item.a}</div>
-                            )}
-                        </div>
-                    ))}
-                </div>
+                <ContactFAQ items={FAQ_ITEMS} />
             </section>
 
             {/* Main Content — Two Column */}
             <section style={{ maxWidth: '960px', margin: '0 auto', padding: '0 16px 80px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', alignItems: 'start' }}>
 
-                    {/* Left: Form */}
-                    <div style={{ ...clayCard, padding: '32px' }}>
-                        <h2 style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', marginBottom: '24px' }}>Send Us a Message</h2>
+                    {/* Left: Form (interactive — extracted as a client child) */}
+                    <ContactForm />
 
-                        {submitStatus === 'success' && (
-                            <div style={{ ...clayCard, padding: '16px 20px', marginBottom: '20px', background: '#F0FDFA', border: '1px solid #99F6E4', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <CheckCircle size={18} color="#059669" />
-                                <div>
-                                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#059669', margin: 0 }}>Message sent!</p>
-                                    <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>We&apos;ll respond within 24-48 hours.</p>
-                                </div>
-                            </div>
-                        )}
-                        {submitStatus === 'error' && (
-                            <div style={{ ...clayCard, padding: '16px 20px', marginBottom: '20px', background: '#FEF2F2', border: '1px solid #FECACA', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <AlertCircle size={18} color="#DC2626" />
-                                <div>
-                                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#DC2626', margin: 0 }}>Error</p>
-                                    <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>{errorMessage}</p>
-                                </div>
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                            <div>
-                                <Label htmlFor="name">Name</Label>
-                                <input id="name" type="text" placeholder="Your full name" {...register('name', { required: 'Name is required', minLength: { value: 2, message: 'Name must be at least 2 characters' } })} style={{ ...clayInput, ...(errors.name ? { borderColor: '#F87171' } : {}) }} />
-                                {errors.name && <p style={{ fontSize: '12px', color: '#EF4444', margin: '6px 0 0' }}>{errors.name.message}</p>}
-                            </div>
-                            <div>
-                                <Label htmlFor="email">Email</Label>
-                                <input id="email" type="email" placeholder="your.email@example.com" {...register('email', { required: 'Email is required', pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Please enter a valid email' } })} style={{ ...clayInput, ...(errors.email ? { borderColor: '#F87171' } : {}) }} />
-                                {errors.email && <p style={{ fontSize: '12px', color: '#EF4444', margin: '6px 0 0' }}>{errors.email.message}</p>}
-                            </div>
-                            <div>
-                                <Label htmlFor="subject">Subject</Label>
-                                <select id="subject" {...register('subject', { required: 'Please select a subject' })} style={{ ...clayInput, ...(errors.subject ? { borderColor: '#F87171' } : {}) }}>
-                                    <option value="">Select a subject...</option>
-                                    <option value="General Inquiry">General Inquiry</option>
-                                    <option value="Job Seeker Support">Job Seeker Support</option>
-                                    <option value="Employer Support">Employer Support</option>
-                                    <option value="Report a Bug">Report a Bug</option>
-                                    <option value="Partnership Inquiry">Partnership Inquiry</option>
-                                    <option value="Technical Issue">Technical Issue</option>
-                                    <option value="Feedback">Feedback</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                                {errors.subject && <p style={{ fontSize: '12px', color: '#EF4444', margin: '6px 0 0' }}>{errors.subject.message}</p>}
-                            </div>
-                            <div>
-                                <Label htmlFor="message">Message</Label>
-                                <textarea id="message" rows={5} placeholder="Tell us how we can help..." {...register('message', { required: 'Message is required', minLength: { value: 10, message: 'Message must be at least 10 characters' } })} style={{ ...clayInput, resize: 'vertical', minHeight: '120px', ...(errors.message ? { borderColor: '#F87171' } : {}) }} />
-                                {errors.message && <p style={{ fontSize: '12px', color: '#EF4444', margin: '6px 0 0' }}>{errors.message.message}</p>}
-                            </div>
-                            <button type="submit" disabled={isSubmitting} style={{
-                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                padding: '14px 24px', borderRadius: '14px', fontWeight: 700, fontSize: '15px',
-                                background: isSubmitting ? 'rgba(13,148,136,0.3)' : 'linear-gradient(145deg, #0D9488, #10B981)',
-                                color: '#fff', border: 'none', cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                                boxShadow: '6px 6px 16px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
-                                transition: 'all 0.2s ease', width: '100%',
-                            }}>
-                                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                                {isSubmitting ? 'Sending...' : 'Send Message'}
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* Right: Info */}
+                    {/* Right: Info (static — server-rendered) */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div style={{ ...clayCard, padding: '24px' }}>
                             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', marginBottom: '18px' }}>Contact Info</h3>

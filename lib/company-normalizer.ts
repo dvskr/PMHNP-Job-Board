@@ -172,6 +172,15 @@ export function normalizeCompanyName(name: string): string {
   // Trim again after all replacements
   normalized = normalized.trim();
 
+  // Convert internal whitespace to hyphens so the value is URL-safe. The
+  // function output doubles as both a DB dedup key and the slug used in
+  // /companies/{slug} URLs (see app/sitemap.ts and app/companies/[slug]/page.tsx).
+  // Previously this returned values like "life stance", which were then
+  // percent-encoded into ugly /companies/life%20stance URLs. Existing rows
+  // with the legacy space-form still resolve via the backward-compat lookup
+  // in getOrCreateCompany() below.
+  normalized = normalized.replace(/\s+/g, '-');
+
   return normalized;
 }
 
@@ -209,10 +218,31 @@ export async function getOrCreateCompany(employerName: string): Promise<string> 
     const canonicalName = findCanonicalName(employerName);
     const finalName = canonicalName || employerName;
 
-    // Try to find existing company by normalized name
+    // Try to find existing company by normalized name (kebab-case form).
     let company = await prisma.company.findUnique({
       where: { normalizedName: normalized },
     });
+
+    // Backward-compat lookup: rows inserted before the normalizer started
+    // emitting kebab-case have the legacy space-form stored. Try that form
+    // before falling through to "create new" — otherwise every re-ingest
+    // of an existing company would create a duplicate row.
+    if (!company && normalized.includes('-')) {
+      const legacyNormalized = normalized.replace(/-/g, ' ');
+      const legacyMatch = await prisma.company.findUnique({
+        where: { normalizedName: legacyNormalized },
+      });
+      if (legacyMatch) {
+        // Opportunistically upgrade the row in place. Once all legacy rows
+        // are touched by ingest, the backfill is complete; no separate
+        // migration needed.
+        company = await prisma.company.update({
+          where: { id: legacyMatch.id },
+          data: { normalizedName: normalized, jobCount: { increment: 1 } },
+        });
+        return company.id;
+      }
+    }
 
     if (company) {
       // Increment job count
