@@ -4,6 +4,12 @@ import Link from 'next/link';
 import { Building2, DollarSign, FileText, CheckCircle, Shield, Users, BookOpen, Landmark } from 'lucide-react';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
+// Editorial review constants — bump LAST_REVIEWED on each pass so Article
+// dateModified reflects real freshness, not the original publish date.
+const PUBLISHED_AT = '2026-03-19';
+const LAST_REVIEWED = '2026-03-19';
+const HERO_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp';
+
 export const metadata: Metadata = {
   title: 'How to Start a PMHNP Private Practice — Step-by-Step Guide 2026',
   description: 'Complete guide to starting your own psychiatric NP private practice. LLC formation, insurance credentialing (CAQH, NPI), EHR setup, malpractice insurance, billing, overhead costs, and income projections ($200K-$300K+).',
@@ -12,6 +18,12 @@ export const metadata: Metadata = {
     title: 'How to Start a PMHNP Private Practice — 2026 Guide',
     description: 'Step-by-step guide to launching your own psychiatric nurse practitioner private practice.',
     type: 'article',
+    images: [{ url: HERO_IMAGE, width: 1280, height: 900, alt: 'How to Start a PMHNP Private Practice — 2026 Guide' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'How to Start a PMHNP Private Practice — 2026 Guide',
+    images: [HERO_IMAGE],
   },
   alternates: { canonical: `${brand.baseUrl}/resources/private-practice-guide` },
 };
@@ -132,6 +144,26 @@ export default function PrivatePracticeGuidePage() {
               name: faq.question,
               acceptedAnswer: { '@type': 'Answer', text: faq.answer },
             })),
+          }),
+        }}
+      />
+      {/* Article schema (audit 14 M-3): page is long-form editorial content
+          with a named publisher and a hero image — qualifies for Article
+          rich results alongside the existing HowTo + FAQPage. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: 'How to Start a PMHNP Private Practice — 2026 Step-by-Step Guide',
+            description: 'Complete guide to starting your own psychiatric NP private practice — LLC formation, insurance credentialing, EHR setup, malpractice, billing, and income projections.',
+            datePublished: PUBLISHED_AT,
+            dateModified: LAST_REVIEWED,
+            image: HERO_IMAGE,
+            author: { '@type': 'Organization', name: 'PMHNP Hiring' },
+            publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
+            mainEntityOfPage: { '@type': 'WebPage', '@id': `${brand.baseUrl}/resources/private-practice-guide` },
           }),
         }}
       />

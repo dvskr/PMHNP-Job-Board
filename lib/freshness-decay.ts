@@ -31,17 +31,28 @@ export function calculateFreshnessScore(originalPostedAt: Date | null, createdAt
 }
 
 /**
- * Determine if a job should be unpublished based on renewal activity
- * Uses updatedAt (last renewal date) — if a job is still appearing in source
- * APIs (and thus being renewed), it should stay published.
- * 
- * Also checks expiresAt as a safety net: if expiresAt is still in the future,
- * the job was recently renewed enough to have a valid expiry, so keep it alive.
- * 
- * External jobs: unpublish if not renewed/seen for 60 days AND expiresAt is past
- * Employer jobs: keep until expiresAt (they paid for the listing)
+ * Decide whether a published job should be unpublished as part of the daily
+ * freshness-decay pass.
+ *
+ * Hierarchy of signals:
+ *   1. employer/direct → never auto-unpublish (paid listings have their own
+ *      expiresAt-driven lifecycle).
+ *   2. expiresAt in the future → keep (still in renewal window).
+ *   3. expiresAt in the past → unpublish (renewal window closed).
+ *   4. Legacy fallback (expiresAt is null) → compare 60-day age against the
+ *      ORIGINAL posting date (audit 25 M-1). updatedAt gets bumped on every
+ *      renewal cycle, so a stale job that keeps reappearing in source APIs
+ *      (because the source itself is stale) would never trip the threshold.
+ *      Anchoring on originalPostedAt (or createdAt as last-resort) ties the
+ *      lifetime cap to the real posting date.
  */
-export function shouldUnpublish(updatedAt: Date, sourceType: string, expiresAt?: Date | null): boolean {
+export function shouldUnpublish(
+  updatedAt: Date,
+  sourceType: string,
+  expiresAt?: Date | null,
+  originalPostedAt?: Date | null,
+  createdAt?: Date | null,
+): boolean {
   try {
     // Employer-posted jobs should not be auto-unpublished
     // They have their own expiry logic based on expiresAt
@@ -61,14 +72,14 @@ export function shouldUnpublish(updatedAt: Date, sourceType: string, expiresAt?:
       return true;
     }
 
-    // Fallback for legacy jobs without expiresAt: use updatedAt as proxy.
-    // 60-day threshold matches the catalog-wide hard lifetime cap (was 120
-    // before 2026-05-05 when expiresAt = originalPostedAt + 60d became the
-    // single source of truth).
+    // Legacy fallback: anchor age check on the real posting date, not the
+    // renewal-bumping updatedAt. updatedAt is kept as last-resort fallback
+    // for very-old rows that pre-date originalPostedAt being recorded.
+    const ageAnchor = originalPostedAt || createdAt || updatedAt;
     const now = new Date();
-    const daysSinceLastSeen = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
+    const daysSincePosted = (now.getTime() - ageAnchor.getTime()) / (1000 * 60 * 60 * 24);
 
-    return daysSinceLastSeen >= 60;
+    return daysSincePosted >= 60;
   } catch (error) {
     console.error('Error determining unpublish status:', error);
     return false;
@@ -131,11 +142,16 @@ export async function applyFreshnessDecay(): Promise<{
 
       for (const job of jobs) {
         try {
-          // Check if job should be unpublished (not renewed for 90 days)
+          // Check if job should be unpublished — primary path is expiresAt
+          // (set since 2026-05-05); legacy fallback now anchors on
+          // originalPostedAt/createdAt instead of updatedAt so renewals
+          // can't keep stale jobs alive forever.
           const shouldUnpub = shouldUnpublish(
             job.updatedAt,
             job.sourceType || 'external',
-            job.expiresAt
+            job.expiresAt,
+            job.originalPostedAt,
+            job.createdAt,
           );
 
           if (shouldUnpub) {

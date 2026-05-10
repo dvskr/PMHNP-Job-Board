@@ -16,8 +16,12 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'For Job Seekers — Find Your Next PMHNP Role | PMHNP Hiring',
+  // Removed the hardcoded "9,000+" job count (audit 09 M-21) — the actual
+  // count drifts and a stale figure in metadata that doesn't match the
+  // live UI is a credibility hit. Description now describes the platform
+  // value without a numeric claim.
   description:
-    'Find your next PMHNP opportunity. Search 9,000+ remote and in-person psychiatric nurse practitioner jobs with salary transparency, AI matching, and one-click apply. 100% free for job seekers.',
+    'Find your next PMHNP opportunity — remote and in-person psychiatric nurse practitioner jobs with salary transparency, AI matching, and one-click apply. Free for job seekers.',
   openGraph: {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-seeker-career-resources.webp', width: 1280, height: 900, alt: 'PMHNP job seeker career resources' }],
   },

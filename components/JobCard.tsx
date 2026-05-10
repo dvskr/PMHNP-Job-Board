@@ -87,6 +87,15 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const jobSlug = job.slug || slugify(job.title, job.id);
   const jobUrl = `/jobs/${jobSlug}`;
   const fullJobUrl = `${BASE_URL}/jobs/${jobSlug}`;
+  // Compose a descriptive accessible name for the outer Link wrapper. The
+  // visible <h3> carries the job title, but employer and location only live
+  // in styled badge spans — screen readers and Google's accessibility-tree
+  // parser miss them. The aria-label fills in city/state context so the
+  // link's purpose is clear (audit 07 M-1).
+  const cardLocation = job.isRemote
+    ? 'Remote'
+    : (job.city && job.state ? `${job.city}, ${job.state}` : (job.state || job.location || ''));
+  const cardAriaLabel = `${job.title} at ${job.employer}${cardLocation ? ` — ${cardLocation}` : ''}`;
   const freshness = getJobFreshness(job);
   const shareTitle = `${job.title} at ${job.employer}`;
   const shareDescription = `Check out this PMHNP job: ${job.title} at ${job.employer}`;
@@ -174,7 +183,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     metaParts.push(freshness);
 
     return (
-      <Link href={jobUrl} className="block touch-manipulation w-full" onClick={handleCardClick}>
+      <Link href={jobUrl} aria-label={cardAriaLabel} className="block touch-manipulation w-full" onClick={handleCardClick}>
         <div
           // jc-list-card is the hook for the mobile media query in globals.css
           // (jc-list-card responsive overrides) which collapses the row layout
@@ -397,7 +406,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
 
   // Grid view - default vertical card layout
   return (
-    <Link href={jobUrl} className="block touch-manipulation h-full" onClick={handleCardClick}>
+    <Link href={jobUrl} aria-label={cardAriaLabel} className="block touch-manipulation h-full" onClick={handleCardClick}>
       <div
         className="jc-card"
         style={{

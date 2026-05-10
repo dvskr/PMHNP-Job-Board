@@ -42,6 +42,14 @@ export async function GET(request: NextRequest) {
                 slug: { not: null },
                 // Only aggregated jobs — employer-posted jobs might be re-published
                 sourceProvider: { not: null },
+                // Audit 25 M-2: only target jobs unpublished by the expiry path.
+                // Without this gate, dead-link and source-presence crons (which
+                // also unpublish but fire their own job.health.flipped Inngest
+                // events for de-indexing) would get duplicate URL_DELETED
+                // submissions, burning the shared 100/day Google Indexing API
+                // quota. Filtering on a non-null expiresAt that has passed
+                // narrows to expiry-triggered unpublishes.
+                expiresAt: { not: null, lt: new Date() },
             },
             select: {
                 id: true,

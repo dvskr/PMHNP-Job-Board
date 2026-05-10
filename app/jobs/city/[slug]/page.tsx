@@ -283,7 +283,15 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
     try {
         const { slug } = await params;
 
-        // Metro pages have their own metadata — skip if metro exists
+        // Metro pages have their own metadata — skip if metro exists.
+        // Audit 19 M-4 priority rule (now documented): when a slug resolves
+        // to BOTH a metro and a city — e.g. "new-york-ny" matches the
+        // New York metro AND the city "New York, NY" — the metro page
+        // wins. Metros aggregate multiple cities under one geographic
+        // brand (NY metro covers NYC + Yonkers + …) and have richer
+        // editorial content than per-city pages. The redirect from
+        // /jobs/city/* to /jobs/metro/* lives in app/jobs/city/[slug]/
+        // page.tsx:354-358 (priority resolution path).
         const metroMatch = getMetroCity(slug);
         if (metroMatch) return { title: `PMHNP Jobs in ${metroMatch.city}` };
 

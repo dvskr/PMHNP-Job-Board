@@ -138,7 +138,7 @@
     },
     {
       "path": "/api/cron/freshness-decay",
-      "schedule": "20 12 * * *"
+      "schedule": "20 12,18 * * *"
     },
     {
       "path": "/api/cron/check-dead-links",

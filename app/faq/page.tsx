@@ -10,13 +10,23 @@ import VideoJsonLd from '@/components/VideoJsonLd';
 import { Mail, HelpCircle } from 'lucide-react';
 import { config } from '@/lib/config';
 
+const FAQ_OG_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-frequently-asked-questions.webp';
+
 export const metadata: Metadata = {
-  title: 'FAQ | PMHNP Jobs',
+  // `absolute` opts out of the layout title template so we don't end up
+  // with "FAQ | PMHNP Jobs | PMHNP Hiring" (the brand-confusing form
+  // audit 09 M-18 flagged — "PMHNP Jobs" is not the brand name).
+  title: { absolute: 'PMHNP Hiring FAQ — Job Search, Posting & Alerts' },
   description: 'Frequently asked questions about PMHNP Hiring. Learn how to search jobs, post positions, set up alerts, and make the most of the #1 PMHNP job board.',
   openGraph: {
-    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-frequently-asked-questions.webp', width: 1280, height: 900, alt: 'PMHNP Hiring FAQ page with answers about job posting, salary transparency, job alerts, and employer features' }],
+    title: 'PMHNP Hiring FAQ',
+    description: 'Common questions about searching, posting, and managing PMHNP jobs.',
+    type: 'website',
+    url: `${brand.baseUrl}/faq`,
+    siteName: 'PMHNP Hiring',
+    images: [{ url: FAQ_OG_IMAGE, width: 1280, height: 900, alt: 'PMHNP Hiring FAQ — job posting, salary transparency, job alerts, employer features' }],
   },
-  twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-frequently-asked-questions.webp'] },
+  twitter: { card: 'summary_large_image', title: 'PMHNP Hiring FAQ', images: [FAQ_OG_IMAGE] },
   alternates: {
     canonical: `${brand.baseUrl}/faq`,
   },

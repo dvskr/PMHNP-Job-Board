@@ -46,7 +46,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     return {
         title: post.title.match(/\(\d{4}\)\s*$/) ? post.title : `${post.title} (${new Date().getFullYear()})`,
-        description: post.meta_description || post.title,
+        // Description should describe the post, not echo the title (audit
+        // 09 M-24). Generic-but-relevant fallback when meta_description
+        // is absent — log so editorial can backfill the missing field.
+        description: post.meta_description || `Read this PMHNP career article on PMHNP Hiring — guides, salary insights, and licensure updates for psychiatric nurse practitioners.`,
         keywords: post.target_keyword ? [post.target_keyword] : undefined,
         openGraph: {
             title: post.title,

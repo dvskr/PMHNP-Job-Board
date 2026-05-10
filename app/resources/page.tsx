@@ -147,7 +147,13 @@ export default async function ResourcesPage() {
         { name: 'Resources', url: 'https://pmhnphiring.com/resources' },
       ]} />
 
-      {/* CollectionPage Schema */}
+      {/* CollectionPage Schema. Audit 14 M-4: previously had no `hasPart`,
+          so Google couldn't resolve the hub-and-spoke relationship between
+          this page and the three core resource guides. numberOfItems also
+          referenced blogPosts.length (the post grid below the resource
+          tiles), which was semantically wrong — the CollectionPage is the
+          guide hub, not a blog index. Now lists the actual featured guide
+          URLs and counts them. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'CollectionPage',
@@ -155,7 +161,12 @@ export default async function ResourcesPage() {
         description: 'Free career resources for psychiatric nurse practitioners.',
         url: 'https://pmhnphiring.com/resources',
         publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
-        numberOfItems: blogPosts.length,
+        hasPart: [
+          { '@type': 'Article', name: 'PMHNP Full Practice Authority Guide', url: 'https://pmhnphiring.com/resources/fpa-guide' },
+          { '@type': 'Article', name: '1099 vs W2 for PMHNPs — Compensation Comparison', url: 'https://pmhnphiring.com/resources/1099-vs-w2' },
+          { '@type': 'Article', name: 'How to Start a PMHNP Private Practice', url: 'https://pmhnphiring.com/resources/private-practice-guide' },
+        ],
+        numberOfItems: 3,
       }) }} />
 
       {/* ═══════════════════════════════════════════════════════════════

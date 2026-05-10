@@ -82,8 +82,14 @@ export async function GET(request: NextRequest) {
                         redirect: 'manual',
                         signal: controller.signal,
                         headers: {
-                            // Identify ourselves so edge logs can distinguish this from real crawl.
-                            'User-Agent': 'PMHNPHiringIndexer/1.0 (+https://pmhnphiring.com/about)',
+                            // Audit 25 M-5: a proprietary "PMHNPHiringIndexer/1.0"
+                            // UA was being blocked by Cloudflare WAFs on
+                            // employer ATS career pages, causing legitimate
+                            // live URLs to look dead and never get the
+                            // URL_DELETED submission they needed. A standard
+                            // browser UA passes the WAFs and lets the HEAD
+                            // check return real status codes.
+                            'User-Agent': 'Mozilla/5.0 (compatible; PMHNPHiringIndexer/1.0; +https://pmhnphiring.com/about)',
                         },
                     });
                     clearTimeout(timer);
