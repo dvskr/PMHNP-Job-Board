@@ -383,7 +383,14 @@ export async function generateMetadata({ params }: JobPageProps) {
 
   const job = result.job;
 
-  const description = job.descriptionSummary || job.description.slice(0, 160);
+  // Strip HTML tags before slicing — Quill-edited employer postings and many
+  // scraped descriptions arrive as HTML, and slicing raw HTML stuffs <p>/<ul>
+  // tags into the meta description, which Google then renders as literal
+  // text in SERP snippets. descriptionSummary (when present) is plain text,
+  // but we apply the stripper unconditionally so a future raw value can't leak.
+  const stripHtmlForMeta = (s: string): string =>
+    s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const description = stripHtmlForMeta(job.descriptionSummary || job.description).slice(0, 158);
 
   // Format salary for OG image - DON'T include if $0k or empty
   const formatOGSalary = (): string | null => {
@@ -445,11 +452,24 @@ export async function generateMetadata({ params }: JobPageProps) {
   const canonicalSlug = job.slug || slugify(job.title, job.id);
   const canonicalUrl = `https://pmhnphiring.com/jobs/${canonicalSlug}`;
 
+  // Title includes location when available so SERP listings differentiate
+  // identical job titles posted in multiple cities. Capped at ~60 chars so
+  // Google doesn't truncate; falls back to "{title} at {employer}" only.
+  const titleLocation = job.isRemote
+    ? 'Remote'
+    : (job.city && job.stateCode ? `${job.city}, ${job.stateCode}` : (job.state || ''));
+  const fullTitle = titleLocation
+    ? `${job.title} at ${job.employer} — ${titleLocation}`
+    : `${job.title} at ${job.employer}`;
+  const titleWithLocation = fullTitle.length > 65
+    ? `${job.title} — ${titleLocation || job.employer}`.slice(0, 65)
+    : fullTitle;
+
   return {
-    title: `${job.title} at ${job.employer}`,
+    title: titleWithLocation,
     description,
     openGraph: {
-      title: `${job.title} at ${job.employer}`,
+      title: titleWithLocation,
       description,
       type: 'article',
       url: canonicalUrl,
@@ -466,7 +486,7 @@ export async function generateMetadata({ params }: JobPageProps) {
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${job.title} at ${job.employer}`,
+      title: titleWithLocation,
       description,
       images: [ogImageUrl.toString()],
     },

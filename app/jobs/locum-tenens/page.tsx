@@ -85,8 +85,8 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} Locum Tenens PMHNP Jobs — Travel Psych NP ($85-150/hr)`,
-    description: `Find ${stats.totalJobs} locum tenens PMHNP jobs paying $85-$150+/hour. Travel psychiatric nurse practitioner assignments with housing, malpractice coverage, and premium pay. Browse locum psych NP positions updated daily.`,
+    title: `${stats.totalJobs} Locum Tenens PMHNP Jobs — Agency Staffing ($85-150/hr)`,
+    description: `Find ${stats.totalJobs} locum tenens PMHNP jobs paying $85-$150+/hr. Multi-state assignments with housing stipends, malpractice coverage, and premium pay. Updated daily.`,
     keywords: ['locum tenens pmhnp', 'travel pmhnp jobs', 'locum psychiatric nurse practitioner', 'psych NP travel assignments', 'temporary pmhnp positions', 'locum tenens psych nurse practitioner'],
     openGraph: {
       title: `${stats.totalJobs} Locum Tenens PMHNP Jobs - Travel Assignments`,

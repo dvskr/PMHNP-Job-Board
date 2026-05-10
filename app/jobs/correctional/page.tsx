@@ -83,6 +83,16 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       title: `${stats.totalJobs} Correctional PMHNP Jobs`,
       description: 'Browse correctional and forensic psychiatric mental health nurse practitioner positions.',
       type: 'website',
+      url: `${brand.baseUrl}/jobs/correctional`,
+      images: [{
+        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Correctional PMHNP Jobs`)}&subtitle=${encodeURIComponent('Forensic psychiatric NP positions — $160K+ with PSLF')}`,
+        width: 1200, height: 630, alt: 'Correctional PMHNP Jobs',
+      }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${stats.totalJobs} Correctional PMHNP Jobs`,
+      description: 'Forensic PMHNP positions in prisons, jails, and detention facilities.',
     },
     alternates: { canonical: `${brand.baseUrl}/jobs/correctional` },
     ...(page > 1 && { robots: { index: false, follow: true } }),

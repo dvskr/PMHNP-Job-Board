@@ -82,6 +82,16 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       title: `${stats.totalJobs} Community Health PMHNP Jobs`,
       description: 'Browse community health and FQHC psychiatric mental health nurse practitioner positions.',
       type: 'website',
+      url: `${brand.baseUrl}/jobs/community-health`,
+      images: [{
+        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Community Health PMHNP Jobs`)}&subtitle=${encodeURIComponent('FQHC, public health & community mental health roles')}`,
+        width: 1200, height: 630, alt: 'Community Health PMHNP Jobs',
+      }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${stats.totalJobs} Community Health PMHNP Jobs`,
+      description: 'FQHC and community mental health PMHNP positions with NHSC loan repayment eligibility.',
     },
     alternates: { canonical: `${brand.baseUrl}/jobs/community-health` },
     ...(page > 1 && { robots: { index: false, follow: true } }),

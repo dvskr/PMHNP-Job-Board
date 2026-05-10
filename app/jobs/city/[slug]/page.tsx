@@ -299,15 +299,22 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
         const { cityName, stateName, stateCode } = parsed;
         const stats = await getCityStats(cityName, stateName, stateCode);
 
-        const salaryStr = stats.avgSalary > 0 ? ` | $${stats.avgSalary}k Avg` : '';
-        const title = `PMHNP Jobs in ${cityName}, ${stateCode} | ${stats.totalJobs} Open Positions${salaryStr}`;
+        // Title prioritizes count + city so SERP truncation lands in the salary
+        // suffix rather than the city name (long names like "Colorado Springs"
+        // were pushing the title past 60 chars and cutting "Avg" mid-phrase).
+        // Salary appended only if there's room.
+        const baseTitle = `${stats.totalJobs} PMHNP Jobs in ${cityName}, ${stateCode}`;
+        const salarySuffix = stats.avgSalary > 0 ? ` — $${stats.avgSalary}k Avg` : '';
+        const title = (baseTitle + salarySuffix).length <= 60
+            ? baseTitle + salarySuffix
+            : baseTitle;
         const description = `Find ${stats.totalJobs} PMHNP jobs in ${cityName}, ${stateName}. Psychiatric NP positions with salary transparency. Remote, telehealth, and in-person roles updated daily.`;
 
         return {
             title,
             description,
             openGraph: {
-                title: `${stats.totalJobs} PMHNP Jobs in ${cityName}, ${stateCode}${salaryStr}`,
+                title: `${stats.totalJobs} PMHNP Jobs in ${cityName}, ${stateCode}${salarySuffix}`,
                 description,
                 type: 'website',
                 images: [{

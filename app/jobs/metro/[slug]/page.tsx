@@ -104,8 +104,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const stats = await getMetroStats(metro.city, metro.stateCode);
 
-  const title = `${stats.totalJobs > 0 ? `${stats.totalJobs} ` : ''}PMHNP Jobs in ${metro.city}, ${metro.stateCode} — Salary, Licensure & Top Employers (${new Date().getFullYear()})`;
-  const description = `Find PMHNP jobs in ${metro.city}, ${metro.stateCode}. ${metro.practiceAuthority} Practice Authority. ${stats.avgSalary > 0 ? `Average salary: $${stats.avgSalary}K.` : ''} ${metro.heroDescription.slice(0, 100)}...`;
+  // Title trimmed to <60 chars for SERP display. Salary/licensure/employer
+  // detail moved to the description; longer "Top Employers (YYYY)" suffix
+  // was reliably truncated mid-phrase.
+  const title = `${stats.totalJobs > 0 ? `${stats.totalJobs} ` : ''}PMHNP Jobs in ${metro.city}, ${metro.stateCode} (${new Date().getFullYear()})`;
+  // Description capped at ~155 chars to avoid SERP truncation. Full hero
+  // copy still renders on the page for users.
+  const description = [
+    `Find PMHNP jobs in ${metro.city}, ${metro.stateCode}.`,
+    `${metro.practiceAuthority} practice authority.`,
+    stats.avgSalary > 0 ? `Avg salary $${stats.avgSalary}K.` : '',
+    `${metro.heroDescription.slice(0, 70).trim()}.`,
+  ].filter(Boolean).join(' ').slice(0, 158);
 
   return {
     title,

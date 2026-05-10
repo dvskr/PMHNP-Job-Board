@@ -85,7 +85,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
     return {
         title: `${stats.totalJobs} Addiction PMHNP Jobs — Substance Use & MAT Psych NP Positions`,
-        description: `Find ${stats.totalJobs} addiction psychiatry and substance use disorder PMHNP jobs. Positions include MAT programs, opioid treatment, detox, and recovery centers. Psychiatric nurse practitioners specializing in addiction medicine earn $${stats.avgSalary || 155}K+ on average.`,
+        description: `Find ${stats.totalJobs} addiction & substance use disorder PMHNP jobs. MAT programs, opioid treatment, detox, and recovery centers. Avg $${stats.avgSalary || 155}K+.`,
         keywords: ['addiction pmhnp jobs', 'substance use pmhnp', 'MAT pmhnp', 'suboxone prescriber jobs', 'addiction psychiatry NP'],
         openGraph: {
             title: `${stats.totalJobs} Addiction PMHNP Jobs - Substance Use & MAT Positions`,

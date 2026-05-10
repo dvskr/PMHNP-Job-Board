@@ -81,7 +81,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: `${stats.totalJobs} Behavioral Health NP Jobs — Psychiatric & Mental Health Positions`,
+        title: `${stats.totalJobs} Behavioral Health PMHNP Jobs — Psych NP Positions`,
         description: `Find ${stats.totalJobs} behavioral health nurse practitioner jobs. Positions across inpatient, outpatient, community mental health, telehealth, and residential settings. Average salary $${stats.avgSalary || 155}K+.`,
         keywords: ['behavioral health NP jobs', 'behavioral health nurse practitioner', 'mental health NP jobs', 'psychiatric NP positions', 'PMHNP behavioral health'],
         openGraph: {
