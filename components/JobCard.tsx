@@ -81,7 +81,10 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const saved = isSaved(job.id);
   const applied = isApplied(job.id);
-  const jobSlug = slugify(job.title, job.id);
+  // Prefer the stored, immutable slug. Recomputing from title every render
+  // means a future title edit would silently change the URL the card points
+  // at — slugify is the legacy-row fallback only.
+  const jobSlug = job.slug || slugify(job.title, job.id);
   const jobUrl = `/jobs/${jobSlug}`;
   const fullJobUrl = `${BASE_URL}/jobs/${jobSlug}`;
   const freshness = getJobFreshness(job);

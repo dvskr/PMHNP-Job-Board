@@ -141,6 +141,14 @@ export const metadata: Metadata = {
 
   verification: {
     google: 'google4912b114c3b602cd',
+    // Bing Webmaster verification — env-driven so the token can rotate
+    // without a code change. Set BING_WEBMASTER_VERIFICATION in Vercel
+    // (Bing Webmaster Tools → Settings → Site verification → HTML meta tag).
+    // Without this, the IndexNow + BING_WEBMASTER_API_KEY pipeline runs blind
+    // (no dashboard visibility into submission success / coverage / errors).
+    ...(process.env.BING_WEBMASTER_VERIFICATION
+      ? { other: { 'msvalidate.01': process.env.BING_WEBMASTER_VERIFICATION } }
+      : {}),
   },
 };
 

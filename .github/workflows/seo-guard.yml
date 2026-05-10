@@ -1,0 +1,45 @@
+name: SEO Guard
+
+# Runs the SEO test suite (tests/seo/*) on every push and PR. Catches
+# regressions in:
+#   - tests/seo/no-replacement-char.test.ts — fails on any U+FFFD in source
+#   - tests/seo/sitemap-budget.test.ts — fails after 2026-05-19 if the
+#     auth pages temporarily unblocked in app/robots.ts (per P2.3) are
+#     not re-added to FULL_DISALLOW. Without this CI gate the deadline
+#     would silently pass — the test exists but no workflow ran it.
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  seo-tests:
+    runs-on: ubuntu-latest
+
+    env:
+      # The sitemap-budget test reads NEXT_PUBLIC_BASE_URL during execution.
+      # Use a dummy value that lets the URL constructors run without trying
+      # to reach any real host.
+      NEXT_PUBLIC_BASE_URL: https://pmhnphiring.com
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        # Needed because tests import @/lib/prisma; the runtime client is
+        # generated from prisma/schema.prisma at install time, but on a
+        # cold cache the postinstall sometimes skips. Belt-and-suspenders.
+        run: npx prisma generate
+
+      - name: Run SEO test suite
+        run: npx vitest run tests/seo

@@ -787,7 +787,6 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                         {[
                             { href: `/jobs/state/${stateSlug}`, label: `All ${stateName} PMHNP Jobs`, desc: `Browse every open position in ${stateCode}`, icon: '📍' },
                             { href: `/salary-guide/${stateSlug}`, label: `${stateName} Salary Guide`, desc: `Compensation data and trends`, icon: '💰' },
-                            { href: `/resources/state-licensure-guide/${stateSlug}`, label: `${stateName} Licensure Guide`, desc: `Requirements, scope of practice, CEUs`, icon: '📋' },
                             { href: '/jobs/locations', label: 'All Locations', desc: 'PMHNP jobs in all 50 states', icon: '🗺️' },
                             { href: '/jobs/remote', label: 'Remote PMHNP Jobs', desc: 'Work from anywhere positions', icon: '🏠' },
                             { href: '/jobs/telehealth', label: 'Telehealth Positions', desc: 'Virtual care opportunities', icon: '💻' },

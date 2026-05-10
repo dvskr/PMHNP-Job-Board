@@ -5,6 +5,9 @@ import Badge from '@/components/ui/Badge';
 
 interface RelatedJob {
   id: string;
+  // Stored slug from Job.slug; preferred over recomputing slugify(title, id)
+  // every render (a future title edit would silently change the URL).
+  slug?: string | null;
   title: string;
   employer: string;
   location: string;
@@ -56,7 +59,8 @@ export default function RelatedJobs({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {filteredJobs.slice(0, 4).map((job) => {
-          const jobSlug = slugify(job.title, job.id);
+          // Prefer stored slug; slugify is legacy-row fallback only.
+          const jobSlug = job.slug || slugify(job.title, job.id);
           const shortLocation = (() => {
             if (!job.location) return 'Remote';
             const first = job.location.split(';')[0].split(',').slice(0, 2).join(',').trim();

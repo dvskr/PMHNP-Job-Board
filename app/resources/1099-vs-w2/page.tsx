@@ -4,6 +4,13 @@ import Link from 'next/link';
 import { Scale, DollarSign, Calculator, CheckCircle, AlertTriangle, TrendingUp, Building2 } from 'lucide-react';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
+// Bump on each editorial review pass so dateModified isn't permanently
+// frozen at the original publish date. Quarterly cadence is a reasonable
+// minimum; bump sooner when content changes substantively.
+const PUBLISHED_AT = '2026-03-19';
+const LAST_REVIEWED = '2026-03-19';
+const HERO_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp';
+
 export const metadata: Metadata = {
   title: '1099 vs W2 for PMHNPs — Complete Compensation Comparison 2026',
   description: 'Compare 1099 independent contractor vs W2 employee PMHNP compensation. Tax strategies, benefits comparison, income calculator, and which model maximizes your psychiatric nurse practitioner earnings.',
@@ -12,6 +19,12 @@ export const metadata: Metadata = {
     title: '1099 vs W2 for PMHNPs — Compensation Guide',
     description: 'Which pays more? Complete comparison of independent contractor vs employee compensation for psychiatric nurse practitioners.',
     type: 'article',
+    images: [{ url: HERO_IMAGE, width: 1280, height: 900, alt: '1099 vs W2 PMHNP Compensation Guide' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '1099 vs W2 for PMHNPs — Compensation Guide',
+    images: [HERO_IMAGE],
   },
   alternates: { canonical: `${brand.baseUrl}/resources/1099-vs-w2` },
 };
@@ -73,8 +86,9 @@ export default function CompensationGuidePage() {
             '@type': 'Article',
             headline: '1099 vs W2 for PMHNPs — Complete Compensation Comparison 2026',
             description: 'Compare independent contractor vs employee compensation for psychiatric nurse practitioners.',
-            datePublished: '2026-03-19',
-            dateModified: '2026-03-19',
+            datePublished: PUBLISHED_AT,
+            dateModified: LAST_REVIEWED,
+            image: HERO_IMAGE,
             author: { '@type': 'Organization', name: 'PMHNP Hiring' },
             publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
           }),

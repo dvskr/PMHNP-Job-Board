@@ -336,8 +336,8 @@ export default async function MetroLandingPage({ params }: PageProps) {
                 {[
                   { href: `/jobs/state/${metro.stateSlug}`, icon: '📍', label: `All ${metro.state} Jobs (${stateStats.totalJobs})` },
                   { href: `/salary-guide/${metro.stateSlug}`, icon: '💰', label: `${metro.state} Salary Guide` },
-                  { href: `/resources/state-licensure-guide/${metro.stateSlug}`, icon: '📋', label: `${metro.state} Licensure Guide` },
                   { href: '/jobs/remote', icon: '🏠', label: 'Remote PMHNP Jobs' },
+                  { href: '/jobs/telehealth', icon: '💻', label: 'Telehealth Positions' },
                 ].map(link => (
                   <li key={link.href} style={{ padding: '6px 0' }}>
                     <Link href={link.href} style={{ fontSize: '13px', color: '#0D9488', textDecoration: 'none', fontWeight: 500 }}>
