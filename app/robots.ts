@@ -32,7 +32,10 @@ const PUBLIC_ALLOW = [
   '/resources/',
   '/job-alerts',
   // Explicitly allow sitemap API and OG image API
-  '/api/sitemaps/',
+  // No trailing slash on /api/sitemaps so the rule matches both
+  // /api/sitemaps/index and /api/sitemaps/cities/N — the previous trailing
+  // slash form excluded the bare /api/sitemaps with some strict parsers.
+  '/api/sitemaps',
   '/api/og',
 ]
 
@@ -58,11 +61,12 @@ const PUBLIC_ALLOW = [
 //      below — CI lint should fail if today >= AUTH_REBLOCK_DATE and these
 //      paths aren't back in FULL_DISALLOW.
 const FULL_DISALLOW = [
-  // Block all other API routes (longest-match rule keeps /api/sitemaps/ allowed)
+  // Block all other API routes. The /api/sitemaps/ and /api/og allows in
+  // PUBLIC_ALLOW above carve out the public sub-routes; everything else
+  // under /api/ is blocked here. The previous list emitted dead lines for
+  // /api/cron/, /api/webhooks/, /api/admin/ — they were already covered
+  // by /api/ across all 21 named-crawler rule blocks, just adding noise.
   '/api/',
-  '/api/cron/',
-  '/api/webhooks/',
-  '/api/admin/',
   // Internal Next.js client-side navigation data (allow /_next/static/ for JS/CSS)
   '/_next/data/',
   // Token-bearing URLs — must not be indexed (these are SAFE to keep blocked
@@ -94,8 +98,23 @@ const FULL_DISALLOW = [
 
 // Lighter disallow for social/link-preview bots — they only fetch the
 // exact URL shared, so they need access to almost everything that isn't
-// pure infrastructure.
-const SOCIAL_DISALLOW = ['/api/', '/admin/', '/dashboard/']
+// pure infrastructure. Auth-gated surfaces extended (audit 01 M-2):
+// when a user shares a link to a protected page the bot fetches it,
+// receives a login shell, and generates a broken preview card — better
+// to refuse the fetch outright.
+const SOCIAL_DISALLOW = [
+  '/api/',
+  '/admin/',
+  '/dashboard/',
+  '/auth/',
+  '/employer/dashboard/',
+  '/employer/candidates/',
+  '/employer/settings',
+  '/settings',
+  '/my-applications',
+  '/saved',
+  '/messages',
+]
 
 // ── Crawler rosters ──────────────────────────────────────────────────
 // AI / LLM / search-AI crawlers all get the FULL disallow list.

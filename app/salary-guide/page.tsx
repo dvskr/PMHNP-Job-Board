@@ -91,7 +91,10 @@ async function getOverallStats() {
 }
 
 export const metadata: Metadata = {
-  title: 'PMHNP Salary Guide 2026 — $155K+ Avg by State | PMHNP Hiring',
+  // `absolute` opts out of the layout title template so the brand suffix
+  // doesn't get appended a second time (was rendering "... | PMHNP Hiring
+  // | PMHNP Hiring" — audit 09 M-17).
+  title: { absolute: 'PMHNP Salary Guide 2026 — $155K+ Avg by State | PMHNP Hiring' },
   description: 'Complete 2026 PMHNP salary data: national avg $155K+, top 10% earn $210K+. All 50 states, by experience level, practice setting, and negotiation tips.',
   keywords: ['pmhnp salary', 'psych np salary', 'psychiatric nurse practitioner salary', 'pmhnp salary by state', 'how much do pmhnps make', 'pmhnp pay', 'pmhnp salary 2026', 'psychiatric np salary', 'pmhnp salary guide'],
   openGraph: {

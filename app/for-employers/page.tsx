@@ -15,8 +15,9 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'For Employers — Hire PMHNPs | PMHNP Job Board',
+  // Trimmed from 189 chars to ~145 for SERP display (audit 09 M-20).
   description:
-    'Hire qualified Psychiatric Mental Health Nurse Practitioners. First 2 posts free — all features included. Reach thousands of PMHNPs actively searching. Simple pricing, real results.',
+    'Hire Psychiatric Mental Health Nurse Practitioners. First 2 posts free — all features included. Reach thousands actively searching for PMHNP roles.',
   openGraph: {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP employer hiring solutions' }],
   },

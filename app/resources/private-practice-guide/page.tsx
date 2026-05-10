@@ -4,6 +4,12 @@ import Link from 'next/link';
 import { Building2, DollarSign, FileText, CheckCircle, Shield, Users, BookOpen, Landmark } from 'lucide-react';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
+// Editorial review constants — bump LAST_REVIEWED on each pass so Article
+// dateModified reflects real freshness, not the original publish date.
+const PUBLISHED_AT = '2026-03-19';
+const LAST_REVIEWED = '2026-03-19';
+const HERO_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp';
+
 export const metadata: Metadata = {
   title: 'How to Start a PMHNP Private Practice — Step-by-Step Guide 2026',
   description: 'Complete guide to starting your own psychiatric NP private practice. LLC formation, insurance credentialing (CAQH, NPI), EHR setup, malpractice insurance, billing, overhead costs, and income projections ($200K-$300K+).',
@@ -12,6 +18,12 @@ export const metadata: Metadata = {
     title: 'How to Start a PMHNP Private Practice — 2026 Guide',
     description: 'Step-by-step guide to launching your own psychiatric nurse practitioner private practice.',
     type: 'article',
+    images: [{ url: HERO_IMAGE, width: 1280, height: 900, alt: 'How to Start a PMHNP Private Practice — 2026 Guide' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'How to Start a PMHNP Private Practice — 2026 Guide',
+    images: [HERO_IMAGE],
   },
   alternates: { canonical: `${brand.baseUrl}/resources/private-practice-guide` },
 };

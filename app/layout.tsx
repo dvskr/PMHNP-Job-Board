@@ -79,7 +79,11 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: '/',
+    // Absolute URL so child pages that don't override og:url inherit a real
+    // host (audit 09 M-25). Previously '/' meant Facebook/LinkedIn dedup'd
+    // every page-without-its-own-og:url to the homepage entry, reusing one
+    // cached image across unrelated pages.
+    url: brand.baseUrl,
     siteName: brand.name,
     title: `${brand.name} - Find ${brand.niche.long} Positions`,
     description: `The #1 job board for ${brand.niche.short}s. Browse remote and in-person ${brand.niche.descriptor} jobs across all 50 states.`,
