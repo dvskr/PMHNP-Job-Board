@@ -432,8 +432,18 @@ export async function generateMetadata({ params }: JobPageProps) {
   if (job.jobType) ogImageUrl.searchParams.set('jobType', job.jobType);
   if (isNew) ogImageUrl.searchParams.set('isNew', 'true');
 
-  // Ensure valid canonical URL (https, no www, no trailing slash)
-  const canonicalUrl = `https://pmhnphiring.com/jobs/${slug}`;
+  // Canonical comes from the row's stored slug, NOT the request param.
+  //   - The page resolves a job by extracting the trailing UUID from the
+  //     incoming slug, so /jobs/anything-${uuid} all hit the same job.
+  //   - Without anchoring the canonical on the stored value, every variant
+  //     URL (typos, old title-derived prefixes from before a title edit,
+  //     truncated copies in shares) would emit a different canonical and
+  //     splinter the indexed forms.
+  //   - Falling back to slugify(title, id) covers legacy rows ingested
+  //     before the slug column was being written; the backfill script at
+  //     scripts/backfill-job-slugs.ts converts those over time.
+  const canonicalSlug = job.slug || slugify(job.title, job.id);
+  const canonicalUrl = `https://pmhnphiring.com/jobs/${canonicalSlug}`;
 
   return {
     title: `${job.title} at ${job.employer}`,

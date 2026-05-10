@@ -8,6 +8,7 @@ import { sendConfirmationEmail } from '@/lib/email-service';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText, normalizeContentWhitespace } from '@/lib/sanitize';
 import { logger } from '@/lib/logger';
+import { slugify } from '@/lib/utils';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { normalizeSalary } from '@/lib/salary-normalizer';
 import { formatDisplaySalary } from '@/lib/salary-display';
@@ -318,12 +319,11 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        const computedSlug = `${sanitized.title
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .replace(/-+/g, '-')
-          .trim()}-${created.id}`;
+        // Use the shared slugify helper so this path and the ingestion path
+        // can never drift on slug shape. slug is set here at insert and
+        // intentionally NOT updated on subsequent employer edits — the
+        // canonical URL stays stable even if the employer renames the job.
+        const computedSlug = slugify(sanitized.title, created.id);
 
         const updated = await tx.job.update({
           where: { id: created.id },
