@@ -73,12 +73,15 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
   //  - page>=2     → noindex,follow + self-canonical (lets Googlebot crawl deep
   //                  pages to discover job-detail URLs without competing with /jobs)
   //  - sort variant → canonical to /jobs (sort is a UI affordance, not a new page)
-  //  - Page 1, no filters → index normally with canonical to /jobs
+  //  - totalJobs===0 → noindex,follow regardless of filters; an empty body at
+  //                  HTTP 200 is a soft 404 in Google's classifier.
+  //  - Page 1, no filters, totalJobs > 0 → index normally with canonical to /jobs
   const userFilterKeys = Object.keys(params).filter((k) => !NAV_ONLY_PARAMS.has(k));
   const hasUserFilters = userFilterKeys.length > 0;
   const pageNum = Math.max(1, parseInt((params.page as string) || '1'));
   const isPaginated = pageNum > 1;
-  const shouldNoindex = hasUserFilters || isPaginated;
+  const isEmpty = totalJobs === 0;
+  const shouldNoindex = hasUserFilters || isPaginated || isEmpty;
 
   if (isPaginated && !hasUserFilters) {
     title = `${title} — Page ${pageNum}`;

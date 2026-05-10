@@ -497,8 +497,12 @@ export default async function BlogPostPage({ params }: Props) {
                     <EditorialTOC headings={headings} readTime={readTime} wordCount={wordCount} />
                 </aside>
 
-                {/* Center - Article prose */}
-                <main className="ed-col-center">
+                {/* Center - Article prose. Wrapper is a div, not <main>: the
+                    site-wide <main id="main-content"> already wraps everything
+                    in MainContent.tsx, and the <article> below is the semantic
+                    landmark for this page's content. Nested <main> is invalid
+                    HTML and confuses Google's main-content extractor. */}
+                <div className="ed-col-center">
                     <article>
                         {/* Key Takeaways injected into contentHtml before first <h2> — see line ~115 */}
                         <div
@@ -556,7 +560,7 @@ export default async function BlogPostPage({ params }: Props) {
                         <strong style={{ display: 'block', marginBottom: '4px', color: '#1A2E35' }}>Editorial note</strong>
                         This article is for informational purposes only and is not medical, clinical, legal, or financial advice. Always consult a licensed clinician, your state board of nursing, or a qualified professional for individual care, licensure, or career decisions. PMHNP Hiring is a job board operated by Akari Labs LLC and is not a medical, regulatory, or licensing authority.
                     </aside>
-                </main>
+                </div>
 
                 {/* Right rail - Toolbar + Newsletter */}
                 <aside className="ed-col-right">

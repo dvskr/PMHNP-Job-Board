@@ -296,8 +296,10 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
             <LinkedInFilters />
           </StickyFilterSidebar>
 
-          {/* Job Results */}
-          <main style={{ flex: 1, minWidth: 0 }}>
+          {/* Job Results — labeled section, not <main>, since <main id="main-content">
+              already wraps the entire page in components/MainContent.tsx. Nested
+              <main> is invalid HTML and confuses Google's main-content extractor. */}
+          <section aria-label="Job results" style={{ flex: 1, minWidth: 0 }}>
             {/* Mobile Filter Button */}
             <div className="lg:hidden" style={{ marginBottom: '16px' }}>
               <button
@@ -591,13 +593,38 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               </div>
             )}
 
-            {/* No Jobs State */}
+            {/* No Jobs State — when filters are active, surface a recovery
+                action so users (and crawlers measuring engagement) don't bounce.
+                The page-level noindex on filtered/zero-result URLs prevents
+                this empty body from being indexed as a soft 404. */}
             {!loading && !error && !aiResults && jobs.length === 0 && (
               <div style={{ textAlign: 'center', padding: '64px 20px' }}>
                 <p style={{ fontSize: '18px', color: 'var(--text-secondary)', fontWeight: 600 }}>No jobs found</p>
-                {activeFilterCount > 0 && (
+                {activeFilterCount > 0 ? (
+                  <>
+                    <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
+                      Try adjusting your filters or clear them to browse all open positions.
+                    </p>
+                    <Link
+                      href="/jobs"
+                      style={{
+                        display: 'inline-block',
+                        marginTop: '16px',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        background: 'var(--color-primary)',
+                        color: '#fff',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      Clear filters
+                    </Link>
+                  </>
+                ) : (
                   <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
-                    Try adjusting your filters
+                    New positions are added daily. Set up a job alert to be notified.
                   </p>
                 )}
               </div>
@@ -743,7 +770,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                 })()}
               </>
             )}
-          </main>
+          </section>
         </div>
 
         {/* Bottom spacing */}
