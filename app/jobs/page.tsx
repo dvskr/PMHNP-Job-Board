@@ -5,7 +5,7 @@ import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
 import { slugify } from '@/lib/utils';
 import JobsPageClient from './JobsPageClient';
 import { Job } from '@/lib/types';
-import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 // Nav-only params do not constitute a user filter — paginated and sorted
 // views of the unfiltered list should still be crawled (page>=2 is noindexed
@@ -235,9 +235,12 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jobListSchema).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') }}
         />
-        <BreadcrumbSchema items={[
-          { name: "Home", url: "https://pmhnphiring.com" },
-          { name: "Jobs", url: "https://pmhnphiring.com/jobs" }
+        {/* Breadcrumbs renders BOTH the visual nav AND the BreadcrumbList JSON-LD,
+            so consumers no longer need a separate BreadcrumbSchema component
+            (which only emitted JSON-LD; users got no visible trail). */}
+        <Breadcrumbs items={[
+          { label: 'Home', href: '/' },
+          { label: 'Jobs' },
         ]} />
         <JobsPageClient
           initialJobs={jobs as unknown as Job[]}
@@ -253,9 +256,9 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
     // Fallback: render client with empty data
     return (
       <>
-        <BreadcrumbSchema items={[
-          { name: "Home", url: "https://pmhnphiring.com" },
-          { name: "Jobs", url: "https://pmhnphiring.com/jobs" }
+        <Breadcrumbs items={[
+          { label: 'Home', href: '/' },
+          { label: 'Jobs' },
         ]} />
         <JobsPageClient
           initialJobs={[]}

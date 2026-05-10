@@ -281,12 +281,22 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   return (
     <>
       <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 16px 0' }}>
-        {/* SEO: H1 required for page topic signal — visually hidden but accessible */}
-        <h1 style={{
-          position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px',
-          overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', borderWidth: 0,
-        }}>
-          Browse PMHNP &amp; Psychiatric Nurse Practitioner Jobs
+        {/* Visible H1 — was previously clipped to 1×1px for SEO-only purposes;
+            audit 07 flagged that visually-hidden headings carry a weaker topic
+            signal than visible ones. Now renders as a compact eyebrow above
+            the search bar so design weight stays on the search and listings. */}
+        <h1
+          className="font-lora"
+          style={{
+            fontSize: 'clamp(20px, 2.6vw, 28px)',
+            fontWeight: 700,
+            color: '#1A2E35',
+            margin: '0 0 16px',
+            lineHeight: 1.2,
+            letterSpacing: '-0.01em',
+          }}
+        >
+          PMHNP &amp; Psychiatric Nurse Practitioner Jobs
         </h1>
 
         {/* Main Content with Sidebar Layout */}
