@@ -141,6 +141,7 @@ export async function getRelatedPosts(
 ): Promise<BlogPost[]> {
     const supabase = getSupabaseClient();
 
+    // Try same-category first — strongest topical relevance signal.
     const { data, error } = await supabase
         .from('blog_posts')
         .select('id, title, slug, meta_description, category, publish_date, image_url')
@@ -154,7 +155,34 @@ export async function getRelatedPosts(
         console.error('Error fetching related posts:', error);
         return [];
     }
-    return data as BlogPost[];
+
+    let related = (data ?? []) as BlogPost[];
+
+    // Top up from any-category if the same-category query is short of `limit`.
+    // Thin categories (1-2 posts) would otherwise leave the "Read Next" block
+    // empty, costing every post page an internal-linking opportunity. The
+    // any-category fill ranks lower for topical match but still beats nothing.
+    if (related.length < limit) {
+        const have = new Set([currentSlug, ...related.map((p) => p.slug)]);
+        const { data: fillData, error: fillErr } = await supabase
+            .from('blog_posts')
+            .select('id, title, slug, meta_description, category, publish_date, image_url')
+            .eq('status', 'published')
+            .neq('slug', currentSlug)
+            .order('publish_date', { ascending: false, nullsFirst: false })
+            .limit(limit + related.length);
+
+        if (!fillErr && fillData) {
+            for (const post of fillData as BlogPost[]) {
+                if (related.length >= limit) break;
+                if (have.has(post.slug)) continue;
+                related.push(post);
+                have.add(post.slug);
+            }
+        }
+    }
+
+    return related;
 }
 
 export async function getAllPublishedSlugs(): Promise<
@@ -278,9 +306,15 @@ export function markdownToHtml(markdown: string): string {
         const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
         return `<h2 id="${id}">${text}</h2>`;
     });
+    // Single-hash markdown headings render as <h2>, not <h1>. Blog post pages
+    // already render the post title as the page-level <h1>; allowing body
+    // content to emit additional H1s would produce duplicate-H1 documents
+    // and weaken topic signal. Authors who want the largest body heading
+    // should use ## (which already renders as <h2>) — the visual size is
+    // controlled by editorial.css, not the tag.
     html = html.replace(/^#\s+(.+)$/gm, (_, text) => {
         const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
-        return `<h1 id="${id}">${text}</h1>`;
+        return `<h2 id="${id}">${text}</h2>`;
     });
 
     // Bold and italic
@@ -399,21 +433,42 @@ export function markdownToHtml(markdown: string): string {
     });
 
     // Sanitize HTML to prevent XSS
-    html = sanitizeHtml(html, {
-        allowedTags: sanitizeHtml.defaults.allowedTags.concat([
-            'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code', 'hr',
-            'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div',
-        ]),
-        allowedAttributes: {
-            ...sanitizeHtml.defaults.allowedAttributes,
-            '*': ['id', 'class', 'style'],
-            'img': ['src', 'alt', 'loading', 'width', 'height'],
-            'a': ['href', 'target', 'rel'],
-        },
-        allowedSchemes: ['http', 'https', 'mailto'],
-    });
+    html = sanitizeHtml(html, BLOG_SANITIZE_CONFIG);
 
     return html;
+}
+
+// Shared sanitize-html config so the post-autoLink re-sanitize pass below
+// uses the exact same allowedTags/allowedAttributes as the initial pass —
+// otherwise we'd silently strip legitimate markup added by the auto-linkers.
+const BLOG_SANITIZE_CONFIG: sanitizeHtml.IOptions = {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+        'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code', 'hr',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div',
+    ]),
+    allowedAttributes: {
+        ...sanitizeHtml.defaults.allowedAttributes,
+        '*': ['id', 'class', 'style'],
+        'img': ['src', 'alt', 'loading', 'width', 'height'],
+        'a': ['href', 'target', 'rel'],
+    },
+    allowedSchemes: ['http', 'https', 'mailto'],
+};
+
+/**
+ * Re-sanitize blog post HTML after autoLinkStates / autoLinkCategories.
+ *
+ * Why: those functions inject <a> tags into already-sanitized HTML using
+ * regex — defense-in-depth says any text-in-attribute false positive that
+ * slips past the negative-lookbehind would bypass the original sanitize-
+ * html step. Applying the same config a second time catches it.
+ *
+ * The auto-linkers only emit well-formed <a href class> tags that
+ * BLOG_SANITIZE_CONFIG already allows, so legitimate output passes
+ * through unchanged.
+ */
+export function resanitizeBlogHtml(html: string): string {
+    return sanitizeHtml(html, BLOG_SANITIZE_CONFIG);
 }
 
 // ─── Auto-link State Mentions ────────────────────────────────────────────────

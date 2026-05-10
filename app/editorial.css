@@ -203,6 +203,11 @@ html:has(.ed-page) body {
     color-mix(in oklch, var(--ink) 4%, transparent) 18px 19px
   );
 }
+/* Hide the decorative gradient pattern when a real photo is rendered.
+   Previously triggered by inline style="background-image:..."; switched to
+   a class hook because the hero now uses next/image with object-cover
+   instead of CSS background-image (LCP optimization). */
+.ed-hero-photo--has-image::after,
 .ed-hero-photo[style*="background-image"]::after {
   display: none;
 }

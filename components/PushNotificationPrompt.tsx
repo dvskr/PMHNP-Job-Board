@@ -38,10 +38,18 @@ export default function PushNotificationPrompt() {
         const visits = parseInt(localStorage.getItem('pmhnp_visit_count') || '0', 10);
         if (visits < 3) return;
 
-        // Only show for logged-in users
+        // SW registration is now gated on the same auth check as the prompt
+        // itself. Previously it ran unconditionally on every page load
+        // (audit 18 M-2), costing every visitor a serviceWorker.register
+        // call regardless of login state or visit count — bandwidth +
+        // hydration cost with no benefit until the prompt actually shows.
         const supabase = createClient();
         supabase.auth.getUser().then(({ data: { user } }) => {
             if (!user) return;
+
+            // Register SW only after we know we have a user who could
+            // eventually opt in.
+            navigator.serviceWorker.register('/push-sw.js').catch(() => { });
 
             // Check if already subscribed
             navigator.serviceWorker.ready.then(reg => {
@@ -53,9 +61,6 @@ export default function PushNotificationPrompt() {
                 });
             });
         });
-
-        // Register service worker
-        navigator.serviceWorker.register('/push-sw.js').catch(() => { });
     }, []);
 
     const handleSubscribe = useCallback(async () => {

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
 import {
     getPostBySlug,
@@ -8,6 +9,7 @@ import {
     getAllPublishedSlugs,
     markdownToHtml,
     autoLinkStates,
+    resanitizeBlogHtml,
     extractHeadings,
     BLOG_CATEGORIES,
 } from '@/lib/blog';
@@ -112,6 +114,10 @@ export default async function BlogPostPage({ params }: Props) {
     let contentHtml = markdownToHtml(post.content);
     contentHtml = autoLinkStates(contentHtml);
     contentHtml = autoLinkCategories(contentHtml);
+    // Re-sanitize after the regex-based auto-linkers so any false-positive
+    // injection (state names appearing inside attribute values, etc.) gets
+    // caught by the same sanitize-html config the markdown step already used.
+    contentHtml = resanitizeBlogHtml(contentHtml);
 
     // Extract headings for TOC
     const headings = extractHeadings(post.content);
@@ -471,10 +477,30 @@ export default async function BlogPostPage({ params }: Props) {
                         </div>
                     </div>
                     <div className="ed-hero-side">
+                        {/* Hero is the LCP element on virtually every post page.
+                            Using Next/Image with priority + fill applies image
+                            optimization (AVIF/WebP transcoding, responsive
+                            srcset, fetchpriority="high") and emits a preload
+                            link in the <head>. Previous CSS background-image
+                            approach shipped the source bytes verbatim with no
+                            preload — measurably worse LCP on mobile. The
+                            decorative-pattern CSS fallback (.ed-hero-photo
+                            ::after gradient) still applies when image_url is
+                            null because the wrapper retains the class. */}
                         <div
-                            className="ed-hero-photo"
-                            style={post.image_url ? { backgroundImage: `url(${post.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+                            className={`ed-hero-photo${post.image_url ? ' ed-hero-photo--has-image' : ''}`}
+                            style={{ position: 'relative' }}
                         >
+                            {post.image_url && (
+                                <Image
+                                    src={post.image_url}
+                                    alt={post.title}
+                                    fill
+                                    priority
+                                    sizes="(max-width: 900px) 100vw, 45vw"
+                                    style={{ objectFit: 'cover', objectPosition: 'center' }}
+                                />
+                            )}
                             <div className="ed-hero-photo-caption">
                                 <strong>{categoryLabel}</strong>
                                 <span>{formatDate(post.publish_date || post.created_at)}</span>

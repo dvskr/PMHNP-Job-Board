@@ -180,7 +180,10 @@ export default async function RootLayout({
         <link rel="alternate" type="text/plain" href="/ai.txt" title="AI Permissions" />
         <link rel="alternate" type="application/rss+xml" href="/feed.xml" title={`${brand.name} — Latest Jobs`} />
         {/* Organization and WebSite Schema Markup */}
-        <meta property="fb:app_id" content="940556045303701" />
+        {/* fb:app_id removed (audit 27 M-1): no Meta Pixel, CAPI, or Facebook
+            Login integration exists in the codebase, so the tag was inert
+            HTML weight on every page response. Restore only when an active
+            Meta integration is shipped alongside it. */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
