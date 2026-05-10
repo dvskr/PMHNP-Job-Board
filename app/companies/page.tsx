@@ -125,6 +125,47 @@ export default async function CompaniesIndexPage() {
           </p>
         </section>
 
+        {/* Editorial intro — adds substantive prose so the page isn't just
+            a card grid (audit 15 thin-pages CRITICAL). Explains who shows
+            up here, why they made the list, and what a candidate should
+            consider when evaluating an employer for PMHNP work. */}
+        <section style={{ maxWidth: '760px', margin: '0 auto', padding: '32px 24px 0' }}>
+          <div style={{ fontSize: '15px', color: '#3D3530', lineHeight: 1.75 }}>
+            <p style={{ marginBottom: '16px' }}>
+              Every employer below has at least one currently published PMHNP role on
+              PMHNP Hiring. The list is a mix of <strong>direct employers</strong> —
+              health systems, community mental health centers (CMHCs), Federally
+              Qualified Health Centers (FQHCs), VA medical centers, telehealth
+              platforms, and private practices — alongside <strong>staffing agencies</strong>{' '}
+              that place PMHNPs into locum and travel assignments. We pull active
+              postings from each employer&apos;s career pages and ATS feeds twice
+              daily, so the company list reflects who is genuinely hiring now, not
+              a static directory.
+            </p>
+            <p style={{ marginBottom: '16px' }}>
+              When evaluating a PMHNP employer, the questions that matter most are
+              practical: <strong>practice authority</strong> in the states they hire
+              for (full vs. reduced vs. restricted, plus Nurse Licensure Compact
+              membership), <strong>caseload structure</strong> (15-minute med checks
+              vs. 30-60 minute integrated visits), <strong>productivity expectations</strong>{' '}
+              (RVU targets, pace), <strong>collaborative-physician requirements</strong>{' '}
+              if your state needs them, and what they cover on{' '}
+              <strong>malpractice, CME, and EMR/billing infrastructure</strong>.
+              Larger health systems and federal employers (VA, IHS) tend to
+              standardize these; private practices and telehealth startups vary
+              widely.
+            </p>
+            <p style={{ marginBottom: 0 }}>
+              Compensation patterns differ by employer type too. VA roles bundle
+              federal pension + EDRP loan repayment up to $200K; FQHCs and CMHCs
+              qualify for NHSC repayment; telehealth platforms typically offer the
+              highest hourly rates but no benefits; hospital systems offer signing
+              bonuses + relocation. Open one of the listings below to see specific
+              roles, compensation ranges, and apply paths for that employer.
+            </p>
+          </div>
+        </section>
+
         {/* Grid */}
         <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px 64px' }}>
           <div
