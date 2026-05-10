@@ -36,9 +36,15 @@ const faqs = [
   { q: 'Is part-time good for new grads?', a: 'Part-time can work for new grads who want gradual clinical exposure, but most employers prefer candidates who can commit to consistent schedules. Starting with a full-time role that offers mentorship may build skills faster.' },
 ];
 
-export async function generateMetadata(): Promise<Metadata> {
-  const stats = await getStats();
-  return { title: `${stats.totalJobs} Part-Time PMHNP Jobs ($60-85/hr)`, description: `Find ${stats.totalJobs} part-time PMHNP jobs paying $60-85+/hr. Flexible schedules, PRN positions, and work-life balance.`, alternates: { canonical: `${brand.baseUrl}/jobs/part-time` } };
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const [stats, params] = await Promise.all([getStats(), searchParams]);
+  const page = Math.max(1, parseInt(params.page || '1'));
+  return {
+    title: `${stats.totalJobs} Part-Time PMHNP Jobs ($60-85/hr)`,
+    description: `Find ${stats.totalJobs} part-time PMHNP jobs paying $60-85+/hr. Flexible schedules, PRN positions, and work-life balance.`,
+    alternates: { canonical: `${brand.baseUrl}/jobs/part-time` },
+    ...(page > 1 && { robots: { index: false, follow: true } }),
+  };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }

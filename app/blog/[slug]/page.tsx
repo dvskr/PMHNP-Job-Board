@@ -21,7 +21,11 @@ import VideoLightbox from '@/components/blog/VideoLightbox';
 import BlogEmailSignup from '@/components/BlogEmailSignup';
 import '@/app/editorial.css';
 
-export const dynamic = 'force-dynamic';
+// ISR: blog post bodies change infrequently; 1-hour revalidate is appropriate.
+// Previously force-dynamic bypassed all caching, so every crawl plus every
+// share-driven traffic spike re-rendered the post and re-ran markdown +
+// auto-link processing. revalidate also lets Vercel serve from edge cache.
+export const revalidate = 3600;
 
 interface Props {
     params: Promise<{ slug: string }>;
@@ -377,7 +381,7 @@ export default async function BlogPostPage({ params }: Props) {
             name: `How to Get Your PMHNP License in ${sn}`,
             description: `Step-by-step guide to obtaining your Psychiatric-Mental Health Nurse Practitioner license in ${sn}.`,
             totalTime: 'P60D',
-            estimatedCost: { '@type': 'MonetaryCost', currency: 'USD', value: '500-1500' },
+            estimatedCost: { '@type': 'MonetaryAmount', currency: 'USD', value: '500-1500' },
             image: post.image_url || undefined,
             step: [
                 { '@type': 'HowToStep', position: 1, name: 'Complete MSN or DNP', text: `Earn a Master of Science in Nursing (MSN) or Doctor of Nursing Practice (DNP) degree with a Psychiatric-Mental Health Nurse Practitioner specialization from an CCNE or ACEN accredited program.` },
@@ -493,8 +497,12 @@ export default async function BlogPostPage({ params }: Props) {
                     <EditorialTOC headings={headings} readTime={readTime} wordCount={wordCount} />
                 </aside>
 
-                {/* Center - Article prose */}
-                <main className="ed-col-center">
+                {/* Center - Article prose. Wrapper is a div, not <main>: the
+                    site-wide <main id="main-content"> already wraps everything
+                    in MainContent.tsx, and the <article> below is the semantic
+                    landmark for this page's content. Nested <main> is invalid
+                    HTML and confuses Google's main-content extractor. */}
+                <div className="ed-col-center">
                     <article>
                         {/* Key Takeaways injected into contentHtml before first <h2> — see line ~115 */}
                         <div
@@ -552,7 +560,7 @@ export default async function BlogPostPage({ params }: Props) {
                         <strong style={{ display: 'block', marginBottom: '4px', color: '#1A2E35' }}>Editorial note</strong>
                         This article is for informational purposes only and is not medical, clinical, legal, or financial advice. Always consult a licensed clinician, your state board of nursing, or a qualified professional for individual care, licensure, or career decisions. PMHNP Hiring is a job board operated by Akari Labs LLC and is not a medical, regulatory, or licensing authority.
                     </aside>
-                </main>
+                </div>
 
                 {/* Right rail - Toolbar + Newsletter */}
                 <aside className="ed-col-right">

@@ -187,25 +187,6 @@ export default async function MetroLandingPage({ params }: PageProps) {
           })),
         }) }} />
       )}
-      {/* JobPosting schema */}
-      {stats.recentJobs.length > 0 && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(
-          stats.recentJobs.slice(0, 6).map((job: Job) => ({
-            '@context': 'https://schema.org', '@type': 'JobPosting',
-            title: job.title,
-            description: (job.descriptionSummary || job.description || '').slice(0, 500) || `PMHNP position in ${metro.city}, ${metro.stateCode}`,
-            datePosted: job.originalPostedAt ? new Date(job.originalPostedAt).toISOString().split('T')[0] : new Date(job.createdAt).toISOString().split('T')[0],
-            ...(job.expiresAt && { validThrough: new Date(job.expiresAt).toISOString().split('T')[0] }),
-            employmentType: job.jobType === 'Part-Time' ? 'PART_TIME' : job.jobType === 'Contract' ? 'CONTRACTOR' : 'FULL_TIME',
-            hiringOrganization: { '@type': 'Organization', name: job.employer || 'Confidential Employer' },
-            jobLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: metro.city, addressRegion: metro.stateCode, addressCountry: 'US' } },
-            ...(job.isRemote && { jobLocationType: 'TELECOMMUTE' }),
-            ...((job.normalizedMinSalary || job.normalizedMaxSalary) && { baseSalary: { '@type': 'MonetaryAmount', currency: 'USD', value: { '@type': 'QuantitativeValue', ...(job.normalizedMinSalary && { minValue: job.normalizedMinSalary }), ...(job.normalizedMaxSalary && { maxValue: job.normalizedMaxSalary }), unitText: 'YEAR' } } }),
-            url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
-          }))
-        ) }} />
-      )}
-
       {/* ═══ HERO ═══ */}
       <CategoryHero
         bgColor={metro.practiceAuthority === 'Full' ? '#86c1a8' : metro.practiceAuthority === 'Reduced' ? '#c1a886' : '#c1868a'}

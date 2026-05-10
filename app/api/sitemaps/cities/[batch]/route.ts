@@ -29,86 +29,77 @@ const SITEMAP_CATEGORIES = [
 const BATCH_SIZE = 10000;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
-// Build a lookup: state name → Map of city → job count (for quality filtering)
-async function getCitiesWithJobCounts(): Promise<Map<string, Map<string, number>>> {
-  const result = new Map<string, Map<string, number>>();
-  
-  const citiesWithJobs = await prisma.job.groupBy({
-    by: ['city', 'state'],
-    where: {
-      isPublished: true,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } },
-      ],
-      city: { not: null },
-      state: { not: null },
-    },
-    _count: { city: true },
-  });
-
-  for (const row of citiesWithJobs) {
-    if (!row.city || !row.state) continue;
-    const stateKey = row.state.toLowerCase().trim();
-    const cityKey = row.city.toLowerCase().trim();
-    if (!result.has(stateKey)) result.set(stateKey, new Map());
-    result.get(stateKey)!.set(cityKey, row._count.city);
-  }
-
-  return result;
-}
-
-// Build city slug → state name lookup from CITIES data
-const CITY_STATE_LOOKUP = new Map(
-  CITIES.map(c => [c.slug, { name: c.name.toLowerCase(), state: c.state.toLowerCase(), population: c.population }])
+// City slug → population lookup. Used as a defense-in-depth filter on top of
+// pseoStats — small towns can technically have ≥3 jobs but won't rank on
+// generic queries, so we cap to cities with population ≥ 10K.
+const CITY_POPULATION_LOOKUP = new Map<string, number>(
+  CITIES.map(c => [c.slug, c.population])
 );
 
+// Allow-list of category slugs the sitemap is permitted to emit. Mirrors the
+// PSEO category surface; we cross-check pseoStats rows against this set so a
+// stale aggregator row for a retired category can't leak into the sitemap.
+const SITEMAP_CATEGORY_SET = new Set(SITEMAP_CATEGORIES);
+
 // ═══ DYNAMIC SITEMAP PRUNING ═══
-// Only emit URLs that meet quality thresholds:
-// 1. City must have ≥ MIN_SITEMAP_JOBS jobs (matches page-level quality gate)
-// 2. City must have population ≥ 10,000 (small towns won't rank)
-// This prevents GSC "discovered-not-indexed" bloat.
+// Only emit URLs that meet quality thresholds — must mirror the page-level
+// gates exactly so we never advertise a URL that renders noindex:
+//   • Category × City: pseoStats.totalJobs ≥ MIN_SITEMAP_JOBS (matches
+//     MIN_JOBS_FOR_INDEX = 3 in lib/pseo/category-city-template.tsx)
+//   • Setting × State: pseoStats.totalJobs ≥ 1 (state pages render content
+//     even at low counts since state-level demand is broader)
+//   • City population ≥ MIN_SITEMAP_POPULATION (defense-in-depth)
+//   • pseoStats row must be fresh (≤ 36h since last aggregator run)
 const MIN_SITEMAP_JOBS = 3;
 const MIN_SITEMAP_POPULATION = 10000;
 
-// Generate only URLs where sufficient jobs exist in quality cities
-// Also includes state-level pSEO URLs (/jobs/{setting}/{state})
+// 36h = 3x the 12h aggregate-pseo cron cadence. Allows a single missed run
+// without dropping URLs from the sitemap; catches sustained aggregator failure
+// before Google indexes pages whose underlying jobs already expired.
+const PSEO_STALENESS_HOURS = 36;
+
+// Generate only URLs where sufficient jobs exist in quality cities, plus
+// state-level pSEO URLs. All gating is driven by pseoStats so the sitemap
+// never disagrees with the page-level noindex gate.
 async function getActiveCategoryCityUrls(): Promise<string[]> {
-  const citiesWithJobs = await getCitiesWithJobCounts();
   const urls: string[] = [];
+  const freshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
+  const validStateSlugs = new Set(getAllStateSlugs());
+  const settingSlugs = new Set(getAllSettingSlugs());
 
-  // Category × City URLs
-  for (const category of SITEMAP_CATEGORIES) {
-    for (const city of CITIES) {
-      // Population gate — skip small towns
-      if (city.population < MIN_SITEMAP_POPULATION) continue;
-
-      const stateKey = city.state.toLowerCase().trim();
-      const cityKey = city.name.toLowerCase().trim();
-      const stateCities = citiesWithJobs.get(stateKey);
-      const jobCount = stateCities?.get(cityKey) || 0;
-
-      // Job count gate — only include if enough jobs to be indexed
-      if (jobCount >= MIN_SITEMAP_JOBS) {
-        urls.push(`${BASE_URL}/jobs/${category}/city/${city.slug}`);
-      }
+  // Category × City URLs — quality-gated via pseoStats.
+  // SEO Fix (audit Item #11): previously used a city-level Job groupBy that
+  // ignored category. A city with 10 total jobs but 0 "Remote" jobs would
+  // still get /jobs/remote/city/{slug} into the sitemap, despite the page
+  // rendering noindex (per-category count < 3). pseoStats is per-(category,
+  // city) so the sitemap and page-level gate now agree exactly.
+  try {
+    const categoryCityRows = await prisma.pseoStats.findMany({
+      where: {
+        type: 'category-city',
+        totalJobs: { gte: MIN_SITEMAP_JOBS },
+        updatedAt: { gte: freshnessThreshold },
+      },
+      select: { categorySlug: true, locationSlug: true },
+    });
+    for (const row of categoryCityRows) {
+      // Defense in depth against stale aggregator rows whose slugs were
+      // retired or whose underlying city no longer meets the population gate.
+      if (!SITEMAP_CATEGORY_SET.has(row.categorySlug)) continue;
+      const population = CITY_POPULATION_LOOKUP.get(row.locationSlug);
+      if (population === undefined || population < MIN_SITEMAP_POPULATION) continue;
+      urls.push(`${BASE_URL}/jobs/${row.categorySlug}/city/${row.locationSlug}`);
     }
+  } catch (err) {
+    // If pseoStats is empty/unreachable, skip category×city URLs entirely.
+    // Better to omit than to flood the sitemap with dead URLs again.
+    console.error('[sitemaps/cities] pseoStats category-city lookup failed; omitting category×city URLs:', err);
   }
 
   // Setting × State URLs — quality-gated via pseoStats.
   // GSC Fix (P1.1): previously emitted all 13 settings × 51 states = 663 URLs
   // unconditionally. Most had 0 matching jobs and 404'd, polluting GSC with
   // "Not found" entries. Now only emit URLs where ≥1 active job exists.
-  // pseoStats is pre-aggregated by /api/cron/aggregate-pseo (every 12h).
-  // SEO Fix #18: gate on freshness too. If the aggregator has been failing
-  // and pseoStats is >36h stale, those rows might advertise pages whose
-  // underlying jobs already expired. The 36h window is 3x the 12h cron
-  // cadence — enough headroom for a single missed run, strict enough to
-  // catch sustained failures before Google sees dead URLs.
-  const PSEO_STALENESS_HOURS = 36;
-  const freshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
-  const settingSlugs = new Set(getAllSettingSlugs());
-  const validStateSlugs = new Set(getAllStateSlugs());
   try {
     const settingStateRows = await prisma.pseoStats.findMany({
       where: {
@@ -119,15 +110,12 @@ async function getActiveCategoryCityUrls(): Promise<string[]> {
       select: { categorySlug: true, locationSlug: true },
     });
     for (const row of settingStateRows) {
-      // Defense in depth: ignore stale rows whose slugs are no longer registered.
       if (!settingSlugs.has(row.categorySlug)) continue;
       if (!validStateSlugs.has(row.locationSlug)) continue;
       urls.push(`${BASE_URL}/jobs/${row.categorySlug}/${row.locationSlug}`);
     }
   } catch (err) {
-    // If pseoStats is empty/unreachable, skip setting×state URLs entirely.
-    // Better to omit than to flood the sitemap with dead URLs again.
-    console.error('[sitemaps/cities] pseoStats lookup failed; omitting setting×state URLs:', err);
+    console.error('[sitemaps/cities] pseoStats setting-state lookup failed; omitting setting×state URLs:', err);
   }
 
   return urls;

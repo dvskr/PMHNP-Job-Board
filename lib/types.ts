@@ -47,6 +47,9 @@ export interface Job {
   expiresAt: Date | null;
   companyId: string | null;
   companyLogoUrl?: string | null;
+  // Attached at fetch time via the employerJobs join (see app/jobs/[slug]/page.tsx).
+  // Used by JobStructuredData to populate hiringOrganization.sameAs.
+  companyWebsite?: string | null;
   // P9: precomputed canonical category tags. Populated at ingest by
   // lib/pseo/category-tagger.ts. Optional in this hand-written interface
   // so existing constructors compile; the underlying Prisma column is

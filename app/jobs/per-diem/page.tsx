@@ -36,9 +36,15 @@ const faqs = [
   { q: 'Can I work per diem at multiple facilities?', a: 'Yes — many per diem PMHNPs are credentialed at 2-4 facilities simultaneously. This maximizes shift availability and income flexibility. Check non-compete clauses and ensure each facility provides or accepts your malpractice coverage.' },
 ];
 
-export async function generateMetadata(): Promise<Metadata> {
-  const stats = await getStats();
-  return { title: `${stats.totalJobs} Per Diem PMHNP Jobs ($80-120/hr)`, description: `Find ${stats.totalJobs} per diem PMHNP positions paying $80-120+/hr. Pick your shifts, no long-term commitment.`, alternates: { canonical: `${brand.baseUrl}/jobs/per-diem` } };
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const [stats, params] = await Promise.all([getStats(), searchParams]);
+  const page = Math.max(1, parseInt(params.page || '1'));
+  return {
+    title: `${stats.totalJobs} Per Diem PMHNP Jobs ($80-120/hr)`,
+    description: `Find ${stats.totalJobs} per diem PMHNP positions paying $80-120+/hr. Pick your shifts, no long-term commitment.`,
+    alternates: { canonical: `${brand.baseUrl}/jobs/per-diem` },
+    ...(page > 1 && { robots: { index: false, follow: true } }),
+  };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }

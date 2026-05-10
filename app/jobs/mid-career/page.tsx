@@ -29,16 +29,22 @@ async function getStats() {
 }
 
 const faqs = [
-  { q: 'What defines a mid-career PMHNP role?', a: 'Mid-career PMHNP positions target providers with 3-10+ years of experience. These roles offer leadership opportunities, higher autonomy, specialty focus, and premium compensation � typically $140K-$190K+ annually.' },
+  { q: 'What defines a mid-career PMHNP role?', a: 'Mid-career PMHNP positions target providers with 3-10+ years of experience. These roles offer leadership opportunities, higher autonomy, specialty focus, and premium compensation — typically $140K-$190K+ annually.' },
   { q: 'What leadership roles are available?', a: 'Mid-career PMHNPs can advance to clinical supervisor, program director, lead clinician, chief NP, or clinical director positions. Many roles involve mentoring new graduates and overseeing treatment protocols.' },
   { q: 'How do I transition into a specialty?', a: 'With 3+ years of general psychiatric experience, you can specialize in forensic psychiatry, addiction medicine, child/adolescent, geriatric, or consultation-liaison psychiatry. Additional certifications and targeted clinical rotations accelerate the transition.' },
-  { q: 'Is precepting valuable for mid-career growth?', a: 'Yes � precepting students and supervising new grads strengthens your clinical leadership profile, often qualifies for adjunct faculty appointments, and many employers offer preceptor bonuses of $2,000-$5,000 annually.' },
+  { q: 'Is precepting valuable for mid-career growth?', a: 'Yes — precepting students and supervising new grads strengthens your clinical leadership profile, often qualifies for adjunct faculty appointments, and many employers offer preceptor bonuses of $2,000-$5,000 annually.' },
   { q: 'What salary growth can mid-career PMHNPs expect?', a: 'Mid-career PMHNPs earn 20-40% more than entry-level positions. Leadership roles, specialty expertise, and multi-state licensure can push compensation to $180K-$220K+ in high-demand markets.' },
 ];
 
-export async function generateMetadata(): Promise<Metadata> {
-  const stats = await getStats();
-  return { title: `${stats.totalJobs} Mid-Career PMHNP Jobs ($140K-190K)`, description: `Find ${stats.totalJobs} mid-career PMHNP positions. Leadership, specialty, and supervisory roles paying $140K-190K+.`, alternates: { canonical: `${brand.baseUrl}/jobs/mid-career` } };
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const [stats, params] = await Promise.all([getStats(), searchParams]);
+  const page = Math.max(1, parseInt(params.page || '1'));
+  return {
+    title: `${stats.totalJobs} Mid-Career PMHNP Jobs ($140K-190K)`,
+    description: `Find ${stats.totalJobs} mid-career PMHNP positions. Leadership, specialty, and supervisory roles paying $140K-190K+.`,
+    alternates: { canonical: `${brand.baseUrl}/jobs/mid-career` },
+    ...(page > 1 && { robots: { index: false, follow: true } }),
+  };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }
@@ -61,7 +67,7 @@ export default async function MidCareerPage({ searchParams }: PageProps) {
         bgColor="#accfb9"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_midcareer.webp"
         heroAlt="Mid-career PMHNP advancement opportunities"
-        badgeText={`${stats.totalJobs} live roles � updated today`}
+        badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Mid-Career']}
         indexLabel="? 26 / 28"
         headlineLine1="Mid-Career"

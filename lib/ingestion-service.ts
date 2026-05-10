@@ -13,6 +13,7 @@ import { collectEmployerEmails } from './employer-email-collector';
 import { mineAndPersistFromJob } from './lead-persistence';
 import { recordSourcePresence, loadHistoricalAvgFetched } from './health/source-presence';
 import { HealthRecorder } from './health/recorder';
+import { slugify } from './utils';
 import { recordChunkAndMaybeAggregate } from './health/chunked-presence';
 import { checkJobHealth, type HealthReason } from './health/check-job-health';
 
@@ -673,12 +674,12 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         // companyId and qualityScore can be resolved/computed from in-memory
         // data, so they go into the same `prisma.job.create` call.
         const newId = randomUUID();
-        const slug = `${(normalizedJob.title as string)
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .replace(/-+/g, '-')
-          .trim()}-${newId}`;
+        // Use the shared slugify helper so the ingest path and the post-free
+        // employer flow can never drift on slug shape. slug is written here
+        // at insert and never overwritten on any subsequent update path
+        // (renewal/edit/etc.) — see app/jobs/[slug]/page.tsx for the
+        // canonical-emit logic that depends on this immutability.
+        const slug = slugify(normalizedJob.title as string, newId);
 
         // Resolve / create the Company row first so we can write companyId
         // in the same insert. Errors are non-fatal — a null companyId is OK.
@@ -1249,7 +1250,12 @@ export async function cleanupExpiredJobs(): Promise<number> {
     const allExpiredJobs = [...jobsToExpire];
     if (allExpiredJobs.length > 0) {
       try {
-        const { slugify } = await import('./utils');
+        // For de-indexing we recompute the slug from (title, id) — these are
+        // expired rows being removed, so the recomputed value matches what
+        // was stored at insert (slug is immutable per the post-free / ingest
+        // create paths). Anchoring on stored job.slug would be more correct
+        // for legacy rows that pre-date the slug column, which is why the
+        // detail-page canonical falls back to slugify(title, id) too.
         const { pingAllSearchEnginesBatchDeleted } = await import('./search-indexing');
         const expiredUrls = allExpiredJobs.map(job => {
           const slug = slugify(job.title, job.id);

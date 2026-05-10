@@ -13,13 +13,39 @@ interface Props {
     params: Promise<{ slug: string }>;
 }
 
+/**
+ * Resolve a /companies/{slug} URL to a Company.normalizedName value present
+ * in the DB. The normalizer was changed to emit kebab-case ("life-stance"),
+ * but rows inserted before that change still hold the legacy space-form
+ * ("life stance"). Prefer the kebab match; fall through to the legacy form
+ * so old rows still resolve via clean URLs during the transition window.
+ * Returns the matched normalizedName, or null if neither form exists.
+ */
+async function resolveCompanyNormalizedName(slug: string): Promise<string | null> {
+    const exists = await prisma.company.findUnique({
+        where: { normalizedName: slug },
+        select: { normalizedName: true },
+    });
+    if (exists) return exists.normalizedName;
+    if (!slug.includes('-')) return null;
+    const legacy = slug.replace(/-/g, ' ');
+    const legacyMatch = await prisma.company.findUnique({
+        where: { normalizedName: legacy },
+        select: { normalizedName: true },
+    });
+    return legacyMatch?.normalizedName ?? null;
+}
+
 // Generate dynamic metadata
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
 
     try {
+        const resolvedName = await resolveCompanyNormalizedName(slug);
+        if (!resolvedName) return { title: 'Company Not Found' };
+
         const company = await prisma.company.findUnique({
-            where: { normalizedName: slug },
+            where: { normalizedName: resolvedName },
             select: { name: true, description: true },
         });
 
@@ -29,7 +55,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         // Companies with 0 active jobs get noindexed to prevent soft 404 flags.
         const activeJobCount = await prisma.job.count({
             where: {
-                company: { normalizedName: slug },
+                company: { normalizedName: resolvedName },
                 isPublished: true,
                 expiresAt: { gt: new Date() },
             },
@@ -64,8 +90,12 @@ export default async function CompanyPage({ params }: Props) {
 
     let company;
     try {
+        const resolvedName = await resolveCompanyNormalizedName(slug);
+        if (!resolvedName) {
+            notFound();
+        }
         company = await prisma.company.findUnique({
-            where: { normalizedName: slug },
+            where: { normalizedName: resolvedName },
             include: {
                 jobs: {
                     where: {

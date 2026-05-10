@@ -250,31 +250,6 @@ function gone410(reason: string): NextResponse {
     });
 }
 
-// GSC Fix (P1.3): when the 410 DB check fails, we used to silently fall
-// through to the page handler — which returned 200 OK on what should have
-// been a 410, manufacturing soft-404s on every Supabase hiccup. For
-// crawlers we now return 503 + Retry-After so they retry instead of
-// recording a 200. Real users still fall through to the page handler
-// (better UX than a hard 503). isCrawlerForFailClosed() is a narrower
-// list than isKnownCrawler() — we only fail-closed for engines that
-// actually populate the index.
-const FAIL_CLOSED_CRAWLER_UAS = [
-    /Googlebot/i,
-    /Google-InspectionTool/i,
-    /AdsBot-Google/i,
-    /Bingbot/i,
-    /BingPreview/i,
-    /DuckDuckBot/i,
-    /Applebot/i,
-    /Yandex(?:Bot|Images)/i,
-    /Baiduspider/i,
-];
-
-function isFailClosedCrawler(ua: string | null | undefined): boolean {
-    if (!ua) return false;
-    return FAIL_CLOSED_CRAWLER_UAS.some((p) => p.test(ua));
-}
-
 function unavailable503(): NextResponse {
     return new NextResponse(
         `<!DOCTYPE html><html><head><meta name="robots" content="noindex"><title>Service Unavailable</title></head><body><h1>503 Service Unavailable</h1><p>This URL's status could not be verified. Please retry.</p></body></html>`,
@@ -421,21 +396,19 @@ export async function middleware(request: NextRequest) {
                     }
                 }
             } catch (err) {
-                // GSC Fix (P1.3 + P-fail-closed): silent fallback was
-                // masking DB hiccups that produce Soft 404 (200 OK on a
-                // deleted job). Log every failure; ops should alert if
-                // rate exceeds 0.5% over 5 min. For crawlers, we return
-                // 503 + Retry-After so they retry instead of recording
-                // a 200 on a possibly-gone URL. Real users still get
-                // the page handler (better UX than a 503 wall).
+                // GSC Fix: always fail closed when DB check throws. Previously
+                // this gated 503 on UA (crawlers only) and let real users
+                // through to the page handler — that split is textbook
+                // cloaking (different status code per UA on the same URL) and
+                // risks a Google manual action regardless of intent. 503 +
+                // Retry-After is honest for everyone; Supabase incidents are
+                // rare and brief, and the alternative (serving 200 on a
+                // possibly-deleted job) is a worse soft-404 trap.
                 console.error('[middleware:job-410] DB check failed', {
                     jobId,
-                    failClosed: isFailClosedCrawler(request.headers.get('user-agent')),
                     error: err instanceof Error ? err.message : String(err),
                 });
-                if (isFailClosedCrawler(request.headers.get('user-agent'))) {
-                    return unavailable503();
-                }
+                return unavailable503();
             }
         }
     }
@@ -511,16 +484,14 @@ export async function middleware(request: NextRequest) {
                     }
                 }
             } catch (err) {
-                // GSC Fix (P1.3 + P-fail-closed): see job-410 block above
-                // for rationale. Same crawler-only 503 fallback applies.
+                // Same rationale as the job-410 handler above: fail closed
+                // for everyone. Cloaking (UA-conditional 503) is a worse
+                // SEO risk than brief unavailability during DB hiccups.
                 console.error('[middleware:company-410] DB check failed', {
                     rawSlug,
-                    failClosed: isFailClosedCrawler(request.headers.get('user-agent')),
                     error: err instanceof Error ? err.message : String(err),
                 });
-                if (isFailClosedCrawler(request.headers.get('user-agent'))) {
-                    return unavailable503();
-                }
+                return unavailable503();
             }
         }
     }

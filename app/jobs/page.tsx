@@ -2,9 +2,15 @@ import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
+import { slugify } from '@/lib/utils';
 import JobsPageClient from './JobsPageClient';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+
+// Nav-only params do not constitute a user filter — paginated and sorted
+// views of the unfiltered list should still be crawled (page>=2 is noindexed
+// separately to avoid duplicate-content; sort variants canonical to /jobs).
+const NAV_ONLY_PARAMS = new Set(['page', 'sort']);
 
 // ISR: Revalidate every 60 seconds
 export const revalidate = 60;
@@ -62,8 +68,29 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
     description = `Find ${jobCountDisplay} ${titleParts.join(' ').toLowerCase()} psychiatric nurse practitioner positions. ${description}`;
   }
 
-  // Determine if this is a filtered/paginated view that should NOT be indexed
-  const hasFilters = Object.keys(params).length > 0;
+  // Distinguish user filters from nav params (?page, ?sort).
+  //  - User filters → noindex,follow + canonical to /jobs (rolls signal into root)
+  //  - page>=2     → noindex,follow + self-canonical (lets Googlebot crawl deep
+  //                  pages to discover job-detail URLs without competing with /jobs)
+  //  - sort variant → canonical to /jobs (sort is a UI affordance, not a new page)
+  //  - totalJobs===0 → noindex,follow regardless of filters; an empty body at
+  //                  HTTP 200 is a soft 404 in Google's classifier.
+  //  - Page 1, no filters, totalJobs > 0 → index normally with canonical to /jobs
+  const userFilterKeys = Object.keys(params).filter((k) => !NAV_ONLY_PARAMS.has(k));
+  const hasUserFilters = userFilterKeys.length > 0;
+  const pageNum = Math.max(1, parseInt((params.page as string) || '1'));
+  const isPaginated = pageNum > 1;
+  const isEmpty = totalJobs === 0;
+  const shouldNoindex = hasUserFilters || isPaginated || isEmpty;
+
+  if (isPaginated && !hasUserFilters) {
+    title = `${title} — Page ${pageNum}`;
+  }
+
+  // Self-canonical for paginated views; otherwise root /jobs.
+  const canonical = isPaginated && !hasUserFilters
+    ? `${brand.baseUrl}/jobs?page=${pageNum}`
+    : `${brand.baseUrl}/jobs`;
 
   return {
     title,
@@ -85,11 +112,9 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
       images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp'],
     },
     alternates: {
-      canonical: `${brand.baseUrl}/jobs`,
+      canonical,
     },
-    // Prevent Google from indexing filtered/paginated variants as separate pages
-    // This fixes the "Duplicate without user-selected canonical" GSC issue
-    ...(hasFilters && {
+    ...(shouldNoindex && {
       robots: {
         index: false,
         follow: true,
@@ -154,6 +179,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
         take: limit,
         select: {
           id: true,
+          slug: true,
           title: true,
           employer: true,
           location: true,
@@ -191,12 +217,16 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
       '@type': 'ItemList',
       name: 'PMHNP & Psychiatric Nurse Practitioner Jobs',
       numberOfItems: total,
-      itemListElement: jobs.slice(0, 10).map((job, i) => ({
-        '@type': 'ListItem',
-        position: i + 1,
-        name: job.title,
-        url: `https://pmhnphiring.com/jobs/${(job as Record<string, unknown>).id}`,
-      })),
+      itemListElement: jobs.slice(0, 10).map((job, i) => {
+        const j = job as { id: string; slug?: string | null; title: string };
+        const slug = j.slug || slugify(j.title, j.id);
+        return {
+          '@type': 'ListItem',
+          position: i + 1,
+          name: job.title,
+          url: `https://pmhnphiring.com/jobs/${slug}`,
+        };
+      }),
     };
 
     return (

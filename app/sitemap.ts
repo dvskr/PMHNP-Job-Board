@@ -97,7 +97,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/privacy`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${baseUrl}/pricing`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.7 },
     // Content hub pages
-    { url: `${baseUrl}/new-grad`, lastModified: latestJobDate, changeFrequency: 'weekly', priority: 0.9 },
+    // Sitemap submits the canonical destination directly. Previously /new-grad
+    // was advertised here but next.config.ts permanently redirects it to
+    // /jobs/new-grad — Google logs that as "Submitted URL redirected" in GSC
+    // and burns crawl budget on a hop that yields no new content.
+    { url: `${baseUrl}/jobs/new-grad`, lastModified: latestJobDate, changeFrequency: 'weekly', priority: 0.9 },
     // Metro landing pages
     ...METRO_SLUGS.map(slug => ({
       url: `${baseUrl}/jobs/metro/${slug}`,

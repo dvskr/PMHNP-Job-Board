@@ -44,14 +44,16 @@ const seniorFaqs = [
   { question: 'What additional certifications help for leadership roles?', answer: 'Beyond the PMHNP-BC, certifications in healthcare administration (FACHE), nursing leadership (CENP/NEA-BC), or subspecialty certifications strengthen candidacy. Many senior roles also value advanced training in evidence-based therapies and quality improvement methodologies.' },
 ];
 
-export async function generateMetadata(): Promise<Metadata> {
-  const stats = await getStats();
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const [stats, params] = await Promise.all([getStats(), searchParams]);
+  const page = Math.max(1, parseInt(params.page || '1'));
   return {
-    title: `${stats.totalJobs} Senior PMHNP Jobs � Director & Leadership ($160K-250K+)`,
+    title: `${stats.totalJobs} Senior PMHNP Jobs — Director & Leadership ($160K-250K+)`,
     description: `Browse ${stats.totalJobs} senior PMHNP leadership positions. Clinical Director, Program Director, Medical Director, and Lead PMHNP roles paying $160K-$250K+.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/senior` },
     keywords: ['senior PMHNP jobs', 'PMHNP director', 'PMHNP leadership', 'clinical director psychiatric', 'PMHNP supervisor'],
-    openGraph: { title: `Senior PMHNP Jobs � ${stats.totalJobs} Leadership Positions`, description: `Find ${stats.totalJobs} senior psychiatric NP roles.`, url: 'https://pmhnphiring.com/jobs/senior', type: 'website' },
+    openGraph: { title: `Senior PMHNP Jobs — ${stats.totalJobs} Leadership Positions`, description: `Find ${stats.totalJobs} senior psychiatric NP roles.`, url: 'https://pmhnphiring.com/jobs/senior', type: 'website' },
+    ...(page > 1 && { robots: { index: false, follow: true } }),
   };
 }
 
@@ -89,7 +91,7 @@ export default async function SeniorPage({ searchParams }: PageProps) {
         bgColor="#6a85a0"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_senior.webp"
         heroAlt="Senior PMHNP clinical leadership roles"
-        badgeText={`${stats.totalJobs} live roles � updated today`}
+        badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Senior']}
         indexLabel="? 27 / 28"
         headlineLine1="Senior"
@@ -155,7 +157,7 @@ export default async function SeniorPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* --- BENTO � Why Choose Senior --- */}
+      {/* --- BENTO — Why Choose Senior --- */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
         <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 20px 40px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose Senior</p>

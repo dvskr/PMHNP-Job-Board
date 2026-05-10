@@ -31,14 +31,20 @@ async function getStats() {
 const faqs = [
   { q: 'What types of private practice PMHNP roles exist?', a: 'Private practice roles include solo practice (you own and operate), group practice (join an established multi-provider office), independent contractor (1099 work for a practice), and hybrid roles combining in-person and telehealth. Each offers different levels of autonomy, risk, and earning potential.' },
   { q: 'How much do private practice PMHNPs earn?', a: 'Private practice PMHNPs earn $150K-$300K+ annually. Solo practice owners can earn even more but must cover overhead. Group practice employees typically earn $150K-$200K with benefits. Independent contractors earn $175K-$250K on 1099 arrangements.' },
-  { q: 'Do I need business experience for private practice?', a: 'For group practice employee roles, no � you focus on clinical work. For starting your own practice, understanding billing, credentialing, marketing, and operations is essential. Many PMHNPs start in group practices before launching solo practices.' },
+  { q: 'Do I need business experience for private practice?', a: 'For group practice employee roles, no — you focus on clinical work. For starting your own practice, understanding billing, credentialing, marketing, and operations is essential. Many PMHNPs start in group practices before launching solo practices.' },
   { q: 'What\'s needed to start a private practice?', a: 'You need: PMHNP-BC certification, state APRN licensure with full practice authority (or collaborating physician), DEA registration, NPI number, malpractice insurance, EHR system, office space or telehealth platform, and insurance panel credentialing.' },
   { q: 'Is group practice or solo practice better?', a: 'Group practice offers built-in referrals, shared overhead, administrative support, and lower financial risk. Solo practice offers maximum autonomy, higher earning ceiling, and full control of your schedule. Most PMHNPs recommend 2-3 years in group practice before going solo.' },
 ];
 
-export async function generateMetadata(): Promise<Metadata> {
-  const stats = await getStats();
-  return { title: `${stats.totalJobs} Private Practice PMHNP Jobs ($150K-300K)`, description: `Find ${stats.totalJobs} private practice PMHNP positions. Solo, group, and independent practice roles paying $150K-300K+.`, alternates: { canonical: `${brand.baseUrl}/jobs/private-practice` } };
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const [stats, params] = await Promise.all([getStats(), searchParams]);
+  const page = Math.max(1, parseInt(params.page || '1'));
+  return {
+    title: `${stats.totalJobs} Private Practice PMHNP Jobs ($150K-300K)`,
+    description: `Find ${stats.totalJobs} private practice PMHNP positions. Solo, group, and independent practice roles paying $150K-300K+.`,
+    alternates: { canonical: `${brand.baseUrl}/jobs/private-practice` },
+    ...(page > 1 && { robots: { index: false, follow: true } }),
+  };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }
@@ -61,7 +67,7 @@ export default async function PrivatePracticePage({ searchParams }: PageProps) {
         bgColor="#d4b0a3"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_privatepractice.webp"
         heroAlt="Private practice PMHNP entrepreneurial independence"
-        badgeText={`${stats.totalJobs} live roles � updated today`}
+        badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Private Practice']}
         indexLabel="? 21 / 28"
         headlineLine1="Private Practice"

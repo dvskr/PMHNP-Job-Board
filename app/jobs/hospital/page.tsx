@@ -33,7 +33,7 @@ const faqs = [
   { q: 'What salary do hospital PMHNPs earn?', a: 'Hospital PMHNPs earn $140K-$200K annually with shift differentials for nights/weekends, sign-on bonuses, and comprehensive benefits. Academic medical centers and urban hospitals often pay at the higher end.' },
   { q: 'What schedule do hospital PMHNPs work?', a: 'Most hospital roles use 7-on/7-off, 3x12-hour shifts, or rotating day/night schedules. Some partial hospitalization programs (PHP) offer traditional Monday-Friday hours.' },
   { q: 'What qualifications are required?', a: 'Active PMHNP-BC, state APRN licensure, DEA registration, BLS/ACLS certification, and typically 1+ years inpatient psychiatric experience. New grads may find opportunities in residency-style hospital programs.' },
-  { q: 'Do hospital systems offer loan forgiveness?', a: 'Yes � many hospital systems qualify as 501(c)(3) nonprofits eligible for Public Service Loan Forgiveness (PSLF). After 120 qualifying payments, remaining federal student loan balance is forgiven.' },
+  { q: 'Do hospital systems offer loan forgiveness?', a: 'Yes — many hospital systems qualify as 501(c)(3) nonprofits eligible for Public Service Loan Forgiveness (PSLF). After 120 qualifying payments, remaining federal student loan balance is forgiven.' },
 ];
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -61,7 +61,7 @@ export default async function HospitalPage({ searchParams }: PageProps) {
         bgColor="#a0c3d6"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_hospital.webp"
         heroAlt="Hospital PMHNP acute psychiatric care"
-        badgeText={`${stats.totalJobs} live roles � updated today`}
+        badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Hospital']}
         indexLabel="? 22 / 28"
         headlineLine1="Hospital"
