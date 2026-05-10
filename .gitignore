@@ -112,11 +112,28 @@ supabase_dashboard_queries.sql
 /yt-thumbnails/
 /scripts/schedule-log.json
 
-# Google Search Console exports
+# Google Search Console exports — both raw drilldowns and the parent folder
+# the user occasionally drops the unzipped archive into ("GSC ISSUES/").
 https___pmhnphiring.com_-*/
+/GSC*ISSUES/
+/gsc-removal-*
+/gsc-stale-*
 
 # NotebookLM prompts (local only)
 notebooklm-*.md
+
+# Vercel log exports (multi-MB JSON / CSV dumps)
+/pmhnp-job-board-log-export-*
+
+# GitHub Actions log archives unzipped at root
+/logs_*/
+
+# One-off design mockups occasionally dropped at root
+/*.html
+!/*.example.html
+
+# Stray "tmp_*" scripts a previous session left at root
+/tmp_*
 
 /videos/
 /videos_backup/

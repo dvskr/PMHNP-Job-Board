@@ -5,7 +5,6 @@ import { ArrowRight } from 'lucide-react';
 /* ═══════════════════════════════════════════════════════════════
    CategoryHero — Layout 5: Oversized type / asymmetric collage
    Fonts: Lora (heading), Inter (body/ui)
-   Design reference: heroes.jsx → Hero5
    ═══════════════════════════════════════════════════════════════ */
 
 interface CategoryHeroProps {
