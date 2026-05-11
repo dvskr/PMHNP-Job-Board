@@ -75,15 +75,25 @@ const FULL_DISALLOW = [
   '/unsubscribe',
   '/reset-password',
   '/forgot-password',
-  // Auth & user-private surfaces (not the leaked-into-index ones — those
-  // are temporarily unblocked above per P2.3)
-  '/employer/dashboard/',
-  '/employer/candidates/',
+  // Auth & user-private surfaces. Path prefixes WITHOUT trailing slashes
+  // so they match both the bare URL (e.g. /dashboard, served by
+  // app/dashboard/page.tsx) AND child paths (/dashboard/foo). Robots.txt
+  // does prefix matching: `/dashboard/` only matches /dashboard/* — not
+  // the bare /dashboard. Most of these have a real page at the bare URL
+  // so dropping the trailing slash plugs a coverage gap. (Not the
+  // leaked-into-index auth pages — those are temporarily unblocked per
+  // P2.3.)
+  '/employer/dashboard',
+  '/employer/candidates',
+  '/employer/applicants',
+  '/employer/talent-search',
+  '/employer/renewal-success',
   '/employer/settings',
   '/employer/signup',
-  '/admin/',
-  '/dashboard/',
-  '/auth/',
+  '/admin',
+  '/dashboard',
+  '/auth',
+  '/onboarding',
   '/settings',
   '/my-applications',
   '/unauthorized',
@@ -97,19 +107,36 @@ const FULL_DISALLOW = [
 // pure infrastructure. Auth-gated surfaces extended (audit 01 M-2):
 // when a user shares a link to a protected page the bot fetches it,
 // receives a login shell, and generates a broken preview card — better
-// to refuse the fetch outright.
+// to refuse the fetch outright. Path prefixes match the FULL_DISALLOW
+// convention (no trailing slash → covers bare + child paths).
+//
+// Note on /login, /signup, /employer/login, /job-alerts/manage:
+//   These are P2.3 carve-outs in FULL_DISALLOW (intentionally crawlable
+//   so Googlebot can read the X-Robots-Tag: noindex header and drop
+//   them from the index). Social bots don't honor X-Robots-Tag — they
+//   just render whatever HTML they fetch, which for these paths is a
+//   login shell. Blocking them HERE (but not for Googlebot) keeps
+//   preview cards useful without re-trapping Googlebot in the original
+//   "Indexed though blocked by robots.txt" state.
 const SOCIAL_DISALLOW = [
   '/api/',
-  '/admin/',
-  '/dashboard/',
-  '/auth/',
-  '/employer/dashboard/',
-  '/employer/candidates/',
+  '/admin',
+  '/dashboard',
+  '/auth',
+  '/onboarding',
+  '/employer/dashboard',
+  '/employer/candidates',
+  '/employer/applicants',
+  '/employer/talent-search',
   '/employer/settings',
+  '/employer/login',
   '/settings',
   '/my-applications',
   '/saved',
   '/messages',
+  '/login',
+  '/signup',
+  '/job-alerts/manage',
 ]
 
 // ── Crawler rosters ──────────────────────────────────────────────────
