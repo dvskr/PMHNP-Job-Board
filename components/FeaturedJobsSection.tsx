@@ -22,12 +22,7 @@ const EMPLOYER_PIN_COUNT = 2;
  * FeaturedJobsSection (Server Component)
  *
  * Fetches 8 jobs for the homepage:
- *   - Walks a freshness ladder (3 → 7 → 14 → 30 days) and stops at the
- *     first window that yields TARGET (8) eligible jobs. Without this
- *     fallback the strict 3-day window combined with the direct-apply +
- *     healthy + per-employer-2-cap filters routinely produced only 4-5
- *     cards on the homepage (observed 2026-05-11), even though plenty
- *     of slightly-older eligible jobs existed.
+ *   - Posted within the last 3 days (originalPostedAt or createdAt)
  *   - **Excludes external (aggregator-bounce) jobs** — only direct_apply +
  *     easy_apply paths surface here. Filter is applied DB-side via
  *     sourceType + applyLink-host substrings, then double-checked in JS via
@@ -39,9 +34,11 @@ const EMPLOYER_PIN_COUNT = 2;
  *   - Caps any single employer at 2 cards (incl. the pinned slots).
  *   - Skips expired jobs.
  */
-const FRESHNESS_LADDER_DAYS = [3, 7, 14, 30] as const;
-
 export default async function FeaturedJobsSection() {
+    // 3-day window
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
     const now = new Date();
 
     const selectFields = {
@@ -107,97 +104,88 @@ export default async function FeaturedJobsSection() {
     }[] = [];
 
     try {
-        // Walk the freshness ladder. Each iteration sees STRICTLY more rows
-        // than the previous (the date predicate is monotonically loosening),
-        // so we re-run the JS filters from scratch each time and stop the
-        // moment we have TARGET cards. Worst case (very dry catalog) we
-        // still ship whatever the 30-day window gives us.
-        const seed = `homepage-${sixHourBucket()}`;
-        for (const days of FRESHNESS_LADDER_DAYS) {
-            const since = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-
-            // Overfetch — DB pre-filter is broad (host substrings), JS classify
-            // narrows further, employer-pin + per-employer cap shrink again.
-            // 5× target leaves headroom for all three to reduce.
-            const candidates = await prisma.job.findMany({
-                where: {
-                    isPublished: true,
-                    OR: [
-                        { originalPostedAt: { gte: since } },
-                        { originalPostedAt: null, createdAt: { gte: since } },
-                    ],
-                    AND: [
-                        {
-                            OR: [
-                                { expiresAt: null },
-                                { expiresAt: { gt: now } },
-                            ],
-                        },
-                        directApplyOnly,
-                    ],
-                },
-                orderBy: [
-                    { qualityScore: 'desc' },
-                    { originalPostedAt: { sort: 'desc', nulls: 'last' } },
-                    { createdAt: 'desc' },
+        // Overfetch — DB pre-filter is broad (host substrings), JS classify
+        // narrows further, employer-pin + per-employer cap shrink again.
+        // 5× target leaves headroom for all three to reduce.
+        const candidates = await prisma.job.findMany({
+            where: {
+                isPublished: true,
+                OR: [
+                    { originalPostedAt: { gte: threeDaysAgo } },
+                    { originalPostedAt: null, createdAt: { gte: threeDaysAgo } },
                 ],
-                take: TARGET * 5,
-                select: selectFields,
-            });
+                AND: [
+                    {
+                        OR: [
+                            { expiresAt: null },
+                            { expiresAt: { gt: now } },
+                        ],
+                    },
+                    directApplyOnly,
+                ],
+            },
+            orderBy: [
+                { qualityScore: 'desc' },
+                { originalPostedAt: { sort: 'desc', nulls: 'last' } },
+                { createdAt: 'desc' },
+            ],
+            take: TARGET * 5,
+            select: selectFields,
+        });
 
-            // Belt-and-braces JS classification — drops anything the DB filter
-            // let through that classifyJob still considers external/unhealthy.
-            const eligible = (candidates as RawJob[]).filter((j) => {
-                const { tier, isHealthy } = classifyJob(j);
-                return isHealthy && tier !== 'external';
-            });
+        // Belt-and-braces JS classification — drops anything the DB filter
+        // let through that classifyJob still considers external/unhealthy.
+        const eligible = (candidates as RawJob[]).filter((j) => {
+            const { tier, isHealthy } = classifyJob(j);
+            return isHealthy && tier !== 'external';
+        });
 
-            const employerPool = eligible.filter((j) => isEmployerPosting(j));
-            const pinnedRaw = sortByJitteredScore(
-                employerPool,
-                (j) => j.qualityScore ?? 0,
-                (j) => j.id,
-                seed,
-            ).slice(0, EMPLOYER_PIN_COUNT);
-            const pinnedIds = new Set(pinnedRaw.map((j) => j.id));
+        // 6h-bucket rotation — the same time window across all visitors so
+        // the ISR cache stays useful, but the pinned set shifts 4× per day.
+        const seed = `homepage-${sixHourBucket()}`;
 
-            // Fill from non-pinned, in qualityScore order (Prisma already returned sorted).
-            const fillPool = eligible.filter((j) => !pinnedIds.has(j.id));
+        const employerPool = eligible.filter((j) => isEmployerPosting(j));
+        const pinnedRaw = sortByJitteredScore(
+            employerPool,
+            (j) => j.qualityScore ?? 0,
+            (j) => j.id,
+            seed,
+        ).slice(0, EMPLOYER_PIN_COUNT);
+        const pinnedIds = new Set(pinnedRaw.map((j) => j.id));
 
-            // Combine: pinned first, then score-sorted fill. Apply the per-employer cap.
-            const ordered: RawJob[] = [...pinnedRaw, ...fillPool];
-            const collected: RawJob[] = [];
-            const employerCount = new Map<string, number>();
-            for (const j of ordered) {
-                if (collected.length >= TARGET) break;
-                const key = j.employer.toLowerCase().trim();
-                const count = employerCount.get(key) ?? 0;
-                if (count >= MAX_PER_EMPLOYER) continue;
-                employerCount.set(key, count + 1);
-                collected.push(j);
-            }
+        // Fill from non-pinned, in qualityScore order (Prisma already returned sorted).
+        const fillPool = eligible.filter((j) => !pinnedIds.has(j.id));
 
-            jobs = collected.map((j) => ({
-                id: j.id,
-                slug: j.slug,
-                title: j.title,
-                employer: j.employer,
-                location: j.location,
-                jobType: j.jobType,
-                displaySalary: j.displaySalary,
-                createdAt: j.createdAt.toISOString(),
-                originalPostedAt: j.originalPostedAt?.toISOString() ?? null,
-            }));
-
-            console.log(`[FeaturedJobsSection] window=${days}d → ${jobs.length}/${TARGET} eligible`);
-            if (jobs.length >= TARGET) break;
+        // Combine: pinned first, then score-sorted fill. Apply the per-employer cap.
+        const ordered: RawJob[] = [...pinnedRaw, ...fillPool];
+        const collected: RawJob[] = [];
+        const employerCount = new Map<string, number>();
+        for (const j of ordered) {
+            if (collected.length >= TARGET) break;
+            const key = j.employer.toLowerCase().trim();
+            const count = employerCount.get(key) ?? 0;
+            if (count >= MAX_PER_EMPLOYER) continue;
+            employerCount.set(key, count + 1);
+            collected.push(j);
         }
+
+        jobs = collected.map((j) => ({
+            id: j.id,
+            slug: j.slug,
+            title: j.title,
+            employer: j.employer,
+            location: j.location,
+            jobType: j.jobType,
+            displaySalary: j.displaySalary,
+            createdAt: j.createdAt.toISOString(),
+            originalPostedAt: j.originalPostedAt?.toISOString() ?? null,
+        }));
     } catch (error) {
         console.error('Error fetching featured jobs:', error instanceof Error ? error.message : error);
         console.error('Full error:', JSON.stringify(error, null, 2));
     }
 
-    console.log(`[FeaturedJobsSection] Final: ${jobs.length} jobs`);
+    console.log(`[FeaturedJobsSection] Fetched ${jobs.length} jobs`);
 
     return (
         <>
