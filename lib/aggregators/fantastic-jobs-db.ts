@@ -208,31 +208,39 @@ import { SMARTRECRUITERS_TENANTS } from './tenants/smartrecruiters';
 
 // ── Budget Protection ──
 // Ultra plan: 20,000 requests/month AND 20,000 jobs/month, 5 req/sec.
-// Post-2026-05-11 posture: 1 run/day × 24h endpoint, with PASS B reopened
-// to 5 pages now that we're not double-running. Worst-case math:
+// Post-2026-05-11 posture: 2 runs/day × 24h endpoint at 12:30 UTC and
+// 21:00 UTC (7:30am + 4pm CT), with the per-run jobs cap halved to
+// keep total monthly delivery under the 20k Jobs cap. Math:
 //   PASS A: 14 terms × ~1-3 pages typical = ~14-42 calls (sparse matches)
 //   PASS B: 3 terms × 5 pages × 100 = 15 calls, up to 1,500 jobs delivered
-//   Total per run: ~30-60 calls, ~600 jobs (bounded by MAX_JOBS_PER_RUN)
-//   Monthly: 30 runs × 600 jobs = 18,000 jobs (10% margin under 20k cap)
+//   Total per run: ~30-60 calls, ≤300 jobs (bounded by MAX_JOBS_PER_RUN)
+//   Monthly: 60 runs × 300 jobs = 18,000 jobs (10% margin under 20k cap)
+//   Requests monthly: 60 runs × 60 calls = 3,600 (well under 20k cap)
+//
+// Note on overlap: 2 runs/day on the 24h-indexed endpoint inherently
+// share an overlap window (12:30 UTC and 21:00 UTC = 8.5h gap, so ~65%
+// of each run's rows were also in the prior run). The native-coverage
+// skip + DB-level duplicate_externalid handle this without polluting
+// downstream — duplicate cost is bounded by MAX_JOBS_PER_RUN.
 //
 // Pre-2026-05-06 (per-filter loop) used up to 390 calls/run, ~23k/mo, and
 // did exhaust the quota. The constants below force-stop well before the
 // next quota cliff.
 const MAX_PAGES_PER_FILTER = 15;
-// Raised 2026-05-11 3 → 5. PASS B is the broad description-filter widener
-// that catches generic-titled jobs whose descriptions name psychiatric
-// work. With 1×/day cadence (was 2×/day pre-2026-05-11) the per-month
-// burn halves, so we can afford the extra pages for better coverage.
+// PASS B is the broad description-filter widener that catches generic-
+// titled jobs whose descriptions name psychiatric work. Page cap is
+// nominally 5, but with MAX_JOBS_PER_RUN=300 the jobs budget will
+// truncate PASS B before the page cap fires in most runs.
 const MAX_PAGES_PER_FILTER_BROAD = 5;
-// Bumped 2026-05-11 50 → 60 to accommodate PASS B's extra 6 pages without
-// truncating PASS A early. Still well below the original 200 ceiling.
+// 60 is comfortably under the 5 req/sec rate limit at our 1 req/sec
+// pacing and covers PASS A (14 terms) + PASS B (3 × 5 pages) worst case.
 const MAX_REQUESTS_PER_RUN = 60;
-// Per-run hard cap on TOTAL jobs returned across all passes. Each call
-// can return up to 100 jobs and the Ultra plan's monthly cap is 20,000
-// JOBS (separate from the 20k Requests counter). 600/run × 30 days = 18k
-// — leaves a safety margin under the cap. Adapter aborts further passes
-// when the cumulative job count crosses this threshold.
-const MAX_JOBS_PER_RUN = 600;
+// Per-run hard cap on TOTAL jobs returned across all passes. Halved from
+// 600 to 300 on 2026-05-11 when we returned to 2 runs/day, so the
+// monthly product stays at 18,000 (60 runs × 300 jobs) under the 20k
+// Jobs cap. Adapter aborts further passes when cumulative job count
+// crosses this threshold.
+const MAX_JOBS_PER_RUN = 300;
 const MIN_REMAINING_BUFFER = 5000;
 
 function sleep(ms: number): Promise<void> {

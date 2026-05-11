@@ -49,6 +49,10 @@
       "schedule": "30 12 * * *"
     },
     {
+      "path": "/api/cron/ingest?source=fantastic-jobs-db&endpoint=24h",
+      "schedule": "0 21 * * *"
+    },
+    {
       "path": "/api/cron/ingest?source=fantastic-jobs-db&endpoint=6m",
       "schedule": "0 0 1 1 *"
     },
