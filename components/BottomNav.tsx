@@ -16,7 +16,11 @@ const seekerNavItems = [
 // nav (Home/Jobs/Saved) didn't reflect what employers actually do, and
 // "Saved" routed to the seeker's saved-jobs page.
 const employerNavItems = [
-  { label: 'Dashboard', href: '/employer/dashboard', icon: LayoutDashboard },
+  // Shorter "Home" label so it fits in the 4-col grid on 360px phones —
+  // "Dashboard" + the icon was wider than the column and the start of the
+  // word was getting clipped (showed as "oard"). The icon carries the
+  // meaning; "Home" is the conventional label for the dashboard entry.
+  { label: 'Home', href: '/employer/dashboard', icon: LayoutDashboard },
   { label: 'Talent', href: '/employer/candidates', icon: Users },
   { label: 'Applicants', href: '/employer/applicants', icon: FileText },
   { label: 'Messages', href: '/messages', icon: Mail },
