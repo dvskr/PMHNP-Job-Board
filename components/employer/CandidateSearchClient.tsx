@@ -438,19 +438,17 @@ export default function CandidateSearchClient() {
             <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '20px 16px 48px' }}>
 
                 {/* ═══ Posting Selector ═══
-                    Stacked layout instead of an inline flex row: the label
-                    on top, the dropdown gets a full row of its own so the
-                    truncated option text has the entire card width to
-                    render in, and the unlocks/inmails chips wrap on row 3.
-                    Stops the native <select> highlight overlay from
-                    bleeding past the viewport when a long option is
-                    selected on mobile. */}
+                    Desktop (≥641px): horizontal inline-flex row — label,
+                    dropdown, chips, and JD-Match CTA all on one line.
+                    Mobile (<641px): vertical stack so the dropdown gets the
+                    full card width and the chips can wrap cleanly. Pattern
+                    matches the search/AI/filters block above. */}
                 {postings.length > 0 && (
-                    <div style={{
+                    <div className="tp-posting-card" style={{
                         ...cardBase, padding: '14px 18px', marginBottom: '16px',
-                        display: 'flex', flexDirection: 'column', gap: '10px',
+                        display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px',
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                             <Briefcase size={14} style={{ color: '#0D9488' }} />
                             <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B7F8A' }}>Using credits from</span>
                         </div>
@@ -461,42 +459,17 @@ export default function CandidateSearchClient() {
                             overflow the panel. A button + popover lets each
                             option render as a 2-3 line block with full
                             title visible. */}
-                        <PostingDropdown
-                            postings={postings}
-                            selectedId={selectedPostingId}
-                            onSelect={setSelectedPostingId}
-                        />
-                        {(() => {
-                            const sel = postings.find(p => p.id === selectedPostingId);
-                            if (!sel) return null;
-                            const unlockPct = sel.unlocks.limit > 0 ? (sel.unlocks.used / sel.unlocks.limit) * 100 : 0;
-                            const inmailPct = sel.inmails.limit > 0 ? (sel.inmails.used / sel.inmails.limit) * 100 : 0;
-                            return (
-                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <span style={{
-                                        ...cardRecessed, padding: '4px 10px', fontSize: '11px', fontWeight: 600,
-                                        display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                        color: unlockPct >= 100 ? '#DC2626' : unlockPct >= 80 ? '#D97706' : '#6B7F8A',
-                                    }}>
-                                        <Lock size={10} />
-                                        {sel.unlocks.remaining === -1 ? '∞ unlocks' : `${sel.unlocks.remaining}/${sel.unlocks.limit} unlocks`}
-                                    </span>
-                                    <span style={{
-                                        ...cardRecessed, padding: '4px 10px', fontSize: '11px', fontWeight: 600,
-                                        display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                        color: inmailPct >= 100 ? '#DC2626' : inmailPct >= 80 ? '#D97706' : '#6B7F8A',
-                                    }}>
-                                        ✉ {sel.inmails.remaining === -1 ? '∞ InMails' : `${sel.inmails.remaining}/${sel.inmails.limit} InMails`}
-                                    </span>
-                                </div>
-                            );
-                        })()}
-                        {/* JD-driven Smart Match — Sprint 1.3.6.
-                            Skip the typing step; embed the posting's JD
-                            against candidate vectors. Forces aiMode on and
-                            sets jdSearchPostingId so the next fetch fires
-                            against /api/employer/talent/search with
-                            { postingId } instead of { query }. */}
+                        <div className="tp-posting-dropdown-wrap" style={{ flex: 1, minWidth: 0, maxWidth: '420px' }}>
+                            <PostingDropdown
+                                postings={postings}
+                                selectedId={selectedPostingId}
+                                onSelect={setSelectedPostingId}
+                            />
+                        </div>
+                        {/* JD-driven Smart Match CTA — placed right next to
+                            the dropdown so the primary action stays adjacent
+                            to the selector that drives it. Chips render after
+                            so the row reads "label → dropdown → action → meta". */}
                         {selectedPostingId && (() => {
                             const atLimit = aiState.status === 'limit_reached';
                             return (
@@ -530,6 +503,46 @@ export default function CandidateSearchClient() {
                                 </button>
                             );
                         })()}
+                        {(() => {
+                            const sel = postings.find(p => p.id === selectedPostingId);
+                            if (!sel) return null;
+                            const unlockPct = sel.unlocks.limit > 0 ? (sel.unlocks.used / sel.unlocks.limit) * 100 : 0;
+                            const inmailPct = sel.inmails.limit > 0 ? (sel.inmails.used / sel.inmails.limit) * 100 : 0;
+                            return (
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <span style={{
+                                        ...cardRecessed, padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                        color: unlockPct >= 100 ? '#DC2626' : unlockPct >= 80 ? '#D97706' : '#6B7F8A',
+                                    }}>
+                                        <Lock size={10} />
+                                        {sel.unlocks.remaining === -1 ? '∞ unlocks' : `${sel.unlocks.remaining}/${sel.unlocks.limit} unlocks`}
+                                    </span>
+                                    <span style={{
+                                        ...cardRecessed, padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                        color: inmailPct >= 100 ? '#DC2626' : inmailPct >= 80 ? '#D97706' : '#6B7F8A',
+                                    }}>
+                                        ✉ {sel.inmails.remaining === -1 ? '∞ InMails' : `${sel.inmails.remaining}/${sel.inmails.limit} InMails`}
+                                    </span>
+                                </div>
+                            );
+                        })()}
+                        {/* Mobile (<641px): stack vertically so the dropdown +
+                            chips + JD-match CTA each get a full row. Desktop
+                            inherits the inline-flex row above. */}
+                        <style>{`
+                            @media (max-width: 640px) {
+                                .tp-posting-card {
+                                    flex-direction: column !important;
+                                    align-items: stretch !important;
+                                }
+                                .tp-posting-dropdown-wrap {
+                                    max-width: 100% !important;
+                                    width: 100%;
+                                }
+                            }
+                        `}</style>
                     </div>
                 )}
 
@@ -547,147 +560,215 @@ export default function CandidateSearchClient() {
                     const valueColor = atLimit ? '#EF4444' : isNearLimit ? '#F59E0B' : '#1A2E35';
 
                     return (
-                        <div className="tp-search-block" style={{ marginBottom: '16px' }}>
-                            {/* Row 1: full-width search input with icon INSIDE the input,
-                                not the outer wrapper — fixes the "floating lens"
-                                bug where the icon centered vertically across the
-                                stacked input + button on phones. */}
-                            <div className="tp-input-wrap" style={{ position: 'relative', marginBottom: '10px' }}>
-                                <Search
-                                    size={15}
+                        <>
+                            {/* Desktop (≥641px): single-row horizontal layout —
+                                AI Searches counter chip, search input with inline
+                                AI Search button, Filters. Mobile (<641px): vertical
+                                stack with input on top, AI Search + Filters on a
+                                row below, then a muted usage caption. The two
+                                blocks are completely separate JSX; CSS shows one
+                                at a time so each layout is clean. */}
+                            <div className="tp-search-desktop" style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+                                <div
                                     style={{
-                                        position: 'absolute', left: '14px', top: '50%',
-                                        transform: 'translateY(-50%)', color: '#B0C4BC',
-                                        pointerEvents: 'none',
-                                    }}
-                                />
-                                <input
-                                    type="text"
-                                    value={query}
-                                    onChange={e => {
-                                        setQuery(e.target.value);
-                                        if (jdSearchPostingId) {
-                                            setJdSearchPostingId(null);
-                                            setJdSearchTitle(null);
-                                        }
-                                    }}
-                                    placeholder='Describe the candidate you need…'
-                                    style={{
-                                        ...clayInput,
-                                        width: '100%',
-                                        paddingLeft: '38px',
-                                        paddingRight: '14px',
-                                        fontSize: '14px',
-                                    }}
-                                />
-                            </div>
-
-                            {/* Row 2: primary action (AI Search, fills) + Filters icon-pill
-                                + Clear (if active). Same row on all viewports — gives a
-                                clear visual hierarchy: input on top, action below. */}
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
-                                <button
-                                    type="button"
-                                    disabled={atLimit || query.trim().length < 3}
-                                    onClick={() => {
-                                        if (atLimit || query.trim().length < 3) return;
-                                        setAiMode(true);
+                                        ...cardBase,
+                                        borderRadius: '16px',
+                                        border: '1px solid rgba(0,0,0,0.06)',
+                                        padding: '12px 16px',
+                                        display: 'flex', alignItems: 'center', gap: '12px',
+                                        flexShrink: 0, minWidth: '200px',
+                                        position: 'relative', overflow: 'hidden',
                                     }}
                                     title={atLimit
-                                        ? 'AI search limit reached. Resets at midnight CT.'
-                                        : query.trim().length < 3
-                                            ? 'Type at least 3 characters'
-                                            : 'Run AI search'}
-                                    style={{
-                                        flex: 1,
-                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                                        padding: '10px 14px',
-                                        borderRadius: '12px',
-                                        fontSize: '13px',
-                                        fontWeight: 700,
-                                        cursor: (atLimit || query.trim().length < 3) ? 'not-allowed' : 'pointer',
-                                        background: atLimit
-                                            ? '#E5E7EB'
-                                            : 'linear-gradient(145deg, #8B5CF6, #7C3AED)',
-                                        color: atLimit ? '#9CA3AF' : '#fff',
-                                        border: atLimit ? '1px solid #D1D5DB' : '1px solid #A78BFA',
-                                        boxShadow: atLimit
-                                            ? 'inset 1px 1px 2px rgba(0,0,0,0.04)'
-                                            : '3px 3px 8px rgba(124,58,237,0.22), inset 0 1px 0 rgba(255,255,255,0.18)',
-                                        opacity: query.trim().length < 3 ? 0.55 : 1,
-                                        transition: 'all 0.15s',
-                                    }}
+                                        ? 'AI search limit reached for today. Resets at midnight Central Time.'
+                                        : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
                                 >
-                                    <Sparkles size={13} />
-                                    AI Search
-                                </button>
+                                    <div style={{
+                                        width: '34px', height: '34px', borderRadius: '11px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: 'linear-gradient(145deg, #C4B5FD, #A78BFA)',
+                                        color: '#fff',
+                                        flexShrink: 0,
+                                        boxShadow: '3px 3px 8px rgba(124,58,237,0.18), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 1px rgba(0,0,0,0.05)',
+                                    }}>
+                                        <Sparkles size={15} />
+                                    </div>
+                                    <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
+                                        <span style={{
+                                            fontSize: '10px', fontWeight: 700, color: '#8A9BA6',
+                                            textTransform: 'uppercase', letterSpacing: '0.08em',
+                                            whiteSpace: 'nowrap',
+                                        }}>AI Searches</span>
+                                        <span style={{
+                                            fontSize: '15px', fontWeight: 800,
+                                            color: valueColor,
+                                            fontVariantNumeric: 'tabular-nums',
+                                            whiteSpace: 'nowrap',
+                                            letterSpacing: '0.01em',
+                                        }}>
+                                            {used}<span style={{ opacity: 0.4, fontWeight: 700 }}>/{cap}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div style={{ flex: 1, minWidth: '240px', position: 'relative', display: 'flex' }}>
+                                    <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC', pointerEvents: 'none' }} />
+                                    <input
+                                        type="text"
+                                        value={query}
+                                        onChange={e => {
+                                            setQuery(e.target.value);
+                                            if (jdSearchPostingId) {
+                                                setJdSearchPostingId(null);
+                                                setJdSearchTitle(null);
+                                            }
+                                        }}
+                                        placeholder='Describe the candidate you need (e.g., "experienced CA-licensed telehealth PMHNP")'
+                                        style={{
+                                            ...clayInput,
+                                            paddingLeft: '38px',
+                                            paddingRight: '110px',
+                                            fontSize: '14px',
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        disabled={atLimit || query.trim().length < 3}
+                                        onClick={() => { if (atLimit || query.trim().length < 3) return; setAiMode(true); }}
+                                        title={atLimit ? 'AI search limit reached. Resets at midnight CT.' : query.trim().length < 3 ? 'Type at least 3 characters' : 'Run AI search'}
+                                        style={{
+                                            position: 'absolute', right: '6px', top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                            padding: '6px 12px', borderRadius: '8px',
+                                            fontSize: '11px', fontWeight: 700,
+                                            cursor: (atLimit || query.trim().length < 3) ? 'not-allowed' : 'pointer',
+                                            background: atLimit ? '#E5E7EB' : 'linear-gradient(145deg, #8B5CF6, #7C3AED)',
+                                            color: atLimit ? '#9CA3AF' : '#fff',
+                                            border: atLimit ? '1px solid #D1D5DB' : '1px solid #A78BFA',
+                                            boxShadow: atLimit ? 'inset 1px 1px 2px rgba(0,0,0,0.04)' : '2px 2px 6px rgba(124,58,237,0.25)',
+                                            opacity: query.trim().length < 3 ? 0.55 : 1,
+                                            transition: 'all 0.15s',
+                                        }}
+                                    >
+                                        <Sparkles size={11} /> AI Search
+                                    </button>
+                                </div>
                                 <button
                                     onClick={() => setShowFilters(!showFilters)}
                                     className="tp-filter-btn"
                                     style={{
                                         ...clayBtn,
-                                        flexShrink: 0,
-                                        padding: '10px 14px',
                                         background: showFilters ? '#CCFBF1' : '#F7FBF8',
                                         color: showFilters ? '#0D9488' : '#2A4A5A',
                                         border: showFilters ? '1px solid #99F6E4' : '1px solid rgba(255,255,255,0.5)',
                                     }}
                                 >
-                                    <Filter size={14} />
-                                    <span className="tp-filter-label">Filters</span>
+                                    <Filter size={14} /> Filters
                                     {activeFilterCount > 0 && (
-                                        <span style={{
-                                            background: '#0D9488', color: '#fff',
-                                            fontSize: '10px', fontWeight: 700,
-                                            padding: '1px 7px', borderRadius: '10px',
-                                        }}>
+                                        <span style={{ background: '#0D9488', color: '#fff', fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '10px' }}>
                                             {activeFilterCount}
                                         </span>
                                     )}
                                 </button>
                                 {activeFilterCount > 0 && (
-                                    <button onClick={clearFilters} className="tp-filter-btn" style={{
-                                        ...clayBtn, flexShrink: 0, padding: '10px 14px',
-                                        background: '#FEE2E2', color: '#DC2626',
-                                        border: '1px solid #FECACA',
-                                    }}>
+                                    <button onClick={clearFilters} className="tp-filter-btn" style={{ ...clayBtn, background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA' }}>
                                         <X size={13} /> Clear
                                     </button>
                                 )}
                             </div>
 
-                            {/* Row 3: unobtrusive AI-searches usage hint. Was a giant
-                                clay card before, which dominated the search area and
-                                added a whole extra row on phones. Now a 1-line muted
-                                caption underneath — same info, none of the noise. */}
-                            <p
-                                className="tp-ai-usage-hint"
-                                title={atLimit
-                                    ? 'AI search limit reached for today. Resets at midnight Central Time.'
-                                    : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
-                                style={{
-                                    margin: '8px 4px 0',
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                    color: valueColor,
-                                    letterSpacing: '0.04em',
-                                    fontVariantNumeric: 'tabular-nums',
-                                    display: 'flex', alignItems: 'center', gap: '6px',
-                                }}
-                            >
-                                <Sparkles size={11} style={{ opacity: 0.7 }} />
-                                {used}/{cap} AI searches used today{atLimit ? ' — resets at midnight CT' : ''}
-                            </p>
+                            {/* Mobile (<641px) — vertical stack: input → action row → caption */}
+                            <div className="tp-search-mobile" style={{ marginBottom: '16px' }}>
+                                <div style={{ position: 'relative', marginBottom: '10px' }}>
+                                    <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC', pointerEvents: 'none' }} />
+                                    <input
+                                        type="text"
+                                        value={query}
+                                        onChange={e => {
+                                            setQuery(e.target.value);
+                                            if (jdSearchPostingId) {
+                                                setJdSearchPostingId(null);
+                                                setJdSearchTitle(null);
+                                            }
+                                        }}
+                                        placeholder='Describe the candidate you need…'
+                                        style={{ ...clayInput, width: '100%', paddingLeft: '38px', paddingRight: '14px', fontSize: '14px' }}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+                                    <button
+                                        type="button"
+                                        disabled={atLimit || query.trim().length < 3}
+                                        onClick={() => { if (atLimit || query.trim().length < 3) return; setAiMode(true); }}
+                                        title={atLimit ? 'AI search limit reached. Resets at midnight CT.' : query.trim().length < 3 ? 'Type at least 3 characters' : 'Run AI search'}
+                                        style={{
+                                            flex: 1,
+                                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                            padding: '10px 14px', borderRadius: '12px',
+                                            fontSize: '13px', fontWeight: 700,
+                                            cursor: (atLimit || query.trim().length < 3) ? 'not-allowed' : 'pointer',
+                                            background: atLimit ? '#E5E7EB' : 'linear-gradient(145deg, #8B5CF6, #7C3AED)',
+                                            color: atLimit ? '#9CA3AF' : '#fff',
+                                            border: atLimit ? '1px solid #D1D5DB' : '1px solid #A78BFA',
+                                            boxShadow: atLimit ? 'inset 1px 1px 2px rgba(0,0,0,0.04)' : '3px 3px 8px rgba(124,58,237,0.22), inset 0 1px 0 rgba(255,255,255,0.18)',
+                                            opacity: query.trim().length < 3 ? 0.55 : 1,
+                                            transition: 'all 0.15s',
+                                        }}
+                                    >
+                                        <Sparkles size={13} /> AI Search
+                                    </button>
+                                    <button
+                                        onClick={() => setShowFilters(!showFilters)}
+                                        className="tp-filter-btn"
+                                        style={{
+                                            ...clayBtn, flexShrink: 0, padding: '10px 14px',
+                                            background: showFilters ? '#CCFBF1' : '#F7FBF8',
+                                            color: showFilters ? '#0D9488' : '#2A4A5A',
+                                            border: showFilters ? '1px solid #99F6E4' : '1px solid rgba(255,255,255,0.5)',
+                                        }}
+                                    >
+                                        <Filter size={14} />
+                                        <span className="tp-filter-label">Filters</span>
+                                        {activeFilterCount > 0 && (
+                                            <span style={{ background: '#0D9488', color: '#fff', fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '10px' }}>
+                                                {activeFilterCount}
+                                            </span>
+                                        )}
+                                    </button>
+                                    {activeFilterCount > 0 && (
+                                        <button onClick={clearFilters} className="tp-filter-btn" style={{ ...clayBtn, flexShrink: 0, padding: '10px 14px', background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA' }}>
+                                            <X size={13} /> Clear
+                                        </button>
+                                    )}
+                                </div>
+                                <p
+                                    title={atLimit ? 'AI search limit reached for today. Resets at midnight Central Time.' : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
+                                    style={{
+                                        margin: '8px 4px 0', fontSize: '11px', fontWeight: 600,
+                                        color: valueColor, letterSpacing: '0.04em',
+                                        fontVariantNumeric: 'tabular-nums',
+                                        display: 'flex', alignItems: 'center', gap: '6px',
+                                    }}
+                                >
+                                    <Sparkles size={11} style={{ opacity: 0.7 }} />
+                                    {used}/{cap} AI searches used today{atLimit ? ' — resets at midnight CT' : ''}
+                                </p>
+                            </div>
 
-                            {/* Phone-only: shrink the Filters button to icon-only so the
-                                AI Search action stays visually dominant on narrow
-                                screens. */}
                             <style>{`
+                                /* Default: mobile-only layout visible (matches mobile-first
+                                   pattern used elsewhere on this page). Desktop kicks in
+                                   at ≥641px. */
+                                .tp-search-desktop { display: none !important; }
+                                @media (min-width: 641px) {
+                                    .tp-search-desktop { display: flex !important; }
+                                    .tp-search-mobile { display: none !important; }
+                                }
                                 @media (max-width: 480px) {
                                     .tp-filter-label { display: none; }
                                 }
                             `}</style>
-                        </div>
+                        </>
                     );
                 })()}
 
