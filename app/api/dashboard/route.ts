@@ -44,6 +44,7 @@ export async function GET(request: Request) {
                         certifications: true,
                         licenseStates: true,
                         specialties: true,
+                        skills: true,
                         yearsExperience: true,
                         preferredWorkMode: true,
                         preferredJobType: true,

@@ -172,7 +172,12 @@ export default function SignUpForm() {
 
         if (data.session) {
           router.refresh();
-          router.push(role === 'employer' ? '/employer/dashboard' : '/dashboard');
+          // Seekers go through the 1-screen professional-info interstitial so
+          // headline/specialties/yearsExperience get filled before they hit the
+          // dashboard. The page itself short-circuits to /dashboard if the
+          // profile is already searchable (returning users in autoconfirm
+          // setups), so it's safe to route everyone through it.
+          router.push(role === 'employer' ? '/employer/dashboard' : '/onboarding/professional');
         }
       }
     } catch {

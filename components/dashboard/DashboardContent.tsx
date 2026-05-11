@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { calculateCompleteness } from '@/lib/profile-completeness'
+import { isProfileSearchable } from '@/lib/profile-searchable'
 import useSavedJobs from '@/lib/hooks/useSavedJobs'
 import {
     Bookmark, Send, Eye, Bell, ArrowRight, Briefcase, MapPin,
@@ -59,6 +60,7 @@ interface DashboardData {
         certifications: string | null
         licenseStates: string | null
         specialties: string | null
+        skills: string[] | null
         yearsExperience: number | null
         preferredWorkMode: string | null
         preferredJobType: string | null
@@ -574,6 +576,25 @@ export default function DashboardContent() {
 
     const { profile, stats, applications, savedJobs, recommendedJobs, unreadMessages } = data
     const completeness = calculateCompleteness(profile)
+    // Distinct from completeness: a binary "appears in employer AI Match yet?"
+    // signal that mirrors the embedder's actual gate. A profile can be 80%
+    // complete but still invisible to AI Match if headline+bio+specialties
+    // weren't filled — those are the embedding inputs, the rest aren't.
+    const searchable = isProfileSearchable({
+        headline: profile.headline,
+        yearsExperience: profile.yearsExperience,
+        certifications: profile.certifications,
+        licenseStates: profile.licenseStates,
+        specialties: profile.specialties,
+        skills: profile.skills,
+        bio: profile.bio,
+    })
+    const fieldLabel = (f: 'headline' | 'specialties' | 'bio' | 'yearsExperience'): string => {
+        if (f === 'headline') return 'a headline'
+        if (f === 'specialties') return 'specialties'
+        if (f === 'bio') return 'a brief summary'
+        return 'years of experience'
+    }
 
     const statCards = [
         { label: 'jobs saved', value: stats.savedJobs, icon: Bookmark, color: '#818CF8', href: '/saved', illustration: '/illustrations/clay-stat-saved.png' },
@@ -617,6 +638,58 @@ export default function DashboardContent() {
                     — Here&apos;s what&apos;s happening with your job search.
                 </p>
             </div>
+
+            {/* ═══ AI-Search visibility callout ═══
+                Distinct from the completeness meter. A profile can be 80%+
+                complete but still invisible to the employer AI search if the
+                embedder-relevant fields are blank. This callout mirrors the
+                exact rule applied at lib/profile-searchable.ts (≥20 chars of
+                concatenated embedding text) and is the most direct way to
+                tell the candidate "fill these to start appearing in matches."
+                Only renders when the profile would NOT be embedded. */}
+            {!searchable.searchable && profile.role !== 'employer' && (
+                <div style={{
+                    ...cardBase,
+                    marginBottom: '16px',
+                    background: '#FEF3C7',
+                    border: '1px solid #FDE68A',
+                    display: 'flex', alignItems: 'flex-start', gap: '14px',
+                }}>
+                    <div style={{
+                        width: '36px', height: '36px', borderRadius: '12px',
+                        background: 'linear-gradient(145deg, #F59E0B, #D97706)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0, color: '#fff',
+                    }}>
+                        <Sparkles size={18} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={{
+                            fontSize: '14px', fontWeight: 700, color: '#92400E',
+                            margin: '0 0 4px',
+                            fontFamily: 'var(--font-lora), Georgia, serif',
+                        }}>
+                            You&apos;re not appearing in employer AI Match yet
+                        </h3>
+                        <p style={{ fontSize: '13px', color: '#92400E', margin: '0 0 10px' }}>
+                            Add {searchable.missingHighValueFields.slice(0, 3).map(fieldLabel).join(', ') || 'a few profile details'} so employers can find you when they search by job description.
+                        </p>
+                        <Link
+                            href="/settings?tab=personal#section-headline"
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                fontSize: '13px', fontWeight: 600, color: '#fff',
+                                textDecoration: 'none',
+                                background: 'linear-gradient(145deg, #D97706, #B45309)',
+                                padding: '8px 14px', borderRadius: '10px',
+                                boxShadow: '2px 2px 6px rgba(217,119,6,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                            }}
+                        >
+                            Complete profile <ArrowRight size={14} />
+                        </Link>
+                    </div>
+                </div>
+            )}
 
             {/* ═══ Profile Attention Card ═══ */}
             {completeness.percentage < 100 && (
