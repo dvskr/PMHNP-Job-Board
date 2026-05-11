@@ -201,28 +201,32 @@ import {
     FANTASTIC_DESCRIPTION_FILTER_PSYCH as DESCRIPTION_FILTER_PSYCH,
 } from './search-terms/fantastic-jobs-db';
 import { RateLimiter } from './types';
+import { GREENHOUSE_SLUGS } from './tenants/greenhouse';
+import { LEVER_SLUGS } from './tenants/lever';
+import { WORKDAY_TENANTS } from './tenants/workday';
+import { SMARTRECRUITERS_TENANTS } from './tenants/smartrecruiters';
 
 // ── Budget Protection ──
-// Ultra plan: 20,000 requests/month, 5 req/sec
-// New 3-pass approach uses ~30-50 calls/run × 2 runs/day × 30d ≈ 3,000.
-// Pre-2026-04-30 (the per-filter loop) used up to 390 calls/run, ~23k/mo,
-// and DID exhaust the quota. Caps below force-stop well before the next
-// quota cliff:
-//   MAX_REQUESTS_PER_RUN = 200 — equivalent to 12k/month worst-case
-//   MIN_REMAINING_BUFFER = 5000 — refuse to start a run when fewer than
-//     this many monthly requests remain. With 60 runs/month a 5k cushion
-//     covers ~10 admin-triggered manual runs without dipping below 0.
-// Max paginated depth per search-term pass.
-//   - Title-literal passes (PASS A): up to 15 pages — these match few rows
-//     so paginating deeply rarely fires anyway.
-//   - Broad title + description passes (PASS B): capped at 3 pages because
-//     these intentionally cast a wide net and burned 20k Jobs in 6 days
-//     of the 2026-05 billing cycle.
+// Ultra plan: 20,000 requests/month AND 20,000 jobs/month, 5 req/sec.
+// Post-2026-05-11 posture: 1 run/day × 24h endpoint, with PASS B reopened
+// to 5 pages now that we're not double-running. Worst-case math:
+//   PASS A: 14 terms × ~1-3 pages typical = ~14-42 calls (sparse matches)
+//   PASS B: 3 terms × 5 pages × 100 = 15 calls, up to 1,500 jobs delivered
+//   Total per run: ~30-60 calls, ~600 jobs (bounded by MAX_JOBS_PER_RUN)
+//   Monthly: 30 runs × 600 jobs = 18,000 jobs (10% margin under 20k cap)
+//
+// Pre-2026-05-06 (per-filter loop) used up to 390 calls/run, ~23k/mo, and
+// did exhaust the quota. The constants below force-stop well before the
+// next quota cliff.
 const MAX_PAGES_PER_FILTER = 15;
-const MAX_PAGES_PER_FILTER_BROAD = 3;
-// Lowered 2026-05-06 200 → 50 after the cap blow-up. With the 24h endpoint
-// + capped PASS B + per-run JOBS budget below, no run should need this many.
-const MAX_REQUESTS_PER_RUN = 50;
+// Raised 2026-05-11 3 → 5. PASS B is the broad description-filter widener
+// that catches generic-titled jobs whose descriptions name psychiatric
+// work. With 1×/day cadence (was 2×/day pre-2026-05-11) the per-month
+// burn halves, so we can afford the extra pages for better coverage.
+const MAX_PAGES_PER_FILTER_BROAD = 5;
+// Bumped 2026-05-11 50 → 60 to accommodate PASS B's extra 6 pages without
+// truncating PASS A early. Still well below the original 200 ceiling.
+const MAX_REQUESTS_PER_RUN = 60;
 // Per-run hard cap on TOTAL jobs returned across all passes. Each call
 // can return up to 100 jobs and the Ultra plan's monthly cap is 20,000
 // JOBS (separate from the 20k Requests counter). 600/run × 30 days = 18k
@@ -233,6 +237,60 @@ const MIN_REMAINING_BUFFER = 5000;
 
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ── Native-adapter overlap detection ─────────────────────────────────────
+// Fantastic-Jobs-DB re-aggregates ATS feeds we already pull natively
+// (greenhouse, lever, workday, smartrecruiters). When the apply_url
+// resolves to a tenant we cover in tenants/*.ts, our native adapter will
+// catch the job on its next run anyway — so importing it through
+// fantastic creates duplicate_apply_url rejections, pollutes
+// rejected_jobs, and wastes the in-process insert path.
+//
+// We skip the row in-process. Quota burn is unchanged (the API still
+// delivered the row), but the downstream funnel stays clean.
+//
+// Tenants NOT in our slug lists fall through and are kept — fantastic's
+// broader ATS coverage is the whole reason we run it.
+const GREENHOUSE_SLUG_SET = new Set(GREENHOUSE_SLUGS.map(s => s.toLowerCase()));
+const LEVER_SLUG_SET = new Set(LEVER_SLUGS.map(s => s.toLowerCase()));
+const WORKDAY_SLUG_SET = new Set(WORKDAY_TENANTS.map(t => t.slug.toLowerCase()));
+const SMARTRECRUITERS_SLUG_SET = new Set(SMARTRECRUITERS_TENANTS.map(t => t.slug.toLowerCase()));
+
+function isCoveredByNativeAdapter(applyUrl: string | null | undefined, source: string | null | undefined): boolean {
+    if (!applyUrl) return false;
+    let host = '';
+    let path = '';
+    try {
+        const u = new URL(applyUrl);
+        host = u.hostname.toLowerCase();
+        path = u.pathname;
+    } catch {
+        return false;
+    }
+    const src = (source ?? '').toLowerCase();
+
+    // Greenhouse: https://{job-boards|boards}.greenhouse.io/{slug}/jobs/{id}
+    if (src === 'greenhouse' || host.endsWith('greenhouse.io')) {
+        const m = path.match(/^\/([^/]+)/);
+        if (m && GREENHOUSE_SLUG_SET.has(m[1].toLowerCase())) return true;
+    }
+    // Lever: https://jobs.lever.co/{slug}/{id}
+    if (src === 'lever' || host.endsWith('lever.co')) {
+        const m = path.match(/^\/([^/]+)/);
+        if (m && LEVER_SLUG_SET.has(m[1].toLowerCase())) return true;
+    }
+    // Workday: https://{slug}.wd{N}.myworkdayjobs.com/...
+    if (src === 'workday' || host.endsWith('myworkdayjobs.com')) {
+        const m = host.match(/^([^.]+)\./);
+        if (m && WORKDAY_SLUG_SET.has(m[1].toLowerCase())) return true;
+    }
+    // SmartRecruiters: https://{jobs|careers|api}.smartrecruiters.com/{slug}/...
+    if (src === 'smartrecruiters' || host.endsWith('smartrecruiters.com')) {
+        const m = path.match(/^\/(?:v1\/companies\/)?([^/]+)/);
+        if (m && SMARTRECRUITERS_SLUG_SET.has(m[1].toLowerCase())) return true;
+    }
+    return false;
 }
 
 function formatLocation(job: FantasticJobApiResponse): string {
@@ -294,6 +352,8 @@ interface RunDiagnostics {
     apiCallsUsed: number;
     statusCounts: Record<string, number>;
     abortReasons: string[];
+    /** Rows skipped pre-insert because a native adapter already covers the tenant. */
+    skippedNativeCoverage: number;
 }
 let runDiag: RunDiagnostics = {
     firstResponseStatus: null,
@@ -303,6 +363,7 @@ let runDiag: RunDiagnostics = {
     apiCallsUsed: 0,
     statusCounts: {},
     abortReasons: [],
+    skippedNativeCoverage: 0,
 };
 function resetDiag(): void {
     runDiag = {
@@ -313,6 +374,7 @@ function resetDiag(): void {
         apiCallsUsed: 0,
         statusCounts: {},
         abortReasons: [],
+        skippedNativeCoverage: 0,
     };
 }
 
@@ -511,6 +573,15 @@ async function runPass(
             if (seenUrls.has(jobKey)) continue;
             seenUrls.add(jobKey);
 
+            // Native-adapter overlap: skip jobs whose apply_url resolves
+            // to a tenant in our greenhouse/lever/workday/smartrecruiters
+            // slug lists — the native adapter will pick them up. See
+            // isCoveredByNativeAdapter() for the matching rules.
+            if (isCoveredByNativeAdapter(job.url, job.source)) {
+                runDiag.skippedNativeCoverage++;
+                continue;
+            }
+
             const salary = extractFantasticSalary(job);
             out.push({
                 externalId: `fantasticjobs-${job.source || 'unknown'}-${job.id}`,
@@ -638,7 +709,9 @@ export async function fetchFantasticJobsDbJobs(
     console.log(
         `[Fantastic-Jobs-DB] Total: ${allJobs.length} unique jobs kept ` +
         `(${callBudget.used}/${callBudget.cap} calls, ` +
-        `${jobBudget.used}/${jobBudget.cap} jobs delivered, endpoint=${endpointKey})`,
+        `${jobBudget.used}/${jobBudget.cap} jobs delivered, ` +
+        `${runDiag.skippedNativeCoverage} skipped as native-covered, ` +
+        `endpoint=${endpointKey})`,
     );
     return allJobs;
 }
