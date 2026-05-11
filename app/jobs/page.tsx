@@ -237,11 +237,16 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
         />
         {/* Breadcrumbs renders BOTH the visual nav AND the BreadcrumbList JSON-LD,
             so consumers no longer need a separate BreadcrumbSchema component
-            (which only emitted JSON-LD; users got no visible trail). */}
-        <Breadcrumbs items={[
-          { label: 'Home', href: '/' },
-          { label: 'Jobs' },
-        ]} />
+            (which only emitted JSON-LD; users got no visible trail). The
+            wrapper aligns the breadcrumb to the same 1360px content column
+            as JobsPageClient — without it the trail hugs the viewport edge
+            with zero left padding. */}
+        <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '20px 16px 0' }}>
+          <Breadcrumbs items={[
+            { label: 'Home', href: '/' },
+            { label: 'Jobs' },
+          ]} />
+        </div>
         <JobsPageClient
           initialJobs={jobs as unknown as Job[]}
           initialTotal={total}
@@ -256,10 +261,12 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
     // Fallback: render client with empty data
     return (
       <>
-        <Breadcrumbs items={[
-          { label: 'Home', href: '/' },
-          { label: 'Jobs' },
-        ]} />
+        <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '20px 16px 0' }}>
+          <Breadcrumbs items={[
+            { label: 'Home', href: '/' },
+            { label: 'Jobs' },
+          ]} />
+        </div>
         <JobsPageClient
           initialJobs={[]}
           initialTotal={0}

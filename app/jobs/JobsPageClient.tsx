@@ -280,23 +280,34 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
 
   return (
     <>
-      <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 16px 0' }}>
-        {/* H1 is visually hidden but kept in the DOM for crawlers + screen
-            readers. The previous visible eyebrow (per audit 07) was clipping
-            under the sticky header as the page scrolled and made the top of
-            the listings feel busy. Removing the h1 entirely would leave the
-            page without a topic signal — a visually-hidden h1 is a weaker
-            signal than a visible one, but still meaningfully stronger than
-            falling back to <title> alone for crawler topic understanding. */}
-        <h1
-          style={{
-            position: 'absolute', width: '1px', height: '1px',
-            padding: 0, margin: '-1px', overflow: 'hidden',
-            clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', borderWidth: 0,
-          }}
-        >
-          PMHNP &amp; Psychiatric Nurse Practitioner Jobs
-        </h1>
+      <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '8px 16px 0' }}>
+        {/* Page header — H1 + supporting line. The earlier full-width 28px
+            heading was clipping under the sticky nav as the user scrolled.
+            Compact treatment here (smaller font, paired with a one-line
+            descriptor) keeps the topic signal for SEO + screen readers
+            while leaving design weight on the search bar and the listings
+            grid below. The breadcrumb already renders above this in
+            app/jobs/page.tsx so we only need 8px of top padding here. */}
+        <header style={{ marginBottom: '20px' }}>
+          <h1
+            className="font-lora"
+            style={{
+              fontSize: 'clamp(20px, 2vw, 24px)',
+              fontWeight: 700,
+              color: '#1A2E35',
+              margin: '0 0 4px',
+              lineHeight: 1.2,
+              letterSpacing: '-0.015em',
+            }}
+          >
+            PMHNP &amp; Psychiatric Nurse Practitioner Jobs
+          </h1>
+          <p style={{
+            fontSize: '13px', color: '#6B7F8A', margin: 0, fontWeight: 500,
+          }}>
+            Browse fresh PMHNP roles across the US — telehealth, on-site, hybrid, and locum.
+          </p>
+        </header>
 
         {/* Main Content with Sidebar Layout */}
         <div style={{ display: 'flex', gap: '28px' }}>
