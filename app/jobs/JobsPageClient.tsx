@@ -281,35 +281,13 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   return (
     <>
       <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '8px 16px 0' }}>
-        {/* Page header — H1 + supporting line. The earlier full-width 28px
-            heading was clipping under the sticky nav as the user scrolled.
-            Compact treatment here (smaller font, paired with a one-line
-            descriptor) keeps the topic signal for SEO + screen readers
-            while leaving design weight on the search bar and the listings
-            grid below. The breadcrumb already renders above this in
-            app/jobs/page.tsx so we only need 8px of top padding here. */}
-        <header style={{ marginBottom: '20px' }}>
-          <h1
-            className="font-lora"
-            style={{
-              fontSize: 'clamp(20px, 2vw, 24px)',
-              fontWeight: 700,
-              color: '#1A2E35',
-              margin: '0 0 4px',
-              lineHeight: 1.2,
-              letterSpacing: '-0.015em',
-            }}
-          >
-            PMHNP &amp; Psychiatric Nurse Practitioner Jobs
-          </h1>
-          <p style={{
-            fontSize: '13px', color: '#6B7F8A', margin: 0, fontWeight: 500,
-          }}>
-            Browse fresh PMHNP roles across the US — telehealth, on-site, hybrid, and locum.
-          </p>
-        </header>
-
-        {/* Main Content with Sidebar Layout */}
+        {/* Main Content with Sidebar Layout. The H1 + subtitle live INSIDE
+            the right-hand <section> rather than spanning the full width
+            above this flex, because StickyFilterSidebar is `position: fixed`
+            with top:110px (out of normal flow) — a full-width header above
+            the flex would silently get covered by the fixed sidebar at
+            scroll=0, which is what the previous attempt produced. Keeping
+            the H1 inside the main column eliminates the overlap entirely. */}
         <div style={{ display: 'flex', gap: '28px' }}>
           {/* Sidebar Filters - Hidden on mobile by default, visible on desktop */}
           <StickyFilterSidebar>
@@ -320,6 +298,30 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               already wraps the entire page in components/MainContent.tsx. Nested
               <main> is invalid HTML and confuses Google's main-content extractor. */}
           <section aria-label="Job results" style={{ flex: 1, minWidth: 0 }}>
+            {/* Page header — visible H1 for both users and crawlers. Sits in
+                the main column (not above the flex) so the fixed sidebar
+                can't overlap it regardless of scroll position. */}
+            <header style={{ marginBottom: '20px' }}>
+              <h1
+                className="font-lora"
+                style={{
+                  fontSize: 'clamp(20px, 2vw, 24px)',
+                  fontWeight: 700,
+                  color: '#1A2E35',
+                  margin: '0 0 4px',
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.015em',
+                }}
+              >
+                PMHNP &amp; Psychiatric Nurse Practitioner Jobs
+              </h1>
+              <p style={{
+                fontSize: '13px', color: '#6B7F8A', margin: 0, fontWeight: 500,
+              }}>
+                Browse fresh PMHNP roles across the US — telehealth, on-site, hybrid, and locum.
+              </p>
+            </header>
+
             {/* Mobile Filter Button */}
             <div className="lg:hidden" style={{ marginBottom: '16px' }}>
               <button
