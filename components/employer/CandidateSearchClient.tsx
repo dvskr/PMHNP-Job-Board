@@ -890,8 +890,14 @@ export default function CandidateSearchClient() {
                             })}
                         </div>
 
-                        {/* Pagination — hidden in Smart Match (single ranked slate) */}
-                        {!aiMode && totalPages > 1 && (
+                        {/* Pagination — totalPages is forced to 1 when Smart Match
+                            wins the result list (line ~214), and reflects real
+                            page count when the regular /api/employer/candidates
+                            browse owns it. Gating on `!aiMode` was wrong now
+                            that the Smart Match toggle is gone and aiMode is
+                            hardcoded true — pagination would never render even
+                            on the browse path, leaving employers stuck on page 1. */}
+                        {totalPages > 1 && (
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
                                 <button
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
