@@ -15,7 +15,13 @@ export default function MainContent({ children }: { children: React.ReactNode })
 
     let className = 'pt-16 pb-20 md:pb-0'; // default: header spacer + bottom nav clearance
     if (isBarePath) {
-        className = 'min-h-screen'; // fully custom layout
+        // Even bare routes need bottom-nav clearance on mobile — the
+        // BottomNav is `position: fixed` and overlaps the last ~70px of
+        // page content on phones. Without pb-24 the bottom of every job
+        // card / table / payment-history row was hidden behind the nav and
+        // the user couldn't scroll past it. md:pb-0 keeps desktop layout
+        // identical (BottomNav is `md:hidden`).
+        className = 'min-h-screen pb-24 md:pb-0';
     } else if (isAppPath) {
         className = 'pt-4 pb-24 md:pb-0'; // small gap below header spacer + bottom nav clearance
     }
