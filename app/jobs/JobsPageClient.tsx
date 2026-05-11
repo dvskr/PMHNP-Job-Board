@@ -298,29 +298,24 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               already wraps the entire page in components/MainContent.tsx. Nested
               <main> is invalid HTML and confuses Google's main-content extractor. */}
           <section aria-label="Job results" style={{ flex: 1, minWidth: 0 }}>
-            {/* Page header — visible H1 for both users and crawlers. Sits in
-                the main column (not above the flex) so the fixed sidebar
-                can't overlap it regardless of scroll position. */}
-            <header style={{ marginBottom: '20px' }}>
-              <h1
-                className="font-lora"
-                style={{
-                  fontSize: 'clamp(20px, 2vw, 24px)',
-                  fontWeight: 700,
-                  color: '#1A2E35',
-                  margin: '0 0 4px',
-                  lineHeight: 1.2,
-                  letterSpacing: '-0.015em',
-                }}
-              >
-                PMHNP &amp; Psychiatric Nurse Practitioner Jobs
-              </h1>
-              <p style={{
-                fontSize: '13px', color: '#6B7F8A', margin: 0, fontWeight: 500,
-              }}>
-                Browse fresh PMHNP roles across the US — telehealth, on-site, hybrid, and locum.
-              </p>
-            </header>
+            {/* Page header — single compact line. Big H1 + descriptive
+                subtitle pushed the search bar and listings too far down
+                (the user has to scroll past the chrome before reaching
+                the actual product). One small line keeps the SEO topic
+                signal without burning vertical space above the fold. */}
+            <h1
+              className="font-lora"
+              style={{
+                fontSize: '15px',
+                fontWeight: 600,
+                color: '#6B7F8A',
+                margin: '0 0 12px',
+                letterSpacing: '0.02em',
+                textTransform: 'none',
+              }}
+            >
+              PMHNP &amp; Psychiatric Nurse Practitioner Jobs
+            </h1>
 
             {/* Mobile Filter Button */}
             <div className="lg:hidden" style={{ marginBottom: '16px' }}>
