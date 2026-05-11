@@ -919,6 +919,7 @@ export default function CandidateSearchClient() {
                                         onToggleSave={toggleSave}
                                         aiReason={c.reason}
                                         aiMatchPercent={typeof c.matchPercent === 'number' ? c.matchPercent : undefined}
+                                        fromPage={page}
                                     />
                                 );
                             })}
