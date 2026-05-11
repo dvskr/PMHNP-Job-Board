@@ -181,12 +181,12 @@ const SOCIAL_BOTS = [
   'redditbot',
 ] as const
 
-// SEO link-graph crawlers. Allowed to crawl the public site, but throttled
-// because they generate volume (Ahrefs alone hit ~1,700 pages in a 2.5h
-// window — most of them 410'd job pages) without driving traffic in return.
-// Crawl-delay is honored by AhrefsBot, MJ12bot, SemrushBot, DotBot, and
-// PetalBot. (Googlebot and Bingbot do NOT honor crawl-delay — use their
-// respective Search Console crawl rate settings instead.)
+// SEO link-graph crawlers. Allowed to crawl the public site so backlink
+// data / domain authority reports stay current. The previous Crawl-Delay
+// throttle (10s, ~360 pages/hr) was removed 2026-05-11 in favor of
+// max-SEO posture — Vercel bandwidth headroom is fine and these crawlers
+// indirectly feed third-party SEO tools the user base uses to evaluate
+// the site.
 const SEO_CRAWLERS = [
   'AhrefsBot',
   'SemrushBot',
@@ -195,15 +195,6 @@ const SEO_CRAWLERS = [
   'PetalBot',
   'YandexBot',
 ] as const
-
-// Throttle high-volume LLM crawlers without blocking them entirely. Most of
-// these honor Crawl-delay; for those that don't (PerplexityBot historically),
-// the directive is at least documented intent and a hint to behave.
-const AI_CRAWL_DELAY_SECONDS = 5
-
-// SEO-tool crawlers — heavier throttle since their access doesn't directly
-// drive user value.
-const SEO_CRAWL_DELAY_SECONDS = 10
 
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'
@@ -228,25 +219,24 @@ export default function robots(): MetadataRoute.Robots {
         allow: PUBLIC_ALLOW,
         disallow: FULL_DISALLOW,
       },
-      // AI search & LLM crawlers grouped into one block — Next.js's
-      // robots serializer emits one `User-Agent:` line per item when
-      // userAgent is an array, then a single set of rules applies to
-      // all of them. Was 21 duplicate rule blocks before (~600 lines
-      // of redundancy); now one block.
+      // AI search & LLM crawlers grouped into one block. Named explicitly
+      // (rather than letting them fall through to the catch-all) so the
+      // signal "we welcome these crawlers" is unmistakable to AI tools
+      // that scan robots.txt for per-bot rules. Same disallow list as
+      // the catch-all — no throttle, full public coverage.
       {
         userAgent: [...AI_CRAWLERS],
         allow: PUBLIC_ALLOW,
         disallow: FULL_DISALLOW,
-        crawlDelay: AI_CRAWL_DELAY_SECONDS,
       },
-      // SEO link-graph crawlers grouped — heavier crawl-delay because
-      // their volume (Ahrefs alone hit ~1,700 pages in 2.5h) doesn't
-      // drive user traffic in return.
+      // SEO link-graph crawlers grouped. Same posture: explicit allow
+      // for max backlink-graph coverage so Ahrefs/Semrush/etc. can keep
+      // domain authority data current. Crawl-Delay throttle removed
+      // 2026-05-11 — max SEO across all bots.
       {
         userAgent: [...SEO_CRAWLERS],
         allow: PUBLIC_ALLOW,
         disallow: FULL_DISALLOW,
-        crawlDelay: SEO_CRAWL_DELAY_SECONDS,
       },
       // Social / link-preview bots grouped — fetch a single URL on
       // demand for the preview card, so they need access to almost
