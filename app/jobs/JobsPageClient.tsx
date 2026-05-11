@@ -299,38 +299,62 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               already wraps the entire page in components/MainContent.tsx. Nested
               <main> is invalid HTML and confuses Google's main-content extractor. */}
           <section aria-label="Job results" style={{ flex: 1, minWidth: 0 }}>
-            {/* Breadcrumb — left-aligned at the top of the main column, which
-                lands at the top-right corner of the FILTERS sidebar visually.
-                Lives inside this <section> (not in the page-wide wrapper)
-                because the FILTERS sidebar is `position: fixed; top: 110px`
-                and would paint over any breadcrumb placed above the flex. */}
-            <div style={{ marginBottom: '8px' }}>
-              <Breadcrumbs items={[
-                { label: 'Home', href: '/' },
-                { label: 'Jobs' },
-              ]} />
+            {/* Header row — breadcrumb pinned left, H1 stays optically
+                centered. 3-col grid (1fr auto 1fr) keeps the H1 in the
+                exact horizontal middle of the column regardless of the
+                breadcrumb's width. Single row removes the vertical stack
+                of chrome above the search bar. */}
+            <div
+              className="jp-header-row"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr auto 1fr',
+                alignItems: 'center',
+                gap: '16px',
+                marginBottom: '16px',
+              }}
+            >
+              <div style={{ justifySelf: 'start' }}>
+                <Breadcrumbs items={[
+                  { label: 'Home', href: '/' },
+                  { label: 'Jobs' },
+                ]} />
+              </div>
+              <header style={{ textAlign: 'center' }}>
+                <h1
+                  className="font-lora"
+                  style={{
+                    fontSize: 'clamp(22px, 2.4vw, 30px)',
+                    fontWeight: 700,
+                    color: '#1A2E35',
+                    margin: '0 0 6px',
+                    lineHeight: 1.2,
+                    letterSpacing: '-0.015em',
+                  }}
+                >
+                  PMHNP &amp; Psychiatric Nurse Practitioner Jobs
+                </h1>
+                <p style={{
+                  fontSize: '13px', color: '#6B7F8A', margin: 0, fontWeight: 500,
+                }}>
+                  Browse fresh PMHNP roles across the US — telehealth, on-site, hybrid, and locum.
+                </p>
+              </header>
+              {/* Empty right column mirrors the breadcrumb column so the
+                  middle <header> stays optically centered. */}
+              <div />
             </div>
-            {/* Page header — centered H1 + supporting line. */}
-            <header style={{ marginBottom: '16px', textAlign: 'center' }}>
-              <h1
-                className="font-lora"
-                style={{
-                  fontSize: 'clamp(22px, 2.4vw, 30px)',
-                  fontWeight: 700,
-                  color: '#1A2E35',
-                  margin: '0 0 6px',
-                  lineHeight: 1.2,
-                  letterSpacing: '-0.015em',
-                }}
-              >
-                PMHNP &amp; Psychiatric Nurse Practitioner Jobs
-              </h1>
-              <p style={{
-                fontSize: '13px', color: '#6B7F8A', margin: 0, fontWeight: 500,
-              }}>
-                Browse fresh PMHNP roles across the US — telehealth, on-site, hybrid, and locum.
-              </p>
-            </header>
+            {/* Mobile fallback — under 1024px the grid collapses; on phones
+                the breadcrumb stacks above the centered H1 like before. */}
+            <style>{`
+              @media (max-width: 1023px) {
+                .jp-header-row {
+                  grid-template-columns: 1fr !important;
+                  gap: 8px !important;
+                }
+                .jp-header-row > div:last-child { display: none; }
+              }
+            `}</style>
 
             {/* Mobile Filter Button */}
             <div className="lg:hidden" style={{ marginBottom: '16px' }}>
