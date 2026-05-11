@@ -895,10 +895,15 @@ export default function CandidateSearchClient() {
                                 : `Showing ${(page - 1) * 20 + 1}–${Math.min(page * 20, totalCount)} of ${totalCount} candidate${totalCount !== 1 ? 's' : ''}`}
                         </p>
 
-                        {/* Card Grid */}
+                        {/* Card Grid — 280px min instead of 340 so a 360px
+                            phone viewport (328px usable after padding) gets
+                            one full-width column instead of overflowing
+                            with a 340px column. Wider screens still pack
+                            two/three/four columns as before because the
+                            same auto-fill logic just hands more tracks. */}
                         <div style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                             gap: '14px',
                             marginBottom: '28px',
                         }}>

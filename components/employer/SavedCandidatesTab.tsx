@@ -368,10 +368,10 @@ export default function SavedCandidatesTab() {
                 )}
             </div>
 
-            {/* Grid */}
+            {/* Grid — 280px min for narrow-phone fit (see CandidateSearchClient). */}
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                 gap: '14px',
             }}>
                 {filtered.map((entry) => {
