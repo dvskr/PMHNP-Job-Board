@@ -11,7 +11,6 @@ import CreateAlertForm from '@/components/CreateAlertForm';
 import JobsListSkeleton from '@/components/JobsListSkeleton';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import MobileFilterDrawer from '@/components/MobileFilterDrawer';
-import Breadcrumbs from '@/components/Breadcrumbs';
 import { Job } from '@/lib/types';
 import { FilterState, DEFAULT_FILTERS } from '@/types/filters';
 import { parseFiltersFromParams } from '@/lib/filters';
@@ -299,16 +298,6 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               already wraps the entire page in components/MainContent.tsx. Nested
               <main> is invalid HTML and confuses Google's main-content extractor. */}
           <section aria-label="Job results" style={{ flex: 1, minWidth: 0 }}>
-            {/* Breadcrumb sits inside the main column (not above the flex)
-                so it doesn't visually overlap the FILTERS sidebar's column.
-                Same JSON-LD BreadcrumbList renders inline regardless of
-                where the component lives, so SEO is unchanged. */}
-            <div style={{ marginBottom: '12px' }}>
-              <Breadcrumbs items={[
-                { label: 'Home', href: '/' },
-                { label: 'Jobs' },
-              ]} />
-            </div>
             {/* Page header — centered H1 + supporting line. Sits inside the
                 main column so the fixed sidebar can't overlap it. */}
             <header style={{ marginBottom: '20px', textAlign: 'center' }}>

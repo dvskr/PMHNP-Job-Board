@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
 import { slugify } from '@/lib/utils';
 import JobsPageClient from './JobsPageClient';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { Job } from '@/lib/types';
 
 // Nav-only params do not constitute a user filter — paginated and sorted
@@ -234,12 +235,17 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jobListSchema).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') }}
         />
-        {/* Breadcrumbs render INSIDE JobsPageClient now — they live in the
-            main content column above the H1, so they don't visually sit
-            above the FILTERS sidebar (which read as "navigation crammed
-            over the filter panel"). The Breadcrumbs component still
-            emits the BreadcrumbList JSON-LD inline regardless of whether
-            it renders in a server or client component, so SEO is intact. */}
+        {/* Breadcrumb sits at the top of the content column, left-aligned
+            with the FILTERS panel's left edge (same maxWidth + 16px padding
+            JobsPageClient uses). Above the flex, not inside it, so it
+            anchors the page top-left corner — matches user expectation of
+            "breadcrumb in top-left of content area, above filter panel". */}
+        <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '16px 16px 0' }}>
+          <Breadcrumbs items={[
+            { label: 'Home', href: '/' },
+            { label: 'Jobs' },
+          ]} />
+        </div>
         <JobsPageClient
           initialJobs={jobs as unknown as Job[]}
           initialTotal={total}
@@ -254,6 +260,12 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
     // Fallback: render client with empty data
     return (
       <>
+        <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '16px 16px 0' }}>
+          <Breadcrumbs items={[
+            { label: 'Home', href: '/' },
+            { label: 'Jobs' },
+          ]} />
+        </div>
         <JobsPageClient
           initialJobs={[]}
           initialTotal={0}
