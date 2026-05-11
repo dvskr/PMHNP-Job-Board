@@ -1,5 +1,15 @@
 import { MetadataRoute } from 'next'
 
+// Opt out of build-time prerender so robots.txt regenerates on every request.
+// Diagnosed 2026-05-10 (issue #162): the d916ec2 Crawl-delay directives were
+// silently absent from the live /robots.txt while the same code emitted them
+// locally. Root cause: Next.js 16 was serving a build-time-frozen prerender
+// artifact even after redeploys, because the build hash never invalidated.
+// vercel.json already pins /robots.txt to s-maxage=86400, so the CDN still
+// serves cached responses — this just guarantees the function runs on cache
+// fills against the latest source.
+export const dynamic = 'force-dynamic'
+
 // ── P2.3: Auth-pages temporary unblock window ────────────────────────
 // We unblocked /signup, /login, /messages, /saved, /job-alerts/manage,
 // /employer/login from FULL_DISALLOW so Googlebot can crawl them, see the
