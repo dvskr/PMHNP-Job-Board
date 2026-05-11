@@ -281,19 +281,18 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   return (
     <>
       <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 16px 0' }}>
-        {/* Visible H1 — was previously clipped to 1×1px for SEO-only purposes;
-            audit 07 flagged that visually-hidden headings carry a weaker topic
-            signal than visible ones. Now renders as a compact eyebrow above
-            the search bar so design weight stays on the search and listings. */}
+        {/* H1 is visually hidden but kept in the DOM for crawlers + screen
+            readers. The previous visible eyebrow (per audit 07) was clipping
+            under the sticky header as the page scrolled and made the top of
+            the listings feel busy. Removing the h1 entirely would leave the
+            page without a topic signal — a visually-hidden h1 is a weaker
+            signal than a visible one, but still meaningfully stronger than
+            falling back to <title> alone for crawler topic understanding. */}
         <h1
-          className="font-lora"
           style={{
-            fontSize: 'clamp(20px, 2.6vw, 28px)',
-            fontWeight: 700,
-            color: '#1A2E35',
-            margin: '0 0 16px',
-            lineHeight: 1.2,
-            letterSpacing: '-0.01em',
+            position: 'absolute', width: '1px', height: '1px',
+            padding: 0, margin: '-1px', overflow: 'hidden',
+            clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', borderWidth: 0,
           }}
         >
           PMHNP &amp; Psychiatric Nurse Practitioner Jobs
