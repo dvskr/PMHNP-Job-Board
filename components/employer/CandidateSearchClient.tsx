@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Filter, Users, Loader2, X, ChevronLeft, ChevronRight, Briefcase, Lock, Sparkles } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import CandidateCard from './CandidateCard';
 
@@ -94,6 +94,8 @@ interface SmartMatchState {
 
 export default function CandidateSearchClient() {
     const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
     /** Smart Match is on if `?ai=1` is in the URL, OR after the user clicks the toggle. */
     // ?postingId=X deep-link → auto-fire JD-driven Smart Match against
     // that posting on mount. ?ai=1 (legacy) just opens Smart Match in
@@ -131,13 +133,37 @@ export default function CandidateSearchClient() {
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
-    const [page, setPage] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const saved = sessionStorage.getItem('talentPool_page');
-            return saved ? parseInt(saved, 10) : 1;
-        }
-        return 1;
-    });
+    // Page lives in the URL (?page=N) so browser back/forward restores it
+    // for free — the previous sessionStorage approach was fragile because
+    // a sibling useEffect would clobber the restored value on remount,
+    // and Next.js's App Router cache sometimes re-runs the lazy useState
+    // initializer with a stale snapshot. URL params are the only place
+    // pagination state is truly safe across navigation.
+    const pageFromUrl = (() => {
+        const raw = searchParams.get('page');
+        const n = raw ? parseInt(raw, 10) : 1;
+        return Number.isFinite(n) && n >= 1 ? n : 1;
+    })();
+    const [page, setPage] = useState(pageFromUrl);
+    // Keep state in sync if the URL changes (back/forward nav between
+    // ?page=2 ↔ ?page=3, deep links, etc.).
+    useEffect(() => {
+        if (pageFromUrl !== page) setPage(pageFromUrl);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pageFromUrl]);
+    // Push page changes into the URL with replace (no extra history entry)
+    // so back-nav from a candidate profile lands on the right page without
+    // requiring a manual "Back-Back" through paginated history.
+    useEffect(() => {
+        const current = searchParams.get('page');
+        const target = page > 1 ? String(page) : null;
+        if ((current ?? null) === target) return;
+        const params = new URLSearchParams(searchParams.toString());
+        if (target) params.set('page', target); else params.delete('page');
+        const qs = params.toString();
+        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page]);
     const [loading, setLoading] = useState(true);
     const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
     const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
@@ -150,10 +176,8 @@ export default function CandidateSearchClient() {
         return '';
     });
 
-    // Persist page and posting to sessionStorage
-    useEffect(() => {
-        sessionStorage.setItem('talentPool_page', String(page));
-    }, [page]);
+    // page is now in the URL (handled above); only persist selectedPosting
+    // to sessionStorage so the active job stays selected across sessions.
     useEffect(() => {
         if (selectedPostingId) {
             sessionStorage.setItem('talentPool_posting', selectedPostingId);
