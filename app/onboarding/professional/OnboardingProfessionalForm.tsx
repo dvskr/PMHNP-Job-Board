@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Sparkles, ArrowRight, Loader2 } from 'lucide-react';
+import { Sparkles, ArrowRight, Loader2, FileText } from 'lucide-react';
+import ResumeUpload from '@/components/auth/ResumeUpload';
 
 // Kept in sync with components/employer/CandidateSearchClient.tsx —
 // the same chip set employers use to filter the talent pool, so the
@@ -19,6 +20,8 @@ interface InitialValues {
     bio: string;
     specialties: string;
     yearsExperience: number | null;
+    resumeUrl: string | null;
+    resumeParseStatus: string | null;
 }
 
 export default function OnboardingProfessionalForm({ initial }: { initial: InitialValues }) {
@@ -26,6 +29,27 @@ export default function OnboardingProfessionalForm({ initial }: { initial: Initi
     const [headline, setHeadline] = useState(initial.headline);
     const [bio, setBio] = useState(initial.bio);
     const [yearsExperience, setYearsExperience] = useState<number | null>(initial.yearsExperience);
+    const [resumeUrl, setResumeUrl] = useState<string | null>(initial.resumeUrl);
+    const [resumeParseStatus, setResumeParseStatus] = useState<string | null>(initial.resumeParseStatus);
+    // After AI autofill applies, refetch the profile so the manual fields
+    // below show the parsed values — and the user can save without
+    // re-typing what the resume already gave us.
+    const refetchProfile = async () => {
+        try {
+            const res = await fetch('/api/auth/profile', { credentials: 'include' });
+            if (!res.ok) return;
+            const p = await res.json();
+            if (typeof p.headline === 'string') setHeadline(p.headline);
+            if (typeof p.bio === 'string') setBio(p.bio);
+            if (typeof p.yearsExperience === 'number') setYearsExperience(p.yearsExperience);
+            if (typeof p.specialties === 'string') {
+                setSelectedSpecialties(new Set(p.specialties.split(',').map((s: string) => s.trim()).filter(Boolean)));
+            }
+            if (typeof p.resumeParseStatus === 'string') setResumeParseStatus(p.resumeParseStatus);
+        } catch {
+            // Non-fatal — user can still type fields manually.
+        }
+    };
     const [selectedSpecialties, setSelectedSpecialties] = useState<Set<string>>(
         new Set(initial.specialties.split(',').map((s) => s.trim()).filter(Boolean))
     );
@@ -100,9 +124,58 @@ export default function OnboardingProfessionalForm({ initial }: { initial: Initi
                         Make yourself findable to employers
                     </h1>
                     <p style={{ fontSize: '14px', color: '#6B7F8A', margin: '0 0 24px', lineHeight: 1.5 }}>
-                        Employers search the talent pool by job description. Add a few details below so we
-                        can match you to the roles that fit. You can fill in the rest later.
+                        Upload a resume and we&apos;ll fill out everything below for you — or type the
+                        details in by hand. Either way, takes about 30 seconds.
                     </p>
+
+                    {/* ─── Fast path: resume upload + AI autofill ───
+                        Drops the user into the existing ResumeUpload flow
+                        which uploads → preview-parses → opens the
+                        ResumeAutofillReview modal. After they apply, we
+                        refetch the profile so the manual fields below
+                        populate with the parsed values. The embedding
+                        refresh fires server-side from /api/resume/parse,
+                        so the candidate becomes searchable in employer AI
+                        Match without any further clicks here. */}
+                    <div style={{
+                        marginBottom: '20px',
+                        padding: '16px',
+                        borderRadius: '14px',
+                        background: 'linear-gradient(145deg, rgba(139,92,246,0.06), rgba(124,58,237,0.04))',
+                        border: '1px solid rgba(139,92,246,0.18)',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                            <div style={{
+                                width: '24px', height: '24px', borderRadius: '8px',
+                                background: 'linear-gradient(145deg, #8B5CF6, #7C3AED)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                            }}>
+                                <FileText size={13} />
+                            </div>
+                            <h2 style={{
+                                fontSize: '15px', fontWeight: 700, color: '#5B21B6', margin: 0,
+                                fontFamily: 'var(--font-lora), Georgia, serif',
+                            }}>
+                                Fastest: upload your resume, AI fills the rest
+                            </h2>
+                        </div>
+                        <ResumeUpload
+                            currentResumeUrl={resumeUrl}
+                            resumeParseStatus={resumeParseStatus}
+                            onUploadComplete={(url) => setResumeUrl(url)}
+                            onAutofillApplied={() => { void refetchProfile(); }}
+                        />
+                    </div>
+
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: '12px',
+                        margin: '8px 0 20px', color: '#8A9BA6', fontSize: '12px',
+                        fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em',
+                    }}>
+                        <span style={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.08)' }} />
+                        or fill in by hand
+                        <span style={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.08)' }} />
+                    </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         <div>

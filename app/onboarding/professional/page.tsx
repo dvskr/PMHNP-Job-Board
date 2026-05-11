@@ -50,6 +50,8 @@ export default async function OnboardingProfessionalPage() {
             specialties: true,
             skills: true,
             bio: true,
+            resumeUrl: true,
+            resumeParseStatus: true,
         },
     });
 
@@ -69,6 +71,8 @@ export default async function OnboardingProfessionalPage() {
                 bio: profile?.bio ?? '',
                 specialties: profile?.specialties ?? '',
                 yearsExperience: profile?.yearsExperience ?? null,
+                resumeUrl: profile?.resumeUrl ?? null,
+                resumeParseStatus: profile?.resumeParseStatus ?? null,
             }}
         />
     );

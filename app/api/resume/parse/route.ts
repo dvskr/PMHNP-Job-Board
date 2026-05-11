@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { parseResume, ParsedResume } from '@/lib/resume-parser';
 import { rateLimit } from '@/lib/rate-limit';
 import { downloadResumeBytes, extractRequestContext } from '@/lib/resume-storage';
+import { inngest } from '@/lib/inngest/client';
 
 /**
  * POST /api/resume/parse
@@ -221,6 +222,19 @@ export async function POST(request: NextRequest) {
         resumeParsedAt: new Date(),
         resumeParseStatus: 'completed',
       },
+    });
+
+    // Refresh the candidate embedding so the now-populated profile becomes
+    // searchable in employer AI Match. autoFillProfile may have updated
+    // headline/bio/specialties/yearsExperience/certifications/licenseStates/
+    // skills — all embedder inputs. Fire-and-forget; the manual backfill
+    // covers us if the queue is down. Inngest's per-supabaseId 30s throttle
+    // coalesces with any concurrent dispatches from /api/auth/profile.
+    inngest.send({
+      name: 'embedding.refresh.candidate',
+      data: { supabaseId: user.id },
+    }).catch((err) => {
+      logger.warn('inngest.send embedding.refresh.candidate failed (resume parse)', undefined, err);
     });
 
     logger.info('Resume parsed successfully', {
