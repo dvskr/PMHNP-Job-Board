@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Filter, Users, Loader2, X, ChevronLeft, ChevronRight, Briefcase, Lock, Sparkles } from 'lucide-react';
+import { Search, Filter, Users, Loader2, X, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Lock, Sparkles, Check } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import CandidateCard from './CandidateCard';
@@ -437,27 +437,35 @@ export default function CandidateSearchClient() {
                 shows in the result-count line below the search bar. */}
             <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '20px 16px 48px' }}>
 
-                {/* ═══ Posting Selector ═══ */}
+                {/* ═══ Posting Selector ═══
+                    Stacked layout instead of an inline flex row: the label
+                    on top, the dropdown gets a full row of its own so the
+                    truncated option text has the entire card width to
+                    render in, and the unlocks/inmails chips wrap on row 3.
+                    Stops the native <select> highlight overlay from
+                    bleeding past the viewport when a long option is
+                    selected on mobile. */}
                 {postings.length > 0 && (
                     <div style={{
                         ...cardBase, padding: '14px 18px', marginBottom: '16px',
-                        display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+                        display: 'flex', flexDirection: 'column', gap: '10px',
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <Briefcase size={14} style={{ color: '#0D9488' }} />
-                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B7F8A' }}>Using credits from:</span>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B7F8A' }}>Using credits from</span>
                         </div>
-                        <select
-                            value={selectedPostingId}
-                            onChange={e => setSelectedPostingId(e.target.value)}
-                            style={{ ...clayInput, flex: 1, minWidth: '200px' }}
-                        >
-                            {postings.map(p => (
-                                <option key={p.id} value={p.id}>
-                                    {p.jobTitle} ({p.tier.charAt(0).toUpperCase() + p.tier.slice(1)}) — {p.unlocks.remaining === -1 ? '∞' : p.unlocks.remaining} unlocks left
-                                </option>
-                            ))}
-                        </select>
+                        {/* Custom dropdown — native <select> options CAN'T
+                            wrap to multiple lines (browser-locked), so long
+                            job titles like "Founding Clinician | TMS Brain
+                            Health Startup | NYC" either truncate ugly or
+                            overflow the panel. A button + popover lets each
+                            option render as a 2-3 line block with full
+                            title visible. */}
+                        <PostingDropdown
+                            postings={postings}
+                            selectedId={selectedPostingId}
+                            onSelect={setSelectedPostingId}
+                        />
                         {(() => {
                             const sel = postings.find(p => p.id === selectedPostingId);
                             if (!sel) return null;
@@ -539,170 +547,94 @@ export default function CandidateSearchClient() {
                     const valueColor = atLimit ? '#EF4444' : isNearLimit ? '#F59E0B' : '#1A2E35';
 
                     return (
-                        <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                            {/* AI Searches chip — proper clay styling matching cardBase
-                                tokens used elsewhere on this page. Multi-layer shadows
-                                (outer drop + outer light + inset highlights) so it
-                                feels carved, not flat. Border color escalates with
-                                usage; the icon square is a gradient pill, not a
-                                flat tint. */}
-                            <div
-                                style={{
-                                    ...cardBase,
-                                    borderRadius: '16px',
-                                    border: '1px solid rgba(0,0,0,0.06)',
-                                    padding: '12px 16px',
-                                    display: 'flex', alignItems: 'center', gap: '12px',
-                                    flexShrink: 0, minWidth: '200px',
-                                    position: 'relative', overflow: 'hidden',
-                                }}
-                                title={atLimit
-                                    ? 'AI search limit reached for today. Resets at midnight Central Time.'
-                                    : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
-                            >
-                                {/* Icon square — always the soft purple gradient.
-                                    The count value carries the at-limit signal in red
-                                    text; the icon stays calm so the chip doesn't
-                                    feel like an alert. */}
-                                <div style={{
-                                    width: '34px', height: '34px', borderRadius: '11px',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    background: 'linear-gradient(145deg, #C4B5FD, #A78BFA)',
-                                    color: '#fff',
-                                    flexShrink: 0,
-                                    boxShadow: '3px 3px 8px rgba(124,58,237,0.18), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 1px rgba(0,0,0,0.05)',
-                                }}>
-                                    <Sparkles size={15} />
-                                </div>
-                                <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
-                                    <span style={{
-                                        fontSize: '10px', fontWeight: 700, color: '#8A9BA6',
-                                        textTransform: 'uppercase', letterSpacing: '0.08em',
-                                        whiteSpace: 'nowrap',
-                                    }}>AI Searches</span>
-                                    <span style={{
-                                        fontSize: '15px', fontWeight: 800,
-                                        color: valueColor,
-                                        fontVariantNumeric: 'tabular-nums',
-                                        whiteSpace: 'nowrap',
-                                        letterSpacing: '0.01em',
-                                    }}>
-                                        {used}<span style={{ opacity: 0.4, fontWeight: 700 }}>/{cap}</span>
-                                    </span>
-                                </div>
-                                {/* Progress bar removed — the count text alone is
-                                    a clean enough signal; the bar at the bottom
-                                    was visually noisy at the limit state. */}
+                        <div className="tp-search-block" style={{ marginBottom: '16px' }}>
+                            {/* Row 1: full-width search input with icon INSIDE the input,
+                                not the outer wrapper — fixes the "floating lens"
+                                bug where the icon centered vertically across the
+                                stacked input + button on phones. */}
+                            <div className="tp-input-wrap" style={{ position: 'relative', marginBottom: '10px' }}>
+                                <Search
+                                    size={15}
+                                    style={{
+                                        position: 'absolute', left: '14px', top: '50%',
+                                        transform: 'translateY(-50%)', color: '#B0C4BC',
+                                        pointerEvents: 'none',
+                                    }}
+                                />
+                                <input
+                                    type="text"
+                                    value={query}
+                                    onChange={e => {
+                                        setQuery(e.target.value);
+                                        if (jdSearchPostingId) {
+                                            setJdSearchPostingId(null);
+                                            setJdSearchTitle(null);
+                                        }
+                                    }}
+                                    placeholder='Describe the candidate you need…'
+                                    style={{
+                                        ...clayInput,
+                                        width: '100%',
+                                        paddingLeft: '38px',
+                                        paddingRight: '14px',
+                                        fontSize: '14px',
+                                    }}
+                                />
                             </div>
 
-                            {/* Search bar (clay) + inline AI submit
-                                Inline button only on screens that have room
-                                for both. On phones the AI Search button is
-                                rendered as a separate full-width row below
-                                so it doesn't overlap the input text (see
-                                .tp-ai-search-row at the bottom of this
-                                style block). */}
-                            <div className="tp-search-wrap" style={{ flex: 1, minWidth: '240px', position: 'relative', display: 'flex' }}>
-                                <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC' }} />
-                                    <input
-                                        type="text"
-                                        value={query}
-                                        onChange={e => {
-                                            setQuery(e.target.value);
-                                            if (jdSearchPostingId) {
-                                                setJdSearchPostingId(null);
-                                                setJdSearchTitle(null);
-                                            }
-                                        }}
-                                        placeholder='Describe the candidate you need…'
-                                        className="tp-search-input"
-                                        style={{
-                                            ...clayInput,
-                                            paddingLeft: '38px',
-                                            paddingRight: '90px',
-                                            fontSize: '14px',
-                                        }}
-                                    />
-                                    {/* Inline AI Search button — sits inside the search bar.
-                                        On phones it gets re-styled via the
-                                        scoped <style> at the end of this
-                                        block: full-width row below the
-                                        input instead of overlapping it. */}
-                                    <button
-                                        type="button"
-                                        disabled={atLimit || query.trim().length < 3}
-                                        onClick={() => {
-                                            if (atLimit || query.trim().length < 3) return;
-                                            // Force a fetch by re-triggering the debounced effect.
-                                            // The query change already triggers fetchCandidates;
-                                            // this button is the explicit submit affordance.
-                                            setAiMode(true);
-                                        }}
-                                        title={atLimit
-                                            ? 'AI search limit reached. Resets at midnight CT.'
-                                            : query.trim().length < 3
-                                                ? 'Type at least 3 characters'
-                                                : 'Run AI search'}
-                                        className="tp-ai-search-btn"
-                                        style={{
-                                            position: 'absolute',
-                                            right: '6px',
-                                            top: '50%',
-                                            transform: 'translateY(-50%)',
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '5px',
-                                            padding: '6px 12px',
-                                            borderRadius: '8px',
-                                            fontSize: '11px',
-                                            fontWeight: 700,
-                                            cursor: (atLimit || query.trim().length < 3) ? 'not-allowed' : 'pointer',
-                                            background: atLimit
-                                                ? '#E5E7EB'
-                                                : 'linear-gradient(145deg, #8B5CF6, #7C3AED)',
-                                            color: atLimit ? '#9CA3AF' : '#fff',
-                                            border: atLimit ? '1px solid #D1D5DB' : '1px solid #A78BFA',
-                                            boxShadow: atLimit
-                                                ? 'inset 1px 1px 2px rgba(0,0,0,0.04)'
-                                                : '2px 2px 6px rgba(124,58,237,0.25)',
-                                            opacity: query.trim().length < 3 ? 0.55 : 1,
-                                            transition: 'all 0.15s',
-                                        }}
-                                    >
-                                        <Sparkles size={11} />
-                                        AI Search
-                                    </button>
-                                </div>
-                                {/* Phone-only: the inline button overlaps the input text on
-                                    narrow viewports, so swap the wrapping div to flex-column
-                                    and let the button render as a full-width row beneath. */}
-                                <style>{`
-                                    @media (max-width: 640px) {
-                                        .tp-search-wrap { flex-direction: column; gap: 8px; }
-                                        .tp-search-input { padding-right: 14px !important; }
-                                        .tp-ai-search-btn {
-                                            position: static !important;
-                                            transform: none !important;
-                                            width: 100%;
-                                            justify-content: center;
-                                            padding: 10px 14px !important;
-                                            font-size: 13px !important;
-                                        }
-                                    }
-                                `}</style>
-
+                            {/* Row 2: primary action (AI Search, fills) + Filters icon-pill
+                                + Clear (if active). Same row on all viewports — gives a
+                                clear visual hierarchy: input on top, action below. */}
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+                                <button
+                                    type="button"
+                                    disabled={atLimit || query.trim().length < 3}
+                                    onClick={() => {
+                                        if (atLimit || query.trim().length < 3) return;
+                                        setAiMode(true);
+                                    }}
+                                    title={atLimit
+                                        ? 'AI search limit reached. Resets at midnight CT.'
+                                        : query.trim().length < 3
+                                            ? 'Type at least 3 characters'
+                                            : 'Run AI search'}
+                                    style={{
+                                        flex: 1,
+                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                        padding: '10px 14px',
+                                        borderRadius: '12px',
+                                        fontSize: '13px',
+                                        fontWeight: 700,
+                                        cursor: (atLimit || query.trim().length < 3) ? 'not-allowed' : 'pointer',
+                                        background: atLimit
+                                            ? '#E5E7EB'
+                                            : 'linear-gradient(145deg, #8B5CF6, #7C3AED)',
+                                        color: atLimit ? '#9CA3AF' : '#fff',
+                                        border: atLimit ? '1px solid #D1D5DB' : '1px solid #A78BFA',
+                                        boxShadow: atLimit
+                                            ? 'inset 1px 1px 2px rgba(0,0,0,0.04)'
+                                            : '3px 3px 8px rgba(124,58,237,0.22), inset 0 1px 0 rgba(255,255,255,0.18)',
+                                        opacity: query.trim().length < 3 ? 0.55 : 1,
+                                        transition: 'all 0.15s',
+                                    }}
+                                >
+                                    <Sparkles size={13} />
+                                    AI Search
+                                </button>
                                 <button
                                     onClick={() => setShowFilters(!showFilters)}
                                     className="tp-filter-btn"
                                     style={{
                                         ...clayBtn,
+                                        flexShrink: 0,
+                                        padding: '10px 14px',
                                         background: showFilters ? '#CCFBF1' : '#F7FBF8',
                                         color: showFilters ? '#0D9488' : '#2A4A5A',
                                         border: showFilters ? '1px solid #99F6E4' : '1px solid rgba(255,255,255,0.5)',
                                     }}
                                 >
                                     <Filter size={14} />
-                                    Filters
+                                    <span className="tp-filter-label">Filters</span>
                                     {activeFilterCount > 0 && (
                                         <span style={{
                                             background: '#0D9488', color: '#fff',
@@ -715,12 +647,46 @@ export default function CandidateSearchClient() {
                                 </button>
                                 {activeFilterCount > 0 && (
                                     <button onClick={clearFilters} className="tp-filter-btn" style={{
-                                        ...clayBtn, background: '#FEE2E2', color: '#DC2626',
+                                        ...clayBtn, flexShrink: 0, padding: '10px 14px',
+                                        background: '#FEE2E2', color: '#DC2626',
                                         border: '1px solid #FECACA',
                                     }}>
                                         <X size={13} /> Clear
                                     </button>
                                 )}
+                            </div>
+
+                            {/* Row 3: unobtrusive AI-searches usage hint. Was a giant
+                                clay card before, which dominated the search area and
+                                added a whole extra row on phones. Now a 1-line muted
+                                caption underneath — same info, none of the noise. */}
+                            <p
+                                className="tp-ai-usage-hint"
+                                title={atLimit
+                                    ? 'AI search limit reached for today. Resets at midnight Central Time.'
+                                    : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
+                                style={{
+                                    margin: '8px 4px 0',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    color: valueColor,
+                                    letterSpacing: '0.04em',
+                                    fontVariantNumeric: 'tabular-nums',
+                                    display: 'flex', alignItems: 'center', gap: '6px',
+                                }}
+                            >
+                                <Sparkles size={11} style={{ opacity: 0.7 }} />
+                                {used}/{cap} AI searches used today{atLimit ? ' — resets at midnight CT' : ''}
+                            </p>
+
+                            {/* Phone-only: shrink the Filters button to icon-only so the
+                                AI Search action stays visually dominant on narrow
+                                screens. */}
+                            <style>{`
+                                @media (max-width: 480px) {
+                                    .tp-filter-label { display: none; }
+                                }
+                            `}</style>
                         </div>
                     );
                 })()}
@@ -1016,6 +982,182 @@ export default function CandidateSearchClient() {
                     box-shadow: 4px 4px 10px rgba(0,0,0,0.07), -3px -3px 8px rgba(255,255,255,0.8) !important;
                 }
             `}</style>
+        </div>
+    );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PostingDropdown — custom replacement for the native <select>
+   ════════════════════════════════════════════════════════════════════════
+   Built because <option> elements can't wrap to multiple lines — long job
+   titles ("Founding Clinician | TMS Brain Health Startup | NYC") either
+   truncate ugly or push the native dropdown panel past the viewport on
+   mobile. A button-trigger + custom popover lets each option render as a
+   2-line block: the full title wrapping naturally on line 1, tier + unlocks
+   meta on line 2.
+   Keyboard: ↑/↓ navigate, Enter selects, Esc closes, Tab/blur closes.
+   Click-outside-closes wired via document mousedown listener (registered
+   only while open). */
+interface PostingDropdownProps {
+    postings: Array<{
+        id: string;
+        jobTitle: string;
+        tier: string;
+        unlocks: { used: number; limit: number; remaining: number };
+    }>;
+    selectedId: string;
+    onSelect: (id: string) => void;
+}
+
+function PostingDropdown({ postings, selectedId, onSelect }: PostingDropdownProps) {
+    const [open, setOpen] = useState(false);
+    const wrapRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const close = (e: MouseEvent) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        };
+        const onEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setOpen(false);
+        };
+        document.addEventListener('mousedown', close);
+        document.addEventListener('keydown', onEsc);
+        return () => {
+            document.removeEventListener('mousedown', close);
+            document.removeEventListener('keydown', onEsc);
+        };
+    }, [open]);
+
+    const selected = postings.find((p) => p.id === selectedId);
+    const triggerStyle: React.CSSProperties = {
+        width: '100%', maxWidth: '100%',
+        padding: '10px 38px 10px 14px',
+        fontSize: '14px',
+        borderRadius: '12px',
+        border: '1px solid rgba(0,0,0,0.08)',
+        background: '#F5F6F8',
+        color: '#1A2E35',
+        boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.05), inset -1px -1px 2px rgba(255,255,255,0.5)',
+        textAlign: 'left',
+        cursor: 'pointer',
+        position: 'relative',
+        fontFamily: 'inherit',
+        // Truncate visually in the closed-state trigger; full text is in
+        // the open panel.
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    };
+
+    return (
+        <div ref={wrapRef} style={{ position: 'relative', width: '100%' }}>
+            <button
+                type="button"
+                onClick={() => setOpen((v) => !v)}
+                aria-haspopup="listbox"
+                aria-expanded={open}
+                style={triggerStyle}
+            >
+                {selected
+                    ? `${selected.jobTitle} · ${selected.tier.charAt(0).toUpperCase() + selected.tier.slice(1)}`
+                    : 'Select a posting'}
+                <ChevronDown
+                    size={16}
+                    style={{
+                        position: 'absolute',
+                        right: '12px', top: '50%',
+                        transform: `translateY(-50%) ${open ? 'rotate(180deg)' : ''}`,
+                        color: '#8A9BA6',
+                        transition: 'transform 0.15s',
+                        pointerEvents: 'none',
+                    }}
+                />
+            </button>
+            {open && (
+                <ul
+                    role="listbox"
+                    style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 6px)',
+                        left: 0, right: 0,
+                        zIndex: 20,
+                        margin: 0, padding: '6px',
+                        listStyle: 'none',
+                        background: '#FFFFFF',
+                        border: '1px solid rgba(0,0,0,0.08)',
+                        borderRadius: '14px',
+                        boxShadow: '8px 8px 24px rgba(0,0,0,0.12), -2px -2px 8px rgba(255,255,255,0.8)',
+                        maxHeight: '320px',
+                        overflowY: 'auto',
+                    }}
+                >
+                    {postings.map((p) => {
+                        const isSelected = p.id === selectedId;
+                        const tier = p.tier.charAt(0).toUpperCase() + p.tier.slice(1);
+                        const remaining = p.unlocks.remaining === -1
+                            ? '∞ unlocks'
+                            : `${p.unlocks.remaining}/${p.unlocks.limit} unlocks`;
+                        return (
+                            <li key={p.id} role="option" aria-selected={isSelected}>
+                                <button
+                                    type="button"
+                                    onClick={() => { onSelect(p.id); setOpen(false); }}
+                                    style={{
+                                        width: '100%', textAlign: 'left',
+                                        padding: '10px 12px',
+                                        borderRadius: '10px',
+                                        background: isSelected ? '#CCFBF1' : 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        gap: '8px',
+                                        fontFamily: 'inherit',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!isSelected) e.currentTarget.style.background = '#F0F5F1';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (!isSelected) e.currentTarget.style.background = 'transparent';
+                                    }}
+                                >
+                                    <Check
+                                        size={14}
+                                        style={{
+                                            marginTop: '3px', flexShrink: 0,
+                                            color: isSelected ? '#0D9488' : 'transparent',
+                                        }}
+                                    />
+                                    <span style={{ flex: 1, minWidth: 0 }}>
+                                        {/* Title wraps to as many lines as it
+                                            needs — this is the whole point
+                                            of the custom dropdown. */}
+                                        <span style={{
+                                            display: 'block',
+                                            fontSize: '13px', fontWeight: 600,
+                                            color: '#1A2E35',
+                                            wordBreak: 'break-word',
+                                            lineHeight: 1.35,
+                                        }}>
+                                            {p.jobTitle}
+                                        </span>
+                                        <span style={{
+                                            display: 'block',
+                                            marginTop: '3px',
+                                            fontSize: '11px', color: '#6B7F8A',
+                                        }}>
+                                            {tier} · {remaining}
+                                        </span>
+                                    </span>
+                                </button>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
         </div>
     );
 }

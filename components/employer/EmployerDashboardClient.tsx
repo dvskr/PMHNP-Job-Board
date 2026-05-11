@@ -317,7 +317,15 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     ];
 
     return (
-        <div style={{ background: '#F5F0EB' }}>
+        <div style={{ background: '#F5F0EB', overflowX: 'hidden' }}>
+            {/* overflowX: hidden is a defensive guard against any child grid /
+                flex / image accidentally forcing a horizontal scroll on
+                phones — it doesn't fix the underlying overflow source, but
+                it does prevent the user-visible symptom (page wider than
+                viewport → "right side cut off" / title clipping). If a
+                child element is overflowing we want to know — but on a
+                customer-facing dashboard, a clean phone view trumps
+                surfacing layout bugs to end users. */}
             {/* ═══ Hero Header ═══ */}
             <div style={{
                 padding: '16px 16px 20px',
@@ -388,7 +396,14 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
             <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '20px 16px 60px' }}>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px', alignItems: 'start' }} className="emp-dashboard-grid">
+            {/* Grid template moved into the .emp-dashboard-grid CSS class so
+                the @media (max-width: 900px) rule below can actually
+                override it on phones. Keeping it as an inline style meant
+                the inline rule was winning even with !important inside the
+                <style> JSX block — observed live as a 578px-wide grid on
+                a 414px iPhone XR viewport, with the right sidebar refusing
+                to collapse. */}
+            <div className="emp-dashboard-grid" style={{ display: 'grid', gap: '24px', alignItems: 'start' }}>
             <div>
 
                 {/* ═══ Summary Stats ═══ */}
@@ -480,18 +495,34 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 {/* ═══ Usage Widget ═══ */}
                 {!isTokenAccess && <UsageWidget />}
 
-                {/* ═══ Tab Navigation ═══ */}
+                {/* ═══ Tab Navigation ═══
+                    flex: 1 was forcing all 5 tabs to share the row equally,
+                    which on a 414px viewport meant each label collapsed to
+                    icon-only or got clipped; overflowX: auto did nothing
+                    because the children already "fit" (shrunk). Switched to
+                    flex: 0 0 auto + a class that adds touch-action + a
+                    hidden scrollbar so mobile users can swipe through all
+                    five tabs (Messages/Saved live off-screen on phones).
+                    On md+ the .emp-tab-strip rule restores flex: 1 so the
+                    desktop look (tabs filling the row) is unchanged. */}
                 {!isTokenAccess && (
-                    <div style={{
-                        ...cardRecessed, display: 'flex', gap: '4px', padding: '4px',
-                        marginBottom: '20px', overflowX: 'auto',
-                    }}>
+                    <div
+                        className="emp-tab-strip"
+                        style={{
+                            ...cardRecessed, display: 'flex', gap: '4px', padding: '4px',
+                            marginBottom: '20px', overflowX: 'auto',
+                            touchAction: 'pan-x',
+                            WebkitOverflowScrolling: 'touch',
+                            scrollbarWidth: 'none',
+                        }}
+                    >
                         {tabItems.map(tab => (
                             <button
                                 key={tab.key}
                                 onClick={() => setActiveTab(tab.key)}
+                                className="emp-tab-btn"
                                 style={{
-                                    flex: 1, padding: '10px 14px', borderRadius: '12px',
+                                    flex: '0 0 auto', padding: '10px 14px', borderRadius: '12px',
                                     fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                                     whiteSpace: 'nowrap', transition: 'all 0.2s',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
@@ -647,12 +678,19 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                     className="emp-job-title"
                                                     style={{
                                                         display: 'block',
+                                                        maxWidth: '100%',
                                                         fontSize: '16px', fontWeight: 700,
                                                         fontFamily: 'var(--font-lora), Georgia, serif',
                                                         color: '#1A2E35', textDecoration: 'none',
                                                         marginBottom: '8px',
                                                         wordBreak: 'break-word',
                                                         overflowWrap: 'anywhere',
+                                                        // hyphens helps the wrap step pick natural break
+                                                        // points inside the very long "TMS Brain Health
+                                                        // Startup" title strings the employers tend to
+                                                        // post — without this, wordBreak alone can
+                                                        // produce ugly mid-word splits.
+                                                        hyphens: 'auto',
                                                     }}
                                                 >
                                                     {job.title}
@@ -1265,20 +1303,60 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                     transform: translateY(-1px);
                     box-shadow: 4px 4px 10px rgba(0,0,0,0.07), -3px -3px 8px rgba(255,255,255,0.8) !important;
                 }
+                .emp-job-title {
+                    display: block !important;
+                    max-width: 100% !important;
+                    word-break: break-word !important;
+                    overflow-wrap: anywhere !important;
+                    hyphens: auto;
+                }
                 .emp-job-title:hover {
                     color: #0D9488 !important;
+                }
+                /* The default min-width: auto on flex/grid children means
+                   the card's intrinsic minimum width equals the longest
+                   unbreakable run of content inside it — which for
+                   .emp-cta-card was the full subtitle string ("Search
+                   qualified PMHNP candidates"), pinning these cards to
+                   ~576px and forcing the entire dashboard grid wider than
+                   the iPhone XR viewport. min-width: 0 breaks that trap so
+                   the cards actually shrink with their parent. Diagnosed
+                   2026-05-11 via scripts/diag-dashboard-overflow.ts. */
+                .emp-job-card,
+                .emp-cta-card {
+                    min-width: 0 !important;
+                    max-width: 100% !important;
+                    box-sizing: border-box;
+                    overflow: hidden;
+                }
+                /* Same fix at the grid-track level: minmax(auto, 1fr) is
+                   the default which lets the track expand to its content's
+                   min-content. minmax(0, 1fr) forces the track to truly
+                   shrink to its container width. */
+                .emp-dashboard-grid {
+                    grid-template-columns: minmax(0, 1fr) 300px;
+                }
+                @media (max-width: 900px) {
+                    .emp-dashboard-grid {
+                        grid-template-columns: minmax(0, 1fr);
+                    }
+                    .emp-right-panel {
+                        display: none !important;
+                    }
                 }
                 .emp-tier-btn:hover {
                     transform: translateY(-1px);
                     box-shadow: 6px 6px 14px rgba(0,0,0,0.1), -3px -3px 8px rgba(255,255,255,0.9) !important;
                 }
-                @media (max-width: 900px) {
-                    .emp-dashboard-grid {
-                        grid-template-columns: 1fr !important;
-                    }
-                    .emp-right-panel {
-                        display: none !important;
-                    }
+                /* (Older 1fr 300px / 1fr media query removed — replaced by
+                   the minmax(0, 1fr) version above which actually shrinks.) */
+                /* Tab strip — hide the WebKit scrollbar (the cross-browser
+                   scrollbar-width: none is set inline). On md+ restore the
+                   tabs filling the row equally; on phones each tab is its
+                   natural width and the strip scrolls horizontally. */
+                .emp-tab-strip::-webkit-scrollbar { display: none; }
+                @media (min-width: 768px) {
+                    .emp-tab-btn { flex: 1 !important; }
                 }
             `}</style>
         </div>
