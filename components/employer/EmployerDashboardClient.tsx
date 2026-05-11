@@ -417,9 +417,13 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                     ))}
                 </div>
 
-                {/* ═══ Quick Access Row ═══ */}
+                {/* ═══ Quick Access Row ═══
+                    Stack the two CTA cards on phones — at 1fr 1fr the icon +
+                    two-line copy + chevron clipped both cards (Talent Pool
+                    truncated to "Search qualified PMHNP", Messages to
+                    "Messa..."). Single column on ≤640px, 2-col on tablet+. */}
                 {!isTokenAccess && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                    <div className="emp-quick-access" style={{ display: 'grid', gap: '12px', marginBottom: '20px' }}>
                         {/* Talent Pool */}
                         <Link href="/employer/candidates" className="emp-cta-card" style={{
                             ...cardBase, padding: '16px 20px', textDecoration: 'none',
@@ -463,6 +467,13 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                             </div>
                             <span style={{ fontSize: '13px', fontWeight: 600, color: '#6366F1' }}>Open →</span>
                         </Link>
+                        <style>{`
+                            @media (min-width: 641px) {
+                                .emp-quick-access {
+                                    grid-template-columns: 1fr 1fr !important;
+                                }
+                            }
+                        `}</style>
                     </div>
                 )}
 

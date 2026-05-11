@@ -2,33 +2,37 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Briefcase, Bookmark, Bell, Mail } from 'lucide-react';
+import { Home, Briefcase, Bookmark, Mail, LayoutDashboard, Users, FileText } from 'lucide-react';
 
-const navItems = [
-  {
-    label: 'Home',
-    href: '/',
-    icon: Home,
-  },
-  {
-    label: 'Jobs',
-    href: '/jobs',
-    icon: Briefcase,
-  },
-  {
-    label: 'Saved',
-    href: '/saved',
-    icon: Bookmark,
-  },
-  {
-    label: 'Messages',
-    href: '/messages',
-    icon: Mail,
-  },
+// Job-seeker / marketing default — Home + Jobs + Saved + Messages
+const seekerNavItems = [
+  { label: 'Home', href: '/', icon: Home },
+  { label: 'Jobs', href: '/jobs', icon: Briefcase },
+  { label: 'Saved', href: '/saved', icon: Bookmark },
+  { label: 'Messages', href: '/messages', icon: Mail },
 ];
+
+// Employer surfaces — Dashboard + Talent + Applicants + Messages. The prior
+// nav (Home/Jobs/Saved) didn't reflect what employers actually do, and
+// "Saved" routed to the seeker's saved-jobs page.
+const employerNavItems = [
+  { label: 'Dashboard', href: '/employer/dashboard', icon: LayoutDashboard },
+  { label: 'Talent', href: '/employer/candidates', icon: Users },
+  { label: 'Applicants', href: '/employer/applicants', icon: FileText },
+  { label: 'Messages', href: '/messages', icon: Mail },
+];
+
+// Pathname prefixes that flag the page as an employer-shell surface so we
+// swap to the employer nav. Same set as MobileHideOnAppRoutes uses.
+const EMPLOYER_PREFIXES = ['/employer', '/admin'];
 
 export default function BottomNav() {
   const pathname = usePathname();
+
+  const isEmployerShell = EMPLOYER_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+  const navItems = isEmployerShell ? employerNavItems : seekerNavItems;
 
   const isActive = (href: string) => {
     if (href === '/') {
