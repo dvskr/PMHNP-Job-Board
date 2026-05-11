@@ -146,7 +146,10 @@ const AI_CRAWLERS = [
   'GPTBot',            // OpenAI training
   'ChatGPT-User',      // ChatGPT live browsing
   'PerplexityBot',     // Perplexity index
-  'ClaudeBot',         // Anthropic crawler (current)
+  // ClaudeBot moved to a dedicated rule block below with explicit Allow: /
+  // — Anthropic's fetcher was reading this group's bulk Disallow list and
+  // treating the entire site as off-limits (no explicit Allow: / line to
+  // disambiguate). 'anthropic-ai' (legacy UA) and 'Claude-Web' stay here.
   'anthropic-ai',      // Anthropic crawler (legacy UA)
   'Claude-Web',        // Claude.ai web fetcher
   'Google-Extended',   // Google AI/Gemini training
@@ -210,6 +213,36 @@ export default function robots(): MetadataRoute.Robots {
 
   return {
     rules: [
+      // ── ClaudeBot — dedicated rule with EXPLICIT `Allow: /` ─────────
+      // 2026-05-11: Anthropic's fetcher was reading the AI-bot group's
+      // bulk Disallow list and treating the entire site as disallowed,
+      // because there was no explicit `Allow: /` to disambiguate.
+      // RFC 9309 specifies longest-match-wins, but real-world parsers
+      // (including Anthropic's) often fall back to conservative
+      // interpretation when no positive Allow rule is present.
+      //
+      // Fix: dedicate a rule block to ClaudeBot with an explicit Allow,
+      // followed by a tight disallow list covering only the auth-private
+      // surfaces. Placed FIRST in the rules array so any parser scanning
+      // top-down sees it before the catch-all `*`.
+      {
+        userAgent: 'ClaudeBot',
+        allow: '/',
+        disallow: [
+          '/api/',
+          '/admin',
+          '/dashboard',
+          '/auth',
+          '/onboarding',
+          '/employer/dashboard',
+          '/employer/candidates',
+          '/employer/applicants',
+          '/employer/talent-search',
+          '/employer/settings',
+          '/settings',
+          '/my-applications',
+        ],
+      },
       // Catch-all rule (Googlebot, Bingbot, anyone unlisted). Implicit
       // "Allow: /" semantics — everything not matched by a Disallow is
       // crawlable. Carve-outs (/api/sitemaps, /api/og) win over the
