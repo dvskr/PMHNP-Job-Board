@@ -11,6 +11,7 @@ import CreateAlertForm from '@/components/CreateAlertForm';
 import JobsListSkeleton from '@/components/JobsListSkeleton';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import MobileFilterDrawer from '@/components/MobileFilterDrawer';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { Job } from '@/lib/types';
 import { FilterState, DEFAULT_FILTERS } from '@/types/filters';
 import { parseFiltersFromParams } from '@/lib/filters';
@@ -298,24 +299,38 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               already wraps the entire page in components/MainContent.tsx. Nested
               <main> is invalid HTML and confuses Google's main-content extractor. */}
           <section aria-label="Job results" style={{ flex: 1, minWidth: 0 }}>
-            {/* Page header — single compact line. Big H1 + descriptive
-                subtitle pushed the search bar and listings too far down
-                (the user has to scroll past the chrome before reaching
-                the actual product). One small line keeps the SEO topic
-                signal without burning vertical space above the fold. */}
-            <h1
-              className="font-lora"
-              style={{
-                fontSize: '15px',
-                fontWeight: 600,
-                color: '#6B7F8A',
-                margin: '0 0 12px',
-                letterSpacing: '0.02em',
-                textTransform: 'none',
-              }}
-            >
-              PMHNP &amp; Psychiatric Nurse Practitioner Jobs
-            </h1>
+            {/* Breadcrumb sits inside the main column (not above the flex)
+                so it doesn't visually overlap the FILTERS sidebar's column.
+                Same JSON-LD BreadcrumbList renders inline regardless of
+                where the component lives, so SEO is unchanged. */}
+            <div style={{ marginBottom: '12px' }}>
+              <Breadcrumbs items={[
+                { label: 'Home', href: '/' },
+                { label: 'Jobs' },
+              ]} />
+            </div>
+            {/* Page header — centered H1 + supporting line. Sits inside the
+                main column so the fixed sidebar can't overlap it. */}
+            <header style={{ marginBottom: '20px', textAlign: 'center' }}>
+              <h1
+                className="font-lora"
+                style={{
+                  fontSize: 'clamp(22px, 2.4vw, 30px)',
+                  fontWeight: 700,
+                  color: '#1A2E35',
+                  margin: '0 0 6px',
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.015em',
+                }}
+              >
+                PMHNP &amp; Psychiatric Nurse Practitioner Jobs
+              </h1>
+              <p style={{
+                fontSize: '13px', color: '#6B7F8A', margin: 0, fontWeight: 500,
+              }}>
+                Browse fresh PMHNP roles across the US — telehealth, on-site, hybrid, and locum.
+              </p>
+            </header>
 
             {/* Mobile Filter Button */}
             <div className="lg:hidden" style={{ marginBottom: '16px' }}>

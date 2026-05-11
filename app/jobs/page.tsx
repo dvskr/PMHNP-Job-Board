@@ -5,7 +5,6 @@ import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
 import { slugify } from '@/lib/utils';
 import JobsPageClient from './JobsPageClient';
 import { Job } from '@/lib/types';
-import Breadcrumbs from '@/components/Breadcrumbs';
 
 // Nav-only params do not constitute a user filter — paginated and sorted
 // views of the unfiltered list should still be crawled (page>=2 is noindexed
@@ -235,18 +234,12 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jobListSchema).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') }}
         />
-        {/* Breadcrumbs renders BOTH the visual nav AND the BreadcrumbList JSON-LD,
-            so consumers no longer need a separate BreadcrumbSchema component
-            (which only emitted JSON-LD; users got no visible trail). The
-            wrapper aligns the breadcrumb to the same 1360px content column
-            as JobsPageClient — without it the trail hugs the viewport edge
-            with zero left padding. */}
-        <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '20px 16px 0' }}>
-          <Breadcrumbs items={[
-            { label: 'Home', href: '/' },
-            { label: 'Jobs' },
-          ]} />
-        </div>
+        {/* Breadcrumbs render INSIDE JobsPageClient now — they live in the
+            main content column above the H1, so they don't visually sit
+            above the FILTERS sidebar (which read as "navigation crammed
+            over the filter panel"). The Breadcrumbs component still
+            emits the BreadcrumbList JSON-LD inline regardless of whether
+            it renders in a server or client component, so SEO is intact. */}
         <JobsPageClient
           initialJobs={jobs as unknown as Job[]}
           initialTotal={total}
@@ -261,12 +254,6 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
     // Fallback: render client with empty data
     return (
       <>
-        <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '20px 16px 0' }}>
-          <Breadcrumbs items={[
-            { label: 'Home', href: '/' },
-            { label: 'Jobs' },
-          ]} />
-        </div>
         <JobsPageClient
           initialJobs={[]}
           initialTotal={0}
