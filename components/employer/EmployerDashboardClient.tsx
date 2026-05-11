@@ -634,19 +634,31 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                         {/* Header: Title + Status */}
                                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '10px' }}>
                                             <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                    <Link href={getJobHref(job)} style={{
+                                                {/* Title on its own block row so long titles wrap
+                                                    cleanly instead of clipping mid-word. The
+                                                    previous flex-wrap row mixed title + badges,
+                                                    and flex items don't break their internal text
+                                                    when the item's box width exceeds the row —
+                                                    they just overflow. Splitting them gives the
+                                                    title freedom to wrap and lets badges still
+                                                    flex-wrap underneath. */}
+                                                <Link
+                                                    href={getJobHref(job)}
+                                                    className="emp-job-title"
+                                                    style={{
+                                                        display: 'block',
                                                         fontSize: '16px', fontWeight: 700,
                                                         fontFamily: 'var(--font-lora), Georgia, serif',
                                                         color: '#1A2E35', textDecoration: 'none',
-                                                        // Allow titles to wrap to multiple lines on
-                                                        // narrow screens instead of clipping mid-word.
-                                                        // Was inline-flex which forced single-line.
-                                                        display: 'inline', wordBreak: 'break-word',
-                                                    }} className="emp-job-title">
-                                                        {job.title}
-                                                        {job.isPublished && <ExternalLink size={14} style={{ color: '#B0C4BC', display: 'inline', verticalAlign: 'middle', marginLeft: '6px' }} />}
-                                                    </Link>
+                                                        marginBottom: '8px',
+                                                        wordBreak: 'break-word',
+                                                        overflowWrap: 'anywhere',
+                                                    }}
+                                                >
+                                                    {job.title}
+                                                    {job.isPublished && <ExternalLink size={14} style={{ color: '#B0C4BC', display: 'inline-block', verticalAlign: 'middle', marginLeft: '6px' }} />}
+                                                </Link>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                                     {getStatusBadge(job)}
                                                     {job.isFeatured && (
                                                         <span style={{ ...clayPill, background: '#CCFBF1', color: '#0D9488' }}>★ Featured</span>
