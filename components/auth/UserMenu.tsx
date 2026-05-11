@@ -151,7 +151,10 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
             // Cap at 280px on phones >= 320px wide; shrink with viewport on narrower devices.
             width: '280px',
             maxWidth: 'calc(100vw - 32px)',
-            backgroundColor: '#FAFCFA',
+            // Match the floating nav's page bg (#F5F0EB) so the dropdown
+            // reads as a contiguous extension of the nav, not a separate
+            // floating card sitting on the page.
+            backgroundColor: '#F5F0EB',
             border: '1px solid rgba(213, 232, 224, 0.6)',
             borderRadius: '18px',
             boxShadow: '8px 8px 24px rgba(0,0,0,0.12), -4px -4px 12px rgba(255,255,255,0.6)',
@@ -160,7 +163,10 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
           } : {
             position: 'absolute', right: 0, marginTop: '8px',
             width: '260px',
-            backgroundColor: '#FAFCFA',
+            // Match the floating nav's page bg (#F5F0EB) so the dropdown
+            // reads as a contiguous extension of the nav, not a separate
+            // floating card sitting on the page.
+            backgroundColor: '#F5F0EB',
             border: '1px solid rgba(213, 232, 224, 0.6)',
             borderRadius: '18px',
             boxShadow: '8px 8px 24px rgba(0,0,0,0.10), -4px -4px 12px rgba(255,255,255,0.6), inset 2px 2px 4px rgba(255,255,255,0.5)',
