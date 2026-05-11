@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
     ArrowLeft, MapPin, Briefcase, Award, Calendar, DollarSign,
     FileText, Mail, ExternalLink, Loader2, Shield, Clock, Linkedin, Lock, Plus,
@@ -83,6 +84,7 @@ const sectionLabel: React.CSSProperties = {
 type ErrorReason = 'no_posting' | 'posting_cap' | 'daily_cap' | 'not_found' | 'generic';
 
 export default function CandidateProfileClient({ candidateId }: { candidateId: string }) {
+    const router = useRouter();
     const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -91,6 +93,22 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
     const [showCompose, setShowCompose] = useState(false);
     const [postingJobId, setPostingJobId] = useState<string | undefined>(undefined);
     const [postingJobTitle, setPostingJobTitle] = useState<string | undefined>(undefined);
+
+    // Use browser-back so the user lands on the exact Talent Pool page they
+    // came from (?page=N is in the URL after 91c8188). The href stays at
+    // /employer/candidates as a fallback for right-click / no-JS / users
+    // who landed on this profile directly (bookmark, shared link) and have
+    // no in-app history to go back to.
+    const handleBackToTalentPool = (e: React.MouseEvent) => {
+        e.preventDefault();
+        // If they came from inside the app there's history; otherwise the
+        // href fallback kicks in via a push.
+        if (typeof window !== 'undefined' && window.history.length > 1) {
+            router.back();
+        } else {
+            router.push('/employer/candidates');
+        }
+    };
 
     useEffect(() => {
         (async () => {
@@ -189,7 +207,11 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                         </Link>
                     )}
                     <div>
-                        <Link href="/employer/candidates" style={{ color: '#0D9488', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>
+                        <Link
+                            href="/employer/candidates"
+                            onClick={handleBackToTalentPool}
+                            style={{ color: '#0D9488', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}
+                        >
                             ← Back to Talent Pool
                         </Link>
                     </div>
@@ -212,10 +234,15 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                 borderBottom: '1px solid #E5E7EB',
             }}>
                 <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                    <Link href="/employer/candidates" className="cp-back-link" style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '6px',
-                        fontSize: '13px', fontWeight: 600, color: '#8A9BA6', textDecoration: 'none',
-                    }}>
+                    <Link
+                        href="/employer/candidates"
+                        onClick={handleBackToTalentPool}
+                        className="cp-back-link"
+                        style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                            fontSize: '13px', fontWeight: 600, color: '#8A9BA6', textDecoration: 'none',
+                        }}
+                    >
                         <ArrowLeft size={15} /> Back to Talent Pool
                     </Link>
                 </div>
