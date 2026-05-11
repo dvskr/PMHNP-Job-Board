@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Filter, Users, Loader2, X, ChevronLeft, ChevronRight, Briefcase, Lock, Sparkles } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -359,7 +359,17 @@ export default function CandidateSearchClient() {
         }
     };
 
+    // Reset to page 1 when filters change — but NOT on first render.
+    // Without the ref guard this effect fires once on mount and clobbers
+    // the sessionStorage-restored page right after the lazy useState
+    // initializer read it, so navigating to a candidate profile and
+    // hitting browser-Back always landed back on page 1.
+    const isFirstFilterRender = useRef(true);
     useEffect(() => {
+        if (isFirstFilterRender.current) {
+            isFirstFilterRender.current = false;
+            return;
+        }
         setPage(1);
     }, [query, experience, selectedSpecialties, selectedStates, workMode, hasResume]);
 
