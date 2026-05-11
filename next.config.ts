@@ -13,6 +13,14 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
 
+  // Hide the Next.js dev indicator (the small "N" badge that appears in the
+  // bottom-left during `npm run dev`). Only affects dev mode — production
+  // never renders it. It was sitting on top of the mobile BottomNav and
+  // looked like an extra menu item, which confused everyone during the
+  // mobile audit. No impact on dev tooling — build errors still show in
+  // the terminal and the Vercel overlay.
+  devIndicators: false,
+
   // Native/WASM packages that must not be bundled by Turbopack
   serverExternalPackages: ['@resvg/resvg-js', '@napi-rs/canvas', 'pdf-parse'],
 

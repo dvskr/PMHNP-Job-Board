@@ -44,7 +44,7 @@ export default async function EmployerApplicantsPage() {
                 { name: 'Applicants', url: 'https://pmhnphiring.com/employer/applicants' },
             ]} />
 
-            <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '20px 16px 48px' }}>
+            <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '4px 16px 48px' }}>
                 {/* Back-to-dashboard breadcrumb */}
                 <Link
                     href="/employer/dashboard"
