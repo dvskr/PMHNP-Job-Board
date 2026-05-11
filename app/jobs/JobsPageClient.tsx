@@ -11,6 +11,7 @@ import CreateAlertForm from '@/components/CreateAlertForm';
 import JobsListSkeleton from '@/components/JobsListSkeleton';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import MobileFilterDrawer from '@/components/MobileFilterDrawer';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { Job } from '@/lib/types';
 import { FilterState, DEFAULT_FILTERS } from '@/types/filters';
 import { parseFiltersFromParams } from '@/lib/filters';
@@ -298,9 +299,19 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               already wraps the entire page in components/MainContent.tsx. Nested
               <main> is invalid HTML and confuses Google's main-content extractor. */}
           <section aria-label="Job results" style={{ flex: 1, minWidth: 0 }}>
-            {/* Page header — centered H1 + supporting line. Sits inside the
-                main column so the fixed sidebar can't overlap it. */}
-            <header style={{ marginBottom: '20px', textAlign: 'center' }}>
+            {/* Breadcrumb — left-aligned at the top of the main column, which
+                lands at the top-right corner of the FILTERS sidebar visually.
+                Lives inside this <section> (not in the page-wide wrapper)
+                because the FILTERS sidebar is `position: fixed; top: 110px`
+                and would paint over any breadcrumb placed above the flex. */}
+            <div style={{ marginBottom: '8px' }}>
+              <Breadcrumbs items={[
+                { label: 'Home', href: '/' },
+                { label: 'Jobs' },
+              ]} />
+            </div>
+            {/* Page header — centered H1 + supporting line. */}
+            <header style={{ marginBottom: '16px', textAlign: 'center' }}>
               <h1
                 className="font-lora"
                 style={{
