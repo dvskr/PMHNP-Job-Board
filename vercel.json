@@ -173,6 +173,10 @@
       "schedule": "30 9 * * *"
     },
     {
+      "path": "/api/cron/embedding-drift-check",
+      "schedule": "0 14 * * *"
+    },
+    {
       "path": "/api/cron/send-alerts",
       "schedule": "30 13 * * *"
     },
