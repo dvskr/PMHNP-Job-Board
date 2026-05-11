@@ -20,28 +20,14 @@ const AUTH_REBLOCK_DATE = '2026-05-19'; // 14 days from 2026-05-04
 
 // ── Allow lists ──────────────────────────────────────────────────────
 // Public surfaces every legitimate crawler should be able to index.
+// Carve-outs from FULL_DISALLOW. RFC 9309 + Google's parser apply
+// "longest match wins, Allow wins ties," so listing these explicitly lets
+// crawlers reach /api/sitemaps/* and /api/og/* even though /api/ is
+// disallowed below. All other public surfaces (/, /jobs, /blog, /companies,
+// /salary-guide, /about, /contact, /pricing, /faq, /post-job, /resources,
+// /job-alerts, /for-job-seekers, /for-employers) are implicitly allowed
+// because no Disallow rule matches them — no need to enumerate.
 const PUBLIC_ALLOW = [
-  '/',
-  '/jobs/',
-  '/blog/',
-  '/companies/',
-  '/salary-guide',
-  '/salary-guide/',
-  '/for-job-seekers',
-  '/for-employers',
-  '/faq',
-  '/post-job',
-  // Static content / hub pages that appear in the sitemap. Previously
-  // these were implicitly crawlable (no FULL_DISALLOW prefix matched them)
-  // but explicit allows protect against future disallow patterns
-  // accidentally creating a prefix match. Mirrors the sitemap entry list.
-  '/about',
-  '/contact',
-  '/pricing',
-  '/resources',
-  '/resources/',
-  '/job-alerts',
-  // Explicitly allow sitemap API and OG image API
   // No trailing slash on /api/sitemaps so the rule matches both
   // /api/sitemaps/index and /api/sitemaps/cities/N — the previous trailing
   // slash form excluded the bare /api/sitemaps with some strict parsers.
@@ -206,34 +192,45 @@ export default function robots(): MetadataRoute.Robots {
 
   return {
     rules: [
-      // Catch-all rule (Google, Bing, anyone unlisted)
+      // Catch-all rule (Googlebot, Bingbot, anyone unlisted). Implicit
+      // "Allow: /" semantics — everything not matched by a Disallow is
+      // crawlable. Carve-outs (/api/sitemaps, /api/og) win over the
+      // /api/ Disallow because they're more specific paths.
       {
         userAgent: '*',
         allow: PUBLIC_ALLOW,
         disallow: FULL_DISALLOW,
       },
-      // AI search & LLM crawlers — same access, but with a crawl delay so
-      // they don't dominate traffic share (PerplexityBot was 22% of all hits).
-      ...AI_CRAWLERS.map((ua) => ({
-        userAgent: ua,
+      // AI search & LLM crawlers grouped into one block — Next.js's
+      // robots serializer emits one `User-Agent:` line per item when
+      // userAgent is an array, then a single set of rules applies to
+      // all of them. Was 21 duplicate rule blocks before (~600 lines
+      // of redundancy); now one block.
+      {
+        userAgent: [...AI_CRAWLERS],
         allow: PUBLIC_ALLOW,
         disallow: FULL_DISALLOW,
         crawlDelay: AI_CRAWL_DELAY_SECONDS,
-      })),
-      // SEO link-graph crawlers — throttled. They retain access to the
-      // public site so backlink data still updates.
-      ...SEO_CRAWLERS.map((ua) => ({
-        userAgent: ua,
+      },
+      // SEO link-graph crawlers grouped — heavier crawl-delay because
+      // their volume (Ahrefs alone hit ~1,700 pages in 2.5h) doesn't
+      // drive user traffic in return.
+      {
+        userAgent: [...SEO_CRAWLERS],
         allow: PUBLIC_ALLOW,
         disallow: FULL_DISALLOW,
         crawlDelay: SEO_CRAWL_DELAY_SECONDS,
-      })),
-      // Social / link-preview bots — they fetch single URLs on demand
-      ...SOCIAL_BOTS.map((ua) => ({
-        userAgent: ua,
+      },
+      // Social / link-preview bots grouped — fetch a single URL on
+      // demand for the preview card, so they need access to almost
+      // everything public; the lighter SOCIAL_DISALLOW just keeps
+      // them out of auth-gated surfaces where the preview would be
+      // a login shell anyway.
+      {
+        userAgent: [...SOCIAL_BOTS],
         allow: '/',
         disallow: SOCIAL_DISALLOW,
-      })),
+      },
     ],
     sitemap: [
       `${baseUrl}/api/sitemaps/index`,

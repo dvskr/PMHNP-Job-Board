@@ -281,7 +281,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
 
   return (
     <>
-      <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '8px 16px 0' }}>
+      <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 16px 0' }}>
         {/* Main Content with Sidebar Layout. The H1 + subtitle live INSIDE
             the right-hand <section> rather than spanning the full width
             above this flex, because StickyFilterSidebar is `position: fixed`
