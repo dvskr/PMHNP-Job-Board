@@ -214,7 +214,11 @@ export async function GET(request: Request) {
     } else if (profile?.role === 'employer') {
       return NextResponse.redirect(`${origin}/employer/dashboard`)
     } else {
-      return NextResponse.redirect(`${origin}/dashboard`)
+      // Seekers land in the post-signup interstitial unless their profile is
+      // already detailed enough to be embedded by the AI matcher. The page
+      // itself enforces this — sending everyone there is intentional so we
+      // also catch users who skipped onboarding on a previous session.
+      return NextResponse.redirect(`${origin}/onboarding/professional`)
     }
   } catch (e) {
     console.error('Auth callback: unexpected error', e)

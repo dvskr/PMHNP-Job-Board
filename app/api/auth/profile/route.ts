@@ -7,6 +7,7 @@ import { verifyCsrf } from '@/lib/csrf'
 import { syncToBeehiiv } from '@/lib/beehiiv'
 import { sendSignupWelcomeEmail } from '@/lib/email-service'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { inngest } from '@/lib/inngest/client'
 
 // Shared include for _count used by completeness scoring
 const profileInclude = {
@@ -333,6 +334,30 @@ export async function PATCH(request: NextRequest) {
       },
       include: profileInclude,
     })
+
+    // Auto-refresh the candidate embedding when any embedder-driving field
+    // changed in this PATCH. Mirrors lib/ai/vector-search.ts:buildCandidate
+    // EmbeddingText (headline / yearsExperience / certifications /
+    // licenseStates / specialties / bio — `skills` isn't editable here).
+    // The Inngest function throttles per supabaseId for 30s, so a user
+    // typing across several fields produces a single embedding refresh.
+    // .catch() on the dispatch so a queue outage never breaks the user-
+    // facing PATCH; the existing manual backfill stays as the safety net.
+    const embedderFieldChanged =
+      headline !== undefined ||
+      bio !== undefined ||
+      certifications !== undefined ||
+      licenseStates !== undefined ||
+      specialties !== undefined ||
+      yearsExperience !== undefined
+    if (embedderFieldChanged) {
+      inngest.send({
+        name: 'embedding.refresh.candidate',
+        data: { supabaseId: user.id },
+      }).catch((err) => {
+        logger.warn('inngest.send embedding.refresh.candidate failed', undefined, err)
+      })
+    }
 
     return NextResponse.json(updatedProfile)
   } catch (error) {

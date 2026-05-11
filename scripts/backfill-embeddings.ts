@@ -3,8 +3,23 @@
 // Standalone CLI scripts can't rely on Next.js's automatic .env.local loading.
 // eslint-disable-next-line import/order
 import { config as dotenvConfig } from 'dotenv';
-dotenvConfig({ path: '.env.local' });
-dotenvConfig(); // also pick up .env if .env.local didn't define everything
+
+// Pick the env file from --env= BEFORE Prisma loads so DATABASE_URL is right
+// at module init. .env.prod stores the prod connection under PROD_DATABASE_URL
+// (so it never accidentally wins over the local one in editor previews); we
+// remap it to DATABASE_URL here so lib/prisma sees the right pool.
+const envFlag = process.argv.find((a) => a.startsWith('--env='))?.slice('--env='.length) ?? 'local';
+if (envFlag === 'prod') {
+    dotenvConfig({ path: '.env.prod' });
+    if (process.env.PROD_DATABASE_URL && !process.argv.includes('--use-database-url')) {
+        process.env.DATABASE_URL = process.env.PROD_DATABASE_URL;
+    }
+    console.log('[backfill] env=prod  DB host=' + (process.env.DATABASE_URL?.match(/@([^/?]+)/)?.[1] ?? '?'));
+} else {
+    dotenvConfig({ path: '.env.local' });
+    dotenvConfig(); // also pick up .env if .env.local didn't define everything
+    console.log('[backfill] env=local DB host=' + (process.env.DATABASE_URL?.match(/@([^/?]+)/)?.[1] ?? '?'));
+}
 
 /**
  * Embedding backfill — Sprint 0.3.6.
@@ -15,10 +30,12 @@ dotenvConfig(); // also pick up .env if .env.local didn't define everything
  * changed since last run.
  *
  * Usage:
- *   npm run backfill:embeddings              # both jobs and candidates
- *   npm run backfill:embeddings -- --jobs    # only jobs
- *   npm run backfill:embeddings -- --candidates  # only candidates
- *   npm run backfill:embeddings -- --dry-run     # plan only
+ *   npm run backfill:embeddings                      # local: jobs + candidates
+ *   npm run backfill:embeddings -- --jobs            # local: only jobs
+ *   npm run backfill:embeddings -- --candidates      # local: only candidates
+ *   npm run backfill:embeddings -- --dry-run         # local: plan only
+ *   npm run backfill:embeddings -- --env=prod        # prod: jobs + candidates
+ *   npm run backfill:embeddings -- --env=prod --candidates --dry-run
  */
 
 import { prisma } from '@/lib/prisma';

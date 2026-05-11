@@ -11,6 +11,7 @@ import CreateAlertForm from '@/components/CreateAlertForm';
 import JobsListSkeleton from '@/components/JobsListSkeleton';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import MobileFilterDrawer from '@/components/MobileFilterDrawer';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { Job } from '@/lib/types';
 import { FilterState, DEFAULT_FILTERS } from '@/types/filters';
 import { parseFiltersFromParams } from '@/lib/filters';
@@ -280,26 +281,14 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
 
   return (
     <>
-      <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 16px 0' }}>
-        {/* Visible H1 — was previously clipped to 1×1px for SEO-only purposes;
-            audit 07 flagged that visually-hidden headings carry a weaker topic
-            signal than visible ones. Now renders as a compact eyebrow above
-            the search bar so design weight stays on the search and listings. */}
-        <h1
-          className="font-lora"
-          style={{
-            fontSize: 'clamp(20px, 2.6vw, 28px)',
-            fontWeight: 700,
-            color: '#1A2E35',
-            margin: '0 0 16px',
-            lineHeight: 1.2,
-            letterSpacing: '-0.01em',
-          }}
-        >
-          PMHNP &amp; Psychiatric Nurse Practitioner Jobs
-        </h1>
-
-        {/* Main Content with Sidebar Layout */}
+      <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '8px 16px 0' }}>
+        {/* Main Content with Sidebar Layout. The H1 + subtitle live INSIDE
+            the right-hand <section> rather than spanning the full width
+            above this flex, because StickyFilterSidebar is `position: fixed`
+            with top:110px (out of normal flow) — a full-width header above
+            the flex would silently get covered by the fixed sidebar at
+            scroll=0, which is what the previous attempt produced. Keeping
+            the H1 inside the main column eliminates the overlap entirely. */}
         <div style={{ display: 'flex', gap: '28px' }}>
           {/* Sidebar Filters - Hidden on mobile by default, visible on desktop */}
           <StickyFilterSidebar>
@@ -310,6 +299,63 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               already wraps the entire page in components/MainContent.tsx. Nested
               <main> is invalid HTML and confuses Google's main-content extractor. */}
           <section aria-label="Job results" style={{ flex: 1, minWidth: 0 }}>
+            {/* Header row — breadcrumb pinned left, H1 stays optically
+                centered. 3-col grid (1fr auto 1fr) keeps the H1 in the
+                exact horizontal middle of the column regardless of the
+                breadcrumb's width. Single row removes the vertical stack
+                of chrome above the search bar. */}
+            <div
+              className="jp-header-row"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr auto 1fr',
+                alignItems: 'center',
+                gap: '16px',
+                marginBottom: '16px',
+              }}
+            >
+              <div style={{ justifySelf: 'start' }}>
+                <Breadcrumbs items={[
+                  { label: 'Home', href: '/' },
+                  { label: 'Jobs' },
+                ]} />
+              </div>
+              <header style={{ textAlign: 'center' }}>
+                <h1
+                  className="font-lora"
+                  style={{
+                    fontSize: 'clamp(22px, 2.4vw, 30px)',
+                    fontWeight: 700,
+                    color: '#1A2E35',
+                    margin: '0 0 6px',
+                    lineHeight: 1.2,
+                    letterSpacing: '-0.015em',
+                  }}
+                >
+                  PMHNP &amp; Psychiatric Nurse Practitioner Jobs
+                </h1>
+                <p style={{
+                  fontSize: '13px', color: '#6B7F8A', margin: 0, fontWeight: 500,
+                }}>
+                  Browse fresh PMHNP roles across the US — telehealth, on-site, hybrid, and locum.
+                </p>
+              </header>
+              {/* Empty right column mirrors the breadcrumb column so the
+                  middle <header> stays optically centered. */}
+              <div />
+            </div>
+            {/* Mobile fallback — under 1024px the grid collapses; on phones
+                the breadcrumb stacks above the centered H1 like before. */}
+            <style>{`
+              @media (max-width: 1023px) {
+                .jp-header-row {
+                  grid-template-columns: 1fr !important;
+                  gap: 8px !important;
+                }
+                .jp-header-row > div:last-child { display: none; }
+              }
+            `}</style>
+
             {/* Mobile Filter Button */}
             <div className="lg:hidden" style={{ marginBottom: '16px' }}>
               <button

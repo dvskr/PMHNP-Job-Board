@@ -52,15 +52,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    await prisma.$transaction([
-      prisma.candidateLicense.deleteMany({ where: { userId: profile.id } }),
-      prisma.candidateCertification.deleteMany({ where: { userId: profile.id } }),
-      prisma.candidateEducation.deleteMany({ where: { userId: profile.id } }),
-      prisma.candidateWorkExperience.deleteMany({ where: { userId: profile.id } }),
-      prisma.candidateScreeningAnswer.deleteMany({ where: { userId: profile.id } }),
-      prisma.candidateOpenEndedResponse.deleteMany({ where: { userId: profile.id } }),
-      prisma.candidateReference.deleteMany({ where: { userId: profile.id } }),
-      prisma.userProfile.update({
+    // Interactive transaction (callback form) so the embedding delete can
+    // run alongside the Prisma model deletes — candidate_embeddings is a
+    // raw pgvector table outside the Prisma schema, so it needs $execute
+    // RawUnsafe and can't ride in the array form of $transaction.
+    await prisma.$transaction(async (tx) => {
+      await tx.candidateLicense.deleteMany({ where: { userId: profile.id } });
+      await tx.candidateCertification.deleteMany({ where: { userId: profile.id } });
+      await tx.candidateEducation.deleteMany({ where: { userId: profile.id } });
+      await tx.candidateWorkExperience.deleteMany({ where: { userId: profile.id } });
+      await tx.candidateScreeningAnswer.deleteMany({ where: { userId: profile.id } });
+      await tx.candidateOpenEndedResponse.deleteMany({ where: { userId: profile.id } });
+      await tx.candidateReference.deleteMany({ where: { userId: profile.id } });
+
+      // Drop the candidate's vector embedding so they stop appearing in
+      // employer AI Match the moment the clear succeeds. Without this the
+      // stale row would keep matching searches and hydration would return
+      // a now-blank profile to employers who'd already paid an Unlock to
+      // see it. No-op if the row doesn't exist.
+      await tx.$executeRawUnsafe(
+        `DELETE FROM candidate_embeddings WHERE supabase_id = $1`,
+        user.id,
+      );
+
+      await tx.userProfile.update({
         where: { supabaseId: user.id },
         data: {
           // ── Identity (clear all but firstName) ──────────────
@@ -121,8 +136,8 @@ export async function POST(request: NextRequest) {
           resumeParseStatus: null,
           resumeParsedAt: null,
         },
-      }),
-    ]);
+      });
+    });
 
     logger.info('Profile cleared by user', {
       userId: user.id,

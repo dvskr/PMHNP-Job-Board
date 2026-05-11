@@ -5,7 +5,6 @@ import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
 import { slugify } from '@/lib/utils';
 import JobsPageClient from './JobsPageClient';
 import { Job } from '@/lib/types';
-import Breadcrumbs from '@/components/Breadcrumbs';
 
 // Nav-only params do not constitute a user filter — paginated and sorted
 // views of the unfiltered list should still be crawled (page>=2 is noindexed
@@ -235,13 +234,11 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jobListSchema).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') }}
         />
-        {/* Breadcrumbs renders BOTH the visual nav AND the BreadcrumbList JSON-LD,
-            so consumers no longer need a separate BreadcrumbSchema component
-            (which only emitted JSON-LD; users got no visible trail). */}
-        <Breadcrumbs items={[
-          { label: 'Home', href: '/' },
-          { label: 'Jobs' },
-        ]} />
+        {/* Breadcrumb renders INSIDE JobsPageClient, in the right-hand main
+            column above the H1 — that puts it at the top-right corner of
+            the FILTERS panel (not above it, where the fixed sidebar would
+            paint over it). Same JSON-LD BreadcrumbList serializes inline
+            regardless of where the component lives, so SEO is unchanged. */}
         <JobsPageClient
           initialJobs={jobs as unknown as Job[]}
           initialTotal={total}
@@ -256,10 +253,6 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
     // Fallback: render client with empty data
     return (
       <>
-        <Breadcrumbs items={[
-          { label: 'Home', href: '/' },
-          { label: 'Jobs' },
-        ]} />
         <JobsPageClient
           initialJobs={[]}
           initialTotal={0}
