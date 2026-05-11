@@ -595,8 +595,14 @@ export default function CandidateSearchClient() {
                                     was visually noisy at the limit state. */}
                             </div>
 
-                            {/* Search bar (clay) + inline AI submit */}
-                            <div style={{ flex: 1, minWidth: '240px', position: 'relative', display: 'flex' }}>
+                            {/* Search bar (clay) + inline AI submit
+                                Inline button only on screens that have room
+                                for both. On phones the AI Search button is
+                                rendered as a separate full-width row below
+                                so it doesn't overlap the input text (see
+                                .tp-ai-search-row at the bottom of this
+                                style block). */}
+                            <div className="tp-search-wrap" style={{ flex: 1, minWidth: '240px', position: 'relative', display: 'flex' }}>
                                 <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC' }} />
                                     <input
                                         type="text"
@@ -608,7 +614,8 @@ export default function CandidateSearchClient() {
                                                 setJdSearchTitle(null);
                                             }
                                         }}
-                                        placeholder='Describe the candidate you need (e.g., "experienced CA-licensed telehealth PMHNP")'
+                                        placeholder='Describe the candidate you need…'
+                                        className="tp-search-input"
                                         style={{
                                             ...clayInput,
                                             paddingLeft: '38px',
@@ -616,7 +623,11 @@ export default function CandidateSearchClient() {
                                             fontSize: '14px',
                                         }}
                                     />
-                                    {/* Inline AI Search button — sits inside the search bar */}
+                                    {/* Inline AI Search button — sits inside the search bar.
+                                        On phones it gets re-styled via the
+                                        scoped <style> at the end of this
+                                        block: full-width row below the
+                                        input instead of overlapping it. */}
                                     <button
                                         type="button"
                                         disabled={atLimit || query.trim().length < 3}
@@ -632,6 +643,7 @@ export default function CandidateSearchClient() {
                                             : query.trim().length < 3
                                                 ? 'Type at least 3 characters'
                                                 : 'Run AI search'}
+                                        className="tp-ai-search-btn"
                                         style={{
                                             position: 'absolute',
                                             right: '6px',
@@ -661,6 +673,23 @@ export default function CandidateSearchClient() {
                                         AI Search
                                     </button>
                                 </div>
+                                {/* Phone-only: the inline button overlaps the input text on
+                                    narrow viewports, so swap the wrapping div to flex-column
+                                    and let the button render as a full-width row beneath. */}
+                                <style>{`
+                                    @media (max-width: 640px) {
+                                        .tp-search-wrap { flex-direction: column; gap: 8px; }
+                                        .tp-search-input { padding-right: 14px !important; }
+                                        .tp-ai-search-btn {
+                                            position: static !important;
+                                            transform: none !important;
+                                            width: 100%;
+                                            justify-content: center;
+                                            padding: 10px 14px !important;
+                                            font-size: 13px !important;
+                                        }
+                                    }
+                                `}</style>
 
                                 <button
                                     onClick={() => setShowFilters(!showFilters)}

@@ -639,10 +639,13 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                         fontSize: '16px', fontWeight: 700,
                                                         fontFamily: 'var(--font-lora), Georgia, serif',
                                                         color: '#1A2E35', textDecoration: 'none',
-                                                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                        // Allow titles to wrap to multiple lines on
+                                                        // narrow screens instead of clipping mid-word.
+                                                        // Was inline-flex which forced single-line.
+                                                        display: 'inline', wordBreak: 'break-word',
                                                     }} className="emp-job-title">
                                                         {job.title}
-                                                        {job.isPublished && <ExternalLink size={14} style={{ color: '#B0C4BC' }} />}
+                                                        {job.isPublished && <ExternalLink size={14} style={{ color: '#B0C4BC', display: 'inline', verticalAlign: 'middle', marginLeft: '6px' }} />}
                                                     </Link>
                                                     {getStatusBadge(job)}
                                                     {job.isFeatured && (
