@@ -26,6 +26,10 @@ interface CandidateCardProps {
     aiReason?: string;
     /** Smart Match — vector similarity rendered as 0..100 for the badge. */
     aiMatchPercent?: number;
+    /** Current Talent Pool page (1-indexed). Passed through to the profile
+     *  URL as ?fromPage=N so the in-page "Back to Talent Pool" link can
+     *  return the user to the exact page they came from. */
+    fromPage?: number;
 }
 
 const EXPERIENCE_LABELS: Record<number, string> = {
@@ -87,8 +91,14 @@ export default function CandidateCard({
     yearsExperience, certifications, licenseStates,
     specialties, preferredWorkMode, availableDate, hasResume,
     isSaved, isViewed, unlockUsage, onToggleSave,
-    aiReason, aiMatchPercent,
+    aiReason, aiMatchPercent, fromPage,
 }: CandidateCardProps) {
+    // Profile URL carries the originating page so /employer/candidates/[id]
+    // knows where to send the user when they click "Back to Talent Pool".
+    // Skip when fromPage is 1 (or unset) — a clean URL is the default.
+    const profileHref = fromPage && fromPage > 1
+        ? `/employer/candidates/${id}?fromPage=${fromPage}`
+        : `/employer/candidates/${id}`;
     const expLabel = getExperienceLabel(yearsExperience);
     const availLabel = formatAvailableDate(availableDate);
     const modeIcon = preferredWorkMode
@@ -383,7 +393,7 @@ export default function CandidateCard({
                     ) : (
                         <>
                             <Link
-                                href={`/employer/candidates/${id}`}
+                                href={profileHref}
                                 className="clay-profile-btn"
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: '5px',

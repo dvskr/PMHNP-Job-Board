@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     ArrowLeft, MapPin, Briefcase, Award, Calendar, DollarSign,
     FileText, Mail, ExternalLink, Loader2, Shield, Clock, Linkedin, Lock, Plus,
@@ -85,6 +85,7 @@ type ErrorReason = 'no_posting' | 'posting_cap' | 'daily_cap' | 'not_found' | 'g
 
 export default function CandidateProfileClient({ candidateId }: { candidateId: string }) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -94,15 +95,30 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
     const [postingJobId, setPostingJobId] = useState<string | undefined>(undefined);
     const [postingJobTitle, setPostingJobTitle] = useState<string | undefined>(undefined);
 
-    // Use browser-back so the user lands on the exact Talent Pool page they
-    // came from (?page=N is in the URL after 91c8188). The href stays at
-    // /employer/candidates as a fallback for right-click / no-JS / users
-    // who landed on this profile directly (bookmark, shared link) and have
-    // no in-app history to go back to.
+    // Read the originating page from the URL (?fromPage=N, set by
+    // CandidateCard when the user clicked through from the Talent Pool).
+    // This is the source of truth for the Back link — encoding the page in
+    // the candidate URL itself sidesteps every router.back()/history quirk
+    // we've fought with: the URL is the URL, and the back href is just a
+    // function of what's in the address bar right now.
+    const fromPageParam = (() => {
+        const raw = searchParams.get('fromPage');
+        const n = raw ? parseInt(raw, 10) : NaN;
+        return Number.isFinite(n) && n > 1 ? n : null;
+    })();
+    const backHref = fromPageParam
+        ? `/employer/candidates?page=${fromPageParam}`
+        : '/employer/candidates';
+    // Keep router.back() as the click handler as a belt-and-suspenders
+    // path — if the user navigated via browser history (not the card),
+    // back() restores the exact prior URL including any filter params
+    // we don't encode in fromPage. If history is empty we fall through
+    // to the href (push).
     const handleBackToTalentPool = (e: React.MouseEvent) => {
+        // If we have an explicit fromPage, prefer that — it's the most
+        // reliable signal and matches exactly what the user expects.
+        if (fromPageParam) return; // let the Link href do the work
         e.preventDefault();
-        // If they came from inside the app there's history; otherwise the
-        // href fallback kicks in via a push.
         if (typeof window !== 'undefined' && window.history.length > 1) {
             router.back();
         } else {
@@ -208,7 +224,7 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                     )}
                     <div>
                         <Link
-                            href="/employer/candidates"
+                            href={backHref}
                             onClick={handleBackToTalentPool}
                             style={{ color: '#0D9488', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}
                         >
@@ -235,7 +251,7 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
             }}>
                 <div style={{ maxWidth: '800px', margin: '0 auto' }}>
                     <Link
-                        href="/employer/candidates"
+                        href={backHref}
                         onClick={handleBackToTalentPool}
                         className="cp-back-link"
                         style={{
