@@ -17,6 +17,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function verifyCronOrAdmin(req: Request): Promise<NextResponse | null> {
     if (process.env.NODE_ENV === 'development') return null;
@@ -45,7 +46,15 @@ export async function verifyCronOrAdmin(req: Request): Promise<NextResponse | nu
             return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
         }
         return null;
-    } catch {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    } catch (err) {
+        // H5 fix: previously the bare `catch {}` returned a generic 401,
+        // making Supabase/Prisma infra failures invisible in observability.
+        // Log + 500 so a real auth-infra outage triggers alerting instead
+        // of being misclassified as a normal 401.
+        logger.error('[verifyCronOrAdmin] auth check failed', err);
+        return NextResponse.json(
+            { error: 'Authentication infrastructure failure' },
+            { status: 500 },
+        );
     }
 }

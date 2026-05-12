@@ -7,24 +7,21 @@ import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { mintResumeReadUrl, extractRequestContext } from '@/lib/resume-storage'
 
 /**
- * Check whether an employer has at least one active FEATURED job posting.
- * Featured posts unlock full candidate profile access (contact, resume, LinkedIn).
- * Works for both paid and free-mode featured posts.
- * "active" means the related Job.expiresAt > now.
+ * (H3 fix) Removed: `hasActiveFeaturedPost`.
+ *
+ * The previous design granted full candidate profile access (contactEmail,
+ * linkedinUrl, resumeUrl) to any employer with an active featured posting,
+ * independent of the per-candidate unlock cap enforced by
+ * `canUnlockCandidate`. That made the per-posting unlock allowance
+ * bypassable: a featured employer could iterate the candidate list and
+ * harvest contact info without being metered.
+ *
+ * The new contract is single-gate: every full-access read MUST flow
+ * through `canUnlockCandidate` (which charges against the active posting
+ * allowance and the daily cap). The first-time unlock on this request
+ * sets `hasFullAccess=true` after the ProfileView upsert, so the unlock
+ * still returns its data immediately.
  */
-async function hasActiveFeaturedPost(supabaseId: string): Promise<boolean> {
-    const count = await prisma.employerJob.count({
-        where: {
-            userId: supabaseId,
-            job: {
-                isFeatured: true,
-                isPublished: true,
-                expiresAt: { gt: new Date() },
-            },
-        },
-    })
-    return count > 0
-}
 
 export async function GET(
     req: NextRequest,
@@ -68,8 +65,10 @@ export async function GET(
         },
     })
 
-    // Full access if: admin, OR has active posting, OR already unlocked this candidate
-    const hasFullAccess = isAdmin || !!existingView || await hasActiveFeaturedPost(user.id)
+    // Full access if: admin OR already unlocked this candidate. A successful
+    // unlock charged via `canUnlockCandidate` below will flip this to true
+    // so the first-time unlock returns its data in the same response.
+    let hasFullAccess = isAdmin || !!existingView
 
     // Fetch candidate (privacy check: must be visible + open to offers)
     const candidate = await prisma.userProfile.findFirst({
@@ -127,6 +126,12 @@ export async function GET(
                 employerJobId: chargePostingId || null,
             },
         })
+        // H3 fix: the unlock was just charged (or refreshed) — grant
+        // full access on this response so the employer immediately sees
+        // the contact info they paid for.
+        if (chargePostingId !== undefined) {
+            hasFullAccess = true
+        }
     } catch {
         // Don't fail the request if view tracking fails
     }

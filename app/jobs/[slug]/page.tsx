@@ -160,76 +160,68 @@ async function getRelatedJobs({
 }
 
 /**
- * Fetch company information for employer section
+ * Fetch company information for employer section.
+ *
+ * H8 fix: previously this issued up to 5 sequential DB round-trips
+ * (company by id → employerJob by jobId → company by name → employerJob
+ * again → job.count) for each cache-miss render of a job page. Now the
+ * three independent lookups fan out in parallel, the EmployerJob is
+ * fetched once with all the columns we might read, and the count only
+ * runs in the fall-through "no Company row" branch.
  */
 async function getCompanyInfo(companyId: string | null, employerName: string, jobId?: string) {
-  // Try to get company from companyId first
-  if (companyId) {
-    const company = await prisma.company.findUnique({
-      where: { id: companyId },
-    });
-    if (company) {
-      // If company exists but has no logo, try to get it from EmployerJob
-      if (!company.logoUrl && jobId) {
-        const ej = await prisma.employerJob.findUnique({
-          where: { jobId },
-          select: { companyLogoUrl: true },
-        });
-        if (ej?.companyLogoUrl) {
-          return { ...company, logoUrl: ej.companyLogoUrl } as Company;
-        }
-      }
-      return company as Company;
-    }
-  }
-
-  // Try to find by normalized name
   const normalizedName = employerName.toLowerCase().trim();
-  const company = await prisma.company.findFirst({
-    where: {
-      OR: [
-        { normalizedName: normalizedName },
-        { name: { equals: employerName, mode: 'insensitive' } },
-      ],
-    },
-  });
 
+  // Fan out all three independent reads in parallel. Each one may be
+  // null; we pick based on availability below.
+  const [companyById, companyByName, employerJobRow] = await Promise.all([
+    companyId
+      ? prisma.company.findUnique({ where: { id: companyId } })
+      : Promise.resolve(null),
+    prisma.company.findFirst({
+      where: {
+        OR: [
+          { normalizedName },
+          { name: { equals: employerName, mode: 'insensitive' } },
+        ],
+      },
+    }),
+    jobId
+      ? prisma.employerJob.findUnique({
+          where: { jobId },
+          select: {
+            companyLogoUrl: true,
+            companyWebsite: true,
+            companyDescription: true,
+            employerName: true,
+          },
+        })
+      : Promise.resolve(null),
+  ]);
+
+  const company = companyById ?? companyByName;
   if (company) {
-    // If company exists but has no logo, try EmployerJob
-    if (!company.logoUrl && jobId) {
-      const ej = await prisma.employerJob.findUnique({
-        where: { jobId },
-        select: { companyLogoUrl: true },
-      });
-      if (ej?.companyLogoUrl) {
-        return { ...company, logoUrl: ej.companyLogoUrl } as Company;
-      }
+    if (!company.logoUrl && employerJobRow?.companyLogoUrl) {
+      return { ...company, logoUrl: employerJobRow.companyLogoUrl } as Company;
     }
     return company as Company;
   }
 
-  // No Company record found — try to build one from EmployerJob data
-  if (jobId) {
-    const ej = await prisma.employerJob.findUnique({
-      where: { jobId },
-      select: { companyLogoUrl: true, companyWebsite: true, companyDescription: true, employerName: true },
+  // No Company record — synthesize one from the EmployerJob fields.
+  if (employerJobRow && (employerJobRow.companyLogoUrl || employerJobRow.companyDescription)) {
+    const jobCount = await prisma.job.count({
+      where: { employer: employerName, isPublished: true },
     });
-    if (ej && (ej.companyLogoUrl || ej.companyDescription)) {
-      // Count other jobs from this employer for jobCount
-      const jobCount = await prisma.job.count({
-        where: { employer: employerName, isPublished: true },
-      });
-      return {
-        id: 'employer-' + jobId,
-        name: ej.employerName || employerName,
-        description: ej.companyDescription,
-        website: ej.companyWebsite,
-        logoUrl: ej.companyLogoUrl,
-        jobCount,
-        isVerified: false,
-        normalizedName: normalizedName,
-      } as Company;
-    }
+    return {
+      id: 'employer-' + (jobId ?? 'unknown'),
+      name: employerJobRow.employerName || employerName,
+      description: employerJobRow.companyDescription,
+      website: employerJobRow.companyWebsite,
+      logoUrl: employerJobRow.companyLogoUrl,
+      jobCount,
+      isVerified: false,
+      normalizedName,
+    } as Company;
   }
 
   return null;
@@ -624,8 +616,18 @@ export default async function JobPage({ params }: JobPageProps) {
 
   const job = result.job;
 
-  // Fetch all additional data in parallel for content enrichment
-  const [relatedJobs, companyInfo, employerJobCount, stateAvgSalary, currentUser] = await Promise.all([
+  // H9 fix: previously `getRelevantBlogPosts` was awaited AFTER this
+  // Promise.all, adding 50-100ms of pure serial latency to every cache
+  // miss render of the hottest page on the site. Pulled into the same
+  // fan-out so all six independent reads start at the same tick.
+  const [
+    relatedJobs,
+    companyInfo,
+    employerJobCount,
+    stateAvgSalary,
+    currentUser,
+    relevantBlogPosts,
+  ] = await Promise.all([
     getRelatedJobs({
       currentJobId: job.id,
       employer: job.employer,
@@ -638,12 +640,10 @@ export default async function JobPage({ params }: JobPageProps) {
     getEmployerJobCount(job.employer, job.id),
     getStateSalaryAverage(job.state, job.stateCode),
     getCurrentUser(),
+    getRelevantBlogPosts(job),
   ]);
   const isAuthenticated = !!currentUser;
   const isOwnJob = !!(currentUser && (job as unknown as Record<string, unknown>).employerUserId === currentUser.user.id);
-
-  // Get relevant blog posts (async - fetches from Supabase)
-  const relevantBlogPosts = await getRelevantBlogPosts(job);
 
   const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
   const freshness = getJobFreshness(job.createdAt);

@@ -119,36 +119,65 @@ export async function POST(req: NextRequest) {
     }
 }
 
-async function extractResumeText(resumeUrl: string): Promise<string> {
+// Allowlist of hosts the PDF extractor is permitted to fetch from.
+// Today the only legitimate caller passes a Supabase-storage signed URL
+// minted by `mintResumeReadUrl`; everything else is refused. This is a
+// belt-and-suspenders defense — the upstream is server-controlled, but the
+// allowlist means a future bug elsewhere can't turn this endpoint into an
+// SSRF proxy.
+function isAllowedResumeUrl(url: string): boolean {
+    let parsed: URL;
     try {
-        console.log('[extract-resume] Extracting text via child process...');
+        parsed = new URL(url);
+    } catch {
+        return false;
+    }
+    if (parsed.protocol !== 'https:') return false;
+    const host = parsed.hostname.toLowerCase();
+    // Supabase storage URLs are `<project>.supabase.co` or
+    // `<project>.supabase.in` for legacy regions.
+    return host.endsWith('.supabase.co') || host.endsWith('.supabase.in');
+}
 
+async function extractResumeText(resumeUrl: string): Promise<string> {
+    if (!isAllowedResumeUrl(resumeUrl)) {
+        // Refuse anything that didn't come out of our signed-URL minter.
+        // Logged at warn so abuse attempts are visible without crashing.
+        console.warn('[extract-resume] refused non-allowlisted resume URL');
+        return '';
+    }
+
+    try {
         // Run PDF extraction in a separate Node.js process to avoid Turbopack
-        // bundling issues with pdf-parse (DOMMatrix, Canvas polyfills, etc.)
-        const { exec } = await import('child_process');
-        // Build command at runtime — Turbopack traces execFile args as file paths,
-        // but exec with a dynamic command string is opaque to static analysis
-        const scriptName = ['scripts', 'extract-pdf-text.js'].join('/');
-        const scriptPath = process.cwd() + '/' + scriptName;
+        // bundling issues with pdf-parse (DOMMatrix, Canvas polyfills, etc.).
+        //
+        // SECURITY: use `execFile` with an args array — never `exec` with a
+        // composed shell string. `execFile` passes args directly to the
+        // child process without spawning a shell, so even if `resumeUrl`
+        // contains shell metacharacters they cannot break out of the arg
+        // boundary.
+        const { execFile } = await import('child_process');
+        const scriptPath = `${process.cwd()}/scripts/extract-pdf-text.js`;
 
-        const text = await new Promise<string>((resolve, reject) => {
-            exec(`node "${scriptPath}" "${resumeUrl}"`, {
-                timeout: 30000,
-                maxBuffer: 1024 * 1024,
-            }, (error, stdout, stderr) => {
-                if (error) {
-                    console.error('[extract-resume] Script error:', stderr || error.message);
-                    resolve('');
-                    return;
-                }
-                resolve(stdout || '');
-            });
+        const text = await new Promise<string>((resolve) => {
+            execFile(
+                process.execPath,
+                [scriptPath, resumeUrl],
+                {
+                    timeout: 30000,
+                    maxBuffer: 1024 * 1024,
+                    shell: false,
+                },
+                (error, stdout, stderr) => {
+                    if (error) {
+                        console.error('[extract-resume] Script error:', stderr || error.message);
+                        resolve('');
+                        return;
+                    }
+                    resolve(stdout || '');
+                },
+            );
         });
-
-        console.log('[extract-resume] Extracted text length:', text.length, 'chars');
-        if (text.length > 0) {
-            console.log('[extract-resume] First 200 chars:', text.substring(0, 200));
-        }
 
         return text;
     } catch (err) {

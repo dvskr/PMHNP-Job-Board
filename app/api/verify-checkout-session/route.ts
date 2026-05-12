@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
       select: {
         dashboardToken: true,
         paymentStatus: true,
+        contactEmail: true,
         job: { select: { title: true, slug: true, isPublished: true } },
       },
     });
@@ -90,13 +91,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // SECURITY (H1): the dashboardToken grants edit/unpublish on the job.
+    // session_id is not secret — it lives in URLs, referer headers, and
+    // browser histories — so this endpoint must NOT hand the token to any
+    // caller who happens to know a valid session_id. We bind the session
+    // to the originating browser via a httpOnly cookie set in
+    // /api/create-checkout. Callers without the matching cookie still
+    // learn that payment succeeded (so they can render a success page)
+    // but get a "check your email" hint instead of the token.
+    const checkoutCookie = request.cookies.get('pmhnp_checkout_session')?.value;
+    const cookieMatches = checkoutCookie === sessionId;
+
     return NextResponse.json({
       paid: true,
       processing: employerJob.paymentStatus !== 'paid',
       jobTitle: employerJob.job.title,
       jobSlug: employerJob.job.slug,
-      dashboardToken: employerJob.dashboardToken,
       isPublished: employerJob.job.isPublished,
+      // Token is only returned when the cookie binding matches. The
+      // confirmation email (sent by the webhook) always includes the
+      // token-bearing dashboard link as the secure delivery channel.
+      ...(cookieMatches
+        ? { dashboardToken: employerJob.dashboardToken }
+        : { tokenDeliveredViaEmail: true }),
     });
   } catch (error) {
     logger.error('Error verifying checkout session', error);

@@ -88,9 +88,18 @@ async function fetchDetail(slug: string, shortcode: string): Promise<WorkableJob
         const t = setTimeout(() => controller.abort(), 8000);
         const res = await fetch(url, { signal: controller.signal });
         clearTimeout(t);
-        if (!res.ok) return null;
+        if (!res.ok) {
+            // H6 fix: log non-OK detail fetches so a tenant returning 403/429
+            // doesn't silently drop every job's description (jobs would still
+            // pass the quality gate at title alone and ingest with empty body).
+            console.warn(`[Workable] detail HTTP ${res.status} for ${slug}/${shortcode}`);
+            return null;
+        }
         return (await res.json()) as WorkableJob;
-    } catch {
+    } catch (err) {
+        // H6 fix: surface network / abort failures so a tenant-level outage
+        // is distinguishable from a tenant with no PMHNP openings.
+        console.warn(`[Workable] detail fetch failed for ${slug}/${shortcode}:`, err instanceof Error ? err.message : err);
         return null;
     }
 }
@@ -132,6 +141,17 @@ async function fetchTenantJobs(tenant: { slug: string; name: string }): Promise<
                     .replace(/<[^>]*>/g, ' ')
                     .replace(/\s+/g, ' ')
                     .trim();
+
+                // H6 fix: drop jobs whose description fetch silently failed.
+                // Pushing an empty-description job lets a tenant outage poison
+                // the ingest with thin records that still pass the title-only
+                // quality gate. The next ingest cycle will retry.
+                if (!description) {
+                    console.warn(`[Workable] empty description for ${tenant.slug}/${j.shortcode} — dropping job`);
+                    await sleep(DETAIL_FETCH_GAP_MS);
+                    continue;
+                }
+
                 const applyLink = `https://apply.workable.com/${tenant.slug}/j/${j.shortcode}/`;
 
                 out.push({

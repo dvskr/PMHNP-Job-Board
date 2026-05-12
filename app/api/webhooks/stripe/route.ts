@@ -262,7 +262,28 @@ export async function POST(request: NextRequest) {
             where: { jobId: jobId },
           });
 
-          if (employerJob) {
+          if (!employerJob) {
+            // C3 fix: previously a missing EmployerJob row caused this
+            // branch to be skipped silently — `isPublished` was set to
+            // true, no JobCharge was recorded, no confirmation email was
+            // sent, and the handler returned 200. Stripe never retried
+            // and the money was effectively unrecorded.
+            //
+            // Returning 500 makes Stripe redeliver the event so the
+            // condition (e.g. transient DB read-after-write lag) can
+            // self-heal. The job row's `isPublished=true` write above
+            // stays — it's idempotent and a republish on retry is fine.
+            logger.error('[Stripe] EmployerJob not found for paid checkout — returning 500 so Stripe retries', undefined, {
+              jobId,
+              sessionId: session.id,
+            });
+            return NextResponse.json(
+              { error: 'EmployerJob not found for paid session' },
+              { status: 500 },
+            );
+          }
+
+          {
             const paidTier = session.metadata?.pricing || 'pro';
             await prisma.employerJob.update({
               where: { id: employerJob.id },

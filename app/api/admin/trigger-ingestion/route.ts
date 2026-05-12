@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { ingestJobs, cleanupExpiredJobs, type JobSource } from '@/lib/ingestion-service';
+import { ingestJobs, cleanupExpiredJobs, ALL_SOURCES, type JobSource } from '@/lib/ingestion-service';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 
 /**
@@ -18,10 +18,15 @@ export async function POST(request: NextRequest) {
 
     logger.info(`[Admin] Triggering ingestion for: ${source || 'all sources'}`);
 
-    // Determine sources
+    // Determine sources. Previously the "all sources" fallback was
+    // hard-coded to `['greenhouse', 'lever']`, which silently excluded
+    // every aggregator added since (Ashby, BambooHR, JazzHR, Workable,
+    // USAJobs, DocCafe, HealthCareerCenter, etc.). Pull from the
+    // registry's `ALL_SOURCES` so new adapters are automatically picked
+    // up by the admin "trigger all" action.
     const sources: JobSource[] = source
       ? [source as JobSource]
-      : ['greenhouse', 'lever'];
+      : ALL_SOURCES;
 
     // Direct call (Bypasses HTTP/Vercel Auth issues)
     const ingestionResults = await ingestJobs(sources);

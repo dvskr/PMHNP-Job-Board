@@ -79,19 +79,43 @@ export async function GET() {
 }
 
 // POST - Create profile (called during signup)
+//
+// SECURITY: This endpoint historically accepted `supabaseId` and `role`
+// from the request body without auth. That allowed an unauthenticated
+// caller to POST `{ supabaseId: "<victim>", role: "admin" }` and elevate
+// to admin. The fix:
+//   1. Require an authenticated Supabase session — `supabase.auth.getUser()`
+//   2. Use `user.id` and `user.email` from the session, not the body
+//   3. Allow-list `role` to `job_seeker` or `employer` — `admin` can only
+//      be granted by direct DB action
+const ALLOWED_SIGNUP_ROLES = new Set(['job_seeker', 'employer'])
+
 export async function POST(request: NextRequest) {
     // Rate limiting
     const rateLimitResult = await rateLimit(request, 'auth-profile', RATE_LIMITS.auth);
     if (rateLimitResult) return rateLimitResult;
 
   try {
-    const body = await request.json()
+    // Require an authenticated Supabase session before allowing profile
+    // creation. The caller's identity comes from the session cookie, not
+    // from the request body.
+    const supabase = await createClient()
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+    if (authError || !authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!authUser.email) {
+      return NextResponse.json({ error: 'Authenticated user has no email' }, { status: 400 })
+    }
+
+    const supabaseId = authUser.id
+    const email = authUser.email
+
+    const body = await request.json().catch(() => ({}))
     const {
-      supabaseId,
-      email,
       firstName: rawFirstName,
       lastName: rawLastName,
-      role,
+      role: rawRole,
       company: rawCompany,
       phone: rawPhone,
       wantJobHighlights,
@@ -104,9 +128,12 @@ export async function POST(request: NextRequest) {
     const company = rawCompany ? sanitizeText(rawCompany, 100) : null
     const phone = rawPhone ? sanitizeText(rawPhone, 20) : null
 
-    if (!supabaseId || !email) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-    }
+    // Allow-list role. Anything else (including the literal 'admin')
+    // collapses to the safe default.
+    const role: 'job_seeker' | 'employer' =
+      typeof rawRole === 'string' && ALLOWED_SIGNUP_ROLES.has(rawRole)
+        ? (rawRole as 'job_seeker' | 'employer')
+        : 'job_seeker'
 
     // Block free email providers for employers
     if (role === 'employer') {
@@ -130,12 +157,14 @@ export async function POST(request: NextRequest) {
       where: { supabaseId }
     })
 
+    // On UPDATE we deliberately omit `role` so an existing profile (who may
+    // have been promoted to admin manually) can never be demoted via a
+    // re-call of the signup endpoint.
     const profile = await prisma.userProfile.upsert({
       where: { supabaseId },
       update: {
         firstName,
         lastName,
-        role,
         company,
         phone,
       },
@@ -144,7 +173,7 @@ export async function POST(request: NextRequest) {
         email,
         firstName,
         lastName,
-        role: role || 'job_seeker',
+        role,
         company,
         phone,
       }
