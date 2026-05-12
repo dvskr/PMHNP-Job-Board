@@ -1,0 +1,81 @@
+name: Shortlinks Tests
+
+# Runs the short-link test suite (tests/lib/shortlinks/*) on every PR and
+# push to a long-lived branch when any file in the short-link feature path
+# changes. Mirrors the per-feature CI pattern used by ai-gates.yml and
+# autofill-tests.yml.
+#
+# Why a dedicated workflow: the main repo does not yet have a single
+# "all vitest" CI run, so without this file the resolver / bot-classifier /
+# tracker tests would never gate a PR.
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'lib/shortlinks/**'
+      - 'app/r/**'
+      - 'app/api/admin/shortlinks/**'
+      - 'tests/lib/shortlinks/**'
+      - 'tests/setup.ts'
+      - 'prisma/schema.prisma'
+      - 'prisma/migrations/**'
+      - '.github/workflows/shortlinks-tests.yml'
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'lib/shortlinks/**'
+      - 'app/r/**'
+      - 'app/api/admin/shortlinks/**'
+      - 'tests/lib/shortlinks/**'
+      - 'tests/setup.ts'
+      - 'prisma/schema.prisma'
+      - 'prisma/migrations/**'
+      - '.github/workflows/shortlinks-tests.yml'
+
+jobs:
+  shortlinks-tests:
+    name: Vitest + type check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      # tests/setup.ts seeds these so test runs don't hit any real services,
+      # but the env values must be present at process boot for getEnv() not
+      # to bail when imported transitively.
+      DATABASE_URL: postgresql://test:test@localhost:5432/test
+      DIRECT_URL:   postgresql://test:test@localhost:5432/test
+      NEXT_PUBLIC_SUPABASE_URL: https://test.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      NEXT_PUBLIC_BASE_URL: https://pmhnphiring.com
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        # --legacy-peer-deps matches the project's local-install convention
+        # and the migrate-prod workflow. Some peer-dep conflicts in the
+        # tree (e.g. inngest <-> @prisma/client) reject the default
+        # npm ci resolution.
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
+
+      - name: Generate Prisma Client
+        # Required because tracker.test.ts imports @/lib/prisma; the
+        # generated client type is consumed by the mock surface even though
+        # no real DB is touched.
+        run: npx prisma generate
+
+      - name: Run shortlinks test suite
+        run: npx vitest run tests/lib/shortlinks
+
+      - name: Type-check changed surfaces
+        # Project-wide tsc is fast enough on this codebase to run as a
+        # belt-and-suspenders gate. Catches drift between the route
+        # handler, tracker, and admin stats endpoint that vitest alone
+        # wouldn't surface.
+        run: npx tsc --noEmit --pretty false

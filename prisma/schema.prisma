@@ -8,69 +8,69 @@ datasource db {
 }
 
 model Job {
-  id                       String                 @id @default(uuid())
+  id                       String                    @id @default(uuid())
   title                    String
-  slug                     String?                @unique
+  slug                     String?                   @unique
   employer                 String
   location                 String
-  jobType                  String?                @map("job_type")
+  jobType                  String?                   @map("job_type")
   mode                     String?
-  experienceLevel          String?                @map("experience_level")
+  experienceLevel          String?                   @map("experience_level")
   description              String
-  descriptionSummary       String?                @map("description_summary")
-  salaryRange              String?                @map("salary_range")
-  minSalary                Int?                   @map("min_salary")
-  maxSalary                Int?                   @map("max_salary")
-  salaryPeriod             String?                @map("salary_period")
+  descriptionSummary       String?                   @map("description_summary")
+  salaryRange              String?                   @map("salary_range")
+  minSalary                Int?                      @map("min_salary")
+  maxSalary                Int?                      @map("max_salary")
+  salaryPeriod             String?                   @map("salary_period")
   city                     String?
   state                    String?
-  stateCode                String?                @map("state_code")
-  country                  String?                @default("US")
-  isRemote                 Boolean                @default(false) @map("is_remote")
-  isHybrid                 Boolean                @default(false) @map("is_hybrid")
-  normalizedMinSalary      Int?                   @map("normalized_min_salary")
-  normalizedMaxSalary      Int?                   @map("normalized_max_salary")
-  salaryIsEstimated        Boolean                @default(false) @map("salary_is_estimated")
-  salaryConfidence         Float?                 @map("salary_confidence")
-  displaySalary            String?                @map("display_salary")
-  applyLink                String?                @map("apply_link")
-  applyOnPlatform          Boolean                @default(false) @map("apply_on_platform")
+  stateCode                String?                   @map("state_code")
+  country                  String?                   @default("US")
+  isRemote                 Boolean                   @default(false) @map("is_remote")
+  isHybrid                 Boolean                   @default(false) @map("is_hybrid")
+  normalizedMinSalary      Int?                      @map("normalized_min_salary")
+  normalizedMaxSalary      Int?                      @map("normalized_max_salary")
+  salaryIsEstimated        Boolean                   @default(false) @map("salary_is_estimated")
+  salaryConfidence         Float?                    @map("salary_confidence")
+  displaySalary            String?                   @map("display_salary")
+  applyLink                String?                   @map("apply_link")
+  applyOnPlatform          Boolean                   @default(false) @map("apply_on_platform")
   screeningQuestions       JobScreeningQuestion[]
-  isFeatured               Boolean                @default(false) @map("is_featured")
-  isPublished              Boolean                @default(true) @map("is_published")
-  isManuallyUnpublished    Boolean                @default(false) @map("is_manually_unpublished")
+  isFeatured               Boolean                   @default(false) @map("is_featured")
+  isPublished              Boolean                   @default(true) @map("is_published")
+  isManuallyUnpublished    Boolean                   @default(false) @map("is_manually_unpublished")
   // ── Unpublish reason capture ──
   // Set when an employer manually unpublishes ("Pause") via the dashboard
   // modal. Powers outreach + feedback signal. See migration
   // 20260502_add_unpublish_reason. Most-recent value wins if the employer
   // republishes and unpublishes again.
-  unpublishReason          String?                @map("unpublish_reason") @db.VarChar(60)
-  unpublishReasonNote      String?                @map("unpublish_reason_note") @db.Text
-  unpublishedAt            DateTime?              @map("unpublished_at")
-  archivedAt               DateTime?              @map("archived_at")
-  isVerifiedEmployer       Boolean                @default(false) @map("is_verified_employer")
-  benefits                 String[]               @default([])
-  setting                  String?                @map("clinical_setting")
-  population               String?                @map("patient_population")
-  sourceType               String?                @map("source_type")
-  sourceProvider           String?                @map("source_provider")
-  sourceSite               String?                @map("source_site")
-  externalId               String?                @map("external_id")
-  viewCount                Int                    @default(0) @map("view_count")
-  applyClickCount          Int                    @default(0) @map("apply_click_count")
-  qualityScore             Int                    @default(0) @map("quality_score")
-  createdAt                DateTime               @default(now()) @map("created_at")
-  updatedAt                DateTime               @updatedAt @map("updated_at")
-  expiresAt                DateTime?              @map("expires_at")
-  companyId                String?                @map("company_id")
-  originalPostedAt         DateTime?              @map("original_posted_at")
-  lastLinkCheckedAt        DateTime?              @map("last_link_checked_at")
-  lastEnrichedAt           DateTime?              @map("last_enriched_at")
+  unpublishReason          String?                   @map("unpublish_reason") @db.VarChar(60)
+  unpublishReasonNote      String?                   @map("unpublish_reason_note") @db.Text
+  unpublishedAt            DateTime?                 @map("unpublished_at")
+  archivedAt               DateTime?                 @map("archived_at")
+  isVerifiedEmployer       Boolean                   @default(false) @map("is_verified_employer")
+  benefits                 String[]                  @default([])
+  setting                  String?                   @map("clinical_setting")
+  population               String?                   @map("patient_population")
+  sourceType               String?                   @map("source_type")
+  sourceProvider           String?                   @map("source_provider")
+  sourceSite               String?                   @map("source_site")
+  externalId               String?                   @map("external_id")
+  viewCount                Int                       @default(0) @map("view_count")
+  applyClickCount          Int                       @default(0) @map("apply_click_count")
+  qualityScore             Int                       @default(0) @map("quality_score")
+  createdAt                DateTime                  @default(now()) @map("created_at")
+  updatedAt                DateTime                  @updatedAt @map("updated_at")
+  expiresAt                DateTime?                 @map("expires_at")
+  companyId                String?                   @map("company_id")
+  originalPostedAt         DateTime?                 @map("original_posted_at")
+  lastLinkCheckedAt        DateTime?                 @map("last_link_checked_at")
+  lastEnrichedAt           DateTime?                 @map("last_enriched_at")
   // Source-presence tracking — incremented when a job's external_id is missing
   // from a successful source ingest. Resets to 0 on each re-appearance.
   // Currently shadow-mode: written but not used to auto-unpublish until tuned.
-  healthConsecutiveMissing Int                    @default(0) @map("health_consecutive_missing")
-  healthLastSeenAt         DateTime?              @map("health_last_seen_at")
+  healthConsecutiveMissing Int                       @default(0) @map("health_consecutive_missing")
+  healthLastSeenAt         DateTime?                 @map("health_last_seen_at")
   // ─── Category tags (P9 — kills cross-taxonomy duplication) ───
   // Pre-computed canonical category slugs that this job qualifies for.
   // Populated at ingest by lib/pseo/category-tagger.ts and at query time
@@ -80,7 +80,7 @@ model Job {
   // to the legacy matcher in that case so the rollout is safe to deploy
   // before backfill runs. After scripts/backfill-category-tags.ts has
   // populated all rows, the legacy fallback is dead code.
-  categoryTags             String[]               @default([]) @map("category_tags")
+  categoryTags             String[]                  @default([]) @map("category_tags")
   applyClicks              ApplyClick[]
   jobApplications          JobApplication[]
   jobReports               JobReport[]
@@ -88,7 +88,7 @@ model Job {
   employerJobs             EmployerJob?
   employerMessages         EmployerMessage[]
   conversations            Conversation[]
-  company                  Company?               @relation(fields: [companyId], references: [id])
+  company                  Company?                  @relation(fields: [companyId], references: [id])
   healthChecks             JobHealthCheck[]
   embedding                JobEmbedding?
   recommendations          CandidateRecommendation[]
@@ -1195,7 +1195,7 @@ model EmailSend {
 model DeindexQueue {
   id          String    @id @default(cuid())
   url         String    @unique
-  source      String    // 'gsc-not-found' | 'gsc-crawled-not-indexed' | 'gsc-soft-404' | 'edge-log' | 'sitemap-diff' | 'manual'
+  source      String // 'gsc-not-found' | 'gsc-crawled-not-indexed' | 'gsc-soft-404' | 'edge-log' | 'sitemap-diff' | 'manual'
   status      String    @default("pending") // 'pending' | 'submitted' | 'live' | 'failed'
   attempt     Int       @default(0)
   lastError   String?   @db.Text
@@ -1217,14 +1217,14 @@ model DeindexQueue {
 // Indexed by (name, startedAt) so the watchdog query "most recent run for
 // each cron name" is fast.
 model CronRun {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   name       String
-  startedAt  DateTime @default(now()) @map("started_at")
+  startedAt  DateTime  @default(now()) @map("started_at")
   finishedAt DateTime? @map("finished_at")
-  success    Boolean  @default(false)
-  durationMs Int?     @map("duration_ms")
-  error      String?  @db.Text
-  metrics    Json?    // freeform metrics: { submitted: 50, dead: 32, alive: 18 } etc.
+  success    Boolean   @default(false)
+  durationMs Int?      @map("duration_ms")
+  error      String?   @db.Text
+  metrics    Json? // freeform metrics: { submitted: 50, dead: 32, alive: 18 } etc.
 
   @@index([name, startedAt(sort: Desc)])
   @@map("cron_runs")
@@ -1277,13 +1277,13 @@ model GscSnapshot {
 //   - sourceModel records which model generated it (for re-runs after upgrades)
 //   - approvedAt nullable — un-approved drafts won't render until human review
 model CitySnippet {
-  id           String    @id @default(cuid())
-  citySlug     String    @unique @map("city_slug")
-  body         String    @db.Text
-  sourceModel  String?   @map("source_model") // e.g. "claude-opus-4-7", "manual"
-  generatedAt  DateTime  @default(now()) @map("generated_at")
-  approvedAt   DateTime? @map("approved_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id          String    @id @default(cuid())
+  citySlug    String    @unique @map("city_slug")
+  body        String    @db.Text
+  sourceModel String?   @map("source_model") // e.g. "claude-opus-4-7", "manual"
+  generatedAt DateTime  @default(now()) @map("generated_at")
+  approvedAt  DateTime? @map("approved_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   @@index([approvedAt])
   @@map("city_snippets")
@@ -1388,22 +1388,22 @@ model AuditLog {
 // and writes ranked rows here. The "For you" UI on /candidate/dashboard reads
 // the latest batch via batchId. Click-through is captured via /api/recommendations/click.
 model CandidateRecommendation {
-  id           String    @id @default(cuid())
-  supabaseId   String    @map("supabase_id")
-  jobId        String    @map("job_id")
-  batchId      String    @map("batch_id")
-  rank         Int
-  similarity   Float
+  id          String    @id @default(cuid())
+  supabaseId  String    @map("supabase_id")
+  jobId       String    @map("job_id")
+  batchId     String    @map("batch_id")
+  rank        Int
+  similarity  Float
   /// Conversion-tier classification — 'easy_apply' | 'direct_apply' | 'external'.
   /// Source of truth lives in lib/ai/job-classifier.ts; recs cron persists it
   /// so the dashboard can render tier badges without a join back to Job.
-  tier         String    @default("external")
-  reason       String?
-  clickedAt    DateTime? @map("clicked_at")
-  dismissedAt  DateTime? @map("dismissed_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  tier        String    @default("external")
+  reason      String?
+  clickedAt   DateTime? @map("clicked_at")
+  dismissedAt DateTime? @map("dismissed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
-  job          Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([supabaseId, batchId, rank])
   @@index([supabaseId, jobId, createdAt(sort: Desc)])
@@ -1417,16 +1417,16 @@ model CandidateRecommendation {
 // (this table) > compiled default. An admin can disable any AI feature for
 // any (or every) tenant in <1 minute by inserting a row here.
 model AiFeatureFlagOverride {
-  id          String    @id @default(cuid())
-  flag        String                                          // e.g. 'ai.candidate.cover_letter'
-  tenantType  String    @map("tenant_type")                   // 'employer' | 'candidate' | 'admin' | 'global'
-  tenantId    String?   @map("tenant_id")                     // null when tenantType = 'global'
-  enabled     Boolean
-  reason      String?
-  setBy       String?   @map("set_by")
-  expiresAt   DateTime? @map("expires_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id         String    @id @default(cuid())
+  flag       String // e.g. 'ai.candidate.cover_letter'
+  tenantType String    @map("tenant_type") // 'employer' | 'candidate' | 'admin' | 'global'
+  tenantId   String?   @map("tenant_id") // null when tenantType = 'global'
+  enabled    Boolean
+  reason     String?
+  setBy      String?   @map("set_by")
+  expiresAt  DateTime? @map("expires_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   @@index([flag])
   @@index([expiresAt])
@@ -1439,13 +1439,13 @@ model AiFeatureFlagOverride {
 // modeled as Unsupported because Prisma 7 has no first-class pgvector type;
 // reads/writes go through $queryRaw helpers in lib/ai/vector-search.ts.
 model JobEmbedding {
-  jobId      String                       @id @map("job_id")
-  embedding  Unsupported("vector(1536)")
-  model      String                       @default("text-embedding-3-small")
-  inputHash  String                       @map("input_hash")
-  updatedAt  DateTime                     @default(now()) @map("updated_at")
+  jobId     String                      @id @map("job_id")
+  embedding Unsupported("vector(1536)")
+  model     String                      @default("text-embedding-3-small")
+  inputHash String                      @map("input_hash")
+  updatedAt DateTime                    @default(now()) @map("updated_at")
 
-  job        Job                          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([updatedAt(sort: Desc)])
   @@map("job_embeddings")
@@ -1454,11 +1454,11 @@ model JobEmbedding {
 // Phase 0 Sprint 0.3 — per-candidate embedding. No FK because embedding refresh
 // races with profile delete; orphan rows are cleaned by the lifecycle cron.
 model CandidateEmbedding {
-  supabaseId  String                       @id @map("supabase_id")
-  embedding   Unsupported("vector(1536)")
-  model       String                       @default("text-embedding-3-small")
-  inputHash   String                       @map("input_hash")
-  updatedAt   DateTime                     @default(now()) @map("updated_at")
+  supabaseId String                      @id @map("supabase_id")
+  embedding  Unsupported("vector(1536)")
+  model      String                      @default("text-embedding-3-small")
+  inputHash  String                      @map("input_hash")
+  updatedAt  DateTime                    @default(now()) @map("updated_at")
 
   @@index([updatedAt(sort: Desc)])
   @@map("candidate_embeddings")
@@ -1468,16 +1468,16 @@ model CandidateEmbedding {
 // scheduled run. The drift cron compares the latest mean_score to the 7-day
 // moving average and alerts on >10% drops. Append-only.
 model AiEvalSnapshot {
-  id             String   @id @default(cuid())
-  task           String
-  promptVersion  String   @map("prompt_version")
-  meanScore      Float    @map("mean_score")
-  passed         Int
-  totalCases     Int      @map("total_cases")
-  costUsd        Decimal  @default(0) @db.Decimal(12, 6) @map("cost_usd")
-  p95LatencyMs   Int      @default(0) @map("p95_latency_ms")
-  holdsBaseline  Boolean  @default(false) @map("holds_baseline")
-  createdAt      DateTime @default(now()) @map("created_at")
+  id            String   @id @default(cuid())
+  task          String
+  promptVersion String   @map("prompt_version")
+  meanScore     Float    @map("mean_score")
+  passed        Int
+  totalCases    Int      @map("total_cases")
+  costUsd       Decimal  @default(0) @map("cost_usd") @db.Decimal(12, 6)
+  p95LatencyMs  Int      @default(0) @map("p95_latency_ms")
+  holdsBaseline Boolean  @default(false) @map("holds_baseline")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   @@index([task, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
@@ -1517,12 +1517,12 @@ model AiCallLog {
 // (signed-out) callers get a hashed-cookie tenantId so the arm survives
 // across sessions for the same browser. See lib/ai/experiments.ts.
 model ExperimentAssignment {
-  id          String   @id @default(cuid())
-  experiment  String                                          // e.g. 'semantic_search.v1'
-  tenantType  String   @map("tenant_type")                    // 'employer' | 'candidate' | 'admin' | 'system'
-  tenantId    String   @map("tenant_id")
-  arm         String                                          // e.g. 'control' | 'treatment'
-  assignedAt  DateTime @default(now()) @map("assigned_at")
+  id         String   @id @default(cuid())
+  experiment String // e.g. 'semantic_search.v1'
+  tenantType String   @map("tenant_type") // 'employer' | 'candidate' | 'admin' | 'system'
+  tenantId   String   @map("tenant_id")
+  arm        String // e.g. 'control' | 'treatment'
+  assignedAt DateTime @default(now()) @map("assigned_at")
 
   @@unique([experiment, tenantType, tenantId], name: "experiment_assignment_unique_target")
   @@index([experiment, assignedAt(sort: Desc)])
@@ -1531,17 +1531,69 @@ model ExperimentAssignment {
 
 // Per-event log used to compute arm-level CTR / apply-rate. Append-only.
 model ExperimentEvent {
-  id          String   @id @default(cuid())
-  experiment  String
-  arm         String
-  tenantType  String   @map("tenant_type")
-  tenantId    String   @map("tenant_id")
-  eventType   String   @map("event_type")                     // 'impression' | 'click' | 'apply'
-  subjectId   String?  @map("subject_id")                     // e.g. job id for an apply event
-  metadata    Json?
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         String   @id @default(cuid())
+  experiment String
+  arm        String
+  tenantType String   @map("tenant_type")
+  tenantId   String   @map("tenant_id")
+  eventType  String   @map("event_type") // 'impression' | 'click' | 'apply'
+  subjectId  String?  @map("subject_id") // e.g. job id for an apply event
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([experiment, arm, eventType, createdAt(sort: Desc)])
   @@index([tenantType, tenantId, createdAt(sort: Desc)])
   @@map("experiment_event")
+}
+
+/// First-party attribution log for social-campaign short links (`/r/<code>`).
+/// One row per request after the route handler clears bot filtering, IP
+/// hashing, and rate limiting. Append-only — never updated, retention sweep
+/// runs via a cron job on `created_at`.
+///
+/// Privacy model:
+///   - `ip_hash`: sha256 of (client IP || daily-rotated salt). Same user on
+///     same day deduplicates; cross-day correlation is computationally hard.
+///   - `user_agent` / `referer`: truncated to 512 chars to bound row size
+///     and reduce fingerprint surface.
+///   - Honors DNT/GPC: those requests still resolve to a redirect but the
+///     row is dropped pre-insert (see lib/shortlinks/tracker.ts).
+///
+/// Bots: insert with `is_bot=true` and a `bot_name` label so analysts can
+/// see preview-card fetches separately. Real-click totals filter `is_bot=false`.
+model ShortLinkClick {
+  id              String   @id @default(cuid())
+  /// Short code as received from `/r/<code>` (lowercased before insert).
+  code            String
+  /// Campaign slug — keyed off `lib/shortlinks/campaigns.ts`. Frozen at
+  /// insert so renaming a campaign later doesn't rewrite history.
+  campaign        String
+  /// Resolved platform name (facebook, instagram, linkedin, x, reddit, threads).
+  platform        String
+  /// Per-job content slug (e.g. `resiliency-anaheim`). Frozen at insert.
+  content         String
+  /// Numeric id within the campaign config (0 = browse-all landing).
+  jobId           Int      @map("job_id")
+  /// Destination path the user was sent to (e.g. `/jobs/<slug>`). Stored
+  /// for forensics if a destination ever 404s after a campaign ships.
+  destinationPath String   @map("destination_path")
+  /// sha256 of (ip || daily salt). Null when no IP is available.
+  ipHash          String?  @map("ip_hash")
+  /// Truncated UA string. Null when absent.
+  userAgent       String?  @map("user_agent")
+  /// Truncated Referer. Null when absent or stripped by browser.
+  referer         String?
+  /// Two-letter country from Vercel/CloudFront edge headers.
+  country         String?  @db.VarChar(2)
+  /// True if a known link-preview / search crawler UA was detected.
+  isBot           Boolean  @default(false) @map("is_bot")
+  /// Short label for the matched bot family (e.g. `facebookexternalhit`).
+  botName         String?  @map("bot_name")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([campaign, platform, createdAt])
+  @@index([campaign, isBot, createdAt])
+  @@index([code, createdAt])
+  @@index([createdAt])
+  @@map("shortlink_clicks")
 }
