@@ -27,28 +27,32 @@ export async function GET() {
     });
 
     // Jobs added per day (last 7 days)
+    //
+    // H10 fix: previously `findMany` pulled every job from the last 7
+    // days into Node memory and reduced in JavaScript. On an active
+    // ingest pipeline that's thousands of rows pulled across the wire
+    // on every admin dashboard load. Now the aggregation runs as a
+    // single `date_trunc('day', ...) GROUP BY 1` in Postgres and
+    // returns at most 8 rows.
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const recentJobs = await prisma.job.findMany({
-      where: {
-        createdAt: { gte: sevenDaysAgo },
-        isPublished: true,
-      },
-      select: {
-        createdAt: true,
-        sourceProvider: true
-      },
-    });
+    const jobsByDayRows = await prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
+      SELECT
+        date_trunc('day', "created_at") AT TIME ZONE 'UTC' AS day,
+        COUNT(*)::bigint AS count
+      FROM "jobs"
+      WHERE "created_at" >= ${sevenDaysAgo}
+        AND "is_published" = true
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `;
 
-    // Group by day
-    const jobsByDay = recentJobs.reduce((acc: Record<string, number>, job: typeof recentJobs[number]) => {
-      const day = job.createdAt.toISOString().split('T')[0];
-      if (day) {
-        acc[day] = (acc[day] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
+    const jobsByDay: Record<string, number> = {};
+    for (const row of jobsByDayRows) {
+      const day = row.day.toISOString().split('T')[0];
+      if (day) jobsByDay[day] = Number(row.count);
+    }
 
     // Top employers by job count
     const allEmployers = await prisma.job.groupBy({

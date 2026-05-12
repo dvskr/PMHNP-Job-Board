@@ -377,10 +377,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    // Bind this Stripe session to the originating browser via a httpOnly
+    // cookie. /api/verify-checkout-session re-reads the cookie and only
+    // returns the employer dashboardToken when the cookie matches the
+    // session_id from the success-page query string. Without this binding
+    // anyone who learned a session_id (browser history, referer logs)
+    // could call verify and harvest the dashboard token.
+    const response = NextResponse.json({
       sessionId: session.id,
       url: session.url,
     });
+    response.cookies.set('pmhnp_checkout_session', session.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60, // 1 hour — covers the longest realistic checkout flow
+    });
+    return response;
   } catch (error) {
     logger.error('Error creating checkout session', error);
     // In dev, surface the underlying cause so we don't have to grep server logs.

@@ -58,9 +58,20 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    // If job not found, still return success (don't break the apply flow)
-    logger.error('Error tracking apply click:', error);
-    return NextResponse.json({ success: true });
+    // H4 fix: previously this returned `{ success: true }` on every failure,
+    // including Prisma "record not found" — which permanently dropped the
+    // apply-click analytic with a false-positive signal to the caller.
+    //
+    // New contract: report failure honestly with a 200-status JSON body
+    // (so the apply flow on the client doesn't break or surface a scary
+    // alert), but the response shape lets the client and observability
+    // distinguish a tracked apply from a swallowed one. The redirect to
+    // the employer's apply link is the user-visible action and never
+    // depended on this response.
+    const errCode = (error as { code?: string } | null)?.code ?? null;
+    const reason = errCode === 'P2025' ? 'job_not_found' : 'persist_failed';
+    logger.error('Error tracking apply click', error, { jobId: (await params).id, reason });
+    return NextResponse.json({ success: false, reason }, { status: 200 });
   }
 }
 

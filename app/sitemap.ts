@@ -207,12 +207,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-    // Top city pages (DB-driven, only active non-expired jobs)
+    // Top city pages (DB-driven, only active non-expired jobs).
+    //
+    // Bounded with `take: 2000` so cold-cache sitemap regeneration can't
+    // pull an unbounded city/state distribution into memory if the dataset
+    // grows. 2000 is well above the 28 city-eligible taxonomies × any
+    // plausible per-city threshold and still loads in milliseconds; pages
+    // beyond the cap are extremely thin (<3 jobs) and would be filtered
+    // out anyway by the downstream `_count.city >= 3` guard.
     const topCities = await prisma.job.groupBy({
       by: ['city', 'state'],
       where: { ...ACTIVE_JOB_WHERE, city: { not: null }, state: { not: null } },
       _count: { city: true },
       orderBy: { _count: { city: 'desc' } },
+      take: 2000,
     })
 
     const cityPages: MetadataRoute.Sitemap = topCities

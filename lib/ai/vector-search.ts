@@ -45,9 +45,19 @@ export interface SemanticJobSearchOptions {
  * Convert a JS number array to the pgvector literal string form. Necessary
  * because Prisma's parameter binding doesn't know how to serialize arrays as
  * `vector` — passing as text + casting `::vector` is the documented workaround.
+ *
+ * Hardening: every element is coerced through Number() and validated as a
+ * finite number. NaN / Infinity / non-numeric inputs all collapse to 0 so
+ * a malformed embedding can never become a string literal in the SQL that
+ * gets interpolated below. Pure defense-in-depth — embedding providers
+ * return finite floats today; this guarantees that property at the seam.
  */
 function toVectorLiteral(values: readonly number[]): string {
-    return `[${values.join(',')}]`;
+    const safe = values.map((v) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : 0;
+    });
+    return `[${safe.join(',')}]`;
 }
 
 interface JobSearchRow { job_id: string; distance: number }
@@ -113,9 +123,16 @@ export async function semanticJobSearch(
         ? `AND j.state_code = ANY($1::text[])`
         : '';
     const remoteFilter = options.remoteOnly ? `AND j.is_remote = true` : '';
-    const qualityFilter = typeof options.minQualityScore === 'number'
-        ? `AND j.quality_score >= ${Math.max(0, Math.floor(options.minQualityScore))}`
-        : '';
+    const qualityFilter = (() => {
+        // Guard against NaN / Infinity / negative values reaching the SQL
+        // string. `Math.floor(NaN)` is `NaN`, which would interpolate as
+        // the literal string "NaN" and cause Postgres to reject the
+        // query — a low-effort DoS vector before this clamp.
+        const raw = options.minQualityScore;
+        if (typeof raw !== 'number' || !Number.isFinite(raw)) return '';
+        const clamped = Math.max(0, Math.min(100, Math.floor(raw)));
+        return `AND j.quality_score >= ${clamped}`;
+    })();
 
     // We deliberately re-bind the vector via $queryRawUnsafe so the literal
     // works through Prisma's param marshaling. SQL injection isn't a risk

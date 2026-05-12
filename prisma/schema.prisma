@@ -1593,6 +1593,10 @@ model ShortLinkClick {
 
   @@index([campaign, platform, createdAt])
   @@index([campaign, isBot, createdAt])
+  // Supports the COUNT(DISTINCT ip_hash) WHERE campaign=? AND created_at
+  // BETWEEN ? AND ? query in the admin stats endpoint. Without this the
+  // distinct-IP roll-up filtered-table-scans on every dashboard load.
+  @@index([campaign, createdAt, ipHash])
   @@index([code, createdAt])
   @@index([createdAt])
   @@map("shortlink_clicks")

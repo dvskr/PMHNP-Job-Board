@@ -326,6 +326,53 @@ function isKnownCrawler(ua: string): boolean {
     return KNOWN_CRAWLER_UAS.some((p) => p.test(ua));
 }
 
+// ── In-process cache for middleware DB lookups ─────────────────────
+// H7 fix: every /jobs/<uuid> and /companies/<slug> request was making
+// a Supabase REST round-trip BEFORE the Next.js ISR cache layer ran.
+// At 10k+ bot req/hr that's 10k+ uncached fetches per hour AND a chunk
+// of the Supabase connection quota. Most of those requests are for the
+// same handful of recently-deleted URLs.
+//
+// This cache holds a small LRU-shaped map of `lookupKey → { gone, expiresAt }`
+// per Vercel function instance. Cold-start = cold cache; warm instances
+// answer in microseconds. 60s TTL means a recent 410 ruling stays sticky
+// for 60s — long enough to absorb a crawl burst, short enough that
+// re-publishing a job becomes visible within a minute.
+const MIDDLEWARE_CACHE_TTL_MS = 60_000;
+const MIDDLEWARE_CACHE_MAX = 500;
+
+interface CachedLookup {
+    gone: boolean;
+    expiresAt: number;
+}
+
+const middlewareLookupCache = new Map<string, CachedLookup>();
+
+function cacheLookupGet(key: string): CachedLookup | null {
+    const entry = middlewareLookupCache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+        middlewareLookupCache.delete(key);
+        return null;
+    }
+    // Bump recency by re-inserting (Map iteration order = insertion).
+    middlewareLookupCache.delete(key);
+    middlewareLookupCache.set(key, entry);
+    return entry;
+}
+
+function cacheLookupSet(key: string, gone: boolean): void {
+    if (middlewareLookupCache.size >= MIDDLEWARE_CACHE_MAX) {
+        // Evict oldest (insertion-order first key).
+        const oldest = middlewareLookupCache.keys().next().value;
+        if (oldest !== undefined) middlewareLookupCache.delete(oldest);
+    }
+    middlewareLookupCache.set(key, {
+        gone,
+        expiresAt: Date.now() + MIDDLEWARE_CACHE_TTL_MS,
+    });
+}
+
 // ── Strict-Consent Regions ─────────────────────────────────────────
 // Countries with explicit opt-in laws (GDPR / UK GDPR / FADP / CASL+PIPEDA /
 // LGPD / Privacy Act). Visitors from these regions get the consent banner
@@ -365,7 +412,20 @@ export async function middleware(request: NextRequest) {
         const uuidMatch = slug.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i);
         if (uuidMatch) {
             const jobId = uuidMatch[1];
-            try {
+            const cacheKey = `job:${jobId}`;
+            const cached = cacheLookupGet(cacheKey);
+            if (cached?.gone) {
+                return styled410({
+                    badge: 'Position Removed',
+                    heading: 'This position is no longer available',
+                    subtext: "This job listing has been permanently removed. Don't worry — we have hundreds of similar PMHNP positions open right now.",
+                    title: 'Position Removed — PMHNP Hiring',
+                });
+            }
+            // Cached "live" result short-circuits the DB call entirely.
+            if (cached && !cached.gone) {
+                // Fall through to normal pipeline — page handler will serve.
+            } else try {
                 // Lightweight edge-compatible check via Supabase REST API
                 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.PROD_SUPABASE_URL;
                 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.PROD_SUPABASE_SERVICE_ROLE_KEY;
@@ -383,6 +443,7 @@ export async function middleware(request: NextRequest) {
                         const rows = await res.json();
                         // Job doesn't exist OR is unpublished → 410 Gone
                         if (rows.length === 0 || !rows[0].is_published) {
+                            cacheLookupSet(cacheKey, true);
                             return styled410({
                                 badge: 'Position Removed',
                                 heading: 'This position is no longer available',
@@ -390,8 +451,11 @@ export async function middleware(request: NextRequest) {
                                 title: 'Position Removed — PMHNP Hiring',
                             });
                         }
+                        // Live — cache the negative so subsequent requests skip the round-trip.
+                        cacheLookupSet(cacheKey, false);
                     } else {
                         // Supabase responded with non-2xx — log so we can detect index/quota issues.
+                        // Do NOT cache the result; transient failures must be retried.
                         console.error('[middleware:job-410] Supabase non-OK response', { status: res.status, jobId });
                     }
                 }
@@ -429,7 +493,19 @@ export async function middleware(request: NextRequest) {
             } catch {
                 decodedSlug = rawSlug;
             }
-            try {
+            // H7 fix: hot company URLs (one per AhrefsBot crawl burst) get
+            // served from the in-process cache after the first miss. 60s TTL
+            // is fine — if jobs ARE added for a previously-empty company,
+            // they appear within a minute.
+            const cacheKey = `company:${decodedSlug}`;
+            const cached = cacheLookupGet(cacheKey);
+            if (cached?.gone) {
+                return gone410(`No employer page exists for "${decodedSlug}".`);
+            }
+            if (cached && !cached.gone) {
+                // Cached "live" — skip DB round-trips entirely.
+                // Falls through to the rest of the pipeline.
+            } else try {
                 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.PROD_SUPABASE_URL;
                 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.PROD_SUPABASE_SERVICE_ROLE_KEY;
                 if (supabaseUrl && supabaseKey) {
@@ -465,6 +541,7 @@ export async function middleware(request: NextRequest) {
                                 const totalMatch = contentRange.match(/\/(\d+)$/);
                                 const total = totalMatch ? parseInt(totalMatch[1], 10) : NaN;
                                 if (!Number.isNaN(total) && total === 0) {
+                                    cacheLookupSet(cacheKey, true);
                                     return styled410({
                                         badge: 'No Open Positions',
                                         heading: 'This employer has no current openings',
@@ -472,6 +549,9 @@ export async function middleware(request: NextRequest) {
                                         title: 'No Open Positions — PMHNP Hiring',
                                     });
                                 }
+                                // Live company with jobs — cache so the next
+                                // crawler hit skips both Supabase round-trips.
+                                cacheLookupSet(cacheKey, false);
                             }
                         } else {
                             // GSC Fix (P2.4): company slug doesn't match any Company.normalizedName
@@ -479,6 +559,7 @@ export async function middleware(request: NextRequest) {
                             // and submitted them as /companies/{slug}; many didn't match a real
                             // Company row → ~2,000+ zombie URLs in Google's index that 404'd.
                             // Returning 410 here de-indexes them in days vs months for 404s.
+                            cacheLookupSet(cacheKey, true);
                             return gone410(`No employer page exists for "${decodedSlug}".`);
                         }
                     }
