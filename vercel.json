@@ -61,6 +61,34 @@
       "schedule": "35 11,17 * * *"
     },
     {
+      "path": "/api/cron/ingest?source=usajobs",
+      "schedule": "45 11 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=ashby",
+      "schedule": "40 11 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=bamboohr",
+      "schedule": "50 11 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=jazzhr",
+      "schedule": "55 11 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workable",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=doccafe",
+      "schedule": "5 12 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=healthcareercenter",
+      "schedule": "10 12 * * *"
+    },
+    {
       "path": "/api/cron/ingest-wave-summary",
       "schedule": "50 12 * * *"
     },
@@ -115,6 +143,30 @@
     {
       "path": "/api/cron/ingest?source=smartrecruiters",
       "schedule": "35 0 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=ashby",
+      "schedule": "40 0 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=bamboohr",
+      "schedule": "45 0 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=jazzhr",
+      "schedule": "48 0 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workable",
+      "schedule": "52 0 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=doccafe",
+      "schedule": "53 0 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=healthcareercenter",
+      "schedule": "54 0 * * *"
     },
     {
       "path": "/api/cron/ingest-wave-summary",

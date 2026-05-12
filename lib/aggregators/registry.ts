@@ -20,6 +20,13 @@ import { leverAggregator } from './lever';
 import { workdayAggregator } from './workday';
 import { fantasticJobsDbAggregator } from './fantastic-jobs-db';
 import { smartRecruitersAggregator } from './smartrecruiters';
+import { usaJobsAggregator } from './usajobs';
+import { ashbyAggregator } from './ashby';
+import { bambooHrAggregator } from './bamboohr';
+import { jazzHrAggregator } from './jazzhr';
+import { workableAggregator } from './workable';
+import { docCafeAggregator } from './doccafe';
+import { healthCareerCenterAggregator } from './healthcareercenter';
 
 // ats-jobs-db decommissioned 2026-05-06: live-fetch analysis showed
 // only 3/171 (2%) of returned jobs were PMHNP-relevant, and 90% were
@@ -35,4 +42,11 @@ export const aggregators: Record<JobSource, Aggregator> = {
     workday: workdayAggregator,
     'fantastic-jobs-db': fantasticJobsDbAggregator,
     smartrecruiters: smartRecruitersAggregator,
+    usajobs: usaJobsAggregator,
+    ashby: ashbyAggregator,
+    bamboohr: bambooHrAggregator,
+    jazzhr: jazzHrAggregator,
+    workable: workableAggregator,
+    doccafe: docCafeAggregator,
+    healthcareercenter: healthCareerCenterAggregator,
 };

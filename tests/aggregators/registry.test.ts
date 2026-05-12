@@ -15,6 +15,13 @@ describe('aggregator registry', () => {
         'workday',
         'fantastic-jobs-db',
         'smartrecruiters',
+        'usajobs',
+        'ashby',
+        'bamboohr',
+        'jazzhr',
+        'workable',
+        'doccafe',
+        'healthcareercenter',
     ];
 
     it('registry contains every JobSource', () => {

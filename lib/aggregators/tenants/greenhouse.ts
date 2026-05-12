@@ -76,6 +76,21 @@ export const GREENHOUSE_SLUGS: readonly string[] = [
     // octave, growtherapy, springhealth66, prenuvo, riviamind, skildai-careers,
     // purposemed, silvus-international-opportunites, walleyecapital-external-students
     // If any restart producing, re-add to the list above.
+
+    // ── ADDED 2026-05-12 — prod DB discovery (scripts/discover-ats-tenants-from-db.ts) ──
+    // Surfaced from rejected_jobs.applyLink, then live-probed via
+    // scripts/probe-greenhouse-smartrecruiters-candidates.ts. Each
+    // confirmed HTTP 200 with ≥1 live PMHNP-relevant title at probe.
+    'riviamind1',                              // 2 PMHNP / 11 live (110 historical) — replaces dropped 'riviamind'
+    'joinaffect',                              // 9 / 33 live
+    'familywell',                              // 3 / 12 live
+    'telemed2u',                               // 1 / 12 live
+    'onepeakmedical',                          // 1 / 22 live
+    'psychiatricproviders',                    // 1 / 3 live
+
+    // ── ADDED 2026-05-12 — live boards, monitoring for PMHNP ──
+    'mind247',                                 // 5 jobs live / 0 PMHNP at probe (18 historical)
+    'eliotcommunityhumanservices',             // 172 jobs live / 0 PMHNP at probe (community MH)
 ];
 
 export const GREENHOUSE_NAMES: Record<string, string> = {
@@ -175,4 +190,14 @@ export const GREENHOUSE_NAMES: Record<string, string> = {
     'charliehealth': 'Charlie Health',
     'foresightmentalhealth': 'Foresight Mental Health',
     'carrumhealth': 'Carrum Health',
+
+    // Added 2026-05-12 — prod DB discovery
+    'riviamind1': 'Rivia Mind',
+    'joinaffect': 'Affect',
+    'familywell': 'FamilyWell',
+    'telemed2u': 'TeleMed2U',
+    'onepeakmedical': 'OnePeak Medical',
+    'psychiatricproviders': 'WellPower',
+    'mind247': 'MIND 24-7',
+    'eliotcommunityhumanservices': 'Eliot Community Human Services',
 };

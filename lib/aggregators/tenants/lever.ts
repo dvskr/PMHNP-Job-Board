@@ -63,6 +63,12 @@ export const LEVER_SLUGS: readonly string[] = [
 
     // === ADDED 2026-03-10 — Phase 3 expansion ===
     'mindbloom',           // Mindbloom — ketamine-assisted therapy
+
+    // === ADDED 2026-05-12 — prod DB discovery (rejected_jobs.applyLink mining) ===
+    // Slugs with dots are legitimate Lever convention for some orgs.
+    'headlight.health',    // Headlight — 13 PMHNP / 30 total at probe
+    'willowhealth.com',    // Willow Health — 5 PMHNP / 9 total
+    'ultrahealthproviders',// Ultra Health — 3 PMHNP / 15 total
 ];
 
 export const LEVER_NAMES: Record<string, string> = {
@@ -109,4 +115,9 @@ export const LEVER_NAMES: Record<string, string> = {
 
     // Added 2026-03-10 (Phase 3 expansion)
     'mindbloom': 'Mindbloom',
+
+    // Added 2026-05-12 (prod DB discovery)
+    'headlight.health': 'Headlight',
+    'willowhealth.com': 'Willow Health',
+    'ultrahealthproviders': 'Ultra Health',
 };

@@ -26,4 +26,12 @@ export const SMARTRECRUITERS_TENANTS: readonly SmartRecruitersTenant[] = [
     { slug: 'internationalsosgovernmentmedicalservices', name: 'International SOS' },     // 598 total
     { slug: 'kittitasvalleyhealthcare', name: 'Kittitas Valley Healthcare' },             // 63 total
     { slug: 'mascmedicalrecruitmentfirm', name: 'MASC Medical' },                         // 82 total
+
+    // === ADDED 2026-05-12 — prod DB discovery (scripts/discover-ats-tenants-from-db.ts) ===
+    // Live boards confirmed via scripts/probe-greenhouse-smartrecruiters-candidates.ts.
+    { slug: 'ahrcnyc1', name: 'AHRC NYC' },                                                // 1/72 live (24 historical)
+    { slug: 'smitharnoldpartners', name: 'Smith Arnold Partners' },                        // 7/10 live — recruiter firm
+    { slug: 'vericare', name: 'Vericare' },                                                // 1/2 live
+    { slug: 'covista', name: 'Covista' },                                                  // 302 total / 0 PMHNP at probe (35 historical) — monitor
+    { slug: 'northwesternmedicine', name: 'Northwestern Memorial Healthcare' },            // 1213 total / 0 PMHNP at probe (31 historical) — monitor
 ];
