@@ -60,6 +60,11 @@ export const RATE_LIMITS = {
     publicCompany: { limit: 60, windowSeconds: 60 },
     /** DSAR submission: 3 per hour per IP — privacy requests don't burst */
     dataRequest: { limit: 3, windowSeconds: 3600 },
+    /** Short-link redirects (/r/<code>): 120 req/min per IP. Real social
+     *  clicks come in bursts when a post lands, but no human taps the same
+     *  link 100×/min — the cap exists to bound abuse of the redirect as a
+     *  free 302 proxy, not to throttle organic engagement. */
+    shortlinkRedirect: { limit: 120, windowSeconds: 60 },
 } as const;
 
 // --- Redis Backend Setup ---

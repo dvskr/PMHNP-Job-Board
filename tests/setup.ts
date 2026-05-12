@@ -126,7 +126,36 @@ vi.mock('@/lib/prisma', () => {
                 updateMany: vi.fn(),
                 deleteMany: vi.fn(),
             },
+            shortLinkClick: {
+                findFirst: vi.fn(),
+                findMany: vi.fn(),
+                create: vi.fn(),
+                count: vi.fn(),
+                groupBy: vi.fn(),
+                deleteMany: vi.fn(),
+            },
             $queryRaw: vi.fn(),
+        },
+    };
+});
+
+// Mock Sentry — its real getEnv() pulls SUPABASE_SERVICE_ROLE_KEY / CRON_SECRET
+// which aren't set in unit tests. Stub the surface the codebase uses.
+vi.mock('@/lib/sentry', () => {
+    return {
+        initSentry: vi.fn(),
+        captureException: vi.fn(),
+        captureMessage: vi.fn(),
+        setUser: vi.fn(),
+        addBreadcrumb: vi.fn(),
+        withSentry: <T extends (...args: unknown[]) => Promise<unknown>>(fn: T) => fn,
+        default: {
+            init: vi.fn(),
+            captureException: vi.fn(),
+            captureMessage: vi.fn(),
+            setUser: vi.fn(),
+            addBreadcrumb: vi.fn(),
+            withSentry: <T extends (...args: unknown[]) => Promise<unknown>>(fn: T) => fn,
         },
     };
 });
