@@ -528,6 +528,11 @@ const SOURCE_CONFIGS: Record<string, Partial<SourceFieldConfig>> = {
   workday: { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
   'fantastic-jobs-db': { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
   'ats-jobs-db': { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+  usajobs: { employer: ['employer'], datePosted: ['postedAt'], defaultEmployer: 'Federal Government', defaultLocation: 'United States' },
+  bamboohr: { employer: ['employer', 'company'], datePosted: ['postedAt', 'postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+  workable: { employer: ['employer', 'company'], datePosted: ['postedAt', 'postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+  doccafe: { employer: ['employer', 'company'], datePosted: ['postedAt', 'postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+  healthcareercenter: { employer: ['employer', 'company'], datePosted: ['postedAt', 'postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
 };
 
 function getConfig(source: string): SourceFieldConfig {

@@ -26,7 +26,14 @@ export type JobSource =
     | 'lever'
     | 'workday'
     | 'fantastic-jobs-db'
-    | 'smartrecruiters';
+    | 'smartrecruiters'
+    | 'usajobs'
+    | 'ashby'
+    | 'bamboohr'
+    | 'jazzhr'
+    | 'workable'
+    | 'doccafe'
+    | 'healthcareercenter';
 
 /**
  * Canonical raw-job shape produced by adapters and consumed by the

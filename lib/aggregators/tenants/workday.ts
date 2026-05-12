@@ -129,4 +129,37 @@ export const WORKDAY_TENANTS: readonly WorkdayTenant[] = [
 
     // === ADDED 2026-03-11 — Mined from ats-jobs-db apply links in production DB ===
     { slug: 'benefis', instance: 1, site: 'BHS', name: 'Benefis Health System' },
+
+    // === ADDED 2026-05-12 — prod DB re-discovery after Workday URL-parser fix ===
+    // 25 tenants surfaced once the discover script stopped mis-parsing
+    // `en-US` (locale) as the career-site path. Each verified live via
+    // scripts/probe-workday-candidates.ts — HTTP 200 with substantial
+    // job inventories. Historical PMHNP counts come from rejected_jobs
+    // applyLinks the existing pipeline rejected pre-config (i.e. real
+    // demand we were missing).
+    { slug: 'ummc', instance: 5, site: 'UMCCareers', name: 'University of Mississippi Medical Center' },           // 58 hist / 470 live
+    { slug: 'wustl', instance: 1, site: 'External', name: 'Washington University in St. Louis' },                   // 42 / 569
+    { slug: 'stars', instance: 1, site: 'Search', name: 'Stars Behavioral Health Group' },                          // 30 / 105
+    { slug: 'pmpediatrics', instance: 5, site: 'BehavioralHealth', name: 'PM Pediatrics (Behavioral Health)' },     // 28 / 13
+    { slug: 'communicarehealth', instance: 1, site: 'CHSExternalCareerSite', name: 'CommuniCare Health Services' },// 25 / 2000
+    { slug: 'tamus', instance: 1, site: 'System-wide_External', name: 'Texas A&M System-wide' },                    // 24 / 663 (additional TAMU site)
+    { slug: 'nyp', instance: 1, site: 'nypcareers', name: 'NewYork-Presbyterian Hospital' },                        // 23 / 362
+    { slug: 'ummh', instance: 1, site: 'Careers', name: 'UMass Memorial Health' },                                  // 21 / 960
+    { slug: 'musc', instance: 1, site: 'MUSC', name: 'Medical University of South Carolina' },                      // 17 / 2000
+    { slug: 'bilh', instance: 1, site: 'External', name: 'Beth Israel Lahey Health' },                              // 16 / 1880
+    { slug: 'lvhn', instance: 1, site: 'LVHN', name: 'Lehigh Valley Health Network' },                              // 16 / 957
+    { slug: 'methodisthealth', instance: 5, site: 'MLH', name: 'Methodist Le Bonheur Healthcare' },                 // 15 / 615
+    { slug: 'stelizabeth', instance: 115, site: 'StElizabethExternalCareerSite', name: 'St. Elizabeth Healthcare' },// 15 / 288
+    { slug: 'baptistjax', instance: 1, site: 'External_Careers', name: 'Baptist Health (Jacksonville)' },           // 15 / 661
+    { slug: 'searhc', instance: 5, site: 'SEARHC', name: 'SEARHC' },                                                // 15 / 246
+    { slug: 'nus', instance: 1, site: 'Careers', name: 'National University' },                                     // 14 / 55
+    { slug: 'broadlawns', instance: 501, site: 'Broadlawns_Careers', name: 'Broadlawns Medical Center' },           // 14 / 72
+    { slug: 'hendricks', instance: 1, site: 'Hendricks_External_Career_Site', name: 'Hendricks Regional Health' },  // 13 / 86
+    { slug: 'waverlyhealthcenter', instance: 12, site: 'WHC', name: 'Waverly Health Center' },                      // 13 / 42
+    { slug: 'altru', instance: 503, site: 'careers', name: 'Altru Health System' },                                 // 13 / 140
+    { slug: 'olemiss', instance: 12, site: 'External__Staff', name: 'University of Mississippi' },                  // 12 / 54
+    { slug: 'wgu', instance: 5, site: 'External', name: 'Western Governors University' },                           // 11 / 98
+    { slug: 'mhctn', instance: 12, site: 'mhc_careers', name: 'Mental Health Cooperative' },                        // 10 / 66
+    { slug: 'cascadia', instance: 12, site: 'cascadiahealth', name: 'Cascadia Health' },                            // 10 / 62
+    { slug: 'marywashingtonhealthcare', instance: 5, site: 'Externalcareers', name: 'Mary Washington Healthcare' },// 9 / 300
 ];
