@@ -66,8 +66,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           orderBy: { createdAt: 'desc' },
         });
 
-    if (!charge?.stripePaymentIntentId) {
-      return NextResponse.json({ error: 'No payment intent on file — cannot resolve receipt' }, { status: 404 });
+    if (!charge) {
+      return NextResponse.json({ error: 'No charge on file — cannot resolve receipt' }, { status: 404 });
     }
 
     const stripe = getStripe();
@@ -75,23 +75,36 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
     }
 
-    // PaymentIntent → latest_charge → receipt_url. Stripe's receipt URL
-    // is the canonical "Paid" page for the charge; safe to hand to the
-    // browser regardless of invoice state.
-    const pi = await stripe.paymentIntents.retrieve(charge.stripePaymentIntentId, {
-      expand: ['latest_charge'],
-    });
-    const latestCharge =
-      typeof pi.latest_charge === 'object' && pi.latest_charge !== null
-        ? (pi.latest_charge as Stripe.Charge)
-        : null;
-    const receiptUrl = latestCharge?.receipt_url ?? null;
+    // 2026-05-15: redirect to `hosted_invoice_url` instead of
+    // `charge.receipt_url`.
+    //
+    // `charge.receipt_url` is an HTML-only Stripe-hosted page (per
+    // Stripe docs). It shows "Paid" with payment method but offers
+    // no download — the user can only view it in browser.
+    //
+    // `hosted_invoice_url` is the Stripe-hosted invoice page that's
+    // *also* state-aware (shows "Invoice paid $X") but exposes two
+    // download buttons: "Download invoice" (PDF) and "Download receipt"
+    // (PDF). Clicking either triggers a real PDF download via Stripe's
+    // own UI, so we don't need to host PDF rendering ourselves.
+    //
+    // Prefer the live URL from Stripe over the cached one — that way
+    // if the invoice state changed (paid → refunded) the user sees
+    // the current state, not a stale token.
+    const inv = charge.stripeInvoiceId
+      ? await stripe.invoices.retrieve(charge.stripeInvoiceId).catch(() => null)
+      : null;
+    const hostedUrl =
+      inv?.hosted_invoice_url ?? charge.hostedInvoiceUrl ?? null;
 
-    if (!receiptUrl) {
-      return NextResponse.json({ error: 'Stripe has not generated a receipt for this charge yet.' }, { status: 404 });
+    if (!hostedUrl) {
+      return NextResponse.json(
+        { error: 'No Stripe-hosted invoice/receipt page for this charge.' },
+        { status: 404 },
+      );
     }
 
-    return NextResponse.redirect(receiptUrl, { status: 302 });
+    return NextResponse.redirect(hostedUrl, { status: 302 });
   } catch (error) {
     logger.error('Error resolving receipt URL', error);
     return NextResponse.json({ error: 'Failed to resolve receipt URL' }, { status: 500 });
