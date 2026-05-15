@@ -15,6 +15,7 @@ import { formatDisplaySalary } from '@/lib/salary-display';
 import { computeQualityScore } from '@/lib/utils/quality-score';
 import { parseLocation } from '@/lib/location-parser';
 import { summarizeForMeta } from '@/lib/description-cleaner';
+import { normalizeExperienceFromInput } from '@/lib/experience-label';
 
 class FreeQuotaExceededError extends Error {
   constructor(public readonly usedCount: number) {
@@ -54,6 +55,10 @@ export async function POST(request: NextRequest) {
       setting,
       population,
       companyLogoUrl,
+      minYearsExperience,
+      maxYearsExperience,
+      newGradFriendly,
+      experienceQualifier,
     } = body;
 
     const missingFields = [];
@@ -171,44 +176,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // DUPLICATE CHECK
-    // Check for existing active jobs for this employer to prevent accidental double-posting
-    const existingEmployerJobs = await prisma.employerJob.findMany({
-      where: {
-        contactEmail: sanitized.contactEmail,
-      },
-      include: {
-        job: true,
-      },
-    });
-
-    const normalizedTitle = sanitized.title.trim().toLowerCase();
-    const normalizedLocation = sanitized.location.trim().toLowerCase();
-    const now = new Date();
-
-    const duplicateJob = existingEmployerJobs.find((ej) => {
-      const job = ej.job;
-      // Only check active, published jobs
-      if (!job.isPublished || !job.expiresAt || new Date(job.expiresAt) < now) {
-        return false;
-      }
-
-      const existingTitle = job.title.trim().toLowerCase();
-      const existingLocation = job.location.trim().toLowerCase();
-
-      return existingTitle === normalizedTitle && existingLocation === normalizedLocation;
-    });
-
-    if (duplicateJob) {
-      return NextResponse.json(
-        {
-          error: 'You already have an active posting for this role',
-          editLink: `/jobs/edit/${duplicateJob.editToken}`
-        },
-        { status: 409 }
-      );
-    }
-
     // Generate unique tokens
     const editToken = crypto.randomBytes(32).toString('hex');
     const dashboardToken = crypto.randomBytes(32).toString('hex');
@@ -229,6 +196,17 @@ export async function POST(request: NextRequest) {
       return (Number.isFinite(val) && !Number.isNaN(val)) ? val : null;
     })();
     const parsedSalaryPeriod = sanitized.salaryPeriod || null;
+    // Server-side sanitize the free-text qualifier first, then hand the
+    // pre-sanitized value to the structural normalizer. Caller is
+    // authoritative — client-provided experienceLabel is ignored.
+    const sanitizedQualifier = typeof experienceQualifier === 'string'
+      ? sanitizeText(experienceQualifier, 80) || null
+      : null;
+    const experienceFields = normalizeExperienceFromInput({
+      minYearsExperience,
+      newGradFriendly,
+      experienceQualifier: sanitizedQualifier,
+    });
 
     // Normalize salary data for filtering and display
     const normalizedSalary = normalizeSalary({
@@ -316,6 +294,11 @@ export async function POST(request: NextRequest) {
             benefits: Array.isArray(benefits) ? benefits : [],
             setting: setting || null,
             population: population || null,
+            minYearsExperience: experienceFields.minYearsExperience,
+            maxYearsExperience: experienceFields.maxYearsExperience,
+            newGradFriendly: experienceFields.newGradFriendly,
+            experienceQualifier: experienceFields.experienceQualifier,
+            experienceLabel: experienceFields.experienceLabel,
           },
         });
 

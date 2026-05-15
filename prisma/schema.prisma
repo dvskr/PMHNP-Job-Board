@@ -15,7 +15,30 @@ model Job {
   location                 String
   jobType                  String?                   @map("job_type")
   mode                     String?
+  // ─── Experience requirements ───
+  // Legacy free-text level ("New Grad" / "Mid-Level" / "Senior") — frozen
+  // 2026-05-13; new writes go to the structured fields below. Retained as
+  // a read-only fallback for rows the backfill script (scripts/backfill-
+  // experience.ts) can't classify confidently.
   experienceLevel          String?                   @map("experience_level")
+  // Structured experience: min/max drive filtering + Schema.org's
+  // JobPosting.experienceRequirements.monthsOfExperience (= min × 12).
+  // Buckets used by the post-job picker: 0, 1, 2, 5, 7, 10.
+  minYearsExperience       Int?                      @map("min_years_experience")
+  maxYearsExperience       Int?                      @map("max_years_experience")
+  // Independent flag — set when the employer is open to new grads even
+  // if minYearsExperience > 0 (e.g. "5+ yrs, but exceptional new grads
+  // welcome"). Drives the candidate-side "Open to new grads" filter.
+  newGradFriendly          Boolean                   @default(false) @map("new_grad_friendly")
+  // Optional 80-char employer note, JD page only — never on the JobCard.
+  // Captures nuance the structured fields can't ("psych ICU background
+  // strongly preferred", "willing to train motivated candidates").
+  experienceQualifier      String?                   @map("experience_qualifier") @db.VarChar(80)
+  // AUTO-GENERATED display label, derived from the three structured
+  // fields above by lib/experience-label.ts.deriveExperienceLabel().
+  // Used on JobCard chips and filter pills. Never edited by the employer
+  // directly; regenerated at write time and during the P0.4 backfill.
+  experienceLabel          String?                   @map("experience_label")
   description              String
   descriptionSummary       String?                   @map("description_summary")
   salaryRange              String?                   @map("salary_range")
@@ -48,6 +71,11 @@ model Job {
   unpublishReasonNote      String?                   @map("unpublish_reason_note") @db.Text
   unpublishedAt            DateTime?                 @map("unpublished_at")
   archivedAt               DateTime?                 @map("archived_at")
+  // Phase 3 #21 — employer-controlled "refresh" timestamp used by the
+  // weekly-digest cron to gate which jobs are eligible to be re-sent
+  // to candidates. Default value mirrors createdAt at insert time;
+  // employers can bump it via the dashboard renew flow.
+  lastRenewedAt            DateTime?                 @map("last_renewed_at")
   isVerifiedEmployer       Boolean                   @default(false) @map("is_verified_employer")
   benefits                 String[]                  @default([])
   setting                  String?                   @map("clinical_setting")
@@ -108,6 +136,9 @@ model Job {
   // GIN index for fast `categoryTags has 'X'` queries that drive every
   // taxonomy×city and taxonomy×state page after P9 swap.
   @@index([categoryTags], type: Gin)
+  // Composite for the two most common experience filters
+  // (/jobs?newGrad=true and /jobs?minExperience=5).
+  @@index([newGradFriendly, minYearsExperience])
   @@map("jobs")
 }
 
@@ -187,27 +218,32 @@ model EmailLead {
 }
 
 model JobAlert {
-  id                String    @id @default(cuid())
-  email             String
-  name              String?
-  keyword           String?
-  location          String?
-  mode              String?
-  jobType           String?   @map("job_type")
-  minSalary         Int?      @map("min_salary")
-  maxSalary         Int?      @map("max_salary")
-  frequency         String    @default("weekly")
+  id                 String    @id @default(cuid())
+  email              String
+  name               String?
+  keyword            String?
+  location           String?
+  mode               String?
+  jobType            String?   @map("job_type")
+  minSalary          Int?      @map("min_salary")
+  maxSalary          Int?      @map("max_salary")
+  // Phase 5 alignment with Phase 1's experience filter (lib/experience-label.ts).
+  // null = no preference. When set, the digest cron only includes
+  // jobs the alert recipient would qualify for.
+  newGradFriendly    Boolean?  @map("new_grad_friendly")
+  minYearsExperience Int?      @map("min_years_experience_filter")
+  frequency          String    @default("weekly")
   // Double opt-in (CASL / GDPR best practice). New rows start with
   // is_active = false and confirmed_at = null. The send-alerts cron
   // only fires for confirmed alerts. Flipped by /api/job-alerts/confirm.
-  isActive          Boolean   @default(false) @map("is_active")
-  confirmedAt       DateTime? @map("confirmed_at")
-  confirmationToken String?   @unique @default(cuid()) @map("confirmation_token")
-  lastSentAt        DateTime? @map("last_sent_at")
-  token             String    @unique @default(cuid())
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  emailLead         EmailLead @relation(fields: [email], references: [email])
+  isActive           Boolean   @default(false) @map("is_active")
+  confirmedAt        DateTime? @map("confirmed_at")
+  confirmationToken  String?   @unique @default(cuid()) @map("confirmation_token")
+  lastSentAt         DateTime? @map("last_sent_at")
+  token              String    @unique @default(cuid())
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  emailLead          EmailLead @relation(fields: [email], references: [email])
 
   @@index([email])
   @@index([token])
@@ -313,11 +349,26 @@ model SiteStat {
   @@map("site_stats")
 }
 
+/// In-progress post-job form state.
+///
+/// 2026-05-14 — migrated from email-anchored ("save + email me a resume
+/// link") to auth-anchored ("auto-saved to my account, visible in the
+/// employer dashboard"). The `email` and `resumeToken` columns are kept
+/// nullable purely for back-compat with rows created before the cutover;
+/// new rows are upserted by `userId` and don't populate the email/token.
+///
+/// One draft per user enforced via the unique index on userId. Auto-save
+/// from the post-job page hits the POST endpoint every ~2s after a
+/// field change — the row is overwritten in place.
 model JobDraft {
   id          String   @id @default(cuid())
-  email       String
+  // Authenticated owner. Null only for legacy (pre-2026-05-14) rows
+  // surfaced via the deprecated email-token flow. New drafts always
+  // carry this; the API rejects unauthenticated saves.
+  userId      String?  @unique @map("user_id")
+  email       String?
   formData    Json     @map("form_data")
-  resumeToken String   @unique @default(cuid()) @map("resume_token")
+  resumeToken String?  @unique @default(cuid()) @map("resume_token")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   expiresAt   DateTime @map("expires_at")
@@ -414,6 +465,44 @@ model EmployerLead {
   @@index([companyName])
   @@index([contactEmail])
   @@map("employer_leads")
+}
+
+// Program directors at PMHNP graduate programs. Distribution-side leads —
+// distinct from EmployerLead (demand-side) because the campaign motion,
+// status state machine, and offer (free jobs widget) differ.
+// Seeded from APNA Graduate Programs Directory (2026-05). See
+// docs/runbooks/program-directors-campaign.md.
+model ProgramDirectorLead {
+  id                 String    @id @default(uuid())
+  state              String
+  tier               String // "Tier 1" | "Tier 2" | "Tier 3"
+  universityName     String    @map("university_name")
+  directorName       String?   @map("director_name")
+  email              String?
+  emailStatus        String?   @map("email_status") // "Valid" | "Needs Verification" | null
+  phone              String?
+  programTypes       String?   @map("program_types") // "DNP; MSN; PMHNP; ..."
+  distanceEducation  String?   @map("distance_education")
+  programWebsiteUrl  String?   @map("program_website_url")
+  linkedInUrl        String?   @map("linkedin_url")
+  cohortSize         Int?      @map("cohort_size")
+  graduationMonth    String?   @map("graduation_month")
+  // not_contacted | wave1_sent | replied | booked | installed | declined | bounced | no_response
+  outreachStatus     String    @default("not_contacted") @map("outreach_status")
+  notes              String?
+  lastContactedAt    DateTime? @map("last_contacted_at")
+  nextFollowUpAt     DateTime? @map("next_follow_up_at")
+  widgetInstalled    Boolean   @default(false) @map("widget_installed")
+  widgetInstalledUrl String?   @map("widget_installed_url") // the .edu page hosting it
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@unique([universityName, directorName], map: "program_director_leads_university_director_uq")
+  @@index([outreachStatus])
+  @@index([tier])
+  @@index([state])
+  @@index([email])
+  @@map("program_director_leads")
 }
 
 model UserProfile {
@@ -1484,6 +1573,33 @@ model AiEvalSnapshot {
   @@map("ai_eval_snapshot")
 }
 
+/// Employer-saved JD templates. Surfaced as the "My Templates" category
+/// in the post-job template picker (lib/jd-templates.ts + components/
+/// post-job/JdStarterPanel.tsx). Mirrors the saved-JD pattern from
+/// Workable/Greenhouse — each employer keeps their own library of
+/// finished or near-finished JDs they want to reuse across postings.
+///
+/// Scoping decisions:
+///   - Per-user, not per-organization. Adding org-level sharing later
+///     would mean a `companyId` column and a permissions check; out of
+///     scope for first ship.
+///   - 20 templates per employer is the soft cap, enforced in the
+///     POST route.
+///   - Body stored as the same Quill-compatible HTML the form already
+///     produces, so save/restore is a verbatim copy with no re-parsing.
+model JdTemplate {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  label     String   @db.VarChar(120)
+  summary   String?  @db.VarChar(300)
+  body      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("jd_templates")
+}
+
 // Phase 0 Sprint 0.1 — every LLM Gateway call writes one row here. Powers the
 // cost / latency / error dashboards (Sprint 0.4) and eval drift cron (Sprint
 // 0.2). Best-effort writes from lib/ai/cost-tracker.ts. Append-only.
@@ -1589,6 +1705,12 @@ model ShortLinkClick {
   isBot           Boolean  @default(false) @map("is_bot")
   /// Short label for the matched bot family (e.g. `facebookexternalhit`).
   botName         String?  @map("bot_name")
+  /// Per-recipient attribution token from `?r=<lead_id>` on the inbound
+  /// URL. Loose coupling — not a FK — because we expect multiple lead
+  /// types (ProgramDirectorLead, EmployerLead, …) over time. Validated
+  /// for shape (alphanumeric+hyphen, ≤64 chars) at the route handler;
+  /// rows without a recipient (organic social clicks) leave this null.
+  recipientLeadId String?  @map("recipient_lead_id")
   createdAt       DateTime @default(now()) @map("created_at")
 
   @@index([campaign, platform, createdAt])
@@ -1599,5 +1721,8 @@ model ShortLinkClick {
   @@index([campaign, createdAt, ipHash])
   @@index([code, createdAt])
   @@index([createdAt])
+  // Per-recipient funnel queries — "did lead X click any link in this
+  // campaign yet?" — without this index the lookup full-scans the table.
+  @@index([recipientLeadId, createdAt])
   @@map("shortlink_clicks")
 }

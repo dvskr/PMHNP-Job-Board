@@ -52,6 +52,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
                     state: true, isRemote: true, isHybrid: true,
                     displaySalary: true, slug: true, isFeatured: true,
                     descriptionSummary: true,
+                    // Phase 1 experience chip
+                    experienceLabel: true, newGradFriendly: true,
                 },
             },
         },

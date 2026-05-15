@@ -5,6 +5,7 @@ import { Metadata } from 'next';
 import { requireEmployer } from '@/lib/auth/protect';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import EmployerDashboardClient from '@/components/employer/EmployerDashboardClient';
+import UnfinishedPostBanner from '@/components/employer/UnfinishedPostBanner';
 
 export const metadata: Metadata = {
     title: 'Employer Dashboard',
@@ -79,6 +80,12 @@ export default async function EmployerDashboardPage() {
                 { name: 'Home', url: 'https://pmhnphiring.com' },
                 { name: 'Employer Dashboard', url: 'https://pmhnphiring.com/employer/dashboard' },
             ]} />
+            {/* Unfinished-post banner — fetches the auth-anchored draft
+                client-side and renders a Resume + Discard pair when one
+                exists. Quiet when no draft (no flash on most visits). */}
+            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px 0' }}>
+                <UnfinishedPostBanner />
+            </div>
             <EmployerDashboardClient
                 employerEmail={user.email}
                 employerName={employerName}

@@ -63,7 +63,11 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'adolescent psychiatr', mode: 'insensitive' } },
   ],
   'community-health': [
-    { title: { contains: 'community', mode: 'insensitive' } },
+    { title: { contains: 'community health', mode: 'insensitive' } },
+    { title: { contains: 'community mental health', mode: 'insensitive' } },
+    { title: { contains: 'community clinic', mode: 'insensitive' } },
+    { title: { contains: 'community psychiatry', mode: 'insensitive' } },
+    { title: { contains: 'community based', mode: 'insensitive' } },
     { title: { contains: 'FQHC', mode: 'insensitive' } },
     { title: { contains: 'public health', mode: 'insensitive' } },
   ],
@@ -76,12 +80,16 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'detention', mode: 'insensitive' } },
     { title: { contains: 'incarcerat', mode: 'insensitive' } },
   ],
+  // Bare `fellowship` / `residency` removed 2026-05-15 — they matched
+  // post-grad APP fellowships requiring 3-5 yrs prior NP experience.
+  // The `program` suffix is required so PMHNP residency / fellowship
+  // training programs are caught while post-grad fellowships aren't.
   'new-grad': [
     { title: { contains: 'new grad', mode: 'insensitive' } },
     { title: { contains: 'new graduate', mode: 'insensitive' } },
     { title: { contains: 'entry level', mode: 'insensitive' } },
-    { title: { contains: 'fellowship', mode: 'insensitive' } },
-    { title: { contains: 'residency', mode: 'insensitive' } },
+    { title: { contains: 'fellowship program', mode: 'insensitive' } },
+    { title: { contains: 'residency program', mode: 'insensitive' } },
     { title: { contains: 'recent graduate', mode: 'insensitive' } },
     { title: { contains: 'training program', mode: 'insensitive' } },
   ],
@@ -116,7 +124,8 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'crisis', mode: 'insensitive' } },
     { title: { contains: 'emergency psych', mode: 'insensitive' } },
     { title: { contains: 'acute stabilization', mode: 'insensitive' } },
-    { title: { contains: 'urgent', mode: 'insensitive' } },
+    { title: { contains: 'psychiatric urgent', mode: 'insensitive' } },
+    { title: { contains: 'urgent psychiatric', mode: 'insensitive' } },
   ],
   'entry-level': [
     { title: { contains: 'entry level', mode: 'insensitive' } },
@@ -182,7 +191,10 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'independent practice', mode: 'insensitive' } },
   ],
   'senior': [
-    // Title-based leadership keywords
+    // Title-based leadership / senior-IC keywords only. Salary-OR and the
+    // bare "years of experience" description match were removed 2026-05-14
+    // because they swept in ~45% of the board. The structured
+    // `minYearsExperience >= 5` clause below replaces those signals.
     { title: { contains: 'senior PMHNP', mode: 'insensitive' } },
     { title: { contains: 'senior NP', mode: 'insensitive' } },
     { title: { contains: 'senior nurse practitioner', mode: 'insensitive' } },
@@ -200,27 +212,17 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'director of psych', mode: 'insensitive' } },
     { title: { contains: 'PMHNP director', mode: 'insensitive' } },
     { title: { contains: 'vice president', mode: 'insensitive' } },
-    { title: { contains: 'VP ', mode: 'insensitive' } },
-    { title: { contains: 'experienced', mode: 'insensitive' } },
-    // Description-based experience signals
-    { description: { contains: 'years of experience', mode: 'insensitive' } },
-    { description: { contains: 'experienced PMHNP', mode: 'insensitive' } },
-    { description: { contains: 'experienced nurse practitioner', mode: 'insensitive' } },
-    { description: { contains: 'seasoned', mode: 'insensitive' } },
-    { description: { contains: '3+ years', mode: 'insensitive' } },
-    { description: { contains: '5+ years', mode: 'insensitive' } },
-    { description: { contains: '3-5 years', mode: 'insensitive' } },
-    { description: { contains: '5-7 years', mode: 'insensitive' } },
-    { description: { contains: '5-10 years', mode: 'insensitive' } },
-    // Salary-based: above-average compensation = senior-level
-    { normalizedMinSalary: { gte: 130000 } },
-    { normalizedMaxSalary: { gte: 150000 } },
+    // Structured experience: 5+ years required
+    { minYearsExperience: { gte: 5 } },
   ],
   'travel': [
+    // Scoped to explicit travel terms only. The previous regex matched
+    // `locum` and bare `assignment`, which made /jobs/travel a strict
+    // superset of /jobs/locum-tenens (100% overlap). Travel-nursing
+    // postings reliably include the word "travel".
     { title: { contains: 'travel', mode: 'insensitive' } },
-    { title: { contains: 'locum', mode: 'insensitive' } },
     { title: { contains: 'traveling', mode: 'insensitive' } },
-    { title: { contains: 'assignment', mode: 'insensitive' } },
+    { title: { contains: 'travel assignment', mode: 'insensitive' } },
   ],
   '1099': [
     { title: { contains: '1099', mode: 'insensitive' } },
@@ -228,6 +230,12 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'independent practice', mode: 'insensitive' } },
     { description: { contains: '1099', mode: 'insensitive' } },
   ],
+  // Addiction / SUD focus. Tightened 2026-05-14:
+  //   - Dropped bare `description: 'addiction'` — matched generic
+  //     boilerplate ("we treat anxiety, depression, addiction…"), driving
+  //     ~95% ambiguous results.
+  //   - Replaced bare title `recovery` with "addiction recovery" /
+  //     "recovery center" / "in recovery" to avoid post-op recovery FPs.
   'addiction': [
     { title: { contains: 'addiction', mode: 'insensitive' } },
     { title: { contains: 'substance', mode: 'insensitive' } },
@@ -238,12 +246,13 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'MAT &', mode: 'insensitive' } },
     { title: { contains: 'opioid', mode: 'insensitive' } },
     { title: { contains: 'detox', mode: 'insensitive' } },
-    { title: { contains: 'recovery', mode: 'insensitive' } },
+    { title: { contains: 'addiction recovery', mode: 'insensitive' } },
+    { title: { contains: 'recovery center', mode: 'insensitive' } },
     { title: { contains: 'suboxone', mode: 'insensitive' } },
     { title: { contains: 'buprenorphine', mode: 'insensitive' } },
-    { description: { contains: 'addiction', mode: 'insensitive' } },
     { description: { contains: 'substance use disorder', mode: 'insensitive' } },
     { description: { contains: 'MAT program', mode: 'insensitive' } },
+    { description: { contains: 'buprenorphine', mode: 'insensitive' } },
   ],
   'behavioral-health': [
     { title: { contains: 'behavioral health', mode: 'insensitive' } },
@@ -261,18 +270,26 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'acute care', mode: 'insensitive' } },
     { title: { contains: 'hospital', mode: 'insensitive' } },
   ],
+  // Veterans Affairs employment. The previous `contains: 'VA '` matched
+  // employer names like "Nova Medical" (substring "va "). Removed; we
+  // require explicit "Veterans" / "VHA" / "Department of Veterans"
+  // tokens that don't collide with state abbreviations or generic names.
   'va': [
-    { employer: { contains: 'Veterans', mode: 'insensitive' } },
-    { employer: { contains: 'VA ', mode: 'insensitive' } },
-    { employer: { startsWith: 'VA ', mode: 'insensitive' } },
-    { title: { contains: 'Veterans', mode: 'insensitive' } },
+    { employer: { contains: 'Veterans Affairs', mode: 'insensitive' } },
     { employer: { contains: 'Department of Veterans', mode: 'insensitive' } },
+    { employer: { contains: 'VHA', mode: 'insensitive' } },
+    { employer: { startsWith: 'VA ', mode: 'insensitive' } },
+    { title: { contains: 'Veterans Affairs', mode: 'insensitive' } },
+    { title: { contains: 'VA Medical Center', mode: 'insensitive' } },
   ],
+  // Veterans-population focus. Dropped `contains: 'VA '` — it matched
+  // "VA License" (Virginia state-license requirement, not veterans).
   'veterans': [
     { title: { contains: 'veteran', mode: 'insensitive' } },
-    { title: { contains: 'VA ', mode: 'insensitive' } },
     { title: { contains: 'military', mode: 'insensitive' } },
     { title: { contains: 'VHA', mode: 'insensitive' } },
+    { title: { contains: 'combat', mode: 'insensitive' } },
+    { title: { contains: 'PTSD', mode: 'insensitive' } },
   ],
   'remote': [
     // Remote uses isRemote boolean, not title-based — see CATEGORY_SPECIAL_FILTERS
@@ -293,6 +310,13 @@ export const CATEGORY_EXCLUSIONS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'fellowship trained', mode: 'insensitive' } },
     { title: { contains: 'APC Fellowship', mode: 'insensitive' } },
     { title: { contains: 'Advanced Practice Provider', mode: 'insensitive' } },
+  ],
+  'part-time': [
+    // PRN sometimes appears alongside Full-Time in dual-listing titles
+    // like "Part or Full Time" / "FT/PRN". Use the structured jobType
+    // column as a tie-breaker: if the employer normalized the row to
+    // Full-Time, it doesn't belong on /jobs/part-time.
+    { jobType: { equals: 'Full-Time', mode: 'insensitive' } },
   ],
   'senior': [
     // Exclude non-PMHNP leadership roles
@@ -385,9 +409,22 @@ export function buildCategoryWhereClause(
 ): Prisma.JobWhereInput {
   const andConditions: Prisma.JobWhereInput[] = [];
 
-  // Category filter (OR conditions from registry)
-  if (CATEGORY_FILTERS[slug]?.length) {
-    andConditions.push({ OR: CATEGORY_FILTERS[slug] });
+  // Per-slug extra OR clauses that augment the keyword regex with
+  // structured-flag matches. Lets /jobs/new-grad reach employers who
+  // explicitly toggled `newGradFriendly: true` without a residency or
+  // training-program word in the title — the same OR the unified
+  // `?newGrad=1` checkbox uses. Without this the category page and the
+  // checkbox disagree (29 vs 176).
+  const CATEGORY_EXTRA_OR: Record<string, Prisma.JobWhereInput[]> = {
+    'new-grad': [{ newGradFriendly: true }],
+  };
+
+  // Category filter (OR conditions from registry, plus any structured
+  // extras for this slug)
+  const baseOr = CATEGORY_FILTERS[slug] ?? [];
+  const extraOr = CATEGORY_EXTRA_OR[slug] ?? [];
+  if (baseOr.length || extraOr.length) {
+    andConditions.push({ OR: [...baseOr, ...extraOr] });
   }
 
   // Category-specific exclusions
@@ -510,12 +547,15 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     }
   }
 
-  // Location
+  // Location. Mirrors /jobs/state/[s] composition: state name OR
+  // state code. Previously this also did `city contains <location>`,
+  // which inflated Kansas counts via "Kansas City, MO" and similar
+  // cross-state name collisions.
   if (filters.location) {
     andConditions.push({
       OR: [
         { state: { equals: filters.location, mode: 'insensitive' } },
-        { city: { contains: filters.location, mode: 'insensitive' } },
+        { stateCode: { equals: filters.location, mode: 'insensitive' } },
       ],
     });
   }
@@ -564,10 +604,53 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     }
   }
 
-  // Experience Level (from DB column)
+  // Experience Level (from DB column — LEGACY, frozen 2026-05-13)
   if (filters.experienceLevel && filters.experienceLevel.length > 0) {
     andConditions.push({
       experienceLevel: { in: filters.experienceLevel },
+    });
+  }
+
+  // "Open to new grads" — unified with the /jobs/new-grad category
+  // page so the checkbox and the pSEO page never disagree on what
+  // counts as new-grad. A job matches if ANY of:
+  //   (a) employer explicitly flagged newGradFriendly: true
+  //   (b) title matches CATEGORY_FILTERS['new-grad'] keywords
+  //       (new grad / entry level / fellowship / residency / training
+  //        program / recent graduate)
+  // ...AND none of CATEGORY_EXCLUSIONS['new-grad'] apply (director,
+  // instructor, "no new grad", etc.).
+  if (filters.newGradFriendly === true) {
+    const newGradCategoryOr = CATEGORY_FILTERS['new-grad'] ?? [];
+    andConditions.push({
+      OR: [
+        { newGradFriendly: true },
+        ...newGradCategoryOr,
+      ],
+    });
+    for (const exclusion of CATEGORY_EXCLUSIONS['new-grad'] ?? []) {
+      andConditions.push({ NOT: exclusion });
+    }
+  }
+
+  // "Minimum years of experience" — candidate-qualifies semantics.
+  // A candidate with N years qualifies for any job that EITHER:
+  //   (a) declares `minYearsExperience ≤ N`, OR
+  //   (b) doesn't specify a requirement at all (null minYearsExperience).
+  //
+  // Without the null branch the filter hides every aggregated job that
+  // hasn't been through the experience backfill yet — at our current
+  // scale that's most of the board, so a 10-year candidate would see
+  // ~1,700 jobs out of ~3,000+. The null-as-qualifying default lifts
+  // those jobs into every "I have N+ years" bucket. After backfill
+  // (scripts/backfill-experience.ts) populates real minYearsExperience
+  // values, the buckets differentiate more meaningfully.
+  if (typeof filters.minYearsExperience === 'number' && filters.minYearsExperience >= 0) {
+    andConditions.push({
+      OR: [
+        { minYearsExperience: { lte: filters.minYearsExperience } },
+        { minYearsExperience: null },
+      ],
     });
   }
 
@@ -587,12 +670,16 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
 
 // Parse URL search params to FilterState
 export function parseFiltersFromParams(searchParams: URLSearchParams): FilterState {
+  const minYearsRaw = searchParams.get('minYears');
+  const minYears = minYearsRaw !== null && /^\d+$/.test(minYearsRaw) ? Number(minYearsRaw) : null;
   return {
     search: searchParams.get('q') || '',
     workMode: searchParams.getAll('workMode'),
     jobType: searchParams.getAll('jobType'),
     specialty: searchParams.getAll('specialty'),
     experienceLevel: searchParams.getAll('experienceLevel'),
+    newGradFriendly: searchParams.get('newGrad') === '1' ? true : null,
+    minYearsExperience: minYears,
     salaryMin: searchParams.get('salaryMin') ? Number(searchParams.get('salaryMin')) : null,
     postedWithin: searchParams.get('postedWithin') || null,
     location: searchParams.get('location') || null,
@@ -612,6 +699,10 @@ export function filtersToParams(filters: FilterState): URLSearchParams {
   filters.jobType.forEach((jt: string) => params.append('jobType', jt));
   if (filters.specialty) filters.specialty.forEach((s: string) => params.append('specialty', s));
   if (filters.experienceLevel) filters.experienceLevel.forEach((el: string) => params.append('experienceLevel', el));
+  if (filters.newGradFriendly === true) params.set('newGrad', '1');
+  if (typeof filters.minYearsExperience === 'number' && filters.minYearsExperience >= 0) {
+    params.set('minYears', String(filters.minYearsExperience));
+  }
   if (filters.salaryMin) params.set('salaryMin', String(filters.salaryMin));
   if (filters.postedWithin) params.set('postedWithin', filters.postedWithin);
   if (filters.location) params.set('location', filters.location);

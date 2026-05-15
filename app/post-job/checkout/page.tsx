@@ -35,6 +35,11 @@ interface JobFormData {
   setting?: string;
   population?: string;
   companyLogoUrl?: string;
+  // Phase 1 experience picker fields — see app/post-job/page.tsx Step 2.
+  minYearsExperience?: number;
+  maxYearsExperience?: number | null;
+  newGradFriendly?: boolean;
+  experienceQualifier?: string;
   screeningQuestions?: ScreeningQuestion[];
 }
 
@@ -105,6 +110,10 @@ export default function CheckoutPage() {
           setting: jobData.setting,
           population: jobData.population,
           companyLogoUrl: jobData.companyLogoUrl,
+          minYearsExperience: jobData.minYearsExperience ?? null,
+          maxYearsExperience: jobData.maxYearsExperience ?? null,
+          newGradFriendly: jobData.newGradFriendly ?? false,
+          experienceQualifier: jobData.experienceQualifier?.trim() || null,
           screeningQuestions: jobData.screeningQuestions || [],
         }),
       });

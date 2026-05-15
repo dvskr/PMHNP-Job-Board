@@ -223,6 +223,9 @@ const RECOMMENDATION_SELECT = {
     jobType: true,
     mode: true,
     experienceLevel: true,
+    // Phase 1 structured experience fields — JobCard's chip reads these.
+    experienceLabel: true,
+    newGradFriendly: true,
     description: true,
     descriptionSummary: true,
     displaySalary: true,

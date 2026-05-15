@@ -38,34 +38,10 @@ import { semanticCandidateSearch } from '@/lib/ai/vector-search';
 import { loadPrompt } from '@/lib/ai/prompts/registry';
 import { isAiFeatureEnabled } from '@/lib/ai/feature-flags';
 import { logger } from '@/lib/logger';
+import { AI_DAILY_CAPS } from '@/lib/ai-usage';
+import { midnightCentralTimeAsUtc } from '@/lib/time';
 
-const RERANK_DAILY_CAP = 10;
-
-/**
- * Returns the UTC moment corresponding to the most recent midnight in
- * America/Chicago (CST/CDT). Used to reset the per-employer daily cap
- * on a Central-Time clock — the product is US-based and employers think
- * in their local day, not UTC.
- *
- * Handles DST automatically via Intl.DateTimeFormat's longOffset. In May
- * the offset is -05:00 (CDT); in winter it's -06:00 (CST).
- */
-function midnightCentralTimeAsUtc(): Date {
-    const now = new Date();
-    // Today's date in Chicago (e.g. "2026-05-04").
-    const dateStr = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'America/Chicago',
-        year: 'numeric', month: '2-digit', day: '2-digit',
-    }).format(now);
-    // Chicago's current UTC offset (e.g. "GMT-05:00" → "-05:00").
-    const offsetParts = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Chicago',
-        timeZoneName: 'longOffset',
-    }).formatToParts(now);
-    const offsetRaw = offsetParts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT-06:00';
-    const isoOffset = offsetRaw.replace('GMT', '') || '-06:00';
-    return new Date(`${dateStr}T00:00:00${isoOffset}`);
-}
+const RERANK_DAILY_CAP = AI_DAILY_CAPS.talent_search_rerank;
 
 // Caller provides EITHER a free-text query OR a postingId to match against
 // the JD they already wrote. Both paths share the same downstream pipeline,

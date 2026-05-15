@@ -381,10 +381,14 @@ export default async function CityJobsPage({ params }: CityPageProps) {
         getRelatedCities(stateName, stateCode, cityName),
     ]);
 
-    // SEO Fix: Return real 404 for cities with 0 jobs.
-    // Previously rendered 200 + "No jobs right now" → Google flagged as soft 404.
-    // Clean 404 stops crawl budget waste and eliminates soft 404 GSC errors.
-    if (stats.totalJobs === 0) {
+    // SEO Fix: 404 thin city pages.
+    // Aligns with sitemap gate (`_count.city >= 3` in app/sitemap.ts:230)
+    // and the category×city template's MIN_JOBS_FOR_INDEX = 3 — pages
+    // with 1-2 jobs were rendering with stub content and getting flagged
+    // as soft 404 / thin content in GSC. The threshold matches the saved
+    // pSEO policy (MIN_JOBS = 3, see memory seo_threshold_decision.md).
+    const MIN_JOBS = 3;
+    if (stats.totalJobs < MIN_JOBS) {
         notFound();
     }
 

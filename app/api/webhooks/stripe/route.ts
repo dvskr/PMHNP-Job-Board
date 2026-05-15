@@ -202,7 +202,16 @@ export async function POST(request: NextRequest) {
               });
             }
 
-            // Send renewal confirmation email
+            // Send renewal confirmation email. Same stable-URL pattern as
+            // the new-post flow (see comment in the else-branch below) —
+            // link to our dashboard endpoint so the recipient always gets
+            // the latest "Paid"-stamped PDF, not the open-state PDF
+            // captured before invoice.paid fires.
+            const renewalBaseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? '';
+            const stableRenewalInvoiceUrl = renewalBaseUrl
+              ? `${renewalBaseUrl}/api/employer/invoice?jobId=${jobId}&token=${employerJob.dashboardToken}`
+              : null;
+
             try {
               await sendRenewalConfirmationEmail(
                 employerJob.contactEmail,
@@ -211,7 +220,7 @@ export async function POST(request: NextRequest) {
                 employerJob.dashboardToken,
                 emailLead.unsubscribeToken,
                 {
-                  invoicePdfUrl: renewalInvoiceData.invoicePdfUrl,
+                  invoicePdfUrl: stableRenewalInvoiceUrl,
                   hostedInvoiceUrl: renewalInvoiceData.hostedInvoiceUrl,
                   invoiceNumber: renewalInvoiceData.invoiceNumber,
                 }
@@ -313,7 +322,21 @@ export async function POST(request: NextRequest) {
               }
             }
 
-            // Send confirmation email
+            // Send confirmation email.
+            //
+            // 2026-05-15 fix: this email fires inside `checkout.session.completed`,
+            // BEFORE Stripe transitions the invoice to "paid". If we pass
+            // `invoicePdfUrl` directly, the recipient may download an
+            // "amount due" PDF. Instead, link to our dashboard invoice
+            // endpoint — it 302-redirects to whatever URL is currently in
+            // JobCharge.invoicePdfUrl. The `invoice.paid` handler updates
+            // that URL within a few hundred ms, so by the time the user
+            // clicks the email link they get the "Paid" PDF.
+            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? '';
+            const stableInvoiceUrl = baseUrl
+              ? `${baseUrl}/api/employer/invoice?jobId=${job.id}&token=${employerJob.dashboardToken}`
+              : null;
+
             try {
               await sendConfirmationEmail(
                 employerJob.contactEmail,
@@ -323,7 +346,7 @@ export async function POST(request: NextRequest) {
                 undefined, // unsubscribeToken — sendConfirmationEmail looks it up by email
                 undefined, // durationDays — paid posts use config.durationDays default
                 {
-                  invoicePdfUrl: newPostInvoiceData.invoicePdfUrl,
+                  invoicePdfUrl: stableInvoiceUrl,
                   hostedInvoiceUrl: newPostInvoiceData.hostedInvoiceUrl,
                   invoiceNumber: newPostInvoiceData.invoiceNumber,
                 }
@@ -374,6 +397,54 @@ export async function POST(request: NextRequest) {
             { status: 500 }
           );
         }
+      }
+    }
+
+    // 2026-05-15: invoice.paid handler — refreshes the JobCharge's
+    // invoicePdfUrl / hostedInvoiceUrl. We initially capture these URLs
+    // during `checkout.session.completed`, but at that exact moment the
+    // invoice is in `open` status — the PDF says "Pay online" and lists
+    // an amount "due", not "Paid". Stripe regenerates the PDF when the
+    // invoice transitions to `paid` (a few hundred ms later). Re-fetching
+    // here and updating the ledger ensures the downloadable PDF always
+    // shows the paid state.
+    if (event.type === 'invoice.paid') {
+      try {
+        const invoice = event.data.object as Stripe.Invoice;
+        const invoiceId = invoice.id;
+        if (!invoiceId) {
+          logger.warn('invoice.paid: invoice has no id', { eventId: event.id });
+          return NextResponse.json({ received: true });
+        }
+
+        const jobCharge = await prisma.jobCharge.findFirst({
+          where: { stripeInvoiceId: invoiceId },
+          select: { id: true },
+        });
+
+        if (!jobCharge) {
+          // Not all invoices belong to a JobCharge (e.g. one-off invoices
+          // sent outside the post-job flow). Safe to ignore.
+          logger.info('invoice.paid: no matching JobCharge — skipping', { invoiceId });
+          return NextResponse.json({ received: true });
+        }
+
+        await prisma.jobCharge.update({
+          where: { id: jobCharge.id },
+          data: {
+            invoicePdfUrl: invoice.invoice_pdf ?? null,
+            hostedInvoiceUrl: invoice.hosted_invoice_url ?? null,
+            invoiceNumber: invoice.number ?? null,
+          },
+        });
+
+        logger.info('JobCharge invoice URLs refreshed after invoice.paid', {
+          jobChargeId: jobCharge.id,
+          invoiceId,
+        });
+      } catch (invErr) {
+        logger.error('Error handling invoice.paid webhook', invErr);
+        return NextResponse.json({ error: 'Failed to refresh invoice URLs' }, { status: 500 });
       }
     }
 

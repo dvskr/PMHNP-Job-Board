@@ -227,4 +227,78 @@ describe('recordClick', () => {
     const arg = vi.mocked(prisma.shortLinkClick.create).mock.calls[0][0]
     expect(arg.data.ipHash).toBeNull()
   })
+
+  it('writes recipientLeadId when provided', async () => {
+    vi.mocked(prisma.shortLinkClick.findFirst).mockResolvedValueOnce(null)
+    vi.mocked(prisma.shortLinkClick.create).mockResolvedValueOnce({} as never)
+
+    await recordClick({
+      resolution: RESOLUTION,
+      code: 'p3',
+      bot: NOT_A_BOT,
+      ip: '1.2.3.4',
+      userAgent: 'Mozilla/5.0',
+      referer: null,
+      country: null,
+      recipientLeadId: 'abc-123-xyz',
+    })
+
+    const arg = vi.mocked(prisma.shortLinkClick.create).mock.calls[0][0]
+    expect(arg.data.recipientLeadId).toBe('abc-123-xyz')
+  })
+
+  it('writes null recipientLeadId when omitted (organic click)', async () => {
+    vi.mocked(prisma.shortLinkClick.findFirst).mockResolvedValueOnce(null)
+    vi.mocked(prisma.shortLinkClick.create).mockResolvedValueOnce({} as never)
+
+    await recordClick({
+      resolution: RESOLUTION,
+      code: 'f3',
+      bot: NOT_A_BOT,
+      ip: '1.2.3.4',
+      userAgent: 'Mozilla/5.0',
+      referer: null,
+      country: null,
+    })
+
+    const arg = vi.mocked(prisma.shortLinkClick.create).mock.calls[0][0]
+    expect(arg.data.recipientLeadId).toBeNull()
+  })
+
+  it('includes recipientLeadId in the dedup key so different recipients do not collapse', async () => {
+    // Two different recipients sharing an IP within 60s — each is its
+    // own click, not a duplicate of the other.
+    vi.mocked(prisma.shortLinkClick.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.shortLinkClick.create).mockResolvedValue({} as never)
+
+    await recordClick({
+      resolution: RESOLUTION,
+      code: 'p3',
+      bot: NOT_A_BOT,
+      ip: '1.2.3.4',
+      userAgent: 'Mozilla/5.0',
+      referer: null,
+      country: null,
+      recipientLeadId: 'lead-aaa',
+    })
+    await recordClick({
+      resolution: RESOLUTION,
+      code: 'p3',
+      bot: NOT_A_BOT,
+      ip: '1.2.3.4',
+      userAgent: 'Mozilla/5.0',
+      referer: null,
+      country: null,
+      recipientLeadId: 'lead-bbb',
+    })
+
+    expect(prisma.shortLinkClick.create).toHaveBeenCalledTimes(2)
+
+    // Each findFirst was scoped to its own recipientLeadId — confirm the
+    // dedup query includes the lead id in the where clause.
+    const firstCall = vi.mocked(prisma.shortLinkClick.findFirst).mock.calls[0][0]
+    const secondCall = vi.mocked(prisma.shortLinkClick.findFirst).mock.calls[1][0]
+    expect(firstCall?.where?.recipientLeadId).toBe('lead-aaa')
+    expect(secondCall?.where?.recipientLeadId).toBe('lead-bbb')
+  })
 })

@@ -1,189 +1,179 @@
+/**
+ * /api/job-draft — Auth-anchored job-post drafts.
+ *
+ * 2026-05-14 cutover: replaced the email-token model with an
+ * authenticated, dashboard-visible "your unfinished post" pattern
+ * (mirrors LinkedIn / Indeed):
+ *
+ *   POST   → auto-save: upsert the calling employer's single draft
+ *   GET    → fetch the calling employer's draft (or back-compat token
+ *            lookup when ?token=X is provided)
+ *   DELETE → wipe the calling employer's draft (used by Clear /
+ *            successful post)
+ *
+ * Architecture decisions:
+ *   - ONE draft per user. Auto-save overwrites in place. Reflects
+ *     LinkedIn's behavior — the form is "live state", not a saved
+ *     collection. Lowers cognitive load and avoids "which draft am
+ *     I editing?" confusion.
+ *   - Body sanitized at the boundary. We accept arbitrary form-shape
+ *     JSON but limit total payload size to MAX_BODY_BYTES so a
+ *     malicious client can't push megabytes of garbage.
+ *   - Email-token GET stays for back-compat with any live email
+ *     links from before the cutover. Returns the same shape.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendDraftSavedEmail } from '@/lib/email-service';
 import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { createClient } from '@/lib/supabase/server';
 
-interface SaveDraftBody {
-  email: string;
-  formData: Record<string, unknown>;
+const MAX_BODY_BYTES = 200_000; // 200 KB — generous for a JD plus form metadata.
+
+async function getEmployerUserId(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const profile = await prisma.userProfile.findUnique({ where: { supabaseId: user.id } });
+  if (!profile || (profile.role !== 'employer' && profile.role !== 'admin')) return null;
+  return user.id;
 }
 
-// POST - Save draft
+function thirtyDaysFromNow(): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d;
+}
+
+// POST — upsert the current employer's draft. Idempotent; new every
+// 2-3 seconds during active typing thanks to the page's debounced
+// auto-save effect.
 export async function POST(request: NextRequest) {
-  // Rate limiting
-  const rateLimitResult = await rateLimit(request, 'drafts', RATE_LIMITS.postJob);
+  // Auto-save fires every few seconds during active typing — the `postJob`
+  // bucket (3 req/min) was for the once-per-session real job submission
+  // and caused legitimate auto-saves to 429. `general` (60 req/min) is the
+  // right shape: prevents abuse, doesn't punish actual usage.
+  const rateLimitResult = await rateLimit(request, 'drafts', RATE_LIMITS.general);
   if (rateLimitResult) return rateLimitResult;
 
+  const userId = await getEmployerUserId();
+  if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+
+  let body: { formData?: Record<string, unknown>; email?: string };
   try {
-    const body: SaveDraftBody = await request.json();
-    const { email, formData } = body;
-
-    // Validate required fields
-    if (!email || !formData) {
-      return NextResponse.json(
-        { error: 'Missing required fields: email and formData' },
-        { status: 400 }
-      );
+    const text = await request.text();
+    if (text.length > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: 'Draft too large' }, { status: 413 });
     }
+    body = JSON.parse(text);
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      );
-    }
+  if (!body.formData || typeof body.formData !== 'object') {
+    return NextResponse.json({ error: 'Missing formData' }, { status: 400 });
+  }
 
-    // Calculate expiration date (30 days from now)
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+  const email = typeof body.email === 'string' ? body.email : null;
 
-    // Check if draft already exists for this email
-    const existingDraft = await prisma.jobDraft.findFirst({
-      where: { email },
+  try {
+    const draft = await prisma.jobDraft.upsert({
+      where: { userId },
+      update: {
+        formData: body.formData as Prisma.InputJsonValue,
+        email,
+        expiresAt: thirtyDaysFromNow(),
+      },
+      create: {
+        userId,
+        email,
+        formData: body.formData as Prisma.InputJsonValue,
+        expiresAt: thirtyDaysFromNow(),
+      },
+      select: { id: true, updatedAt: true },
     });
-
-    let draft;
-    if (existingDraft) {
-      // Update existing draft
-      draft = await prisma.jobDraft.update({
-        where: { id: existingDraft.id },
-        data: {
-          formData: formData as Prisma.InputJsonValue,
-          expiresAt,
-          updatedAt: new Date(),
-        },
-      });
-    } else {
-      // Create new draft
-      draft = await prisma.jobDraft.create({
-        data: {
-          email,
-          formData: formData as Prisma.InputJsonValue,
-          expiresAt,
-        },
-      });
-
-      // Send resume email for new drafts
-      try {
-        await sendDraftSavedEmail(email, draft.resumeToken);
-      } catch (emailError) {
-        logger.error('Error sending draft saved email', emailError, { email });
-        // Don't fail the request if email fails
-      }
-    }
-
     return NextResponse.json({
       success: true,
-      message: existingDraft ? 'Draft updated!' : 'Draft saved!',
-      resumeToken: draft.resumeToken,
+      id: draft.id,
+      savedAt: draft.updatedAt.toISOString(),
     });
-  } catch (error) {
-    logger.error('Error saving draft', error);
-    return NextResponse.json(
-      { error: 'Failed to save draft' },
-      { status: 500 }
-    );
+  } catch (err) {
+    logger.error('Failed to save job draft', err);
+    return NextResponse.json({ error: 'Save failed' }, { status: 500 });
   }
 }
 
-// GET - Retrieve draft by token
+// GET — two modes:
+//   1. ?token=X  → back-compat for legacy email-link resume flow
+//   2. (no params) → current authenticated user's draft
 export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const token = searchParams.get('token');
+  const token = request.nextUrl.searchParams.get('token');
 
-    // Validate token parameter
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Missing required parameter: token' },
-        { status: 400 }
-      );
-    }
-
-    // Find draft by resume token
-    const draft = await prisma.jobDraft.findUnique({
-      where: { resumeToken: token },
-    });
-
-    if (!draft) {
-      return NextResponse.json(
-        { error: 'Draft not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check if draft has expired
-    if (new Date() > new Date(draft.expiresAt)) {
-      // Delete expired draft
-      await prisma.jobDraft.delete({
-        where: { id: draft.id },
+  if (token) {
+    try {
+      const draft = await prisma.jobDraft.findUnique({ where: { resumeToken: token } });
+      if (!draft) return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
+      if (new Date() > new Date(draft.expiresAt)) {
+        await prisma.jobDraft.delete({ where: { id: draft.id } }).catch(() => {});
+        return NextResponse.json({ error: 'Draft has expired' }, { status: 410 });
+      }
+      return NextResponse.json({
+        success: true,
+        formData: draft.formData,
+        email: draft.email,
+        expiresAt: draft.expiresAt,
       });
-
-      return NextResponse.json(
-        { error: 'Draft has expired' },
-        { status: 410 }
-      );
+    } catch (err) {
+      logger.error('Error retrieving draft by token', err);
+      return NextResponse.json({ error: 'Failed to retrieve draft' }, { status: 500 });
     }
-
-    return NextResponse.json({
-      success: true,
-      formData: draft.formData,
-      email: draft.email,
-      expiresAt: draft.expiresAt,
-    });
-  } catch (error) {
-    logger.error('Error retrieving draft', error);
-    return NextResponse.json(
-      { error: 'Failed to retrieve draft' },
-      { status: 500 }
-    );
   }
-}
 
-// DELETE - Delete draft by token
-export async function DELETE(request: NextRequest) {
+  // Auth-anchored path.
+  const userId = await getEmployerUserId();
+  if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const token = searchParams.get('token');
-
-    // Validate token parameter
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Missing required parameter: token' },
-        { status: 400 }
-      );
-    }
-
-    // Find and delete draft
     const draft = await prisma.jobDraft.findUnique({
-      where: { resumeToken: token },
+      where: { userId },
+      select: { id: true, formData: true, email: true, updatedAt: true, expiresAt: true },
     });
-
     if (!draft) {
-      return NextResponse.json(
-        { error: 'Draft not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: true, draft: null });
     }
-
-    await prisma.jobDraft.delete({
-      where: { id: draft.id },
-    });
-
+    if (new Date() > new Date(draft.expiresAt)) {
+      await prisma.jobDraft.delete({ where: { id: draft.id } }).catch(() => {});
+      return NextResponse.json({ success: true, draft: null });
+    }
     return NextResponse.json({
       success: true,
-      message: 'Draft deleted successfully',
+      draft: {
+        id: draft.id,
+        formData: draft.formData,
+        email: draft.email,
+        savedAt: draft.updatedAt.toISOString(),
+        expiresAt: draft.expiresAt.toISOString(),
+      },
     });
-  } catch (error) {
-    logger.error('Error deleting draft', error);
-    return NextResponse.json(
-      { error: 'Failed to delete draft' },
-      { status: 500 }
-    );
+  } catch (err) {
+    logger.error('Error retrieving employer draft', err);
+    return NextResponse.json({ error: 'Failed to retrieve draft' }, { status: 500 });
   }
 }
 
+// DELETE — auth-anchored. Used by the form's Clear button + the
+// successful-post path in the preview page. (Token-based delete from
+// the old flow is dropped; nothing in production was calling it.)
+export async function DELETE() {
+  const userId = await getEmployerUserId();
+  if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+
+  try {
+    const result = await prisma.jobDraft.deleteMany({ where: { userId } });
+    return NextResponse.json({ success: true, deleted: result.count });
+  } catch (err) {
+    logger.error('Failed to delete job draft', err);
+    return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
+  }
+}

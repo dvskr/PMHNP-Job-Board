@@ -65,6 +65,29 @@ export async function PATCH(
             },
         });
 
+        // Payment gate (2026-05-15): an employer who started a paid checkout
+        // and closed the window before paying ends up with paymentStatus=
+        // 'pending'. Without this guard they could republish via the
+        // dashboard's pause/unpause button and get a Live + Featured post
+        // for free. Block republish unless payment cleared (paid or free).
+        if (employerJob) {
+            const ps = employerJob.paymentStatus;
+            const willPublish = !employerJob.job.isPublished;
+            if (willPublish && ps !== 'paid' && ps !== 'free') {
+                return NextResponse.json(
+                    {
+                        error: 'Payment required',
+                        message: ps === 'pending'
+                            ? 'This posting has not been paid yet. Complete checkout to publish.'
+                            : 'This posting cannot be republished (refunded or invalid payment state).',
+                        paymentStatus: ps,
+                        editLink: `/jobs/edit/${employerJob.editToken}`,
+                    },
+                    { status: 402 }
+                );
+            }
+        }
+
         // Allow admin bypass
         const isAdmin = profile.role === 'admin';
         if (!employerJob && !isAdmin) {

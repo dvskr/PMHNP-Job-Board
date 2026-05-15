@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
   const location = searchParams.get('location') || 'Remote / On-site';
   const jobType = searchParams.get('jobType') || 'Full-time';
   const isNew = searchParams.get('isNew') === 'true';
+  // Phase 1 #19 — optional experience chip ("New grad welcome", "5+ yrs", etc.)
+  // forwarded by the JD page metadata. Renders next to the job-type tile when present.
+  const experience = searchParams.get('experience') || '';
   const isHomepage = !title && type !== 'page';
   const isPageType = type === 'page';
   const displayTitle = title
@@ -370,6 +373,13 @@ export async function GET(request: NextRequest) {
                     value: location,
                     icon: (
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+                    ),
+                  }] : []),
+                  ...(experience ? [{
+                    label: 'EXPERIENCE',
+                    value: experience,
+                    icon: (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5Z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>
                     ),
                   }] : []),
                 ].map((stat, i, arr) => (

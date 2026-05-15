@@ -642,6 +642,7 @@ export default function EmployerSettingsClient() {
                                         const planColor = p.isFree ? '#0D9488' : (isFeatured ? '#F59E0B' : '#0D9488');
                                         const statusLabel = p.isActive ? 'Active' : 'Expired';
                                         const downloadUrl = `/api/employer/invoice?jobId=${p.jobId}${latestCharge?.id ? `&chargeId=${latestCharge.id}` : ''}`;
+                                        const receiptUrl = `/api/employer/receipt?jobId=${p.jobId}${latestCharge?.id ? `&chargeId=${latestCharge.id}` : ''}`;
                                         return (
                                             <tr key={p.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                                                 <td style={{ padding: '14px 8px', color: '#1A2E35', fontWeight: 600, minWidth: '180px' }}>{p.jobTitle}</td>
@@ -671,23 +672,40 @@ export default function EmployerSettingsClient() {
                                                     {p.isFree ? (
                                                         <span style={{ color: '#B0BEC5', fontSize: '12px' }}>—</span>
                                                     ) : latestCharge ? (
-                                                        // download attribute + no target=_blank → browser downloads
-                                                        // in-place using the Content-Disposition: attachment header,
-                                                        // no flash of blank tab.
-                                                        <a
-                                                            href={downloadUrl}
-                                                            download={`invoice-${p.jobTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`}
-                                                            style={{
-                                                                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                                                fontSize: '12px', fontWeight: 600, color: '#0D9488',
-                                                                padding: '6px 12px', borderRadius: '8px',
-                                                                background: '#F0FDFA', textDecoration: 'none',
-                                                                border: '1px solid rgba(13,148,136,0.18)',
-                                                                whiteSpace: 'nowrap',
-                                                            }}
-                                                        >
-                                                            <FileText size={13} /> Download
-                                                        </a>
+                                                        // Two buttons side-by-side: the Stripe "Invoice" PDF
+                                                        // (formal document) and the Stripe "Receipt" page
+                                                        // (always shows Paid + payment method).
+                                                        <span style={{ display: 'inline-flex', gap: '6px', flexWrap: 'wrap' }}>
+                                                            <a
+                                                                href={downloadUrl}
+                                                                download={`invoice-${p.jobTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`}
+                                                                style={{
+                                                                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                                    fontSize: '12px', fontWeight: 600, color: '#0D9488',
+                                                                    padding: '6px 12px', borderRadius: '8px',
+                                                                    background: '#F0FDFA', textDecoration: 'none',
+                                                                    border: '1px solid rgba(13,148,136,0.18)',
+                                                                    whiteSpace: 'nowrap',
+                                                                }}
+                                                            >
+                                                                <FileText size={13} /> Invoice
+                                                            </a>
+                                                            <a
+                                                                href={receiptUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                style={{
+                                                                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                                    fontSize: '12px', fontWeight: 600, color: '#0D9488',
+                                                                    padding: '6px 12px', borderRadius: '8px',
+                                                                    background: '#F0FDFA', textDecoration: 'none',
+                                                                    border: '1px solid rgba(13,148,136,0.18)',
+                                                                    whiteSpace: 'nowrap',
+                                                                }}
+                                                            >
+                                                                <FileText size={13} /> Receipt
+                                                            </a>
+                                                        </span>
                                                     ) : (
                                                         <span style={{ color: '#B0BEC5', fontSize: '12px', fontStyle: 'italic' }}>Pending</span>
                                                     )}

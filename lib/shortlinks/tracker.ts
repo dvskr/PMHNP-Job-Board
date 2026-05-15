@@ -78,6 +78,9 @@ export interface RecordClickInput {
   readonly userAgent: string | null
   readonly referer: string | null
   readonly country: string | null
+  /** Per-recipient attribution token from `?r=<lead_id>`. Validated by
+   *  the route handler before reaching here; null for organic clicks. */
+  readonly recipientLeadId?: string | null
   /** Override for tests; defaults to current time. */
   readonly now?: Date
 }
@@ -95,6 +98,12 @@ export async function recordClick(input: RecordClickInput): Promise<void> {
 
   // Idempotency check (only for real human-looking traffic; bot rows are
   // append-only so we can count preview-fetch volume accurately).
+  //
+  // recipientLeadId is part of the dedup key so two different recipients
+  // sharing an IP (same office, same campus) don't collapse into one row.
+  // null is treated as a distinct value from any concrete lead id, which
+  // matches Postgres's NULL-is-distinct semantics for our purposes.
+  const recipientLeadId = input.recipientLeadId ?? null
   if (!input.bot.isBot && ipHash) {
     try {
       const windowStart = new Date(now.getTime() - IDEMPOTENCY_WINDOW_SECONDS * 1000)
@@ -103,6 +112,7 @@ export async function recordClick(input: RecordClickInput): Promise<void> {
           code: input.code,
           ipHash,
           isBot: false,
+          recipientLeadId,
           createdAt: { gte: windowStart },
         },
         select: { id: true },
@@ -135,6 +145,7 @@ export async function recordClick(input: RecordClickInput): Promise<void> {
         country,
         isBot: input.bot.isBot,
         botName: input.bot.botName,
+        recipientLeadId,
         createdAt: now,
       },
     })

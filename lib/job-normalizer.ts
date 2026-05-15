@@ -307,27 +307,38 @@ export function detectExperienceLevel(title: string, description: string): strin
   ];
   if (seniorPatterns.some(p => text.includes(p))) return 'Senior';
 
-  // ── Mid-Level (2-5 years) ──
+  // ── Mid-Level (1-5 years) ──
+  // Note: "1 year experience" is a Mid-Level *floor*, not a new-grad
+  // signal. Previously it lived in newGradPatterns and mis-classified
+  // jobs like "PMHNP — 1 year experience required" as New Grad.
   const midPatterns = [
-    '2-5 years', '3-5 years', '2-4 years', '3-4 years',
-    '2+ years', '3+ years', '4+ years',
+    '1-2 years', '1-3 years', '2-5 years', '3-5 years', '2-4 years', '3-4 years',
+    '1+ years', '2+ years', '3+ years', '4+ years',
+    'minimum 1 year', 'minimum of 1 year', 'at least 1 year',
     'minimum 2 years', 'minimum of 2 years', 'at least 2 years',
     'minimum 3 years', 'minimum of 3 years', 'at least 3 years',
     'mid-level', 'mid level', 'experienced pmhnp', 'experienced psychiatric',
+    '1 year of experience', '1 year experience',
     '2 years of experience', '3 years of experience', '4 years of experience',
     '2 years experience', '3 years experience', '4 years experience',
-    'two years', 'three years', 'four years',
+    'one year', 'two years', 'three years', 'four years',
   ];
   if (midPatterns.some(p => text.includes(p))) return 'Mid-Level';
 
   // ── New Grad / Entry ──
+  // Strictly entry-level signals. Bare "1 year experience" was removed
+  // 2026-05-14 because a 1-year minimum is a Mid-Level floor, not a
+  // new-grad welcome signal. Keep 0-year ranges and explicit new-grad
+  // phrasing only.
   const newGradPatterns = [
     'new grad', 'new graduate', 'entry level', 'entry-level',
     'no experience required', 'no experience necessary',
-    '0-1 year', '0-2 year', '1 year of experience', '1 year experience',
+    '0-1 year', '0-2 year', '0 years of experience',
     'recent graduate', 'newly graduated', 'recent grad',
-    'fellowship', 'residency program', 'mentorship',
-    'training program', 'preceptor', 'will train',
+    // Require "program" after residency/fellowship — bare words also
+    // match post-grad APP fellowships requiring prior NP experience.
+    'residency program', 'fellowship program', 'training program',
+    'mentorship', 'preceptor', 'will train',
     'welcome new grads', 'new grads welcome', 'open to new grads',
     'graduate nurse practitioner',
     'first job', 'just graduated', 'fresh out of school',
@@ -889,6 +900,13 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     if (mode === 'Hybrid') isHybrid = true;
     if (mode === 'Remote') isRemote = true;
 
+    // Title-level remote fallback. Aggregator rows often have "Remote"
+    // in the title but skip the structured flag (~149 rows in the
+    // current corpus). Without this they're invisible on /jobs/remote.
+    if (!isRemote && /\b(remote|work\s+from\s+home|100%\s*remote)\b/i.test(title)) {
+      isRemote = true;
+    }
+
     // Generate display salary
     const displaySalary = formatDisplaySalary(
       normalizedSalaryData.normalizedMinSalary,
@@ -949,6 +967,14 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
         jobType,
         mode,
         experienceLevel,
+        // Phase 0 (runbook §2). Aggregated ingest leaves these null;
+        // the cron enrichment job in Phase 2 (#4) + backfill (P0.4)
+        // populate them downstream.
+        minYearsExperience: null,
+        maxYearsExperience: null,
+        newGradFriendly: false,
+        experienceQualifier: null,
+        experienceLabel: null,
         description: fullDescription,
         descriptionSummary: summary,
         categoryTags,

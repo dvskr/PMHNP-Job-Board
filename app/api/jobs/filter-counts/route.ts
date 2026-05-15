@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { FilterState, FilterCounts } from '@/types/filters';
-import { buildWhereClause, freshnessClause } from '@/lib/filters';
+import { buildWhereClause, freshnessClause, CATEGORY_FILTERS, CATEGORY_EXCLUSIONS } from '@/lib/filters';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
@@ -19,6 +20,11 @@ export async function POST(request: NextRequest) {
       jobType: raw.jobType || [],
       specialty: raw.specialty || [],
       experienceLevel: raw.experienceLevel || [],
+      newGradFriendly: raw.newGradFriendly === true ? true : null,
+      minYearsExperience:
+        typeof raw.minYearsExperience === 'number' && raw.minYearsExperience >= 0
+          ? raw.minYearsExperience
+          : null,
       salaryMin: raw.salaryMin ?? null,
       postedWithin: raw.postedWithin ?? null,
       location: raw.location ?? null,
@@ -164,25 +170,37 @@ export async function POST(request: NextRequest) {
     // Exclude specialty filter from base so counts don't self-filter
     const specialtyFilters = { ...baseFilters, specialty: [] };
     const specialtyBase = buildWhereClause(specialtyFilters);
+    // Wrap the keyword OR inside the AND envelope so it composes with
+    // `specialtyBase`'s own AND-conditions instead of overriding them
+    // when other filters are active. Mirrors how /jobs adds specialty
+    // via `andConditions.push({OR:[...]})`.
     const [telehealthCount, travelCount] = await Promise.all([
       prisma.job.count({
         where: {
-          ...specialtyBase,
-          OR: [
-            { title: { contains: 'telehealth', mode: 'insensitive' } },
-            { title: { contains: 'telemedicine', mode: 'insensitive' } },
-            { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
-            { description: { contains: 'telehealth', mode: 'insensitive' } },
-            { description: { contains: 'telemedicine', mode: 'insensitive' } },
+          AND: [
+            specialtyBase,
+            {
+              OR: [
+                { title: { contains: 'telehealth', mode: 'insensitive' } },
+                { title: { contains: 'telemedicine', mode: 'insensitive' } },
+                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
+                { description: { contains: 'telehealth', mode: 'insensitive' } },
+                { description: { contains: 'telemedicine', mode: 'insensitive' } },
+              ],
+            },
           ],
         },
       }),
       prisma.job.count({
         where: {
-          ...specialtyBase,
-          OR: [
-            { title: { contains: 'travel', mode: 'insensitive' } },
-            { title: { contains: 'locum', mode: 'insensitive' } },
+          AND: [
+            specialtyBase,
+            {
+              OR: [
+                { title: { contains: 'travel', mode: 'insensitive' } },
+                { title: { contains: 'locum', mode: 'insensitive' } },
+              ],
+            },
           ],
         },
       }),
@@ -203,6 +221,43 @@ export async function POST(request: NextRequest) {
         expMap[el.experienceLevel] = el._count._all;
       }
     }
+
+    // Phase 1 structured experience counts. We exclude each respective
+    // filter from its own base so the badge count doesn't self-filter.
+    const newGradBase = buildWhereClause({ ...baseFilters, newGradFriendly: null });
+    const minYearsBase = buildWhereClause({ ...baseFilters, minYearsExperience: null });
+    // Mirror buildWhereClause's candidate-qualifies semantics: a job
+    // matches "I have N years" if its minYearsExperience is either
+    // ≤ N (explicit requirement) OR null (no requirement specified).
+    // Without the null branch the counts undercount by ~the entire
+    // un-backfilled aggregated inventory and confuse users — a
+    // 10-year veteran would see fewer matches than expected.
+    const qualifiesFor = (n: number) => ({
+      OR: [
+        { minYearsExperience: { lte: n } },
+        { minYearsExperience: null },
+      ],
+    });
+    // Unified new-grad match (mirrors buildWhereClause): explicit flag
+    // OR title keyword match minus the CATEGORY_EXCLUSIONS. Same clause
+    // shape so the badge count agrees with what the filter returns.
+    const newGradOrClauses: Prisma.JobWhereInput[] = [
+      { newGradFriendly: true },
+      ...(CATEGORY_FILTERS['new-grad'] ?? []),
+    ];
+    const newGradNotClauses: Prisma.JobWhereInput[] = (CATEGORY_EXCLUSIONS['new-grad'] ?? []).map((ex) => ({ NOT: ex }));
+    const newGradMatchClause: Prisma.JobWhereInput = {
+      AND: [{ OR: newGradOrClauses }, ...newGradNotClauses],
+    };
+
+    const [newGradCount, minY1, minY2, minY5, minY7, minY10] = await Promise.all([
+      prisma.job.count({ where: { AND: [newGradBase, newGradMatchClause] } }),
+      prisma.job.count({ where: { AND: [minYearsBase, qualifiesFor(1)] } }),
+      prisma.job.count({ where: { AND: [minYearsBase, qualifiesFor(2)] } }),
+      prisma.job.count({ where: { AND: [minYearsBase, qualifiesFor(5)] } }),
+      prisma.job.count({ where: { AND: [minYearsBase, qualifiesFor(7)] } }),
+      prisma.job.count({ where: { AND: [minYearsBase, qualifiesFor(10)] } }),
+    ]);
 
     const counts: FilterCounts = {
       workMode: {
@@ -237,6 +292,14 @@ export async function POST(request: NextRequest) {
         'New Grad': expMap['New Grad'] || 0,
         'Mid-Level': expMap['Mid-Level'] || 0,
         'Senior': expMap['Senior'] || 0,
+      },
+      newGradFriendly: newGradCount,
+      minYears: {
+        1: minY1,
+        2: minY2,
+        5: minY5,
+        7: minY7,
+        10: minY10,
       },
       total,
     };

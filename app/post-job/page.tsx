@@ -4,13 +4,16 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { config } from '@/lib/config';
 import { trackViewPostJobPage } from '@/lib/analytics';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import ScreeningQuestionsBuilder from '@/components/ScreeningQuestionsBuilder';
-import { Building2, MapPin, FileText, DollarSign, Rocket, ChevronRight, ChevronLeft, Check, Loader2, Save, Trash2, Upload } from 'lucide-react';
+import { Building2, MapPin, FileText, DollarSign, Rocket, ChevronRight, ChevronLeft, Check, Loader2, Trash2, Upload } from 'lucide-react';
+import { EXPERIENCE_BUCKETS, deriveExperienceLabel } from '@/lib/experience-label';
+import JdStarterPanel from '@/components/post-job/JdStarterPanel';
+import ConfirmDialog, { type ConfirmConfig } from '@/components/ui/ConfirmDialog';
 import 'react-quill-new/dist/quill.snow.css';
 
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
@@ -47,8 +50,8 @@ const jobPostingSchema = z.object({
       { message: 'Job description must be at least 200 characters' }
     )
     .refine(
-      (html) => html.replace(/<[^>]*>/g, '').length <= 7000,
-      { message: 'Job description cannot exceed 7,000 characters' }
+      (html) => html.replace(/<[^>]*>/g, '').length <= 25000,
+      { message: 'Job description cannot exceed 25,000 characters' }
     ),
   applyUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   applyOnPlatform: z.boolean().optional(),
@@ -57,6 +60,24 @@ const jobPostingSchema = z.object({
   setting: z.string().optional(),
   population: z.string().optional(),
   companyLogoUrl: z.string().optional(),
+  // Experience requirements — picker is required so we can't accept a job
+  // with no experience signal at all. minYearsExperience must match one of
+  // the EXPERIENCE_BUCKETS values; maxYearsExperience comes from the same
+  // table (paired with the picked min). newGradFriendly is the independent
+  // "we'll also consider exceptional new grads" flag.
+  minYearsExperience: z
+    .number()
+    .int()
+    .refine((v) => EXPERIENCE_BUCKETS.some((b) => b.min === v), {
+      message: 'Please select an experience level',
+    }),
+  maxYearsExperience: z.number().int().nullable(),
+  newGradFriendly: z.boolean().optional(),
+  experienceQualifier: z
+    .string()
+    .max(80, 'Experience note must be 80 characters or fewer')
+    .optional()
+    .or(z.literal('')),
 }).superRefine((data, ctx) => {
   if (!data.salaryCompetitive) {
     if (!data.salaryPeriod) {
@@ -159,7 +180,7 @@ const clayPillActive: React.CSSProperties = {
 
 const STEPS = [
   { id: 1, label: 'Company', icon: Building2, fields: ['title', 'companyName', 'companyWebsite', 'contactEmail'] },
-  { id: 2, label: 'Role', icon: MapPin, fields: ['location', 'mode', 'jobType'] },
+  { id: 2, label: 'Role', icon: MapPin, fields: ['location', 'mode', 'jobType', 'minYearsExperience'] },
   { id: 3, label: 'Description', icon: FileText, fields: ['description'] },
   { id: 4, label: 'Details', icon: DollarSign, fields: ['salaryMin', 'salaryMax', 'salaryPeriod', 'applyUrl'] },
   { id: 5, label: 'Plan', icon: Rocket, fields: ['pricingTier'] },
@@ -175,6 +196,90 @@ function LoadingFallback() {
       }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
+  );
+}
+
+/* ═══ Saved Indicator ═══
+   Quiet, always-visible autosave status pill — mirrors LinkedIn / Indeed.
+   States:
+     idle    → nothing yet ("All changes auto-save")
+     saving  → request in flight ("Saving…" + spinner)
+     saved   → most recent save succeeded ("Saved Xs ago")
+     error   → most recent save failed ("Couldn't save — will retry")
+*/
+function SavedIndicator({
+  status,
+  lastSavedAt,
+}: {
+  status: 'idle' | 'saving' | 'saved' | 'error';
+  lastSavedAt: Date | null;
+}) {
+  // Re-render every 30s so "Saved 5s ago" rolls forward to "Saved 35s
+  // ago" etc. without manual intervention. The interval is cheap.
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    if (status !== 'saved' || !lastSavedAt) return;
+    const id = setInterval(() => forceTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, [status, lastSavedAt]);
+
+  const label = (() => {
+    if (status === 'saving') return 'Saving…';
+    if (status === 'error') return "Couldn't save — will retry";
+    if (status === 'saved' && lastSavedAt) {
+      const seconds = Math.floor((Date.now() - lastSavedAt.getTime()) / 1000);
+      if (seconds < 5) return 'Saved just now';
+      if (seconds < 60) return `Saved ${seconds}s ago`;
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `Saved ${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `Saved ${hours}h ago`;
+      return 'Saved earlier today';
+    }
+    return 'All changes auto-save';
+  })();
+
+  const color =
+    status === 'error' ? '#B45309' :
+    status === 'saving' ? '#0F766E' :
+    status === 'saved' ? '#0F766E' :
+    '#94A3B8';
+
+  const bg =
+    status === 'error' ? '#FEF3C7' :
+    status === 'saving' || status === 'saved' ? '#ECFDF5' :
+    '#F5F6F8';
+
+  return (
+    <span
+      role="status"
+      aria-live="polite"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '5px 12px',
+        borderRadius: 999,
+        fontSize: 11,
+        fontWeight: 600,
+        color,
+        background: bg,
+        border: '1px solid rgba(0,0,0,0.04)',
+      }}
+    >
+      {status === 'saving' ? (
+        <Loader2 size={11} className="animate-spin" />
+      ) : (
+        <span
+          aria-hidden
+          style={{
+            display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
+            background: status === 'saved' ? '#10B981' : status === 'error' ? '#D97706' : '#CBD5E1',
+          }}
+        />
+      )}
+      {label}
+    </span>
   );
 }
 
@@ -250,8 +355,23 @@ function PostJobContent() {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [salaryCompetitive, setSalaryCompetitive] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
-  const [savingDraft, setSavingDraft] = useState(false);
-  const [draftSaveMessage, setDraftSaveMessage] = useState<string | null>(null);
+  // True only when hydration actually filled fields from an existing
+  // draft. Used to gate the "Welcome back" banner so it never shows on
+  // a fresh empty session.
+  const [hydratedFromExisting, setHydratedFromExisting] = useState(false);
+  // Banner dismissal is sticky — flips true the first time auto-save
+  // fires after hydration, and stays true. Without this latch, the
+  // banner blinked in/out on every save because the visibility was
+  // gated on `saveStatus !== 'saving'`.
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Auto-save state. Mirrors LinkedIn/Indeed:
+  //   idle    — nothing to save yet (form empty, or auto-save disabled)
+  //   saving  — request in flight
+  //   saved   — most recent save succeeded; show "Saved Xs ago"
+  //   error   — most recent save failed; surface for diagnostic only
+  type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -275,6 +395,10 @@ function PostJobContent() {
       salaryPeriod: 'annual',
       benefits: [],
       applyOnPlatform: false,
+      // Experience: defaults left unset so the Zod refine forces the
+      // employer to pick a bucket. newGradFriendly defaults false.
+      newGradFriendly: false,
+      experienceQualifier: '',
     },
   });
 
@@ -335,10 +459,16 @@ function PostJobContent() {
     checkUser();
   }, [setValue, router]);
 
-  // Load draft
+  // Hydration priority:
+  //   1. ?resume=<token> — legacy email-link path (kept for back-compat)
+  //   2. Server-side auth-anchored draft (the new primary path)
+  //   3. localStorage cache (offline / fast-path before /api/job-draft round-trip)
+  // Whichever wins, fields get prefilled and `draftLoaded` flips true.
   useEffect(() => {
     const loadFormData = async () => {
       const resumeToken = searchParams.get('resume');
+
+      // Path 1 — legacy token-based resume
       if (resumeToken) {
         try {
           const response = await fetch(`/api/job-draft?token=${resumeToken}`);
@@ -350,30 +480,150 @@ function PostJobContent() {
             });
             if (formData.salaryCompetitive) setSalaryCompetitive(true);
             if (formData.companyLogoUrl) setLogoPreview(formData.companyLogoUrl);
+            setLastSavedAt(new Date());
+            setSaveStatus('saved');
+            setHydratedFromExisting(true);
             setDraftLoaded(true);
+            return;
           }
         } catch (err) {
-          console.error('Error loading draft:', err);
+          console.error('Error loading draft via token:', err);
         }
-      } else {
-        const savedData = localStorage.getItem('jobFormData');
-        if (savedData) {
-          try {
-            const parsedData: JobPostingFormData = JSON.parse(savedData);
-            Object.keys(parsedData).forEach((key: string) => {
-              setValue(key as keyof JobPostingFormData, parsedData[key as keyof JobPostingFormData]);
+      }
+
+      // Path 2 — server-side auth-anchored draft. Silently returns
+      // null when no draft exists or when the call isn't authenticated.
+      try {
+        const res = await fetch('/api/job-draft', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.draft?.formData) {
+            const formData = data.draft.formData as JobPostingFormData;
+            Object.keys(formData).forEach((key: string) => {
+              setValue(key as keyof JobPostingFormData, formData[key as keyof JobPostingFormData]);
             });
-            if (parsedData.salaryCompetitive) setSalaryCompetitive(true);
-            if (parsedData.companyLogoUrl) setLogoPreview(parsedData.companyLogoUrl);
-          } catch (err) {
-            console.error('Error loading saved form data:', err);
+            if (formData.salaryCompetitive) setSalaryCompetitive(true);
+            if (formData.companyLogoUrl) setLogoPreview(formData.companyLogoUrl);
+            setLastSavedAt(new Date(data.draft.savedAt));
+            setSaveStatus('saved');
+            setDraftLoaded(true);
+            return;
           }
+        }
+      } catch (err) {
+        console.error('Error loading server-side draft:', err);
+      }
+
+      // Path 3 — localStorage fallback (anonymous-friendly + survives
+      // when the API is briefly unreachable).
+      const savedData = localStorage.getItem('jobFormData');
+      if (savedData) {
+        try {
+          const parsedData: JobPostingFormData = JSON.parse(savedData);
+          // Only treat this as "restored" if it has meaningful content,
+          // not just defaults that the form would set anyway.
+          const isMeaningful =
+            (parsedData.title || '').trim().length > 0 ||
+            (parsedData.companyName || '').trim().length > 0 ||
+            ((parsedData.description || '').replace(/<[^>]*>/g, '').trim().length > 0);
+          Object.keys(parsedData).forEach((key: string) => {
+            setValue(key as keyof JobPostingFormData, parsedData[key as keyof JobPostingFormData]);
+          });
+          if (parsedData.salaryCompetitive) setSalaryCompetitive(true);
+          if (parsedData.companyLogoUrl) setLogoPreview(parsedData.companyLogoUrl);
+          if (isMeaningful) setHydratedFromExisting(true);
+        } catch (err) {
+          console.error('Error loading saved form data:', err);
         }
       }
       setDraftLoaded(true);
     };
     loadFormData();
   }, [setValue, searchParams]);
+
+  // Auto-save loop. Watches the live form state and POSTs the entire
+  // form data to /api/job-draft a few seconds after typing stops.
+  // Mirrors LinkedIn/Indeed:
+  //   - No "Save Draft" button needed — saves happen invisibly.
+  //   - Localstorage is mirrored in parallel for instant reload + offline.
+  //   - Skipped before draftLoaded so we don't overwrite a server draft
+  //     with the initial empty form values during hydration.
+  //   - Skipped when the serialized payload matches the previous save
+  //     (form re-renders without real content changes — like opening a
+  //     subsection — don't trigger redundant POSTs).
+  //   - Debounce tuned to 3.5s so steady typing produces ~1 save every
+  //     few seconds rather than per pause, staying well clear of the
+  //     /api/job-draft rate-limit ceiling.
+  const watchedFormData = watch();
+  const lastSavedPayloadRef = useRef<string>('');
+  useEffect(() => {
+    if (!draftLoaded) return;
+
+    // Serialize once; the same string anchors both the dedup check and
+    // the eventual POST body so they can't drift.
+    const serializedFormData = JSON.stringify(watchedFormData);
+
+    // Mirror to localStorage every change — costs nothing, gives the
+    // user an instant reload-recover experience.
+    try {
+      localStorage.setItem('jobFormData', serializedFormData);
+    } catch {
+      // localStorage might be full or disabled in private mode. Non-fatal.
+    }
+
+    // Don't fire the server save for trivial empty state — the
+    // post-mount initial render before any user input.
+    const hasMeaningful =
+      (watchedFormData.title || '').trim().length > 0 ||
+      (watchedFormData.companyName || '').trim().length > 0 ||
+      ((watchedFormData.description || '').replace(/<[^>]*>/g, '').trim().length > 0);
+    if (!hasMeaningful) return;
+
+    // Don't fire when not authenticated.
+    if (!user || (userRole !== 'employer' && userRole !== 'admin')) return;
+
+    // Don't fire when nothing has actually changed since the last
+    // successful save. react-hook-form's watch() returns a new object
+    // reference per render even when values are identical, so without
+    // this dedup the debounce keeps re-arming with the same payload.
+    if (serializedFormData === lastSavedPayloadRef.current) return;
+
+    const handle = setTimeout(async () => {
+      // Re-read inside the closure so a stale closure doesn't POST
+      // older content than what's currently in the editor.
+      const payload = JSON.stringify(watchedFormData);
+      if (payload === lastSavedPayloadRef.current) return;
+      setSaveStatus('saving');
+      // Permanently dismiss the resume banner on the first user-driven
+      // save — keeps the banner from blinking on every subsequent save.
+      setBannerDismissed(true);
+      try {
+        const res = await fetch('/api/job-draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            formData: watchedFormData,
+            email: watchedFormData.contactEmail || undefined,
+          }),
+        });
+        if (!res.ok) {
+          setSaveStatus('error');
+          return;
+        }
+        const body = await res.json();
+        lastSavedPayloadRef.current = payload;
+        setLastSavedAt(body?.savedAt ? new Date(body.savedAt) : new Date());
+        setSaveStatus('saved');
+      } catch {
+        setSaveStatus('error');
+      }
+    }, 3_500);
+
+    return () => clearTimeout(handle);
+    // Re-fire whenever any tracked field changes. watch() returns a new
+    // object reference per re-render, but the form library only triggers
+    // re-renders when fields actually change, so this is debounce-safe.
+  }, [watchedFormData, draftLoaded, user, userRole]);
 
   // Pre-fill company fields from the employer's most recent posting after
   // draft/localStorage hydration is done. Only fills fields that are still
@@ -452,43 +702,41 @@ function PostJobContent() {
     router.push('/post-job/preview');
   };
 
-  const handleSaveDraft = async () => {
-    if (!contactEmail || contactEmail.trim() === '') {
-      setDraftSaveMessage('Please enter your email address first');
-      setTimeout(() => setDraftSaveMessage(null), 3000);
-      return;
-    }
-    setSavingDraft(true);
-    setDraftSaveMessage(null);
-    try {
-      const formData = watch();
-      const response = await fetch('/api/job-draft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: contactEmail, formData }),
-      });
-      const result = await response.json();
-      if (response.ok && result.success) {
-        setDraftSaveMessage('Draft saved! Check your email to continue later.');
-      } else {
-        setDraftSaveMessage(result.error || 'Failed to save draft');
-      }
-    } catch (err) {
-      console.error('Error saving draft:', err);
-      setDraftSaveMessage('Failed to save draft. Please try again.');
-    } finally {
-      setSavingDraft(false);
-      setTimeout(() => setDraftSaveMessage(null), 5000);
-    }
-  };
+  // Auto-save replaces the old "Save Draft" button — see the auto-save
+  // useEffect above. No handleSaveDraft anymore.
 
-  const handleClearDraft = () => {
-    if (!window.confirm('Are you sure you want to clear this draft? All entered data will be lost.')) return;
+  // Confirm dialog state — shared with the rest of the app via
+  // components/ui/ConfirmDialog. Used by Clear Draft (destructive).
+  const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
+
+  const performClearDraft = async () => {
+    setConfirm(null);
     localStorage.removeItem('jobFormData');
+    // Also wipe the server-side draft so it doesn't re-hydrate on next
+    // visit. Best-effort — local clear is the user-facing source of
+    // truth and a failed DELETE still leaves the page in a sane state.
+    try {
+      await fetch('/api/job-draft', { method: 'DELETE' });
+    } catch {
+      // Non-fatal.
+    }
+    // AI generation quota is server-side now (per-day, not per-draft),
+    // so clearing the draft no longer resets it. The cap rolls over
+    // at midnight Central Time regardless.
     const url = new URL(window.location.href);
     url.searchParams.delete('resume');
     window.history.replaceState({}, '', url.toString());
     window.location.reload();
+  };
+
+  const handleClearDraft = () => {
+    setConfirm({
+      title: 'Clear this draft?',
+      description: 'All entered data will be lost. This cannot be undone.',
+      confirmLabel: 'Clear draft',
+      variant: 'danger',
+      onConfirm: performClearDraft,
+    });
   };
 
   const handleCompetitiveChange = (checked: boolean) => {
@@ -657,28 +905,28 @@ function PostJobContent() {
     <>
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '16px 16px 120px' }}>
 
-        {/* Draft Messages */}
-        {draftLoaded && !draftSaveMessage && (
+        {/* Resume banner — shown ONLY on initial hydration of an
+            existing draft, and dismissed permanently after the first
+            auto-save fires (bannerDismissed latch). Earlier version
+            gated on `saveStatus !== 'saving'`, which made the banner
+            flicker in and out on every save. */}
+        {hydratedFromExisting && !bannerDismissed && (
           <div style={{
             ...cardBase, padding: '12px 16px', marginBottom: '16px',
             background: '#F0FDFA', border: '1px solid #99F6E4',
           }}>
             <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', margin: 0 }}>
-              ✓ Welcome back! Your draft has been loaded.
+              ✓ Resumed your unfinished post — all fields restored. Auto-saving as you go.
             </p>
           </div>
         )}
-        {draftSaveMessage && (
-          <div style={{
-            ...cardBase, padding: '12px 16px', marginBottom: '16px',
-            background: draftSaveMessage.includes('saved') ? '#F0FDFA' : '#FEF2F2',
-            border: `1px solid ${draftSaveMessage.includes('saved') ? '#99F6E4' : '#FECACA'}`,
-          }}>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: draftSaveMessage.includes('saved') ? '#059669' : '#DC2626', margin: 0 }}>
-              {draftSaveMessage}
-            </p>
-          </div>
-        )}
+
+        {/* Saved indicator — always visible above the step bar. Never
+            unmounts between saves; only the inner content (Saving… /
+            Saved Xs ago) changes. */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+          <SavedIndicator status={saveStatus} lastSavedAt={lastSavedAt} />
+        </div>
 
         {/* Progress Bar */}
         <StepProgressBar
@@ -815,6 +1063,73 @@ function PostJobContent() {
                   <ErrorMsg message={errors.jobType?.message} />
                 </div>
 
+                {/* Years of Experience */}
+                <div>
+                  <Label required>Years of Experience Required</Label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    {EXPERIENCE_BUCKETS.map((bucket) => {
+                      const isActive = watch('minYearsExperience') === bucket.min;
+                      return (
+                        <label key={bucket.min} style={{ cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            value={bucket.min}
+                            checked={isActive}
+                            onChange={() => {
+                              setValue('minYearsExperience', bucket.min, { shouldValidate: true });
+                              setValue('maxYearsExperience', bucket.max);
+                            }}
+                            style={{ display: 'none' }}
+                          />
+                          <div style={isActive ? clayPillActive : clayPill}>{bucket.label}</div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <ErrorMsg message={errors.minYearsExperience?.message} />
+                  {/* "Also open to new grads" — only shown when a non-zero
+                      bucket is selected. The 0-min bucket already implies
+                      new-grad-friendly. */}
+                  {typeof watch('minYearsExperience') === 'number' && watch('minYearsExperience') > 0 && (
+                    <label
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '8px',
+                        marginTop: '12px', cursor: 'pointer',
+                        fontSize: '13px', color: '#4B5563',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        {...register('newGradFriendly')}
+                        style={{ accentColor: '#0D9488', width: '16px', height: '16px' }}
+                      />
+                      Also open to exceptional new grads
+                    </label>
+                  )}
+                  {/* Optional 80-char qualifier — shown on the JD page, never
+                      on the card. Lets the employer capture nuance
+                      ("psych ICU background preferred"). */}
+                  <div style={{ marginTop: '12px' }}>
+                    <Label htmlFor="experienceQualifier">
+                      Additional note <span style={{ fontWeight: 400, color: '#B0BEC5' }}>(optional, 80 chars)</span>
+                    </Label>
+                    <input
+                      type="text"
+                      id="experienceQualifier"
+                      maxLength={80}
+                      placeholder="e.g. Prefer inpatient psychiatric background"
+                      {...register('experienceQualifier')}
+                      style={errors.experienceQualifier ? clayInputError : clayInput}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                      <ErrorMsg message={errors.experienceQualifier?.message} />
+                      <span style={{ fontSize: '11px', color: '#8A9BA6' }}>
+                        {(watch('experienceQualifier') || '').length}/80
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Clinical Setting */}
                 <div>
                   <Label htmlFor="setting">Clinical Setting <span style={{ fontWeight: 400, color: '#B0BEC5' }}>(optional)</span></Label>
@@ -846,6 +1161,25 @@ function PostJobContent() {
 
               <div>
                 <Label required>Description</Label>
+
+                {/* Enterprise-quality JD starter: empty-state 3-path hero
+                    (Template / AI / Blank) when the editor is empty, plus
+                    a post-generation toolbar (Regenerate / Shorter / Longer
+                    / Change tone / Undo) once an AI draft is loaded.
+                    Modals handle template selection and AI-input forms.
+                    See components/post-job/JdStarterPanel.tsx. */}
+                <JdStarterPanel
+                  description={watch('description') || ''}
+                  onChange={(next) => setValue('description', next, { shouldValidate: true })}
+                  formContext={{
+                    role: watch('title') || '',
+                    setting: watch('setting') || '',
+                    employer: watch('companyName') || '',
+                    location: watch('location') || '',
+                    benefits: watch('benefits') || [],
+                  }}
+                />
+
                 <div style={{
                   borderRadius: '14px', overflow: 'hidden',
                   border: errors.description ? '1.5px solid #EF4444' : '1px solid rgba(0,0,0,0.08)',
@@ -873,8 +1207,8 @@ function PostJobContent() {
                 <ErrorMsg message={errors.description?.message} />
                 <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <p style={{ fontSize: '11px', color: '#B0BEC5', margin: 0 }}>Minimum 200 characters. Use the toolbar to format.</p>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: (watch('description') || '').replace(/<[^>]*>/g, '').length > 7000 ? '#EF4444' : '#94A3B8' }}>
-                    {(watch('description') || '').replace(/<[^>]*>/g, '').length.toLocaleString()} / 7,000
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: (watch('description') || '').replace(/<[^>]*>/g, '').length > 25000 ? '#EF4444' : '#94A3B8' }}>
+                    {(watch('description') || '').replace(/<[^>]*>/g, '').length.toLocaleString()} / 25,000
                   </span>
                 </div>
                 <InfoBox emoji="💡" color="blue">
@@ -1094,12 +1428,10 @@ function PostJobContent() {
                 <ChevronLeft size={14} /> Back
               </button>
             )}
-            <button type="button" onClick={handleSaveDraft} disabled={savingDraft} className="wizard-nav-btn" style={{
-              ...clayBtn, background: '#fff', color: '#8A9BA6', padding: '10px 14px', fontSize: '12px',
-            }}>
-              {savingDraft ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-              {savingDraft ? 'Saving...' : 'Save Draft'}
-            </button>
+            {/* "Save Draft" removed 2026-05-14 — replaced by the
+                auto-save loop above + the SavedIndicator at the top.
+                The footer keeps Back + Clear + Continue, matching the
+                LinkedIn / Indeed pattern. */}
             <button type="button" onClick={handleClearDraft} className="wizard-nav-btn" style={{
               ...clayBtn, background: '#fff', color: '#B0BEC5', padding: '10px 14px', fontSize: '12px',
             }}>
@@ -1141,6 +1473,13 @@ function PostJobContent() {
         .wizard-next-btn:hover { transform: translateY(-1px); box-shadow: 6px 6px 16px rgba(13,148,136,0.3), inset 1px 1px 2px rgba(255,255,255,0.15) !important; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
+
+      {confirm && (
+        <ConfirmDialog
+          {...confirm}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
     </>
   );
 }

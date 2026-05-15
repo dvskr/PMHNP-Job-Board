@@ -38,6 +38,12 @@ const PARAMS_SCHEMA = z.object({
     .regex(/^[A-Za-z][0-9]{1,4}$/, 'code must be <letter><digits>'),
 })
 
+// Per-recipient attribution token. UUIDs (36 chars), cuids (~25 chars),
+// and short hashed ids all fit comfortably under 64. Restrict to
+// alphanumeric+hyphen so we never write something injected-looking into
+// the analytics column, even though Prisma parameterizes the value.
+const RECIPIENT_LEAD_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/
+
 const FALLBACK_PATH = '/jobs'
 
 function buildBaseUrl(): string {
@@ -65,6 +71,14 @@ function clientIpOf(req: NextRequest): string | null {
   const realIp = req.headers.get('x-real-ip')
   if (realIp) return realIp.trim()
   return null
+}
+
+function extractRecipientLeadId(req: NextRequest): string | null {
+  const raw = req.nextUrl.searchParams.get('r')
+  if (!raw) return null
+  // Silently drop malformed values rather than 400ing — the redirect
+  // path must never strand the user over a tracking parameter.
+  return RECIPIENT_LEAD_ID_PATTERN.test(raw) ? raw : null
 }
 
 function isPrivacyRespectingRequest(req: NextRequest): boolean {
@@ -123,6 +137,7 @@ export async function GET(
   const bot = identifyBot(userAgent)
 
   // ── 6. Fire-and-forget tracker ────────────────────────────────────
+  const recipientLeadId = extractRecipientLeadId(req)
   void recordClick({
     resolution: resolved,
     code,
@@ -131,6 +146,7 @@ export async function GET(
     userAgent,
     referer,
     country,
+    recipientLeadId,
   })
 
   logger.info('[shortlink] click', {
@@ -141,6 +157,7 @@ export async function GET(
     jobId: resolved.jobId,
     isBot: bot.isBot,
     botName: bot.botName,
+    hasRecipient: recipientLeadId !== null,
   })
 
   // ── 7. Redirect ───────────────────────────────────────────────────

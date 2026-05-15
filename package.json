@@ -49,6 +49,8 @@
     "audit:thin:dev": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/audit-thin-job-postings.ts --env=dev",
     "backfill:region": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/backfill-missing-state-region.ts --env=prod",
     "backfill:region:dev": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/backfill-missing-state-region.ts --env=dev",
+    "backfill:experience": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/backfill-experience.ts --env=prod",
+    "backfill:experience:dev": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/backfill-experience.ts --env=dev",
     "recs:run": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-recommendations.ts",
     "seed:test-candidates": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/seed-test-candidates.ts"
   },
@@ -106,6 +108,7 @@
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^2.1.8",
+    "csv-parse": "^6.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.0.7",
     "prisma": "^7.4.1",

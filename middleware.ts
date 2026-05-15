@@ -603,7 +603,7 @@ export async function middleware(request: NextRequest) {
             }
         }
         // /jobs/{cat}/{x} — category × state (only some taxonomies have state pages)
-        else if (segs.length === 3 && segs[1] !== 'city' && segs[1] !== 'metro') {
+        else if (segs.length === 3 && segs[1] !== 'city' && segs[1] !== 'metro' && segs[1] !== 'edit') {
             const cat = segs[1];
             const tail = segs[2];
             // Skip job-detail pages (slug ends in UUID) — handled by job-detail 410 block above
@@ -794,9 +794,13 @@ export async function middleware(request: NextRequest) {
     const response = await updateSession(request);
 
     // Set CSP header and pass nonce to layout via request header.
-    // Skip CSP injection for the admin email-preview route — it self-manages a
-    // looser policy so its inline polling script can resize iframes.
-    const skipCsp = request.nextUrl.pathname.startsWith('/api/email-preview');
+    // Skip CSP injection for routes that self-manage a route-specific policy:
+    //   /api/email-preview — inline polling script that resizes iframes
+    //   /widget            — iframe-embeddable jobs widget; needs
+    //                        `frame-ancestors *.edu` instead of `'none'`
+    const skipCsp =
+      request.nextUrl.pathname.startsWith('/api/email-preview') ||
+      request.nextUrl.pathname.startsWith('/widget');
     if (!skipCsp) {
       response.headers.set('Content-Security-Policy', cspHeader);
     }

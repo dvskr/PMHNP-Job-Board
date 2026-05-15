@@ -180,6 +180,11 @@ export const TASK_REGISTRY: Record<AiTaskId, TaskConfig> = {
         outputMode: 'text',
         cacheTtlSeconds: 0,
         ...CREATIVE_LIKE,
+        // Override CREATIVE_LIKE.maxOutputTokens (1500) — JD spec requires
+        // ≥5000 chars (~1250 visible tokens) and gpt-5.4 reserves a chunk of
+        // the completion budget for internal reasoning. 4000 leaves comfortable
+        // headroom for both. See docs/runbooks/ui-refresh-2026-05.md §2 Phase 2.
+        maxOutputTokens: 4_000,
         rateLimit: { limit: 20, windowSeconds: 3600 },
     },
     bias_audit: {

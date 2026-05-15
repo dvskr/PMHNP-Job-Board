@@ -247,6 +247,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         select: {
             id: true, title: true, slug: true, employer: true, location: true,
             jobType: true, mode: true, experienceLevel: true,
+            // Phase 1 experience chip
+            experienceLabel: true, newGradFriendly: true,
             description: true, descriptionSummary: true,
             salaryRange: true, minSalary: true, maxSalary: true, salaryPeriod: true,
             normalizedMinSalary: true, normalizedMaxSalary: true,

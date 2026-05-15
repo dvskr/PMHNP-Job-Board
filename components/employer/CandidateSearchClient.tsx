@@ -5,6 +5,7 @@ import { Search, Filter, Users, Loader2, X, ChevronLeft, ChevronRight, ChevronDo
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import CandidateCard from './CandidateCard';
+import BulkUnlockToolbar from './BulkUnlockToolbar';
 
 /* ═══════════════════════════════════════════
    CONSTANTS
@@ -970,6 +971,42 @@ export default function CandidateSearchClient() {
                                     : `Top ${candidates.length} AI-ranked candidate${candidates.length !== 1 ? 's' : ''} for your query`
                                 : `Showing ${(page - 1) * 20 + 1}–${Math.min(page * 20, totalCount)} of ${totalCount} candidate${totalCount !== 1 ? 's' : ''}`}
                         </p>
+
+                        {/* Phase 4 #5 — bulk-unlock toolbar. Locked-set is
+                            derived from the candidates feed (rows without
+                            `hasFullAccess` true and not in viewedIds).
+                            Remaining credits are pulled from selected
+                            posting's per-posting allowance when available,
+                            else the global unlockUsage snapshot. */}
+                        {(() => {
+                            const lockedIds: string[] = candidates
+                                .filter((c: Candidate) => !c.hasFullAccess && !viewedIds.has(c.id))
+                                .map((c: Candidate) => c.id as string);
+                            const selPosting = postings.find((p) => p.id === selectedPostingId);
+                            const usage = selPosting
+                                ? {
+                                      used: selPosting.unlocks.used,
+                                      limit: selPosting.unlocks.limit === -1 ? null : selPosting.unlocks.limit,
+                                      unlimited: selPosting.unlocks.limit === -1,
+                                  }
+                                : unlockUsage;
+                            const remaining =
+                                !usage || usage.unlimited || usage.limit === null
+                                    ? null
+                                    : Math.max(0, usage.limit - usage.used);
+                            return (
+                                <BulkUnlockToolbar
+                                    lockedCandidateIds={lockedIds}
+                                    remainingCredits={remaining}
+                                    onUnlocked={(ids) => {
+                                        // Refresh the page to re-fetch unlocked state for the cards.
+                                        // Could be optimized to in-place update; refresh is safest given
+                                        // the existing 1k-line client manages a lot of derived state.
+                                        if (ids.length > 0) router.refresh();
+                                    }}
+                                />
+                            );
+                        })()}
 
                         {/* Card Grid — 280px min instead of 340 so a 360px
                             phone viewport (328px usable after padding) gets

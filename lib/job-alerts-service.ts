@@ -380,6 +380,19 @@ export async function sendJobAlerts(): Promise<{
           })
         }
 
+        // Phase 5 #16 — experience filter alignment with /jobs UI.
+        // newGradFriendly: when true, only jobs flagged open to new grads.
+        if (alert.newGradFriendly === true) {
+          ;(whereClause.AND as Prisma.JobWhereInput[]).push({ newGradFriendly: true })
+        }
+        // minYearsExperience: candidate-qualifies semantics — the user has N
+        // years and qualifies for any job where minYearsExperience ≤ N.
+        if (typeof alert.minYearsExperience === 'number' && alert.minYearsExperience >= 0) {
+          ;(whereClause.AND as Prisma.JobWhereInput[]).push({
+            minYearsExperience: { lte: alert.minYearsExperience },
+          })
+        }
+
         // Get total count first, then fetch top 10 for the email.
         // We fetch a few extra (top 20) so that when merging across a user's
         // multiple alerts we still have headroom after dedup before truncating to 10.
