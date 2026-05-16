@@ -264,7 +264,7 @@ export default function InPlatformApplyForm({
     const modalContent = (
         <div className="fixed inset-0 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999 }}>
         <div
-            className="relative w-full max-w-2xl rounded-2xl overflow-hidden animate-scale-in"
+            className="relative w-full max-w-2xl rounded-2xl overflow-hidden"
             style={{
                 backgroundColor: 'var(--bg-secondary)',
                 border: '1px solid var(--border-color)',

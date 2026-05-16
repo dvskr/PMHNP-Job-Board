@@ -31,6 +31,10 @@ interface BulkUnlockToolbarProps {
   lockedCandidateIds: string[];
   /** Remaining unlock credits the employer has (used cap on "Select all"). */
   remainingCredits: number | null;
+  /** The posting the user has selected in the UI. Sent to the server so
+   *  the unlocks are debited from THIS posting's quota — keeps the
+   *  on-screen "N/M unlocks" counter consistent with what's spent. */
+  postingId?: string | null;
   /** Called after a successful unlock so the parent can update UI in place. */
   onUnlocked?: (candidateIds: string[]) => void;
 }
@@ -70,6 +74,7 @@ const pillBtn: React.CSSProperties = {
 export default function BulkUnlockToolbar({
   lockedCandidateIds,
   remainingCredits,
+  postingId,
   onUnlocked,
 }: BulkUnlockToolbarProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -112,7 +117,10 @@ export default function BulkUnlockToolbar({
       const res = await fetch('/api/employer/profiles/unlock-bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ candidateIds: Array.from(selected) }),
+        body: JSON.stringify({
+          candidateIds: Array.from(selected),
+          ...(postingId ? { postingId } : {}),
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));

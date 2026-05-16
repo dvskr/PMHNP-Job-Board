@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import {
-    MapPin, Briefcase, FileText, Calendar, Bookmark, Lock, Sparkles,
+    MapPin, Briefcase, FileText, Calendar, Bookmark, Lock, Sparkles, Check,
 } from 'lucide-react';
 
 interface CandidateCardProps {
@@ -30,6 +30,17 @@ interface CandidateCardProps {
      *  URL as ?fromPage=N so the in-page "Back to Talent Pool" link can
      *  return the user to the exact page they came from. */
     fromPage?: number;
+    /** Selected posting in the talent-pool dropdown at the moment the card
+     *  was clicked. Forwarded to the profile URL as ?postingId=... so the
+     *  unlock debits THIS posting's quota — not whatever canUnlockCandidate's
+     *  auto-picker chooses. Avoids the sessionStorage staleness problem. */
+    selectedPostingId?: string;
+    /** Selection state for the bulk-unlock workflow. When defined, the
+     *  card renders a checkbox in the top-left (next to the Bookmark
+     *  button in the top-right). Card is considered "selectable" only
+     *  when locked — already-unlocked cards skip the checkbox entirely. */
+    isSelected?: boolean;
+    onToggleSelect?: (id: string) => void;
 }
 
 const EXPERIENCE_LABELS: Record<number, string> = {
@@ -91,13 +102,20 @@ export default function CandidateCard({
     yearsExperience, certifications, licenseStates,
     specialties, preferredWorkMode, availableDate, hasResume,
     isSaved, isViewed, unlockUsage, onToggleSave,
-    aiReason, aiMatchPercent, fromPage,
+    aiReason, aiMatchPercent, fromPage, selectedPostingId,
+    isSelected, onToggleSelect,
 }: CandidateCardProps) {
     // Profile URL carries the originating page so /employer/candidates/[id]
     // knows where to send the user when they click "Back to Talent Pool".
     // Skip when fromPage is 1 (or unset) — a clean URL is the default.
-    const profileHref = fromPage && fromPage > 1
-        ? `/employer/candidates/${id}?fromPage=${fromPage}`
+    // Also include selectedPostingId so the unlock debits the right
+    // posting's quota (sessionStorage was unreliable for this).
+    const profileQs = new URLSearchParams();
+    if (fromPage && fromPage > 1) profileQs.set('fromPage', String(fromPage));
+    if (selectedPostingId) profileQs.set('postingId', selectedPostingId);
+    const qsStr = profileQs.toString();
+    const profileHref = qsStr
+        ? `/employer/candidates/${id}?${qsStr}`
         : `/employer/candidates/${id}`;
     const expLabel = getExperienceLabel(yearsExperience);
     const availLabel = formatAvailableDate(availableDate);
@@ -128,9 +146,14 @@ export default function CandidateCard({
     const isExhausted = !isViewed && !hasNoEntitlement && remaining !== null && remaining <= 0;
     const requiresPosting = !isViewed && hasNoEntitlement;
 
+    // Bulk-select is only available for cards that can actually be
+    // unlocked. Already-viewed cards are excluded (no credit to spend),
+    // as are cards with no posting entitlement.
+    const selectable = !!onToggleSelect && !isViewed && !requiresPosting && !isExhausted;
+
     return (
         <div
-            className="clay-candidate-card"
+            className={`clay-candidate-card${isSelected ? ' is-selected' : ''}`}
             style={{
                 ...cardBase,
                 padding: '20px',
@@ -139,8 +162,45 @@ export default function CandidateCard({
                 gap: '12px',
                 transition: 'all 0.2s ease',
                 position: 'relative',
+                ...(isSelected
+                    ? {
+                          outline: '2px solid #0D9488',
+                          outlineOffset: '-1px',
+                          boxShadow: '0 0 0 4px rgba(13,148,136,0.12), 6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+                      }
+                    : {}),
             }}
         >
+            {/* Bulk-select checkbox — file-manager-style. Top-left, mirror
+                of the bookmark button on the right. Visible on the card's
+                hover state OR when already selected. Clicking it does NOT
+                navigate to the profile. */}
+            {selectable && (
+                <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleSelect!(id); }}
+                    aria-pressed={isSelected ? 'true' : 'false'}
+                    title={isSelected ? 'Deselect' : 'Select for bulk unlock'}
+                    className="clay-card-select-btn"
+                    style={{
+                        position: 'absolute', top: '14px', left: '14px',
+                        width: '24px', height: '24px', borderRadius: '8px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: isSelected ? 'linear-gradient(145deg, #10B981, #0D9488)' : '#FFFFFF',
+                        border: `1.5px solid ${isSelected ? '#0D9488' : 'rgba(0,0,0,0.18)'}`,
+                        boxShadow: isSelected
+                            ? '2px 2px 6px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.2)'
+                            : '2px 2px 6px rgba(0,0,0,0.04), -1px -1px 4px rgba(255,255,255,0.7)',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                        color: isSelected ? '#FFFFFF' : 'transparent',
+                        opacity: isSelected ? 1 : undefined,
+                        zIndex: 2,
+                    }}
+                >
+                    <Check size={14} strokeWidth={3} />
+                </button>
+            )}
+
             {/* Bookmark button */}
             {onToggleSave && (
                 <button

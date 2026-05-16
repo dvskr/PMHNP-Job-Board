@@ -32,6 +32,12 @@ import { logger } from '@/lib/logger';
 
 const requestSchema = z.object({
   candidateIds: z.array(z.string().min(1)).min(1).max(100),
+  // Optional: explicit posting to attribute the unlocks to. Without
+  // this, canUnlockCandidate() picks "newest active posting with
+  // headroom" — which can differ from the posting the user has
+  // selected in the UI, causing the displayed counter to look stuck
+  // (unlocks happen, just on a different posting's quota).
+  postingId: z.string().min(1).optional(),
 });
 
 // Per-call upper bound. The UI gates this at the credit balance, but we
@@ -116,7 +122,12 @@ export async function POST(req: NextRequest) {
           failed.push({ candidateId, reason, message: REASON_MESSAGES[reason] || REASON_MESSAGES.posting_cap });
           continue;
         }
-        chargePostingId = unlockCheck.postingId;
+        // Honor the client's selected posting when provided — keeps the
+        // UI counter consistent with where credits actually get debited.
+        // Falls back to canUnlockCandidate's pick if the requested posting
+        // isn't in the auto-picker's headroom path (defensive — server
+        // still has final say on which postings are valid).
+        chargePostingId = parsed.postingId ?? unlockCheck.postingId;
       }
 
       await prisma.profileView.upsert({

@@ -285,7 +285,10 @@ export async function POST(request: NextRequest) {
             stateCode: parsedLoc.stateCode,
             isRemote: parsedLoc.isRemote,
             isHybrid: parsedLoc.isHybrid,
-            isFeatured: config.isFeaturedTier(tierForDuration),
+            // isFeatured reserved for a future premium tier ($299+). Regular
+            // employer posts (free + paid $199) get top placement via the
+            // EmployerJob relation now, not via this flag (see job-sort.ts).
+            isFeatured: false,
             isPublished: true,
             isVerifiedEmployer: true,
             sourceType: 'employer',

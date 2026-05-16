@@ -193,7 +193,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             padding: '18px 22px',
             backgroundColor: '#F7FBF8',
             borderRadius: '20px',
-            border: job.isFeatured ? '2px solid var(--color-primary)' : '1px solid rgba(255,255,255,0.5)',
+            border: '1px solid rgba(255,255,255,0.5)',
             boxShadow: '8px 8px 20px rgba(0,0,0,0.07), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             opacity: viewed ? 0.7 : 1,
@@ -250,19 +250,14 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             }}>
               {job.title}
             </h3>
-            {/* Company */}
+            {/* Company. "Featured" badge removed 2026-05-16 — reserved
+                for a future premium tier. The card's primary-color border
+                (driven off `isFeatured`) is retained as the visual hook
+                that tier will use. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px', minWidth: 0 }}>
               <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                 {job.employer}
               </p>
-              {job.isFeatured && (
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0,
-                  padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
-                  background: '#FDE68A', color: '#78350F', border: '1px solid rgba(255,255,255,0.5)',
-                  boxShadow: '2px 2px 6px rgba(245,158,11,0.15), -1px -1px 4px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(0,0,0,0.03)',
-                }}>⚡ Featured</span>
-              )}
             </div>
 
             {/* Salary + Location + Type + Experience */}
@@ -485,14 +480,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                 {job.employer}
               </p>
-              {job.isFeatured && (
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0,
-                  padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
-                  background: '#FDE68A', color: '#78350F', border: '1px solid rgba(255,255,255,0.5)',
-                  boxShadow: '2px 2px 6px rgba(245,158,11,0.15), -1px -1px 4px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(0,0,0,0.03)',
-                }}>⚡ Featured</span>
-              )}
+              {/* Featured badge removed 2026-05-16 — reserved for future
+                  premium tier. Border on the card (driven by isFeatured)
+                  retained for that future tier. */}
             </div>
           </div>
 

@@ -220,7 +220,10 @@ export async function POST(request: NextRequest) {
           stateCode: parsedLoc.stateCode,
           isRemote: parsedLoc.isRemote,
           isHybrid: parsedLoc.isHybrid,
-          isFeatured: config.isFeaturedTier(pricing),
+          // isFeatured reserved for a future premium tier. Standard $199
+          // posts get top placement via the EmployerJob relation now —
+          // see lib/utils/job-sort.ts.
+          isFeatured: false,
           isPublished: false, // Will be flipped by webhook on successful payment
           sourceType: 'employer',
           expiresAt,

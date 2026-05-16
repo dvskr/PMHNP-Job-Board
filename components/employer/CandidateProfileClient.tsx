@@ -129,7 +129,21 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetch(`/api/employer/candidates/${candidateId}`);
+                // Forward the talent-pool's currently-selected posting so the
+                // server debits that posting's quota — otherwise the auto-
+                // picker chooses "newest with headroom" and the visible
+                // counter never moves.
+                //
+                // Source: ?postingId= URL param set by the card at click
+                // time. sessionStorage was unreliable here (could be stale
+                // from a previous session — verified diagnostic showed
+                // sessionStorage holding a posting different from what the
+                // dropdown was visibly showing).
+                const postingFromUrl = searchParams.get('postingId');
+                const url = postingFromUrl
+                    ? `/api/employer/candidates/${candidateId}?postingId=${encodeURIComponent(postingFromUrl)}`
+                    : `/api/employer/candidates/${candidateId}`;
+                const res = await fetch(url);
                 if (!res.ok) {
                     if (res.status === 404) {
                         setError('Candidate not found or profile is no longer visible.');

@@ -5,7 +5,6 @@ import { Search, Filter, Users, Loader2, X, ChevronLeft, ChevronRight, ChevronDo
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import CandidateCard from './CandidateCard';
-import BulkUnlockToolbar from './BulkUnlockToolbar';
 
 /* ═══════════════════════════════════════════
    CONSTANTS
@@ -134,40 +133,62 @@ export default function CandidateSearchClient() {
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
-    // Page lives in the URL (?page=N) so browser back/forward restores it
-    // for free — the previous sessionStorage approach was fragile because
-    // a sibling useEffect would clobber the restored value on remount,
-    // and Next.js's App Router cache sometimes re-runs the lazy useState
-    // initializer with a stale snapshot. URL params are the only place
-    // pagination state is truly safe across navigation.
-    const pageFromUrl = (() => {
-        const raw = searchParams.get('page');
-        const n = raw ? parseInt(raw, 10) : 1;
-        return Number.isFinite(n) && n >= 1 ? n : 1;
+    // Page derivation. Next.js 16 has a quirk where Link clicks can lose
+    // the ?page= query param from the prior history entry — so browser
+    // back from a candidate profile may land on /employer/candidates with
+    // no page. We layer sessionStorage on top of useSearchParams so the
+    // page state survives that history corruption:
+    //
+    //   1. Prefer URL ?page= if present (canonical, shareable).
+    //   2. Otherwise fall back to sessionStorage (last paginated value).
+    //   3. setPage updates URL (router.push) AND sessionStorage atomically.
+    //
+    // The "Previous to page 1" case stays correct because setPage(1)
+    // removes the storage entry — so URL has no ?page= AND storage is
+    // empty → page = 1 (intended).
+    const page: number = ((): number => {
+        const rawUrl = searchParams.get('page');
+        if (rawUrl) {
+            const n = parseInt(rawUrl, 10);
+            if (Number.isFinite(n) && n >= 1) return n;
+        }
+        if (typeof window !== 'undefined') {
+            const rawStorage = sessionStorage.getItem('talentPool_page');
+            if (rawStorage) {
+                const n = parseInt(rawStorage, 10);
+                if (Number.isFinite(n) && n >= 1) return n;
+            }
+        }
+        return 1;
     })();
-    const [page, setPage] = useState(pageFromUrl);
-    // Keep state in sync if the URL changes (back/forward nav between
-    // ?page=2 ↔ ?page=3, deep links, etc.).
-    useEffect(() => {
-        if (pageFromUrl !== page) setPage(pageFromUrl);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pageFromUrl]);
-    // Push page changes into the URL with replace (no extra history entry)
-    // so back-nav from a candidate profile lands on the right page without
-    // requiring a manual "Back-Back" through paginated history.
-    useEffect(() => {
-        const current = searchParams.get('page');
-        const target = page > 1 ? String(page) : null;
-        if ((current ?? null) === target) return;
+    const setPage = useCallback((n: number) => {
+        if (typeof window !== 'undefined') {
+            if (n > 1) sessionStorage.setItem('talentPool_page', String(n));
+            else sessionStorage.removeItem('talentPool_page');
+        }
         const params = new URLSearchParams(searchParams.toString());
-        if (target) params.set('page', target); else params.delete('page');
+        if (n > 1) params.set('page', String(n));
+        else params.delete('page');
         const qs = params.toString();
-        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page]);
+        router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    }, [searchParams, pathname, router]);
     const [loading, setLoading] = useState(true);
     const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
     const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
+    // Bulk-unlock selection — file-manager-style multi-select. The
+    // toolbar at the bottom of the page appears when selectedIds.size > 0.
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [bulkSubmitting, setBulkSubmitting] = useState(false);
+    const [bulkError, setBulkError] = useState<string | null>(null);
+    const toggleSelect = useCallback((id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    }, []);
+    const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
     const [unlockUsage, setUnlockUsage] = useState<{ used: number; limit: number | null; unlimited: boolean } | null>(null);
     const [postings, setPostings] = useState<{ id: string; jobId: string; jobTitle: string; tier: string; unlocks: { used: number; limit: number; remaining: number }; inmails: { used: number; limit: number; remaining: number } }[]>([]);
     const [selectedPostingId, setSelectedPostingId] = useState<string>(() => {
@@ -384,19 +405,28 @@ export default function CandidateSearchClient() {
         }
     };
 
-    // Reset to page 1 when filters change — but NOT on first render.
-    // Without the ref guard this effect fires once on mount and clobbers
-    // the sessionStorage-restored page right after the lazy useState
-    // initializer read it, so navigating to a candidate profile and
-    // hitting browser-Back always landed back on page 1.
-    const isFirstFilterRender = useRef(true);
+    // Reset to page 1 when filters change — but NOT on first render and
+    // NOT on remount (Strict Mode in dev re-invokes effects which broke
+    // the older "useRef true → false" one-shot guard, causing back-nav
+    // to land on page 1 after every Strict-Mode double invocation).
+    //
+    // We compare current filter values to the previous render's snapshot.
+    // If nothing actually changed, the effect is a no-op even if React
+    // ran it twice. Only a real filter change pushes to page 1.
+    const prevFilters = useRef({ query, experience, selectedSpecialties, selectedStates, workMode, hasResume });
     useEffect(() => {
-        if (isFirstFilterRender.current) {
-            isFirstFilterRender.current = false;
-            return;
-        }
-        setPage(1);
-    }, [query, experience, selectedSpecialties, selectedStates, workMode, hasResume]);
+        const prev = prevFilters.current;
+        const changed = (
+            prev.query !== query
+            || prev.experience !== experience
+            || prev.selectedSpecialties !== selectedSpecialties
+            || prev.selectedStates !== selectedStates
+            || prev.workMode !== workMode
+            || prev.hasResume !== hasResume
+        );
+        prevFilters.current = { query, experience, selectedSpecialties, selectedStates, workMode, hasResume };
+        if (changed && page !== 1) setPage(1);
+    }, [query, experience, selectedSpecialties, selectedStates, workMode, hasResume, page, setPage]);
 
     // (Smart Match toggle removed — AI is always the engine for typed
     // queries on this page. The aiMode state stays as a flag in case
@@ -972,39 +1002,173 @@ export default function CandidateSearchClient() {
                                 : `Showing ${(page - 1) * 20 + 1}–${Math.min(page * 20, totalCount)} of ${totalCount} candidate${totalCount !== 1 ? 's' : ''}`}
                         </p>
 
-                        {/* Phase 4 #5 — bulk-unlock toolbar. Locked-set is
-                            derived from the candidates feed (rows without
-                            `hasFullAccess` true and not in viewedIds).
-                            Remaining credits are pulled from selected
-                            posting's per-posting allowance when available,
-                            else the global unlockUsage snapshot. */}
+                        {/* Bulk-unlock selection toolbar. File-manager-style.
+                            Renders when 1+ cards are selected. Two action
+                            buttons: Select all (auto-clamped to credits
+                            remaining) and Unlock N profiles. */}
                         {(() => {
-                            const lockedIds: string[] = candidates
+                            const selPosting = postings.find((p) => p.id === selectedPostingId);
+                            const creditsRemaining = selPosting && selPosting.unlocks.limit !== -1
+                                ? Math.max(0, selPosting.unlocks.limit - selPosting.unlocks.used)
+                                : Infinity;
+                            // Locked-and-visible candidate ids on the current page.
+                            const lockedVisibleIds = candidates
                                 .filter((c: Candidate) => !c.hasFullAccess && !viewedIds.has(c.id))
                                 .map((c: Candidate) => c.id as string);
-                            const selPosting = postings.find((p) => p.id === selectedPostingId);
-                            const usage = selPosting
-                                ? {
-                                      used: selPosting.unlocks.used,
-                                      limit: selPosting.unlocks.limit === -1 ? null : selPosting.unlocks.limit,
-                                      unlimited: selPosting.unlocks.limit === -1,
-                                  }
-                                : unlockUsage;
-                            const remaining =
-                                !usage || usage.unlimited || usage.limit === null
-                                    ? null
-                                    : Math.max(0, usage.limit - usage.used);
+                            // Eligible "Select all" subset = first N locked cards, clamped to credits.
+                            const selectableCap = Math.min(lockedVisibleIds.length, creditsRemaining);
+                            const handleSelectAll = (): void => {
+                                const next = new Set(selectedIds);
+                                let added = 0;
+                                for (const id of lockedVisibleIds) {
+                                    if (next.has(id)) continue;
+                                    if (added + next.size >= selectableCap) break;
+                                    next.add(id);
+                                    added += 1;
+                                }
+                                setSelectedIds(next);
+                            };
+                            const handleBulkUnlock = async (): Promise<void> => {
+                                if (selectedIds.size === 0) return;
+                                setBulkSubmitting(true);
+                                setBulkError(null);
+                                try {
+                                    const res = await fetch('/api/employer/profiles/unlock-bulk', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            candidateIds: Array.from(selectedIds),
+                                            ...(selectedPostingId ? { postingId: selectedPostingId } : {}),
+                                        }),
+                                    });
+                                    if (!res.ok) {
+                                        const body = await res.json().catch(() => ({}));
+                                        setBulkError(body?.error || 'Bulk unlock failed.');
+                                        return;
+                                    }
+                                    const result = await res.json() as {
+                                        unlocked: { candidateId: string }[];
+                                        failed: { candidateId: string; reason: string; message: string }[];
+                                    };
+                                    // Flip unlocked rows to viewed locally for instant feedback.
+                                    setViewedIds((prev) => {
+                                        const next = new Set(prev);
+                                        for (const u of result.unlocked) next.add(u.candidateId);
+                                        return next;
+                                    });
+                                    setSelectedIds(new Set());
+                                    // Refresh usage so the top "N/M unlocks" counter updates.
+                                    try {
+                                        const usageRes = await fetch('/api/employer/usage', { cache: 'no-store' });
+                                        if (usageRes.ok) {
+                                            const usageData = await usageRes.json();
+                                            if (usageData.postings) setPostings(usageData.postings);
+                                        }
+                                    } catch { /* silent */ }
+                                    if (result.failed.length > 0) {
+                                        setBulkError(`${result.unlocked.length} unlocked, ${result.failed.length} failed.`);
+                                    }
+                                } catch {
+                                    setBulkError('Network error — try again.');
+                                } finally {
+                                    setBulkSubmitting(false);
+                                }
+                            };
+                            if (selectedIds.size === 0) {
+                                // Render an idle bar with "Select all" affordance only when there's
+                                // anything to select. Keeps the row anchored so it doesn't appear
+                                // and disappear under the user's cursor when they click the first
+                                // checkbox.
+                                if (lockedVisibleIds.length === 0) return null;
+                                return (
+                                    <div style={{ ...cardRecessed, padding: '10px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: '#6B7F8A' }}>
+                                        <Lock size={13} style={{ color: '#0D9488' }} />
+                                        <span><strong style={{ color: '#1A2E35' }}>{lockedVisibleIds.length}</strong> locked on this page</span>
+                                        {Number.isFinite(creditsRemaining) && (
+                                            <span style={{ color: '#8A9BA6' }}>·</span>
+                                        )}
+                                        {Number.isFinite(creditsRemaining) && (
+                                            <span><strong style={{ color: '#1A2E35' }}>{creditsRemaining}</strong> credits</span>
+                                        )}
+                                        <span style={{ flex: 1 }} />
+                                        <button
+                                            type="button"
+                                            onClick={handleSelectAll}
+                                            disabled={selectableCap === 0}
+                                            style={{
+                                                fontSize: '12px', fontWeight: 600, padding: '6px 12px',
+                                                borderRadius: '10px',
+                                                background: selectableCap === 0 ? '#F3F4F6' : 'linear-gradient(145deg, #FFFFFF, #F5F6F8)',
+                                                color: selectableCap === 0 ? '#B0BEC5' : '#0D9488',
+                                                border: '1px solid rgba(13,148,136,0.18)',
+                                                boxShadow: '2px 2px 6px rgba(0,0,0,0.04), -1px -1px 4px rgba(255,255,255,0.7)',
+                                                cursor: selectableCap === 0 ? 'not-allowed' : 'pointer',
+                                            }}
+                                        >
+                                            Select all {selectableCap > 0 ? `(${selectableCap})` : ''}
+                                        </button>
+                                    </div>
+                                );
+                            }
+                            const cappedAtCredits = selectableCap === creditsRemaining && lockedVisibleIds.length > creditsRemaining;
                             return (
-                                <BulkUnlockToolbar
-                                    lockedCandidateIds={lockedIds}
-                                    remainingCredits={remaining}
-                                    onUnlocked={(ids) => {
-                                        // Refresh the page to re-fetch unlocked state for the cards.
-                                        // Could be optimized to in-place update; refresh is safest given
-                                        // the existing 1k-line client manages a lot of derived state.
-                                        if (ids.length > 0) router.refresh();
-                                    }}
-                                />
+                                <div style={{ ...cardBase, padding: '12px 16px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#1A2E35' }}>
+                                        <Check size={16} style={{ color: '#0D9488' }} />
+                                        {selectedIds.size} selected
+                                    </span>
+                                    <span style={{ color: '#8A9BA6', fontSize: '12px' }}>
+                                        {lockedVisibleIds.length} locked
+                                        {Number.isFinite(creditsRemaining) && ` · ${creditsRemaining} credits`}
+                                    </span>
+                                    {bulkError && (
+                                        <span style={{ color: '#DC2626', fontSize: '12px', fontWeight: 600 }}>{bulkError}</span>
+                                    )}
+                                    <span style={{ flex: 1 }} />
+                                    <button
+                                        type="button"
+                                        onClick={handleSelectAll}
+                                        disabled={bulkSubmitting || selectableCap === 0 || selectedIds.size >= selectableCap}
+                                        title={cappedAtCredits ? `Select all is capped at your remaining credits (${creditsRemaining}).` : undefined}
+                                        style={{
+                                            fontSize: '12px', fontWeight: 600, padding: '7px 14px',
+                                            borderRadius: '10px', background: '#F5F6F8', color: '#1A2E35',
+                                            border: '1px solid rgba(0,0,0,0.06)', cursor: 'pointer',
+                                        }}
+                                    >
+                                        Select all {selectableCap > 0 ? `(${selectableCap})` : ''}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={clearSelection}
+                                        disabled={bulkSubmitting}
+                                        style={{
+                                            fontSize: '12px', fontWeight: 600, padding: '7px 14px',
+                                            borderRadius: '10px', background: '#FFFFFF', color: '#6B7F8A',
+                                            border: '1px solid rgba(0,0,0,0.06)', cursor: 'pointer',
+                                        }}
+                                    >
+                                        Clear
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleBulkUnlock}
+                                        disabled={bulkSubmitting || selectedIds.size === 0}
+                                        style={{
+                                            fontSize: '13px', fontWeight: 700, padding: '8px 16px',
+                                            borderRadius: '12px',
+                                            background: 'linear-gradient(145deg, #10B981, #0D9488)',
+                                            color: '#FFFFFF', border: 'none',
+                                            boxShadow: '3px 3px 8px rgba(13,148,136,0.25)',
+                                            cursor: bulkSubmitting ? 'wait' : 'pointer',
+                                            opacity: bulkSubmitting ? 0.7 : 1,
+                                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                        }}
+                                    >
+                                        {bulkSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
+                                        {bulkSubmitting ? 'Unlocking…' : `Unlock ${selectedIds.size} profile${selectedIds.size !== 1 ? 's' : ''}`}
+                                    </button>
+                                </div>
                             );
                         })()}
 
@@ -1038,6 +1202,9 @@ export default function CandidateSearchClient() {
                                         aiReason={c.reason}
                                         aiMatchPercent={typeof c.matchPercent === 'number' ? c.matchPercent : undefined}
                                         fromPage={page}
+                                        selectedPostingId={selectedPostingId}
+                                        isSelected={selectedIds.has(c.id)}
+                                        onToggleSelect={toggleSelect}
                                     />
                                 );
                             })}
@@ -1050,41 +1217,72 @@ export default function CandidateSearchClient() {
                             that the Smart Match toggle is gone and aiMode is
                             hardcoded true — pagination would never render even
                             on the browse path, leaving employers stuck on page 1. */}
-                        {totalPages > 1 && (
+                        {totalPages > 1 && (() => {
+                            // 2026-05-15: pagination switched from <button onClick=setPage>
+                            // to Next.js <Link href>. Next.js 16 App Router treats
+                            // same-pathname search-param changes via router.push/replace
+                            // as soft replaces, so browser back from a candidate profile
+                            // was landing on /employer/candidates (page 1) instead of
+                            // the paginated URL. <Link> creates proper history entries.
+                            const buildHref = (n: number): string => {
+                                const params = new URLSearchParams(
+                                    typeof window !== 'undefined' ? window.location.search : '',
+                                );
+                                if (n > 1) params.set('page', String(n));
+                                else params.delete('page');
+                                const qs = params.toString();
+                                return qs ? `${pathname}?${qs}` : pathname;
+                            };
+                            const prevDisabled = page <= 1;
+                            const nextDisabled = page >= totalPages;
+                            return (
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
-                                <button
-                                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                                    disabled={page <= 1}
+                                <Link
+                                    href={prevDisabled ? '#' : buildHref(page - 1)}
+                                    aria-disabled={prevDisabled}
+                                    scroll={false}
+                                    onClick={(e) => {
+                                        if (prevDisabled) e.preventDefault();
+                                        else setPage(page - 1);
+                                    }}
                                     className="tp-page-btn"
                                     style={{
                                         ...clayBtn,
-                                        background: '#F7FBF8', color: page <= 1 ? '#B0C4BC' : '#2A4A5A',
-                                        opacity: page <= 1 ? 0.5 : 1,
-                                        cursor: page <= 1 ? 'default' : 'pointer',
+                                        background: '#F7FBF8', color: prevDisabled ? '#B0C4BC' : '#2A4A5A',
+                                        opacity: prevDisabled ? 0.5 : 1,
+                                        cursor: prevDisabled ? 'default' : 'pointer',
+                                        textDecoration: 'none',
                                     }}
                                 >
                                     <ChevronLeft size={14} /> Previous
-                                </button>
+                                </Link>
                                 <span style={{
                                     ...cardRecessed, padding: '6px 14px', fontSize: '12px', fontWeight: 600, color: '#6B7F8A',
                                 }}>
                                     Page {page} of {totalPages}
                                 </span>
-                                <button
-                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={page >= totalPages}
+                                <Link
+                                    href={nextDisabled ? '#' : buildHref(page + 1)}
+                                    aria-disabled={nextDisabled}
+                                    scroll={false}
+                                    onClick={(e) => {
+                                        if (nextDisabled) e.preventDefault();
+                                        else setPage(page + 1);
+                                    }}
                                     className="tp-page-btn"
                                     style={{
                                         ...clayBtn,
-                                        background: '#F7FBF8', color: page >= totalPages ? '#B0C4BC' : '#2A4A5A',
-                                        opacity: page >= totalPages ? 0.5 : 1,
-                                        cursor: page >= totalPages ? 'default' : 'pointer',
+                                        background: '#F7FBF8', color: nextDisabled ? '#B0C4BC' : '#2A4A5A',
+                                        opacity: nextDisabled ? 0.5 : 1,
+                                        cursor: nextDisabled ? 'default' : 'pointer',
+                                        textDecoration: 'none',
                                     }}
                                 >
                                     Next <ChevronRight size={14} />
-                                </button>
+                                </Link>
                             </div>
-                        )}
+                            );
+                        })()}
                     </>
                 )}
             </div>
