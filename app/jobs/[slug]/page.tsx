@@ -875,12 +875,9 @@ export default async function JobPage({ params }: JobPageProps) {
                     the shared Badge component (variants: featured /
                     success / outline) for visual consistency. */}
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
-                  {job.isFeatured && (
-                    <Badge variant="featured" size="md">⚡ Featured</Badge>
+                  {salary && (
+                    <Badge variant="salary" size="md">{salary}</Badge>
                   )}
-                  {/* Verified-employer signal moved out of this row —
-                      now appears as a bluecheck next to the company name
-                      above. Single source of truth, less visual clutter. */}
                   {job.jobType && (
                     <Badge variant="outline" size="md">
                       <Briefcase size={12} /> {job.jobType}
@@ -891,11 +888,6 @@ export default async function JobPage({ params }: JobPageProps) {
                       <Monitor size={12} /> {job.mode}
                     </Badge>
                   )}
-                  {/* Experience chip — uses the shared effective-label
-                      helper so residency / fellowship / training-program
-                      jobs always show "New grad welcome" even when the
-                      inference regex previously mis-extracted "5 years"
-                      from "5 years of accredited training" in the body. */}
                   {(() => {
                     const expLabel = effectiveExperienceLabel(job);
                     if (!expLabel) return null;
@@ -906,15 +898,6 @@ export default async function JobPage({ params }: JobPageProps) {
                     );
                   })()}
                 </div>
-
-                {/* Salary */}
-                {salary && (
-                  <p style={{
-                    fontSize: 'clamp(20px, 4vw, 30px)', fontWeight: 800,
-                    color: 'var(--salary-color, #1d4ed8)',
-                    margin: 0,
-                  }}>{salary}</p>
-                )}
               </div>
             </div>
 
