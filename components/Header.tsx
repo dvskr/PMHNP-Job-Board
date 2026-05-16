@@ -139,26 +139,22 @@ export default function Header() {
   return (
     <LazyMotion features={domAnimation}>
       {/* Spacer — pushes page content down past the position:fixed nav.
-          Total nav footprint is 76px = 12px outer wrapper top padding +
-          64px header height + 0px bottom padding (see the fixed wrapper
-          below). Matching the spacer to exactly 76px means the page
-          content sits flush against the bottom of the floating nav with
-          zero visible gap. Was 84 → 72 → 64 before — the 64 was wrong
-          because it ignored the 12px outer top padding, leaving a
-          residual gap between the nav's bottom edge and the page's
-          first row. */}
-      <div style={{ height: 76 }} />
+          Total nav footprint = 18px top + 64px nav pill + 18px bottom = 100px.
+          The strip is now symmetric (was 12/0) so the floating nav reads as
+          vertically centered inside its background panel instead of flush
+          against the bottom edge. */}
+      <div style={{ height: 100 }} />
 
       {/* Floating navbar wrapper. Solid background matching the page bg so
-          the 12px top padding strip + side gutters above/around the
-          visible nav pill stay opaque when the page scrolls — without it,
-          content slips up through the transparent strip and renders behind
-          the nav. pointer-events: none stays on the wrapper so clicks pass
-          through to the page below the nav. */}
+          the padding strip above + below + on the sides of the visible nav
+          pill stays opaque when the page scrolls — without it, content slips
+          up through the transparent strip and renders behind the nav.
+          pointer-events: none stays on the wrapper so clicks pass through to
+          the page below the nav. */}
       <div
         className="fixed top-0 left-0 right-0 z-[100]"
         style={{
-          padding: '12px 16px 0',
+          padding: '18px 16px',
           pointerEvents: 'none',
           background: '#F5F0EB',
         }}
@@ -332,7 +328,7 @@ export default function Header() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             className="fixed inset-0 z-[99] lg:hidden"
-            style={{ top: 80 }}
+            style={{ top: 100 }}
           >
             <div
               // Fully opaque (1.0) -- 0.98 let the page content bleed through

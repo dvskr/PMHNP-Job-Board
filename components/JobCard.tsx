@@ -3,23 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MapPin, CheckCircle, Eye, Bookmark, ExternalLink, BadgeCheck, Zap } from 'lucide-react';
+import { MapPin, CheckCircle, Eye, Bookmark, ExternalLink, BadgeCheck, Zap, Mail } from 'lucide-react';
 import { slugify, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import useSavedJobs from '@/lib/hooks/useSavedJobs';
 import { useViewedJobs } from '@/lib/hooks/useViewedJobs';
 import Badge from '@/components/ui/Badge';
-import ShareModal from '@/components/ShareModal';
+import MessageEmployerModal from '@/components/jobs/MessageEmployerModal';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
-
-// Share icon component
-const ShareIcon = ({ size = 16 }: { size?: number }) => (
-  <svg width={size} height={size} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-  </svg>
-);
 
 interface JobCardProps {
   job: Job;
@@ -76,7 +69,10 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const { isSaved, saveJob, removeJob } = useSavedJobs();
   const { isViewed, markAsViewed, isHydrated } = useViewedJobs();
   const router = useRouter();
-  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  // Only employer-posted jobs can be messaged — aggregated rows have no
+  // recipient in our system. Computed once per render.
+  const canMessageEmployer = job.sourceType === 'employer';
   const saved = isSaved(job.id);
   const applied = isApplied(job.id);
   // Prefer the stored, immutable slug. Recomputing from title every render
@@ -133,10 +129,10 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     markAsViewed(jobSlug);
   };
 
-  const handleShareClick = (e: React.MouseEvent) => {
+  const handleMessageClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setShowShareMenu(true);
+    setShowMessageModal(true);
   };
 
   const handleSaveClick = (e: React.MouseEvent) => {
@@ -250,27 +246,34 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             }}>
               {job.title}
             </h3>
-            {/* Company. "Featured" badge removed 2026-05-16 — reserved
-                for a future premium tier. The card's primary-color border
-                (driven off `isFeatured`) is retained as the visual hook
-                that tier will use. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px', minWidth: 0 }}>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+            {/* Company · Location. Inline on one line so the row reads
+                "Sol Mental Health · Washington, DC". Both halves truncate
+                with ellipsis if they overflow the available width — the
+                middle-dot separator only renders when we actually have a
+                location to show. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 8px', minWidth: 0 }}>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
                 {job.employer}
               </p>
+              {shortLocation && (
+                <>
+                  <span aria-hidden style={{ color: 'var(--text-tertiary, #8A9BA6)', fontSize: '14px', flexShrink: 0 }}>·</span>
+                  <p style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
+                    <MapPin size={12} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                    {shortLocation}
+                  </p>
+                </>
+              )}
             </div>
 
-            {/* Salary + Location + Type + Experience */}
+            {/* Salary + Type + Mode + Experience. Location moved up beside
+                the company name (above), so it's no longer a chip here. */}
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               {salaryDisplay && (
                 <Badge variant="salary" size="sm">
                   {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
                 </Badge>
               )}
-              <Badge variant="outline" size="sm">
-                <MapPin size={13} style={{ color: 'var(--color-primary)' }} />
-                {shortLocation}
-              </Badge>
               {job.jobType && <Badge variant="outline" size="sm">{job.jobType}</Badge>}
               {displayMode && <Badge variant="outline" size="sm">{displayMode}</Badge>}
               {(() => {
@@ -377,12 +380,13 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </div>
         </div>
 
-        {showShareMenu && (
-          <ShareModal
-            url={fullJobUrl}
-            title={shareTitle}
-            description={shareDescription}
-            onClose={() => setShowShareMenu(false)}
+        {canMessageEmployer && (
+          <MessageEmployerModal
+            isOpen={showMessageModal}
+            jobId={job.id}
+            jobTitle={job.title}
+            employerName={job.employer}
+            onClose={() => setShowMessageModal(false)}
           />
         )}
 
@@ -476,26 +480,38 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             }}>
               {job.title}
             </h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+            {/* Company · Location — same inline pattern as the list view. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
                 {job.employer}
               </p>
-              {/* Featured badge removed 2026-05-16 — reserved for future
-                  premium tier. Border on the card (driven by isFeatured)
-                  retained for that future tier. */}
+              {shortLocation && (
+                <>
+                  <span aria-hidden style={{ color: 'var(--text-tertiary, #8A9BA6)', fontSize: '14px', flexShrink: 0 }}>·</span>
+                  <p style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
+                    <MapPin size={12} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                    {shortLocation}
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Save + Share */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {/* Save + Share. Pulled up tight against the salary chip below —
+              the previous 6px column gap left an awkward dead band between
+              the icons and the chip. Negative margin on the icon row trims
+              its bottom padding so the chip sits ~2px below. */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '-8px', marginBottom: '-6px' }}>
               {viewed && !applied && <span title="Viewed" className="flex"><Eye size={18} color="var(--text-tertiary)" /></span>}
               <button
                 onClick={handleSaveClick}
                 className="jc-save-btn jc-icon-btn"
                 style={{
-                  // 13px padding + 18px icon = 44x44 (WCAG 2.5.8 minimum).
-                  padding: '13px', borderRadius: '50%',
+                  // Tightened 2026-05-16 — vertical padding stays 13px to
+                  // keep height at 44px (WCAG 2.5.8 touch target). Horizontal
+                  // padding compressed to 6px so the three icons sit close.
+                  padding: '13px 6px', borderRadius: '50%',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   color: saved ? 'var(--color-primary)' : 'var(--text-tertiary)',
                   background: 'none', border: 'none', cursor: 'pointer',
@@ -506,20 +522,23 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               >
                 <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
               </button>
-              <button
-                onClick={handleShareClick}
-                className="jc-share-btn jc-icon-btn"
-                style={{
-                  padding: '13px', borderRadius: '50%',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--text-tertiary)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                aria-label="Share job"
-              >
-                <ShareIcon size={18} />
-              </button>
+              {canMessageEmployer && (
+                <button
+                  onClick={handleMessageClick}
+                  className="jc-message-btn jc-icon-btn"
+                  style={{
+                    padding: '13px 6px', borderRadius: '50%',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--text-tertiary)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  aria-label={`Message ${job.employer}`}
+                  title={`Message ${job.employer}`}
+                >
+                  <Mail size={18} strokeWidth={2} />
+                </button>
+              )}
             </div>
             {salaryDisplay && (
               <div style={{ marginRight: '-10px' }}>
@@ -531,12 +550,10 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </div>
         </div>
 
-        {/* Row 3: Location + Type + Experience + Status Badges */}
+        {/* Row 3: Type + Mode + Experience + Status Badges. Location
+            moved up beside the company name (above), so it's no longer
+            a chip in this row. */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
-          <Badge variant="outline" size="sm">
-            <MapPin size={13} style={{ color: 'var(--color-primary)' }} />
-            {shortLocation}
-          </Badge>
           {job.jobType && <Badge variant="outline" size="sm">{job.jobType}</Badge>}
           {displayMode && <Badge variant="outline" size="sm">{displayMode}</Badge>}
           {(() => {
@@ -632,12 +649,13 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </div>
         </div>
 
-        {showShareMenu && (
-          <ShareModal
-            url={fullJobUrl}
-            title={shareTitle}
-            description={shareDescription}
-            onClose={() => setShowShareMenu(false)}
+        {canMessageEmployer && (
+          <MessageEmployerModal
+            isOpen={showMessageModal}
+            jobId={job.id}
+            jobTitle={job.title}
+            employerName={job.employer}
+            onClose={() => setShowMessageModal(false)}
           />
         )}
       </div>

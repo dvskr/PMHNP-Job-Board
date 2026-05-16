@@ -50,10 +50,10 @@ const stagger = {
 };
 
 const STEPS = [
-    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-profile.webp', title: 'Build a Profile', desc: 'Create your PMHNP profile with credentials, experience, and preferences in minutes.' },
-    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-match.webp', title: 'Get Matched', desc: 'Our AI matches you with roles based on your skills, location, and salary goals.' },
-    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-connect.webp', title: 'Connect Directly', desc: 'Reach hiring managers — no recruiters, no middlemen.' },
-    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-practice.webp', title: 'Start Practicing', desc: 'Accept your offer and begin your new clinical role.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-profile.webp', title: 'Build Your Profile', desc: 'Upload your resume once — add license states, credentials, years of experience, and salary range. Re-use it on every application.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-match.webp', title: 'Search & Get Matched', desc: 'Semantic AI search understands phrases like "new grad outpatient telehealth." A weekly digest emails fresh roles matched to your experience level, location, and pay.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-connect.webp', title: 'Apply or Message Directly', desc: 'One-click Easy Apply on employer-posted roles, or message the hiring manager in-app. No recruiters, no portals, no copy-pasting.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-practice.webp', title: 'Start Practicing', desc: 'Save jobs, track applications, and follow up with employers — all in one dashboard. Then accept your offer and start your next clinical role.' },
 ];
 
 const css = `
