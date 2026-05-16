@@ -15,6 +15,7 @@ const baseDate = new Date('2026-01-01T00:00:00Z');
 const dayAfter = (days: number) => new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
 
 const job = (overrides: Partial<JobSortable> = {}): JobSortable => ({
+    isEmployerPosted: false,
     isFeatured: false,
     qualityScore: 50,
     originalPostedAt: baseDate,
@@ -23,30 +24,32 @@ const job = (overrides: Partial<JobSortable> = {}): JobSortable => ({
 });
 
 describe('BEST_SORT_ORDER_BY (DB orderBy)', () => {
-    it('has exactly four sort keys in canonical order', () => {
+    it('has exactly five sort keys in canonical order', () => {
         expect(BEST_SORT_ORDER_BY).toEqual([
+            { employerJobs: { id: 'asc' } },
             { isFeatured: 'desc' },
             { qualityScore: 'desc' },
             { originalPostedAt: 'desc' },
             { createdAt: 'desc' },
         ]);
     });
-
-    it('all directions are descending', () => {
-        for (const clause of BEST_SORT_ORDER_BY) {
-            const direction = Object.values(clause)[0];
-            expect(direction).toBe('desc');
-        }
-    });
 });
 
 describe('compareJobsBest', () => {
-    it('featured beats non-featured regardless of other fields', () => {
-        const featured = job({ isFeatured: true, qualityScore: 0, createdAt: dayAfter(-365) });
-        const recent = job({ isFeatured: false, qualityScore: 100, createdAt: dayAfter(0) });
+    it('employer-posted beats non-employer regardless of other fields (new top-level rule)', () => {
+        const employer = job({ isEmployerPosted: true, isFeatured: false, qualityScore: 0, createdAt: dayAfter(-365) });
+        const fresh = job({ isEmployerPosted: false, isFeatured: false, qualityScore: 100, createdAt: dayAfter(0) });
 
-        expect(compareJobsBest(featured, recent)).toBeLessThan(0);
-        expect(compareJobsBest(recent, featured)).toBeGreaterThan(0);
+        expect(compareJobsBest(employer, fresh)).toBeLessThan(0);
+        expect(compareJobsBest(fresh, employer)).toBeGreaterThan(0);
+    });
+
+    it('within employer tier, featured beats non-featured (reserved for future premium tier)', () => {
+        const premium = job({ isEmployerPosted: true, isFeatured: true, qualityScore: 0 });
+        const standard = job({ isEmployerPosted: true, isFeatured: false, qualityScore: 100 });
+
+        expect(compareJobsBest(premium, standard)).toBeLessThan(0);
+        expect(compareJobsBest(standard, premium)).toBeGreaterThan(0);
     });
 
     it('within same featured tier, higher qualityScore wins', () => {

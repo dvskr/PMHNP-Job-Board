@@ -584,6 +584,22 @@ textarea {
   -webkit-perspective: 1000px;
 }
 
+/* Modal/popover scale-in. Used by the Easy Apply form (and any other
+   .animate-scale-in element). Was previously declared in the
+   GPU-optimization list above but had no actual keyframes attached,
+   so the modal just popped abruptly. */
+@keyframes scaleIn {
+  0%   { opacity: 0; transform: scale(0.96) translateY(8px); }
+  100% { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+.animate-scale-in {
+  animation: scaleIn 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-scale-in { animation: none; }
+}
+
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;

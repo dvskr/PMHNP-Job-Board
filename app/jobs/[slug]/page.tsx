@@ -2,10 +2,12 @@ import { cache } from 'react';
 import Image from 'next/image';
 import { formatSalary, slugify, getJobFreshness, getExpiryStatus } from '@/lib/utils';
 import { sanitizeHtmlContent } from '@/lib/sanitize';
-import { MapPin, Briefcase, Monitor, CheckCircle, ArrowRight, Search } from 'lucide-react';
+import { MapPin, Briefcase, Monitor, BadgeCheck, ArrowRight, Search } from 'lucide-react';
+import Badge from '@/components/ui/Badge';
 import { Job, Company } from '@/lib/types';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
+import { effectiveExperienceLabel, effectiveNewGradFriendly } from '@/lib/experience-label';
 import ReportJobButton from '@/components/ReportJobButton';
 import MessageEmployerButton from '@/components/jobs/MessageEmployerButton';
 
@@ -108,6 +110,52 @@ interface RelatedJobsParams {
   state?: string | null;
   mode?: string | null;
   limit?: number;
+}
+
+/**
+ * Phase 3 #20 — three explicit internal-linking buckets surfaced as
+ * separate sections on the JD page (more from this employer, more in
+ * city, more new-grad jobs). Distinct from getRelatedJobs which mixes
+ * everything into a single "Similar PMHNP jobs" feed. SEO impact:
+ * named anchor links into category/employer/city pages compound the
+ * pSEO surface area.
+ */
+export async function getInternalLinkBuckets(params: {
+  currentJobId: string;
+  employer: string;
+  city?: string | null;
+  state?: string | null;
+  newGradFriendly?: boolean;
+}) {
+  const { currentJobId, employer, city, state, newGradFriendly } = params;
+  const baseWhere = { id: { not: currentJobId }, isPublished: true } as const;
+  const baseOrder = { createdAt: 'desc' as const };
+
+  const [moreFromEmployer, moreInCity, moreNewGrad] = await Promise.all([
+    prisma.job.findMany({ where: { ...baseWhere, employer }, take: 3, orderBy: baseOrder }),
+    city
+      ? prisma.job.findMany({
+          where: { ...baseWhere, city: { equals: city, mode: 'insensitive' } },
+          take: 3,
+          orderBy: baseOrder,
+        })
+      : Promise.resolve([] as Job[]),
+    newGradFriendly
+      ? prisma.job.findMany({
+          where: { ...baseWhere, newGradFriendly: true },
+          take: 3,
+          orderBy: baseOrder,
+        })
+      : Promise.resolve([] as Job[]),
+  ]);
+
+  return {
+    moreFromEmployer: moreFromEmployer as Job[],
+    moreInCity: moreInCity as Job[],
+    moreNewGrad: moreNewGrad as Job[],
+    cityName: city ?? null,
+    stateName: state ?? null,
+  };
 }
 
 async function getRelatedJobs({
@@ -404,6 +452,13 @@ export async function generateMetadata({ params }: JobPageProps) {
 
   if (job.jobType) ogImageUrl.searchParams.set('jobType', job.jobType);
   if (isNew) ogImageUrl.searchParams.set('isNew', 'true');
+  // Phase 1 #19 — surface experience label in social previews so the
+  // "New grad welcome" / "5+ yrs" chip is visible at share time. Read
+  // by the OG route's optional `experience` param.
+  // Use the effective label so social shares of residency / fellowship
+  // jobs show "New grad welcome" instead of the mis-extracted "5+ yrs".
+  const ogExperienceLabel = effectiveExperienceLabel(job);
+  if (ogExperienceLabel) ogImageUrl.searchParams.set('experience', ogExperienceLabel);
 
   // Canonical comes from the row's stored slug, NOT the request param.
   //   - The page resolves a job by extracting the trailing UUID from the
@@ -627,6 +682,7 @@ export default async function JobPage({ params }: JobPageProps) {
     stateAvgSalary,
     currentUser,
     relevantBlogPosts,
+    internalLinkBuckets,
   ] = await Promise.all([
     getRelatedJobs({
       currentJobId: job.id,
@@ -641,6 +697,13 @@ export default async function JobPage({ params }: JobPageProps) {
     getStateSalaryAverage(job.state, job.stateCode),
     getCurrentUser(),
     getRelevantBlogPosts(job),
+    getInternalLinkBuckets({
+      currentJobId: job.id,
+      employer: job.employer,
+      city: job.city,
+      state: job.state,
+      newGradFriendly: job.newGradFriendly,
+    }),
   ]);
   const isAuthenticated = !!currentUser;
   const isOwnJob = !!(currentUser && (job as unknown as Record<string, unknown>).employerUserId === currentUser.user.id);
@@ -728,23 +791,71 @@ export default async function JobPage({ params }: JobPageProps) {
                 {/* Title */}
                 <h1 style={{ fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: 'var(--text-primary)', marginBottom: '16px', lineHeight: 1.2, paddingRight: '40px' }}>{job.title}</h1>
 
-                {/* Company Info Row: Logo + Name + Location */}
+                {/* Company Info Row: Avatar + Name + Location.
+                    Avatar always renders (logo if available, else a
+                    deterministic-color letter fallback), with the
+                    verified bluecheck overlaid on its bottom-right
+                    corner. Mirrors the JobCard avatar treatment so the
+                    bluecheck attaches to the company "identity puck"
+                    rather than floating next to the text. */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                  {job.companyLogoUrl && (
-                    // Explicit width/height + next/image with `unoptimized` because
-                    // employer logos are user-supplied URLs from arbitrary hosts.
-                    // Reserving 52x52 prevents the row from shifting when the image
-                    // resolves -- this is above-the-fold so any CLS counts.
-                    <Image
-                      src={job.companyLogoUrl}
-                      alt={`${job.employer} logo`}
-                      width={52}
-                      height={52}
-                      unoptimized
-                      style={{ width: '52px', height: '52px', borderRadius: '14px', objectFit: 'contain', border: '1px solid rgba(0,0,0,0.06)', flexShrink: 0, boxShadow: '2px 2px 6px rgba(0,0,0,0.05)' }}
-                    />
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    {job.companyLogoUrl ? (
+                      // Reserving 52x52 prevents the row from shifting when the image
+                      // resolves -- this is above-the-fold so any CLS counts.
+                      <Image
+                        src={job.companyLogoUrl}
+                        alt={`${job.employer} logo`}
+                        width={52}
+                        height={52}
+                        unoptimized
+                        style={{
+                          width: '52px', height: '52px', borderRadius: '50%',
+                          objectFit: 'contain', border: '1px solid rgba(0,0,0,0.06)',
+                          background: '#FFFFFF',
+                          boxShadow: '2px 2px 6px rgba(0,0,0,0.05)',
+                        }}
+                      />
+                    ) : (
+                      // Letter-initial fallback. Same deterministic-hue scheme
+                      // as JobCard so the same employer gets the same avatar
+                      // color across card + detail page.
+                      <div
+                        aria-hidden
+                        style={{
+                          width: '52px', height: '52px', borderRadius: '50%',
+                          background: `hsl(${(job.employer || '').charCodeAt(0) * 7 % 360}, 40%, 50%)`,
+                          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '22px', fontWeight: 700,
+                        }}
+                      >
+                        {(job.employer || '?')[0].toUpperCase()}
+                      </div>
+                    )}
+                    {job.isVerifiedEmployer && (
+                      // White-disc background under the bluecheck so it
+                      // reads cleanly on any avatar color. Same treatment
+                      // as the JobCard avatar bluecheck.
+                      <div
+                        aria-label="Verified employer"
+                        style={{
+                          position: 'absolute', bottom: '-2px', right: '-2px',
+                          background: '#fff', borderRadius: '50%',
+                          width: '20px', height: '20px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        }}
+                      >
+                        <BadgeCheck size={18} fill="#1d9bf0" color="#ffffff" />
+                      </div>
+                    )}
+                  </div>
+                  {/* Two stacked rows beside the avatar:
+                        Row 1 — employer name
+                        Row 2 — location (map pin + text)
+                      Mirrors the LinkedIn / Indeed identity puck style:
+                      avatar on the left, two-line text to the right. */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
                     {companyInfo ? (
                       <Link href={`/companies/${companyInfo.normalizedName}`} className="text-lg sm:text-xl font-semibold hover:text-teal-500 transition-colors" style={{ color: 'var(--text-secondary)' }}>
                         {job.employer}
@@ -752,7 +863,6 @@ export default async function JobPage({ params }: JobPageProps) {
                     ) : (
                       <span className="text-lg sm:text-xl font-semibold" style={{ color: 'var(--text-secondary)' }}>{job.employer}</span>
                     )}
-                    <span style={{ color: 'var(--text-tertiary)', fontSize: '18px', lineHeight: 1 }}>·</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '14px', color: 'var(--text-secondary)' }}>
                       <MapPin size={14} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
                       {job.location}
@@ -760,46 +870,41 @@ export default async function JobPage({ params }: JobPageProps) {
                   </div>
                 </div>
 
-                {/* Badges Row */}
+                {/* Badges Row — claymorphic chips matching the JobCard
+                    so the detail page reads as the same family. Uses
+                    the shared Badge component (variants: featured /
+                    success / outline) for visual consistency. */}
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
                   {job.isFeatured && (
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '5px',
-                      padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
-                      background: '#FEF3C7', color: '#92400E',
-                    }}>
-                      ⚡ Featured
-                    </span>
+                    <Badge variant="featured" size="md">⚡ Featured</Badge>
                   )}
-                  {job.isVerifiedEmployer && (
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '5px',
-                      padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
-                      background: '#CCFBF1', color: '#0F766E',
-                    }}>
-                      <CheckCircle size={13} /> Verified Employer
-                    </span>
-                  )}
+                  {/* Verified-employer signal moved out of this row —
+                      now appears as a bluecheck next to the company name
+                      above. Single source of truth, less visual clutter. */}
                   {job.jobType && (
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '4px',
-                      padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                      backgroundColor: '#F3F4F6', color: '#374151',
-                      border: '1px solid rgba(0,0,0,0.08)',
-                    }}>
+                    <Badge variant="outline" size="md">
                       <Briefcase size={12} /> {job.jobType}
-                    </span>
+                    </Badge>
                   )}
                   {job.mode && (
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '4px',
-                      padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                      backgroundColor: '#F3F4F6', color: '#374151',
-                      border: '1px solid rgba(0,0,0,0.08)',
-                    }}>
+                    <Badge variant="outline" size="md">
                       <Monitor size={12} /> {job.mode}
-                    </span>
+                    </Badge>
                   )}
+                  {/* Experience chip — uses the shared effective-label
+                      helper so residency / fellowship / training-program
+                      jobs always show "New grad welcome" even when the
+                      inference regex previously mis-extracted "5 years"
+                      from "5 years of accredited training" in the body. */}
+                  {(() => {
+                    const expLabel = effectiveExperienceLabel(job);
+                    if (!expLabel) return null;
+                    return (
+                      <Badge variant={effectiveNewGradFriendly(job) ? 'success' : 'outline'} size="md">
+                        {expLabel}
+                      </Badge>
+                    );
+                  })()}
                 </div>
 
                 {/* Salary */}
@@ -1006,6 +1111,31 @@ export default async function JobPage({ params }: JobPageProps) {
             jobs={relatedJobs}
             currentJobId={job.id}
             title="Similar PMHNP Jobs"
+          />
+        )}
+
+        {/* Phase 3 #20 — three named internal-linking sections. Each
+            renders only when it has content, so we never show empty
+            "More from X" boxes. */}
+        {internalLinkBuckets.moreFromEmployer.length > 0 && (
+          <RelatedJobs
+            jobs={internalLinkBuckets.moreFromEmployer}
+            currentJobId={job.id}
+            title={`More from ${job.employer}`}
+          />
+        )}
+        {internalLinkBuckets.moreInCity.length > 0 && internalLinkBuckets.cityName && (
+          <RelatedJobs
+            jobs={internalLinkBuckets.moreInCity}
+            currentJobId={job.id}
+            title={`More PMHNP jobs in ${internalLinkBuckets.cityName}`}
+          />
+        )}
+        {internalLinkBuckets.moreNewGrad.length > 0 && (
+          <RelatedJobs
+            jobs={internalLinkBuckets.moreNewGrad}
+            currentJobId={job.id}
+            title="More new-grad-friendly PMHNP jobs"
           />
         )}
 

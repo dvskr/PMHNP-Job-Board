@@ -1,9 +1,16 @@
+import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { generateInvoice } from '@/lib/invoice-generator';
 import { config, PricingTier } from '@/lib/config';
+
+function getStripe(): Stripe | null {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return null;
+  return new Stripe(key);
+}
 
 /**
  * GET /api/employer/invoice?jobId=...&[chargeId=...]&[token=...]
@@ -110,11 +117,56 @@ export async function GET(request: NextRequest) {
           orderBy: { createdAt: 'desc' },
         });
 
-    // Prefer the official Stripe-hosted invoice when available — this is the
-    // exact same PDF the customer received in their confirmation email, so the
-    // dashboard "Download" button and the email link produce identical files.
-    // Falls through to the locally-generated PDF only for legacy pre-#28 rows
-    // that don't have invoicePdfUrl persisted.
+    // 2026-05-15: refresh the invoice URL from Stripe live before redirecting.
+    //
+    // Stripe's `invoice.invoice_pdf` is a versioned URL — its content is
+    // frozen at the moment of generation. The webhook captures it during
+    // `checkout.session.completed` when the invoice is in `open` status,
+    // so the cached URL serves the "amount due" PDF.
+    //
+    // The `invoice.paid` webhook handler refreshes the cached URL once
+    // Stripe transitions to paid (~500ms later), but if that event was
+    // missed (subscription gap, webhook downtime, local dev without
+    // `stripe listen`), the cached URL stays stale forever.
+    //
+    // This live refresh hits the Stripe API once per download to get the
+    // current PDF URL. ~50ms latency is worth it for "the customer
+    // always downloads the right PDF".
+    if (charge?.stripeInvoiceId) {
+      const stripe = getStripe();
+      if (stripe) {
+        try {
+          const invoice = await stripe.invoices.retrieve(charge.stripeInvoiceId);
+          const freshPdfUrl = invoice.invoice_pdf ?? null;
+          const freshHostedUrl = invoice.hosted_invoice_url ?? null;
+
+          // Write the refreshed URL back to JobCharge so the next request
+          // can short-circuit AND so the email's stable link resolves to
+          // the same fresh URL.
+          if (freshPdfUrl && freshPdfUrl !== charge.invoicePdfUrl) {
+            await prisma.jobCharge.update({
+              where: { id: charge.id },
+              data: {
+                invoicePdfUrl: freshPdfUrl,
+                hostedInvoiceUrl: freshHostedUrl ?? charge.hostedInvoiceUrl,
+                invoiceNumber: invoice.number ?? charge.invoiceNumber,
+              },
+            });
+          }
+
+          if (freshPdfUrl) {
+            return NextResponse.redirect(freshPdfUrl, { status: 302 });
+          }
+        } catch (stripeErr) {
+          logger.warn('Live Stripe invoice refresh failed — falling back to cached URL', {
+            invoiceId: charge.stripeInvoiceId,
+            error: stripeErr instanceof Error ? stripeErr.message : String(stripeErr),
+          });
+          // Fall through to cached URL
+        }
+      }
+    }
+
     if (charge?.invoicePdfUrl) {
       return NextResponse.redirect(charge.invoicePdfUrl, { status: 302 });
     }

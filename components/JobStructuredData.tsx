@@ -148,6 +148,33 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
       }
     : undefined;
 
+  // Phase 1 #13 — surface structured experience requirements to Google
+  // Jobs. Google's docs accept `experienceRequirements.monthsOfExperience`
+  // (numeric) plus `experienceInPlaceOfEducation` (boolean) to indicate
+  // employers will consider experience-equivalence. We map:
+  //   - minYearsExperience  → monthsOfExperience (× 12)
+  //   - newGradFriendly     → experienceInPlaceOfEducation = false AND
+  //                            adds an OccupationalExperienceRequirements
+  //                            block stating new grads are accepted.
+  // When both fields are null we omit the entire block so Google doesn't
+  // see an empty container (lint-flagged in Rich Results Test).
+  const months =
+    typeof job.minYearsExperience === 'number' && job.minYearsExperience > 0
+      ? job.minYearsExperience * 12
+      : undefined;
+  const experienceRequirements =
+    months !== undefined
+      ? stripUndefined({
+          '@type': 'OccupationalExperienceRequirements',
+          monthsOfExperience: months,
+        })
+      : job.newGradFriendly
+        ? stripUndefined({
+            '@type': 'OccupationalExperienceRequirements',
+            monthsOfExperience: 0,
+          })
+        : undefined;
+
   const structuredData = stripUndefined({
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
@@ -169,6 +196,11 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
     jobLocationType,
     applicantLocationRequirements,
     baseSalary,
+    experienceRequirements,
+    // Indicate to Google that on-the-job experience can substitute for
+    // formal education thresholds when the employer explicitly accepts
+    // new grads. Google uses this in Rich Results filtering.
+    ...(job.newGradFriendly ? { experienceInPlaceOfEducation: true } : {}),
     industry: 'Healthcare',
     occupationalCategory: '29-1171.00',
     // Only emit directApply when the application actually completes on this

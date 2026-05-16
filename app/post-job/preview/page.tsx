@@ -9,6 +9,7 @@ import { config } from '@/lib/config';
 import { trackFreePostLimitHit } from '@/lib/analytics';
 import JobCard from '@/components/JobCard';
 import type { Job } from '@/lib/types';
+import { deriveExperienceLabel } from '@/lib/experience-label';
 
 interface JobFormData {
   title: string;
@@ -30,6 +31,11 @@ interface JobFormData {
   setting?: string;
   population?: string;
   companyLogoUrl?: string;
+  // Phase 1 experience picker — see app/post-job/page.tsx Step 2.
+  minYearsExperience?: number;
+  maxYearsExperience?: number | null;
+  newGradFriendly?: boolean;
+  experienceQualifier?: string;
   screeningQuestions?: { text: string; type: string; options?: string[]; required?: boolean; knockout?: boolean; knockoutAnswer?: string }[];
 }
 
@@ -139,6 +145,10 @@ export default function PreviewPage() {
           setting: formData.setting,
           population: formData.population,
           companyLogoUrl: formData.companyLogoUrl,
+          minYearsExperience: formData.minYearsExperience ?? null,
+          maxYearsExperience: formData.maxYearsExperience ?? null,
+          newGradFriendly: formData.newGradFriendly ?? false,
+          experienceQualifier: formData.experienceQualifier?.trim() || null,
           screeningQuestions: formData.screeningQuestions || [],
         }),
       });
@@ -146,6 +156,15 @@ export default function PreviewPage() {
       if (result.success) {
         localStorage.removeItem('jobFormData');
         localStorage.removeItem('jobScreeningQuestions');
+        // Wipe the server-side draft so it doesn't show up in the
+        // employer dashboard's "Continue an unfinished post" list
+        // after the job is published. Best-effort.
+        try {
+          await fetch('/api/job-draft', { method: 'DELETE' });
+        } catch {
+          // Non-fatal — the dashboard list is a UX nicety, not data
+          // integrity; a stale draft can be cleared from the dashboard.
+        }
         router.push('/success?free=true');
       } else if (result.requiresPayment) {
         // Free posts exhausted — fire P7 limit-hit event then redirect to checkout
@@ -198,6 +217,15 @@ export default function PreviewPage() {
     jobType: formData.jobType || null,
     mode: formData.mode || null,
     experienceLevel: null,
+    minYearsExperience: formData.minYearsExperience ?? null,
+    maxYearsExperience: formData.maxYearsExperience ?? null,
+    newGradFriendly: formData.newGradFriendly ?? false,
+    experienceQualifier: formData.experienceQualifier?.trim() || null,
+    experienceLabel: deriveExperienceLabel({
+      minYearsExperience: formData.minYearsExperience ?? null,
+      maxYearsExperience: formData.maxYearsExperience ?? null,
+      newGradFriendly: formData.newGradFriendly ?? false,
+    }),
     description: formData.description || '',
     descriptionSummary: null,
     salaryRange: null,

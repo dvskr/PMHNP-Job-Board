@@ -9,6 +9,7 @@ import {
   V2, SANS as SANS_V2, SERIF as SERIF_V2,
 } from '@/lib/email-templates-v2'
 import { Prisma } from '@prisma/client'
+import { CATEGORY_FILTERS, CATEGORY_EXCLUSIONS } from '@/lib/filters'
 import { logger } from '@/lib/logger'
 import { brand } from '@/config/brand'
 import { BEST_SORT_ORDER_BY, compareJobsBest } from '@/lib/utils/job-sort'
@@ -377,6 +378,39 @@ export async function sendJobAlerts(): Promise<{
               { normalizedMinSalary: { lte: alert.maxSalary } },
               { AND: [{ normalizedMinSalary: null }, { normalizedMaxSalary: null }] },
             ]
+          })
+        }
+
+        // Phase 5 #16 — experience filter alignment with /jobs UI.
+        // 2026-05-16: tightened to match buildWhereClause exactly. Previous
+        // implementation matched FEWER jobs than the live board (flag-only
+        // for newGradFriendly, strict-N for minYearsExperience), so users
+        // saw fewer jobs in the digest than when they clicked through.
+        //
+        // newGradFriendly: title-regex OR flag, minus exclusions (same as
+        // /jobs?newGrad=1).
+        if (alert.newGradFriendly === true) {
+          const newGradCategoryOr = CATEGORY_FILTERS['new-grad'] ?? []
+          ;(whereClause.AND as Prisma.JobWhereInput[]).push({
+            OR: [
+              { newGradFriendly: true },
+              ...newGradCategoryOr,
+            ],
+          })
+          for (const exclusion of CATEGORY_EXCLUSIONS['new-grad'] ?? []) {
+            ;(whereClause.AND as Prisma.JobWhereInput[]).push({ NOT: exclusion })
+          }
+        }
+        // minYearsExperience: candidate-qualifies semantics — the user has N
+        // years and qualifies for any job where minYearsExperience ≤ N OR
+        // doesn't specify (matches live board's null-branch fallback so
+        // aggregated jobs without backfill aren't silently excluded).
+        if (typeof alert.minYearsExperience === 'number' && alert.minYearsExperience >= 0) {
+          ;(whereClause.AND as Prisma.JobWhereInput[]).push({
+            OR: [
+              { minYearsExperience: { lte: alert.minYearsExperience } },
+              { minYearsExperience: null },
+            ],
           })
         }
 

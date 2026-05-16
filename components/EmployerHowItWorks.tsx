@@ -14,11 +14,15 @@ const stagger = {
     visible: { transition: { staggerChildren: 0.15 } },
 };
 
+// Refreshed 2026-05-13 to reflect the post-redesign feature set:
+// experience picker + AI JD writer in step 1, weekly digest +
+// new-grad-friendly filter in step 2, bulk-unlock in step 3, and
+// the new analytics dashboard in step 4.
 const STEPS = [
-    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-employer-post.webp', title: 'Post Your Listing', desc: 'Fill out job details, preview, and publish — live in under 5 minutes. First 2 posts free.' },
-    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-employer-reach.webp', title: 'Reach Every PMHNP', desc: 'Your listing is emailed to thousands via daily job alerts and indexed on Google with its own SEO page.' },
-    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-employer-browse.webp', title: 'Browse & Message', desc: 'Search our talent pool of qualified PMHNPs. Save top candidates and reach out directly with InMail.' },
-    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-employer-track.webp', title: 'Track & Hire', desc: 'Real-time analytics on views, clicks, and applications. Get notified instantly when candidates apply.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-employer-post.webp', title: 'Post Your Listing', desc: 'Start from a PMHNP template or generate the full description with AI. Set required experience and your post is live in 5 minutes — first 2 free.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-employer-reach.webp', title: 'Reach Every PMHNP', desc: 'Your listing surfaces in semantic search, the weekly digest, and new-grad-friendly filters — plus its own indexed SEO page on Google.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-employer-browse.webp', title: 'Browse & Unlock in Bulk', desc: 'Search the talent pool with experience filters, then unlock multiple profiles in one click using your remaining credits.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-employer-track.webp', title: 'Track & Hire', desc: 'Per-job views, apply clicks, and CTR in the analytics dashboard. Export CSV to your ATS or hiring spreadsheet anytime.' },
 ];
 
 const css = `

@@ -201,6 +201,9 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           applyLink: true,
           applyOnPlatform: true,
           sourceType: true,
+          // Phase 1 experience chip — JobCard renders the pill from these.
+          experienceLabel: true,
+          newGradFriendly: true,
           employerJobs: { select: { companyLogoUrl: true } },
         },
       }),

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ExternalLink, LogIn, Zap } from 'lucide-react';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
+import { shouldLabelDirectApply } from '@/lib/direct-apply';
 
 import InPlatformApplyForm from '@/components/InPlatformApplyForm';
 import { trackJobApply, buildJobItem } from '@/lib/analytics';
@@ -33,7 +34,12 @@ function formatAppliedDate(date: Date): string {
 export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticated = false, applyOnPlatform = false, sourceType = null }: ApplyButtonProps) {
   const { isApplied, markApplied, getAppliedDate } = useAppliedJobs();
   const searchParams = useSearchParams();
-  const directApply = !applyOnPlatform && !!applyLink && sourceType === 'employer';
+  // Use the shared detection so the detail-page button matches the
+  // card's label exactly — both consider both `sourceType === 'employer'`
+  // AND known ATS URL patterns (greenhouse, lever, workday, etc.).
+  // Before this, a Greenhouse-aggregated job got "Direct Apply" on the
+  // card but "Apply Now" on the detail page, which looked broken.
+  const directApply = shouldLabelDirectApply({ applyLink, sourceType, applyOnPlatform });
 
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPlatformApply, setShowPlatformApply] = useState(false);

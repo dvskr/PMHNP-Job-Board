@@ -19,6 +19,7 @@ import { formatDisplaySalary } from '@/lib/salary-display';
 import { computeQualityScore } from '@/lib/utils/quality-score';
 import { parseLocation } from '@/lib/location-parser';
 import { summarizeForMeta } from '@/lib/description-cleaner';
+import { normalizeExperienceFromInput } from '@/lib/experience-label';
 
 // Lazy Stripe client — instantiated per-request so a missing STRIPE_SECRET_KEY
 // surfaces as a clean 503 instead of crashing on module import.
@@ -48,6 +49,11 @@ interface CheckoutRequestBody {
   setting?: string;
   population?: string;
   companyLogoUrl?: string;
+  // Phase 1 experience picker — see lib/experience-label.ts.
+  minYearsExperience?: number | null;
+  maxYearsExperience?: number | null;
+  newGradFriendly?: boolean;
+  experienceQualifier?: string | null;
   screeningQuestions?: {
     text: string;
     type: string;
@@ -141,37 +147,6 @@ export async function POST(request: NextRequest) {
     const pricing: PricingTier = 'pro';
     const price = config.stripePriceInCents;
 
-    // DUPLICATE CHECK — block obvious double-posts at the same title+location
-    const existingEmployerJobs = await prisma.employerJob.findMany({
-      where: { contactEmail: sanitized.contactEmail },
-      include: { job: true },
-    });
-
-    const normalizedTitle = sanitized.title.trim().toLowerCase();
-    const normalizedLocation = sanitized.location.trim().toLowerCase();
-    const now = new Date();
-
-    const duplicateJob = existingEmployerJobs.find((ej) => {
-      const job = ej.job;
-      if (!job.isPublished || !job.expiresAt || new Date(job.expiresAt) < now) {
-        return false;
-      }
-      return (
-        job.title.trim().toLowerCase() === normalizedTitle &&
-        job.location.trim().toLowerCase() === normalizedLocation
-      );
-    });
-
-    if (duplicateJob) {
-      return NextResponse.json(
-        {
-          error: 'You already have an active posting for this role',
-          editLink: `/jobs/edit/${duplicateJob.editToken}`,
-        },
-        { status: 409 }
-      );
-    }
-
     // Salary parsing + normalization
     const parsedMinSalary = (() => {
       const val = Number(sanitized.minSalary);
@@ -245,7 +220,10 @@ export async function POST(request: NextRequest) {
           stateCode: parsedLoc.stateCode,
           isRemote: parsedLoc.isRemote,
           isHybrid: parsedLoc.isHybrid,
-          isFeatured: config.isFeaturedTier(pricing),
+          // isFeatured reserved for a future premium tier. Standard $199
+          // posts get top placement via the EmployerJob relation now —
+          // see lib/utils/job-sort.ts.
+          isFeatured: false,
           isPublished: false, // Will be flipped by webhook on successful payment
           sourceType: 'employer',
           expiresAt,
@@ -253,6 +231,17 @@ export async function POST(request: NextRequest) {
           benefits: Array.isArray(rawBody.benefits) ? rawBody.benefits : [],
           setting: rawBody.setting || null,
           population: rawBody.population || null,
+          ...(() => {
+            const sanitizedQualifier =
+              typeof rawBody.experienceQualifier === 'string'
+                ? sanitizeText(rawBody.experienceQualifier, 80) || null
+                : null;
+            return normalizeExperienceFromInput({
+              minYearsExperience: rawBody.minYearsExperience,
+              newGradFriendly: rawBody.newGradFriendly,
+              experienceQualifier: sanitizedQualifier,
+            });
+          })(),
         },
       });
 

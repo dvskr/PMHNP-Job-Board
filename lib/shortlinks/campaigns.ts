@@ -13,6 +13,7 @@ export const PLATFORM_BY_LETTER: Readonly<Record<string, string>> = Object.freez
   x: 'x',
   r: 'reddit',
   t: 'threads',
+  p: 'program-director',
 })
 
 export const KNOWN_PLATFORM_LETTERS: ReadonlySet<string> = new Set(

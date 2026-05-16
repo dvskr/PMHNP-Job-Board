@@ -61,17 +61,15 @@ function buildSalaryDisplay(job: Job): string | null {
   return null;
 }
 
-// Check if a job link goes directly to an employer's ATS career page
-const ATS_PATTERNS = [
-  /\.myworkdayjobs\.com/i, /greenhouse\.io/i, /lever\.co/i,
-  /jobs\.ashbyhq\.com/i, /smartrecruiters\.com/i, /icims\.com/i,
-  /jazz\.co/i, /bamboohr\.com/i, /usajobs\.gov/i,
-  /apply\.workable\.com/i, /careers\./i, /jobs\./i,
-];
-function isDirectApply(url: string | null): boolean {
-  if (!url) return false;
-  return ATS_PATTERNS.some(p => p.test(url));
-}
+// Direct-apply detection moved to lib/direct-apply.ts so the detail
+// page's ApplyButton uses the exact same logic — no more mismatch
+// between "Direct Apply" on the card and "Apply Now" on the detail.
+import { isDirectApplyUrl } from '@/lib/direct-apply';
+// Render-time experience-label override so residency/fellowship/
+// training-program jobs always show "New grad welcome" — even when
+// the inference regex previously mis-extracted "5 years" from
+// "5 years of accredited training" in the description.
+import { effectiveExperienceLabel, effectiveNewGradFriendly } from '@/lib/experience-label';
 
 function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const { isApplied } = useAppliedJobs();
@@ -108,7 +106,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const directApply =
     !easyApply &&
     !!job.applyLink &&
-    (job.sourceType === 'employer' || isDirectApply(job.applyLink));
+    (job.sourceType === 'employer' || isDirectApplyUrl(job.applyLink));
 
   // Card "Easy Apply" → navigate to job detail with ?apply=1 so the apply
   // popup auto-opens. Stops the surrounding card-link from firing too.
@@ -195,7 +193,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             padding: '18px 22px',
             backgroundColor: '#F7FBF8',
             borderRadius: '20px',
-            border: job.isFeatured ? '2px solid var(--color-primary)' : '1px solid rgba(255,255,255,0.5)',
+            border: '1px solid rgba(255,255,255,0.5)',
             boxShadow: '8px 8px 20px rgba(0,0,0,0.07), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             opacity: viewed ? 0.7 : 1,
@@ -252,22 +250,17 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             }}>
               {job.title}
             </h3>
-            {/* Company */}
+            {/* Company. "Featured" badge removed 2026-05-16 — reserved
+                for a future premium tier. The card's primary-color border
+                (driven off `isFeatured`) is retained as the visual hook
+                that tier will use. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px', minWidth: 0 }}>
               <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                 {job.employer}
               </p>
-              {job.isFeatured && (
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0,
-                  padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
-                  background: '#FDE68A', color: '#78350F', border: '1px solid rgba(255,255,255,0.5)',
-                  boxShadow: '2px 2px 6px rgba(245,158,11,0.15), -1px -1px 4px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(0,0,0,0.03)',
-                }}>⚡ Featured</span>
-              )}
             </div>
 
-            {/* Salary + Location + Type */}
+            {/* Salary + Location + Type + Experience */}
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               {salaryDisplay && (
                 <Badge variant="salary" size="sm">
@@ -280,6 +273,15 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               </Badge>
               {job.jobType && <Badge variant="outline" size="sm">{job.jobType}</Badge>}
               {displayMode && <Badge variant="outline" size="sm">{displayMode}</Badge>}
+              {(() => {
+                const label = effectiveExperienceLabel(job);
+                if (!label) return null;
+                return (
+                  <Badge variant={effectiveNewGradFriendly(job) ? 'success' : 'outline'} size="sm">
+                    {label}
+                  </Badge>
+                );
+              })()}
             </div>
 
             {/* Status Badges — "New" badge intentionally removed (was visual
@@ -478,14 +480,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                 {job.employer}
               </p>
-              {job.isFeatured && (
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0,
-                  padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
-                  background: '#FDE68A', color: '#78350F', border: '1px solid rgba(255,255,255,0.5)',
-                  boxShadow: '2px 2px 6px rgba(245,158,11,0.15), -1px -1px 4px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(0,0,0,0.03)',
-                }}>⚡ Featured</span>
-              )}
+              {/* Featured badge removed 2026-05-16 — reserved for future
+                  premium tier. Border on the card (driven by isFeatured)
+                  retained for that future tier. */}
             </div>
           </div>
 
@@ -534,7 +531,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </div>
         </div>
 
-        {/* Row 3: Location + Type + Status Badges */}
+        {/* Row 3: Location + Type + Experience + Status Badges */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
           <Badge variant="outline" size="sm">
             <MapPin size={13} style={{ color: 'var(--color-primary)' }} />
@@ -542,6 +539,15 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </Badge>
           {job.jobType && <Badge variant="outline" size="sm">{job.jobType}</Badge>}
           {displayMode && <Badge variant="outline" size="sm">{displayMode}</Badge>}
+          {(() => {
+            const label = effectiveExperienceLabel(job);
+            if (!label) return null;
+            return (
+              <Badge variant={effectiveNewGradFriendly(job) ? 'success' : 'outline'} size="sm">
+                {label}
+              </Badge>
+            );
+          })()}
           {/* "New" badge intentionally removed — recency is already implied
               by the "Posted X ago" label and was visual noise at our scale. */}
           {applied && (

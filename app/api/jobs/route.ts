@@ -47,6 +47,13 @@ export async function GET(request: NextRequest) {
             originalPostedAt: true,
             applyOnPlatform: true,
             sourceType: true,
+            // Phase 1 experience chip — JobCard reads `experienceLabel`
+            // to render the "5+ yrs / New grad welcome / etc." pill and
+            // uses `newGradFriendly` to pick the success vs. outline
+            // variant. Without these in the SELECT, the chip silently
+            // never renders.
+            experienceLabel: true,
+            newGradFriendly: true,
             employerJobs: { select: { companyLogoUrl: true } },
           },
         });
@@ -124,6 +131,10 @@ export async function GET(request: NextRequest) {
           // sourceType lets JobCard show "Direct Apply" (vs generic "Apply")
           // for jobs posted directly by employers on our platform.
           sourceType: true,
+          // Phase 1 experience chip — see comment in the lite-mode SELECT
+          // above. Required for JobCard to render the experience pill.
+          experienceLabel: true,
+          newGradFriendly: true,
           employerJobs: { select: { companyLogoUrl: true } },
         },
       }),

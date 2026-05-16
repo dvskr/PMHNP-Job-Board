@@ -12,7 +12,16 @@ export interface Job {
   location: string;
   jobType: string | null;
   mode: string | null;
+  // Legacy free-text level — frozen 2026-05-13, read-only fallback. New
+  // writes go to the structured fields below. See docs/runbooks/ui-refresh-2026-05.md §1.
   experienceLevel: string | null;
+  // Structured experience requirements. min/max in years (buckets 0,1,2,5,7,10).
+  // experienceLabel is auto-derived from these three via lib/experience-label.ts.
+  minYearsExperience: number | null;
+  maxYearsExperience: number | null;
+  newGradFriendly: boolean;
+  experienceQualifier: string | null;
+  experienceLabel: string | null;
   description: string;
   descriptionSummary: string | null;
   salaryRange: string | null;
@@ -45,6 +54,9 @@ export interface Job {
   createdAt: Date;
   updatedAt: Date;
   expiresAt: Date | null;
+  // Phase 3 #21 — employer-controlled refresh timestamp. Null = use
+  // createdAt as the freshness anchor.
+  lastRenewedAt?: Date | null;
   companyId: string | null;
   companyLogoUrl?: string | null;
   // Attached at fetch time via the employerJobs join (see app/jobs/[slug]/page.tsx).
@@ -67,6 +79,9 @@ export interface JobAlert {
   jobType: string | null;
   minSalary: number | null;
   maxSalary: number | null;
+  // Phase 5 experience filters (align with Phase 1 /jobs UI).
+  newGradFriendly: boolean | null;
+  minYearsExperience: number | null;
   frequency: string;
   isActive: boolean;
   lastSentAt: Date | null;

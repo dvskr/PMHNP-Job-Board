@@ -172,9 +172,17 @@ describe('P4.1: sitemap budget guard', () => {
         const disallow = (catchAll!.disallow ?? []) as string[];
 
         // Critical safety: never let Google index admin / dashboard / token URLs.
-        expect(disallow).toContain('/admin/');
-        expect(disallow).toContain('/dashboard/');
-        expect(disallow).toContain('/auth/');
+        //
+        // Path-prefix convention in app/robots.ts FULL_DISALLOW: surfaces with
+        // a real bare-URL page (e.g. /admin renders a page, /dashboard renders
+        // a page) are listed WITHOUT a trailing slash so the prefix matches
+        // both the bare URL and child paths. Surfaces that exist only as
+        // token-bearing children (e.g. /jobs/edit/<token>, no bare page) keep
+        // the trailing slash. Assertions below mirror that intent — do not
+        // re-add trailing slashes without first removing the bare pages.
+        expect(disallow).toContain('/admin');
+        expect(disallow).toContain('/dashboard');
+        expect(disallow).toContain('/auth');
         expect(disallow).toContain('/jobs/edit/');
         expect(disallow).toContain('/post-job/checkout');
         expect(disallow).toContain('/post-job/preview');

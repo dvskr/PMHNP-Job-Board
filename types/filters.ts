@@ -3,7 +3,14 @@ export interface FilterState {
   workMode: string[];      // ['remote', 'hybrid', 'onsite']
   jobType: string[];       // ['Full-Time', 'Part-Time', 'Contract', 'Per Diem']
   specialty: string[];     // ['Telehealth', 'Travel']
-  experienceLevel: string[]; // ['New Grad', 'Mid-Level', 'Senior']
+  experienceLevel: string[]; // ['New Grad', 'Mid-Level', 'Senior'] — LEGACY (frozen 2026-05-13)
+  // Phase 1 structured experience filters (lib/experience-label.ts).
+  // newGradFriendly = true   → only jobs flagged "open to new grads"
+  // newGradFriendly = null   → any
+  // minYearsExperience = N   → only jobs whose minYearsExperience ≤ N (i.e. the
+  //                            candidate has ≥ N years and qualifies)
+  newGradFriendly: boolean | null;
+  minYearsExperience: number | null;
   salaryMin: number | null;
   postedWithin: string | null;  // '24h', '3d', '7d', '30d', 'all'
   location: string | null;
@@ -47,6 +54,17 @@ export interface FilterCounts {
     'Mid-Level': number;
     'Senior': number;
   };
+  // Phase 1 structured experience counts. `newGradFriendly` is the total
+  // count of jobs flagged open to new grads. `minYears` keys are the
+  // EXPERIENCE_BUCKETS canonical mins (0, 1, 2, 5, 7, 10).
+  newGradFriendly: number;
+  minYears: {
+    1: number;
+    2: number;
+    5: number;
+    7: number;
+    10: number;
+  };
   total: number;
 }
 
@@ -56,6 +74,8 @@ export const DEFAULT_FILTERS: FilterState = {
   jobType: [],
   specialty: [],
   experienceLevel: [],
+  newGradFriendly: null,
+  minYearsExperience: null,
   salaryMin: null,
   postedWithin: null,
   location: null,

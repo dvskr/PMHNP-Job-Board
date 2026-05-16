@@ -167,8 +167,9 @@ export default function LinkedInFilters() {
     trackFilterChange(key, arr.join(','));
   };
 
-  // Set single-value filter
-  const setSingleFilter = (key: keyof FilterState, value: string | number | null) => {
+  // Set single-value filter. Accepts boolean for the newGradFriendly toggle
+  // and string/number for everything else.
+  const setSingleFilter = (key: keyof FilterState, value: string | number | boolean | null) => {
     const newFilters = { ...filters, [key]: value };
     router.push(`/jobs?${filtersToParams(newFilters).toString()}`, { scroll: false });
   };
@@ -201,6 +202,8 @@ export default function LinkedInFilters() {
     filters.jobType.length +
     (filters.specialty?.length || 0) +
     (filters.experienceLevel?.length || 0) +
+    (filters.newGradFriendly === true ? 1 : 0) +
+    (typeof filters.minYearsExperience === 'number' ? 1 : 0) +
     (filters.search ? 1 : 0) +
     (filters.location ? 1 : 0) +
     (filters.salaryMin ? 1 : 0) +
@@ -288,6 +291,20 @@ export default function LinkedInFilters() {
           label: el,
           onRemove: () => toggleArrayFilter('experienceLevel', el),
         });
+      });
+    }
+    if (filters.newGradFriendly === true) {
+      pills.push({
+        key: 'newGradFriendly',
+        label: 'Open to new grads',
+        onRemove: () => setSingleFilter('newGradFriendly', null),
+      });
+    }
+    if (typeof filters.minYearsExperience === 'number') {
+      pills.push({
+        key: 'minYearsExperience',
+        label: `${filters.minYearsExperience}+ yrs exp`,
+        onRemove: () => setSingleFilter('minYearsExperience', null),
       });
     }
     if (filters.salaryMin) {
@@ -546,25 +563,57 @@ export default function LinkedInFilters() {
               />
             </FilterSection>
 
-            {/* Experience Level */}
-            <FilterSection title="Experience Level">
+            {/* Experience — Phase 1 structured filters. "Open to new grads"
+                is a binary toggle; "Your experience" is candidate-side:
+                pick your years and we'll only show jobs you qualify for. */}
+            <FilterSection title="Experience">
               <CheckboxFilter
-                label="New Grad / Entry"
-                count={counts?.experienceLevel?.['New Grad'] || 0}
-                checked={filters.experienceLevel?.includes('New Grad') || false}
-                onChange={() => toggleArrayFilter('experienceLevel', 'New Grad')}
+                label="Open to new grads"
+                count={counts?.newGradFriendly || 0}
+                checked={filters.newGradFriendly === true}
+                onChange={() =>
+                  setSingleFilter('newGradFriendly', filters.newGradFriendly === true ? null : true)
+                }
               />
               <CheckboxFilter
-                label="Mid-Level (3-5 yrs)"
-                count={counts?.experienceLevel?.['Mid-Level'] || 0}
-                checked={filters.experienceLevel?.includes('Mid-Level') || false}
-                onChange={() => toggleArrayFilter('experienceLevel', 'Mid-Level')}
+                label="I have 1+ years"
+                count={counts?.minYears?.[1] || 0}
+                checked={filters.minYearsExperience === 1}
+                onChange={() =>
+                  setSingleFilter('minYearsExperience', filters.minYearsExperience === 1 ? null : 1)
+                }
               />
               <CheckboxFilter
-                label="Senior (5+ yrs)"
-                count={counts?.experienceLevel?.['Senior'] || 0}
-                checked={filters.experienceLevel?.includes('Senior') || false}
-                onChange={() => toggleArrayFilter('experienceLevel', 'Senior')}
+                label="I have 2+ years"
+                count={counts?.minYears?.[2] || 0}
+                checked={filters.minYearsExperience === 2}
+                onChange={() =>
+                  setSingleFilter('minYearsExperience', filters.minYearsExperience === 2 ? null : 2)
+                }
+              />
+              <CheckboxFilter
+                label="I have 5+ years"
+                count={counts?.minYears?.[5] || 0}
+                checked={filters.minYearsExperience === 5}
+                onChange={() =>
+                  setSingleFilter('minYearsExperience', filters.minYearsExperience === 5 ? null : 5)
+                }
+              />
+              <CheckboxFilter
+                label="I have 7+ years"
+                count={counts?.minYears?.[7] || 0}
+                checked={filters.minYearsExperience === 7}
+                onChange={() =>
+                  setSingleFilter('minYearsExperience', filters.minYearsExperience === 7 ? null : 7)
+                }
+              />
+              <CheckboxFilter
+                label="I have 10+ years"
+                count={counts?.minYears?.[10] || 0}
+                checked={filters.minYearsExperience === 10}
+                onChange={() =>
+                  setSingleFilter('minYearsExperience', filters.minYearsExperience === 10 ? null : 10)
+                }
               />
             </FilterSection>
 

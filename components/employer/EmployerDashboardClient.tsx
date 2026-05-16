@@ -125,6 +125,13 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
     const getStatusBadge = (job: Job) => {
         if (!job.isPublished) {
+            // Distinguish "never paid" (pending checkout) from a paid job
+            // that the employer manually paused. They look the same in
+            // the DB (isPublished=false), but the UX is different — one
+            // needs payment, the other can be republished freely.
+            if (job.paymentStatus === 'pending') {
+                return <span style={{ ...clayPill, background: '#FEE2E2', color: '#DC2626' }}>⚠ Unpaid</span>;
+            }
             return <span style={{ ...clayPill, background: '#FEF3C7', color: '#D97706' }}>⏸ Paused</span>;
         }
         if (job.expiresAt) {
@@ -743,16 +750,29 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                 </span>
                                             )}
                                             {job.paymentStatus === 'paid' && (
-                                                <a
-                                                    href={`/api/employer/invoice?jobId=${job.id}${dashboardToken ? `&token=${dashboardToken}` : ''}`}
-                                                    download={`invoice-${(job.title || 'job').replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`}
-                                                    style={{
-                                                        color: '#0D9488', textDecoration: 'none', fontWeight: 600,
-                                                        display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                                    }}
-                                                >
-                                                    <FileText size={11} /> Download Invoice
-                                                </a>
+                                                <>
+                                                    <a
+                                                        href={`/api/employer/invoice?jobId=${job.id}${dashboardToken ? `&token=${dashboardToken}` : ''}`}
+                                                        download={`invoice-${(job.title || 'job').replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`}
+                                                        style={{
+                                                            color: '#0D9488', textDecoration: 'none', fontWeight: 600,
+                                                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                        }}
+                                                    >
+                                                        <FileText size={11} /> Download Invoice
+                                                    </a>
+                                                    <a
+                                                        href={`/api/employer/receipt?jobId=${job.id}${dashboardToken ? `&token=${dashboardToken}` : ''}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        style={{
+                                                            color: '#0D9488', textDecoration: 'none', fontWeight: 600,
+                                                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                        }}
+                                                    >
+                                                        <FileText size={11} /> Download Receipt
+                                                    </a>
+                                                </>
                                             )}
                                         </div>
 
@@ -765,19 +785,28 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                             </Link>
                                             {mounted && (() => {
                                                 const expired = isExpired(job);
-                                                const disabled = expired || togglingJobId === job.id;
+                                                // Unpaid pending rows can't be republished without checkout —
+                                                // server returns 402, so disable + retitle the button instead
+                                                // of letting the click roundtrip and fail.
+                                                const isUnpaid = !job.isPublished && job.paymentStatus === 'pending';
+                                                const disabled = expired || isUnpaid || togglingJobId === job.id;
+                                                const blockTitle = expired
+                                                    ? 'This posting has expired — renew or post a new listing to make changes.'
+                                                    : isUnpaid
+                                                        ? 'Payment required to publish this posting. Complete checkout to make it live.'
+                                                        : undefined;
                                                 return (
                                                     <button
-                                                        onClick={() => !expired && handleTogglePublish(job)}
+                                                        onClick={() => !disabled && handleTogglePublish(job)}
                                                         disabled={disabled}
-                                                        title={expired ? 'This posting has expired — renew or post a new listing to make changes.' : undefined}
+                                                        title={blockTitle}
                                                         className="emp-action-btn"
                                                         style={{
                                                             ...clayBtn,
-                                                            background: expired ? '#F3F4F6' : (job.isPublished ? '#FEF3C7' : '#D1FAE5'),
-                                                            color: expired ? '#B0BEC5' : (job.isPublished ? '#D97706' : '#059669'),
-                                                            opacity: togglingJobId === job.id ? 0.6 : (expired ? 0.55 : 1),
-                                                            cursor: expired ? 'not-allowed' : 'pointer',
+                                                            background: expired || isUnpaid ? '#F3F4F6' : (job.isPublished ? '#FEF3C7' : '#D1FAE5'),
+                                                            color: expired || isUnpaid ? '#B0BEC5' : (job.isPublished ? '#D97706' : '#059669'),
+                                                            opacity: togglingJobId === job.id ? 0.6 : ((expired || isUnpaid) ? 0.55 : 1),
+                                                            cursor: (expired || isUnpaid) ? 'not-allowed' : 'pointer',
                                                         }}
                                                     >
                                                         {togglingJobId === job.id
