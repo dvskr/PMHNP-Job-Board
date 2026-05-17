@@ -22,7 +22,7 @@ export const revalidate = 3600
 export const metadata: Metadata = {
   title: 'For Program Directors — Free PMHNP Jobs Widget | PMHNP Hiring',
   description:
-    'Help your PMHNP students land their first job. Free embeddable jobs widget for your career services page, quarterly placement reports, and AI resume reviewer for graduating seniors.',
+    'Help your PMHNP students land their first job. Free embeddable jobs widget for your career services page, plus quarterly placement reports for your accreditation file.',
   alternates: { canonical: `${brand.baseUrl}/for-programs` },
 }
 
@@ -148,10 +148,10 @@ export default async function ForProgramsPage() {
                   fontWeight: 400,
                 }}
               >
-                Three free tools for accredited PMHNP programs — an
+                Two free tools for accredited PMHNP programs — an
                 embeddable jobs widget for your career services page,
-                quarterly placement reports for accreditation, and an AI
-                resume reviewer for your graduating seniors.
+                plus quarterly placement reports for your accreditation
+                file.
               </p>
 
               <div
@@ -496,7 +496,7 @@ export default async function ForProgramsPage() {
               marginBottom: '8px',
             }}
           >
-            Three Tools, Zero Cost
+            Two Tools, Zero Cost
           </h2>
           <p
             style={{
@@ -786,208 +786,68 @@ export default async function ForProgramsPage() {
               </div>
             </div>
 
-            {/* WIDE BENTO — Resume Reviewer (8 cols) */}
-            <div
-              className="bento-hero-3 emp-bento-card"
-              style={{
-                ...clayCard,
-                gridColumn: 'span 8',
-                padding: '0',
-                overflow: 'hidden',
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ padding: '32px 28px' }}>
-                <div
-                  style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '14px',
-                    background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: '16px',
-                    boxShadow:
-                      '3px 3px 8px rgba(0,0,0,0.05), inset 1px 1px 2px rgba(255,255,255,0.6)',
-                  }}
-                >
-                  <Sparkles size={22} color="#E86C2C" strokeWidth={2.25} />
-                </div>
-                <h3
-                  className="font-lora"
-                  style={{
-                    fontSize: '22px',
-                    fontWeight: 800,
-                    color: '#1A2E35',
-                    margin: '0 0 8px',
-                  }}
-                >
-                  AI Resume Reviewer
-                </h3>
-                <p
-                  style={{
-                    fontSize: '14px',
-                    color: '#5A4A42',
-                    margin: 0,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  A co-branded link your seniors can use to get instant
-                  feedback on their resume before their first PMHNP
-                  interview. Resumes are never stored.
-                </p>
-              </div>
-              <div
-                style={{
-                  height: '100%',
-                  background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)',
-                  padding: '24px 20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <div
-                  style={{
-                    ...clayCard,
-                    width: '100%',
-                    maxWidth: '260px',
-                    padding: '14px 14px 12px',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '10px',
-                      alignItems: 'center',
-                      marginBottom: '12px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '10px',
-                        background: '#E86C2C',
-                        color: '#fff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 800,
-                        fontSize: '13px',
-                      }}
-                    >
-                      A+
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: '12px',
-                          fontWeight: 800,
-                          color: '#1A2E35',
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        Resume Score
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '10px',
-                          color: '#7A6A62',
-                        }}
-                      >
-                        Excellent · 92 / 100
-                      </div>
-                    </div>
-                  </div>
-                  {[
-                    'Add 1 outcome metric',
-                    'Highlight PMHNP-specific skills',
-                    'Reorder clinical rotations',
-                  ].map((s, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '11px',
-                        color: '#5A4A42',
-                        padding: '4px 0',
-                      }}
-                    >
-                      <Check
-                        size={12}
-                        strokeWidth={3}
-                        style={{ color: '#0D9488', flexShrink: 0 }}
-                      />
-                      {s}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* COMPACT BENTO — Co-Branding (4 cols) */}
+            {/* WIDE BENTO — Co-Branding (12 cols, fills the second row
+                after Resume Reviewer was removed). Horizontal layout
+                with the badge/icon on the left and copy on the right. */}
             <div
               className="emp-bento-card"
               style={{
                 ...clayCard,
-                gridColumn: 'span 4',
-                padding: '28px 22px',
+                gridColumn: 'span 12',
+                padding: '28px 32px',
                 display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '24px',
+                flexWrap: 'wrap',
                 background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
                 border: '2px solid rgba(13,148,136,0.15)',
               }}
             >
               <div
                 style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '12px',
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '14px',
                   background: '#FFFFFF',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: '12px',
+                  flexShrink: 0,
                   boxShadow:
                     '3px 3px 8px rgba(13,148,136,0.15), inset 1px 1px 2px rgba(255,255,255,0.6)',
                 }}
               >
                 <GraduationCap
-                  size={20}
+                  size={26}
                   color="#0D9488"
                   strokeWidth={2.25}
                 />
               </div>
-              <h3
-                className="font-lora"
-                style={{
-                  fontSize: '17px',
-                  fontWeight: 800,
-                  color: '#134E4A',
-                  margin: '0 0 6px',
-                }}
-              >
-                Co-Branded With Your Program
-              </h3>
-              <p
-                style={{
-                  fontSize: '13px',
-                  color: '#0D9488',
-                  margin: 0,
-                  lineHeight: 1.55,
-                  fontWeight: 500,
-                }}
-              >
-                Your logo and program name on the widget and reviewer —
-                so students recognize it as a service from your school.
-              </p>
+              <div style={{ flex: 1, minWidth: '240px' }}>
+                <h3
+                  className="font-lora"
+                  style={{
+                    fontSize: '20px',
+                    fontWeight: 800,
+                    color: '#134E4A',
+                    margin: '0 0 6px',
+                  }}
+                >
+                  Co-Branded With Your Program
+                </h3>
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: '#0D9488',
+                    margin: 0,
+                    lineHeight: 1.55,
+                    fontWeight: 500,
+                  }}
+                >
+                  Your program name on the widget — so students recognize
+                  it as a service from your school, not a generic feed.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -1418,11 +1278,11 @@ export default async function ForProgramsPage() {
           {[
             {
               q: 'Is there a cost to my program?',
-              a: 'No. The widget, placement report, and resume reviewer are all free for accredited PMHNP programs. We make money from employers who post jobs.',
+              a: 'No. The widget and quarterly placement report are both free for accredited PMHNP programs. We make money from employers who post jobs on the main site.',
             },
             {
               q: 'Do you collect data on our students?',
-              a: 'No. The widget is anonymous — we track aggregate clicks on the widget itself, but never tie clicks to individual students. The resume reviewer is opt-in per student and resumes are never stored.',
+              a: 'No. The widget is anonymous — we track aggregate clicks on the widget itself, but never tie clicks to individual students. No accounts, no PII, no cookies set on your students.',
             },
             {
               q: "What if my IT team can't add an iframe?",

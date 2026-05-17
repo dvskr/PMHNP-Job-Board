@@ -470,11 +470,17 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
 
           {/* Title + Company */}
           <div style={{ flex: 1, minWidth: 0 }}>
+            {/* paddingRight reserves space for the absolutely-positioned
+                right-side stack (Save/Mail icons + salary pill) so the
+                title doesn't run under them. The company·location row
+                below has no paddingRight — it flows full width into the
+                space underneath where the pills end. */}
             <h3 style={{
               fontSize: '18px', fontWeight: 700,
               fontFamily: 'var(--font-lora), Georgia, serif',
               color: 'var(--text-primary)',
               margin: '0 0 3px', lineHeight: 1.3,
+              paddingRight: '110px',
               overflow: 'hidden', textOverflow: 'ellipsis',
               display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
             }}>
@@ -497,11 +503,13 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             </div>
           </div>
 
-          {/* Save + Share. Pulled up tight against the salary chip below —
-              the previous 6px column gap left an awkward dead band between
-              the icons and the chip. Negative margin on the icon row trims
-              its bottom padding so the chip sits ~2px below. */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0, flexShrink: 0 }}>
+          {/* Save + Message + Salary stack — pulled out of the flex flow
+              with position: absolute so it doesn't consume horizontal
+              width on the rows below it. Company/location can now reclaim
+              the space under the salary pill instead of truncating to the
+              middle column's width. Top/right offsets match the card's
+              22px padding so the pills sit flush with the card's corner. */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0, flexShrink: 0, position: 'absolute', top: '14px', right: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '-8px', marginBottom: '-6px' }}>
               {viewed && !applied && <span title="Viewed" className="flex"><Eye size={18} color="var(--text-tertiary)" /></span>}
               <button
