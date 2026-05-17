@@ -43,6 +43,21 @@ export function resolveShortlink(
 
   const trimmedBase = baseUrl.replace(/\/$/, '')
 
+  // Program-director outreach ('p' letter) always lands on /for-programs
+  // regardless of id — the campaign motion is education (here's the
+  // partnership offer), not job discovery. Per-recipient attribution
+  // still flows through `?r=<lead_id>` on the inbound URL.
+  if (letter === 'p') {
+    return Object.freeze({
+      destination: `${trimmedBase}/for-programs`,
+      destinationPath: '/for-programs',
+      platform,
+      campaign: campaign.campaign,
+      content: 'pd-landing',
+      jobId: id,
+    })
+  }
+
   if (id === 0) {
     return Object.freeze({
       destination: `${trimmedBase}/jobs`,

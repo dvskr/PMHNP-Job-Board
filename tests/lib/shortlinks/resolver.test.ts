@@ -40,8 +40,12 @@ describe('resolveShortlink — invalid input', () => {
 })
 
 describe('resolveShortlink — browse-all (id=0)', () => {
-  it('resolves to /jobs with browse-all content for every platform', () => {
+  it('resolves to /jobs with browse-all content for every social platform', () => {
     for (const [letter, source] of Object.entries(PLATFORM_BY_LETTER)) {
+      // Program-director ('p') is intentionally not browse-all — it
+      // always lands on /for-programs regardless of id. See the
+      // dedicated PD-letter describe block below.
+      if (letter === 'p') continue
       const r = resolveShortlink(`${letter}0`, BASE)
       expect(r, `code ${letter}0`).not.toBeNull()
       expect(r!.destinationPath).toBe('/jobs')
@@ -50,6 +54,34 @@ describe('resolveShortlink — browse-all (id=0)', () => {
       expect(r!.content).toBe('browse-all')
       expect(r!.jobId).toBe(0)
     }
+  })
+})
+
+describe('resolveShortlink — program-director ("p" letter)', () => {
+  it('always lands on /for-programs regardless of id', () => {
+    for (const id of [0, 1, 5, 99]) {
+      const r = resolveShortlink(`p${id}`, BASE)
+      expect(r, `code p${id}`).not.toBeNull()
+      expect(r!.destinationPath).toBe('/for-programs')
+      expect(r!.destination).toBe(`${BASE}/for-programs`)
+      expect(r!.platform).toBe('program-director')
+      expect(r!.content).toBe('pd-landing')
+      expect(r!.jobId).toBe(id)
+    }
+  })
+
+  it('does not consult the campaign job list for the destination', () => {
+    // Even with a custom campaign that has different jobs, /p<id> still
+    // routes to /for-programs — the PD motion is education, not
+    // job-discovery.
+    const customCampaign: ShortlinkCampaign = {
+      campaign: 'pd-test-campaign',
+      jobs: [{ id: 7, slug: 'irrelevant', content: 'whatever' }],
+    }
+    const r = resolveShortlink('p7', BASE, customCampaign)
+    expect(r!.destinationPath).toBe('/for-programs')
+    expect(r!.content).toBe('pd-landing')
+    expect(r!.campaign).toBe('pd-test-campaign')
   })
 })
 
