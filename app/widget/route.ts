@@ -57,7 +57,15 @@ const LIMIT_MAX = 12
 const LIMIT_DEFAULT = 6
 
 const QUERY_SCHEMA = z.object({
-  state: z.string().transform((s) => s.toUpperCase()).pipe(z.string().regex(STATE_PATTERN, 'state must be a 2-letter code')),
+  // State must (a) be a 2-letter code and (b) actually be a real US
+  // state/territory we ship widgets for. `ZZ` passes the regex but
+  // isn't a state — refine() catches that so we don't render an empty
+  // widget for it.
+  state: z
+    .string()
+    .transform((s) => s.toUpperCase())
+    .pipe(z.string().regex(STATE_PATTERN, 'state must be a 2-letter code'))
+    .refine((s) => s in STATE_NAMES, { message: 'unknown US state code' }),
   program: z.string().regex(PROGRAM_PATTERN).optional(),
   limit: z.coerce
     .number()
@@ -756,6 +764,152 @@ function renderHtml(args: {
 </html>`
 }
 
+/**
+ * Render the validation-failure response. Reuses the widget shell (brand
+ * wordmark + cream body + footer) so a broken iframe still looks like
+ * ours, but the body explicitly says "this request was invalid" with a
+ * CTA to browse all PMHNP jobs. No fake "Jobs in <state>" header.
+ */
+function renderErrorHtml(args: { reason: string }): string {
+  const browseAllUrl = `${baseUrl()}/jobs?utm_source=widget&utm_medium=embed&utm_campaign=pd-error`
+  const brandUrl = `${baseUrl()}?utm_source=widget&utm_medium=embed&utm_campaign=pd-error`
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>PMHNP Hiring — widget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #F5F0EB; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #1A2E35;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+  }
+  a { color: inherit; text-decoration: none; }
+  .pd-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 22px;
+  }
+  .pd-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: 28px;
+    text-decoration: none;
+  }
+  .pd-brand-logo { width: 56px; height: 56px; object-fit: contain; }
+  .pd-brand-mark {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 20px; font-weight: 700;
+    color: #3D2E24; letter-spacing: -0.01em; line-height: 1;
+    margin-left: -6px;
+  }
+  .pd-brand-mark-accent {
+    font-style: italic; color: #0D9488; font-weight: 600;
+  }
+  .pd-error-card {
+    background: #FFFFFF;
+    border-radius: 20px;
+    padding: 36px 28px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.5);
+    box-shadow:
+      8px 8px 20px rgba(0,0,0,0.07),
+      -4px -4px 12px rgba(255,255,255,0.9),
+      inset 2px 2px 4px rgba(255,255,255,0.6);
+  }
+  .pd-error-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: #FEF3C7;
+    color: #92400E;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .pd-error-heading {
+    margin: 0 0 10px;
+    font-family: 'Lora', Georgia, serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: #1A2E35;
+    line-height: 1.25;
+  }
+  .pd-error-reason {
+    margin: 0 0 22px;
+    font-size: 14px;
+    color: #4A5568;
+    max-width: 460px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+  .pd-error-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 14px;
+    background: #0D9488;
+    color: #FFFFFF;
+    font-size: 13.5px;
+    font-weight: 700;
+    border: 1px solid rgba(255,255,255,0.3);
+    box-shadow:
+      5px 5px 12px rgba(13,148,136,0.22),
+      inset 2px 2px 4px rgba(255,255,255,0.2);
+  }
+  .pd-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 18px;
+    padding: 6px 6px 0;
+    font-size: 12px;
+    color: #718096;
+  }
+  .pd-footer a {
+    color: #1A2E35;
+    font-weight: 700;
+  }
+  .pd-footer a:hover { color: #0D9488; }
+</style>
+</head>
+<body>
+<div class="pd-wrap">
+  <a class="pd-brand" href="${escape(brandUrl)}" target="_blank" rel="noopener" aria-label="PMHNP Hiring">
+    <img class="pd-brand-logo" src="${escape(baseUrl())}/logo.png" alt="" width="56" height="56">
+    <span class="pd-brand-mark">PMHNP <span class="pd-brand-mark-accent">Hiring</span></span>
+  </a>
+  <div class="pd-error-card" role="alert" aria-live="polite">
+    <div class="pd-error-badge">Widget Request Issue</div>
+    <h2 class="pd-error-heading">We couldn&rsquo;t load this widget</h2>
+    <p class="pd-error-reason">${args.reason}</p>
+    <a class="pd-error-cta" href="${escape(browseAllUrl)}" target="_blank" rel="noopener">
+      Browse all PMHNP jobs
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </div>
+  <div class="pd-footer">
+    <span>Powered by <a href="${escape(brandUrl)}" target="_blank" rel="noopener">pmhnphiring.com</a></span>
+  </div>
+</div>
+</body>
+</html>`
+}
+
 function withWidgetHeaders(res: NextResponse): NextResponse {
   // Allow embedding on .edu (the target audience) and the site's own
   // origin (for the /for-programs live demo). frame-ancestors supersedes
@@ -777,19 +931,35 @@ function withWidgetHeaders(res: NextResponse): NextResponse {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  const rawState = (req.nextUrl.searchParams.get('state') ?? '').toUpperCase()
+  const rawLimit = req.nextUrl.searchParams.get('limit') ?? undefined
   const raw = {
-    state: req.nextUrl.searchParams.get('state') ?? '',
+    state: rawState,
     program: req.nextUrl.searchParams.get('program') ?? undefined,
-    limit: req.nextUrl.searchParams.get('limit') ?? undefined,
+    limit: rawLimit,
   }
 
   const parsed = QUERY_SCHEMA.safeParse(raw)
   if (!parsed.success) {
+    // Surface a real error message instead of pretending the widget
+    // loaded with empty results. zod's `issues` array tells us which
+    // field failed so we can write a specific reason rather than a
+    // generic "bad request".
+    const fieldErrors = new Set(
+      parsed.error.issues.map((i) => String(i.path[0] ?? '')),
+    )
+    let reason: string
+    if (fieldErrors.has('state')) {
+      reason = rawState
+        ? `"${escape(rawState.slice(0, 8))}" is not a valid US state code. Use a 2-letter code like CA, NY, or TX.`
+        : 'A 2-letter US state code is required (e.g., state=CA).'
+    } else if (fieldErrors.has('limit')) {
+      reason = `Jobs to show must be a number between ${LIMIT_MIN} and ${LIMIT_MAX}. Received "${escape(String(rawLimit ?? ''))}".`
+    } else {
+      reason = 'We couldn\'t load PMHNP jobs for that request. Try again with a valid state code.'
+    }
     return withWidgetHeaders(
-      new NextResponse(
-        renderHtml({ state: 'US', program: undefined, jobs: [] }),
-        { status: 400 },
-      ),
+      new NextResponse(renderErrorHtml({ reason }), { status: 400 }),
     )
   }
 

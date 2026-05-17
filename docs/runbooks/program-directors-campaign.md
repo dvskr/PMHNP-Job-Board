@@ -164,7 +164,7 @@ New route: `app/widget/page.tsx`
 New route: `app/for-programs/page.tsx`. Sections:
 
 1. **Hero:** "Help your PMHNP students land their first job."
-2. **The offer (3 cards):** (a) Free embeddable jobs widget, (b) Quarterly placement report, (c) Free AI resume reviewer for seniors
+2. **The offer (2 cards):** (a) Free embeddable jobs widget, (b) Quarterly placement report for the accreditation file. *(Resume Reviewer was dropped from scope on 2026-05-13 — not built yet, removing the promise to avoid over-promising in the campaign.)*
 3. **Live widget demo:** Render the actual widget for the visitor's geo or default to CA
 4. **Sample placement report:** PDF preview image with "Sample — see what your program's quarterly report would look like"
 5. **Social proof placeholder:** "Used by program directors at [logos]" — leave blank until first install, then add logos
