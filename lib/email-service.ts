@@ -78,7 +78,8 @@ export type EmailType =
   | 'employer_outreach'
   | 'email_job'
   | 'auth_confirm'
-  | 'recommendation_digest';
+  | 'recommendation_digest'
+  | 'pd_outreach';
 
 // Marketing email types — these use the marketing sender address
 const MARKETING_EMAIL_TYPES = new Set<EmailType>([
@@ -86,6 +87,7 @@ const MARKETING_EMAIL_TYPES = new Set<EmailType>([
   'performance_report', 'saved_job_reminder',
   'candidate_alert',
   'recommendation_digest',
+  'pd_outreach',
 ]);
 
 // ── HTML sanitization — prevents XSS in user-supplied content ──
