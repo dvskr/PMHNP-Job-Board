@@ -3,6 +3,16 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { rateLimit } from '@/lib/rate-limit';
 import { verifyCsrf } from '@/lib/csrf';
+import sharp from 'sharp';
+
+/**
+ * Max logo edge (px) AFTER resize. Logos display at 44–80px in JobCard +
+ * JD detail; 512 gives ~6× retina headroom while keeping uploads light.
+ */
+const MAX_LOGO_EDGE = 512;
+
+/** WebP quality. 90 is visually lossless for logos with ~3-4× size win. */
+const WEBP_QUALITY = 90;
 
 /** Allowed image types — SVG intentionally excluded (can contain JavaScript) */
 const ALLOWED_IMAGE_TYPES = [
@@ -64,18 +74,41 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const buffer = Buffer.from(await file.arrayBuffer());
+        const rawBuffer = Buffer.from(await file.arrayBuffer());
 
         // Verify magic bytes to prevent MIME type spoofing
-        if (!verifyImageMagicBytes(buffer, file.type)) {
+        if (!verifyImageMagicBytes(rawBuffer, file.type)) {
             return NextResponse.json(
                 { error: 'File content does not match declared image type' },
                 { status: 400 },
             );
         }
 
-        const ext = file.name.split('.').pop() || 'png';
-        const fileName = `logo_${user.id}_${Date.now()}.${ext}`;
+        // Re-encode to WebP — strips EXIF/metadata, auto-rotates per EXIF
+        // orientation, caps the long edge at MAX_LOGO_EDGE to keep storage
+        // cheap, and uses a high quality factor so retina renders stay
+        // crisp at every display size used in the app.
+        let webpBuffer: Buffer;
+        try {
+            webpBuffer = await sharp(rawBuffer, { failOn: 'error' })
+                .rotate()
+                .resize({
+                    width: MAX_LOGO_EDGE,
+                    height: MAX_LOGO_EDGE,
+                    fit: 'inside',
+                    withoutEnlargement: true,
+                })
+                .webp({ quality: WEBP_QUALITY, effort: 6 })
+                .toBuffer();
+        } catch (encodeErr) {
+            console.error('sharp WebP encode failed:', encodeErr);
+            return NextResponse.json(
+                { error: 'Could not process image — file may be corrupted' },
+                { status: 400 },
+            );
+        }
+
+        const fileName = `logo_${user.id}_${Date.now()}.webp`;
 
         // Use service role key to bypass RLS for storage uploads
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -94,8 +127,8 @@ export async function POST(req: NextRequest) {
 
         const { data, error } = await adminClient.storage
             .from('company-logos')
-            .upload(fileName, buffer, {
-                contentType: file.type,
+            .upload(fileName, webpBuffer, {
+                contentType: 'image/webp',
                 cacheControl: '3600',
                 upsert: false,
             });
