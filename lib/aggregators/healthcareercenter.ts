@@ -26,6 +26,7 @@
 import { isRelevantJob } from '@/lib/utils/job-filter';
 import type { Aggregator, RawJobData } from './types';
 import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+import { htmlToReadableText } from '@/lib/sanitize';
 
 const HCC_BASE = 'https://jobs.healthcareercenter.com';
 const QUERIES: readonly string[] = [
@@ -130,7 +131,7 @@ function mapEmploymentType(t?: string): string | null {
 }
 
 function stripHtml(s: string): string {
-    return s.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return htmlToReadableText(s);
 }
 
 async function fetchOne(url: string): Promise<{ status: number; body: string }> {

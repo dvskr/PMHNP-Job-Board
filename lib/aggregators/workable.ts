@@ -20,6 +20,7 @@ import { isRelevantJob } from '@/lib/utils/job-filter';
 import { WORKABLE_TENANTS } from './tenants/workable';
 import type { Aggregator, RawJobData } from './types';
 import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+import { htmlToReadableText } from '@/lib/sanitize';
 
 interface WorkableLocation {
     country?: string;
@@ -135,12 +136,11 @@ async function fetchTenantJobs(tenant: { slug: string; name: string }): Promise<
                 if (!isRelevantJob(j.title ?? '', '')) continue;
 
                 const detail = await fetchDetail(tenant.slug, j.shortcode);
-                const description = [detail?.description, detail?.requirements, detail?.benefits]
-                    .filter(Boolean)
-                    .join('\n\n')
-                    .replace(/<[^>]*>/g, ' ')
-                    .replace(/\s+/g, ' ')
-                    .trim();
+                const description = htmlToReadableText(
+                    [detail?.description, detail?.requirements, detail?.benefits]
+                        .filter(Boolean)
+                        .join('\n\n')
+                );
 
                 // H6 fix: drop jobs whose description fetch silently failed.
                 // Pushing an empty-description job lets a tenant outage poison

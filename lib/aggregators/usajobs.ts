@@ -21,6 +21,7 @@
 
 import { USAJOBS_SEARCH_QUERIES as SEARCH_QUERIES } from './search-terms/usajobs';
 import { RateLimiter } from './types';
+import { htmlToReadableText } from '@/lib/sanitize';
 
 interface UsaJobsPositionLocation {
     LocationName?: string;
@@ -151,7 +152,7 @@ function buildDescription(d: UsaJobsDescriptor): string {
     if (details?.Education) parts.push(`Education:\n${details.Education}`);
     if (details?.Evaluations) parts.push(`Evaluations:\n${details.Evaluations}`);
     if (details?.Benefits) parts.push(`Benefits:\n${details.Benefits}`);
-    return parts.join('\n\n').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return htmlToReadableText(parts.join('\n\n'));
 }
 
 function mapJobType(d: UsaJobsDescriptor): string | null {
