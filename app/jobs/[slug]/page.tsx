@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import Image from 'next/image';
-import { formatSalary, slugify, getJobFreshness, getExpiryStatus, expandInlineBullets } from '@/lib/utils';
+import { formatSalary, slugify, getJobFreshness, getExpiryStatus, expandInlineBullets, splitAtSectionMarkers } from '@/lib/utils';
 import { sanitizeHtmlContent } from '@/lib/sanitize';
 import { MapPin, Briefcase, Monitor, BadgeCheck, ArrowRight, Search } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
@@ -931,10 +931,13 @@ export default async function JobPage({ params }: JobPageProps) {
                     />
                   ) : (
                     // Plain text fallback for external/aggregated jobs.
-                    // expandInlineBullets reflows aggregator-stripped run-on
-                    // descriptions back into bullets so the existing split('\n')
-                    // logic below renders them as a list instead of one block.
-                    expandInlineBullets(job.description).split('\n').map((paragraph: string, index: number) => {
+                    // Two render-time fix-ups for legacy aggregator data
+                    // (rows ingested before lib/sanitize#htmlToReadableText
+                    // landed): expandInlineBullets reflows " - X - Y" into
+                    // bullets, splitAtSectionMarkers breaks long blobs at
+                    // section headers ("Our history", "E-Verify", etc.)
+                    // that got crammed into a previous paragraph.
+                    splitAtSectionMarkers(expandInlineBullets(job.description)).split('\n').map((paragraph: string, index: number) => {
                       if (!paragraph.trim()) {
                         return <div key={index} className="h-4" />;
                       }
