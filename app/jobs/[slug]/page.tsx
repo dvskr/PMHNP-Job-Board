@@ -940,6 +940,10 @@ export default async function JobPage({ params }: JobPageProps) {
                     //      removed so siblings list items render flush
                     (() => {
                       const lines = splitAtSectionMarkers(expandInlineBullets(job.description))
+                        // Legacy rows can carry 3+ consecutive newlines that
+                        // render as stacked h-4 gaps. Collapse to a single
+                        // blank line before splitting.
+                        .replace(/\n{3,}/g, '\n\n')
                         .split('\n')
                         // Drop empty-bullet lines so they don't render as
                         // standalone "•" with no content (the Pharia/TMS JD
@@ -953,8 +957,16 @@ export default async function JobPage({ params }: JobPageProps) {
                       const cleaned: string[] = [];
                       for (let i = 0; i < lines.length; i += 1) {
                         const line = lines[i];
+                        const prev = cleaned[cleaned.length - 1];
                         const next = lines[i + 1];
+                        // Drop blank line immediately before a bullet (closes
+                        // h-4 gap that <p>-inside-<li> sources create).
                         if (!line.trim() && next && next.trim().startsWith('•')) continue;
+                        // Clamp consecutive blank lines to a single break —
+                        // sources like fantastic-jobs-db leave 4+ \n runs in
+                        // descriptions, which render as stacked h-4 spacers
+                        // (Dominican University JD had 7 such pairs).
+                        if (!line.trim() && prev !== undefined && !prev.trim()) continue;
                         cleaned.push(line);
                       }
                       return cleaned.map((paragraph: string, index: number) => {
