@@ -969,34 +969,73 @@ export default async function JobPage({ params }: JobPageProps) {
                         if (!line.trim() && prev !== undefined && !prev.trim()) continue;
                         cleaned.push(line);
                       }
-                      return cleaned.map((paragraph: string, index: number) => {
-                        if (!paragraph.trim()) {
-                          return <div key={index} className="h-4" />;
+                      // Group consecutive bullet lines into a single <ul> so
+                      // the browser's native list-marker handles vertical
+                      // alignment (the previous manual "<span>•</span>" with
+                      // mt-1 sat the dot at the line-height midpoint, not
+                      // baseline-aligned with the text — LifeStance JDs made
+                      // the misalignment obvious).
+                      type Block =
+                        | { kind: 'bullets'; items: string[] }
+                        | { kind: 'header'; text: string }
+                        | { kind: 'para'; text: string }
+                        | { kind: 'spacer' };
+                      const blocks: Block[] = [];
+                      let pendingBullets: string[] = [];
+                      const flushBullets = (): void => {
+                        if (pendingBullets.length === 0) return;
+                        blocks.push({ kind: 'bullets', items: pendingBullets });
+                        pendingBullets = [];
+                      };
+                      for (let i = 0; i < cleaned.length; i += 1) {
+                        const trimmed = cleaned[i].trim();
+                        if (!trimmed) {
+                          // If we're mid-bullet-group and the next non-blank
+                          // line is also a bullet, swallow the blank line so
+                          // the list stays one <ul>. Otherwise flush + spacer.
+                          if (pendingBullets.length > 0) {
+                            const nextNonBlank = cleaned.slice(i + 1).find((l) => l.trim());
+                            if (nextNonBlank && nextNonBlank.trim().startsWith('•')) continue;
+                          }
+                          flushBullets();
+                          blocks.push({ kind: 'spacer' });
+                          continue;
                         }
-                        if (paragraph.trim().startsWith('•')) {
-                          const content = paragraph.trim().slice(1).trim();
-                          if (!content) return null;
+                        if (trimmed.startsWith('•')) {
+                          const content = trimmed.slice(1).trim();
+                          if (content) pendingBullets.push(content);
+                          continue;
+                        }
+                        flushBullets();
+                        const isHeader = trimmed === trimmed.toUpperCase() && trimmed.length < 50 && trimmed.length > 2;
+                        const endsWithColon = trimmed.endsWith(':');
+                        if (isHeader || endsWithColon) blocks.push({ kind: 'header', text: trimmed });
+                        else blocks.push({ kind: 'para', text: trimmed });
+                      }
+                      flushBullets();
+                      return blocks.map((block, index) => {
+                        if (block.kind === 'spacer') return <div key={index} className="h-4" />;
+                        if (block.kind === 'bullets') {
                           return (
-                            <div key={index} className="flex items-start gap-2 ml-4 my-1">
-                              <span className="mt-1 font-bold" style={{ color: 'var(--color-primary)' }}>•</span>
-                              <span style={{ color: 'var(--text-primary)' }}>{content}</span>
-                            </div>
+                            <ul key={index} className="list-disc pl-6 my-2 space-y-1" style={{ color: 'var(--text-primary)' }}>
+                              {block.items.map((item, i) => (
+                                <li key={i} className="leading-relaxed pl-1" style={{ color: 'var(--text-primary)' }}>
+                                  <span style={{ color: 'var(--text-secondary)' }}>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
                           );
                         }
-                        const isHeader = paragraph.trim() === paragraph.trim().toUpperCase() &&
-                          paragraph.trim().length < 50 &&
-                          paragraph.trim().length > 2;
-                        const endsWithColon = paragraph.trim().endsWith(':');
-                        if (isHeader || endsWithColon) {
+                        if (block.kind === 'header') {
                           return (
                             <h3 key={index} className="text-lg font-bold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
-                              {paragraph.trim()}
+                              {block.text}
                             </h3>
                           );
                         }
                         return (
                           <p key={index} className="leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
-                            {paragraph.trim()}
+                            {block.text}
                           </p>
                         );
                       });
