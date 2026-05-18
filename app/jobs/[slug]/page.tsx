@@ -912,15 +912,6 @@ export default async function JobPage({ params }: JobPageProps) {
               <div style={{ backgroundColor: '#FFFFFF', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)', padding: '24px 28px', marginBottom: '20px', overflow: 'hidden' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: 'var(--text-primary)', marginBottom: '16px' }}>About this role</h2>
 
-                {/* Note for external jobs */}
-                {job.sourceType === 'external' && job.sourceProvider && (
-                  <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      <span className="font-semibold">Preview:</span> This is a summary from {job.sourceProvider}. Click <strong>&quot;Apply Now&quot;</strong> below to view the complete job description and application details.
-                    </p>
-                  </div>
-                )}
-
                 <div className="prose prose-gray max-w-none">
                   {/* Check if description contains HTML tags (from Quill editor) */}
                   {/<[a-z][\s\S]*>/i.test(job.description) ? (
