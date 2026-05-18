@@ -77,7 +77,14 @@ export function htmlToReadableText(input: string): string {
         .replace(/[ \t]+/g, ' ')
         .split('\n')
         .map((line) => line.trim())
+        // Drop bullet-only lines ("•" with no content) — produced when the
+        // source has empty <li></li>, <li>&nbsp;</li>, or <li><br></li>.
+        .filter((line) => !/^•\s*$/.test(line))
         .join('\n')
+        // <p> nested inside <li> causes my </p> rule to inject \n\n between
+        // bullets. Collapse any blank line directly preceding a bullet so
+        // sibling list items render flush instead of separated by an h-4 gap.
+        .replace(/\n{2,}(?=• )/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 }

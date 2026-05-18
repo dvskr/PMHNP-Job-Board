@@ -931,41 +931,64 @@ export default async function JobPage({ params }: JobPageProps) {
                     />
                   ) : (
                     // Plain text fallback for external/aggregated jobs.
-                    // Two render-time fix-ups for legacy aggregator data
-                    // (rows ingested before lib/sanitize#htmlToReadableText
-                    // landed): expandInlineBullets reflows " - X - Y" into
-                    // bullets, splitAtSectionMarkers breaks long blobs at
-                    // section headers ("Our history", "E-Verify", etc.)
-                    // that got crammed into a previous paragraph.
-                    splitAtSectionMarkers(expandInlineBullets(job.description)).split('\n').map((paragraph: string, index: number) => {
-                      if (!paragraph.trim()) {
-                        return <div key={index} className="h-4" />;
+                    // Render-time fix-ups for legacy aggregator data:
+                    //   1. expandInlineBullets reflows " - X - Y" into bullets
+                    //   2. splitAtSectionMarkers breaks long blobs at section
+                    //      headers ("Our history", "E-Verify", etc.)
+                    //   3. Empty bullets ("•" alone) get filtered out
+                    //   4. Blank lines immediately before a bullet get
+                    //      removed so siblings list items render flush
+                    (() => {
+                      const lines = splitAtSectionMarkers(expandInlineBullets(job.description))
+                        .split('\n')
+                        // Drop empty-bullet lines so they don't render as
+                        // standalone "•" with no content (the Pharia/TMS JD
+                        // showed these at the end of every section).
+                        .filter((line) => !/^•\s*$/.test(line.trim()));
+                      // Drop blank lines that sit directly before a bullet —
+                      // when source has <li><p>...</p></li>, my </p> rule
+                      // injects \n\n inside the <li>, which renders as an
+                      // h-4 gap between siblings (LifeStance bullets had
+                      // ~24px gaps).
+                      const cleaned: string[] = [];
+                      for (let i = 0; i < lines.length; i += 1) {
+                        const line = lines[i];
+                        const next = lines[i + 1];
+                        if (!line.trim() && next && next.trim().startsWith('•')) continue;
+                        cleaned.push(line);
                       }
-                      if (paragraph.trim().startsWith('•')) {
+                      return cleaned.map((paragraph: string, index: number) => {
+                        if (!paragraph.trim()) {
+                          return <div key={index} className="h-4" />;
+                        }
+                        if (paragraph.trim().startsWith('•')) {
+                          const content = paragraph.trim().slice(1).trim();
+                          if (!content) return null;
+                          return (
+                            <div key={index} className="flex items-start gap-2 ml-4 my-1">
+                              <span className="mt-1 font-bold" style={{ color: 'var(--color-primary)' }}>•</span>
+                              <span style={{ color: 'var(--text-primary)' }}>{content}</span>
+                            </div>
+                          );
+                        }
+                        const isHeader = paragraph.trim() === paragraph.trim().toUpperCase() &&
+                          paragraph.trim().length < 50 &&
+                          paragraph.trim().length > 2;
+                        const endsWithColon = paragraph.trim().endsWith(':');
+                        if (isHeader || endsWithColon) {
+                          return (
+                            <h3 key={index} className="text-lg font-bold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
+                              {paragraph.trim()}
+                            </h3>
+                          );
+                        }
                         return (
-                          <div key={index} className="flex items-start gap-2 ml-4 my-1">
-                            <span className="mt-1 font-bold" style={{ color: 'var(--color-primary)' }}>•</span>
-                            <span style={{ color: 'var(--text-primary)' }}>{paragraph.trim().slice(1).trim()}</span>
-                          </div>
-                        );
-                      }
-                      const isHeader = paragraph.trim() === paragraph.trim().toUpperCase() &&
-                        paragraph.trim().length < 50 &&
-                        paragraph.trim().length > 2;
-                      const endsWithColon = paragraph.trim().endsWith(':');
-                      if (isHeader || endsWithColon) {
-                        return (
-                          <h3 key={index} className="text-lg font-bold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
+                          <p key={index} className="leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
                             {paragraph.trim()}
-                          </h3>
+                          </p>
                         );
-                      }
-                      return (
-                        <p key={index} className="leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
-                          {paragraph.trim()}
-                        </p>
-                      );
-                    })
+                      });
+                    })()
                   )}
                 </div>
               </div>
