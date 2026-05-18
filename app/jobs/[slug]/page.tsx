@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import Image from 'next/image';
-import { formatSalary, slugify, getJobFreshness, getExpiryStatus } from '@/lib/utils';
+import { formatSalary, slugify, getJobFreshness, getExpiryStatus, expandInlineBullets } from '@/lib/utils';
 import { sanitizeHtmlContent } from '@/lib/sanitize';
 import { MapPin, Briefcase, Monitor, BadgeCheck, ArrowRight, Search } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
@@ -803,12 +803,18 @@ export default async function JobPage({ params }: JobPageProps) {
                     {job.companyLogoUrl ? (
                       // Reserving 52x52 prevents the row from shifting when the image
                       // resolves -- this is above-the-fold so any CLS counts.
+                      // Routed through Next's /_next/image proxy so the
+                      // browser receives a retina-sized AVIF/WebP variant
+                      // (vs. the raw source). `unoptimized` was previously
+                      // set here, which delivered the full-size upload and
+                      // produced visible softness at 52px on 2x/3x screens.
                       <Image
                         src={job.companyLogoUrl}
                         alt={`${job.employer} logo`}
                         width={52}
                         height={52}
-                        unoptimized
+                        quality={90}
+                        sizes="52px"
                         style={{
                           width: '52px', height: '52px', borderRadius: '50%',
                           objectFit: 'contain', border: '1px solid rgba(0,0,0,0.06)',
@@ -924,8 +930,11 @@ export default async function JobPage({ params }: JobPageProps) {
                       dangerouslySetInnerHTML={{ __html: sanitizeHtmlContent(job.description) }}
                     />
                   ) : (
-                    // Plain text fallback for external/aggregated jobs
-                    job.description.split('\n').map((paragraph: string, index: number) => {
+                    // Plain text fallback for external/aggregated jobs.
+                    // expandInlineBullets reflows aggregator-stripped run-on
+                    // descriptions back into bullets so the existing split('\n')
+                    // logic below renders them as a list instead of one block.
+                    expandInlineBullets(job.description).split('\n').map((paragraph: string, index: number) => {
                       if (!paragraph.trim()) {
                         return <div key={index} className="h-4" />;
                       }

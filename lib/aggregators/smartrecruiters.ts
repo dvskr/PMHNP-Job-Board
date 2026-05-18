@@ -15,6 +15,7 @@
  */
 import { isRelevantJob } from '@/lib/utils/job-filter';
 import { SMARTRECRUITERS_TENANTS } from './tenants/smartrecruiters';
+import { htmlToReadableText } from '@/lib/sanitize';
 
 const SMARTRECRUITERS_COMPANIES = SMARTRECRUITERS_TENANTS;
 
@@ -68,8 +69,8 @@ async function fetchJobDescription(companySlug: string, postingId: string): Prom
         if (sections.qualifications?.text) parts.push(sections.qualifications.text);
         if (sections.additionalInformation?.text) parts.push(sections.additionalInformation.text);
         if (sections.companyDescription?.text) parts.push(sections.companyDescription.text);
-        // Strip HTML tags
-        return parts.join('\n\n').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        // Strip HTML tags while preserving list/paragraph structure.
+        return htmlToReadableText(parts.join('\n\n'));
     } catch {
         return '';
     }

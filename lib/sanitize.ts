@@ -42,6 +42,47 @@ export function stripHtml(input: string): string {
 }
 
 /**
+ * Convert HTML to readable plain text while PRESERVING list and paragraph
+ * structure. Used by aggregators (Ashby, BambooHR, JazzHR, etc.) whose
+ * source descriptions are HTML and need to be normalized for storage as
+ * plain text without losing bullets and paragraph breaks.
+ *
+ * Order matters:
+ *   1. Strip dangerous tags whole (script/style) so their contents don't leak
+ *   2. Convert structural tags to line breaks BEFORE stripping
+ *   3. Strip remaining tags
+ *   4. Decode common entities
+ *   5. Collapse intra-line whitespace (preserves newlines)
+ *
+ * The previous in-aggregator approach collapsed ALL whitespace including
+ * newlines, which left descriptions as one giant run-on paragraph on the
+ * JD page.
+ */
+export function htmlToReadableText(input: string): string {
+    if (!input) return '';
+    return input
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/(p|div|h[1-6]|tr|section|article|ul|ol)>/gi, '\n\n')
+        .replace(/<li[^>]*>/gi, '\n• ')
+        .replace(/<\/li>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;|&apos;/g, "'")
+        .replace(/[ \t]+/g, ' ')
+        .split('\n')
+        .map((line) => line.trim())
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
+/**
  * Remove potentially dangerous patterns from URLs
  */
 export function sanitizeUrl(url: string): string {
@@ -244,6 +285,7 @@ export function sanitizeHtmlContent(html: string): string {
 export default {
     escapeHtml,
     stripHtml,
+    htmlToReadableText,
     sanitizeUrl,
     sanitizeEmail,
     sanitizeText,

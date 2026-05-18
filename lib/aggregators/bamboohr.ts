@@ -20,6 +20,7 @@ import { isRelevantJob } from '@/lib/utils/job-filter';
 import { BAMBOOHR_TENANTS } from './tenants/bamboohr';
 import type { Aggregator, RawJobData } from './types';
 import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+import { htmlToReadableText } from '@/lib/sanitize';
 
 interface BambooHrJob {
     id: string;
@@ -87,7 +88,7 @@ function buildDescription(job: BambooHrJob, employerName: string): string {
     if (loc) lines.push(`Location: ${loc}`);
     if (job.descriptionHtml) {
         lines.push('');
-        lines.push(job.descriptionHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
+        lines.push(htmlToReadableText(job.descriptionHtml));
     }
     return lines.join('\n');
 }

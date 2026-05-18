@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { MapPin, CheckCircle, Eye, Bookmark, ExternalLink, BadgeCheck, Zap, Mail } from 'lucide-react';
 import { slugify, getJobFreshness } from '@/lib/utils';
@@ -196,16 +197,22 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             marginBottom: '12px',
           }}
         >
-          {/* Company Logo / Avatar */}
+          {/* Company Logo / Avatar — next/image routes through Next's
+              /_next/image proxy so retina screens get a 96/144px AVIF/WebP
+              variant generated from the source, regardless of whether the
+              employer uploaded a giant PNG or a small WebP. quality=90
+              keeps logos crisp; raw <img> + CSS scale produced visible
+              softness at 48px on 2x/3x displays. */}
           <div style={{ flexShrink: 0, position: 'relative' }}>
             {job.companyLogoUrl ? (
-              <img
+              <Image
                 src={job.companyLogoUrl}
                 alt={`${job.employer} logo`}
                 width={48}
                 height={48}
+                quality={90}
+                sizes="48px"
                 loading="lazy"
-                decoding="async"
                 style={{
                   width: '48px', height: '48px', borderRadius: '50%',
                   objectFit: 'contain', border: '1px solid var(--border-color)',
@@ -430,16 +437,19 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
       >
         {/* Row 1: Avatar + Title + Actions */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-          {/* Company Avatar */}
+          {/* Company Avatar — see grid-view block above for rationale on
+              using next/image; same logic applies to the list-view 44px
+              variant. */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             {job.companyLogoUrl ? (
-              <img
+              <Image
                 src={job.companyLogoUrl}
                 alt={`${job.employer} logo`}
                 width={44}
                 height={44}
+                quality={90}
+                sizes="44px"
                 loading="lazy"
-                decoding="async"
                 style={{
                   width: '44px', height: '44px', borderRadius: '50%',
                   objectFit: 'contain', border: '1px solid var(--border-color)',

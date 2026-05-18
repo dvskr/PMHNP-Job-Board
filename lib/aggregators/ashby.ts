@@ -16,6 +16,7 @@ import { isRelevantJob } from '@/lib/utils/job-filter';
 import { ASHBY_TENANTS } from './tenants/ashby';
 import type { Aggregator, RawJobData } from './types';
 import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+import { htmlToReadableText } from '@/lib/sanitize';
 
 interface AshbyPostalAddress {
     addressRegion?: string;
@@ -147,10 +148,10 @@ async function fetchTenantJobs(tenant: { slug: string; name: string }): Promise<
             // pushing obvious non-PMHNP titles through normalization.
             if (!isRelevantJob(j.title ?? '', '')) continue;
 
-            const description = (j.descriptionPlain ?? j.descriptionHtml ?? '')
-                .replace(/<[^>]*>/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
+            // Prefer the HTML payload so htmlToReadableText can preserve
+            // list/paragraph structure. Falling back to descriptionPlain
+            // is still fine — the helper is a no-op on plain text.
+            const description = htmlToReadableText(j.descriptionHtml ?? j.descriptionPlain ?? '');
             const salary = mapSalary(j.compensation);
             const applyLink = j.applyUrl || j.jobUrl;
             if (!applyLink) continue;

@@ -199,3 +199,26 @@ export function getExpiryStatus(expiresAt: Date | null): { text: string; isUrgen
   return { text: '', isUrgent: false, isExpired: false };
 }
 
+/**
+ * Reflow run-on aggregator-stripped descriptions into bullets.
+ *
+ * Some sources (e.g. Ashby) ship descriptions whose HTML structure was
+ * flattened during ingestion — every `<br>`, `<li>`, `<p>` collapses to a
+ * single space, leaving inline " - " markers as the only remaining list
+ * cue. Render-time helper that converts " - X" patterns back to bullets so
+ * the JD page reads as a list instead of one giant paragraph.
+ *
+ * Conservative on purpose: only fires when the description has zero line
+ * breaks AND at least 3 inline " - X" markers — otherwise a prose dash
+ * ("a clinician-led — virtual practice") would get misclassified as a
+ * bullet break. Compound words ("W-2", "in-house", "day-to-day") have no
+ * surrounding spaces and are unaffected.
+ */
+export function expandInlineBullets(text: string): string {
+  if (!text) return text;
+  if (text.includes('\n')) return text;
+  const markerMatches = text.match(/\s-\s+[A-Z]/g);
+  if (!markerMatches || markerMatches.length < 3) return text;
+  return text.replace(/\s-\s+(?=[A-Z])/g, '\n• ');
+}
+

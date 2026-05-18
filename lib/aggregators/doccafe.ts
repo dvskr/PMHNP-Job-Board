@@ -27,6 +27,7 @@
 
 import type { Aggregator, RawJobData } from './types';
 import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+import { htmlToReadableText } from '@/lib/sanitize';
 
 // Several keyword queries to maximize PMHNP coverage. RSS is capped at
 // ~30 items per call, so multiple targeted queries help.
@@ -97,12 +98,13 @@ function parseRssItems(xml: string): RssItem[] {
 }
 
 /**
- * Strip HTML tags from RSS description and collapse whitespace.
+ * Strip HTML tags from RSS description while preserving structure.
  * DocCafe descriptions are usually plain prose but occasionally
- * include <br/> or basic formatting tags.
+ * include <br/> or basic formatting tags — htmlToReadableText keeps
+ * those breaks so the JD page renders multi-paragraph layouts.
  */
 function cleanDescription(raw: string): string {
-    return raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return htmlToReadableText(raw);
 }
 
 /**

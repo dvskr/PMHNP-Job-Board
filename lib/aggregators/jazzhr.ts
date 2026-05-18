@@ -24,6 +24,7 @@ import { isRelevantJob } from '@/lib/utils/job-filter';
 import { JAZZHR_TENANTS } from './tenants/jazzhr';
 import type { Aggregator, RawJobData } from './types';
 import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
+import { htmlToReadableText } from '@/lib/sanitize';
 
 const TIME_BUDGET_MS = 240_000;
 const TENANT_GAP_MS = 500;
@@ -93,9 +94,7 @@ async function fetchDetailDescription(slug: string, jobId: string, titleSlug: st
         // between the header and footer markers if the structured div
         // isn't found.
         const descMatch = /<div[^>]*id=["']job-description["'][^>]*>([\s\S]*?)<\/div>/.exec(html);
-        const description = descMatch
-            ? descMatch[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
-            : '';
+        const description = descMatch ? htmlToReadableText(descMatch[1]) : '';
         // Location often appears in a meta block on detail pages.
         const locMatch = /<li[^>]*class=["'][^"']*location[^"']*["'][^>]*>([^<]+)</.exec(html);
         const locationGuess = locMatch ? locMatch[1].trim() : null;
