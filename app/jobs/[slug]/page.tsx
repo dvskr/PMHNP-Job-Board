@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import Image from 'next/image';
-import { formatSalary, slugify, getJobFreshness, getExpiryStatus, expandInlineBullets } from '@/lib/utils';
+import { formatSalary, slugify, getJobFreshness, getExpiryStatus, expandInlineBullets, splitAtSectionMarkers } from '@/lib/utils';
 import { sanitizeHtmlContent } from '@/lib/sanitize';
 import { MapPin, Briefcase, Monitor, BadgeCheck, ArrowRight, Search } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
@@ -912,15 +912,6 @@ export default async function JobPage({ params }: JobPageProps) {
               <div style={{ backgroundColor: '#FFFFFF', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)', padding: '24px 28px', marginBottom: '20px', overflow: 'hidden' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: 'var(--text-primary)', marginBottom: '16px' }}>About this role</h2>
 
-                {/* Note for external jobs */}
-                {job.sourceType === 'external' && job.sourceProvider && (
-                  <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      <span className="font-semibold">Preview:</span> This is a summary from {job.sourceProvider}. Click <strong>&quot;Apply Now&quot;</strong> below to view the complete job description and application details.
-                    </p>
-                  </div>
-                )}
-
                 <div className="prose prose-gray max-w-none">
                   {/* Check if description contains HTML tags (from Quill editor) */}
                   {/<[a-z][\s\S]*>/i.test(job.description) ? (
@@ -931,38 +922,110 @@ export default async function JobPage({ params }: JobPageProps) {
                     />
                   ) : (
                     // Plain text fallback for external/aggregated jobs.
-                    // expandInlineBullets reflows aggregator-stripped run-on
-                    // descriptions back into bullets so the existing split('\n')
-                    // logic below renders them as a list instead of one block.
-                    expandInlineBullets(job.description).split('\n').map((paragraph: string, index: number) => {
-                      if (!paragraph.trim()) {
-                        return <div key={index} className="h-4" />;
+                    // Render-time fix-ups for legacy aggregator data:
+                    //   1. expandInlineBullets reflows " - X - Y" into bullets
+                    //   2. splitAtSectionMarkers breaks long blobs at section
+                    //      headers ("Our history", "E-Verify", etc.)
+                    //   3. Empty bullets ("•" alone) get filtered out
+                    //   4. Blank lines immediately before a bullet get
+                    //      removed so siblings list items render flush
+                    (() => {
+                      const lines = splitAtSectionMarkers(expandInlineBullets(job.description))
+                        // Legacy rows can carry 3+ consecutive newlines that
+                        // render as stacked h-4 gaps. Collapse to a single
+                        // blank line before splitting.
+                        .replace(/\n{3,}/g, '\n\n')
+                        .split('\n')
+                        // Drop empty-bullet lines so they don't render as
+                        // standalone "•" with no content (the Pharia/TMS JD
+                        // showed these at the end of every section).
+                        .filter((line) => !/^•\s*$/.test(line.trim()));
+                      // Drop blank lines that sit directly before a bullet —
+                      // when source has <li><p>...</p></li>, my </p> rule
+                      // injects \n\n inside the <li>, which renders as an
+                      // h-4 gap between siblings (LifeStance bullets had
+                      // ~24px gaps).
+                      const cleaned: string[] = [];
+                      for (let i = 0; i < lines.length; i += 1) {
+                        const line = lines[i];
+                        const prev = cleaned[cleaned.length - 1];
+                        const next = lines[i + 1];
+                        // Drop blank line immediately before a bullet (closes
+                        // h-4 gap that <p>-inside-<li> sources create).
+                        if (!line.trim() && next && next.trim().startsWith('•')) continue;
+                        // Clamp consecutive blank lines to a single break —
+                        // sources like fantastic-jobs-db leave 4+ \n runs in
+                        // descriptions, which render as stacked h-4 spacers
+                        // (Dominican University JD had 7 such pairs).
+                        if (!line.trim() && prev !== undefined && !prev.trim()) continue;
+                        cleaned.push(line);
                       }
-                      if (paragraph.trim().startsWith('•')) {
+                      // Group consecutive bullet lines into a single <ul> so
+                      // the browser's native list-marker handles vertical
+                      // alignment (the previous manual "<span>•</span>" with
+                      // mt-1 sat the dot at the line-height midpoint, not
+                      // baseline-aligned with the text — LifeStance JDs made
+                      // the misalignment obvious).
+                      type Block =
+                        | { kind: 'bullets'; items: string[] }
+                        | { kind: 'header'; text: string }
+                        | { kind: 'para'; text: string };
+                      const blocks: Block[] = [];
+                      let pendingBullets: string[] = [];
+                      const flushBullets = (): void => {
+                        if (pendingBullets.length === 0) return;
+                        blocks.push({ kind: 'bullets', items: pendingBullets });
+                        pendingBullets = [];
+                      };
+                      // Spacing between blocks is handled by Tailwind margins
+                      // (mb-3 on <p>, mt-6 on <h3>, my-2 on <ul>) which collapse
+                      // with adjacent siblings — no explicit h-4 spacers needed.
+                      // The old approach stacked h-4 + mb-3 + h-4 = ~40px between
+                      // every short paragraph (LifeStance "Belonging:" block).
+                      for (let i = 0; i < cleaned.length; i += 1) {
+                        const trimmed = cleaned[i].trim();
+                        if (!trimmed) {
+                          flushBullets();
+                          continue;
+                        }
+                        if (trimmed.startsWith('•')) {
+                          const content = trimmed.slice(1).trim();
+                          if (content) pendingBullets.push(content);
+                          continue;
+                        }
+                        flushBullets();
+                        const isHeader = trimmed === trimmed.toUpperCase() && trimmed.length < 50 && trimmed.length > 2;
+                        const endsWithColon = trimmed.endsWith(':') && trimmed.length < 60;
+                        if (isHeader || endsWithColon) blocks.push({ kind: 'header', text: trimmed });
+                        else blocks.push({ kind: 'para', text: trimmed });
+                      }
+                      flushBullets();
+                      return blocks.map((block, index) => {
+                        if (block.kind === 'bullets') {
+                          return (
+                            <ul key={index} className="list-disc pl-6 my-2 space-y-1" style={{ color: 'var(--text-primary)' }}>
+                              {block.items.map((item, i) => (
+                                <li key={i} className="leading-relaxed pl-1" style={{ color: 'var(--text-primary)' }}>
+                                  <span style={{ color: 'var(--text-secondary)' }}>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          );
+                        }
+                        if (block.kind === 'header') {
+                          return (
+                            <h3 key={index} className="text-lg font-bold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
+                              {block.text}
+                            </h3>
+                          );
+                        }
                         return (
-                          <div key={index} className="flex items-start gap-2 ml-4 my-1">
-                            <span className="mt-1 font-bold" style={{ color: 'var(--color-primary)' }}>•</span>
-                            <span style={{ color: 'var(--text-primary)' }}>{paragraph.trim().slice(1).trim()}</span>
-                          </div>
+                          <p key={index} className="leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
+                            {block.text}
+                          </p>
                         );
-                      }
-                      const isHeader = paragraph.trim() === paragraph.trim().toUpperCase() &&
-                        paragraph.trim().length < 50 &&
-                        paragraph.trim().length > 2;
-                      const endsWithColon = paragraph.trim().endsWith(':');
-                      if (isHeader || endsWithColon) {
-                        return (
-                          <h3 key={index} className="text-lg font-bold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
-                            {paragraph.trim()}
-                          </h3>
-                        );
-                      }
-                      return (
-                        <p key={index} className="leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
-                          {paragraph.trim()}
-                        </p>
-                      );
-                    })
+                      });
+                    })()
                   )}
                 </div>
               </div>

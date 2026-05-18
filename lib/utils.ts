@@ -222,3 +222,48 @@ export function expandInlineBullets(text: string): string {
   return text.replace(/\s-\s+(?=[A-Z])/g, '\n• ');
 }
 
+/**
+ * Section-header markers that aggregator-flattened JDs commonly cram
+ * into a previous paragraph or bullet. Title-Case multi-word phrases
+ * that are vanishingly unlikely to appear mid-sentence in PMHNP job
+ * prose, so matching them is safe.
+ */
+const SECTION_MARKERS = [
+  'Our history',
+  'Our culture',
+  'Our team',
+  'Our values',
+  'Our mission',
+  'Our story',
+  'Our company',
+  'Our benefits',
+  'About us',
+  'Why join',
+  'Learn more',
+  'E-Verify',
+  'Equal Opportunity Employer',
+  'Equal Employment Opportunity',
+  'Reasonable Accommodation',
+  'Reasonable Accommodations',
+];
+
+/**
+ * Split aggregator-stripped descriptions at known section markers.
+ *
+ * Old data in the DB sometimes has 6+ sections (history, culture, EEO,
+ * E-Verify, accommodations, etc.) crammed into a single paragraph
+ * because the aggregator stripped `<h2>` / `<p>` tags to spaces. New
+ * ingests preserve structure via lib/sanitize#htmlToReadableText — this
+ * helper is the legacy-data render-time fallback.
+ *
+ * Only splits when the marker is preceded by a sentence terminator
+ * `.`, `)`, `/`, `!`, or `?` — so "on E-Verify" mid-sentence is left
+ * alone but "...completed. E-Verify Talkiatry participates..." breaks.
+ */
+export function splitAtSectionMarkers(text: string): string {
+  if (!text) return text;
+  const escaped = SECTION_MARKERS.map((m) => m.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|');
+  const re = new RegExp(`(?<=[.)\\/!?])\\s+(${escaped})\\b`, 'g');
+  return text.replace(re, '\n\n$1');
+}
+
