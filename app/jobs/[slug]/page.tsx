@@ -978,8 +978,7 @@ export default async function JobPage({ params }: JobPageProps) {
                       type Block =
                         | { kind: 'bullets'; items: string[] }
                         | { kind: 'header'; text: string }
-                        | { kind: 'para'; text: string }
-                        | { kind: 'spacer' };
+                        | { kind: 'para'; text: string };
                       const blocks: Block[] = [];
                       let pendingBullets: string[] = [];
                       const flushBullets = (): void => {
@@ -987,18 +986,15 @@ export default async function JobPage({ params }: JobPageProps) {
                         blocks.push({ kind: 'bullets', items: pendingBullets });
                         pendingBullets = [];
                       };
+                      // Spacing between blocks is handled by Tailwind margins
+                      // (mb-3 on <p>, mt-6 on <h3>, my-2 on <ul>) which collapse
+                      // with adjacent siblings — no explicit h-4 spacers needed.
+                      // The old approach stacked h-4 + mb-3 + h-4 = ~40px between
+                      // every short paragraph (LifeStance "Belonging:" block).
                       for (let i = 0; i < cleaned.length; i += 1) {
                         const trimmed = cleaned[i].trim();
                         if (!trimmed) {
-                          // If we're mid-bullet-group and the next non-blank
-                          // line is also a bullet, swallow the blank line so
-                          // the list stays one <ul>. Otherwise flush + spacer.
-                          if (pendingBullets.length > 0) {
-                            const nextNonBlank = cleaned.slice(i + 1).find((l) => l.trim());
-                            if (nextNonBlank && nextNonBlank.trim().startsWith('•')) continue;
-                          }
                           flushBullets();
-                          blocks.push({ kind: 'spacer' });
                           continue;
                         }
                         if (trimmed.startsWith('•')) {
@@ -1008,13 +1004,12 @@ export default async function JobPage({ params }: JobPageProps) {
                         }
                         flushBullets();
                         const isHeader = trimmed === trimmed.toUpperCase() && trimmed.length < 50 && trimmed.length > 2;
-                        const endsWithColon = trimmed.endsWith(':');
+                        const endsWithColon = trimmed.endsWith(':') && trimmed.length < 60;
                         if (isHeader || endsWithColon) blocks.push({ kind: 'header', text: trimmed });
                         else blocks.push({ kind: 'para', text: trimmed });
                       }
                       flushBullets();
                       return blocks.map((block, index) => {
-                        if (block.kind === 'spacer') return <div key={index} className="h-4" />;
                         if (block.kind === 'bullets') {
                           return (
                             <ul key={index} className="list-disc pl-6 my-2 space-y-1" style={{ color: 'var(--text-primary)' }}>
