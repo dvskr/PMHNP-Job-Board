@@ -42,12 +42,13 @@ test.describe('/widget — core render', () => {
     expect(ctaHref).toContain('/jobs?location=California')
     expect(ctaHref).toContain('utm_source=widget')
 
-    // Job cards rendered (default limit=6, but allow <6 if DB has fewer
-    // employer+direct-apply CA jobs — the widget filter is strict)
+    // Should render the FULL 6 cards by default. CA has hundreds of
+    // qualifying jobs in the DB — if we render <6 here it means the
+    // candidate-pool query is too narrow and the in-memory classifier
+    // is throwing most away (the bug seen on 2026-05-18: widget showed
+    // 1 card despite 481 CA jobs in DB).
     const cards = page.locator('a.pd-row')
-    const cardCount = await cards.count()
-    expect(cardCount).toBeGreaterThan(0)
-    expect(cardCount).toBeLessThanOrEqual(6)
+    await expect(cards).toHaveCount(6)
   })
 
   test('2. state filter — CA cards have CA in their location pill', async ({ page }) => {
