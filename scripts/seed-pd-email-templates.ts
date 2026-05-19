@@ -61,7 +61,9 @@ If it's useful, I'd love to set up a 15-minute call. Either way, I'd welcome any
 
 Best,
 Sathish
-Creator, pmhnphiring.com`,
+Creator, pmhnphiring.com
+
+P.S. If iframes are blocked on your career-services page, we can also send a static link — no developer required.`,
 }
 
 const TOUCH_2: TemplateSpec = {
@@ -82,7 +84,9 @@ If you'd like to talk for 15 minutes, reply with 2–3 times that work for you t
 And if this isn't a fit, no worries — just reply with "not interested" and I'll take you off the list.
 
 Best,
-Sathish`,
+Sathish
+
+P.S. If your IT team blocks iframes on the career-services page, we can also send a co-branded static link instead — pasted into the page or shared in your LMS.`,
 }
 
 const TOUCH_3: TemplateSpec = {
