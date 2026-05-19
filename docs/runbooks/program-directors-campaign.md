@@ -10,18 +10,48 @@
 
 ---
 
+## 0. Daily-operator quick reference
+
+You'll be running this for ~7-10 days. The whole campaign is one command, rotated by `--touch` flag:
+
+```powershell
+# Touch 1 — initial cold email (Days 0, 1, 2)
+$env:NEXT_PUBLIC_BASE_URL="https://pmhnphiring.com"; npx tsx scripts/send-pd-wave.ts --wave=all --touch=1 --execute --max=50
+
+# Touch 2 — day-5 follow-up to non-responders (Days 5, 6, 7)
+$env:NEXT_PUBLIC_BASE_URL="https://pmhnphiring.com"; npx tsx scripts/send-pd-wave.ts --wave=all --touch=2 --execute --max=50
+
+# Dry-run (no actual sends — sanity check what would be sent)
+$env:NEXT_PUBLIC_BASE_URL="https://pmhnphiring.com"; npx tsx scripts/send-pd-wave.ts --wave=all --touch=1 --max=50
+
+# Smoke-test (send all the rendered emails to your own inbox, not real PDs)
+$env:NEXT_PUBLIC_BASE_URL="https://pmhnphiring.com"; npx tsx scripts/send-pd-wave.ts --wave=all --touch=1 --execute --to=dvskr.1234@gmail.com --max=3
+```
+
+**The state machine handles "where did I leave off"** — running `--touch=1` again pulls only `outreach_status='not_contacted'` leads, so you can run it daily without tracking which batch was sent when.
+
+**Inbox to monitor:** `hello@pmhnphiring.com` → forwarded to Sathish's Outlook. Replies land there.
+
+**SQL for reply handling:** see §7 (Tracking & analytics → Reply handling) — `UPDATE program_director_leads SET outreach_status = 'replied' WHERE email = '...';`
+
+**Funnel dashboard:** in Supabase SQL editor, run the query in §7.
+
+---
+
 ## 1. Success metrics & guardrails
 
-### 90-day targets
+### 90-day targets (revised 2026-05-19 — single-wave strategy)
 
-| Metric | Wave 1 (77 Tier 1) | Wave 2 (84 Tier 2+3) | Combined |
-|---|---|---|---|
-| Email open rate | ≥35% | ≥30% | ≥32% |
-| Reply rate | ≥10% | ≥7% | ≥8% |
-| Reply-with-times scheduling requests | 3–5 | 4–7 | 7–12 |
-| Widget installs (live on .edu site) | 1–2 | 2–4 | **4–6** ← primary success metric |
-| Bounce rate | <8% | <8% | <8% |
-| Spam complaint rate | 0 | 0 | 0 (kill switch) |
+After import + dedup, **the eligible list is 146 PDs across all tiers** (75 Tier 1 + 36 Tier 2 + 45 Tier 3, of which 146 have valid emails). On 2026-05-19 we collapsed the original Wave 1/Wave 2 split into a **single wave sent 50/day** across all tiers — the total pool is small enough that splitting added 3 weeks of calendar drag without meaningful risk-mitigation benefit.
+
+| Metric | Single-wave target (146 PDs) |
+|---|---|
+| Email open rate | ≥30% |
+| Reply rate | ≥8% (≈12 replies) |
+| Reply-with-times scheduling requests | 7–12 |
+| Widget installs (live on .edu site) | **4–6** ← primary success metric |
+| Bounce rate | <8% |
+| Spam complaint rate | 0 (kill switch) |
 
 ### Guardrails
 
@@ -232,15 +262,29 @@ A VA (Virtual Assistant, $5–15/hr via Upwork or OnlineJobs.ph) can do this in 
 
 After Touch 3 with no response, mark `outreachStatus = 'no_response'` and re-evaluate in 90 days.
 
-### Wave plan
+### Send schedule — single wave, 50/day
 
-| Wave | Audience | Send date | Daily cap |
+Run the same command daily, rotating `--touch=1` then `--touch=2`. The lead state machine (`outreach_status`) prevents double-sends — leads already marked `wave1_sent` are auto-skipped on the next `--touch=1` run, and Touch 2 only fires to leads whose `lastContactedAt >= 5 days ago`.
+
+| Day | Action | Command | Effective batch |
 |---|---|---|---|
-| Wave 0 | 5 personal contacts as smoke test | T+0 (post-build) | — |
-| Wave 1 | 77 Tier 1 PDs | T+2 (after Wave 0 deliverability green) | 50/day across 2 days |
-| Wave 2 | 84 Tier 2 + Tier 3 PDs | T+21 (3 weeks after Wave 1) | 50/day across 2 days |
+| D0 (Tue) | Touch 1 Day 1 | `--wave=all --touch=1 --max=50` | 50 |
+| D1 (Wed) | Touch 1 Day 2 | `--wave=all --touch=1 --max=50` | 50 |
+| D2 (Thu) | Touch 1 Day 3 | `--wave=all --touch=1 --max=50` | ~46 (whatever's left of 146) |
+| D5 (Sun) | Touch 2 Day 1 | `--wave=all --touch=2 --max=50` | D0 batch's non-responders |
+| D6 (Mon) | Touch 2 Day 2 | `--wave=all --touch=2 --max=50` | D1 batch's non-responders |
+| D7 (Tue) | Touch 2 Day 3 | `--wave=all --touch=2 --max=50` | D2 batch's non-responders |
+| D12 (Sun) | LinkedIn DMs | Manual via personal LinkedIn | Silent PDs |
 
-3-week gap between waves lets us learn from Wave 1 reply data before reusing copy.
+**Why 50/day specifically:**
+- Gmail's bulk-send heuristic triggers near 100/hr from new sender patterns. 50/day = ~50/min when the script throttles at 1.5s/send = comfortably under threshold.
+- Manageable reply load (~4 replies/day at 8% rate vs. 8/day at 100/day cadence).
+- Smaller blast radius for Day-1 recovery if bounce/spam metrics look off.
+
+**Why single wave (not split T1 vs T2+3):**
+The original split was a risk-mitigation hedge — test on Tier 1 first, learn, then send to Tier 2+3 with refined copy. With 146 total PDs and 50/day cadence, Day 1's reply data is visible before Day 2's send anyway, so the wave split adds 3 weeks of calendar drag for no real protection. Collapsed on 2026-05-19.
+
+Tier ordering still matters for triage: the script orders by `tier ASC, state ASC, universityName ASC`, so Tier 1 PDs land in the first 50 sent. If we want to revert to the split (e.g., copy turns out to be off), use `--wave=1` for Tier 1 only or `--wave=2` for Tier 2+3.
 
 ---
 
@@ -349,26 +393,61 @@ Every link in every email/DM resolves through `/r/p<lead_id>?r=<lead_id>`. This 
 - Source platform (email, linkedin)
 - Final destination after redirect
 
-### Daily dashboard query (run during waves)
+### Daily dashboard query (run after each batch)
 
 ```sql
 SELECT
   outreach_status,
+  tier,
   COUNT(*) AS pds,
-  AVG(CASE WHEN widget_installed THEN 1 ELSE 0 END) AS install_rate
+  SUM(CASE WHEN widget_installed THEN 1 ELSE 0 END) AS installs
 FROM program_director_leads
-WHERE tier = 'Tier 1'  -- swap during Wave 2
-GROUP BY outreach_status
-ORDER BY pds DESC;
+GROUP BY outreach_status, tier
+ORDER BY tier ASC, pds DESC;
+```
+
+### Reply handling (manual until admin panel exists)
+
+The script flips `outreach_status` to `wave1_sent` after Touch 1 fires. When a PD **replies** to your Outlook inbox (hello@pmhnphiring.com forwarded), you must mark them manually in the DB so they skip Touch 2:
+
+```sql
+-- Mark as replied (interested or asking questions) → skip Touch 2 follow-up
+UPDATE program_director_leads
+SET outreach_status = 'replied',
+    last_contacted_at = NOW()
+WHERE email = '<their-email>';
+
+-- Mark as declined (said "not interested") → skip everything
+UPDATE program_director_leads
+SET outreach_status = 'declined'
+WHERE email = '<their-email>';
+
+-- Mark as booked (they want a call) → still skip Touch 2
+UPDATE program_director_leads
+SET outreach_status = 'booked'
+WHERE email = '<their-email>';
+
+-- Mark as installed (widget is live on their site) → primary success
+UPDATE program_director_leads
+SET outreach_status = 'installed',
+    widget_installed = true,
+    widget_installed_url = '<their-career-services-url>'
+WHERE email = '<their-email>';
+
+-- If an email bounced (Resend dashboard shows it), mark so we stop trying
+UPDATE program_director_leads
+SET outreach_status = 'bounced',
+    email_status = 'Bounced'
+WHERE email = '<their-email>';
 ```
 
 ### Weekly review cadence
 
 Every Monday during the campaign:
-1. Pull funnel metrics (sent → opened → replied → booked → installed)
+1. Pull funnel metrics (sent → opened → replied → booked → installed) via the dashboard query above
 2. Read any "not interested" replies for pattern signals
-3. Review bounced addresses; re-find Tier 1 only
-4. Update `outreachStatus` in bulk if needed
+3. Review bounced addresses in Resend's Logs tab; mark `outreach_status = 'bounced'`
+4. Update statuses for any unmarked replies from the past week
 
 ---
 

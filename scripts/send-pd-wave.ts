@@ -57,7 +57,8 @@ async function getEmailService(): Promise<EmailServiceModule> {
 
 // ─── Flags ──────────────────────────────────────────────────────────
 interface Flags {
-  readonly wave: 1 | 2
+  /** 1 = Tier 1 only · 2 = Tier 2 + 3 · 'all' = no tier filter, send across all tiers. */
+  readonly wave: 1 | 2 | 'all'
   readonly touch: 1 | 2
   readonly execute: boolean
   readonly to: string | null
@@ -73,12 +74,17 @@ function parseFlags(): Flags {
   }
   const has = (name: string): boolean => args.includes(`--${name}`)
 
-  const wave = Number(getFlag('wave') ?? '1')
-  const touch = Number(getFlag('touch') ?? '1')
-  if (wave !== 1 && wave !== 2) {
-    console.error('[send-pd-wave] --wave must be 1 or 2')
+  const rawWave = getFlag('wave') ?? '1'
+  let wave: 1 | 2 | 'all'
+  if (rawWave === 'all') {
+    wave = 'all'
+  } else if (rawWave === '1' || rawWave === '2') {
+    wave = Number(rawWave) as 1 | 2
+  } else {
+    console.error('[send-pd-wave] --wave must be 1, 2, or all')
     process.exit(1)
   }
+  const touch = Number(getFlag('touch') ?? '1')
   if (touch !== 1 && touch !== 2) {
     console.error('[send-pd-wave] --touch must be 1 or 2 (Touch 3 is a LinkedIn DM, send manually)')
     process.exit(1)
@@ -89,7 +95,7 @@ function parseFlags(): Flags {
     process.exit(1)
   }
   return {
-    wave: wave as 1 | 2,
+    wave,
     touch: touch as 1 | 2,
     execute: has('execute'),
     to: getFlag('to'),
@@ -110,8 +116,16 @@ interface LeadRow {
 
 async function loadEligibleLeads(flags: Flags): Promise<readonly LeadRow[]> {
   const prisma = await getPrisma()
+  // --wave=all collapses the tier filter entirely — sends across the
+  // full eligible pool in a single rotation. Useful when the total
+  // reachable list (146 here) is small enough that splitting into two
+  // waves adds calendar drag without much risk-mitigation benefit.
   const tierFilter =
-    flags.wave === 1 ? { equals: 'Tier 1' } : { in: ['Tier 2', 'Tier 3'] }
+    flags.wave === 'all'
+      ? undefined
+      : flags.wave === 1
+        ? { equals: 'Tier 1' }
+        : { in: ['Tier 2', 'Tier 3'] }
 
   // Touch 1: anyone not contacted yet
   // Touch 2: anyone where Touch 1 went out but they haven't replied
@@ -126,7 +140,9 @@ async function loadEligibleLeads(flags: Flags): Promise<readonly LeadRow[]> {
 
   const rows = await prisma.programDirectorLead.findMany({
     where: {
-      tier: tierFilter,
+      // Omit the tier filter entirely when --wave=all so Prisma doesn't
+      // try to match `tier: undefined` (which would no-op but is noisy).
+      ...(tierFilter ? { tier: tierFilter } : {}),
       outreachStatus: statusFilter,
       emailStatus: 'Valid',
       email: { not: null },
