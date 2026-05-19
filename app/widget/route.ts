@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { classifyJob, HEALTH_DEAD_THRESHOLD } from '@/lib/ai/job-classifier'
+import { ATS_HOST_SUBSTRINGS, classifyJob, HEALTH_DEAD_THRESHOLD } from '@/lib/ai/job-classifier'
 
 /**
  * Embeddable jobs widget for the Program Directors campaign.
@@ -969,17 +969,46 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const rows = await prisma.job.findMany({
       where: {
-        stateCode: state,
         isPublished: true,
         isManuallyUnpublished: false,
         archivedAt: null,
-        // Exclude obviously-dead aggregator jobs at the DB level so we
-        // don't fetch 36 candidates only to filter most away in memory.
-        // healthConsecutiveMissing is Int (default 0, never null), so we
-        // only need the employer-bypass + non-dead branches.
-        OR: [
-          { sourceType: 'employer' },
-          { healthConsecutiveMissing: { lt: HEALTH_DEAD_THRESHOLD } },
+        AND: [
+          // State match — check both stateCode + state columns and the
+          // full state name, mirroring /jobs page filter logic
+          // (lib/filters.ts:514-535). Some ingestion sources populate
+          // one column but not the other; this catches all variations.
+          {
+            OR: [
+              { stateCode: { equals: state, mode: 'insensitive' } },
+              { state: { equals: state, mode: 'insensitive' } },
+              { state: { equals: STATE_NAMES[state], mode: 'insensitive' } },
+            ],
+          },
+          // Exclude obviously-dead aggregator jobs (employer-posted
+          // jobs are exempt from the health gate).
+          {
+            OR: [
+              { sourceType: 'employer' },
+              { healthConsecutiveMissing: { lt: HEALTH_DEAD_THRESHOLD } },
+            ],
+          },
+          // Pre-filter for jobs that will survive classifyJob — mirrors
+          // its tier=easy_apply/direct_apply branches. Without this we
+          // pull 36 newest CA jobs (mostly jooble.org aggregator), then
+          // throw 35 away in the in-memory classifier and render 1 card
+          // instead of the requested 6.
+          {
+            OR: [
+              { sourceType: 'employer' },
+              { sourceType: 'direct' },
+              ...ATS_HOST_SUBSTRINGS.map((substring) => ({
+                applyLink: {
+                  contains: substring,
+                  mode: 'insensitive' as const,
+                },
+              })),
+            ],
+          },
         ],
       },
       orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
