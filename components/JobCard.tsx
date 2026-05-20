@@ -495,20 +495,31 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             }}>
               {job.title}
             </h3>
-            {/* Company · Location — same inline pattern as the list view.
-                paddingRight clears the absolute-positioned Save/Mail icons
-                when the title is 1 line (and company/location sits at the
-                same y-range as the icons). For 2-line titles this row
-                lands below the icons, but the cost of always padding is
-                a clean rendering on short-title cards. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, paddingRight: '50px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
-                {job.employer}
+            {/* Company · Location — inline, full row width. Company
+                capped at 2 words (when >20 chars) so it never reads as
+                "Unified Healing ..." — that ellipsis pattern looked
+                worse than a shorter clean name. Location is flex-shrink:
+                0 so it never truncates mid-character. No paddingRight
+                here: title's 2-line case puts this row below the icons,
+                where there's no overlap. Rare 1-line-title cards may
+                clip the rightmost ~30px under the bookmark icon but
+                that's preferred over starving every row of 50px. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'clip' }}>
+                {(() => {
+                  // Short names (≤20 chars) render in full so "Sol Mental
+                  // Health" isn't needlessly cut to "Sol Mental". Anything
+                  // longer falls back to first 2 words to avoid the ugly
+                  // CSS ellipsis we were seeing on aggregator-long names.
+                  const full = job.employer.trim();
+                  if (full.length <= 20) return full;
+                  return full.split(/\s+/).slice(0, 2).join(' ');
+                })()}
               </p>
               {shortLocation && (
                 <>
                   <span aria-hidden style={{ color: 'var(--text-tertiary, #8A9BA6)', fontSize: '14px', flexShrink: 0 }}>·</span>
-                  <p style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
+                  <p style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>
                     <MapPin size={12} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
                     {shortLocation}
                   </p>
