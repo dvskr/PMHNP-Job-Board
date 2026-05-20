@@ -48,6 +48,11 @@ const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwl
 // Defaults match config/brand.ts; runtime values come from env (validated in lib/env.ts).
 const EMAIL_FROM_TRANSACTIONAL = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 const EMAIL_FROM_MARKETING = process.env.EMAIL_FROM_MARKETING || 'PMHNP Hiring <alerts@pmhnphiring.com>';
+// PD outreach gets its own from-name — the campaign is a personal pitch
+// from Sathish, not an automated job-board notification. Falls back to
+// EMAIL_FROM_MARKETING if unset (the previous behavior).
+const EMAIL_FROM_PD_OUTREACH =
+  process.env.EMAIL_FROM_PD_OUTREACH || EMAIL_FROM_MARKETING;
 const EMAIL_FROM = EMAIL_FROM_TRANSACTIONAL; // backward compat
 const EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO || 'support@pmhnphiring.com';
 
@@ -140,7 +145,16 @@ export async function sendAndLog(
   unsubscribeUrl?: string
 ) {
   const isMarketing = MARKETING_EMAIL_TYPES.has(emailType);
-  const from = isMarketing ? EMAIL_FROM_MARKETING : EMAIL_FROM_TRANSACTIONAL;
+  // PD outreach gets a personal from-name. Everything else marketing
+  // (job alerts, broadcasts, candidate alerts) stays on the generic
+  // brand address so subscribers don't see "Sathish" in their inbox
+  // when it's actually an automated digest.
+  const from =
+    emailType === 'pd_outreach'
+      ? EMAIL_FROM_PD_OUTREACH
+      : isMarketing
+        ? EMAIL_FROM_MARKETING
+        : EMAIL_FROM_TRANSACTIONAL;
 
   const sendParams: Parameters<typeof resend.emails.send>[0] = {
     ...params,
