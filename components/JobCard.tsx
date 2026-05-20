@@ -495,24 +495,21 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             }}>
               {job.title}
             </h3>
-            {/* Company · Location — same inline pattern as the list view.
-                paddingRight clears the absolute-positioned Save/Mail icons
-                when the title is 1 line (and company/location sits at the
-                same y-range as the icons). For 2-line titles this row
-                lands below the icons, but the cost of always padding is
-                a clean rendering on short-title cards. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, paddingRight: '50px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
+            {/* Company on line 1, Location on line 2. Inline-with-dot
+                pattern fought for width and produced ugly mid-token cuts
+                ("Carson City, N\"") on cards with long company names.
+                Stacking matches LinkedIn / Indeed and keeps each piece
+                cleanly truncatable on its own line. paddingRight reserves
+                space for the absolute Save/Mail icons. */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, paddingRight: '50px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {job.employer}
               </p>
               {shortLocation && (
-                <>
-                  <span aria-hidden style={{ color: 'var(--text-tertiary, #8A9BA6)', fontSize: '14px', flexShrink: 0 }}>·</span>
-                  <p style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
-                    <MapPin size={12} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
-                    {shortLocation}
-                  </p>
-                </>
+                <p style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                  <MapPin size={12} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{shortLocation}</span>
+                </p>
               )}
             </div>
           </div>
