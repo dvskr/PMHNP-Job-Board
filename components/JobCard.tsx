@@ -481,23 +481,27 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           {/* Title + Company */}
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* paddingRight reserves space for the absolutely-positioned
-                right-side stack (Save/Mail icons + salary pill) so the
-                title doesn't run under them. The company·location row
-                below has no paddingRight — it flows full width into the
-                space underneath where the pills end. */}
+                Save/Mail icon stack so the title doesn't run under it.
+                Salary pill moved to the chip row below 2026-05-22, so this
+                only needs to clear the icons (~30-60px) instead of ~110px. */}
             <h3 style={{
               fontSize: '18px', fontWeight: 700,
               fontFamily: 'var(--font-lora), Georgia, serif',
               color: 'var(--text-primary)',
               margin: '0 0 3px', lineHeight: 1.3,
-              paddingRight: '110px',
+              paddingRight: '70px',
               overflow: 'hidden', textOverflow: 'ellipsis',
               display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
             }}>
               {job.title}
             </h3>
-            {/* Company · Location — same inline pattern as the list view. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+            {/* Company · Location — same inline pattern as the list view.
+                paddingRight clears the absolute-positioned Save/Mail icons
+                when the title is 1 line (and company/location sits at the
+                same y-range as the icons). For 2-line titles this row
+                lands below the icons, but the cost of always padding is
+                a clean rendering on short-title cards. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, paddingRight: '50px' }}>
               <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
                 {job.employer}
               </p>
@@ -513,12 +517,10 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             </div>
           </div>
 
-          {/* Save + Message + Salary stack — pulled out of the flex flow
-              with position: absolute so it doesn't consume horizontal
-              width on the rows below it. Company/location can now reclaim
-              the space under the salary pill instead of truncating to the
-              middle column's width. Top/right offsets match the card's
-              22px padding so the pills sit flush with the card's corner. */}
+          {/* Save + Message icons — top-right corner. Salary moved out of
+              this stack and into the chip row below so it can never sit
+              over the company/location row when the title wraps to one
+              line (caused truncation on single-line-title cards). */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0, flexShrink: 0, position: 'absolute', top: '14px', right: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '-8px', marginBottom: '-6px' }}>
               {viewed && !applied && <span title="Viewed" className="flex"><Eye size={18} color="var(--text-tertiary)" /></span>}
@@ -528,7 +530,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                 style={{
                   // Tightened 2026-05-16 — vertical padding stays 13px to
                   // keep height at 44px (WCAG 2.5.8 touch target). Horizontal
-                  // padding compressed to 6px so the three icons sit close.
+                  // padding compressed to 6px so the icons sit close.
                   padding: '13px 6px', borderRadius: '50%',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   color: saved ? 'var(--color-primary)' : 'var(--text-tertiary)',
@@ -558,20 +560,18 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                 </button>
               )}
             </div>
-            {salaryDisplay && (
-              <div style={{ marginRight: '-10px' }}>
-                <Badge variant="salary" size="sm">
-                  {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
-                </Badge>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Row 3: Type + Mode + Experience + Status Badges. Location
-            moved up beside the company name (above), so it's no longer
-            a chip in this row. */}
+        {/* Row 3: Salary + Type + Mode + Experience + Status Badges. Salary
+            leads so it stays the most prominent chip even though it's no
+            longer floating in the top-right corner. */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+          {salaryDisplay && (
+            <Badge variant="salary" size="sm">
+              {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
+            </Badge>
+          )}
           {job.jobType && <Badge variant="outline" size="sm">{job.jobType}</Badge>}
           {displayMode && <Badge variant="outline" size="sm">{displayMode}</Badge>}
           {(() => {

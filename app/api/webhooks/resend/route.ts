@@ -94,6 +94,26 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Mark in ProgramDirectorLead so the PD campaign script skips
+      // bounced/complained addresses on future touches. The send script
+      // already filters by emailStatus='Valid' — flipping the status
+      // here removes them from the eligible pool the next time it runs.
+      if (suppressionReason === 'bounce') {
+        await prisma.programDirectorLead.updateMany({
+          where: { email: normalizedEmail },
+          data: {
+            outreachStatus: 'bounced',
+            emailStatus: 'Bounced',
+          },
+        });
+      } else {
+        // complaint — treat as declined (PD effectively said "stop")
+        await prisma.programDirectorLead.updateMany({
+          where: { email: normalizedEmail },
+          data: { outreachStatus: 'declined' },
+        });
+      }
+
       logger.info('Email suppressed via webhook', {
         email: normalizedEmail,
         reason: suppressionReason,
