@@ -13,8 +13,24 @@ if (process.env.PROD_DIRECT_DATABASE_URL && !process.env.DIRECT_URL) process.env
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { prisma } = require('@/lib/prisma') as typeof import('@/lib/prisma');
 import { formatSalary } from '@/lib/utils';
+// Import from the leaf module so we don't transitively pull in
+// `tracker.ts` (which imports prisma at module load — that crashes the
+// script because dotenv hasn't injected DATABASE_URL by the time ESM
+// imports are hoisted).
+import { ACTIVE_CAMPAIGN } from '@/lib/shortlinks/campaigns';
 
 const BASE = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
+
+// Resolve a job's slug to its /r/f<id> short code (Facebook platform).
+// Falls back to the bare /jobs/<slug> URL if the job isn't in the active
+// campaign so the script still produces something usable for off-list
+// jobs — but in --fb mode unmapped jobs will warn so they can be added.
+function shortLinkFor(slug: string | null, jobId: string): string | null {
+    if (!slug) return null;
+    const job = ACTIVE_CAMPAIGN.jobs.find((j) => j.slug === slug);
+    if (!job) return null;
+    return `${BASE}/r/f${job.id}`;
+}
 
 // Use the same formatter the JD pages render so /hr vs /yr is canonical
 // (this script's previous inline formatter only matched the bare 'hour'
@@ -56,10 +72,14 @@ async function main(): Promise<void> {
     }
 
     if (fb) {
-        // One copy/paste-ready Facebook post per job. Keep it punchy:
-        // headline, location, salary, link, then hashtags.
+        // One copy/paste-ready Facebook post per job. Uses /r/f<id> short
+        // links so FB's auto-linkifier picks them up (long /jobs/<uuid>
+        // URLs were rendering as plain text inside multi-job posts).
+        const unmapped: string[] = [];
         for (const j of jobs) {
-            const url = `${BASE}/jobs/${j.slug ?? j.id}`;
+            const short = shortLinkFor(j.slug, j.id);
+            const url = short ?? `${BASE}/jobs/${j.slug ?? j.id}`;
+            if (!short) unmapped.push(`${j.employer} — ${j.title}`);
             const salary = fmtSalary(j.minSalary, j.maxSalary, j.salaryPeriod);
             const lines = [
                 `🩺 ${j.title} @ ${j.employer}`,
@@ -67,12 +87,17 @@ async function main(): Promise<void> {
                 salary ? `💰 ${salary}` : '',
                 j.experienceLabel ? `🎓 ${j.experienceLabel}` : '',
                 ``,
-                `Apply: ${url}`,
+                url,
                 ``,
                 `#PMHNP #PsychNP #NursePractitioner #MentalHealthJobs #PMHNPJobs`,
             ].filter(Boolean);
             console.log(lines.join('\n'));
             console.log('\n---\n');
+        }
+        if (unmapped.length > 0) {
+            console.error(`\n⚠  ${unmapped.length} job(s) not in ACTIVE_CAMPAIGN — falling back to long URLs:`);
+            for (const u of unmapped) console.error(`   - ${u}`);
+            console.error(`   Add them to lib/shortlinks/campaigns.ts to get short links.`);
         }
         return;
     }

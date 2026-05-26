@@ -41,6 +41,13 @@ export const FEATURED_EMPLOYERS_MAY_2026: ShortlinkCampaign = Object.freeze({
     { id: 9, slug: 'remote-pmhnp-telehealth-outpatient-ocdanxiety-8306b4f1-1338-46c4-aee8-2e61de6dd3f8', content: 'anxiety-relief-ca' },
     { id: 10, slug: 'psychiatric-nurse-practitioner-pmhnp-c51d717f-963b-4d19-9c81-4202951a4327', content: 'clearwave-ny' },
     { id: 11, slug: 'psychiatric-nurse-practitioner-7a9478b2-ae5b-4ea1-93c5-e13ca47faaa0', content: 'sol-dc' },
+    // 2026-05-26: 3 new employer posts added for FB campaign. Codes 12-14
+    // route through /r/f12, /r/f13, /r/f14 — short enough that FB auto-
+    // linkifies them inside multi-job posts (long /jobs/<uuid> URLs were
+    // being rendered as plain text).
+    { id: 12, slug: 'pmhnp-telehealth-virginia-e7fdf1f7-82e5-4a25-a332-806eaf61f2ad', content: 'safe-hearts-va' },
+    { id: 13, slug: 'hybrid-phmnp-position-with-full-administrative-support-1990d114-0e06-4ede-b125-8b6128b3d592', content: 'life-works-va' },
+    { id: 14, slug: 'pmhnp-part-time-aa948106-2473-465b-988e-f6ab24e98ffc', content: 'higher-dimensions-nv' },
   ]),
 }) as ShortlinkCampaign
 
