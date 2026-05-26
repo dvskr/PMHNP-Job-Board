@@ -425,7 +425,12 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         style={{
           backgroundColor: '#F7FBF8',
           borderRadius: '22px',
-          border: job.isFeatured ? '2px solid var(--color-primary)' : '1px solid rgba(255,255,255,0.5)',
+          // All employer-posted jobs get the teal accent border — used to
+          // be gated on `isFeatured` but that field is now reserved for
+          // a future $299 tier (all current employer posts are
+          // isFeatured:false). sourceType='employer' is the correct
+          // signal for "paid post by an actual employer" vs aggregated.
+          border: job.sourceType === 'employer' ? '2px solid var(--color-primary)' : '1px solid rgba(255,255,255,0.5)',
           padding: '22px',
           display: 'flex', flexDirection: 'column', gap: '12px',
           width: '100%', height: '100%',
