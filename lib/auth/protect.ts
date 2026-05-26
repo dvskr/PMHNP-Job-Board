@@ -54,11 +54,26 @@ export async function requireAuth(): Promise<{ user: AuthUser; profile: UserProf
         data: { supabaseId: user.id }
       })
     } else if (!profile) {
+      // Read the role + company that the signup form pushed into Supabase
+      // user_metadata via auth.signUp's `data` field. Previously hardcoded
+      // 'job_seeker' here, which stranded every employer signup whose
+      // email-confirmation flow landed on a protected route before the
+      // /api/auth/profile POST could write. /api/auth/profile GET has the
+      // same logic — both auto-create paths must agree.
+      const metadataRole = (user.user_metadata as { role?: string } | null)?.role
+      const signupRole: 'employer' | 'job_seeker' =
+        metadataRole === 'employer' ? 'employer' : 'job_seeker'
+      const metadataCompany = (user.user_metadata as { company?: string } | null)?.company ?? null
+      const metadataFirstName = (user.user_metadata as { first_name?: string } | null)?.first_name ?? null
+      const metadataLastName = (user.user_metadata as { last_name?: string } | null)?.last_name ?? null
       profile = await prisma.userProfile.create({
         data: {
           supabaseId: user.id,
           email: user.email,
-          role: 'job_seeker',
+          role: signupRole,
+          company: signupRole === 'employer' ? metadataCompany : null,
+          firstName: metadataFirstName,
+          lastName: metadataLastName,
         }
       })
     }
