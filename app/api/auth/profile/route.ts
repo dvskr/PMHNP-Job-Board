@@ -8,6 +8,7 @@ import { syncToBeehiiv } from '@/lib/beehiiv'
 import { sendSignupWelcomeEmail } from '@/lib/email-service'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { inngest } from '@/lib/inngest/client'
+import { ensureProfileFromAuth } from '@/lib/auth/ensure-profile'
 
 // Shared include for _count used by completeness scoring
 const profileInclude = {
@@ -34,63 +35,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    let profile = await prisma.userProfile.findUnique({
-      where: { supabaseId: user.id },
+    // Same auto-create logic as lib/auth/protect.ts:requireAuth.
+    // Centralised in lib/auth/ensure-profile.ts so the two paths can't
+    // drift again — see that file's header for the full bug history.
+    const profile = await ensureProfileFromAuth(prisma, user, {
       include: profileInclude,
+      logSource: 'GET /api/auth/profile',
     })
-
-    // Auto-create profile if it doesn't exist.
-    //
-    // Bug fix (2026-05-26): when email confirmation is required, the POST
-    // call during signup fails with 401 because no session exists yet.
-    // The first authenticated request after email confirmation lands here,
-    // and this branch used to hardcode role='job_seeker' regardless of
-    // what the user actually signed up as. That stranded employer signups
-    // with seeker profiles (Valentina Cimolai @ bloompsychiatry.com hit
-    // this twice in a row). The role intent is preserved in Supabase
-    // user_metadata via the `data` field on auth.signUp(), so we read it
-    // here. Anything other than 'employer' falls back to 'job_seeker' so
-    // an attacker can't bootstrap an 'admin' profile via metadata.
-    if (!profile && user.email) {
-      // First check if a profile exists with this email (possibly under a different supabaseId)
-      profile = await prisma.userProfile.findFirst({
-        where: { email: user.email },
-        include: profileInclude,
-      })
-
-      if (profile && profile.supabaseId !== user.id) {
-        // Update the existing profile to point to the current supabase user
-        profile = await prisma.userProfile.update({
-          where: { id: profile.id },
-          data: { supabaseId: user.id },
-          include: profileInclude,
-        })
-      } else if (!profile) {
-        const metadataRole = (user.user_metadata as { role?: string } | null)?.role
-        const signupRole: 'employer' | 'job_seeker' =
-          metadataRole === 'employer' ? 'employer' : 'job_seeker'
-        const metadataCompany = (user.user_metadata as { company?: string } | null)?.company ?? null
-        const metadataFirstName = (user.user_metadata as { first_name?: string } | null)?.first_name ?? null
-        const metadataLastName = (user.user_metadata as { last_name?: string } | null)?.last_name ?? null
-        // No profile exists at all — create one
-        profile = await prisma.userProfile.create({
-          data: {
-            supabaseId: user.id,
-            email: user.email,
-            role: signupRole,
-            company: signupRole === 'employer' ? metadataCompany : null,
-            firstName: metadataFirstName,
-            lastName: metadataLastName,
-          },
-          include: profileInclude,
-        })
-        logger.info('Auto-created profile from auth metadata', {
-          email: user.email,
-          role: signupRole,
-          fromMetadata: metadataRole === 'employer',
-        })
-      }
-    }
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
