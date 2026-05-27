@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { ensureProfileFromAuth } from '@/lib/auth/ensure-profile'
 
 // Type definitions
 export type UserRole = 'job_seeker' | 'employer' | 'admin'
@@ -35,53 +36,17 @@ export async function requireAuth(): Promise<{ user: AuthUser; profile: UserProf
     redirect('/login')
   }
 
-  // Get or create profile
-  let profile = await prisma.userProfile.findUnique({
-    where: { supabaseId: user.id }
+  // Single source of truth for auto-create. See lib/auth/ensure-profile.ts —
+  // this is the path that runs first for SSR-protected pages, so the role
+  // selection it makes determines whether new employer signups land in
+  // /employer/dashboard or get stranded in /onboarding/professional.
+  const profile = await ensureProfileFromAuth<UserProfile>(prisma, user, {
+    logSource: 'requireAuth',
   })
-
-  // Auto-create profile if doesn't exist
-  if (!profile && user.email) {
-    // Check by email first to avoid unique constraint errors
-    profile = await prisma.userProfile.findFirst({
-      where: { email: user.email }
-    })
-
-    if (profile && profile.supabaseId !== user.id) {
-      // Update existing profile to point to current supabase user
-      profile = await prisma.userProfile.update({
-        where: { id: profile.id },
-        data: { supabaseId: user.id }
-      })
-    } else if (!profile) {
-      // Read the role + company that the signup form pushed into Supabase
-      // user_metadata via auth.signUp's `data` field. Previously hardcoded
-      // 'job_seeker' here, which stranded every employer signup whose
-      // email-confirmation flow landed on a protected route before the
-      // /api/auth/profile POST could write. /api/auth/profile GET has the
-      // same logic — both auto-create paths must agree.
-      const metadataRole = (user.user_metadata as { role?: string } | null)?.role
-      const signupRole: 'employer' | 'job_seeker' =
-        metadataRole === 'employer' ? 'employer' : 'job_seeker'
-      const metadataCompany = (user.user_metadata as { company?: string } | null)?.company ?? null
-      const metadataFirstName = (user.user_metadata as { first_name?: string } | null)?.first_name ?? null
-      const metadataLastName = (user.user_metadata as { last_name?: string } | null)?.last_name ?? null
-      profile = await prisma.userProfile.create({
-        data: {
-          supabaseId: user.id,
-          email: user.email,
-          role: signupRole,
-          company: signupRole === 'employer' ? metadataCompany : null,
-          firstName: metadataFirstName,
-          lastName: metadataLastName,
-        }
-      })
-    }
-  }
 
   return {
     user: { id: user.id, email: user.email! },
-    profile: profile as UserProfile | null
+    profile,
   }
 }
 
