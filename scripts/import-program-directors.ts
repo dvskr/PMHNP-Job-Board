@@ -17,10 +17,8 @@
  *
  * See docs/runbooks/program-directors-campaign.md §3 Step 4 for context.
  */
-import { config as dotenvConfig } from 'dotenv'
-dotenvConfig({ path: '.env.local' })
-dotenvConfig({ path: '.env' })
-dotenvConfig({ path: '.env.prod' })
+import { loadPdEnv } from './_pd-env'
+loadPdEnv()
 
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'

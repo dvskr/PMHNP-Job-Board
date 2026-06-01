@@ -15,10 +15,8 @@
  * Safe to re-run — only flips status if the lead isn't already
  * 'bounced' or 'declined'.
  */
-import { config as dotenvConfig } from 'dotenv'
-dotenvConfig({ path: '.env.local' })
-dotenvConfig({ path: '.env' })
-dotenvConfig({ path: '.env.prod' })
+import { loadPdEnv } from './_pd-env'
+loadPdEnv()
 
 type PrismaModule = typeof import('@/lib/prisma')
 let prismaCache: PrismaModule['prisma'] | null = null

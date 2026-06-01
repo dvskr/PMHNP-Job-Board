@@ -32,7 +32,7 @@ async function loadLeads(): Promise<{
   funnel: FunnelStat[]
   total: number
 }> {
-  const [leads, funnel] = await Promise.all([
+  const [leads, funnel, clickAgg] = await Promise.all([
     prisma.programDirectorLead.findMany({
       orderBy: [{ tier: 'asc' }, { state: 'asc' }, { universityName: 'asc' }],
       select: {
@@ -54,12 +54,30 @@ async function loadLeads(): Promise<{
       by: ['outreachStatus'],
       _count: true,
     }),
+    // Per-lead human-click counts. Bots/preview-fetches excluded so the
+    // "did this PD actually click?" signal is honest. Joined client-side
+    // via recipient_lead_id below.
+    prisma.shortLinkClick.groupBy({
+      by: ['recipientLeadId'],
+      where: {
+        platform: 'program-director',
+        isBot: false,
+        recipientLeadId: { not: null },
+      },
+      _count: true,
+    }),
   ])
+
+  const clicksByLead = new Map<string, number>()
+  for (const c of clickAgg) {
+    if (c.recipientLeadId) clicksByLead.set(c.recipientLeadId, c._count)
+  }
 
   return {
     leads: leads.map((l) => ({
       ...l,
       lastContactedAt: l.lastContactedAt ? l.lastContactedAt.toISOString() : null,
+      clickCount: clicksByLead.get(l.id) ?? 0,
     })),
     funnel: funnel.map((f) => ({
       status: f.outreachStatus,

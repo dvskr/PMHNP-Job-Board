@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Search,
@@ -11,6 +11,8 @@ import {
   AlertOctagon,
   RefreshCw,
   ExternalLink,
+  MoreHorizontal,
+  MousePointerClick,
 } from 'lucide-react'
 
 export interface PdLead {
@@ -26,6 +28,37 @@ export interface PdLead {
   readonly widgetInstalled: boolean
   readonly widgetInstalledUrl: string | null
   readonly notes: string | null
+  readonly clickCount: number
+}
+
+// Context-aware action sets — the buttons inline are the *natural next
+// states* for a lead in the given status. Everything else collapses
+// into a kebab menu so common rows show 1-2 buttons instead of 6.
+type ActionKey = 'replied' | 'booked' | 'installed' | 'declined' | 'bounced' | 'not_contacted'
+interface ActionSet {
+  readonly primary: readonly ActionKey[]
+  readonly secondary: readonly ActionKey[]
+}
+function actionsFor(status: string): ActionSet {
+  switch (status) {
+    case 'not_contacted':
+      return { primary: [], secondary: ['bounced', 'declined'] }
+    case 'wave1_sent':
+    case 'wave2_sent':
+      return { primary: ['replied', 'booked'], secondary: ['installed', 'declined', 'bounced'] }
+    case 'replied':
+      return { primary: ['booked', 'installed'], secondary: ['declined', 'not_contacted'] }
+    case 'booked':
+      return { primary: ['installed'], secondary: ['replied', 'declined', 'not_contacted'] }
+    case 'installed':
+      return { primary: [], secondary: ['not_contacted'] }
+    case 'declined':
+    case 'bounced':
+    case 'no_response':
+      return { primary: [], secondary: ['not_contacted'] }
+    default:
+      return { primary: ['replied', 'bounced'], secondary: ['booked', 'installed', 'declined', 'not_contacted'] }
+  }
 }
 
 interface FunnelStat {
@@ -410,12 +443,37 @@ export default function PdCampaignClient({ leads, funnel, total }: Props) {
                       </span>
                     </td>
                     <td style={td}>
-                      <div style={{ fontSize: '13px' }}>{lead.email ?? '—'}</div>
-                      {lead.emailStatus && lead.emailStatus !== 'Valid' && (
-                        <div style={{ fontSize: '11px', color: '#DC2626', marginTop: '2px' }}>
-                          {lead.emailStatus}
-                        </div>
-                      )}
+                      <div style={{ fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <span>{lead.email ?? '—'}</span>
+                        {lead.clickCount > 0 && (
+                          <span
+                            title={`${lead.clickCount} click${lead.clickCount === 1 ? '' : 's'} on the email shortlink`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              padding: '2px 7px',
+                              borderRadius: '999px',
+                              background: 'rgba(13,148,136,0.12)',
+                              color: '#0F766E',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                            }}
+                          >
+                            <MousePointerClick size={11} strokeWidth={2.5} />
+                            {lead.clickCount}
+                          </span>
+                        )}
+                      </div>
+                      {/* Suppress emailStatus subtext when the status row already
+                          says the same thing (e.g., "Bounced" badge above). */}
+                      {lead.emailStatus &&
+                        lead.emailStatus !== 'Valid' &&
+                        lead.emailStatus.toLowerCase() !== lead.outreachStatus && (
+                          <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                            {lead.emailStatus}
+                          </div>
+                        )}
                     </td>
                     <td style={td}>
                       <span
@@ -436,57 +494,17 @@ export default function PdCampaignClient({ leads, funnel, total }: Props) {
                       {timeAgo(lead.lastContactedAt)}
                     </td>
                     <td style={{ ...td, textAlign: 'right' }}>
-                      <div
-                        style={{
-                          display: 'inline-flex',
-                          gap: '4px',
-                          flexWrap: 'wrap',
-                          justifyContent: 'flex-end',
+                      <RowActions
+                        lead={lead}
+                        disabled={isUpdating}
+                        onAction={(action) => {
+                          if (action === 'installed') {
+                            handleInstalled(lead.id)
+                          } else {
+                            void updateStatus(lead.id, action)
+                          }
                         }}
-                      >
-                        <ActionBtn
-                          icon={<CheckCircle2 size={12} />}
-                          label="Replied"
-                          color="#2563EB"
-                          disabled={isUpdating || lead.outreachStatus === 'replied'}
-                          onClick={() => void updateStatus(lead.id, 'replied')}
-                        />
-                        <ActionBtn
-                          icon={<Calendar size={12} />}
-                          label="Booked"
-                          color="#B45309"
-                          disabled={isUpdating || lead.outreachStatus === 'booked'}
-                          onClick={() => void updateStatus(lead.id, 'booked')}
-                        />
-                        <ActionBtn
-                          icon={<Box size={12} />}
-                          label="Installed"
-                          color="#059669"
-                          disabled={isUpdating || lead.outreachStatus === 'installed'}
-                          onClick={() => handleInstalled(lead.id)}
-                        />
-                        <ActionBtn
-                          icon={<XCircle size={12} />}
-                          label="Declined"
-                          color="#DC2626"
-                          disabled={isUpdating || lead.outreachStatus === 'declined'}
-                          onClick={() => void updateStatus(lead.id, 'declined')}
-                        />
-                        <ActionBtn
-                          icon={<AlertOctagon size={12} />}
-                          label="Bounced"
-                          color="#475569"
-                          disabled={isUpdating || lead.outreachStatus === 'bounced'}
-                          onClick={() => void updateStatus(lead.id, 'bounced')}
-                        />
-                        <ActionBtn
-                          icon={<RefreshCw size={12} />}
-                          label="Reset"
-                          color="#94A3B8"
-                          disabled={isUpdating || lead.outreachStatus === 'not_contacted'}
-                          onClick={() => void updateStatus(lead.id, 'not_contacted')}
-                        />
-                      </div>
+                      />
                       {installUrlPrompt === lead.id && (
                         <form
                           onSubmit={(e) => {
@@ -602,5 +620,179 @@ function ActionBtn({ icon, label, color, disabled, onClick }: ActionBtnProps) {
       {icon}
       {label}
     </button>
+  )
+}
+
+// ─── Context-aware row actions ───────────────────────────────────────
+// Renders only the primary actions inline (1-2 buttons) for the lead's
+// current status. Rare/secondary actions collapse into a kebab menu so
+// rows stay compact instead of showing a wall of 6 mostly-disabled
+// buttons. The `actionsFor()` map at the top of this file decides the
+// split per status.
+
+interface ActionMeta {
+  readonly label: string
+  readonly color: string
+  readonly icon: React.ReactNode
+}
+const ACTION_META: Record<ActionKey, ActionMeta> = {
+  replied: { label: 'Replied', color: '#2563EB', icon: <CheckCircle2 size={12} /> },
+  booked: { label: 'Booked', color: '#B45309', icon: <Calendar size={12} /> },
+  installed: { label: 'Installed', color: '#059669', icon: <Box size={12} /> },
+  declined: { label: 'Declined', color: '#DC2626', icon: <XCircle size={12} /> },
+  bounced: { label: 'Bounced', color: '#475569', icon: <AlertOctagon size={12} /> },
+  not_contacted: { label: 'Reset', color: '#94A3B8', icon: <RefreshCw size={12} /> },
+}
+
+interface RowActionsProps {
+  readonly lead: PdLead
+  readonly disabled: boolean
+  readonly onAction: (action: ActionKey) => void
+}
+
+function RowActions({ lead, disabled, onAction }: RowActionsProps) {
+  const { primary, secondary } = useMemo(
+    () => actionsFor(lead.outreachStatus),
+    [lead.outreachStatus],
+  )
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close the kebab menu on outside click / Escape — no library needed
+  // for a single dropdown.
+  useEffect(() => {
+    if (!menuOpen) return
+    function onDown(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
+
+  // Terminal states (installed/declined/bounced) — show a quiet label
+  // instead of buttons, with the kebab still available for Reset.
+  const terminal =
+    lead.outreachStatus === 'installed' ||
+    lead.outreachStatus === 'declined' ||
+    lead.outreachStatus === 'bounced' ||
+    lead.outreachStatus === 'no_response'
+
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        gap: '6px',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+      }}
+    >
+      {terminal && (
+        <span style={{ fontSize: '11.5px', color: '#94A3B8', fontStyle: 'italic' }}>
+          No actions
+        </span>
+      )}
+      {primary.map((action) => {
+        const meta = ACTION_META[action]
+        return (
+          <ActionBtn
+            key={action}
+            icon={meta.icon}
+            label={meta.label}
+            color={meta.color}
+            disabled={disabled}
+            onClick={() => onAction(action)}
+          />
+        )
+      })}
+      {secondary.length > 0 && (
+        <div ref={menuRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            aria-label="More actions"
+            aria-expanded={menuOpen}
+            disabled={disabled}
+            onClick={() => setMenuOpen((o) => !o)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '5px 7px',
+              borderRadius: '8px',
+              background: '#FFFFFF',
+              color: '#64748B',
+              border: '1px solid rgba(0,0,0,0.08)',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+            }}
+          >
+            <MoreHorizontal size={14} />
+          </button>
+          {menuOpen && (
+            <div
+              role="menu"
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 4px)',
+                right: 0,
+                minWidth: '160px',
+                background: '#FFFFFF',
+                border: '1px solid rgba(0,0,0,0.08)',
+                borderRadius: '10px',
+                boxShadow: '0 6px 20px rgba(15,23,42,0.12)',
+                padding: '4px',
+                zIndex: 10,
+              }}
+            >
+              {secondary.map((action) => {
+                const meta = ACTION_META[action]
+                return (
+                  <button
+                    key={action}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onAction(action)
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      padding: '7px 10px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: meta.color,
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      textAlign: 'left',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      ;(e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC'
+                    }}
+                    onMouseLeave={(e) => {
+                      ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+                    }}
+                  >
+                    {meta.icon}
+                    Mark as {meta.label.toLowerCase()}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

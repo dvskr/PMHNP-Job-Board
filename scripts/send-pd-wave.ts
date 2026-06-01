@@ -35,10 +35,8 @@
  * See docs/runbooks/program-directors-campaign.md §5 (Outreach
  * sequence) and §6 (Email & DM copy) for the campaign motion.
  */
-import { config as dotenvConfig } from 'dotenv'
-dotenvConfig({ path: '.env.local' })
-dotenvConfig({ path: '.env' })
-dotenvConfig({ path: '.env.prod' })
+import { loadPdEnv } from './_pd-env'
+loadPdEnv()
 
 // Dynamic imports so dotenv runs first.
 type PrismaModule = typeof import('@/lib/prisma')
