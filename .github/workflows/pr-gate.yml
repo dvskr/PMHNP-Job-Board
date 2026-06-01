@@ -1,0 +1,47 @@
+name: PR Gate — Typecheck + Vitest
+
+# T2 fix (2026-06-01): the runbook flagged that no CI workflow ran the
+# Vitest suite on PRs. ai-gates / seo-guard / autofill-tests / migrate-prod
+# all cover their specific surfaces; none of them ran the cross-cutting
+# tests in tests/lib/ and tests/api/. This workflow is the missing gate:
+#   - typecheck (catches Prisma-schema drift, broken imports)
+#   - vitest run (full unit + API suite; ~5s wall-time on a fresh runner)
+#   - Playwright smoke is intentionally OUT of this gate — see notes in
+#     the audit fix plan; it can run as a separate non-blocking job once
+#     the basic flake budget is established.
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+jobs:
+  typecheck-and-test:
+    name: tsc --noEmit + vitest run
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Prisma client generation is needed before either tsc or vitest
+      # so model-typed imports resolve.
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Typecheck
+        run: npx tsc --noEmit --pretty false
+
+      - name: Run Vitest suite
+        run: npx vitest run --reporter=default
+        env:
+          # Vitest setup file mocks Prisma; no real DB needed.
+          DATABASE_URL: postgresql://test:test@localhost:5432/test

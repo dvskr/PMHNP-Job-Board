@@ -26,8 +26,13 @@ describe('resolveShortlink — invalid input', () => {
   })
 
   it('rejects unknown job numbers', () => {
+    // Note (2026-06-01): commit 7f3e2c6 added FB shortlinks for jobs
+    // 12-14, so the previous fixture (`i12`) is now valid. Use numbers
+    // safely beyond the current shortlink table — bumping when new jobs
+    // are added is fine; this assertion is about the upper-bound reject,
+    // not about specific numbers.
     expect(resolveShortlink('f99', BASE)).toBeNull()
-    expect(resolveShortlink('i12', BASE)).toBeNull()
+    expect(resolveShortlink('i999', BASE)).toBeNull()
   })
 
   it('handles non-string input defensively', () => {
