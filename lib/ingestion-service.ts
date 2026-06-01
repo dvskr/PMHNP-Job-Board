@@ -41,6 +41,7 @@ let globalApplyLinkMap: Map<string, string> | null = null; // URL.pathname.slice
 let globalTitleKeyMap: Map<string, string> | null = null; // identityKey -> jobId
 import { pingAllSearchEnginesBatch } from './search-indexing';
 import { computeQualityScore } from './utils/quality-score';
+import { inngest } from './inngest/client';
 
 // JobSource is defined in lib/aggregators/types.ts and re-exported here
 // so legacy callers (scripts, cron route) keep working unchanged.
@@ -718,6 +719,20 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
         newJobIds.push(savedJob.id);
         qualityScoreSum += qualityScore;
         qualityScoreCount++;
+
+        // C1 fix (2026-06-01): emit embedding.refresh.job so the new
+        // job gets a vector for AI search + candidate recommendations.
+        // Fire-and-forget — Inngest no-ops if INNGEST_EVENT_KEY is unset
+        // (logged once at boot), and the manual backfill script
+        // (scripts/backfill-embeddings.ts) catches anything we miss.
+        // Per-jobId 30s throttle in the Inngest handler dedupes any
+        // ingest-side races with the post-free / admin-edit dispatches.
+        inngest.send({
+          name: 'embedding.refresh.job',
+          data: { jobId: savedJob.id },
+        }).catch((err) => {
+          console.warn(`[Ingest] inngest.send embedding.refresh.job failed for ${savedJob.id}:`, err);
+        });
 
         // Lead-mining: regex emails / phones / websites out of the
         // description and upsert into employer_leads. Non-fatal — a bad

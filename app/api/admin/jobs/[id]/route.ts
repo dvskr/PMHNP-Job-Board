@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
+import { inngest } from '@/lib/inngest/client';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/admin/jobs/:id
@@ -142,6 +144,20 @@ export async function PATCH(
                 isFeatured: true, updatedAt: true, expiresAt: true,
             },
         });
+
+        // C1 fix (2026-06-01): refresh the embedding when admin edits any
+        // field that affects the embedded text (title/description/setting/
+        // population/state/benefits). Conservative: dispatch on every edit
+        // and let the Inngest 30s throttle dedupe. No-op if Inngest env not set.
+        const EMBED_FIELDS = ['title', 'description', 'setting', 'population', 'state', 'benefits'];
+        if (EMBED_FIELDS.some((f) => f in data)) {
+            inngest.send({
+                name: 'embedding.refresh.job',
+                data: { jobId: id },
+            }).catch((err) => {
+                logger.warn('inngest.send embedding.refresh.job failed (admin edit)', undefined, err);
+            });
+        }
 
         // Log expiry edits to AuditLog so we can answer "who changed this and when"
         // for the next anomaly investigation.

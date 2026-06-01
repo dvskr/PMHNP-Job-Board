@@ -16,6 +16,11 @@ function getStripe(): Stripe | null {
 }
 
 export async function POST(request: NextRequest) {
+  // C2 fix (2026-06-01): tracks whether the idempotency row was committed
+  // so the outer catch can roll it back. Without this, an uncaught exception
+  // after the dedupe row was written leaves Stripe's retry permanently
+  // blocked (P2002 → "deduped"), losing money silently.
+  let dedupedEventId: string | null = null;
   try {
     const stripe = getStripe();
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -48,10 +53,20 @@ export async function POST(request: NextRequest) {
     // failures; without this we'd double-send confirmation emails and re-run
     // state writes. We insert-then-process; on unique-violation (event already
     // processed) we return 200 so Stripe stops retrying.
+    //
+    // C2 fix (2026-06-01): the previous version wrote the dedupe row
+    // BEFORE processing and never rolled it back on failure. A transient
+    // hiccup mid-processing would leave the job unpublished, no charge
+    // recorded, no receipt sent, AND Stripe's retry would hit P2002
+    // ("already processed") and be silently dropped — money taken,
+    // nothing delivered. Fix: any 500-returning path must first delete
+    // the dedupe row so Stripe's retry can succeed. `cleanupDedupe()`
+    // is called from every error path below.
     try {
       await prisma.processedStripeEvent.create({
         data: { eventId: event.id, eventType: event.type },
       });
+      dedupedEventId = event.id;  // C2: enable outer-catch rollback
     } catch (dedupeErr) {
       // Prisma P2002 = unique constraint violation → already processed.
       // Any other error → log and bail conservatively (Stripe will retry).
@@ -63,6 +78,18 @@ export async function POST(request: NextRequest) {
       logger.error('Failed to record processed Stripe event', dedupeErr, { eventId: event.id });
       return NextResponse.json({ error: 'Idempotency check failed' }, { status: 500 });
     }
+
+    // Helper: remove the dedupe row so Stripe will redeliver. Used on every
+    // 500-returning code path so a transient failure can self-heal.
+    // If the deletion itself fails we log and proceed; worst case Stripe's
+    // retry hits P2002 and we land where we'd be without this fix.
+    const cleanupDedupe = async (): Promise<void> => {
+      try {
+        await prisma.processedStripeEvent.delete({ where: { eventId: event.id } });
+      } catch (cleanupErr) {
+        logger.error('[Stripe] Failed to roll back dedupe row before 500 — Stripe retry may be silently dropped', cleanupErr, { eventId: event.id });
+      }
+    };
 
     // Helper: pull invoice URLs off a session that had `invoice_creation` enabled.
     // Returns null fields gracefully if the invoice is missing or can't be fetched —
@@ -104,6 +131,8 @@ export async function POST(request: NextRequest) {
 
       if (!jobId) {
         logger.error('No job ID in session metadata', null, { sessionId: session.id });
+        // 400 is intentional — bad payload won't get better on retry.
+        // Keep dedupe in place so Stripe stops bothering us about this event.
         return NextResponse.json(
           { error: 'Missing job ID' },
           { status: 400 }
@@ -154,6 +183,7 @@ export async function POST(request: NextRequest) {
               sessionId: session.id,
               tier: renewalTier,
             });
+            await cleanupDedupe();  // C2: let Stripe retry self-heal read-after-write lag
             return NextResponse.json(
               { error: 'EmployerJob record missing for renewed job' },
               { status: 500 }
@@ -252,6 +282,7 @@ export async function POST(request: NextRequest) {
           }
         } catch (prismaError) {
           logger.error('Error renewing job in database', prismaError, { jobId });
+          await cleanupDedupe();  // C2: let Stripe retry succeed
           return NextResponse.json(
             { error: 'Failed to renew job' },
             { status: 500 }
@@ -286,6 +317,7 @@ export async function POST(request: NextRequest) {
               jobId,
               sessionId: session.id,
             });
+            await cleanupDedupe();  // C2: roll back dedupe so Stripe retry actually replays
             return NextResponse.json(
               { error: 'EmployerJob not found for paid session' },
               { status: 500 },
@@ -392,6 +424,7 @@ export async function POST(request: NextRequest) {
           }
         } catch (prismaError) {
           logger.error('Error updating job in database', prismaError, { jobId });
+          await cleanupDedupe();  // C2: roll back dedupe so Stripe retry actually replays
           return NextResponse.json(
             { error: 'Failed to update job' },
             { status: 500 }
@@ -444,6 +477,7 @@ export async function POST(request: NextRequest) {
         });
       } catch (invErr) {
         logger.error('Error handling invoice.paid webhook', invErr);
+        await cleanupDedupe();  // C2
         return NextResponse.json({ error: 'Failed to refresh invoice URLs' }, { status: 500 });
       }
     }
@@ -536,6 +570,7 @@ export async function POST(request: NextRequest) {
         });
       } catch (refundErr) {
         logger.error('Error handling charge.refunded webhook', refundErr);
+        await cleanupDedupe();  // C2
         return NextResponse.json({ error: 'Failed to handle refund' }, { status: 500 });
       }
     }
@@ -543,6 +578,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     logger.error('Webhook error', error);
+    // C2: roll back the idempotency row so Stripe's retry actually runs.
+    // Without this, an uncaught exception leaves the event marked
+    // "processed" while the side-effects (charge ledger, email, publish
+    // flip) silently never happened.
+    if (dedupedEventId) {
+      try {
+        await prisma.processedStripeEvent.delete({ where: { eventId: dedupedEventId } });
+      } catch (cleanupErr) {
+        logger.error('[Stripe] Failed to roll back dedupe row in outer catch — Stripe retry may be silently dropped', cleanupErr, { eventId: dedupedEventId });
+      }
+    }
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 500 }

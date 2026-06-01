@@ -62,6 +62,7 @@ vi.mock('@/lib/prisma', () => {
             processedStripeEvent: {
                 create: vi.fn(),
                 findUnique: vi.fn(),
+                delete: vi.fn(),
             },
             jobCharge: {
                 create: vi.fn(),
@@ -122,6 +123,19 @@ vi.mock('@/lib/prisma', () => {
                 findFirst: vi.fn(),
                 findMany: vi.fn(),
                 create: vi.fn(),
+                update: vi.fn(),
+                updateMany: vi.fn(),
+                deleteMany: vi.fn(),
+            },
+            candidateEmbedding: {
+                delete: vi.fn(),
+                deleteMany: vi.fn(),
+                upsert: vi.fn(),
+                findUnique: vi.fn(),
+            },
+            emailSend: {
+                create: vi.fn(),
+                findMany: vi.fn(),
                 update: vi.fn(),
                 updateMany: vi.fn(),
                 deleteMany: vi.fn(),

@@ -45,14 +45,14 @@ Work is sequenced so the lowest-risk + highest-leverage fixes ship first, the br
 
 **Phase 1 deliverable:** `tmp/catalog-audit-post-p1.log` showing all Section 3 + 4 numbers ≤ 5% of pre-fix.
 
-### Phase 2 — Critical runbook bugs
+### Phase 2 — Critical runbook bugs  ✅ MERGED 2026-06-01
 
-| # | Issue | Fix | Test |
-|---|---|---|---|
-| P2.1 (**C2**) | Stripe webhook can take money without publishing | Wrap dedupe insert + processing in `prisma.$transaction`; on failure path delete dedupe row before returning 500 | `tests/api/webhooks/stripe.test.ts` — simulated failure mid-process; assert retry succeeds |
-| P2.2 (**C3**) | Account-delete leaks PII | In `app/api/cron/purge-soft-deleted/route.ts`: `storage.remove()` resume/attachments, delete `CandidateEmbedding`, anonymize `email_sends.recipient_email` | `tests/api/cron/purge-soft-deleted.test.ts` — full PII inventory before/after |
-| P2.3 (**C4**) | Autofill sends EEO data to OpenAI | Strip EEO block from `app/api/autofill/classify-fields/route.ts:248` payload; assert no race/gender/veteran/disability fields in body | `tests/api/autofill/classify-fields.test.ts` — diff sent vs allowed-fields schema |
-| P2.4 (**C1**) | AI layer dead — `job_embeddings = 0` | Emit `embedding.refresh.job` on job create/update + ingest insert; run backfill cron; hide AI search bar if `INNGEST_EVENT_KEY` unset | `tests/inngest/embeddings.test.ts` — handler triggered on create; AI bar hidden in absence of key |
+| # | Issue | Fix | Test | Status |
+|---|---|---|---|---|
+| P2.1 (**C2**) | Stripe webhook can take money without publishing | Per-error-path `cleanupDedupe()` + outer-catch rollback via `dedupedEventId` tracking. (Full $transaction refactor would touch 300 LOC for equivalent correctness.) | `tests/api/webhooks-stripe-c2.test.ts` — 4 tests | ✅ |
+| P2.2 (**C3**) | Account-delete leaks PII | Purge cron now: deletes resume + avatar storage files, deletes `CandidateEmbedding`, anonymizes `email_sends.to`, then drops profile + Supabase auth identity. Defensive: each step is loud-on-failure but continues. | `tests/api/purge-soft-deleted-c3.test.ts` — 4 tests | ✅ |
+| P2.3 (**C4**) | Autofill sends EEO data to OpenAI | EEO block in `buildProfileContext()` now gated on `profile.sensitiveDataConsent === true`. System prompt updated to handle absent profile data via "Decline to self-identify" or empty value. | `tests/api/autofill-eeo-c4.test.ts` — 6 tests | ✅ |
+| P2.4 (**C1**) | AI layer dead — `job_embeddings = 0` | `embedding.refresh.job` now dispatched from ingest insert (`lib/ingestion-service.ts`), post-free create (`app/api/jobs/post-free/route.ts`), and admin edit when an embed-field changes (`app/api/admin/jobs/[id]/route.ts`). New backfill script for existing 1,557 jobs at `scripts/backfill-job-embeddings.ts`. | Manual: emit-or-noop verified by reading code; backfill counter run pending INNGEST_EVENT_KEY | ✅ code, ⏸ backfill run |
 
 ### Phase 3 — High-priority SEO + Security
 

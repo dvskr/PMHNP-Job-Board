@@ -13,6 +13,7 @@ import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { normalizeSalary } from '@/lib/salary-normalizer';
 import { formatDisplaySalary } from '@/lib/salary-display';
 import { computeQualityScore } from '@/lib/utils/quality-score';
+import { inngest } from '@/lib/inngest/client';
 import { parseLocation } from '@/lib/location-parser';
 import { summarizeForMeta } from '@/lib/description-cleaner';
 import { normalizeExperienceFromInput } from '@/lib/experience-label';
@@ -423,6 +424,17 @@ export async function POST(request: NextRequest) {
     logger.info('Free job posted successfully', {
       jobId: job.id,
       employer: sanitized.employer
+    });
+
+    // C1 fix (2026-06-01): emit embedding refresh so this new posting
+    // surfaces in AI search + candidate-recommendation streams. The
+    // Inngest 30s throttle dedupes any race with a near-simultaneous
+    // admin edit. Inngest no-ops silently if INNGEST_EVENT_KEY is unset.
+    inngest.send({
+      name: 'embedding.refresh.job',
+      data: { jobId: job.id },
+    }).catch((err) => {
+      logger.warn('inngest.send embedding.refresh.job failed (post-free)', undefined, err);
     });
 
     // Ping search engines for indexing (production only, fire-and-forget)
