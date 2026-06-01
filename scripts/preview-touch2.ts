@@ -19,10 +19,8 @@
  *
  * Nothing is sent. Nothing is updated. Pure read.
  */
-import { config as dotenvConfig } from 'dotenv'
-dotenvConfig({ path: '.env.local' })
-dotenvConfig({ path: '.env' })
-dotenvConfig({ path: '.env.prod' })
+import { loadPdEnv } from './_pd-env'
+loadPdEnv()
 
 type PrismaModule = typeof import('@/lib/prisma')
 let prismaCache: PrismaModule['prisma'] | null = null

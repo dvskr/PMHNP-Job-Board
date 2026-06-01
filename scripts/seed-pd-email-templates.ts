@@ -21,10 +21,8 @@
  * See docs/runbooks/program-directors-campaign.md §6 for the rendered
  * copy and §3 Step 7 for the runbook entry.
  */
-import { config as dotenvConfig } from 'dotenv'
-dotenvConfig({ path: '.env.local' })
-dotenvConfig({ path: '.env' })
-dotenvConfig({ path: '.env.prod' })
+import { loadPdEnv } from './_pd-env'
+loadPdEnv()
 
 // Dynamic prisma import so dotenv runs first.
 type PrismaModule = typeof import('@/lib/prisma')
