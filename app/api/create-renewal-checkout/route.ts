@@ -142,10 +142,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    // Sec3 fix (2026-06-01): same cookie-binding pattern as
+    // /api/create-checkout. /api/verify-renewal-session now requires
+    // this cookie before handing out the dashboardToken. Without it,
+    // anyone who learned a session_id (browser history, referer
+    // headers) could harvest the management token for a renewed job.
+    const response = NextResponse.json({
       sessionId: session.id,
       url: session.url,
     });
+    response.cookies.set('pmhnp_renewal_session', session.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60,
+    });
+    return response;
   } catch (error) {
     console.error('Error creating renewal checkout session:', error);
     return NextResponse.json(

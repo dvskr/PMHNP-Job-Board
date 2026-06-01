@@ -91,7 +91,14 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     ? 'Remote'
     : (job.city && job.state ? `${job.city}, ${job.state}` : (job.state || job.location || ''));
   const cardAriaLabel = `${job.title} at ${job.employer}${cardLocation ? ` — ${cardLocation}` : ''}`;
-  const freshness = getJobFreshness(job);
+  // S5 fix (2026-06-01): getJobFreshness computes against `new Date()`,
+  // which differs by milliseconds-to-seconds between server SSR and the
+  // hydration tick on the client — producing strings like "Posted today"
+  // server-side and "Posted yesterday" client-side, which fires React
+  // hydration error #418 (the most common error reported in production
+  // logs). Mount-guard: emit empty server-side, swap to live label after
+  // hydration. isHydrated is already wired via useViewedJobs() above.
+  const freshness = isHydrated ? getJobFreshness(job) : '';
   const shareTitle = `${job.title} at ${job.employer}`;
   const shareDescription = `Check out this PMHNP job: ${job.title} at ${job.employer}`;
   const viewed = isHydrated && isViewed(jobSlug);

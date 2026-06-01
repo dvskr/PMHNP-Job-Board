@@ -98,8 +98,15 @@ const getJob = cache(async function getJob(id: string): Promise<JobResult> {
 
     return { status: 'found', job: jobData as Job };
   } catch (error) {
+    // S2 fix (2026-06-01): re-throw on DB errors so Next.js renders a
+    // 500 page. The previous version converted every error to
+    // `{ status: 'gone' }`, which made the detail route render a
+    // "this position has been filled" page with `noindex,follow` on
+    // any transient DB hiccup — silently deindexing live jobs.
+    // notFound() / 5xx are the only safe replies on a fetch failure;
+    // 200 + noindex is the worst possible outcome for SEO.
     console.error('Error fetching job:', error);
-    return { status: 'gone' };
+    throw error;
   }
 });
 
@@ -368,13 +375,15 @@ export async function generateMetadata({ params }: JobPageProps) {
 
   const result = await getJob(id);
 
-  // Job completely deleted from DB → 410 Gone
+  // S1 fix: job completely deleted from DB → real 404 via notFound() in
+  // the page body. Metadata here only matters if Next.js skips the body
+  // render (it doesn't, but defensive). The old 'X-Status: 410' meta tag
+  // was misleading — it claimed 410 while the actual response was 200.
   if (result.status === 'gone') {
     return {
-      title: 'Position No Longer Available',
+      title: 'Page Not Found',
       description: 'This PMHNP position is no longer available. Browse current job openings on PMHNP Hiring.',
       robots: { index: false, follow: true },
-      other: { 'X-Status': '410' },
     };
   }
 
@@ -648,9 +657,15 @@ export default async function JobPage({ params }: JobPageProps) {
 
   const result = await getJob(id);
 
-  // Job completely deleted → render 410 Gone page
+  // S1 fix (2026-06-01): job completely deleted from DB → return
+  // proper HTTP 404 via notFound(). The previous renderGonePage()
+  // returned 200 OK with a "no longer available" body; Google saw
+  // that as a soft-404, which is the worst possible state for
+  // indexation (the page is treated as valid but de-prioritized,
+  // burning crawl budget on dead URLs). notFound() returns 404 and
+  // Next.js renders our app/not-found.tsx template.
   if (result.status === 'gone') {
-    return renderGonePage();
+    notFound();
   }
 
   // Job exists but expired/unpublished → render rich expired page

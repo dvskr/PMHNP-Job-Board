@@ -18,6 +18,21 @@ export const dynamic = 'force-dynamic'
 // at tests/sitemap-budget.test.ts (P4) should fail if today > this date.
 const AUTH_REBLOCK_DATE = '2026-05-19'; // 14 days from 2026-05-04
 
+// S3 fix (2026-06-01): the auth pages that were temporarily unblocked
+// during the GSC de-index window now need to be silently re-added to the
+// disallow list once we're past AUTH_REBLOCK_DATE. The previous version
+// only printed `console.warn` (line 211 below) and never actually
+// re-blocked, so /signup, /login, /messages, /saved, /job-alerts/manage,
+// /employer/login stayed crawlable indefinitely.
+const POST_DEADLINE_AUTH_REBLOCK = [
+  '/signup',
+  '/login',
+  '/messages',
+  '/saved',
+  '/job-alerts/manage',
+  '/employer/login',
+];
+
 // ── Allow lists ──────────────────────────────────────────────────────
 // Public surfaces every legitimate crawler should be able to index.
 // Carve-outs from FULL_DISALLOW. RFC 9309 + Google's parser apply
@@ -202,13 +217,18 @@ const SEO_CRAWLERS = [
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'
 
-  // P2.3: nag the logs if we're past the auth-pages re-block deadline.
-  // The intent is for a human to verify de-indexing in GSC and then
-  // re-add /signup, /login, /messages, /saved, /job-alerts/manage,
-  // /employer/login to FULL_DISALLOW. This warning makes "we forgot"
-  // visible in Vercel logs once a day (sitemap revalidates).
-  if (new Date().toISOString().slice(0, 10) > AUTH_REBLOCK_DATE) {
-    console.warn(`[robots.ts] AUTH_REBLOCK_DATE (${AUTH_REBLOCK_DATE}) has passed. Verify GSC "Indexed, though blocked by robots.txt" is at 0, then re-add auth paths to FULL_DISALLOW.`);
+  // S3 fix (2026-06-01): now that the date has passed, actually enforce
+  // the reblock — append the auth paths to the per-rule disallow lists
+  // below — rather than just logging a reminder. The previous version
+  // only printed a warning and left the paths crawlable, defeating the
+  // purpose of the deadline.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const pastDeadline = todayIso > AUTH_REBLOCK_DATE;
+  const effectiveFullDisallow = pastDeadline
+    ? [...FULL_DISALLOW, ...POST_DEADLINE_AUTH_REBLOCK]
+    : FULL_DISALLOW;
+  if (pastDeadline) {
+    console.info(`[robots.ts] AUTH_REBLOCK_DATE (${AUTH_REBLOCK_DATE}) passed — re-applying auth-page disallow.`);
   }
 
   return {
@@ -250,7 +270,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: PUBLIC_ALLOW,
-        disallow: FULL_DISALLOW,
+        disallow: effectiveFullDisallow,
       },
       // AI search & LLM crawlers grouped into one block. Named explicitly
       // (rather than letting them fall through to the catch-all) so the
@@ -260,7 +280,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: [...AI_CRAWLERS],
         allow: PUBLIC_ALLOW,
-        disallow: FULL_DISALLOW,
+        disallow: effectiveFullDisallow,
       },
       // SEO link-graph crawlers grouped. Same posture: explicit allow
       // for max backlink-graph coverage so Ahrefs/Semrush/etc. can keep
@@ -269,7 +289,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: [...SEO_CRAWLERS],
         allow: PUBLIC_ALLOW,
-        disallow: FULL_DISALLOW,
+        disallow: effectiveFullDisallow,
       },
       // Social / link-preview bots grouped — fetch a single URL on
       // demand for the preview card, so they need access to almost

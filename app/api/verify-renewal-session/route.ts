@@ -69,12 +69,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Return renewal data
+    // Sec3 fix (2026-06-01): cookie-bind the dashboardToken. The new-post
+    // /api/verify-checkout-session was patched against this same leak
+    // ages ago (H1) but renewal was missed. session_id appears in URLs,
+    // referer headers, and browser histories — anyone who learns one
+    // could call this endpoint and harvest the management token (which
+    // grants edit + unpublish access to the renewed posting). Cookie
+    // is set by /api/create-renewal-checkout. The confirmation email
+    // sent by the webhook is the authoritative delivery channel.
+    const renewalCookie = request.cookies.get('pmhnp_renewal_session')?.value;
+    const cookieMatches = renewalCookie === sessionId;
+
     return NextResponse.json({
       jobTitle: employerJob.job.title,
       jobSlug: slugify(employerJob.job.title, employerJob.job.id),
-      dashboardToken: employerJob.dashboardToken,
       tier: tier || 'pro',
+      ...(cookieMatches
+        ? { dashboardToken: employerJob.dashboardToken }
+        : { tokenDeliveredViaEmail: true }),
     });
   } catch (error) {
     logger.error('Error verifying renewal session:', error);
