@@ -81,6 +81,18 @@ export async function PATCH(
             );
         }
 
+        // Phase 1 guard (2026-06-01): swap inverted salary range so
+        // downstream BETWEEN queries don't return empty. Mirrors the
+        // post-free flow guard; catches admin-edit fat-finger mistakes.
+        if ('minSalary' in data && 'maxSalary' in data) {
+            const minN = data.minSalary == null ? null : Number(data.minSalary);
+            const maxN = data.maxSalary == null ? null : Number(data.maxSalary);
+            if (minN != null && maxN != null && Number.isFinite(minN) && Number.isFinite(maxN) && minN > maxN) {
+                data.minSalary = maxN;
+                data.maxSalary = minN;
+            }
+        }
+
         // Validate expiresAt — previously this was a pass-through that accepted
         // any value the admin form sent. That allowed silent setting of arbitrary
         // dates (year 9999, dates in the past, malformed strings) and is the

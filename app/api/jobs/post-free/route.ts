@@ -187,14 +187,23 @@ export async function POST(request: NextRequest) {
     const expiresAt = expiresFromNow(config.freeDurationDays);
 
     // Parse salary values
-    const parsedMinSalary = (() => {
+    let parsedMinSalary = (() => {
       const val = Number(sanitized.minSalary);
       return (Number.isFinite(val) && !Number.isNaN(val)) ? val : null;
     })();
-    const parsedMaxSalary = (() => {
+    let parsedMaxSalary = (() => {
       const val = Number(sanitized.maxSalary);
       return (Number.isFinite(val) && !Number.isNaN(val)) ? val : null;
     })();
+    // Phase 1 guard (2026-06-01): catalog audit found 1 employer-posted
+    // row with min=$277,614 / max=$86 because the raw values were stored
+    // without inversion check. Swap when reversed so downstream queries
+    // (BETWEEN min AND max) work as expected. Pure swap is the right move
+    // here — if either value is clearly wrong, the user fixes it via the
+    // dashboard edit flow rather than us silently nulling their input.
+    if (parsedMinSalary != null && parsedMaxSalary != null && parsedMinSalary > parsedMaxSalary) {
+      [parsedMinSalary, parsedMaxSalary] = [parsedMaxSalary, parsedMinSalary];
+    }
     const parsedSalaryPeriod = sanitized.salaryPeriod || null;
     // Server-side sanitize the free-text qualifier first, then hand the
     // pre-sanitized value to the structural normalizer. Caller is
