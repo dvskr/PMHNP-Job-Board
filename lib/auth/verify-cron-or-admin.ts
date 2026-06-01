@@ -20,7 +20,21 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
 export async function verifyCronOrAdmin(req: Request): Promise<NextResponse | null> {
-    if (process.env.NODE_ENV === 'development') return null;
+    // P5.A fix (2026-06-01): the dev short-circuit was too broad. Vercel
+    // preview deployments and Next.js dev-server tests both set
+    // NODE_ENV !== 'production' (preview = "production" actually, but
+    // some tooling sets it to "development"), so the guard would silently
+    // skip auth in environments other than local dev. Tighten to "local
+    // CLI only" by also requiring no public deployment URL.
+    //
+    // Allowlist: NODE_ENV=development AND not running on Vercel.
+    if (
+        process.env.NODE_ENV === 'development' &&
+        !process.env.VERCEL &&
+        !process.env.VERCEL_ENV
+    ) {
+        return null;
+    }
 
     // Fast path: Vercel cron's bearer token.
     const authHeader = req.headers.get('authorization');

@@ -48,7 +48,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         return NextResponse.json({ error: 'Unauthorized — provide a token or log in' }, { status: 401 });
       }
       employerJob = await prisma.employerJob.findFirst({
-        where: { jobId, OR: [{ userId: user.id }, { contactEmail: user.email! }] },
+        // P5.A (2026-06-01): contactEmail fallback restricted to legacy
+        // rows without a claimed userId — blocks signup-with-existing-
+        // employer-email impersonation.
+        where: { jobId, OR: [{ userId: user.id }, { userId: null, contactEmail: user.email! }] },
       });
     }
 

@@ -22,7 +22,9 @@ export type ProbeErrorKind =
     | 'timeout'
     | 'network'
     | 'too_many_redirects'
-    | 'bad_redirect_target';
+    | 'bad_redirect_target'
+    | 'ssrf_blocked'
+    | 'other';
 
 export interface RedirectHop {
     url: string;
@@ -67,6 +69,40 @@ export interface ProbeOptions {
  *  - 4xx/5xx: stop, record final status.
  *  - Any timeout or network failure: stop, errorKind set, finalStatus=null.
  */
+/**
+ * P5.A SSRF guard (2026-06-01): the dead-link prober follows redirects
+ * up to `maxRedirects` without checking whether the destination
+ * resolves to a private/internal IP. A malicious aggregator could
+ * publish a job whose applyLink redirects to e.g.
+ * `http://169.254.169.254/latest/meta-data/` (AWS metadata) or
+ * `http://10.0.0.1/admin` and probe a private network on our behalf.
+ *
+ * This is a lightweight hostname-level check — it rejects URLs whose
+ * literal hostname is a private IP, localhost, or .internal. It does
+ * NOT do DNS resolution (the prober's `fetch()` does its own DNS, and
+ * resolving twice introduces a TOCTOU race). For full IP-level
+ * protection we would need an outbound proxy that enforces a
+ * `route-private-ranges-to-null` policy; this guard is the cheapest
+ * 80%-effective defense.
+ */
+const SSRF_BLOCKED_HOSTNAMES = [
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    '::1',
+    '169.254.169.254', // AWS / GCP / Azure metadata service
+    'metadata.google.internal',
+];
+const SSRF_PRIVATE_IPV4_RE = /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.)/;
+
+export function isPrivateOrInternalHost(hostname: string): boolean {
+    const h = hostname.toLowerCase();
+    if (SSRF_BLOCKED_HOSTNAMES.includes(h)) return true;
+    if (h.endsWith('.internal') || h.endsWith('.local')) return true;
+    if (SSRF_PRIVATE_IPV4_RE.test(h)) return true;
+    return false;
+}
+
 export async function probeUrl(url: string, options: ProbeOptions = {}): Promise<ProbeResult> {
     const {
         fetchBody = false,
@@ -80,6 +116,36 @@ export async function probeUrl(url: string, options: ProbeOptions = {}): Promise
     const startedAt = Date.now();
     const redirectChain: RedirectHop[] = [];
     const headers = { ...PROBE_HEADERS, 'User-Agent': userAgent };
+
+    // Pre-flight SSRF guard on the starting URL. Each redirect hop is
+    // re-checked in the redirect-following branch below so an attacker
+    // can't bypass via a 302 → private IP.
+    try {
+        const u = new URL(url);
+        if (isPrivateOrInternalHost(u.hostname)) {
+            return {
+                finalStatus: null,
+                finalUrl: url,
+                redirectChain: [],
+                redirectHops: 0,
+                bodyHtml: null,
+                errorKind: 'ssrf_blocked',
+                errorMessage: `SSRF guard: refusing to probe private/internal host ${u.hostname}`,
+                elapsedMs: Date.now() - startedAt,
+            };
+        }
+    } catch {
+        return {
+            finalStatus: null,
+            finalUrl: url,
+            redirectChain: [],
+            redirectHops: 0,
+            bodyHtml: null,
+            errorKind: 'other',
+            errorMessage: 'Malformed URL',
+            elapsedMs: Date.now() - startedAt,
+        };
+    }
 
     let current = url;
     let finalStatus: number | null = null;
@@ -114,7 +180,16 @@ export async function probeUrl(url: string, options: ProbeOptions = {}): Promise
                 break;
             }
             try {
-                current = new URL(location, current).toString();
+                const next = new URL(location, current);
+                // P5.A: re-check SSRF on every hop. Without this, an
+                // attacker-controlled origin could 302 → 169.254.169.254
+                // and pull cloud-metadata credentials.
+                if (isPrivateOrInternalHost(next.hostname)) {
+                    errorKind = 'ssrf_blocked';
+                    errorMessage = `SSRF guard: refusing redirect to private/internal host ${next.hostname}`;
+                    break;
+                }
+                current = next.toString();
             } catch {
                 errorKind = 'bad_redirect_target';
                 errorMessage = `invalid Location: ${location.slice(0, 200)}`;

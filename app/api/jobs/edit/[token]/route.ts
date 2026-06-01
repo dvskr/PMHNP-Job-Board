@@ -67,6 +67,29 @@ export async function GET(
       );
     }
 
+    // P5.A fix (2026-06-01): runbook flagged that the edit token never
+    // expires — once a confirmation email leaks (forwarded, archived,
+    // breached) anyone can edit/unpublish the posting indefinitely.
+    // Bound the validity window: the token is honored while the job is
+    // published OR within 30 days of its expiresAt cutoff. Anything past
+    // that is rejected so an old leaked email can't reach a years-old
+    // record. Renewal/repost flows mint fresh tokens (see the webhook).
+    const EDIT_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
+    const expiresAt = employerJob.job.expiresAt;
+    if (!employerJob.job.isPublished) {
+      const ageMs = expiresAt ? Date.now() - new Date(expiresAt).getTime() : Number.POSITIVE_INFINITY;
+      if (ageMs > EDIT_GRACE_MS) {
+        logger.warn('[jobs-edit] edit-token rejected: job too far past expiry', {
+          tokenPrefix: token.slice(0, 4),
+          jobId: employerJob.job.id,
+        });
+        return NextResponse.json(
+          { error: 'Edit window has closed for this posting. Renew or re-post via your dashboard.' },
+          { status: 401 }
+        );
+      }
+    }
+
     return NextResponse.json({
       job: employerJob.job,
       employerJob: {

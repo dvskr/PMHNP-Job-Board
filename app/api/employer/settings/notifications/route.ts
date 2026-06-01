@@ -71,7 +71,11 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    const isOwner = employerJob.userId === user.id || employerJob.contactEmail === user.email;
+    // P5.A (2026-06-01): contactEmail fallback only for legacy rows
+    // without a claimed userId — blocks impersonation by signing up
+    // with an existing employer's contactEmail.
+    const isOwner = employerJob.userId === user.id
+        || (employerJob.userId === null && employerJob.contactEmail === user.email);
     if (!isOwner) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
