@@ -52,7 +52,8 @@ export const labelStyle: React.CSSProperties = {
 /* ─── Helper text ─── */
 export const helperStyle: React.CSSProperties = {
   fontSize: '12px',
-  color: '#6B7F8A',
+  // A11y: #6B7F8A is ~3.92:1 on white (fails WCAG AA for 12px). #4B5E68 is ~5.9:1.
+  color: '#4B5E68',
   marginTop: '6px',
 };
 

@@ -202,7 +202,7 @@ export default function LoginContent() {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {error && (
-            <div style={errorBannerStyle}>
+            <div role="alert" style={errorBannerStyle}>
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <div>
                 <p style={{ fontSize: '13px', color: '#DC2626', margin: 0 }}>{error}</p>

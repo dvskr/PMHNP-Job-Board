@@ -91,7 +91,14 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     ? 'Remote'
     : (job.city && job.state ? `${job.city}, ${job.state}` : (job.state || job.location || ''));
   const cardAriaLabel = `${job.title} at ${job.employer}${cardLocation ? ` — ${cardLocation}` : ''}`;
-  const freshness = getJobFreshness(job);
+  // S5 fix (2026-06-01): getJobFreshness computes against `new Date()`,
+  // which differs by milliseconds-to-seconds between server SSR and the
+  // hydration tick on the client — producing strings like "Posted today"
+  // server-side and "Posted yesterday" client-side, which fires React
+  // hydration error #418 (the most common error reported in production
+  // logs). Mount-guard: emit empty server-side, swap to live label after
+  // hydration. isHydrated is already wired via useViewedJobs() above.
+  const freshness = isHydrated ? getJobFreshness(job) : '';
   const shareTitle = `${job.title} at ${job.employer}`;
   const shareDescription = `Check out this PMHNP job: ${job.title} at ${job.employer}`;
   const viewed = isHydrated && isViewed(jobSlug);
@@ -162,7 +169,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     return null;
   };
 
-  const ageIndicator = getJobAgeIndicator();
+  // S5: getJobAgeIndicator also reads the live clock — keep it behind the same
+  // mount-guard as `freshness` so it never runs during SSR / first client render.
+  const ageIndicator = isHydrated ? getJobAgeIndicator() : null;
 
   // Derive correct display mode from boolean fields (mode field can be stale/wrong)
   const displayMode = job.isRemote ? 'Remote' : job.isHybrid ? 'Hybrid' : (job.mode || 'In-Person');

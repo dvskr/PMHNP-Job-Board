@@ -152,11 +152,12 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
 
       {/* ─── State Selector ─── */}
       <div style={{ padding: '28px 32px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+        <label htmlFor="lic-state" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
           Select Your State
         </label>
         <div style={{ position: 'relative', maxWidth: '400px' }}>
           <select
+            id="lic-state"
             value={selectedState}
             onChange={e => setSelectedState(e.target.value)}
             style={{

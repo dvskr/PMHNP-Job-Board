@@ -1,14 +1,18 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+// F2: localStorage shape + persistence live in the shared module so this hook
+// and SaveJobButton can never write incompatible serializations to the same key.
+import {
+  read as getStoredSavedJobs,
+  _write as setStoredSavedJobs,
+  SAVED_JOBS_KEY,
+  type SavedJobsMap,
+} from '@/lib/saved-jobs';
 
-const STORAGE_KEY = 'savedJobs';
+const STORAGE_KEY = SAVED_JOBS_KEY;
 const API_PATH = '/api/saved-jobs';
 const FRESH_MS = 30_000;
-
-interface SavedJobsMap {
-  [jobId: string]: string; // ISO date string
-}
 
 interface UseSavedJobsReturn {
   savedJobs: string[];
@@ -17,37 +21,6 @@ interface UseSavedJobsReturn {
   removeJob: (jobId: string) => void;
   clearAll: () => void;
   savedAt: (jobId: string) => Date | null;
-}
-
-function getStoredSavedJobs(): SavedJobsMap {
-  if (typeof window === 'undefined') return {};
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        const converted: SavedJobsMap = {};
-        parsed.forEach((id: string) => {
-          converted[id] = new Date().toISOString();
-        });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(converted));
-        return converted;
-      }
-      return parsed as SavedJobsMap;
-    }
-  } catch (error) {
-    console.error('Error reading saved jobs from localStorage:', error);
-  }
-  return {};
-}
-
-function setStoredSavedJobs(savedJobs: SavedJobsMap): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedJobs));
-  } catch (error) {
-    console.error('Error saving saved jobs to localStorage:', error);
-  }
 }
 
 /**

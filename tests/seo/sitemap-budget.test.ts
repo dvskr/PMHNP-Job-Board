@@ -121,6 +121,19 @@ describe('P4.1: sitemap budget guard', () => {
     });
 
     it('robots.txt does NOT block /signup, /login, /messages during the P2.3 unblock window', () => {
+        // S3 fix (2026-06-01): gate on the live deadline. Pre-deadline the
+        // paths must stay crawlable (Googlebot needs to read X-Robots-Tag:
+        // noindex). Post-deadline the next test in this suite enforces the
+        // opposite (paths must be back in disallow). Without this gate the
+        // suite was structurally guaranteed to fail one of the two asserts
+        // forever — exactly what runbook T1 flagged as "CI is red right now."
+        const AUTH_REBLOCK_DATE = '2026-05-19';
+        const today = new Date().toISOString().slice(0, 10);
+        if (today > AUTH_REBLOCK_DATE) {
+            // Window has expired — the sibling test below is the active guard.
+            return;
+        }
+
         const robots = robotsHandler();
         const rules = Array.isArray(robots.rules) ? robots.rules : [robots.rules];
         const catchAll = rules.find((r) => r.userAgent === '*');

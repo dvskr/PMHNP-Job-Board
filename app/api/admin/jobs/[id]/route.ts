@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
+import { inngest } from '@/lib/inngest/client';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/admin/jobs/:id
@@ -81,6 +83,18 @@ export async function PATCH(
             );
         }
 
+        // Phase 1 guard (2026-06-01): swap inverted salary range so
+        // downstream BETWEEN queries don't return empty. Mirrors the
+        // post-free flow guard; catches admin-edit fat-finger mistakes.
+        if ('minSalary' in data && 'maxSalary' in data) {
+            const minN = data.minSalary == null ? null : Number(data.minSalary);
+            const maxN = data.maxSalary == null ? null : Number(data.maxSalary);
+            if (minN != null && maxN != null && Number.isFinite(minN) && Number.isFinite(maxN) && minN > maxN) {
+                data.minSalary = maxN;
+                data.maxSalary = minN;
+            }
+        }
+
         // Validate expiresAt — previously this was a pass-through that accepted
         // any value the admin form sent. That allowed silent setting of arbitrary
         // dates (year 9999, dates in the past, malformed strings) and is the
@@ -130,6 +144,20 @@ export async function PATCH(
                 isFeatured: true, updatedAt: true, expiresAt: true,
             },
         });
+
+        // C1 fix (2026-06-01): refresh the embedding when admin edits any
+        // field that affects the embedded text (title/description/setting/
+        // population/state/benefits). Conservative: dispatch on every edit
+        // and let the Inngest 30s throttle dedupe. No-op if Inngest env not set.
+        const EMBED_FIELDS = ['title', 'description', 'setting', 'population', 'state', 'benefits'];
+        if (EMBED_FIELDS.some((f) => f in data)) {
+            inngest.send({
+                name: 'embedding.refresh.job',
+                data: { jobId: id },
+            }).catch((err) => {
+                logger.warn('inngest.send embedding.refresh.job failed (admin edit)', undefined, err);
+            });
+        }
 
         // Log expiry edits to AuditLog so we can answer "who changed this and when"
         // for the next anomaly investigation.

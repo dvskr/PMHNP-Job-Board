@@ -4,6 +4,7 @@ import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText, normalize
 import { summarizeForMeta } from '@/lib/description-cleaner';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { inngest } from '@/lib/inngest/client';
 
 interface ScreeningQuestionInput {
   text: string;
@@ -108,6 +109,17 @@ export async function POST(request: NextRequest) {
         population: rawJobData.population !== undefined ? (rawJobData.population || null) : undefined,
         updatedAt: new Date(),
       },
+    });
+
+    // C1: an employer edit changes content-bearing fields (title, description,
+    // setting, population) — refresh the semantic-search embedding so it stays in
+    // sync with the edited text. Fire-and-forget; the Inngest handler skips the
+    // job if it's unpublished. Never block the response on this.
+    inngest.send({
+      name: 'embedding.refresh.job',
+      data: { jobId: updatedJob.id },
+    }).catch((err) => {
+      logger.warn('inngest.send embedding.refresh.job failed (employer edit)', { error: String(err) });
     });
 
     // Update employer-level fields (contact email, website, logo)

@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { trackJobSave, trackJobUnsave, buildJobItem } from '@/lib/analytics';
+// F2: share the canonical map-shaped store with useSavedJobs so the detail-page
+// button and the list-page hook can no longer corrupt each other's localStorage.
+import { read, add, remove } from '@/lib/saved-jobs';
 
 interface SaveJobButtonProps {
   jobId: string;
@@ -11,33 +14,21 @@ export default function SaveJobButton({ jobId }: SaveJobButtonProps) {
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
-    // Read saved jobs from localStorage
+    // Defer the read so SSR markup (unsaved) matches the first client paint,
+    // then reconcile against the shared store.
     const timer = setTimeout(() => {
-      try {
-        const raw = JSON.parse(localStorage.getItem('savedJobs') || '[]');
-        const savedJobs = Array.isArray(raw) ? raw : [];
-        setIsSaved(savedJobs.includes(jobId));
-      } catch {
-        setIsSaved(false);
-      }
+      setIsSaved(jobId in read());
     }, 0);
     return () => clearTimeout(timer);
   }, [jobId]);
 
   const toggleSave = () => {
-    const raw = JSON.parse(localStorage.getItem('savedJobs') || '[]');
-    const savedJobs: string[] = Array.isArray(raw) ? raw : [];
-
     if (isSaved) {
-      // Remove from saved
-      const updatedJobs = savedJobs.filter((id: string) => id !== jobId);
-      localStorage.setItem('savedJobs', JSON.stringify(updatedJobs));
+      remove(jobId);
       setIsSaved(false);
       trackJobUnsave(buildJobItem({ id: jobId, title: '' }));
     } else {
-      // Add to saved
-      savedJobs.push(jobId);
-      localStorage.setItem('savedJobs', JSON.stringify(savedJobs));
+      add(jobId);
       setIsSaved(true);
       trackJobSave(buildJobItem({ id: jobId, title: '' }));
     }

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { inngest } from '@/lib/inngest/client';
 
 /**
  * PATCH /api/employer/jobs/[jobId]/toggle-publish
@@ -51,13 +52,16 @@ export async function PATCH(
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        // Find the employer job and verify ownership
+        // Find the employer job and verify ownership.
+        // P5.A (2026-06-01): contactEmail fallback only honored for
+        // legacy rows that never got a claimed userId — closes the
+        // signup-with-existing-employer-email impersonation surface.
         const employerJob = await prisma.employerJob.findFirst({
             where: {
                 jobId,
                 OR: [
                     { userId: user.id },
-                    { contactEmail: user.email! },
+                    { userId: null, contactEmail: user.email! },
                 ],
             },
             include: {
@@ -147,6 +151,17 @@ export async function PATCH(
             isPublished: newPublishedState,
             userId: user.id,
         });
+
+        // C1: on republish the job re-enters the catalog with a possibly stale or
+        // absent embedding — refresh it so it surfaces in AI search. Fire-and-forget.
+        if (newPublishedState) {
+            inngest.send({
+                name: 'embedding.refresh.job',
+                data: { jobId: job.id },
+            }).catch((err) => {
+                logger.warn('inngest.send embedding.refresh.job failed (toggle-publish)', { error: String(err) });
+            });
+        }
 
         return NextResponse.json({
             success: true,

@@ -20,7 +20,10 @@ import {
   TrendingUp, Building2, Bell, MapPin, Lightbulb,
   DollarSign, Users, AlertTriangle, Activity, Heart, Shield, ArrowRight,
 } from 'lucide-react';
+import { cache } from 'react';
 import { withTagFallback } from './category-tagger';
+import { shouldRenderCategoryCity } from './render-gate';
+import { JOB_LISTING_OMIT } from './job-listing-omit';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -746,6 +749,7 @@ async function getCityJobs(config: CategoryConfig, city: CityData, skip = 0, tak
     const where = config.buildWhere(city.state, city.name) as any;
     return await prisma.job.findMany({
       where,
+      omit: JOB_LISTING_OMIT, // Perf1: don't pull the multi-KB description for cards
       orderBy: [
         { isFeatured: 'desc' },
         { qualityScore: 'desc' },
@@ -763,7 +767,9 @@ async function getCityJobs(config: CategoryConfig, city: CityData, skip = 0, tak
 
 const EMPTY_STATS = { totalJobs: 0, rawAvgSalary: 0, colAdjustedSalary: 0 };
 
-async function getCityStats(config: CategoryConfig, city: CityData) {
+// Perf2: cache() dedupes the duplicate call within a render (metadata + page
+// component both call getCityStats with the same module-level config/city refs).
+const getCityStats = cache(async function getCityStats(config: CategoryConfig, city: CityData) {
   try {
     const stats = await prisma.pseoStats.findUnique({
       where: {
@@ -803,7 +809,7 @@ async function getCityStats(config: CategoryConfig, city: CityData) {
     console.error(`[category-city] Failed to fetch stats for ${config.slug}/${city.slug}:`, error);
     return EMPTY_STATS;
   }
-}
+});
 
 // ─── Market Demand Score ───────────────────────────────────────────────────────
 
@@ -991,6 +997,17 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
     const { permanentRedirect } = await import('next/navigation');
     // Redirect to: /jobs/{category} — the parent enterprise category page
     permanentRedirect(`/jobs/${config.slug}`);
+  }
+
+  // ═══ SEO GUARD (S4): hard 404 for thin doorway pages (1-2 jobs) ═══
+  // 0 jobs already redirected above. 1-2 jobs render near-identical content
+  // across thousands of URLs; meta-robots noindex alone is insufficient because
+  // Google still crawls and processes the 200. notFound() removes them from the
+  // crawl entirely. Threshold = 3 (shared with the city page, sitemap gate, and
+  // seo_threshold_decision.md).
+  if (!shouldRenderCategoryCity(stats.totalJobs)) {
+    const { notFound: notFoundFn } = await import('next/navigation');
+    notFoundFn();
   }
 
   // 2. Only fetch actual job rows if we know jobs exist

@@ -1,7 +1,14 @@
 import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import { slugify } from '@/lib/utils'
-import { isEmailSuppressed } from '@/lib/email-service'
+import { isEmailSuppressed, getOrCreateUnsubToken } from '@/lib/email-service'
+import {
+  interpretResendBatch,
+  buildJobAlertEmailRows,
+  type BatchOutcome,
+  type ResendBatchResponse,
+} from '@/lib/email/batch-send-result'
+import { oneClickUnsubscribeUrl } from '@/lib/email/list-unsubscribe'
 import {
   emailShellV2, headerBlockV2,
   primaryButtonV2, secondaryButtonV2, spacerV2, closeContentV2,
@@ -555,6 +562,10 @@ export async function sendJobAlerts(): Promise<{
       const primary = group[0].alert
       const filteredUrl = buildFilteredJobsUrl(primary)
       const unsubUrl = `${BASE_URL}/job-alerts/unsubscribe?token=${primary.token}`
+      // E1 fix: the one-click endpoint looks up EmailLead.unsubscribeToken, NOT
+      // JobAlert.token — feed it the right token or the machine POST 200s into a no-op.
+      const oneClickToken = await getOrCreateUnsubToken(primary.email)
+      const oneClickUrl = oneClickUnsubscribeUrl(BASE_URL, oneClickToken)
       const html = buildAlertHtml(displayJobs, primary.token, combinedCriteria, filteredUrl, dedupedTotal)
       const alertWord = group.length > 1 ? 'Alerts' : 'Alert'
       const subject = `${dedupedTotal} New PMHNP Job${dedupedTotal > 1 ? 's' : ''} Match Your ${alertWord}`
@@ -570,7 +581,8 @@ export async function sendJobAlerts(): Promise<{
           text: htmlToPlainText(html),
           replyTo: EMAIL_REPLY_TO,
           headers: {
-            'List-Unsubscribe': `<${unsubUrl}>`,
+            // E1: machine-POST URL targets the real one-click endpoint; human page is the fallback.
+            'List-Unsubscribe': `<${oneClickUrl}>, <${unsubUrl}>`,
             'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
           },
         },
@@ -591,12 +603,17 @@ export async function sendJobAlerts(): Promise<{
 
       console.log(`[Alerts] Sending batch ${batchNum}/${totalBatches} (${batch.length} emails)`)
 
-      // Retry with backoff on rate limits
-      let sent = false
+      // Retry with backoff on rate limits. Resend returns API errors in the
+      // response (it does not throw), so capture the response and interpret it
+      // — E2: this is how we recover the per-email message IDs and the real
+      // success/failure state instead of assuming "sent".
+      let batchOutcome: BatchOutcome = { ok: false, reason: 'Rate limited after 3 retries' }
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          await resend.batch.send(batch.map(b => b.payload))
-          sent = true
+          const response = await resend.batch.send(batch.map(b => b.payload))
+          batchOutcome = interpretResendBatch(response as ResendBatchResponse)
+          // A non-throwing API error is permanent (bad key, invalid payload) —
+          // don't burn retries on it.
           break
         } catch (sendError: unknown) {
           const errMsg = sendError instanceof Error ? sendError.message : String(sendError)
@@ -605,12 +622,20 @@ export async function sendJobAlerts(): Promise<{
             console.log(`[Alerts] Batch ${batchNum} rate limited, retrying in ${backoff}ms (${attempt + 1}/3)`)
             await new Promise(r => setTimeout(r, backoff))
           } else {
-            throw sendError
+            // Non-rate-limit throw: fail THIS batch only (record it below) and let
+            // the loop continue — a single bad batch must not abort all the rest.
+            batchOutcome = { ok: false, reason: errMsg }
+            break
           }
         }
       }
 
-      if (sent) {
+      const emailRows = buildJobAlertEmailRows(
+        batch.map(b => ({ email: b.email, subject: b.payload.subject })),
+        batchOutcome,
+      )
+
+      if (batchOutcome.ok) {
         // Mark every alert that contributed to a sent email (across multi-alert users).
         const alertIds = batch.flatMap(b => b.alertIds)
         await prisma.jobAlert.updateMany({
@@ -619,23 +644,19 @@ export async function sendJobAlerts(): Promise<{
         })
         results.sent += batch.length
         console.log(`[Alerts] Batch ${batchNum} sent successfully (${batch.length} emails, covering ${alertIds.length} alerts)`)
-
-        // Log each batch send to EmailSend (non-blocking)
-        try {
-          await prisma.emailSend.createMany({
-            data: batch.map(b => ({
-              to: b.email,
-              subject: b.payload.subject,
-              emailType: 'job_alert',
-            })),
-          })
-        } catch (logErr) {
-          logger.error('Failed to log batch email sends', logErr)
-        }
       } else {
+        // Not delivered — surface the real reason and do NOT advance lastSentAt
+        // (these users are re-selected next cycle, which is correct).
         for (const b of batch) {
-          results.errors.push(`Alert(s) ${b.alertIds.join(',')} (${b.email}): Rate limited after 3 retries`)
+          results.errors.push(`Alert(s) ${b.alertIds.join(',')} (${b.email}): ${batchOutcome.reason}`)
         }
+      }
+
+      // Log each email's real outcome (with resendId on success) — non-blocking.
+      try {
+        await prisma.emailSend.createMany({ data: emailRows })
+      } catch (logErr) {
+        logger.error('Failed to log batch email sends', logErr)
       }
 
       // Small pause between batches to be safe

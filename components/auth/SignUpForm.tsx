@@ -217,7 +217,7 @@ export default function SignUpForm() {
           <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0 }}>
             We&apos;ve sent a confirmation link to <strong>{email}</strong>
           </p>
-          <p style={{ fontSize: '12px', color: '#94A3B0', margin: 0 }}>
+          <p style={{ fontSize: '12px', color: '#4B5E68', margin: 0 }}>
             Check spam/junk if you don&apos;t see it within a few minutes.
           </p>
           <div style={{ marginTop: '4px' }}>
@@ -320,7 +320,7 @@ export default function SignUpForm() {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {error && (
-            <div style={errorBannerStyle}>
+            <div role="alert" style={errorBannerStyle}>
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <p style={{ fontSize: '13px', color: '#DC2626', margin: 0 }}>{error}</p>
             </div>

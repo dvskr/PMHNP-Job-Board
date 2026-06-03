@@ -12,6 +12,7 @@ import {
   V2, SANS as SANS_V2, SERIF as SERIF_V2,
 } from '@/lib/email-templates-v2';
 import { renderJobCardHtml } from '@/lib/utils/render-job-card';
+import { buildListUnsubscribeHeaders } from '@/lib/email/list-unsubscribe';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -132,8 +133,9 @@ function htmlToPlainText(html: string): string {
 // ── Email send wrapper — logs every email to EmailSend table ──
 //
 // Every send across the platform should go through this wrapper so we get:
-//   • Suppression check (callers should still gate with isEmailSuppressed before
-//     building expensive HTML, but this is the last line of defense)
+//   • NOTE: this wrapper does NOT check suppression. Callers that send marketing/
+//     bulk mail MUST gate with isEmailSuppressed(to) themselves before calling it
+//     (job-alerts and candidate-alerts already do). Transactional mail is exempt.
 //   • Sender-domain selection (transactional vs marketing, based on emailType)
 //   • List-Unsubscribe header injection (Gmail/Yahoo bulk-sender rule)
 //   • EmailSend row in the DB for analytics + webhook status updates
@@ -164,12 +166,14 @@ export async function sendAndLog(
     headers: {},
   };
 
-  // Add List-Unsubscribe headers for compliance (required by Gmail/Yahoo)
-  if (unsubscribeUrl) {
-    sendParams.headers = {
-      'List-Unsubscribe': `<${unsubscribeUrl}>`,
-      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-    };
+  // Add List-Unsubscribe headers for compliance (required by Gmail/Yahoo).
+  // E1: the machine-POST URL points at the real /api/one-click-unsubscribe
+  // endpoint (not the client-only page that 405s), with the human page as a
+  // second fallback. No token in the URL → plain unsubscribe link, no false
+  // one-click claim.
+  const unsubHeaders = buildListUnsubscribeHeaders(unsubscribeUrl, BASE_URL);
+  if (unsubHeaders) {
+    sendParams.headers = unsubHeaders;
   }
 
   const result = await resend.emails.send(sendParams);
@@ -983,6 +987,17 @@ export async function sendNewCandidateAlertEmail(
   candidates: CandidateDigest[]
 ): Promise<EmailResult> {
   try {
+    // E3: gate on suppression so we never mail bounced/complained/unsubscribed
+    // employer addresses (this path previously skipped the check entirely).
+    if (await isEmailSuppressed(recipientEmail)) {
+      logger.info('Candidate alert suppressed', { recipientEmail });
+      return { success: false, error: 'suppressed' };
+    }
+
+    // E3: thread a REAL per-recipient unsubscribe token (was the literal 'sample')
+    // so the footer link works and sendAndLog can attach the List-Unsubscribe header.
+    const unsubToken = await getOrCreateUnsubToken(recipientEmail);
+    const unsubscribeUrl = `${BASE_URL}/unsubscribe?token=${unsubToken}`;
 
     const html = emailShellV2(`
       ${headerBlockV2('New Candidate Match', '')}
@@ -994,7 +1009,7 @@ export async function sendNewCandidateAlertEmail(
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2('sample'),
+      unsubscribeFooterV2(unsubToken),
       `A new candidate matching your criteria just joined.`
     );
 
@@ -1003,7 +1018,7 @@ export async function sendNewCandidateAlertEmail(
       to: recipientEmail,
       subject: `🔔 ${candidates.length} new candidate${candidates.length !== 1 ? 's' : ''} match your criteria`,
       html,
-    }, 'candidate_alert', { candidateCount: candidates.length });
+    }, 'candidate_alert', { candidateCount: candidates.length }, unsubscribeUrl);
 
     logger.info('New candidate alert sent', { recipientEmail, count: candidates.length });
     return { success: true };

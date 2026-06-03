@@ -178,8 +178,11 @@ async function extractResumeText(resumeUrl: string | null | undefined): Promise<
 
 // ─── Profile Context Builder ───
 
+// Exported only for the C4 unit test which asserts that EEO special-category
+// data never leaks into the OpenAI payload unless the user has explicitly
+// opted in via sensitiveDataConsent.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildProfileContext(profile: any): string {
+export function buildProfileContext(profile: any): string {
     if (!profile) return 'No profile data available.';
 
     const parts: string[] = [];
@@ -244,11 +247,22 @@ function buildProfileContext(profile: any): string {
         parts.push(`Experience: ${workInfo}`);
     }
 
-    // EEO / Self-identification
-    if (profile.gender) parts.push(`Gender: ${profile.gender}`);
-    if (profile.raceEthnicity) parts.push(`Race/Ethnicity: ${profile.raceEthnicity}`);
-    if (profile.veteranStatus) parts.push(`Veteran Status: ${profile.veteranStatus}`);
-    if (profile.disabilityStatus) parts.push(`Disability Status: ${profile.disabilityStatus}`);
+    // C4 fix (2026-06-01): EEO self-identification fields (race, gender,
+    // veteran status, disability status) are GDPR Art. 9 special-category
+    // data and the public privacy policy §13 states they are never shared.
+    // The prior version unconditionally appended them to the prompt sent
+    // to OpenAI, an undisclosed processor for this data class. The
+    // `sensitiveDataConsent` flag is now checked; absent explicit opt-in
+    // these fields are excluded from the OpenAI payload entirely.
+    //
+    // Work-auth / sponsorship are NOT in the special-category set — they
+    // are routine application fields and stay outside the gate.
+    if (profile.sensitiveDataConsent === true) {
+        if (profile.gender) parts.push(`Gender: ${profile.gender}`);
+        if (profile.raceEthnicity) parts.push(`Race/Ethnicity: ${profile.raceEthnicity}`);
+        if (profile.veteranStatus) parts.push(`Veteran Status: ${profile.veteranStatus}`);
+        if (profile.disabilityStatus) parts.push(`Disability Status: ${profile.disabilityStatus}`);
+    }
     if (profile.workAuthorized != null) parts.push(`Work Authorized in US: ${profile.workAuthorized ? 'Yes' : 'No'}`);
     if (profile.requiresSponsorship != null) parts.push(`Requires Sponsorship: ${profile.requiresSponsorship ? 'Yes' : 'No'}`);
 
@@ -282,7 +296,7 @@ You MUST respond with valid JSON in this format:
 CRITICAL RULES:
 1. For select/dropdown/radio fields that have an options list: your value MUST be an EXACT match of one of the provided options. Never paraphrase, abbreviate, or invent a value. Copy the option string exactly.
 2. When matching profile data to dropdown options, find the option that best represents the candidate's actual data. For example, if the candidate's state is "TX" and the options are ["Texas","California",...], return "Texas".
-3. For EEO self-identification fields (race, gender, veteran, disability): ALWAYS use the candidate's actual profile data to pick the correct option. Never default to "Decline to self-identify" unless the candidate's profile is blank for that field.
+3. For EEO self-identification fields (race, gender, veteran, disability): if the candidate's profile is included above, pick the matching option. If the profile is NOT included (the candidate has not opted in to sharing this category of data), select "Decline to self-identify" if that option exists, otherwise leave the value empty with confidence 0.
 4. For factual fields (name, phone, location, company, license numbers), extract the exact value from the profile/resume. NEVER return an empty value for a factual field if the profile/resume contains the answer.
 5. For questions (describe, explain, why), generate a professional first-person answer.
 6. For yes/no questions, provide "Yes" or "No" based on the profile.

@@ -138,5 +138,53 @@ describe('Sanitization Utilities', () => {
             const result = sanitizeJobPosting(input);
             expect(result.applyLink).toBe('');
         });
+
+        // Sec1 (audit 2026-05-31): job descriptions are stored HTML rendered via
+        // dangerouslySetInnerHTML. The old write path used the regex-only
+        // `sanitizeText`, which leaves <iframe>, unquoted on* handlers, <svg>,
+        // and <style> intact — a stored-XSS surface protected only at render
+        // time. The fix applies the DOM-based sanitizer at write time too.
+        describe('stored-XSS hardening of description (write-time)', () => {
+            const base = {
+                title: 'PMHNP',
+                employer: 'Clinic',
+                location: 'NYC',
+                applyLink: 'https://example.com/apply',
+                contactEmail: 'a@b.com',
+            };
+            const desc = (description: string) =>
+                sanitizeJobPosting({ ...base, description }).description;
+
+            it('strips <iframe> from the description', () => {
+                expect(desc('<p>Join us</p><iframe src="https://evil.com"></iframe>'))
+                    .not.toMatch(/<iframe/i);
+            });
+
+            it('strips UNQUOTED inline event handlers (onerror)', () => {
+                // The regex sanitizer only matched quoted handlers; this survived.
+                expect(desc('<img src=x onerror=alert(1)>')).not.toMatch(/onerror/i);
+            });
+
+            it('strips <svg> with onload', () => {
+                const out = desc('<svg onload=alert(1)></svg>');
+                expect(out).not.toMatch(/<svg/i);
+                expect(out).not.toMatch(/onload/i);
+            });
+
+            it('drops javascript: hrefs on anchors', () => {
+                expect(desc('<a href="javascript:alert(1)">click</a>')).not.toMatch(/javascript:/i);
+            });
+
+            it('strips <style> blocks (CSS exfiltration)', () => {
+                expect(desc('<style>*{background:url(https://evil/?c)}</style>hello'))
+                    .not.toMatch(/<style/i);
+            });
+
+            it('preserves legitimate rich-text formatting', () => {
+                const out = desc('<p>Great <strong>job</strong></p><ul><li>Flexible</li></ul>');
+                expect(out).toMatch(/<strong>job<\/strong>/);
+                expect(out).toMatch(/<li>Flexible<\/li>/);
+            });
+        });
     });
 });

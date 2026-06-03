@@ -33,12 +33,20 @@ export async function GET(req: NextRequest) {
     const statusFilter = searchParams.get('status');
     const jobIdFilter = searchParams.get('jobId');
 
-    // Get all job IDs owned by this employer
+    // P5.A fix (2026-06-01): ownership tightened. Pre-fix: OR(userId,
+    // contactEmail) meant anyone who signed up with an existing
+    // employer's contactEmail could see/manage their applicants. Now:
+    //   - Rows WITH userId require strict userId match (claimed posts).
+    //   - Rows WITHOUT userId fall back to contactEmail match (legacy
+    //     pre-account posts that never got upgraded).
+    // Supabase's signup-email verification is the trust anchor for the
+    // contactEmail branch: an attacker can't sign up with someone
+    // else's email without controlling the inbox.
     const employerJobs = await prisma.employerJob.findMany({
         where: {
             OR: [
                 { userId: user.id },
-                { contactEmail: user.email! },
+                { userId: null, contactEmail: user.email! },
             ],
         },
         select: { jobId: true, job: { select: { title: true, id: true } } },
@@ -227,12 +235,14 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
 
-    // Check ownership: admin always allowed, otherwise check userId OR contactEmail
+    // P5.A: tightened ownership. Same logic as the listing query above —
+    // contactEmail fallback only applies when the row has no claimed
+    // userId. Prevents takeover by signup-with-existing-employer-email.
     const employerJob = application.job.employerJobs;
     const isAdmin = profile.role === 'admin';
-    const isOwner = isAdmin || (employerJob && (
+    const isOwner = isAdmin || (!!employerJob && (
         (employerJob.userId && employerJob.userId === user.id) ||
-        (employerJob.contactEmail && employerJob.contactEmail === user.email)
+        (!employerJob.userId && employerJob.contactEmail === user.email)
     ));
 
     if (!isOwner) {

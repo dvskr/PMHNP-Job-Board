@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { getAllPublishedSlugs } from '@/lib/blog'
 import { getAllMetroSlugs } from '@/lib/metro-data'
+import { activeIndexableJobWhere } from '@/lib/active-job-filter'
 
 // GSC Fix: Cache sitemap for 1 hour. Without this, every Googlebot request to
 // /sitemap.xml triggers a full DB scan across jobs, companies, and blog tables.
@@ -10,14 +11,8 @@ export const revalidate = 3600;
 
 const METRO_SLUGS = getAllMetroSlugs();
 
-// Shared filter: published AND not expired
-const ACTIVE_JOB_WHERE = {
-  isPublished: true,
-  OR: [
-    { expiresAt: null },
-    { expiresAt: { gt: new Date() } },
-  ],
-};
+// Shared filter: published, not expired, and not a repeated dead link (S6).
+const ACTIVE_JOB_WHERE = activeIndexableJobWhere();
 
 // All 50 US states + DC
 const US_STATES = [
