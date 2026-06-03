@@ -127,11 +127,12 @@ export default function SalaryCalculator({ stateSalaries, nationalAvg }: Props) 
 
             {/* State */}
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+              <label htmlFor="sal-state" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                 State
               </label>
               <div style={{ position: 'relative' }}>
                 <select
+                  id="sal-state"
                   value={selectedState}
                   onChange={e => setSelectedState(e.target.value)}
                   style={selectStyle}
@@ -147,11 +148,11 @@ export default function SalaryCalculator({ stateSalaries, nationalAvg }: Props) 
 
             {/* Experience */}
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+              <label htmlFor="sal-experience" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                 Experience Level
               </label>
               <div style={{ position: 'relative' }}>
-                <select value={experience} onChange={e => setExperience(e.target.value)} style={selectStyle}>
+                <select id="sal-experience" value={experience} onChange={e => setExperience(e.target.value)} style={selectStyle}>
                   {EXPERIENCE_OPTIONS.map(o => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
@@ -162,11 +163,11 @@ export default function SalaryCalculator({ stateSalaries, nationalAvg }: Props) 
 
             {/* Setting */}
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+              <label htmlFor="sal-setting" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                 Practice Setting
               </label>
               <div style={{ position: 'relative' }}>
-                <select value={setting} onChange={e => setSetting(e.target.value)} style={selectStyle}>
+                <select id="sal-setting" value={setting} onChange={e => setSetting(e.target.value)} style={selectStyle}>
                   {SETTING_OPTIONS.map(o => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
@@ -177,11 +178,11 @@ export default function SalaryCalculator({ stateSalaries, nationalAvg }: Props) 
 
             {/* Specialty */}
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+              <label htmlFor="sal-specialty" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                 Specialty
               </label>
               <div style={{ position: 'relative' }}>
-                <select value={specialty} onChange={e => setSpecialty(e.target.value)} style={selectStyle}>
+                <select id="sal-specialty" value={specialty} onChange={e => setSpecialty(e.target.value)} style={selectStyle}>
                   {SPECIALTY_OPTIONS.map(o => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}

@@ -32,6 +32,7 @@ vi.mock('@/lib/prisma', () => {
                 findMany: vi.fn(),
                 create: vi.fn(),
                 update: vi.fn(),
+                updateMany: vi.fn(),
                 delete: vi.fn(),
             },
             employerJob: {
@@ -135,6 +136,7 @@ vi.mock('@/lib/prisma', () => {
             },
             emailSend: {
                 create: vi.fn(),
+                createMany: vi.fn(),
                 findMany: vi.fn(),
                 update: vi.fn(),
                 updateMany: vi.fn(),

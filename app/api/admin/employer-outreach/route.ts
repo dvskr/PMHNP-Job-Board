@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { prisma } from '@/lib/prisma';
 import { isEmailSuppressed, getOrCreateUnsubToken } from '@/lib/email-service';
+import { oneClickUnsubscribeUrl } from '@/lib/email/list-unsubscribe';
 import { config } from '@/lib/config';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -337,7 +338,8 @@ export async function POST(request: Request) {
         html,
         text,
         headers: {
-          'List-Unsubscribe': `<${UNSUB_BASE}?token=${tokenByEmail.get(r.email)}>`,
+          // E1: machine-POST URL targets the real one-click endpoint; human page is the fallback.
+          'List-Unsubscribe': `<${oneClickUnsubscribeUrl(BASE, tokenByEmail.get(r.email)!)}>, <${UNSUB_BASE}?token=${tokenByEmail.get(r.email)}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         },
       }));

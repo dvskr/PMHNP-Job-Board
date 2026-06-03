@@ -72,10 +72,13 @@ async function main(): Promise<void> {
     }
 
     if (fb) {
-        // One copy/paste-ready Facebook post per job. Uses /r/f<id> short
-        // links so FB's auto-linkifier picks them up (long /jobs/<uuid>
-        // URLs were rendering as plain text inside multi-job posts).
+        // One Facebook post containing ALL jobs. Hashtags appear once at
+        // the bottom (not per block) since it's a single post. Uses
+        // /r/f<id> short links so FB auto-linkifies them inline.
         const unmapped: string[] = [];
+        const blocks: string[] = [];
+        blocks.push(`🩺 ${jobs.length} new PMHNP roles hiring now — Mental Health, Telehealth, TMS, Ketamine 👇`);
+        blocks.push('');
         for (const j of jobs) {
             const short = shortLinkFor(j.slug, j.id);
             const url = short ?? `${BASE}/jobs/${j.slug ?? j.id}`;
@@ -86,14 +89,16 @@ async function main(): Promise<void> {
                 `📍 ${j.location}${j.mode ? ` · ${j.mode}` : ''}${j.jobType ? ` · ${j.jobType}` : ''}`,
                 salary ? `💰 ${salary}` : '',
                 j.experienceLabel ? `🎓 ${j.experienceLabel}` : '',
-                ``,
                 url,
-                ``,
-                `#PMHNP #PsychNP #NursePractitioner #MentalHealthJobs #PMHNPJobs`,
             ].filter(Boolean);
-            console.log(lines.join('\n'));
-            console.log('\n---\n');
+            blocks.push(lines.join('\n'));
+            blocks.push('---');
         }
+        // Drop the trailing '---' so the post ends cleanly with hashtags.
+        if (blocks[blocks.length - 1] === '---') blocks.pop();
+        blocks.push('');
+        blocks.push('#PMHNP #PsychNP #NursePractitioner #MentalHealthJobs #PMHNPJobs #PsychiatricNursePractitioner #Telehealth #MentalHealth #NPJobs #PMHNPHiring');
+        console.log(blocks.join('\n'));
         if (unmapped.length > 0) {
             console.error(`\n⚠  ${unmapped.length} job(s) not in ACTIVE_CAMPAIGN — falling back to long URLs:`);
             for (const u of unmapped) console.error(`   - ${u}`);

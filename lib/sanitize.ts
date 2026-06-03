@@ -178,7 +178,11 @@ export function sanitizeJobPosting(input: JobPostingInput): JobPostingInput {
         title: sanitizeText(input.title, 200),
         employer: sanitizeText(input.employer, 200),
         location: sanitizeText(input.location, 200),
-        description: sanitizeText(input.description, 50000),
+        // Sec1: the description is stored HTML rendered via dangerouslySetInnerHTML,
+        // so it must be cleaned with the DOM-based sanitizer at WRITE time — not
+        // only at render. `sanitizeText` is regex-only and leaves <iframe>,
+        // <svg>, <style>, and unquoted on* handlers intact (stored XSS).
+        description: sanitizeHtmlContent(input.description).slice(0, 50000),
         applyLink: input.applyLink ? sanitizeUrl(input.applyLink) : null,
         contactEmail: sanitizeEmail(input.contactEmail),
         mode: input.mode ? sanitizeText(input.mode, 50) : undefined,

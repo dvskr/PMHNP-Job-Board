@@ -138,9 +138,15 @@ export function isNewJob(job: { originalPostedAt?: Date | null; createdAt: Date 
   return hoursSincePosted < 72; // Increased to 72h for better "New" badge coverage with historical dates
 }
 
-export function getJobFreshness(job: { originalPostedAt?: Date | null; createdAt: Date } | Date): string {
+export function getJobFreshness(
+  job: { originalPostedAt?: Date | null; createdAt: Date } | Date,
+  now: Date = new Date(),
+): string {
   const dateObj = getEffectiveDate(job);
-  const now = new Date();
+  // `now` is injected (defaults to the live clock). Callers that need
+  // determinism — SSR and unit tests — pass a fixed reference so the
+  // server-rendered string matches the client and hydration #418 (S5)
+  // can't fire from a server/client clock skew.
 
   const hours = differenceInHours(now, dateObj);
   const days = differenceInDays(now, dateObj);

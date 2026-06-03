@@ -5,10 +5,12 @@
  * Each setting page just provides the setting key and state slug;
  * this factory handles data fetching, rendering, and SEO metadata.
  */
+import { cache } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getCitiesByState } from './city-data/cities';
 import { Metadata } from 'next';
+import { JOB_LISTING_OMIT } from './job-listing-omit';
 import {
   TrendingUp, Building2, Bell, MapPin, Lightbulb,
   DollarSign, Users, ArrowRight,
@@ -58,6 +60,7 @@ async function getJobs(config: SettingConfig, stateName: string, skip = 0, take 
   const where = config.buildWhere(stateName) as any;
   return prisma.job.findMany({
     where,
+    omit: JOB_LISTING_OMIT, // Perf1: don't pull the multi-KB description for cards
     orderBy: [
       { isFeatured: 'desc' },
       { qualityScore: 'desc' },
@@ -69,7 +72,9 @@ async function getJobs(config: SettingConfig, stateName: string, skip = 0, take 
   });
 }
 
-async function getStats(config: SettingConfig, stateName: string, stateSlug: string): Promise<Stats> {
+// Perf2: cache() dedupes the duplicate call within a render (generateMetadata +
+// the page component both call getStats with the same module-level config ref).
+const getStats = cache(async function getStats(config: SettingConfig, stateName: string, stateSlug: string): Promise<Stats> {
   const pseo = await prisma.pseoStats.findUnique({
     where: {
       type_categorySlug_locationSlug: {
@@ -123,7 +128,7 @@ async function getStats(config: SettingConfig, stateName: string, stateSlug: str
       count: e._count.employer,
     })),
   };
-}
+});
 
 // â”€â”€â”€ Metadata Generator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

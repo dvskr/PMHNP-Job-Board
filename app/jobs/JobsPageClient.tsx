@@ -16,6 +16,7 @@ import { Job } from '@/lib/types';
 import { FilterState, DEFAULT_FILTERS } from '@/types/filters';
 import { parseFiltersFromParams } from '@/lib/filters';
 import { useViewMode } from '@/lib/hooks/useViewMode';
+import { resolveAiSearchMode } from '@/lib/jobs/resolve-search-mode';
 
 interface JobsContentProps {
   initialJobs: Job[];
@@ -63,38 +64,6 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   const [aiLoading, setAiLoading] = useState(false);
   const [aiDegraded, setAiDegraded] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-
-  const handleAiSearch = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = aiQuery.trim();
-    if (q.length < 2) return;
-    setAiLoading(true);
-    setAiError(null);
-    setAiSubmittedQuery(q);
-    try {
-      const params = new URLSearchParams({ q, k: '24' });
-      const res = await fetch(`/api/jobs/search/semantic?${params.toString()}`);
-      if (res.status === 404) {
-        // Flag off — degrade gracefully, surface a small inline message.
-        setAiError('AI search is not enabled yet.');
-        setAiResults(null);
-        return;
-      }
-      if (!res.ok) {
-        setAiError(`Search failed (${res.status}). Try again or use filters below.`);
-        setAiResults(null);
-        return;
-      }
-      const data = (await res.json()) as { jobs: AiHit[]; degraded: boolean };
-      setAiResults(data.jobs);
-      setAiDegraded(!!data.degraded);
-    } catch (err) {
-      setAiError(err instanceof Error ? err.message : 'Search failed');
-      setAiResults(null);
-    } finally {
-      setAiLoading(false);
-    }
-  }, [aiQuery]);
 
   const clearAiSearch = useCallback(() => {
     setAiResults(null);
@@ -202,6 +171,54 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
       setLoading(false);
     }
   }, []);
+
+  // Defined after fetchJobs so the keyword-fallback path can call it (TDZ-safe).
+  const handleAiSearch = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = aiQuery.trim();
+    if (q.length < 2) return;
+    setAiLoading(true);
+    setAiError(null);
+    setAiSubmittedQuery(q);
+
+    // F1: probe the semantic endpoint, then let resolveAiSearchMode decide.
+    // Any failure mode (flag off / error / no embeddings yet) falls back to
+    // keyword search with the SAME typed query — the bar is never a dead end.
+    let status: number | null = null;
+    let jobs: AiHit[] | null = null;
+    let degraded = false;
+    try {
+      const params = new URLSearchParams({ q, k: '24' });
+      const res = await fetch(`/api/jobs/search/semantic?${params.toString()}`);
+      status = res.status;
+      if (res.ok) {
+        const data = (await res.json()) as { jobs: AiHit[]; degraded: boolean };
+        jobs = data.jobs;
+        degraded = !!data.degraded;
+      }
+    } catch {
+      status = null; // network failure
+    }
+
+    const outcome = resolveAiSearchMode(status, jobs, q);
+
+    if (outcome.mode === 'keyword-fallback') {
+      // Push the query into keyword search; clearing aiResults/aiError hides the
+      // AI panel so the normal keyword job list takes over (no stranded query).
+      setAiResults(null);
+      setAiDegraded(false);
+      setAiError(null);
+      setAiLoading(false);
+      const nextFilters = { ...currentFilters, search: outcome.query };
+      setCurrentFilters(nextFilters);
+      fetchJobs(nextFilters, 1, sortOption);
+      return;
+    }
+
+    setAiResults(outcome.jobs as AiHit[]);
+    setAiDegraded(degraded);
+    setAiLoading(false);
+  }, [aiQuery, currentFilters, fetchJobs, sortOption]);
 
   // Fetch jobs when filters change
   useEffect(() => {

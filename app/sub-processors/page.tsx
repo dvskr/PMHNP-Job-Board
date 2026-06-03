@@ -21,7 +21,7 @@ interface SubProcessor {
     privacyUrl: string;
 }
 
-const SUB_PROCESSORS: SubProcessor[] = [
+export const SUB_PROCESSORS: SubProcessor[] = [
     {
         name: 'Vercel, Inc.',
         purpose: 'Application hosting, edge functions, performance telemetry (Speed Insights)',
@@ -77,6 +77,33 @@ const SUB_PROCESSORS: SubProcessor[] = [
         dpa: 'https://sentry.io/legal/dpa/',
         privacyUrl: 'https://sentry.io/privacy/',
     },
+    {
+        name: 'OpenAI, L.L.C.',
+        purpose: 'AI résumé parsing (auto-fill profile from an uploaded résumé) and candidate/job embedding generation for semantic search and personalized recommendations',
+        dataShared: 'Résumé text (name, contact details, work history, education, licenses, NPI/DEA numbers); candidate profile synopsis (headline, bio, specialties, certifications, licensed states, years of experience). Processed in-flight; not used to train OpenAI models under the API data-usage policy.',
+        location: 'United States',
+        transferMechanism: 'Standard Contractual Clauses (SCCs)',
+        dpa: 'https://openai.com/policies/data-processing-addendum',
+        privacyUrl: 'https://openai.com/policies/privacy-policy',
+    },
+    {
+        name: 'Upstash, Inc. (Redis)',
+        purpose: 'Serverless Redis for HTTP rate limiting, AI response caching (to avoid duplicate LLM calls), and ingest-pipeline cross-chunk job-presence aggregation',
+        dataShared: 'IP address (rate-limit keys); pseudonymous user/tenant identifiers (AI rate-limit keys); cached AI response content which may include structured candidate data extracted from résumés (TTL-bounded, keyed by a hash of inputs)',
+        location: 'United States',
+        transferMechanism: 'Standard Contractual Clauses (SCCs)',
+        dpa: 'https://upstash.com/trust/dpa.pdf',
+        privacyUrl: 'https://upstash.com/trust/privacy.pdf',
+    },
+    {
+        name: 'Inngest, Inc.',
+        purpose: 'Durable background job execution: embedding-refresh jobs (on profile/job update), daily recommendation generation, weekly recommendation-digest emails, and job-health recovery probes',
+        dataShared: 'Event payloads include a pseudonymous user identifier (UUID) and job identifiers/apply-link URLs. The recommendation-digest function processes candidate email address and first name within its step executions.',
+        location: 'United States',
+        transferMechanism: 'Standard Contractual Clauses (SCCs)',
+        dpa: 'https://www.inngest.com/legal/dpa',
+        privacyUrl: 'https://www.inngest.com/privacy',
+    },
 ];
 
 const clayCard: React.CSSProperties = {
@@ -107,7 +134,7 @@ export default function SubProcessorsPage() {
                     <h1 style={{ fontSize: 'clamp(2rem, 5vw, 2.75rem)', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 12px 0', lineHeight: 1.15 }}>
                         Sub-<span style={{ color: '#1D4ED8' }}>processors</span>
                     </h1>
-                    <p style={{ fontSize: '15px', color: '#6B7F8A', margin: 0, lineHeight: 1.6 }}>Last updated: 2026-05-01</p>
+                    <p style={{ fontSize: '15px', color: '#6B7F8A', margin: 0, lineHeight: 1.6 }}>Last updated: 2026-06-01</p>
                 </header>
 
                 <p style={pStyle}>

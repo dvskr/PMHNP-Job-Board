@@ -21,17 +21,13 @@
  */
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { activeIndexableJobWhere } from '@/lib/active-job-filter';
 
 const BATCH_SIZE = 25000;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
-const ACTIVE_JOB_WHERE = {
-    isPublished: true,
-    OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } },
-    ],
-};
+// Published, not expired, and not a repeated dead link (S6).
+const ACTIVE_JOB_WHERE = activeIndexableJobWhere();
 
 interface JobBatchRow {
     id: string;

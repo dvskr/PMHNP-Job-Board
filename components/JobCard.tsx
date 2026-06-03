@@ -169,7 +169,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     return null;
   };
 
-  const ageIndicator = getJobAgeIndicator();
+  // S5: getJobAgeIndicator also reads the live clock — keep it behind the same
+  // mount-guard as `freshness` so it never runs during SSR / first client render.
+  const ageIndicator = isHydrated ? getJobAgeIndicator() : null;
 
   // Derive correct display mode from boolean fields (mode field can be stale/wrong)
   const displayMode = job.isRemote ? 'Remote' : job.isHybrid ? 'Hybrid' : (job.mode || 'In-Person');
