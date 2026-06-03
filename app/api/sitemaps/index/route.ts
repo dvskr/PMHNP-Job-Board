@@ -10,6 +10,7 @@
  */
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { activeIndexableJobWhere } from '@/lib/active-job-filter';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 
 // Must match SITEMAP_CATEGORIES in cities/[batch]/route.ts
@@ -101,12 +102,10 @@ export async function GET() {
   // sitemap is never rejected wholesale once ingestion volume scales.
   let activeJobCount = 0;
   try {
-    activeJobCount = await prisma.job.count({
-      where: {
-        isPublished: true,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-      },
-    });
+    // #3 fix: use the SAME filter the batch route uses (includes the
+    // healthConsecutiveMissing dead-link gate) so the index never advertises
+    // more job batches than /api/sitemaps/jobs/[batch] actually serves.
+    activeJobCount = await prisma.job.count({ where: activeIndexableJobWhere() });
   } catch {
     // Fall back to a single batch — better to under-list than to hide jobs entirely.
     activeJobCount = 0;

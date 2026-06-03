@@ -4,6 +4,7 @@ import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { isKnownCitySlug } from '@/lib/pseo/city-data/city-slugs-edge';
 import { resolveStateSlug } from '@/lib/pseo/setting-state-config';
 import { getAllMetroSlugs } from '@/lib/metro-data';
+import { JOBS_TOP_SEGMENTS, isUnknownJobsTaxonomy } from '@/lib/pseo/jobs-segments-edge';
 
 // ── pSEO Taxonomy Allowlists (P1.2) ────────────────────────────────
 // Used to detect structurally invalid pSEO URLs and return 410 instead of 404.
@@ -431,7 +432,7 @@ export async function middleware(request: NextRequest) {
                 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.PROD_SUPABASE_SERVICE_ROLE_KEY;
                 if (supabaseUrl && supabaseKey) {
                     const res = await fetch(
-                        `${supabaseUrl}/rest/v1/jobs?id=eq.${jobId}&select=id,is_published`,
+                        `${supabaseUrl}/rest/v1/jobs?id=eq.${jobId}&select=id,is_published,expires_at`,
                         {
                             headers: {
                                 'apikey': supabaseKey,
@@ -441,8 +442,15 @@ export async function middleware(request: NextRequest) {
                     );
                     if (res.ok) {
                         const rows = await res.json();
-                        // Job doesn't exist OR is unpublished → 410 Gone
-                        if (rows.length === 0 || !rows[0].is_published) {
+                        // #1 fix: gone if the row is absent, unpublished, OR expired
+                        // BY DATE while still is_published=true. The old check looked
+                        // at is_published only, so date-expired jobs fell through to
+                        // the page route, which renders a 200 soft-404 ("Position
+                        // Filled" body). Listings/sitemaps already exclude expired
+                        // jobs, so a 410 on the detail URL is consistent.
+                        const row = rows[0];
+                        const dateExpired = !!row?.expires_at && new Date(row.expires_at).getTime() < Date.now();
+                        if (rows.length === 0 || !row.is_published || dateExpired) {
                             cacheLookupSet(cacheKey, true);
                             return styled410({
                                 badge: 'Position Removed',
@@ -474,6 +482,18 @@ export async function middleware(request: NextRequest) {
                 });
                 return unavailable503();
             }
+        } else if (isUnknownJobsTaxonomy(slug, JOBS_TOP_SEGMENTS)) {
+            // S1: a no-UUID /jobs/<slug> that isn't a known taxonomy/namespace
+            // route is a guessed/garbage URL. Return 410 — consistent with every
+            // other invalid /jobs/* URL above — instead of the page route's
+            // soft-404 (HTTP 200 + "Page Not Found" body), which Google indexes
+            // and recrawls far more aggressively than a clean 410.
+            return styled410({
+                badge: 'Page Not Found',
+                heading: 'This page doesn’t exist',
+                subtext: 'The page you’re looking for isn’t here — it may have moved or never existed. Browse current PMHNP openings instead.',
+                title: 'Page Not Found — PMHNP Hiring',
+            });
         }
     }
 
