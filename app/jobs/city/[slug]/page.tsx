@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
+import { selectEligibleCities } from '@/lib/pseo/related-cities';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, TrendingUp, Building2, Bell, MapPinned, ArrowRight } from 'lucide-react';
@@ -265,14 +266,17 @@ async function getRelatedCities(
         take: 12,
     });
 
-    return cityData
-        .filter(c => c.city && c.city.trim().length > 0 && c.city.toLowerCase() !== currentCity.toLowerCase())
-        .slice(0, 8)
-        .map(c => ({
-            name: c.city as string,
-            count: c._count.city,
-            slug: buildCitySlug(c.city as string, stateCode),
-        }));
+    // #4: only surface cities at/above the page's MIN_JOBS render gate so the
+    // sidebar never links to a city page that will notFound() (soft-404 trap).
+    return selectEligibleCities(
+        cityData.map(c => ({ city: c.city, count: c._count.city })),
+        currentCity,
+        8,
+    ).map(c => ({
+        name: c.city as string,
+        count: c.count,
+        slug: buildCitySlug(c.city as string, stateCode),
+    }));
 }
 
 // ─── Props & Metadata ────────────────────────────────────────────────────────
@@ -360,16 +364,18 @@ export default async function CityJobsPage({ params }: CityPageProps) {
     const { slug } = await params;
 
     // ─── Metro redirect: curated metro pages take priority over generic city pages
+    // #5: permanentRedirect (308) — this is a canonical consolidation, so it must
+    // pass link equity to the metro page; a plain redirect() is a 307 (temporary).
     const metroMatch = getMetroCity(slug);
-    if (metroMatch) redirect(`/jobs/metro/${slug}`);
+    if (metroMatch) permanentRedirect(`/jobs/metro/${slug}`);
 
     const parsed = parseCitySlug(slug);
 
     if (!parsed) {
-        // Try resolving slug without state code → redirect to canonical URL
+        // Try resolving slug without state code → canonical URL (permanent: 308).
         const canonical = await resolveAmbiguousSlug(slug);
         if (canonical) {
-            redirect(`/jobs/city/${canonical}`);
+            permanentRedirect(`/jobs/city/${canonical}`);
         }
         notFound();
     }
