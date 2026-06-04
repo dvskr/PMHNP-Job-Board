@@ -175,7 +175,7 @@ export async function GET(request: Request) {
             profile?.firstName || data.user.user_metadata?.first_name || '',
             profile?.role || data.user.user_metadata?.role || 'job_seeker'
           )
-          console.log('Welcome email sent', { email: data.user.email })
+          console.log('Welcome email sent', { userId: data.user.id })
         }
       } catch (welcomeErr) {
         console.error('Failed to send welcome email', welcomeErr)
