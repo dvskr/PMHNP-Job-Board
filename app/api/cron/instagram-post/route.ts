@@ -22,42 +22,61 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runSocialPostPipeline } from '@/lib/social-post-generator';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 // Instagram needs time: generate 10 PNGs + upload 10 images + post carousel
 export const maxDuration = 120; // 2 minutes
 
 export async function GET(request: NextRequest) {
+    const authError = await verifyCronOrAdmin(request);
+    if (authError) return authError;
+
     try {
-        const authError = await verifyCronOrAdmin(request);
-        if (authError) return authError;
+        return await withCronTracking('instagram-post', async () => {
+            const dryRun = request.nextUrl.searchParams.get('dry') === 'true';
 
-        const dryRun = request.nextUrl.searchParams.get('dry') === 'true';
+            console.log('\n' + '='.repeat(60));
+            console.log(`[INSTA-CRON] DAILY INSTAGRAM CAROUSEL ${dryRun ? '(DRY RUN)' : ''}`);
+            console.log('='.repeat(60));
 
-        console.log('\n' + '='.repeat(60));
-        console.log(`[INSTA-CRON] DAILY INSTAGRAM CAROUSEL ${dryRun ? '(DRY RUN)' : ''}`);
-        console.log('='.repeat(60));
+            const startTime = Date.now();
+            const result = await runSocialPostPipeline(dryRun, 'instagram');
+            const duration = Date.now() - startTime;
 
-        const startTime = Date.now();
-        const result = await runSocialPostPipeline(dryRun, 'instagram');
-        const duration = Date.now() - startTime;
+            console.log(`[INSTA-CRON] Completed in ${(duration / 1000).toFixed(1)}s`);
+            console.log('[INSTA-CRON] Result:', JSON.stringify(result, null, 2));
 
-        console.log(`[INSTA-CRON] Completed in ${(duration / 1000).toFixed(1)}s`);
-        console.log('[INSTA-CRON] Result:', JSON.stringify(result, null, 2));
+            const responseBody = {
+                ...result,
+                platform: 'instagram',
+                timestamp: new Date().toISOString(),
+                duration,
+            };
 
-        const responseBody = {
-            ...result,
-            platform: 'instagram',
-            timestamp: new Date().toISOString(),
-            duration,
-        };
+            // Return 500 if the pipeline didn't actually post (so Vercel flags it as an error)
+            if (!result.success || result.instagram?.posted === false) {
+                console.error('[INSTA-CRON] Failed:', result.reason ?? 'Unknown reason');
+                return {
+                    response: NextResponse.json(responseBody, { status: 500 }),
+                    metrics: {
+                        dryRun,
+                        success: result.success ?? false,
+                        posted: result.instagram?.posted ?? false,
+                        durationMs: duration,
+                    },
+                };
+            }
 
-        // Return 500 if the pipeline didn't actually post (so Vercel flags it as an error)
-        if (!result.success || result.instagram?.posted === false) {
-            console.error('[INSTA-CRON] Failed:', result.reason ?? 'Unknown reason');
-            return NextResponse.json(responseBody, { status: 500 });
-        }
-
-        return NextResponse.json(responseBody);
+            return {
+                response: NextResponse.json(responseBody),
+                metrics: {
+                    dryRun,
+                    success: result.success ?? true,
+                    posted: result.instagram?.posted ?? true,
+                    durationMs: duration,
+                },
+            };
+        });
     } catch (error) {
         await sendCronFailureAlert('instagram-post', error);
         console.error('[INSTA-CRON] Fatal error:', error);

@@ -142,6 +142,14 @@ vi.mock('@/lib/prisma', () => {
                 updateMany: vi.fn(),
                 deleteMany: vi.fn(),
             },
+            cronRun: {
+                create: vi.fn().mockResolvedValue({ id: 'cron-run-test' }),
+                update: vi.fn(),
+            },
+            jobScreeningQuestion: {
+                deleteMany: vi.fn(),
+                create: vi.fn(),
+            },
             shortLinkClick: {
                 findFirst: vi.fn(),
                 findMany: vi.fn(),

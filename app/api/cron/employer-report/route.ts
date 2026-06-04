@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { sendPerformanceReportEmail } from '@/lib/email-service'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 120 // 2 minutes — employer report emails
 
@@ -11,6 +12,7 @@ export async function GET(request: NextRequest) {
     if (authError) return authError;
 
     try {
+        return await withCronTracking('employer-report', async () => {
         // Find all employers with active jobs
         const employerJobs = await prisma.employerJob.findMany({
             where: {
@@ -93,13 +95,21 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        return NextResponse.json({
-            success: true,
-            employersFound: employerMap.size,
-            reportsSent: sentCount,
-            errors,
-            timestamp: new Date().toISOString(),
-        })
+        return {
+            response: NextResponse.json({
+                success: true,
+                employersFound: employerMap.size,
+                reportsSent: sentCount,
+                errors,
+                timestamp: new Date().toISOString(),
+            }),
+            metrics: {
+                employersFound: employerMap.size,
+                reportsSent: sentCount,
+                errorCount: errors.length,
+            },
+        };
+        });
     } catch (error) {
         await sendCronFailureAlert('employer-report', error);
         console.error('Employer report cron error:', error)

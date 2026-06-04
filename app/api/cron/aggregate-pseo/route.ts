@@ -5,6 +5,7 @@ import { ALL_CATEGORY_CONFIGS } from '@/lib/pseo/category-city-template'
 import { SETTING_CONFIGS, getAllStateSlugs, resolveStateSlug } from '@/lib/pseo/setting-state-config'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 // Vercel Pro/Enterprise: up to 300s. Hobby: 60s.
 // Batched aggregation: processes a chunk of cities per invocation.
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
   const mode = url.searchParams.get('mode') || 'all' // 'all' | 'state' | 'city'
 
   try {
+    return await withCronTracking('aggregate-pseo', async () => {
     let settingStateCount = 0
     let categoryCityCount = 0
 
@@ -68,13 +70,16 @@ export async function GET(request: NextRequest) {
 
       // If mode is state-only, return early
       if (mode === 'state') {
-        return NextResponse.json({
-          success: true,
-          mode: 'state',
-          settingStateCount,
-          elapsedSeconds: Math.round((Date.now() - startTime) / 1000),
-          timestamp: new Date().toISOString(),
-        })
+        return {
+          response: NextResponse.json({
+            success: true,
+            mode: 'state',
+            settingStateCount,
+            elapsedSeconds: Math.round((Date.now() - startTime) / 1000),
+            timestamp: new Date().toISOString(),
+          }),
+          metrics: { mode: 'state', settingStateCount },
+        }
       }
     }
 
@@ -89,16 +94,19 @@ export async function GET(request: NextRequest) {
       // Check elapsed time — abort gracefully if nearing timeout
       if (Date.now() - startTime > 250_000) { // 250s safety margin
         console.warn(`[pseo-agg] Timeout safety: processed ${categoryCityCount} category-city rows, aborting at offset ${offset}`)
-        return NextResponse.json({
-          success: true,
-          partial: true,
-          settingStateCount,
-          categoryCityCount,
-          nextOffset: offset + cityBatch.indexOf(city),
-          totalCities: CITIES.length,
-          elapsedSeconds: Math.round((Date.now() - startTime) / 1000),
-          timestamp: new Date().toISOString(),
-        })
+        return {
+          response: NextResponse.json({
+            success: true,
+            partial: true,
+            settingStateCount,
+            categoryCityCount,
+            nextOffset: offset + cityBatch.indexOf(city),
+            totalCities: CITIES.length,
+            elapsedSeconds: Math.round((Date.now() - startTime) / 1000),
+            timestamp: new Date().toISOString(),
+          }),
+          metrics: { partial: true, settingStateCount, categoryCityCount, nextOffset: offset + cityBatch.indexOf(city) },
+        }
       }
 
       for (const categoryKey of categoryKeys) {
@@ -136,22 +144,33 @@ export async function GET(request: NextRequest) {
 
     const elapsed = Math.round((Date.now() - startTime) / 1000)
 
-    return NextResponse.json({
-      success: true,
-      partial: !isLastBatch,
-      mode,
-      settingStateCount,
-      categoryCityCount,
-      batchInfo: {
+    return {
+      response: NextResponse.json({
+        success: true,
+        partial: !isLastBatch,
+        mode,
+        settingStateCount,
+        categoryCityCount,
+        batchInfo: {
+          offset,
+          batchSize: BATCH_SIZE,
+          citiesInBatch: cityBatch.length,
+          totalCities: CITIES.length,
+          isLastBatch,
+          nextOffset: isLastBatch ? null : offset + BATCH_SIZE,
+        },
+        elapsedSeconds: elapsed,
+        timestamp: new Date().toISOString(),
+      }),
+      metrics: {
+        mode,
+        settingStateCount,
+        categoryCityCount,
         offset,
-        batchSize: BATCH_SIZE,
-        citiesInBatch: cityBatch.length,
-        totalCities: CITIES.length,
         isLastBatch,
-        nextOffset: isLastBatch ? null : offset + BATCH_SIZE,
+        elapsedSeconds: elapsed,
       },
-      elapsedSeconds: elapsed,
-      timestamp: new Date().toISOString(),
+    }
     })
   } catch (error) {
       await sendCronFailureAlert('aggregate-pseo', error);

@@ -19,6 +19,7 @@ import { logger } from '@/lib/logger';
 import { detectAnomalies, emitAnomaly } from '@/lib/health/anomaly-alerts';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 60;
 
@@ -30,22 +31,31 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     const startTime = Date.now();
     try {
-        log.info('Starting health anomaly sweep');
-        const result = await detectAnomalies({ prisma });
+        return await withCronTracking('health-anomaly-check', async () => {
+            log.info('Starting health anomaly sweep');
+            const result = await detectAnomalies({ prisma });
 
-        for (const anomaly of result.anomalies) {
-            await emitAnomaly(anomaly);
-        }
+            for (const anomaly of result.anomalies) {
+                await emitAnomaly(anomaly);
+            }
 
-        const summary = {
-            success: true,
-            anomaliesDetected: result.anomalies.length,
-            countersAnalyzed: result.countersAnalyzed,
-            detectorVersion: result.detectorVersion,
-            elapsedSeconds: ((Date.now() - startTime) / 1000).toFixed(1),
-        };
-        log.info('Anomaly sweep complete', summary);
-        return NextResponse.json(summary);
+            const summary = {
+                success: true,
+                anomaliesDetected: result.anomalies.length,
+                countersAnalyzed: result.countersAnalyzed,
+                detectorVersion: result.detectorVersion,
+                elapsedSeconds: ((Date.now() - startTime) / 1000).toFixed(1),
+            };
+            log.info('Anomaly sweep complete', summary);
+            return {
+                response: NextResponse.json(summary),
+                metrics: {
+                    anomaliesDetected: result.anomalies.length,
+                    countersAnalyzed: result.countersAnalyzed,
+                    detectorVersion: result.detectorVersion,
+                },
+            };
+        });
     } catch (error: unknown) {
         await sendCronFailureAlert('health-anomaly-check', error);
         log.error('Fatal error in anomaly sweep', error);

@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { inngest } from '@/lib/inngest/client';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 300; // 5 minutes — checks up to 1500 links with 250s time budget
 
@@ -51,15 +52,27 @@ export async function GET(req: Request): Promise<NextResponse> {
     const startTime = Date.now();
 
     try {
-        log.info('Starting dead-link sweep');
+        return await withCronTracking('check-dead-links', async () => {
+            log.info('Starting dead-link sweep');
 
-        const jobs = await loadJobsToCheck();
-        log.info(`Loaded ${jobs.length} jobs for health check`);
+            const jobs = await loadJobsToCheck();
+            log.info(`Loaded ${jobs.length} jobs for health check`);
 
-        const summary = await runSweep(jobs, startTime, log);
+            const summary = await runSweep(jobs, startTime, log);
 
-        log.info('Sweep complete', { ...summary });
-        return NextResponse.json({ success: true, ...summary });
+            log.info('Sweep complete', { ...summary });
+            return {
+                response: NextResponse.json({ success: true, ...summary }),
+                metrics: {
+                    checked: summary.checked,
+                    aliveTotal: summary.aliveTotal,
+                    deadTotal: summary.deadTotal,
+                    inconclusive: summary.inconclusive,
+                    deferred: summary.deferred,
+                    errors: summary.errors,
+                },
+            };
+        });
     } catch (error: unknown) {
         await sendCronFailureAlert('check-dead-links', error);
         log.error('Fatal error during dead-link sweep', error);

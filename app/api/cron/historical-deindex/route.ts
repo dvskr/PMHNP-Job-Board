@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { pingAllSearchEnginesBatchDeleted } from '@/lib/search-indexing';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 300; // 5 minutes — may submit up to BATCH_SIZE URL_DELETED to Google
 
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
     console.log('[CRON:historical-deindex] Starting backlog drainage');
 
     try {
+        return await withCronTracking('historical-deindex', async () => {
         const candidates = await prisma.deindexQueue.findMany({
             where: {
                 status: 'pending',
@@ -60,13 +62,16 @@ export async function GET(request: NextRequest) {
         if (candidates.length === 0) {
             const duration = ((Date.now() - startTime) / 1000).toFixed(1);
             console.log('[CRON:historical-deindex] Queue empty — nothing to drain');
-            return NextResponse.json({
-                success: true,
-                message: 'Queue empty',
-                processed: 0,
-                duration: `${duration}s`,
-                timestamp: new Date().toISOString(),
-            });
+            return {
+                response: NextResponse.json({
+                    success: true,
+                    message: 'Queue empty',
+                    processed: 0,
+                    duration: `${duration}s`,
+                    timestamp: new Date().toISOString(),
+                }),
+                metrics: { processed: 0 },
+            };
         }
 
         // 1. HEAD-check all candidates in parallel.
@@ -203,7 +208,17 @@ export async function GET(request: NextRequest) {
         };
 
         console.log('[CRON:historical-deindex] Complete:', JSON.stringify(summary));
-        return NextResponse.json(summary);
+        return {
+            response: NextResponse.json(summary),
+            metrics: {
+                processed: candidates.length,
+                live: live.length,
+                submitted: submittedCount,
+                submitFailed: submitFailedCount,
+                headFailed: failed.length,
+            },
+        };
+        });
     } catch (error) {
         await sendCronFailureAlert('historical-deindex', error);
         console.error('[CRON:historical-deindex] Error:', error);

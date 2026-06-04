@@ -4,6 +4,7 @@ import { sendNewCandidateAlertEmail } from '@/lib/email-service';
 import { logger } from '@/lib/logger';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 120; // 2 minutes — email sends to multiple employers
 
@@ -18,6 +19,7 @@ export async function GET(req: Request) {
     if (authError) return authError;
 
     try {
+        return await withCronTracking('candidate-alerts', async () => {
         // Get all active alerts
         const alerts = await prisma.employerCandidateAlert.findMany({
             where: { isActive: true },
@@ -35,7 +37,10 @@ export async function GET(req: Request) {
         });
 
         if (alerts.length === 0) {
-            return NextResponse.json({ message: 'No active alerts', sent: 0 });
+            return {
+                response: NextResponse.json({ message: 'No active alerts', sent: 0 }),
+                metrics: { alertsProcessed: 0, emailsSent: 0 },
+            };
         }
 
         let totalSent = 0;
@@ -136,7 +141,11 @@ export async function GET(req: Request) {
         }
 
         logger.info('Candidate alert cron complete', { alertsProcessed: alerts.length, emailsSent: totalSent });
-        return NextResponse.json({ message: 'Candidate alerts processed', sent: totalSent, total: alerts.length });
+        return {
+            response: NextResponse.json({ message: 'Candidate alerts processed', sent: totalSent, total: alerts.length }),
+            metrics: { alertsProcessed: alerts.length, emailsSent: totalSent },
+        };
+        });
     } catch (error) {
         await sendCronFailureAlert('candidate-alerts', error);
         logger.error('Candidate alert cron failed', error);

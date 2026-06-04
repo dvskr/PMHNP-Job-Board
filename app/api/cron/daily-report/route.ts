@@ -4,6 +4,7 @@ import { checkSourceHealth } from '@/lib/ingestion-monitor';
 import { sendDailyReport } from '@/lib/discord-notifier';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 60; // 1 minute — DB aggregations + Discord webhook
 
@@ -12,6 +13,7 @@ export async function GET(request: NextRequest) {
     if (authError) return authError;
 
     try {
+        return await withCronTracking('daily-report', async () => {
         console.log('[CRON] Starting daily quality report...');
         const startTime = Date.now();
         const now = new Date();
@@ -95,7 +97,19 @@ export async function GET(request: NextRequest) {
         };
 
         console.log('[CRON] Daily report complete:', summary);
-        return NextResponse.json(summary);
+        return {
+            response: NextResponse.json(summary),
+            metrics: {
+                totalPublished,
+                addedLast24h,
+                salaryPercent,
+                cityPercent,
+                avgQualityScore: Math.round(avgQualityScore * 10) / 10,
+                healthAlerts: healthAlerts.length,
+                durationMs: duration,
+            },
+        };
+        });
     } catch (error) {
         await sendCronFailureAlert('daily-report', error);
         console.error('[CRON] Daily report error:', error);
