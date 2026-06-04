@@ -30,6 +30,7 @@ import { logger } from '@/lib/logger';
 import { HealthRecorder } from '@/lib/health';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 120;
 
@@ -62,13 +63,23 @@ export async function GET(req: Request): Promise<NextResponse> {
     const startTime = Date.now();
 
     try {
-        const threshold = readThreshold(log);
-        log.info('Starting presence-unpublish sweep', { threshold });
+        return await withCronTracking('source-presence-unpublish', async () => {
+            const threshold = readThreshold(log);
+            log.info('Starting presence-unpublish sweep', { threshold });
 
-        const summary = await runSweep(threshold, startTime, log);
-        log.info('Presence-unpublish sweep complete', { ...summary });
+            const summary = await runSweep(threshold, startTime, log);
+            log.info('Presence-unpublish sweep complete', { ...summary });
 
-        return NextResponse.json({ success: true, ...summary });
+            return {
+                response: NextResponse.json({ success: true, ...summary }),
+                metrics: {
+                    threshold: summary.threshold,
+                    candidates: summary.candidates,
+                    flipped: summary.flipped,
+                    bySource: summary.bySource,
+                },
+            };
+        });
     } catch (error: unknown) {
         await sendCronFailureAlert('source-presence-unpublish', error);
         log.error('Fatal error in presence-unpublish sweep', error);

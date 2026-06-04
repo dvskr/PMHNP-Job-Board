@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert, sendDiscordMessage } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 import { createSign } from 'node:crypto';
 
 export const maxDuration = 60;
@@ -41,31 +42,37 @@ export async function GET(request: NextRequest) {
     if (authError) return authError;
 
     const startTime = Date.now();
-    // Prefer GSC_SERVICE_ACCOUNT_KEY; fall back to GOOGLE_INDEXING_CREDENTIALS
-    // since the same service account JSON works for both APIs (Search Console
-    // needs auth/webmasters.readonly scope; Indexing API needs auth/indexing).
-    const keyJsonRaw = process.env.GSC_SERVICE_ACCOUNT_KEY ?? process.env.GOOGLE_INDEXING_CREDENTIALS;
-    const siteUrl = process.env.GSC_SITE_URL || 'sc-domain:pmhnphiring.com';
-
-    if (!keyJsonRaw) {
-        console.log('[CRON:gsc-health-check] Skipped — neither GSC_SERVICE_ACCOUNT_KEY nor GOOGLE_INDEXING_CREDENTIALS configured.');
-        return NextResponse.json({
-            success: true,
-            skipped: true,
-            reason: 'no service account key configured',
-            timestamp: new Date().toISOString(),
-        });
-    }
-    // Decode if base64-encoded (matches the existing pattern in lib/search-indexing.ts).
-    let keyJson: string;
-    try {
-        JSON.parse(keyJsonRaw);
-        keyJson = keyJsonRaw;
-    } catch {
-        keyJson = Buffer.from(keyJsonRaw, 'base64').toString('utf-8');
-    }
 
     try {
+        return await withCronTracking('gsc-health-check', async () => {
+        // Prefer GSC_SERVICE_ACCOUNT_KEY; fall back to GOOGLE_INDEXING_CREDENTIALS
+        // since the same service account JSON works for both APIs.
+        const keyJsonRaw = process.env.GSC_SERVICE_ACCOUNT_KEY ?? process.env.GOOGLE_INDEXING_CREDENTIALS;
+        const siteUrl = process.env.GSC_SITE_URL || 'sc-domain:pmhnphiring.com';
+
+        // Record the skip as a real (skipped) run so cron_runs shows the cron is
+        // firing — an unconfigured GSC key shouldn't make it look like it never ran.
+        if (!keyJsonRaw) {
+            console.log('[CRON:gsc-health-check] Skipped — neither GSC_SERVICE_ACCOUNT_KEY nor GOOGLE_INDEXING_CREDENTIALS configured.');
+            return {
+                response: NextResponse.json({
+                    success: true,
+                    skipped: true,
+                    reason: 'no service account key configured',
+                    timestamp: new Date().toISOString(),
+                }),
+                metrics: { skipped: true },
+            };
+        }
+        // Decode if base64-encoded (matches the existing pattern in lib/search-indexing.ts).
+        let keyJson: string;
+        try {
+            JSON.parse(keyJsonRaw);
+            keyJson = keyJsonRaw;
+        } catch {
+            keyJson = Buffer.from(keyJsonRaw, 'base64').toString('utf-8');
+        }
+
         const accessToken = await getAccessToken(keyJson);
 
         // Today's totals (yesterday is the latest fully-processed day)
@@ -118,13 +125,23 @@ export async function GET(request: NextRequest) {
         }
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-        return NextResponse.json({
-            success: true,
-            today: { clicks: todayClicks, impressions: todayImpressions },
-            weekAgo: { clicks: weekAgoClicks, impressions: weekAgoImpressions },
-            alerts,
-            duration: `${duration}s`,
-            timestamp: new Date().toISOString(),
+        return {
+            response: NextResponse.json({
+                success: true,
+                today: { clicks: todayClicks, impressions: todayImpressions },
+                weekAgo: { clicks: weekAgoClicks, impressions: weekAgoImpressions },
+                alerts,
+                duration: `${duration}s`,
+                timestamp: new Date().toISOString(),
+            }),
+            metrics: {
+                todayClicks,
+                todayImpressions,
+                weekAgoClicks,
+                weekAgoImpressions,
+                alertCount: alerts.length,
+            },
+        };
         });
     } catch (error) {
         await sendCronFailureAlert('gsc-health-check', error);

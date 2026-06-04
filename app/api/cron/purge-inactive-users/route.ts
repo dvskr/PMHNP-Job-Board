@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { logAudit } from '@/lib/audit-log';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 300;
 
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
     if (authError) return authError;
 
     try {
+        return await withCronTracking('purge-inactive-users', async () => {
         const now = new Date();
         const inactivityCutoff = new Date(now.getTime() - ACTIVITY_THRESHOLD_DAYS * 24 * 60 * 60 * 1000);
         const warningCutoff = new Date(now.getTime() - WARNING_GRACE_DAYS * 24 * 60 * 60 * 1000);
@@ -128,11 +130,15 @@ export async function GET(request: NextRequest) {
 
         logger.info('purge-inactive-users complete', { warned, softDeleted });
 
-        return NextResponse.json({
-            success: true,
-            warnedCount: warned,
-            softDeletedCount: softDeleted,
-            timestamp: now.toISOString(),
+        return {
+            response: NextResponse.json({
+                success: true,
+                warnedCount: warned,
+                softDeletedCount: softDeleted,
+                timestamp: now.toISOString(),
+            }),
+            metrics: { warned, softDeleted },
+        };
         });
     } catch (err) {
         await sendCronFailureAlert('purge-inactive-users', err);

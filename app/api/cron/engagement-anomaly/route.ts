@@ -4,6 +4,7 @@ import { checkJobHealth, HealthRecorder, castFlipVote, type HealthDecision } fro
 import { logger } from '@/lib/logger';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 /**
  * Engagement-anomaly probe cron (Gap G3, 2026-05-06).
@@ -68,17 +69,30 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     const startTime = Date.now();
     try {
-        log.info('Starting engagement-anomaly sweep', {
-            viewThreshold: ENGAGEMENT_VIEW_THRESHOLD,
-            ageMinDays: ENGAGEMENT_AGE_MIN_DAYS,
+        return await withCronTracking('engagement-anomaly', async () => {
+            log.info('Starting engagement-anomaly sweep', {
+                viewThreshold: ENGAGEMENT_VIEW_THRESHOLD,
+                ageMinDays: ENGAGEMENT_AGE_MIN_DAYS,
+            });
+
+            const candidates = await loadAnomalyCandidates();
+            log.info(`Loaded ${candidates.length} engagement-anomaly candidates`);
+
+            const summary = await runSweep(candidates, startTime, log);
+            log.info('Engagement-anomaly sweep complete', { ...summary });
+            return {
+                response: NextResponse.json({ success: true, ...summary }),
+                metrics: {
+                    candidates: summary.candidates,
+                    checked: summary.checked,
+                    aliveTotal: summary.aliveTotal,
+                    deadTotal: summary.deadTotal,
+                    inconclusive: summary.inconclusive,
+                    deferred: summary.deferred,
+                    errors: summary.errors,
+                },
+            };
         });
-
-        const candidates = await loadAnomalyCandidates();
-        log.info(`Loaded ${candidates.length} engagement-anomaly candidates`);
-
-        const summary = await runSweep(candidates, startTime, log);
-        log.info('Engagement-anomaly sweep complete', { ...summary });
-        return NextResponse.json({ success: true, ...summary });
     } catch (error: unknown) {
         await sendCronFailureAlert('engagement-anomaly', error);
         log.error('Fatal error during engagement-anomaly sweep', error);

@@ -4,6 +4,7 @@ import { pingAllSearchEnginesBatchDeleted } from '@/lib/search-indexing';
 import { slugify } from '@/lib/utils';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 300; // 5 minutes — may send up to 100 URL_DELETED to Google
 
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
     console.log('[CRON:deindex-expired] Starting expired URL de-indexing');
 
     try {
+        return await withCronTracking('deindex-expired', async () => {
         // Find all jobs unpublished in the last 48 hours
         // (wider window than cleanup to catch any missed from previous runs)
         const since = new Date();
@@ -62,13 +64,16 @@ export async function GET(request: NextRequest) {
 
         if (recentlyExpired.length === 0) {
             console.log('[CRON:deindex-expired] No recently expired jobs to de-index');
-            return NextResponse.json({
-                success: true,
-                message: 'No expired jobs to de-index',
-                count: 0,
-                duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
-                timestamp: new Date().toISOString(),
-            });
+            return {
+                response: NextResponse.json({
+                    success: true,
+                    message: 'No expired jobs to de-index',
+                    count: 0,
+                    duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
+                    timestamp: new Date().toISOString(),
+                }),
+                metrics: { expiredCount: 0 },
+            };
         }
 
         // Build full URLs for de-indexing
@@ -101,7 +106,17 @@ export async function GET(request: NextRequest) {
 
         console.log('[CRON:deindex-expired] Complete:', JSON.stringify(summary));
 
-        return NextResponse.json(summary);
+        return {
+            response: NextResponse.json(summary),
+            metrics: {
+                expiredCount: recentlyExpired.length,
+                googleDeleted: googleOk,
+                googleFailed,
+                indexNowDeleted: indexNowOk,
+                indexNowFailed,
+            },
+        };
+        });
     } catch (error) {
         await sendCronFailureAlert('deindex-expired', error);
         console.error('[CRON:deindex-expired] Error:', error);

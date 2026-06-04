@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/audit-log';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { deleteFile, getPathFromUrl } from '@/lib/supabase-storage';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 300; // 5 minutes — could be many users
 
@@ -25,6 +26,7 @@ export async function GET(request: NextRequest) {
     if (authError) return authError;
 
     try {
+        return await withCronTracking('purge-soft-deleted', async () => {
         const due = await prisma.userProfile.findMany({
             where: {
                 deletedAt: { not: null },
@@ -40,7 +42,10 @@ export async function GET(request: NextRequest) {
         });
 
         if (due.length === 0) {
-            return NextResponse.json({ success: true, purgedCount: 0 });
+            return {
+                response: NextResponse.json({ success: true, purgedCount: 0 }),
+                metrics: { purgedCount: 0, failures: 0 },
+            };
         }
 
         const adminSupabase = createAdminClient(
@@ -136,11 +141,15 @@ export async function GET(request: NextRequest) {
 
         logger.info('purge-soft-deleted complete', { purged, failures: failures.length });
 
-        return NextResponse.json({
-            success: true,
-            purgedCount: purged,
-            failures,
-            timestamp: new Date().toISOString(),
+        return {
+            response: NextResponse.json({
+                success: true,
+                purgedCount: purged,
+                failures,
+                timestamp: new Date().toISOString(),
+            }),
+            metrics: { purgedCount: purged, failures: failures.length },
+        };
         });
     } catch (err) {
         await sendCronFailureAlert('purge-soft-deleted', err);

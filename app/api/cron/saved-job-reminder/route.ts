@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { sendSavedJobReminderEmail } from '@/lib/email-service'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 120 // 2 minutes — saved job reminder emails
 
@@ -11,6 +12,7 @@ export async function GET(request: NextRequest) {
     if (authError) return authError;
 
     try {
+        return await withCronTracking('saved-job-reminder', async () => {
         // Find saved jobs that are 3+ days old (user hasn't applied)
         const threeDaysAgo = new Date()
         threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
@@ -23,11 +25,14 @@ export async function GET(request: NextRequest) {
         })
 
         if (savedJobs.length === 0) {
-            return NextResponse.json({
-                success: true,
-                message: 'No saved jobs older than 3 days',
-                remindersSent: 0,
-            })
+            return {
+                response: NextResponse.json({
+                    success: true,
+                    message: 'No saved jobs older than 3 days',
+                    remindersSent: 0,
+                }),
+                metrics: { usersProcessed: 0, remindersSent: 0 },
+            }
         }
 
         // Group by userId
@@ -127,13 +132,21 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        return NextResponse.json({
-            success: true,
-            usersProcessed: userJobMap.size,
-            remindersSent: sentCount,
-            errors,
-            timestamp: new Date().toISOString(),
-        })
+        return {
+            response: NextResponse.json({
+                success: true,
+                usersProcessed: userJobMap.size,
+                remindersSent: sentCount,
+                errors,
+                timestamp: new Date().toISOString(),
+            }),
+            metrics: {
+                usersProcessed: userJobMap.size,
+                remindersSent: sentCount,
+                errorCount: errors.length,
+            },
+        }
+        });
     } catch (error) {
         await sendCronFailureAlert('saved-job-reminder', error);
         console.error('Saved job reminder cron error:', error)

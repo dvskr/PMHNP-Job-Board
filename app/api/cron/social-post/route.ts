@@ -20,42 +20,51 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runSocialPostPipeline, type SocialPlatform } from '@/lib/social-post-generator';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 // Allow enough time for image generation + upload
 export const maxDuration = 120; // 2 minutes
 
 export async function GET(request: NextRequest) {
+    const authError = await verifyCronOrAdmin(request);
+    if (authError) return authError;
+
     try {
-        const authError = await verifyCronOrAdmin(request);
-        if (authError) return authError;
+        return await withCronTracking('social-post', async () => {
+            const dryRun = request.nextUrl.searchParams.get('dry') === 'true';
+            const platform = (request.nextUrl.searchParams.get('platform') || 'facebook') as SocialPlatform;
 
-        const dryRun = request.nextUrl.searchParams.get('dry') === 'true';
-        const platform = (request.nextUrl.searchParams.get('platform') || 'facebook') as SocialPlatform;
+            console.log('\n' + '='.repeat(60));
+            console.log(`[SOCIAL-CRON] DAILY SOCIAL POST — ${platform.toUpperCase()} ${dryRun ? '(DRY RUN)' : ''}`);
+            console.log('='.repeat(60));
 
-        console.log('\n' + '='.repeat(60));
-        console.log(`[SOCIAL-CRON] DAILY SOCIAL POST — ${platform.toUpperCase()} ${dryRun ? '(DRY RUN)' : ''}`);
-        console.log('='.repeat(60));
+            const startTime = Date.now();
+            const result = await runSocialPostPipeline(dryRun, platform);
+            const duration = Date.now() - startTime;
 
-        const startTime = Date.now();
-        const result = await runSocialPostPipeline(dryRun, platform);
-        const duration = Date.now() - startTime;
+            console.log(`[SOCIAL-CRON] Completed in ${(duration / 1000).toFixed(1)}s`);
+            console.log('[SOCIAL-CRON] Result:', JSON.stringify(result, null, 2));
 
-        console.log(`[SOCIAL-CRON] Completed in ${(duration / 1000).toFixed(1)}s`);
-        console.log('[SOCIAL-CRON] Result:', JSON.stringify(result, null, 2));
+            const responseBody = {
+                ...result,
+                timestamp: new Date().toISOString(),
+                duration,
+            };
 
-        const responseBody = {
-            ...result,
-            timestamp: new Date().toISOString(),
-            duration,
-        };
+            // Return 500 if the pipeline didn't actually post (so Vercel flags it as an error)
+            if (!result.success) {
+                console.error('[SOCIAL-CRON] Failed:', result.reason ?? 'Unknown reason');
+                return {
+                    response: NextResponse.json(responseBody, { status: 500 }),
+                    metrics: { success: result.success, dryRun, platform, duration },
+                };
+            }
 
-        // Return 500 if the pipeline didn't actually post (so Vercel flags it as an error)
-        if (!result.success) {
-            console.error('[SOCIAL-CRON] Failed:', result.reason ?? 'Unknown reason');
-            return NextResponse.json(responseBody, { status: 500 });
-        }
-
-        return NextResponse.json(responseBody);
+            return {
+                response: NextResponse.json(responseBody),
+                metrics: { success: result.success, dryRun, platform, duration },
+            };
+        });
     } catch (error) {
         await sendCronFailureAlert('social-post', error);
         console.error('[SOCIAL-CRON] Fatal error:', error);

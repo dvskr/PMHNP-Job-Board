@@ -19,6 +19,7 @@ import { CITIES } from '@/lib/pseo/city-data/cities';
 import { pingGoogle, pingBingBatch, pingIndexNow } from '@/lib/search-indexing';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 300;
 
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
   console.log('[CRON:index-pseo] Starting pSEO URL indexing...');
 
   try {
+    return await withCronTracking('index-pseo', async () => {
     // 1. Get cities with actual job counts from DB
     const citiesWithJobs = await prisma.job.groupBy({
       by: ['city', 'state'],
@@ -135,14 +137,21 @@ export async function GET(request: NextRequest) {
     
     if (urlsToSubmit.length === 0) {
       console.log('[CRON:index-pseo] All qualifying URLs already submitted within 7 days');
-      return NextResponse.json({
-        success: true,
-        message: 'All qualifying pSEO URLs already submitted',
-        totalQualifying: scoredUrls.length,
-        newToSubmit: 0,
-        duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
-        timestamp: new Date().toISOString(),
-      });
+      return {
+        response: NextResponse.json({
+          success: true,
+          message: 'All qualifying pSEO URLs already submitted',
+          totalQualifying: scoredUrls.length,
+          newToSubmit: 0,
+          duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
+          timestamp: new Date().toISOString(),
+        }),
+        metrics: {
+          totalQualifying: scoredUrls.length,
+          newToSubmit: 0,
+          submitted: 0,
+        },
+      };
     }
 
     const urls = urlsToSubmit.map(su => su.url);
@@ -218,7 +227,21 @@ export async function GET(request: NextRequest) {
     };
 
     console.log('[CRON:index-pseo] Complete:', JSON.stringify(summary));
-    return NextResponse.json(summary);
+    return {
+      response: NextResponse.json(summary),
+      metrics: {
+        totalQualifying: scoredUrls.length,
+        newToSubmit: newUrls.length,
+        submitted: urls.length,
+        googleSubmitted: googleSuccess,
+        googleFailed,
+        bingSubmitted: bingSuccess,
+        bingFailed,
+        indexNowSubmitted: indexNowSuccess,
+        indexNowFailed,
+      },
+    };
+    });
   } catch (error) {
       await sendCronFailureAlert('index-pseo', error);
     console.error('[CRON:index-pseo] Error:', error);

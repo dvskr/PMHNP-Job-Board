@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 60;
 
@@ -24,17 +25,22 @@ export async function GET(request: NextRequest) {
   if (authError) return authError;
 
   try {
-    const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
-    const result = await prisma.rejectedJob.deleteMany({
-      where: { createdAt: { lt: cutoff } },
-    });
-    console.log(`[cleanup-rejected-jobs] Deleted ${result.count} rows older than ${RETENTION_DAYS}d`);
-    return NextResponse.json({
-      success: true,
-      deleted: result.count,
-      retentionDays: RETENTION_DAYS,
-      cutoff: cutoff.toISOString(),
-      timestamp: new Date().toISOString(),
+    return await withCronTracking('cleanup-rejected-jobs', async () => {
+      const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+      const result = await prisma.rejectedJob.deleteMany({
+        where: { createdAt: { lt: cutoff } },
+      });
+      console.log(`[cleanup-rejected-jobs] Deleted ${result.count} rows older than ${RETENTION_DAYS}d`);
+      return {
+        response: NextResponse.json({
+          success: true,
+          deleted: result.count,
+          retentionDays: RETENTION_DAYS,
+          cutoff: cutoff.toISOString(),
+          timestamp: new Date().toISOString(),
+        }),
+        metrics: { deleted: result.count, retentionDays: RETENTION_DAYS },
+      };
     });
   } catch (error) {
     await sendCronFailureAlert('cleanup-rejected-jobs', error);

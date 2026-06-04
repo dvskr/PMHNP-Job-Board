@@ -4,6 +4,7 @@ import { pingAllSearchEnginesBatch } from '@/lib/search-indexing';
 import { slugify } from '@/lib/utils';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 300; // 5 minutes — submits 200+ URLs to search engines
 
@@ -27,69 +28,85 @@ export async function GET(request: NextRequest) {
     console.log('[CRON:index-urls] Starting daily search engine indexing');
 
     try {
-        // Fetch jobs from the last 25 hours (1 hour overlap to avoid missing any)
-        const since = new Date();
-        since.setHours(since.getHours() - 25);
+        return await withCronTracking('index-urls', async () => {
+            // Fetch jobs from the last 25 hours (1 hour overlap to avoid missing any)
+            const since = new Date();
+            since.setHours(since.getHours() - 25);
 
-        const recentJobs = await prisma.job.findMany({
-            where: {
-                isPublished: true,
-                OR: [
-                    { createdAt: { gte: since } },
-                    { updatedAt: { gte: since } },
-                ],
-            },
-            select: {
-                id: true,
-                title: true,
-            },
-            orderBy: { createdAt: 'desc' },
-        });
-
-        if (recentJobs.length === 0) {
-            console.log('[CRON:index-urls] No new/updated jobs to index');
-            return NextResponse.json({
-                success: true,
-                message: 'No new jobs to index',
-                jobCount: 0,
-                duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
-                timestamp: new Date().toISOString(),
+            const recentJobs = await prisma.job.findMany({
+                where: {
+                    isPublished: true,
+                    OR: [
+                        { createdAt: { gte: since } },
+                        { updatedAt: { gte: since } },
+                    ],
+                },
+                select: {
+                    id: true,
+                    title: true,
+                },
+                orderBy: { createdAt: 'desc' },
             });
-        }
 
-        // Build full URLs
-        const urls = recentJobs.map((job) => {
-            const slug = slugify(job.title, job.id);
-            return `${BASE_URL}/jobs/${slug}`;
+            if (recentJobs.length === 0) {
+                console.log('[CRON:index-urls] No new/updated jobs to index');
+                return {
+                    response: NextResponse.json({
+                        success: true,
+                        message: 'No new jobs to index',
+                        jobCount: 0,
+                        duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
+                        timestamp: new Date().toISOString(),
+                    }),
+                    metrics: { jobCount: 0 },
+                };
+            }
+
+            // Build full URLs
+            const urls = recentJobs.map((job) => {
+                const slug = slugify(job.title, job.id);
+                return `${BASE_URL}/jobs/${slug}`;
+            });
+
+            console.log(`[CRON:index-urls] Submitting ${urls.length} URLs to search engines`);
+
+            // Submit to all engines (Google, Bing, IndexNow)
+            const results = await pingAllSearchEnginesBatch(urls);
+
+            const googleSuccess = results.google.filter((r) => r.success).length;
+            const googleFailed = results.google.filter((r) => !r.success).length;
+            const bingSuccess = results.bing.filter((r) => r.success).length;
+            const bingFailed = results.bing.filter((r) => !r.success).length;
+            const indexNowSuccess = results.indexNow.filter((r) => r.success).length;
+            const indexNowFailed = results.indexNow.filter((r) => !r.success).length;
+
+            const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+            const summary = {
+                success: true,
+                jobCount: urls.length,
+                google: { submitted: googleSuccess, failed: googleFailed },
+                bing: { submitted: bingSuccess, failed: bingFailed },
+                indexNow: { submitted: indexNowSuccess, failed: indexNowFailed },
+                duration: `${duration}s`,
+                timestamp: new Date().toISOString(),
+            };
+
+            console.log('[CRON:index-urls] Complete:', JSON.stringify(summary));
+
+            return {
+                response: NextResponse.json(summary),
+                metrics: {
+                    jobCount: urls.length,
+                    googleSubmitted: googleSuccess,
+                    googleFailed,
+                    bingSubmitted: bingSuccess,
+                    bingFailed,
+                    indexNowSubmitted: indexNowSuccess,
+                    indexNowFailed,
+                },
+            };
         });
-
-        console.log(`[CRON:index-urls] Submitting ${urls.length} URLs to search engines`);
-
-        // Submit to all engines (Google, Bing, IndexNow)
-        const results = await pingAllSearchEnginesBatch(urls);
-
-        const googleSuccess = results.google.filter((r) => r.success).length;
-        const googleFailed = results.google.filter((r) => !r.success).length;
-        const bingSuccess = results.bing.filter((r) => r.success).length;
-        const bingFailed = results.bing.filter((r) => !r.success).length;
-        const indexNowSuccess = results.indexNow.filter((r) => r.success).length;
-        const indexNowFailed = results.indexNow.filter((r) => !r.success).length;
-
-        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-
-        const summary = {
-            success: true,
-            jobCount: urls.length,
-            google: { submitted: googleSuccess, failed: googleFailed },
-            bing: { submitted: bingSuccess, failed: bingFailed },
-            indexNow: { submitted: indexNowSuccess, failed: indexNowFailed },
-            duration: `${duration}s`,
-            timestamp: new Date().toISOString(),
-        };
-
-        console.log('[CRON:index-urls] Complete:', JSON.stringify(summary));
-
-        return NextResponse.json(summary);
     } catch (error) {
         await sendCronFailureAlert('index-urls', error);
         console.error('[CRON:index-urls] Error:', error);

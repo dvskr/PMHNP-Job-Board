@@ -3,6 +3,7 @@ import { sendJobAlerts } from '@/lib/job-alerts-service'
 import { logger } from '@/lib/logger'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 60
 
@@ -12,18 +13,27 @@ export async function GET(request: NextRequest) {
   if (authError) return authError;
 
   try {
-    // Use the job alerts service (GAP FIX 2)
-    const results = await sendJobAlerts()
+    return await withCronTracking('send-alerts', async () => {
+      // Use the job alerts service (GAP FIX 2)
+      const results = await sendJobAlerts()
 
-    logger.info('Job alerts complete', results)
+      logger.info('Job alerts complete', results)
 
-    return NextResponse.json({
-      success: true,
-      alertsSent: results.sent,
-      alertsSkipped: results.skipped,
-      errors: results.errors,
-      timestamp: new Date().toISOString(),
-    })
+      return {
+        response: NextResponse.json({
+          success: true,
+          alertsSent: results.sent,
+          alertsSkipped: results.skipped,
+          errors: results.errors,
+          timestamp: new Date().toISOString(),
+        }),
+        metrics: {
+          alertsSent: results.sent,
+          alertsSkipped: results.skipped,
+          errors: results.errors,
+        },
+      };
+    });
   } catch (error) {
       await sendCronFailureAlert('send-alerts', error);
     logger.error('Cron send-alerts error', error)

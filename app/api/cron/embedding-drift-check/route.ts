@@ -28,6 +28,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
+import { withCronTracking } from '@/lib/cron/track';
 
 // Above this %, we alert. 15% gives the auto-refresh ~30s of breathing
 // room (Inngest throttle window) for several concurrent edits without
@@ -52,6 +53,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     if (authError) return authError;
 
     try {
+        return await withCronTracking('embedding-drift-check', async () => {
         // The embedder builds text from headline + yearsExperience +
         // certifications + licenseStates + specialties + skills + bio
         // (lib/ai/vector-search.ts:buildCandidateEmbeddingText). We don't
@@ -122,15 +124,26 @@ export async function GET(req: Request): Promise<NextResponse> {
             log.warn('Embedding drift exceeded threshold — alert sent');
         }
 
-        return NextResponse.json({
-            ok: true,
-            eligible,
-            embedded,
-            overlap,
-            missing,
-            driftPct,
-            thresholdPct: DRIFT_THRESHOLD_PCT,
-            alerted: shouldAlert,
+        return {
+            response: NextResponse.json({
+                ok: true,
+                eligible,
+                embedded,
+                overlap,
+                missing,
+                driftPct,
+                thresholdPct: DRIFT_THRESHOLD_PCT,
+                alerted: shouldAlert,
+            }),
+            metrics: {
+                eligible,
+                embedded,
+                overlap,
+                missing,
+                driftPct,
+                alerted: shouldAlert,
+            },
+        };
         });
     } catch (err) {
         log.error('embedding-drift-check failed', err);
