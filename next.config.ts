@@ -35,6 +35,15 @@ const nextConfig: NextConfig = {
       './node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
       './node_modules/pdfjs-dist/legacy/build/pdf.mjs',
     ],
+    // The autofill resume extractor execFile()s scripts/extract-pdf-text.js in a
+    // child Node process at runtime (process.cwd()/scripts/...). Vercel's nft
+    // bundler can't see that string path, so without these includes the script
+    // — and the pdf-parse it requires — are absent from the deployed function
+    // and extraction silently returns '' in production.
+    '/api/autofill/extract-resume-sections': [
+      './scripts/extract-pdf-text.js',
+      './node_modules/pdf-parse/**/*',
+    ],
   },
 
   // Image optimization

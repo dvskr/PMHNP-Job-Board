@@ -1,11 +1,27 @@
 /**
  * Next.js Instrumentation Hook
- * 
- * This runs at server startup BEFORE any API route modules are loaded.
- * We use it to polyfill browser globals (DOMMatrix, Path2D, ImageData)
- * that pdfjs-dist (used by pdf-parse) requires but aren't available in Node.js.
+ *
+ * Runs at server startup BEFORE any API route modules are loaded. Two jobs:
+ *   1. Initialize Sentry for the active runtime (nodejs / edge). No-op without
+ *      SENTRY_DSN, so dev stays quiet.
+ *   2. Polyfill browser globals (DOMMatrix, Path2D, ImageData) that pdfjs-dist
+ *      (used by pdf-parse) requires but aren't available in Node.js.
  */
+
+// Forwards App Router server/render errors to Sentry. Re-exported from the SDK;
+// a no-op when Sentry isn't initialized.
+export { captureRequestError as onRequestError } from '@sentry/nextjs';
+
 export async function register() {
+    // Load the matching Sentry runtime config. Importing the file runs its
+    // Sentry.init(). Guarded by NEXT_RUNTIME so we don't pull the Node SDK into
+    // the edge bundle or vice-versa.
+    if (process.env.NEXT_RUNTIME === 'nodejs') {
+        await import('./sentry.server.config');
+    } else if (process.env.NEXT_RUNTIME === 'edge') {
+        await import('./sentry.edge.config');
+    }
+
     if (typeof globalThis.DOMMatrix === 'undefined') {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (globalThis as any).DOMMatrix = class DOMMatrix {

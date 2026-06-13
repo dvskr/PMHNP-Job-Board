@@ -1,102 +1,87 @@
 /**
- * Sentry Error Monitoring Integration
- * 
- * Captures errors and provides performance monitoring.
- * Set SENTRY_DSN in environment to enable.
+ * Sentry Error Monitoring — thin wrapper over @sentry/nextjs.
+ *
+ * The SDK is initialized per-runtime by sentry.server.config.ts /
+ * sentry.edge.config.ts / instrumentation-client.ts (loaded via
+ * instrumentation.ts). Those are no-ops without a DSN, so when Sentry is
+ * unconfigured every function here degrades to local logging only.
+ *
+ * This module keeps a stable internal API so existing call sites
+ * (captureException / captureMessage / setUser / addBreadcrumb / withSentry)
+ * don't have to import @sentry/nextjs directly.
  */
 
-import { getEnv, isFeatureEnabled } from '@/lib/env';
+import * as Sentry from '@sentry/nextjs';
 import { logger } from '@/lib/logger';
 
-// Simple Sentry-like interface for when Sentry is not available
 interface ErrorContext {
     tags?: Record<string, string>;
     extra?: Record<string, unknown>;
     user?: { id?: string; email?: string };
 }
 
-let sentryInitialized = false;
+const isDev = process.env.NODE_ENV === 'development';
+const sentryEnabled = !!(process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN);
 
 /**
- * Initialize Sentry (call once at app startup)
+ * Kept for backwards-compatibility with existing call sites. Real
+ * initialization now happens in the per-runtime sentry.*.config.ts files
+ * loaded by instrumentation.ts, so this is a no-op.
  */
 export function initSentry(): void {
-    if (!isFeatureEnabled('sentry')) {
+    if (!sentryEnabled) {
         logger.info('Sentry DSN not configured, error monitoring disabled');
-        return;
     }
-
-    // Note: In production, you'd install @sentry/nextjs and use:
-    // Sentry.init({ dsn: getEnv().SENTRY_DSN, ... });
-    // 
-    // For now, we'll use a simple console-based fallback
-    // Replace this with actual Sentry integration when ready
-
-    sentryInitialized = true;
-    logger.info('Error monitoring initialized');
 }
 
-/**
- * Capture an exception
- */
 export function captureException(error: Error | unknown, context?: ErrorContext): void {
-    const env = getEnv();
-
-    // Always log to console in development
-    if (env.NODE_ENV === 'development') {
-        logger.error('[Sentry] Exception captured', error, context as any);
+    if (isDev) {
+        logger.error('[Sentry] Exception captured', error, context as Record<string, unknown> | undefined);
     }
-
-    // In production with Sentry DSN, this would send to Sentry
-    // Sentry.captureException(error, { extra: context?.extra, tags: context?.tags });
-
-    if (!sentryInitialized && env.NODE_ENV === 'production') {
+    if (sentryEnabled) {
+        Sentry.captureException(error, {
+            tags: context?.tags,
+            extra: context?.extra,
+            user: context?.user,
+        });
+    } else if (!isDev) {
         logger.error('[Error]', error);
     }
 }
 
-/**
- * Capture a message
- */
 export function captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info'): void {
-    const env = getEnv();
-
-    if (env.NODE_ENV === 'development') {
+    if (isDev) {
         const logMethod = level === 'warning' ? 'warn' : level;
         logger[logMethod](`[Sentry] ${message}`);
     }
-
-    // In production: Sentry.captureMessage(message, level);
+    if (sentryEnabled) {
+        Sentry.captureMessage(message, level);
+    }
 }
 
-/**
- * Set user context for error tracking
- */
 export function setUser(user: { id?: string; email?: string } | null): void {
-    // In production: Sentry.setUser(user);
-    if (process.env.NODE_ENV === 'development' && user) {
+    if (sentryEnabled) {
+        Sentry.setUser(user);
+    }
+    if (isDev && user) {
         logger.debug('[Sentry] User context set', { user });
     }
 }
 
-/**
- * Add breadcrumb for debugging
- */
 export function addBreadcrumb(breadcrumb: {
     category: string;
     message: string;
     level?: 'debug' | 'info' | 'warning' | 'error';
     data?: Record<string, unknown>;
 }): void {
-    // In production: Sentry.addBreadcrumb(breadcrumb);
-    if (process.env.NODE_ENV === 'development') {
-        logger.debug('[Sentry] Breadcrumb', breadcrumb as any);
+    if (sentryEnabled) {
+        Sentry.addBreadcrumb(breadcrumb);
+    }
+    if (isDev) {
+        logger.debug('[Sentry] Breadcrumb', breadcrumb as unknown as Record<string, unknown>);
     }
 }
 
-/**
- * Wrap an async function with error capture
- */
 export function withSentry<T extends (...args: unknown[]) => Promise<unknown>>(
     fn: T,
     context?: ErrorContext
