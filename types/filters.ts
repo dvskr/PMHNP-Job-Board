@@ -54,16 +54,15 @@ export interface FilterCounts {
     'Mid-Level': number;
     'Senior': number;
   };
-  // Phase 1 structured experience counts. `newGradFriendly` is the total
-  // count of jobs flagged open to new grads. `minYears` keys are the
-  // EXPERIENCE_BUCKETS canonical mins (0, 1, 2, 5, 7, 10).
+  // Structured experience counts. `newGradFriendly` is the total count of jobs
+  // flagged open to new grads (its own filter section). `minYears` keys are the
+  // candidate "Your experience" buckets — collapsed to {1,2,5}; the 7+/10+
+  // buckets were dropped as provably-identical-to-5+ dead options.
   newGradFriendly: number;
   minYears: {
     1: number;
     2: number;
     5: number;
-    7: number;
-    10: number;
   };
   total: number;
 }

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -37,7 +38,7 @@ const SA_FILTER = buildCategoryWhereClause('substance-abuse');
 async function getSubstanceAbuseJobs(skip: number = 0, take: number = 20) {
     return prisma.job.findMany({
         where: SA_FILTER,
-        orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }],
+        orderBy: BEST_SORT_ORDER_BY,
         skip, take,
     });
 }

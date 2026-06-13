@@ -141,6 +141,15 @@ const NEGATIVE_KEYWORDS = [
     'building automation',
     'project sales',
     'recruiter',
+    'recruitment',
+    'patient acquisition',
+    'talent acquisition',
+    'director of growth',
+    'patient access',
+    'psychometrist',
+    'mental health coordinator',
+    'epileptologist',
+    'business development',
     'bookings specialist',
     'medical science liaison',
     'lmsw',
@@ -255,6 +264,62 @@ const MENTAL_HEALTH_CONTEXT_TERMS = [
 ];
 
 /**
+ * Specialties that, when they DEFINE the role in the TITLE, mean the posting is
+ * NOT psychiatric — unless a STRONG psych signal rescues it (psych in the title,
+ * a positive PMHNP keyword, a psych employer, or psych-specific description
+ * terms). This closes the biggest leak: primary-care / hospice NP JDs (One
+ * Medical, Ennoble Care) that merely list "behavioral health" once among many
+ * services tripped the loose Tier-2 mental-health-context check and passed.
+ */
+export const OFF_SPECIALTY_TITLE_MARKERS = [
+    'family nurse practitioner', 'family np', 'fnp',
+    'primary care', 'internal medicine', 'family medicine', 'family practice',
+    'hospice', 'palliative',
+    "women's health", 'whnp', 'nurse midwife', 'midwife', 'ob/gyn', 'obgyn',
+    'urgent care', 'walk-in clinic',
+    'dermatology', 'aesthetic', 'med spa', 'medspa',
+    'wound care', 'occupational health',
+    'dialysis', 'nephrology', 'oncology', 'hematology', 'cardiology',
+    'gastroenterology', 'endocrinology', 'pulmonology', 'rheumatology',
+    'orthopedic', 'urology', 'neonatal', 'labor and delivery',
+    'pediatric nurse practitioner', 'pediatric np', 'pediatrics nurse practitioner',
+    'geriatric', 'geriatrics', 'gerontology',
+    // Curly-apostrophe variant — aggregator titles often use U+2019, which the
+    // straight-quote "women's health" above misses.
+    'women’s health',
+];
+
+/**
+ * Non-provider / non-NP roles that are not PMHNP postings even when the JD
+ * mentions psychiatry (e.g. a recruiter sourcing PMHNPs, a psychometrist doing
+ * testing). Excluded unless the title actually carries an NP/PA credential.
+ */
+export const NON_PROVIDER_TITLE_MARKERS = [
+    'epileptologist', 'recruitment', 'recruiter', 'patient acquisition',
+    'talent acquisition', 'director of growth', 'psychometrist',
+    'mental health coordinator', 'patient access', 'sales representative',
+    'account executive', 'business development',
+];
+
+/**
+ * Psych terms specific enough that their presence means the role really is
+ * psychiatric — vs a primary-care JD that lists "behavioral health" once. These
+ * RESCUE off-specialty / generic titles where the loose MENTAL_HEALTH_CONTEXT_TERMS
+ * (which includes a bare "behavioral health"/"mental health" mention) must not.
+ */
+const STRONG_PSYCH_DESC_TERMS = [
+    'psychiatric', 'psychiatry', 'pmhnp', 'telepsychiatry', 'telepsych',
+    'psychotropic', 'psychotherapy', 'mental illness', 'bipolar', 'schizophren',
+    // Addiction / SUD is in-scope for this board, and these terms are specific
+    // enough that primary care won't carry them — so they rescue an off-specialty
+    // or generic title (e.g. "Family NP — Telehealth SUD", "NP/PA (OTP)").
+    'substance use disorder', 'opioid use disorder', 'alcohol use disorder',
+    'suboxone', 'buprenorphine', 'methadone', 'opioid treatment',
+    'medication-assisted treatment', 'medication assisted treatment',
+    'addiction medicine', ' otp ',
+];
+
+/**
  * Employer name patterns that strongly suggest a psych-focused org.
  * Used as an additional Tier 2.5 signal — a generic NP title at
  * "Senior PsychCare" or "Kanza Mental Health" should pass even
@@ -264,9 +329,28 @@ const PSYCH_EMPLOYER_PATTERNS = [
     'psych',          // PsychCare, Psychiatric, Psychotherapy, etc.
     'mental health',
     'behavioral health',
+    'behavioral',     // Behavioral Center / Behavioral Wellness
     'recovery',       // Recovery centers, addiction
     'addiction',
     'substance',
+    'counseling',     // Counseling & Wellness centers
+];
+
+/**
+ * Well-known psychiatric / mental-health employers whose NAMES carry no psych
+ * keyword, so PSYCH_EMPLOYER_PATTERNS misses them. They post real PMHNP roles
+ * (often generic "Prescribing NP or PA" contractor titles), so without this
+ * allowlist the generic-title / off-specialty guards wrongly reject them.
+ * Keep names specific enough not to collide with unrelated companies.
+ */
+export const PSYCH_EMPLOYER_ALLOWLIST = [
+    'lyra health',
+    'talkiatry',
+    'brightside health',
+    'sondermind',
+    'cerebral',
+    'two chairs',
+    'grow therapy',
 ];
 
 /**
@@ -275,7 +359,7 @@ const PSYCH_EMPLOYER_PATTERNS = [
  * `physician`, `physician assistant`, `pa-c`, ` pa ` — those words are
  * structurally part of the dual-role offer, not a wrong-role signal.
  */
-const DUAL_ROLE_PATTERNS = [
+export const DUAL_ROLE_PATTERNS = [
     'nurse practitioner or physician assistant',
     'physician assistant or nurse practitioner',
     'np or pa',
@@ -336,11 +420,46 @@ function hasMentalHealthContext(combinedText: string): boolean {
 function isPsychEmployer(employer: string | null | undefined): boolean {
     if (!employer) return false;
     const lower = employer.toLowerCase();
-    return PSYCH_EMPLOYER_PATTERNS.some((p) => lower.includes(p));
+    return (
+        PSYCH_EMPLOYER_PATTERNS.some((p) => lower.includes(p)) ||
+        PSYCH_EMPLOYER_ALLOWLIST.some((p) => lower.includes(p))
+    );
 }
 
 function isDualRoleTitle(titleLower: string): boolean {
     return DUAL_ROLE_PATTERNS.some((p) => titleLower.includes(p));
+}
+
+function hasOffSpecialtyTitle(titleLower: string): boolean {
+    return OFF_SPECIALTY_TITLE_MARKERS.some((m) => titleLower.includes(m));
+}
+
+function titleHasPsychWord(titleLower: string): boolean {
+    return ['psych', 'mental health', 'behavioral health', 'pmhnp', 'telepsych'].some((t) =>
+        titleLower.includes(t),
+    );
+}
+
+/**
+ * Psych-specific description signal — stronger than a stray "behavioral health"
+ * mention. True when either (a) a psych/addiction-specific term is present, or
+ * (b) the loose mental-health vocabulary appears REPEATEDLY. A primary-care JD
+ * lists "behavioral health" once among many services; a real psych JD (e.g.
+ * Lyra Health) mentions mental-health terms throughout.
+ */
+const STRONG_PSYCH_CONTEXT_MIN_HITS = 3;
+function hasStrongPsychContext(combinedText: string): boolean {
+    if (STRONG_PSYCH_DESC_TERMS.some((t) => combinedText.includes(t))) return true;
+    let hits = 0;
+    for (const term of MENTAL_HEALTH_CONTEXT_TERMS) {
+        let idx = combinedText.indexOf(term);
+        while (idx !== -1) {
+            hits += 1;
+            if (hits >= STRONG_PSYCH_CONTEXT_MIN_HITS) return true;
+            idx = combinedText.indexOf(term, idx + term.length);
+        }
+    }
+    return false;
 }
 
 /**
@@ -392,6 +511,24 @@ export function classifyRelevance(
         return { passes: false, reason: 'relevance_no_keyword' };
     }
 
+    const titleHasPositiveKeyword = POSITIVE_KEYWORDS.some((kw) => titleLower.includes(kw));
+
+    // 1b. OFF-SPECIALTY VETO
+    // A title that DEFINES another specialty (Family NP, primary care, hospice,
+    // women's health, oncology, …) is a psychiatric posting ONLY if a STRONG
+    // psych signal rescues it: psych in the title, a positive PMHNP keyword, a
+    // psych employer, or psych-specific description terms. A primary-care /
+    // hospice JD that merely lists "behavioral health" once does NOT qualify.
+    if (hasOffSpecialtyTitle(titleLower) && !titleHasPositiveKeyword) {
+        const rescued =
+            titleHasPsychWord(titleLower) ||
+            isPsychEmployer(employer) ||
+            hasStrongPsychContext(combinedText);
+        if (!rescued) {
+            return { passes: false, reason: 'relevance_wrong_role' };
+        }
+    }
+
     // 2. GENERIC TITLE CHECK
     const isGenericTitle = GENERIC_NP_TITLES.some((generic) => {
         return (
@@ -411,17 +548,31 @@ export function classifyRelevance(
         );
     });
 
-    if (isGenericTitle) {
-        const titleHasPsych =
-            titleLower.includes('psych') ||
-            titleLower.includes('mental health') ||
-            titleLower.includes('behavioral health') ||
-            titleLower.includes('pmhnp');
+    // A bare dual-role post ("Nurse Practitioner or Physician Assistant") with
+    // no specialty or psych word is just as generic — One Medical / Ennoble
+    // emit these for primary-care / hospice roles. Treat them as generic so the
+    // same psych-signal requirement applies.
+    const isGenericDualRole =
+        dualRole && !titleHasPsychWord(titleLower) && !hasOffSpecialtyTitle(titleLower) && !titleHasPositiveKeyword;
 
-        // Generic-title guard: title alone must signal psych UNLESS
-        // the employer is clearly a psych org.
-        if (!titleHasPsych && !isPsychEmployer(employer)) {
+    // Generic SINGLE-role titles ("Nurse Practitioner") need psych in the title
+    // or a psych employer — a description-only mention is too weak (it leaks
+    // primary-care NPs whose JD lists psych among many services).
+    if (isGenericTitle) {
+        if (!titleHasPsychWord(titleLower) && !isPsychEmployer(employer)) {
             return { passes: false, reason: 'relevance_generic_title' };
+        }
+    } else if (isGenericDualRole) {
+        // Bare dual-role "NP or PA" posts (One Medical, Ennoble): same psych
+        // requirement, but ALSO accept a strong/addiction description signal —
+        // the employer allowlist covers known psych orgs (Lyra), strong context
+        // covers SUD / OTP roles, while primary-care/hospice still fall through.
+        const rescued =
+            titleHasPsychWord(titleLower) ||
+            isPsychEmployer(employer) ||
+            hasStrongPsychContext(combinedText);
+        if (!rescued) {
+            return { passes: false, reason: 'relevance_wrong_role' };
         }
     }
 

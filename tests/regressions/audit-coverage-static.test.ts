@@ -173,6 +173,40 @@ describe('SiteStat is wired (not dropped)', () => {
   });
 });
 
+describe('job-listing orderBy is centralized (no inlined arrays can re-diverge)', () => {
+  // The SSR /jobs page once carried its own orderBy that dropped the
+  // employer-first lead, so employer jobs appeared mid-list until the client
+  // re-fetched. Every listing query now builds its order through
+  // lib/utils/job-sort (buildJobsOrderBy / BEST_SORT_ORDER_BY). This guard
+  // fails CI if any listing surface re-inlines `{ isFeatured: 'desc' }` — the
+  // tell-tale lead of the old hand-rolled array. (Selects use
+  // `isFeatured: true`, not `'desc'`, so this can't false-positive on them.)
+  function walk(dir: string, acc: string[] = []): string[] {
+    const abs = path.join(ROOT, dir);
+    if (!fs.existsSync(abs)) return acc;
+    for (const e of fs.readdirSync(abs, { withFileTypes: true })) {
+      const rel = path.join(dir, e.name);
+      if (e.isDirectory()) walk(rel, acc);
+      else if (/\.(ts|tsx)$/.test(e.name)) acc.push(rel);
+    }
+    return acc;
+  }
+
+  it('no file under app/jobs or lib/pseo inlines a `{ isFeatured: \'desc\' }` listing order', () => {
+    const offenders = [...walk('app/jobs'), ...walk('lib/pseo')]
+      .filter((f) => /isFeatured:\s*'desc'/.test(fs.readFileSync(path.join(ROOT, f), 'utf8')));
+    expect(offenders, `Inlined listing orderBy found in:\n${offenders.join('\n')}`).toEqual([]);
+  });
+
+  it('SSR /jobs page and the /api/jobs route both build order via buildJobsOrderBy(sort)', () => {
+    // Parity by construction: both call the same helper with the same sort, so
+    // the initial server render and the client re-fetch can never disagree.
+    for (const f of ['app/jobs/page.tsx', 'app/api/jobs/route.ts']) {
+      expect(read(f), `${f} must route through buildJobsOrderBy`).toMatch(/buildJobsOrderBy\(\s*sort/);
+    }
+  });
+});
+
 describe('dead routes and files are gone', () => {
   const deletedRoutes = [
     'app/api/ingest', 'app/api/stats', 'app/api/admin/stats', 'app/api/admin/trigger-ingestion',

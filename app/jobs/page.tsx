@@ -2,6 +2,7 @@ import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
+import { buildJobsOrderBy, type JobSort } from '@/lib/utils/job-sort';
 import { slugify } from '@/lib/utils';
 import JobsPageClient from './JobsPageClient';
 import { Job } from '@/lib/types';
@@ -148,25 +149,11 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
   const limit = 50;
   const skip = (page - 1) * limit;
 
-  // Build orderBy based on sort param
-  let orderBy: Record<string, unknown>[] = [
-    { isFeatured: 'desc' },
-    { qualityScore: 'desc' },
-    { originalPostedAt: 'desc' },
-    { createdAt: 'desc' },
-  ];
-  if (sort === 'newest') {
-    orderBy = [
-      { originalPostedAt: { sort: 'desc', nulls: 'last' } },
-      { createdAt: 'desc' },
-    ];
-  } else if (sort === 'salary') {
-    orderBy = [
-      { normalizedMaxSalary: { sort: 'desc', nulls: 'last' } },
-      { normalizedMinSalary: { sort: 'desc', nulls: 'last' } },
-      { createdAt: 'desc' },
-    ];
-  }
+  // Build orderBy via the single source of truth (lib/utils/job-sort). This is
+  // the bug fix: the SSR render previously inlined a 'best' order WITHOUT the
+  // employer-first lead, so employer jobs appeared mid-list until the client
+  // re-fetched /api/jobs. Now SSR and CSR build the identical order per sort.
+  const orderBy = buildJobsOrderBy(sort as JobSort);
 
   try {
     // Fetch jobs with same logic as API route

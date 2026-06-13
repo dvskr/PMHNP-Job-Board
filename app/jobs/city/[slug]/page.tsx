@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { MapPin, TrendingUp, Building2, Bell, MapPinned, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { JOB_LISTING_OMIT } from '@/lib/pseo/job-listing-omit';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import JobCard from '@/components/JobCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -130,12 +131,7 @@ async function getCityJobs(cityName: string, stateName: string, stateCode: strin
             ],
         },
         omit: JOB_LISTING_OMIT, // Perf1: cards don't use the full description body
-        orderBy: [
-            { isFeatured: 'desc' },
-            { qualityScore: 'desc' },
-            { originalPostedAt: 'desc' },
-            { createdAt: 'desc' },
-        ],
+        orderBy: BEST_SORT_ORDER_BY,
         take: 10,
     });
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -19,7 +20,7 @@ interface ProcessedEmployer { name: string; count: number; }
 
 const EL_FILTER = buildCategoryWhereClause('entry-level');
 
-async function getJobs(skip = 0, take = 20) { return prisma.job.findMany({ where: EL_FILTER, orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }], skip, take }); }
+async function getJobs(skip = 0, take = 20) { return prisma.job.findMany({ where: EL_FILTER, orderBy: BEST_SORT_ORDER_BY, skip, take }); }
 async function getStats() {
   const totalJobs = await prisma.job.count({ where: EL_FILTER });
   const salaryData = await prisma.job.aggregate({ where: { ...EL_FILTER, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, _avg: { normalizedMinSalary: true, normalizedMaxSalary: true } });

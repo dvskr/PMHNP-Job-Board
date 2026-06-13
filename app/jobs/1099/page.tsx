@@ -5,6 +5,7 @@ import Image from 'next/image';
 import CategoryHero from '@/components/CategoryHero';
 import { FileText, DollarSign, Scale, Calculator, Building2, Lightbulb, Bell, Briefcase, TrendingUp, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -36,7 +37,7 @@ const IC_FILTER = buildCategoryWhereClause('1099');
 async function getICJobs(skip: number = 0, take: number = 20) {
   return prisma.job.findMany({
     where: IC_FILTER,
-    orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }],
+    orderBy: BEST_SORT_ORDER_BY,
     skip,
     take,
   });

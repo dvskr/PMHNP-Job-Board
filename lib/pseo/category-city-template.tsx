@@ -24,6 +24,7 @@ import { cache } from 'react';
 import { withTagFallback } from './category-tagger';
 import { shouldRenderCategoryCity } from './render-gate';
 import { JOB_LISTING_OMIT } from './job-listing-omit';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -750,12 +751,7 @@ async function getCityJobs(config: CategoryConfig, city: CityData, skip = 0, tak
     return await prisma.job.findMany({
       where,
       omit: JOB_LISTING_OMIT, // Perf1: don't pull the multi-KB description for cards
-      orderBy: [
-        { isFeatured: 'desc' },
-        { qualityScore: 'desc' },
-        { originalPostedAt: 'desc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy: BEST_SORT_ORDER_BY,
       skip,
       take,
     });
