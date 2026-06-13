@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { GraduationCap, TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -44,12 +45,7 @@ const NEW_GRAD_FILTER = buildCategoryWhereClause('new-grad');
 async function getNewGradJobs(skip: number = 0, take: number = 20) {
     const jobs = await prisma.job.findMany({
         where: NEW_GRAD_FILTER,
-        orderBy: [
-            { isFeatured: 'desc' },
-            { qualityScore: 'desc' },
-            { originalPostedAt: 'desc' },
-            { createdAt: 'desc' },
-        ],
+        orderBy: BEST_SORT_ORDER_BY,
         skip,
         take,
     });

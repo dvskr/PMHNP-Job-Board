@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { FilterState, FilterCounts } from '@/types/filters';
-import { buildWhereClause, freshnessClause, CATEGORY_FILTERS, CATEGORY_EXCLUSIONS } from '@/lib/filters';
+import { buildWhereClause, freshnessClause, minYearsQualifyClause, CATEGORY_FILTERS, CATEGORY_EXCLUSIONS } from '@/lib/filters';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
@@ -226,18 +226,9 @@ export async function POST(request: NextRequest) {
     // filter from its own base so the badge count doesn't self-filter.
     const newGradBase = buildWhereClause({ ...baseFilters, newGradFriendly: null });
     const minYearsBase = buildWhereClause({ ...baseFilters, minYearsExperience: null });
-    // Mirror buildWhereClause's candidate-qualifies semantics: a job
-    // matches "I have N years" if its minYearsExperience is either
-    // ≤ N (explicit requirement) OR null (no requirement specified).
-    // Without the null branch the counts undercount by ~the entire
-    // un-backfilled aggregated inventory and confuse users — a
-    // 10-year veteran would see fewer matches than expected.
-    const qualifiesFor = (n: number) => ({
-      OR: [
-        { minYearsExperience: { lte: n } },
-        { minYearsExperience: null },
-      ],
-    });
+    // Candidate-qualifies clause + null handling are shared with
+    // buildWhereClause via minYearsQualifyClause / EXPERIENCE_NULL_QUALIFIES,
+    // so the badge counts and the actual filter predicate can never diverge.
     // Unified new-grad match (mirrors buildWhereClause): explicit flag
     // OR title keyword match minus the CATEGORY_EXCLUSIONS. Same clause
     // shape so the badge count agrees with what the filter returns.
@@ -250,13 +241,13 @@ export async function POST(request: NextRequest) {
       AND: [{ OR: newGradOrClauses }, ...newGradNotClauses],
     };
 
-    const [newGradCount, minY1, minY2, minY5, minY7, minY10] = await Promise.all([
+    // Only the live candidate buckets {1,2,5} — 7+/10+ were provably identical
+    // to 5+ (no job states a minimum above 5 years) and were removed.
+    const [newGradCount, minY1, minY2, minY5] = await Promise.all([
       prisma.job.count({ where: { AND: [newGradBase, newGradMatchClause] } }),
-      prisma.job.count({ where: { AND: [minYearsBase, qualifiesFor(1)] } }),
-      prisma.job.count({ where: { AND: [minYearsBase, qualifiesFor(2)] } }),
-      prisma.job.count({ where: { AND: [minYearsBase, qualifiesFor(5)] } }),
-      prisma.job.count({ where: { AND: [minYearsBase, qualifiesFor(7)] } }),
-      prisma.job.count({ where: { AND: [minYearsBase, qualifiesFor(10)] } }),
+      prisma.job.count({ where: { AND: [minYearsBase, minYearsQualifyClause(1)] } }),
+      prisma.job.count({ where: { AND: [minYearsBase, minYearsQualifyClause(2)] } }),
+      prisma.job.count({ where: { AND: [minYearsBase, minYearsQualifyClause(5)] } }),
     ]);
 
     const counts: FilterCounts = {
@@ -298,8 +289,6 @@ export async function POST(request: NextRequest) {
         1: minY1,
         2: minY2,
         5: minY5,
-        7: minY7,
-        10: minY10,
       },
       total,
     };

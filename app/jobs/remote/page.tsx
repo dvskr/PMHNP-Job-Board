@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Home, Globe, TrendingUp, Building2, Bell, ArrowRight, Briefcase, DollarSign } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { GLOBAL_EXCLUSIONS } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -48,12 +49,7 @@ const REMOTE_FILTER = {
 async function getRemoteJobs(skip: number = 0, take: number = 20) {
   const jobs = await prisma.job.findMany({
     where: REMOTE_FILTER,
-    orderBy: [
-      { isFeatured: 'desc' },
-      { qualityScore: 'desc' },
-      { originalPostedAt: 'desc' },
-      { createdAt: 'desc' },
-    ],
+    orderBy: BEST_SORT_ORDER_BY,
     skip,
     take,
   });

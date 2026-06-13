@@ -9,7 +9,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { BEST_SORT_ORDER_BY, compareJobsBest, type JobSortable } from '@/lib/utils/job-sort';
+import {
+    BEST_SORT_ORDER_BY,
+    EMPLOYER_FIRST_KEY,
+    buildJobsOrderBy,
+    compareJobsBest,
+    type JobSortable,
+} from '@/lib/utils/job-sort';
 
 const baseDate = new Date('2026-01-01T00:00:00Z');
 const dayAfter = (days: number) => new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
@@ -32,6 +38,61 @@ describe('BEST_SORT_ORDER_BY (DB orderBy)', () => {
             { originalPostedAt: 'desc' },
             { createdAt: 'desc' },
         ]);
+    });
+
+    it('is the same value as buildJobsOrderBy("best") (alias stays in lockstep)', () => {
+        expect(BEST_SORT_ORDER_BY).toEqual(buildJobsOrderBy('best'));
+    });
+});
+
+describe('buildJobsOrderBy — single source of truth for listing order', () => {
+    // The employer-first lead is decoupled so the Phase B switch to a
+    // denormalized boolean is a one-line change. Pin it so the interim trick
+    // can't silently change shape.
+    it('EMPLOYER_FIRST_KEY is the employer-relation lead key', () => {
+        expect(EMPLOYER_FIRST_KEY).toEqual({ employerJobs: { id: 'asc' } });
+    });
+
+    it('best pins employer-first, then featured → quality → recency', () => {
+        expect(buildJobsOrderBy('best')).toEqual([
+            EMPLOYER_FIRST_KEY,
+            { isFeatured: 'desc' },
+            { qualityScore: 'desc' },
+            { originalPostedAt: 'desc' },
+            { createdAt: 'desc' },
+        ]);
+    });
+
+    it('newest does NOT pin employer-first (an explicit chronological sort honors recency)', () => {
+        const order = buildJobsOrderBy('newest');
+        expect(order[0]).not.toEqual(EMPLOYER_FIRST_KEY);
+        expect(order).toEqual([
+            { originalPostedAt: { sort: 'desc', nulls: 'last' } },
+            { createdAt: 'desc' },
+        ]);
+    });
+
+    it('salary does NOT pin employer-first (pinning would make the salary column lie)', () => {
+        const order = buildJobsOrderBy('salary');
+        expect(order[0]).not.toEqual(EMPLOYER_FIRST_KEY);
+        expect(order).toEqual([
+            { normalizedMaxSalary: { sort: 'desc', nulls: 'last' } },
+            { normalizedMinSalary: { sort: 'desc', nulls: 'last' } },
+            { createdAt: 'desc' },
+        ]);
+    });
+
+    it('employerFirst: false drops the lead on best', () => {
+        expect(buildJobsOrderBy('best', { employerFirst: false })[0]).not.toEqual(EMPLOYER_FIRST_KEY);
+    });
+
+    it('employerFirst: true adds the lead on newest', () => {
+        expect(buildJobsOrderBy('newest', { employerFirst: true })[0]).toEqual(EMPLOYER_FIRST_KEY);
+    });
+
+    it('falls back to the pinned best order for an unknown sort value', () => {
+        // ?sort= comes from the URL; an unrecognized value must not drop the pin.
+        expect(buildJobsOrderBy('bogus' as unknown as 'best')).toEqual(buildJobsOrderBy('best'));
     });
 });
 

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
-import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
+import { buildJobsOrderBy, type JobSort } from '@/lib/utils/job-sort';
 
 export async function GET(request: NextRequest) {
   try {
@@ -73,21 +73,10 @@ export async function GET(request: NextRequest) {
     const filters = parseFiltersFromParams(searchParams);
     const where = buildWhereClause(filters);
 
-    // Parse sort option
-    const sort = searchParams.get('sort') || 'best';
-    let orderBy: Record<string, unknown>[] = [...BEST_SORT_ORDER_BY] as Record<string, unknown>[];
-    if (sort === 'newest') {
-      orderBy = [
-        { originalPostedAt: { sort: 'desc', nulls: 'last' } },
-        { createdAt: 'desc' },
-      ];
-    } else if (sort === 'salary') {
-      orderBy = [
-        { normalizedMaxSalary: { sort: 'desc', nulls: 'last' } },
-        { normalizedMinSalary: { sort: 'desc', nulls: 'last' } },
-        { createdAt: 'desc' },
-      ];
-    }
+    // Parse sort option — single source of truth (lib/utils/job-sort) so this
+    // API and the SSR /jobs page build the identical order per sort.
+    const sort = (searchParams.get('sort') || 'best') as JobSort;
+    const orderBy = buildJobsOrderBy(sort);
 
     // Get jobs
     const [jobs, total] = await Promise.all([

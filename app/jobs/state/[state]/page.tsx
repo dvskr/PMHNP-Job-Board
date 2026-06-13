@@ -6,6 +6,7 @@ import { MapPin, TrendingUp, Building2, Bell, Navigation, Shield, MapPinned, Dol
 import CategoryHero from '@/components/CategoryHero';
 import { prisma } from '@/lib/prisma';
 import { JOB_LISTING_OMIT } from '@/lib/pseo/job-listing-omit';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import JobCard from '@/components/JobCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -175,12 +176,7 @@ async function getStateJobs(stateName: string, stateCode: string, skip = 0, take
       ],
     },
     omit: JOB_LISTING_OMIT, // Perf1: cards don't use the full description body
-    orderBy: [
-      { isFeatured: 'desc' },
-      { qualityScore: 'desc' },
-      { originalPostedAt: 'desc' },
-      { createdAt: 'desc' },
-    ],
+    orderBy: BEST_SORT_ORDER_BY,
     skip,
     take,
   });

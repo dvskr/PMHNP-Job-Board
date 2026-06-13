@@ -19,6 +19,9 @@ import {
   buildWhereClause,
   parseFiltersFromParams,
   filtersToParams,
+  minYearsQualifyClause,
+  EXPERIENCE_NULL_QUALIFIES,
+  EXPERIENCE_FILTER_BUCKETS,
 } from '@/lib/filters';
 import { DEFAULT_FILTERS } from '@/types/filters';
 
@@ -90,6 +93,31 @@ describe('buildWhereClause — experience filters', () => {
     expect(json).toContain('"newGradFriendly":true');
     expect(json).toContain('"minYearsExperience":{"lte":5}');
     expect(json).toContain('"minYearsExperience":null');
+  });
+});
+
+describe('minYearsQualifyClause + EXPERIENCE_NULL_QUALIFIES (shared by WHERE and counts)', () => {
+  it('the candidate buckets are collapsed to {1,2,5} — the dead 7+/10+ are gone', () => {
+    // No job on the board states a minimum above 5 years, so 7+/10+ were
+    // identical to 5+ (dead options). This guards against re-adding them.
+    expect([...EXPERIENCE_FILTER_BUCKETS]).toEqual([1, 2, 5]);
+  });
+
+  it('while NULL_QUALIFIES is on, a bucket matches lte:N OR a null (unstated) minimum', () => {
+    expect(EXPERIENCE_NULL_QUALIFIES).toBe(true); // Phase 1 (column ~all null)
+    const clause = minYearsQualifyClause(5);
+    expect(clause).toEqual({
+      OR: [
+        { minYearsExperience: { lte: 5 } },
+        { minYearsExperience: null },
+      ],
+    });
+  });
+
+  it('buildWhereClause routes the minYears filter through the shared clause (no divergence)', () => {
+    const where = buildWhereClause({ ...DEFAULT_FILTERS, minYearsExperience: 2 });
+    const json = JSON.stringify(where);
+    expect(json).toContain(JSON.stringify(minYearsQualifyClause(2)));
   });
 });
 

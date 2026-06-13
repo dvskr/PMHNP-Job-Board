@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { FilterState } from '@/types/filters';
+import { OFF_SPECIALTY_TITLE_MARKERS, NON_PROVIDER_TITLE_MARKERS, PSYCH_EMPLOYER_ALLOWLIST, DUAL_ROLE_PATTERNS } from '@/lib/utils/job-filter';
 
 /**
  * "Posted Within" semantics (revised 2026-05-06).
@@ -44,6 +45,45 @@ export function postedWithinToMs(window: string): number | null {
     case '30d': return 30 * 24 * 60 * 60 * 1000;
     default:    return null;
   }
+}
+
+/**
+ * Candidate-side experience buckets exposed by the "Your experience" filter.
+ * Collapsed from the old {1,2,5,7,10} set: no job on the board states a minimum
+ * above 5 years, so the 7+/10+ buckets were provably identical to 5+ (dead
+ * options). The employer-facing post-job picker keeps its finer
+ * EXPERIENCE_BUCKETS granularity (lib/experience-label.ts) — only the candidate
+ * FILTER is coarsened so every option stays populated.
+ */
+export const EXPERIENCE_FILTER_BUCKETS = [1, 2, 5] as const;
+export type ExperienceFilterBucket = (typeof EXPERIENCE_FILTER_BUCKETS)[number];
+
+/**
+ * When true, a job with no stated minimum (null minYearsExperience) qualifies
+ * for every "I have N+ years" bucket. Correct while the column is largely
+ * unpopulated (scripts/backfill-experience.ts hasn't run): excluding nulls
+ * would empty the candidate bands. Flip to false — ONE line — once the column
+ * is backfilled so the bands match only explicit requirements and counts
+ * decrease with N. Read by BOTH buildWhereClause and the filter-counts route,
+ * so the predicate and the badge counts can never diverge.
+ */
+export const EXPERIENCE_NULL_QUALIFIES = true;
+
+/**
+ * "I have N+ years" candidate-qualifies clause. A candidate with N years
+ * qualifies for any job whose stated minimum is ≤ N, plus — while
+ * EXPERIENCE_NULL_QUALIFIES — jobs that state no minimum at all.
+ */
+export function minYearsQualifyClause(n: number): Prisma.JobWhereInput {
+  if (EXPERIENCE_NULL_QUALIFIES) {
+    return {
+      OR: [
+        { minYearsExperience: { lte: n } },
+        { minYearsExperience: null },
+      ],
+    };
+  }
+  return { minYearsExperience: { lte: n } };
 }
 
 /**
@@ -341,7 +381,7 @@ export const CATEGORY_EXCLUSIONS: Record<string, Prisma.JobWhereInput[]> = {
         { NOT: { title: { contains: 'Nurse', mode: 'insensitive' } } },
         { NOT: { title: { contains: 'PMHNP', mode: 'insensitive' } } },
         { NOT: { title: { contains: 'APRN', mode: 'insensitive' } } },
-        { NOT: { title: { contains: 'NP', mode: 'insensitive' } } },
+        { NOT: { title: { contains: ' NP', mode: 'insensitive' } } },
       ],
     },
   ],
@@ -354,7 +394,7 @@ export const CATEGORY_EXCLUSIONS: Record<string, Prisma.JobWhereInput[]> = {
         { NOT: { title: { contains: 'Practitioner', mode: 'insensitive' } } },
         { NOT: { title: { contains: 'PMHNP', mode: 'insensitive' } } },
         { NOT: { title: { contains: 'APRN', mode: 'insensitive' } } },
-        { NOT: { title: { contains: 'NP', mode: 'insensitive' } } },
+        { NOT: { title: { contains: ' NP', mode: 'insensitive' } } },
       ],
     },
   ],
@@ -364,6 +404,31 @@ export const CATEGORY_EXCLUSIONS: Record<string, Prisma.JobWhereInput[]> = {
  * Global Exclusions — applied to EVERY query site-wide.
  * Removes jobs that should never appear on a PMHNP job board.
  */
+// Psychiatric signal in the TITLE that rescues an off-specialty title from the
+// off-specialty exclusion below (e.g. "Psychiatric Family NP", "Family NP -
+// PMHNP", "Family NP - Substance Use Disorder"). Addiction/SUD is in-scope for
+// this board, mirroring the ingest gate's addiction rescue.
+const PSYCH_TITLE_SIGNALS = [
+  'psych', 'mental health', 'behavioral health', 'pmhnp', 'telepsych',
+  'substance use', 'addiction', 'suboxone', 'opioid treatment', 'otp',
+];
+// Psychiatric signal in the EMPLOYER name (psych orgs + the known-psych
+// allowlist that carries no psych keyword, e.g. Lyra Health, Talkiatry).
+const PSYCH_EMPLOYER_SIGNALS = [
+  'psych', 'mental health', 'behavioral', 'recovery', 'addiction', 'substance', 'counseling',
+  ...PSYCH_EMPLOYER_ALLOWLIST,
+];
+// NP/PA credential signals that protect a real provider from the non-provider
+// exclusion below (a recruiter/psychometrist title carries none of these).
+const NP_CREDENTIAL_SIGNALS = ['nurse practitioner', 'pmhnp', 'aprn', 'arnp', ' np', 'physician assistant', 'pa-c'];
+// Confirmed non-psychiatric aggregator employers (senior / primary care, SNF,
+// general federal staffing) that emit generic "Nurse Practitioner" titles with
+// no psych signal. Hidden UNLESS the posting itself carries a psych title, so a
+// rare genuine psych role from them still shows. Stopgap for the currently
+// confirmed offenders — the durable controls are the ingest gate + the periodic
+// audit (scripts/audit/audit-non-pmhnp.ts).
+const NON_PSYCH_EMPLOYER_BLOCKLIST = ['chenmed', 'akido labs', 'truhealth', 'akicita'];
+
 export const GLOBAL_EXCLUSIONS: Prisma.JobWhereInput[] = [
   // Exclude pure MD Psychiatrist roles (no NP/Nurse/PMHNP/APRN mention)
   {
@@ -373,7 +438,7 @@ export const GLOBAL_EXCLUSIONS: Prisma.JobWhereInput[] = [
       { NOT: { title: { contains: 'Practitioner', mode: 'insensitive' } } },
       { NOT: { title: { contains: 'PMHNP', mode: 'insensitive' } } },
       { NOT: { title: { contains: 'APRN', mode: 'insensitive' } } },
-      { NOT: { title: { contains: 'NP', mode: 'insensitive' } } },
+      { NOT: { title: { contains: ' NP', mode: 'insensitive' } } },
       { NOT: { title: { contains: 'ARNP', mode: 'insensitive' } } },
     ],
   },
@@ -385,7 +450,7 @@ export const GLOBAL_EXCLUSIONS: Prisma.JobWhereInput[] = [
       { NOT: { title: { contains: 'Practitioner', mode: 'insensitive' } } },
       { NOT: { title: { contains: 'PMHNP', mode: 'insensitive' } } },
       { NOT: { title: { contains: 'APRN', mode: 'insensitive' } } },
-      { NOT: { title: { contains: 'NP', mode: 'insensitive' } } },
+      { NOT: { title: { contains: ' NP', mode: 'insensitive' } } },
       { NOT: { title: { contains: 'APP', mode: 'insensitive' } } },
       { NOT: { title: { contains: 'Collaborat', mode: 'insensitive' } } },
     ],
@@ -394,10 +459,75 @@ export const GLOBAL_EXCLUSIONS: Prisma.JobWhereInput[] = [
   {
     AND: [
       { title: { contains: 'MD/DO', mode: 'insensitive' } },
-      { NOT: { title: { contains: 'NP', mode: 'insensitive' } } },
+      { NOT: { title: { contains: ' NP', mode: 'insensitive' } } },
       { NOT: { title: { contains: 'Nurse', mode: 'insensitive' } } },
       { NOT: { title: { contains: 'PMHNP', mode: 'insensitive' } } },
       { NOT: { title: { contains: 'APRN', mode: 'insensitive' } } },
+    ],
+  },
+  // Exclude OFF-SPECIALTY NP/PA roles that leak from aggregators — Family NP,
+  // primary care, hospice, women's health, oncology, etc. A job is excluded
+  // when its TITLE names another specialty AND there is no psychiatric signal
+  // in the title or employer name. Description is deliberately NOT consulted:
+  // a primary-care JD (e.g. One Medical) that lists "behavioral health" once
+  // among its services must still be excluded. This mirrors the off-specialty
+  // veto in lib/utils/job-filter.ts (the ingest gate) at query time, so
+  // already-ingested rows are hidden site-wide without a data mutation.
+  {
+    AND: [
+      { OR: OFF_SPECIALTY_TITLE_MARKERS.map((m): Prisma.JobWhereInput => ({ title: { contains: m, mode: 'insensitive' } })) },
+      {
+        NOT: {
+          OR: [
+            ...PSYCH_TITLE_SIGNALS.map((w): Prisma.JobWhereInput => ({ title: { contains: w, mode: 'insensitive' } })),
+            ...PSYCH_EMPLOYER_SIGNALS.map((w): Prisma.JobWhereInput => ({ employer: { contains: w, mode: 'insensitive' } })),
+          ],
+        },
+      },
+    ],
+  },
+  // Exclude BARE dual-role "Nurse Practitioner or Physician Assistant" titles
+  // (no specialty, no psych word) with no psychiatric signal in the title or
+  // employer. These are primary-care / hospice staffing posts (One Medical,
+  // Ennoble Care). Psych NP-or-PA roles ARE wanted, but they carry a psych word
+  // in the title or a psych employer and so are rescued by the NOT clause.
+  {
+    AND: [
+      { OR: DUAL_ROLE_PATTERNS.map((m): Prisma.JobWhereInput => ({ title: { contains: m, mode: 'insensitive' } })) },
+      {
+        NOT: {
+          OR: [
+            ...PSYCH_TITLE_SIGNALS.map((w): Prisma.JobWhereInput => ({ title: { contains: w, mode: 'insensitive' } })),
+            ...PSYCH_EMPLOYER_SIGNALS.map((w): Prisma.JobWhereInput => ({ employer: { contains: w, mode: 'insensitive' } })),
+          ],
+        },
+      },
+    ],
+  },
+  // Exclude non-provider / non-NP roles (recruiter, psychometrist, growth/
+  // patient-access, epileptologist) — not PMHNP postings even when the JD
+  // mentions psychiatry. Guarded so a title carrying a real NP/PA credential
+  // is never excluded.
+  {
+    AND: [
+      { OR: NON_PROVIDER_TITLE_MARKERS.map((m): Prisma.JobWhereInput => ({ title: { contains: m, mode: 'insensitive' } })) },
+      {
+        NOT: {
+          OR: NP_CREDENTIAL_SIGNALS.map((w): Prisma.JobWhereInput => ({ title: { contains: w, mode: 'insensitive' } })),
+        },
+      },
+    ],
+  },
+  // Exclude generic NP titles from confirmed non-psych employers, unless the
+  // specific posting's title carries a psych signal.
+  {
+    AND: [
+      { OR: NON_PSYCH_EMPLOYER_BLOCKLIST.map((e): Prisma.JobWhereInput => ({ employer: { contains: e, mode: 'insensitive' } })) },
+      {
+        NOT: {
+          OR: PSYCH_TITLE_SIGNALS.map((w): Prisma.JobWhereInput => ({ title: { contains: w, mode: 'insensitive' } })),
+        },
+      },
     ],
   },
 ];
@@ -634,25 +764,11 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     }
   }
 
-  // "Minimum years of experience" — candidate-qualifies semantics.
-  // A candidate with N years qualifies for any job that EITHER:
-  //   (a) declares `minYearsExperience ≤ N`, OR
-  //   (b) doesn't specify a requirement at all (null minYearsExperience).
-  //
-  // Without the null branch the filter hides every aggregated job that
-  // hasn't been through the experience backfill yet — at our current
-  // scale that's most of the board, so a 10-year candidate would see
-  // ~1,700 jobs out of ~3,000+. The null-as-qualifying default lifts
-  // those jobs into every "I have N+ years" bucket. After backfill
-  // (scripts/backfill-experience.ts) populates real minYearsExperience
-  // values, the buckets differentiate more meaningfully.
+  // "Your experience" (candidate-qualifies). Clause shape + null handling live
+  // in minYearsQualifyClause / EXPERIENCE_NULL_QUALIFIES so this predicate and
+  // the filter-counts badges can never diverge.
   if (typeof filters.minYearsExperience === 'number' && filters.minYearsExperience >= 0) {
-    andConditions.push({
-      OR: [
-        { minYearsExperience: { lte: filters.minYearsExperience } },
-        { minYearsExperience: null },
-      ],
-    });
+    andConditions.push(minYearsQualifyClause(filters.minYearsExperience));
   }
 
   // Employer

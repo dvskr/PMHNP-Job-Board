@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { getCitiesByState } from './city-data/cities';
 import { Metadata } from 'next';
 import { JOB_LISTING_OMIT } from './job-listing-omit';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import {
   TrendingUp, Building2, Bell, MapPin, Lightbulb,
   DollarSign, Users, ArrowRight,
@@ -61,12 +62,7 @@ async function getJobs(config: SettingConfig, stateName: string, skip = 0, take 
   return prisma.job.findMany({
     where,
     omit: JOB_LISTING_OMIT, // Perf1: don't pull the multi-KB description for cards
-    orderBy: [
-      { isFeatured: 'desc' },
-      { qualityScore: 'desc' },
-      { originalPostedAt: 'desc' },
-      { createdAt: 'desc' },
-    ],
+    orderBy: BEST_SORT_ORDER_BY,
     skip,
     take,
   });

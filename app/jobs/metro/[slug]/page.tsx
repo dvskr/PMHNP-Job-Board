@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, DollarSign, Building2, Shield, TrendingUp, Users, Heart, Briefcase, ArrowRight, Bell } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { getMetroCity, getAllMetroSlugs, type MetroCity } from '@/lib/metro-data';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -58,7 +59,7 @@ async function getMetroStats(city: string, stateCode: string) {
     }),
     prisma.job.findMany({
       where,
-      orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }],
+      orderBy: BEST_SORT_ORDER_BY,
       take: 10,
     }),
   ]);

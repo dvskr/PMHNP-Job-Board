@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Shield, Award, Clock, Building2, TrendingUp, Lightbulb, Bell, GraduationCap, Calendar, Home, Heart, Briefcase , ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -41,12 +42,7 @@ const VA_FILTER = buildCategoryWhereClause('va');
 async function getVAJobs(skip: number = 0, take: number = 20) {
   const jobs = await prisma.job.findMany({
     where: VA_FILTER,
-    orderBy: [
-      { isFeatured: 'desc' },
-      { qualityScore: 'desc' },
-      { originalPostedAt: 'desc' },
-      { createdAt: 'desc' },
-    ],
+    orderBy: BEST_SORT_ORDER_BY,
     skip,
     take,
   });

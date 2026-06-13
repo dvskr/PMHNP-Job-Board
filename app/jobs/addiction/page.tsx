@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, DollarSign, TrendingUp, Building2, Bell, Briefcase, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -37,7 +38,7 @@ const ADDICTION_FILTER = buildCategoryWhereClause('addiction');
 async function getAddictionJobs(skip = 0, take = 20) {
     return prisma.job.findMany({
         where: ADDICTION_FILTER,
-        orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }],
+        orderBy: BEST_SORT_ORDER_BY,
         skip,
         take,
     });

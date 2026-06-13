@@ -315,7 +315,7 @@ export default function LinkedInFilters() {
       });
     }
     if (filters.postedWithin) {
-      const labels: Record<string, string> = { '24h': 'Past 24h', '7d': 'Past week', '30d': 'Past month' };
+      const labels: Record<string, string> = { '24h': 'Past 24h', '3d': 'Past 3 days', '7d': 'Past week', '30d': 'Past month' };
       pills.push({
         key: 'postedWithin',
         label: labels[filters.postedWithin] || filters.postedWithin,
@@ -563,9 +563,16 @@ export default function LinkedInFilters() {
               />
             </FilterSection>
 
-            {/* Experience — Phase 1 structured filters. "Open to new grads"
-                is a binary toggle; "Your experience" is candidate-side:
-                pick your years and we'll only show jobs you qualify for. */}
+            {/* Experience — two DISTINCT questions, kept visually separate so
+                their counts don't read as contradictory:
+                  • "Open to new grads" is an EMPLOYER signal (does this employer
+                    welcome new grads?) — deliberately a small, specific set.
+                  • "Your experience" is CANDIDATE-side: pick your years and we
+                    show the roles you qualify for, so counts legitimately GROW
+                    with experience.
+                The old flat list made the 12 → 1,369 jump look broken. The dead
+                7+/10+ buckets (identical to 5+; no job requires >5 yrs) are
+                removed — see EXPERIENCE_FILTER_BUCKETS in lib/filters.ts. */}
             <FilterSection title="Experience">
               <CheckboxFilter
                 label="Open to new grads"
@@ -575,6 +582,18 @@ export default function LinkedInFilters() {
                   setSingleFilter('newGradFriendly', filters.newGradFriendly === true ? null : true)
                 }
               />
+              <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: '2px 6px 0', lineHeight: 1.4 }}>
+                Employers open to candidates with little or no experience.
+              </p>
+
+              <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', margin: '12px 0 8px' }} />
+
+              <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', margin: '0 6px 2px', letterSpacing: '0.01em' }}>
+                Your experience
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: '0 6px 8px', lineHeight: 1.4 }}>
+                Pick your years — we&rsquo;ll show the roles you qualify for.
+              </p>
               <CheckboxFilter
                 label="I have 1+ years"
                 count={counts?.minYears?.[1] || 0}
@@ -597,22 +616,6 @@ export default function LinkedInFilters() {
                 checked={filters.minYearsExperience === 5}
                 onChange={() =>
                   setSingleFilter('minYearsExperience', filters.minYearsExperience === 5 ? null : 5)
-                }
-              />
-              <CheckboxFilter
-                label="I have 7+ years"
-                count={counts?.minYears?.[7] || 0}
-                checked={filters.minYearsExperience === 7}
-                onChange={() =>
-                  setSingleFilter('minYearsExperience', filters.minYearsExperience === 7 ? null : 7)
-                }
-              />
-              <CheckboxFilter
-                label="I have 10+ years"
-                count={counts?.minYears?.[10] || 0}
-                checked={filters.minYearsExperience === 10}
-                onChange={() =>
-                  setSingleFilter('minYearsExperience', filters.minYearsExperience === 10 ? null : 10)
                 }
               />
             </FilterSection>
