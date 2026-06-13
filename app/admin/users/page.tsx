@@ -214,7 +214,7 @@ export default function AdminUsersPage() {
                         { icon: <Bell size={18} />, label: 'Active Alerts', value: summary.activeAlerts, color: '#F59E0B' },
                         { icon: <Shield size={18} />, label: 'Newsletter', value: summary.newsletterOptIns, color: '#EC4899' },
                         { icon: <Building2 size={18} />, label: 'Employer Leads', value: summary.totalEmployerLeads, color: '#8B5CF6' },
-                        { icon: <Users size={18} />, label: 'No Account', value: summary.withoutAccount + summary.employerWithoutAccount, color: '#F59E0B' },
+                        { icon: <Users size={18} />, label: 'Subscribers · No Account', value: summary.withoutAccount, color: '#F59E0B' },
                     ].map(stat => (
                         <div key={stat.label} style={{ ...card, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                             <div style={{ color: stat.color, marginBottom: 6 }}>{stat.icon}</div>
