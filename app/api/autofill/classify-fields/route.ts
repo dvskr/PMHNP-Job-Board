@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyExtensionToken } from '@/lib/verify-extension-token';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { mintResumeReadUrl, extractRequestContext } from '@/lib/resume-storage';
 
 interface FieldToClassify {
     label: string;
@@ -69,14 +70,31 @@ export async function POST(req: NextRequest) {
         } catch (ctxErr) {
             console.error('buildProfileContext error:', ctxErr);
         }
-        const resumeText = await extractResumeText(candidateProfile?.resumeUrl);
+        // The stored resumeUrl is a BARE storage path (e.g. 'resumes/<id>/x.pdf'),
+        // not a fetchable URL — fetching it directly threw and silently returned
+        // '', so AI classification always ran without the resume. Mint a fresh
+        // signed URL first (same helper extract-resume-sections uses).
+        let resumeText = '';
+        if (candidateProfile?.resumeUrl) {
+            const signedUrl = await mintResumeReadUrl(candidateProfile.resumeUrl, {
+                actorId: candidateProfile.supabaseId,
+                ownerId: candidateProfile.supabaseId,
+                audience: 'extension',
+                action: 'view',
+                ...extractRequestContext(req),
+                reason: 'chrome autofill — classify-fields',
+            });
+            if (signedUrl) resumeText = await extractResumeText(signedUrl);
+        }
 
         // Build prompt
         const prompt = buildClassifyPrompt(fieldsToProcess, profileContext, resumeText, jobTitle, employerName, jobDescription);
         console.log(`[Classify] Prompt length: ${prompt.length} chars, ${fieldsToProcess.length} fields`);
         console.log(`[Classify] Resume extracted: ${resumeText ? `YES (${resumeText.length} chars)` : 'NO'}`);
         console.log(`[Classify] Education in profile: ${candidateProfile?.education?.length || 0} records`);
-        console.log(`[Classify] Profile context preview: ${profileContext.substring(0, 300)}`);
+        // NB: do NOT log profileContext — its first lines are the candidate's
+        // name/email/phone/address (PII). Length is safe; content is not.
+        console.log(`[Classify] Profile context length: ${profileContext.length} chars`);
 
         // Call OpenAI
         const OPENAI_API_KEY = process.env.OPENAI_API_KEY;

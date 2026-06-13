@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
 import { buildSalaryGuideHtml, sendAndLog, isEmailSuppressed } from '@/lib/email-service';
 import { rateLimit } from '@/lib/rate-limit';
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       where: { email: normalizedEmail },
       select: { unsubscribeToken: true },
     });
-    const unsubscribeToken = existing?.unsubscribeToken ?? uuidv4();
+    const unsubscribeToken = existing?.unsubscribeToken ?? randomUUID();
 
     await prisma.emailLead.upsert({
       where: { email: normalizedEmail },

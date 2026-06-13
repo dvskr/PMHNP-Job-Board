@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 
 type ClickBySourceGroup = { source: string | null; _count: { id: number } };
 type SourceStat = { source: string; clicks: number; jobs: number; avgPerJob: number };
@@ -42,6 +43,14 @@ interface ClickAnalytics {
  */
 export async function GET(request: NextRequest) {
   try {
+    // Admin-only: this returns whole-platform business analytics (apply clicks
+    // by source, top jobs with employer names). It was previously unauthenticated.
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const viewer = await prisma.userProfile.findUnique({ where: { supabaseId: user.id }, select: { role: true } });
+    if (viewer?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get('days') || '30', 10);
     const sourceFilter = searchParams.get('source');

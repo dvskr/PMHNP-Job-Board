@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
         where: {
             OR: [
                 { userId: user.id },
-                { contactEmail: user.email! },
+                { userId: null, contactEmail: user.email! },
             ],
         },
         orderBy: { createdAt: 'desc' },
@@ -113,7 +113,7 @@ export async function PATCH(req: NextRequest) {
             where: {
                 OR: [
                     { userId: user.id },
-                    { contactEmail: user.email! },
+                    { userId: null, contactEmail: user.email! },
                 ],
             },
             data: companyUpdate,

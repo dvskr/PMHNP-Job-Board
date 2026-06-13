@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 
-import { prisma } from '@/lib/prisma';
+import { getSiteStats } from '@/lib/site-stats';
 import { brand } from '@/config/brand';
 import { STAT_SOURCES } from '@/lib/stats-sources';
 import EmployerTrustSection from '@/components/EmployerTrustSection';
@@ -24,33 +24,20 @@ const ExitIntentPopup = dynamic(() => import('@/components/ExitIntentPopup'));
 export const revalidate = 60;
 
 /**
- * Get total job count for dynamic metadata
+ * Total job count for dynamic metadata. Reads the cached SiteStat snapshot
+ * (refreshed hourly by the refresh-site-stats cron) instead of running a live
+ * COUNT on every render of the hottest page on the site.
  */
 async function getTotalJobCount(): Promise<number> {
-  try {
-    const count = await prisma.job.count({
-      where: { isPublished: true },
-    });
-    return count;
-  } catch {
-    return 200; // Fallback
-  }
+  return (await getSiteStats()).totalJobs;
 }
 
 /**
- * Get unique employer count for dynamic metadata
+ * Unique employer count for dynamic metadata — also from the cached snapshot
+ * (avoids a `findMany({ distinct: ['employer'] })` per render).
  */
 async function getUniqueEmployerCount(): Promise<number> {
-  try {
-    const result = await prisma.job.findMany({
-      where: { isPublished: true },
-      distinct: ['employer'],
-      select: { employer: true },
-    });
-    return result.length;
-  } catch {
-    return 500; // Fallback
-  }
+  return (await getSiteStats()).totalCompanies;
 }
 
 /**

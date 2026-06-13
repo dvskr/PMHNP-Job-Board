@@ -31,11 +31,22 @@ export function buildJobIdentityKey(title: string, employer: string, location: s
   return `${normalizeTitle(title)}|${normalizeCompany(employer)}|${normalizeLocation(location)}`;
 }
 
-/** Same path-prefix rule the orchestrator applies when building globalApplyLinkMap. */
+/**
+ * Apply-URL key used by both the orchestrator's globalApplyLinkMap and the
+ * Strategy-3 duplicate check, so they stay in lock-step.
+ *
+ * Includes the HOSTNAME and a longer path window. The old `pathname.slice(0,60)`
+ * dropped the host and truncated before the unique req-id segment, so two
+ * different employers on the same ATS (e.g. acme.myworkdayjobs.com vs
+ * globex.myworkdayjobs.com, whose paths share a long
+ * `/en-US/External/job/Remote/Psychiatric-Nurse-Practitioner…` prefix) produced
+ * the SAME key and the second employer's job was wrongly rejected as a dup.
+ */
 export function buildApplyUrlPathKey(applyLink: string): string | null {
   if (!applyLink) return null;
   try {
-    return new URL(applyLink).pathname.slice(0, 60);
+    const u = new URL(applyLink);
+    return `${u.hostname}${u.pathname}`.slice(0, 200);
   } catch {
     return null;
   }

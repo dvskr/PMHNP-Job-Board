@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/audit-log';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
+import { sendInactivityPurgeWarningEmail } from '@/lib/email-service';
 
 export const maxDuration = 300;
 
@@ -29,9 +30,9 @@ export const maxDuration = 300;
  * Activity is keyed off `last_seen_at`, with `updated_at` as a fallback
  * for accounts created before the column was introduced.
  *
- * NOTE: this cron does not currently send the warning email — it only
- * marks the gate. The marker is the audit anchor; wire a sender from
- * lib/email-service.ts in a follow-up to deliver `purge_warning_v1`.
+ * The Phase 1 warning marker (`purge_warning_email_sent_at`) is stamped
+ * ONLY after the warning email is successfully delivered, so an account can
+ * never reach Phase 2 soft-delete without having been warned first.
  */
 const ACTIVITY_THRESHOLD_DAYS = 30 * 23;       // ~23 months
 const WARNING_GRACE_DAYS = 30;
@@ -66,12 +67,29 @@ export async function GET(request: NextRequest) {
         let warned = 0;
         for (const u of candidatesForWarning) {
             try {
+                // CRITICAL: only stamp the warning marker AFTER the email is
+                // actually delivered. The marker is what advances an account to
+                // soft-delete (Phase 2), so stamping without sending would erase
+                // accounts that were never warned. If the send fails, we skip
+                // the stamp — the account simply gets re-attempted next run and
+                // never enters the deletion pipeline unwarned.
+                if (!u.email) {
+                    logger.warn('purge-inactive: skipping warning, no email on profile', { userId: u.id });
+                    continue;
+                }
+                const sendResult = await sendInactivityPurgeWarningEmail(u.email, WARNING_GRACE_DAYS);
+                if (!sendResult.success) {
+                    logger.error('purge-inactive: warning email failed, not stamping', null, {
+                        userId: u.id,
+                        error: sendResult.error,
+                    });
+                    continue;
+                }
+
                 await prisma.userProfile.update({
                     where: { id: u.id },
                     data: { purgeWarningEmailSentAt: now },
                 });
-                // TODO(privacy): wire purge_warning_v1 template via
-                // sendTransactionalEmail() once the template is approved.
                 await logAudit({
                     action: 'account.purge_warning_sent',
                     actorType: 'system',

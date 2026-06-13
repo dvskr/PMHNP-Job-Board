@@ -44,9 +44,13 @@ const KEY_TTL_SECONDS = 12 * 60 * 60;
 /** Run bucket = floor(now / 2h). Keeps chunks within one cycle grouped. */
 const RUN_BUCKET_MS = 2 * 60 * 60 * 1000;
 
-/** Per-source chunk count — must match the cron schedule in vercel.json. */
+/** Per-source chunk count — MUST match the cron schedule in vercel.json AND the
+ *  source's own chunk total. greenhouse was reduced 8→4 (GREENHOUSE_TOTAL_CHUNKS
+ *  in lib/aggregators/greenhouse.ts; vercel.json schedules chunk=0..3), so an 8
+ *  here meant countChunksSeen never reached the total and aggregation never
+ *  fired — the Redis keys just TTL'd out every cycle. */
 export const CHUNKED_SOURCE_TOTAL_CHUNKS: Readonly<Record<string, number>> = {
-    greenhouse: 8,
+    greenhouse: 4,
     workday: 5,
 };
 

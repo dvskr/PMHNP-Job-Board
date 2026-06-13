@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, ScrollText } from 'lucide-react';
+import { CheckCircle2, ScrollText, LogIn } from 'lucide-react';
 
 const REQUEST_TYPES: { value: string; label: string; description: string }[] = [
     {
@@ -75,6 +75,22 @@ export default function DataRequestPage() {
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState<{ id: string; respondBy: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
+    // The API verifies identity via the session (only the data subject can file
+    // a request), so an anonymous visitor would fill the whole form and hit a
+    // 401. Detect auth up-front: prefill the email for signed-in users, and show
+    // a sign-in prompt + no-account email fallback for everyone else.
+    const [authEmail, setAuthEmail] = useState<string | null>(null);
+    const [authChecked, setAuthChecked] = useState(false);
+
+    useEffect(() => {
+        let active = true;
+        fetch('/api/auth/me')
+            .then((r) => r.json())
+            .then((d) => { if (active) setAuthEmail(d?.id ? (d.email ?? null) : null); })
+            .catch(() => { /* treat as anonymous */ })
+            .finally(() => { if (active) setAuthChecked(true); });
+        return () => { active = false; };
+    }, []);
 
     const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -127,7 +143,42 @@ export default function DataRequestPage() {
                     directly. This form is for everything else.
                 </p>
 
-                {submitted ? (
+                {authChecked && !authEmail ? (
+                    <div
+                        style={{
+                            ...clayCard,
+                            padding: '24px',
+                            background: '#EFF6FF',
+                            border: '1px solid rgba(29,78,216,0.2)',
+                            marginTop: '24px',
+                        }}
+                    >
+                        <p style={{ ...pStyle, fontWeight: 700, color: '#1E3A8A', marginBottom: '8px' }}>
+                            Please sign in to submit a request
+                        </p>
+                        <p style={{ ...pStyle, marginBottom: '16px' }}>
+                            To protect your data, we verify your identity through your account before
+                            acting on a privacy request. Sign in and we&apos;ll tie the request to the
+                            right person automatically.
+                        </p>
+                        <Link
+                            href="/login?redirectTo=/data-request"
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                padding: '12px 22px', borderRadius: '14px',
+                                background: 'linear-gradient(135deg, #2DD4BF, #0D9488)',
+                                color: '#fff', fontSize: '14px', fontWeight: 700, textDecoration: 'none',
+                            }}
+                        >
+                            <LogIn size={16} /> Sign in to continue
+                        </Link>
+                        <p style={{ ...helpStyle, marginTop: '16px' }}>
+                            Don&apos;t have an account? You can still file a request by emailing{' '}
+                            <a href="mailto:support@pmhnphiring.com?subject=Privacy%20Data%20Request" style={{ color: '#0D9488', textDecoration: 'underline' }}>support@pmhnphiring.com</a>{' '}
+                            — we&apos;ll verify your identity another way.
+                        </p>
+                    </div>
+                ) : submitted ? (
                     <div
                         style={{
                             ...clayCard,
@@ -159,9 +210,20 @@ export default function DataRequestPage() {
                     <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '32px' }}>
                         <div>
                             <label htmlFor="email" style={labelStyle}>Email address *</label>
-                            <input id="email" name="email" type="email" required maxLength={254} style={inputStyle} />
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                required
+                                maxLength={254}
+                                defaultValue={authEmail ?? ''}
+                                readOnly={!!authEmail}
+                                style={{ ...inputStyle, ...(authEmail ? { background: '#EDF2EE', cursor: 'not-allowed' } : {}) }}
+                            />
                             <p style={helpStyle}>
-                                Use the email associated with your account if you have one. We&apos;ll reply here.
+                                {authEmail
+                                    ? 'This is your account email — we verify requests against it and reply here.'
+                                    : 'Use the email associated with your account. We’ll reply here.'}
                             </p>
                         </div>
 

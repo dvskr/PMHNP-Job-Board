@@ -84,6 +84,27 @@ export async function POST(req: NextRequest) {
   const isAdmin = viewerProfile.role === 'admin';
   const tier = isAdmin ? null : await getEmployerTier(user.id);
 
+  // Security guard: only honor a client-supplied postingId that's actually
+  // owned by this employer AND currently active — otherwise charges could be
+  // attributed to another account's posting. Verify once (same id for the whole
+  // batch); fall back to the auto-picker if it doesn't check out. Mirrors the
+  // single-unlock endpoint (candidates/[id]/route.ts).
+  let verifiedPostingId: string | undefined;
+  if (parsed.postingId && !isAdmin) {
+    const ownsPosting = await prisma.employerJob.findFirst({
+      where: {
+        id: parsed.postingId,
+        OR: [
+          { userId: user.id },
+          { userId: null, contactEmail: user.email ?? '' },
+        ],
+        job: { isPublished: true, expiresAt: { gt: new Date() } },
+      },
+      select: { id: true },
+    });
+    verifiedPostingId = ownsPosting ? parsed.postingId : undefined;
+  }
+
   const unlocked: { candidateId: string }[] = [];
   const failed: { candidateId: string; reason: string; message: string }[] = [];
 
@@ -122,12 +143,9 @@ export async function POST(req: NextRequest) {
           failed.push({ candidateId, reason, message: REASON_MESSAGES[reason] || REASON_MESSAGES.posting_cap });
           continue;
         }
-        // Honor the client's selected posting when provided — keeps the
-        // UI counter consistent with where credits actually get debited.
-        // Falls back to canUnlockCandidate's pick if the requested posting
-        // isn't in the auto-picker's headroom path (defensive — server
-        // still has final say on which postings are valid).
-        chargePostingId = parsed.postingId ?? unlockCheck.postingId;
+        // Honor the client's selected posting only after it's been verified as
+        // owned + active above; otherwise fall back to canUnlockCandidate's pick.
+        chargePostingId = verifiedPostingId ?? unlockCheck.postingId;
       }
 
       await prisma.profileView.upsert({

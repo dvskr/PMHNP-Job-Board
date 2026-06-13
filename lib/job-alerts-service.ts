@@ -85,13 +85,17 @@ function buildCriteriaSummary(alert: { keyword?: string | null; location?: strin
 
 // ─── Build pre-filtered jobs URL from alert criteria ──────────────────────────
 function buildFilteredJobsUrl(alert: { keyword?: string | null; location?: string | null; mode?: string | null; jobType?: string | null; minSalary?: number | null; maxSalary?: number | null }): string {
+  // Param names MUST match parseFiltersFromParams (lib/filters.ts): the /jobs
+  // page reads workMode/jobType/salaryMin — the old mode/type/minSalary/maxSalary
+  // names were silently ignored, so "View All Matching Jobs" landed on an
+  // unfiltered listing. There is no max-salary filter on /jobs, so maxSalary is
+  // intentionally dropped.
   const params = new URLSearchParams()
   if (alert.keyword) params.set('q', alert.keyword)
   if (alert.location) params.set('location', alert.location)
-  if (alert.mode) params.set('mode', alert.mode)
-  if (alert.jobType) params.set('type', alert.jobType)
-  if (alert.minSalary) params.set('minSalary', String(alert.minSalary))
-  if (alert.maxSalary) params.set('maxSalary', String(alert.maxSalary))
+  if (alert.mode) params.set('workMode', alert.mode.toLowerCase())
+  if (alert.jobType) params.set('jobType', alert.jobType)
+  if (alert.minSalary) params.set('salaryMin', String(alert.minSalary))
   const qs = params.toString()
   return qs ? `${BASE_URL}/jobs?${qs}` : `${BASE_URL}/jobs`
 }

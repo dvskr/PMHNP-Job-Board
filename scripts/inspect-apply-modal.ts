@@ -7,9 +7,17 @@
  */
 import { chromium } from 'playwright';
 
-const EMAIL = 'dvskr.1234@gmail.com';
-const PASSWORD = '1729@Sensei';
-const BASE = 'http://localhost:3000';
+// Credentials come from the environment — never hardcode real accounts in a
+// git-tracked file. Set TEST_LOGIN_EMAIL / TEST_LOGIN_PASSWORD before running:
+//   $env:TEST_LOGIN_EMAIL='...'; $env:TEST_LOGIN_PASSWORD='...'; npx tsx scripts/inspect-apply-modal.ts
+const EMAIL = process.env.TEST_LOGIN_EMAIL;
+const PASSWORD = process.env.TEST_LOGIN_PASSWORD;
+const BASE = process.env.TEST_BASE_URL || 'http://localhost:3000';
+
+if (!EMAIL || !PASSWORD) {
+    console.error('Set TEST_LOGIN_EMAIL and TEST_LOGIN_PASSWORD env vars before running this script.');
+    process.exit(1);
+}
 
 async function main(): Promise<void> {
     const browser = await chromium.launch({ headless: false, slowMo: 100 });

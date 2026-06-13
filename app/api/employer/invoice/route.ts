@@ -67,9 +67,12 @@ export async function GET(request: NextRequest) {
       employerJob = await prisma.employerJob.findFirst({
         where: {
           jobId,
+          // P5.A: the contactEmail fallback is restricted to legacy rows with
+          // no claimed userId — otherwise a user whose verified email equals a
+          // job's contactEmail could pull another account's invoice PDF.
           OR: [
             { userId: user.id },
-            { contactEmail: user.email! },
+            { userId: null, contactEmail: user.email! },
           ],
         },
         include: {

@@ -65,7 +65,10 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
     return [];
   }
 
-  const ADZUNA_TIME_BUDGET_MS = 250_000; // 250s budget (Vercel cron limit: 300s)
+  // 180s — must stay under the orchestrator's MAX_INGESTION_MS (240s, measured
+  // from BEFORE fetch) so the per-job insert loop still has ~60s. At 250s a
+  // full-budget fetch left 0s and the loop broke at i=0, inserting nothing.
+  const ADZUNA_TIME_BUDGET_MS = 180_000;
   const startTime = Date.now();
 
   const allJobs: Array<Record<string, unknown>> = [];

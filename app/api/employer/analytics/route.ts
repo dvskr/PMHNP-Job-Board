@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
         where: {
             OR: [
                 { userId: user.id },
-                { contactEmail: user.email! },
+                { userId: null, contactEmail: user.email! },
             ],
         },
         select: { jobId: true, job: { select: { id: true, title: true, viewCount: true, applyClickCount: true } } },

@@ -297,23 +297,29 @@ async function findRepresentativeJobId(
  * aggregator passes `fetchedCount = sum of all chunks in one cycle`, so
  * the same divide-by-cycles math holds.
  */
+// Runs (ingest CYCLES) per day per source — MUST match vercel.json crons. For
+// chunked sources (greenhouse, workday) this is cycles/day, NOT the number of
+// per-chunk cron entries (chunked-presence sums all chunks into one cycle).
+// Derived directly from vercel.json: a drifted value miscalibrates the presence
+// guard (too-low baseline → false skipped_partial_fetch; too-high → missed
+// orphan detection). Verified 2026-06-11 against the live cron schedule.
 const RUNS_PER_DAY: Readonly<Record<string, number>> = {
-    // Bumped 2026-05-06 from 2 → 3 for the free sources after adding the
-    // evening wave at 23:00 UTC. fantastic-jobs-db runs 2× (morning +
-    // afternoon) — kept off the evening wave to keep the 20k-jobs/mo
-    // RapidAPI cap usage at ~47% with spike margin.
     adzuna: 3,
-    jooble: 3,
+    jooble: 3,            // not currently scheduled in vercel.json
     lever: 3,
-    usajobs: 3,
-    ashby: 3,
-    workday: 3,
-    greenhouse: 3,
+    usajobs: 1,          // was 3 — vercel.json schedules usajobs once/day
+    ashby: 2,            // was 3 — runs at 11:40 and 00:40
+    workday: 3,          // 5 chunks × 3 cycles, but presence math uses cycles
+    greenhouse: 3,       // 4 chunks × 3 cycles, presence math uses cycles
     'fantastic-jobs-db': 2,
     smartrecruiters: 3,
-    icims: 3,
-    jazzhr: 3,
-    'ats-jobs-db': 3,
+    icims: 3,            // not currently scheduled in vercel.json
+    jazzhr: 2,           // was 3 — runs at 11:55 and 00:48
+    bamboohr: 2,         // was missing (defaulted to 1) — runs 2×/day
+    workable: 2,         // was missing — runs 2×/day
+    doccafe: 2,          // was missing — runs 2×/day
+    healthcareercenter: 2, // was missing — runs 2×/day
+    'ats-jobs-db': 3,    // not currently scheduled in vercel.json
 };
 
 /**

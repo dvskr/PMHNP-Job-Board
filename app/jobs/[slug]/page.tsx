@@ -27,7 +27,6 @@ import InternalLinks from '@/components/InternalLinks';
 import { CareerPulseCard, ApplicationTipsCard } from '@/components/jobs/SidebarVisualCards';
 import { prisma } from '@/lib/prisma';
 import { getPostBySlug } from '@/lib/blog';
-import { getCurrentUser } from '@/lib/auth/protect';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -690,12 +689,18 @@ export default async function JobPage({ params }: JobPageProps) {
   // Promise.all, adding 50-100ms of pure serial latency to every cache
   // miss render of the hottest page on the site. Pulled into the same
   // fan-out so all six independent reads start at the same tick.
+  // NOTE: do NOT call getCurrentUser() (or any cookies()/headers() reader) here.
+  // This page declares `revalidate = 3600` specifically so Googlebot crawling
+  // thousands of detail URLs hits the ISR cache instead of exhausting the DB
+  // connection pool. Reading cookies is a Dynamic API that silently opts the
+  // whole route out of ISR — making every request a full uncached render.
+  // Per-user personalization (auth state, own-job detection) is resolved
+  // client-side inside ApplyButton / MessageEmployerButton via /api/auth/me.
   const [
     relatedJobs,
     companyInfo,
     employerJobCount,
     stateAvgSalary,
-    currentUser,
     relevantBlogPosts,
     internalLinkBuckets,
   ] = await Promise.all([
@@ -710,7 +715,6 @@ export default async function JobPage({ params }: JobPageProps) {
     getCompanyInfo(job.companyId, job.employer, job.id),
     getEmployerJobCount(job.employer, job.id),
     getStateSalaryAverage(job.state, job.stateCode),
-    getCurrentUser(),
     getRelevantBlogPosts(job),
     getInternalLinkBuckets({
       currentJobId: job.id,
@@ -720,8 +724,7 @@ export default async function JobPage({ params }: JobPageProps) {
       newGradFriendly: job.newGradFriendly,
     }),
   ]);
-  const isAuthenticated = !!currentUser;
-  const isOwnJob = !!(currentUser && (job as unknown as Record<string, unknown>).employerUserId === currentUser.user.id);
+  const employerUserId = (job as unknown as Record<string, unknown>).employerUserId as string | null | undefined;
 
   const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
   const freshness = getJobFreshness(job.createdAt);
@@ -1089,11 +1092,11 @@ export default async function JobPage({ params }: JobPageProps) {
                 )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
-                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} sourceType={job.sourceType} />
+                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} applyOnPlatform={job.applyOnPlatform} sourceType={job.sourceType} />
                   <div style={{ display: 'grid', gridTemplateColumns: job.sourceType === 'employer' ? '1fr 1fr' : '1fr', gap: '8px' }}>
                     <SaveJobButton jobId={job.id} />
                     {job.sourceType === 'employer' && (
-                      <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} disabled={isOwnJob} />
+                      <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} employerUserId={employerUserId} />
                     )}
                   </div>
                 </div>
@@ -1217,11 +1220,11 @@ export default async function JobPage({ params }: JobPageProps) {
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
         <div className="px-4 py-2 pb-safe">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} sourceType={job.sourceType} />
+            <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} applyOnPlatform={job.applyOnPlatform} sourceType={job.sourceType} />
             <div style={{ display: 'grid', gridTemplateColumns: job.sourceType === 'employer' ? '1fr 1fr' : '1fr', gap: '8px' }}>
               <SaveJobButton jobId={job.id} />
               {job.sourceType === 'employer' && (
-                <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} disabled={isOwnJob} />
+                <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} employerUserId={employerUserId} />
               )}
             </div>
           </div>

@@ -22,7 +22,6 @@ dotenvConfig();
 import { prisma } from '@/lib/prisma';
 import { semanticJobSearch, platformRevenueJobsWithSimilarity } from '@/lib/ai/vector-search';
 import { selectRecommendations, type JobMeta } from '@/lib/ai/recommendation-selector';
-import { RECOMMENDATION_QUOTA } from '@/lib/ai/job-classifier';
 
 const DEDUPE_WINDOW_DAYS = 30;
 const VECTOR_OVERFETCH = 80; // headroom for quota + filters to choose from
@@ -115,7 +114,6 @@ async function main(): Promise<void> {
             licensedStates: parseLicenseStates(row.license_states),
             excludeJobIds: exclude,
             clickedEmployers,
-            quota: RECOMMENDATION_QUOTA,
         });
         if (picked.length === 0) {
             console.log(`  ${row.supabase_id} — no eligible jobs (license=${row.license_states ?? 'none'}), skip`);

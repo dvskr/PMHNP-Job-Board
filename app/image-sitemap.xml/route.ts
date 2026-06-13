@@ -21,7 +21,7 @@ ${images
                 (entry) => `  <url>
     <loc>${BASE_URL}${entry.url}</loc>
     <image:image>
-      <image:loc>${BASE_URL}${entry.image}</image:loc>
+      <image:loc>${entry.image.startsWith('http') ? entry.image : `${BASE_URL}${entry.image}`}</image:loc>
       <image:title>${escapeXml(entry.title)}</image:title>
       <image:caption>${escapeXml(entry.caption)}</image:caption>
     </image:image>

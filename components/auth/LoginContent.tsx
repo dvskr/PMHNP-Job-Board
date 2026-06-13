@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { safeInternalPath } from '@/lib/auth/safe-redirect';
 import { Loader2, AlertCircle, Eye, EyeOff, ArrowRight, Mail, User, Building2 } from 'lucide-react';
 import GoogleSignInButton from './GoogleSignInButton';
 import {
@@ -104,8 +105,24 @@ export default function LoginContent() {
       }
 
       if (data.user) {
+        // If this account was soft-deleted, logging back in within the 30-day
+        // grace window restores it — exactly what the delete-account flow
+        // promises. The endpoint is a no-op (400) for accounts that aren't
+        // deleted, so this is safe to call on every login. Same-origin fetch
+        // passes the Origin-based CSRF check automatically. Never block login
+        // on this probe.
+        try {
+          await fetch('/api/auth/restore-account', { method: 'POST' });
+        } catch { /* non-blocking */ }
         router.refresh();
-        router.push(role === 'employer' ? '/employer/dashboard' : '/dashboard');
+        // Honor a post-login return target (?redirectTo= or the ?next= that
+        // /onboarding/professional and other gated pages send). Validated to a
+        // safe same-origin path; falls back to the role's dashboard.
+        const dest = safeInternalPath(
+          searchParams.get('redirectTo') || searchParams.get('next'),
+          role === 'employer' ? '/employer/dashboard' : '/dashboard',
+        );
+        router.push(dest);
       }
     } catch {
       setError('An unexpected error occurred');

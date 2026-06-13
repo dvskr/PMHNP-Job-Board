@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       where: {
         OR: [
           { userId: user.id },
-          { contactEmail: user.email || '' },
+          { userId: null, contactEmail: user.email || '' },
         ],
       },
       orderBy: { createdAt: 'desc' },
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
           id: employerJobId,
           OR: [
             { userId: user.id },
-            { contactEmail: user.email || '' },
+            { userId: null, contactEmail: user.email || '' },
           ],
         },
         select: { id: true },

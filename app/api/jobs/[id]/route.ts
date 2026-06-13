@@ -30,10 +30,15 @@ export async function GET(
     const resolvedParams = await params;
     const jobId = resolvedParams.id;
 
-    // Find job by exact ID
-    const job = await prisma.job.findUnique({
+    // Only expose PUBLISHED, non-expired jobs. Without this gate the endpoint
+    // returned the full row for unpublished/expired jobs (and counted a view on
+    // them), even though the /jobs/<id> page 410s those. Treat anything else as
+    // not found.
+    const job = await prisma.job.findFirst({
       where: {
         id: jobId,
+        isPublished: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
     });
 

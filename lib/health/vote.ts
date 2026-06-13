@@ -36,6 +36,12 @@ export const DEFAULT_VOTE_WINDOW = 3;
 /** Reasons that count as a high-confidence dead signal. */
 const HIGH_CONFIDENCE_DEAD: ReadonlySet<HealthReason> = new Set([
     'greenhouse_api_404',
+    // Lever and SmartRecruiters ATS APIs return a definitive 404 for removed
+    // postings, exactly like greenhouse_api_404. Without these here, dead
+    // Lever/SR jobs fell through to 'awaiting_confirmation' on every run and
+    // were never unpublished.
+    'lever_api_404',
+    'smartrecruiters_api_404',
     'http_404',
     'http_410',
 ]);
@@ -159,10 +165,14 @@ export async function castFlipVote(
 const VALID_REASONS: ReadonlySet<HealthReason> = new Set([
     'alive_2xx',
     'alive_greenhouse_api',
+    'alive_lever_api',
+    'alive_smartrecruiters_api',
     'http_404',
     'http_410',
     'soft_404',
     'greenhouse_api_404',
+    'lever_api_404',
+    'smartrecruiters_api_404',
     'inconclusive_403',
     'inconclusive_429',
     'inconclusive_5xx',

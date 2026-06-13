@@ -144,7 +144,7 @@ export async function GET(req: Request) {
     const stats = {
       processed: 0, enriched: 0, salaryUpdated: 0, jobTypeUpdated: 0, modeUpdated: 0,
       cityUpdated: 0, stateUpdated: 0, settingUpdated: 0, populationUpdated: 0,
-      expLevelUpdated: 0, benefitsUpdated: 0, errors: 0, noData: 0,
+      expLevelUpdated: 0, benefitsUpdated: 0, errors: 0, noData: 0, skippedThin: 0,
       totalInputTokens: 0, totalOutputTokens: 0,
     };
 
@@ -159,7 +159,10 @@ export async function GET(req: Request) {
 
       const results = await Promise.allSettled(
         batch.map(async (job) => {
-          if (!job.description || job.description.length < 100) return null;
+          // Too thin to send to the LLM, but still mark it processed below so a
+          // 50-99-char JD (above ingest's 50-char floor) doesn't requalify on
+          // every run, burning batch budget and inflating the error count.
+          if (!job.description || job.description.length < 100) return { job, tooThin: true as const };
           const llmResponse = await extractWithLLM(job.description, job.title, job.employer, job.location);
           return { job, ...llmResponse };
         })
@@ -168,6 +171,14 @@ export async function GET(req: Request) {
       for (const r of results) {
         stats.processed++;
         if (r.status === 'rejected' || !r.value) { stats.errors++; continue; }
+
+        if ('tooThin' in r.value && r.value.tooThin) {
+          // Stamp lastEnrichedAt so it ages into the re-enrich cohort cooldown
+          // instead of re-selecting forever.
+          await prisma.job.update({ where: { id: r.value.job.id }, data: { lastEnrichedAt: new Date() } });
+          stats.skippedThin++;
+          continue;
+        }
 
         const { job, result: extracted, inputTokens, outputTokens } = r.value;
 
@@ -205,7 +216,10 @@ export async function GET(req: Request) {
           updateData.maxSalary = max;
           updateData.salaryIsEstimated = true;
           updateData.salaryConfidence = 0.7;
-          if (extracted.salary_period) updateData.salaryPeriod = extracted.salary_period;
+          // salary_min/max are annualized by the LLM; salary_period is the
+          // original unit. Store 'year' to match the annual values (else the
+          // detail page renders "$140,000/hr").
+          updateData.salaryPeriod = 'year';
           const dispMin = `$${Math.round(min / 1000)}k`;
           const dispMax = `$${Math.round(max / 1000)}k`;
           updateData.displaySalary = `${dispMin} - ${dispMax}/yr`;

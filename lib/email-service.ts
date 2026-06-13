@@ -7,7 +7,7 @@ import { Prisma } from '@prisma/client';
 import {
   emailShellV2, headerBlockV2,
   primaryButtonV2, spacerV2, closeContentV2,
-  unsubscribeFooterV2, bodyTextV2,
+  unsubscribeFooterV2, contactFooterV2, bodyTextV2,
   sectionLabelV2, infoCardV2,
   V2, SANS as SANS_V2, SERIF as SERIF_V2,
 } from '@/lib/email-templates-v2';
@@ -85,6 +85,7 @@ export type EmailType =
   | 'email_job'
   | 'auth_confirm'
   | 'recommendation_digest'
+  | 'account_purge_warning'
   | 'pd_outreach';
 
 // Marketing email types — these use the marketing sender address
@@ -1428,6 +1429,54 @@ export async function sendSavedJobReminderEmail(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send saved job reminder',
+    };
+  }
+}
+
+/**
+ * GDPR "your dormant account will be deleted" warning. Sent by the
+ * purge-inactive-users cron. The cron only advances an account toward
+ * soft-deletion AFTER this email is successfully delivered — so a failure
+ * here must surface as success:false (it does) and the caller must not stamp
+ * the warning marker on failure. This is a transactional compliance notice,
+ * not marketing, so it intentionally does not honor marketing suppression.
+ */
+export async function sendInactivityPurgeWarningEmail(
+  email: string,
+  graceDays: number
+): Promise<EmailResult> {
+  try {
+    const unsubToken = await getOrCreateUnsubToken(email);
+    const html = emailShellV2(`
+      ${headerBlockV2('Your PMHNP Hiring account is scheduled for deletion', '')}
+      ${spacerV2(12)}
+      ${bodyTextV2(`We noticed you haven't used your PMHNP Hiring account in a while. To respect your privacy, accounts that stay inactive are automatically removed.`)}
+      ${spacerV2(8)}
+      ${bodyTextV2(`<strong>If you do nothing, your account and data will be deleted in ${graceDays} days.</strong> To keep it, just sign in once — that's all it takes.`)}
+      ${spacerV2(24)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('Keep my account →', `${BASE_URL}/login`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      contactFooterV2(),
+      `Your inactive PMHNP Hiring account will be deleted in ${graceDays} days unless you sign in.`
+    );
+
+    await sendAndLog({
+      from: EMAIL_FROM_TRANSACTIONAL,
+      to: email,
+      subject: `Action needed: your PMHNP Hiring account will be deleted in ${graceDays} days`,
+      html,
+    }, 'account_purge_warning', { graceDays }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
+
+    logger.info('Inactivity purge warning sent', { email, graceDays });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending inactivity purge warning', error, { email });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send inactivity purge warning',
     };
   }
 }

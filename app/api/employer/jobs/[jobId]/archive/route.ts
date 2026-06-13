@@ -47,7 +47,7 @@ export async function PATCH(
                 jobId,
                 OR: [
                     { userId: user.id },
-                    { contactEmail: user.email! },
+                    { userId: null, contactEmail: user.email! },
                 ],
             },
             include: {

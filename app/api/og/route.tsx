@@ -28,9 +28,9 @@ export async function GET(request: NextRequest) {
   // Fetch Logo
   let logoSrc = '';
   try {
-    const host = request.headers.get('host') || 'pmhnphiring.com';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    const logoRes = await fetch(`${protocol}://${host}/pmhnp_logo.png`);
+    // Fixed origin — never the request Host header (attacker-controlled; using
+    // it makes this OG route an SSRF proxy). The logo is a stable public asset.
+    const logoRes = await fetch('https://pmhnphiring.com/pmhnp_logo.png');
     if (logoRes.ok) {
       const logoBuf = await logoRes.arrayBuffer();
       logoSrc = `data:image/png;base64,${Buffer.from(logoBuf).toString('base64')}`;

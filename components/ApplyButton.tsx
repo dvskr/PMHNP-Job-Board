@@ -31,9 +31,24 @@ function formatAppliedDate(date: Date): string {
   });
 }
 
-export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticated = false, applyOnPlatform = false, sourceType = null }: ApplyButtonProps) {
+export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticated, applyOnPlatform = false, sourceType = null }: ApplyButtonProps) {
   const { isApplied, markApplied, getAppliedDate } = useAppliedJobs();
   const searchParams = useSearchParams();
+
+  // Auth is resolved CLIENT-SIDE so the parent job-detail page can stay
+  // statically cached (ISR). The server no longer reads cookies to pass
+  // isAuthenticated — if a caller still provides it we honor it as the initial
+  // value, otherwise we detect via /api/auth/me on mount.
+  const [authed, setAuthed] = useState<boolean>(isAuthenticated ?? false);
+  useEffect(() => {
+    if (typeof isAuthenticated === 'boolean') return; // caller supplied it
+    let active = true;
+    fetch('/api/auth/me')
+      .then((r) => r.json())
+      .then((d) => { if (active) setAuthed(!!d?.id); })
+      .catch(() => { });
+    return () => { active = false; };
+  }, [isAuthenticated]);
   // Use the shared detection so the detail-page button matches the
   // card's label exactly — both consider both `sourceType === 'employer'`
   // AND known ATS URL patterns (greenhouse, lever, workday, etc.).
@@ -54,12 +69,12 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
 
   // Check server for existing application (for platform-apply jobs)
   useEffect(() => {
-    if (!isAuthenticated || !applyOnPlatform) return;
+    if (!authed || !applyOnPlatform) return;
     fetch(`/api/applications/check?jobId=${jobId}`)
       .then(r => r.json())
       .then(data => setServerApplied(data))
       .catch(() => { });
-  }, [isAuthenticated, applyOnPlatform, jobId]);
+  }, [authed, applyOnPlatform, jobId]);
 
   // Auto-open the apply popup when arriving via ?apply=1 from a job card.
   // Fires once per mount; only for in-platform jobs to avoid popping a new
@@ -69,12 +84,12 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
     if (searchParams?.get('apply') !== '1') return;
     if (!applyOnPlatform) return;
     autoOpened.current = true;
-    if (!isAuthenticated) {
+    if (!authed) {
       setShowAuthModal(true);
     } else {
       setShowPlatformApply(true);
     }
-  }, [searchParams, applyOnPlatform, isAuthenticated]);
+  }, [searchParams, applyOnPlatform, authed]);
 
   const applied = isApplied(jobId) || serverApplied?.applied;
   const appliedDate = getAppliedDate(jobId);
@@ -93,7 +108,7 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
 
   const handleApply = () => {
     // If user is not authenticated, show auth gate
-    if (!isAuthenticated) {
+    if (!authed) {
       setShowAuthModal(true);
       return;
     }
