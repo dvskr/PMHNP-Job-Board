@@ -111,7 +111,7 @@ describe('recordChunkAndMaybeAggregate', () => {
         });
         expect(r.outcome).toBe('chunk_recorded_waiting_for_more');
         expect(r.chunksSeen).toBe(1);
-        expect(r.totalChunks).toBe(8); // greenhouse
+        expect(r.totalChunks).toBe(4); // greenhouse (4 chunks scheduled in vercel.json)
         expect(r.presenceResult).toBeNull();
         // Wrote one chunk key
         expect(calls.some((c) => c.method === 'set')).toBe(true);

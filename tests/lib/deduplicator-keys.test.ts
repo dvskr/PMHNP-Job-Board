@@ -74,24 +74,24 @@ describe('buildApplyUrlPathKey', () => {
         expect(buildApplyUrlPathKey('not a url')).toBeNull();
     });
 
-    it('extracts pathname slice (≤ 60 chars) ignoring host/query', () => {
+    it('includes host + path and ignores query', () => {
         const key = buildApplyUrlPathKey('https://jobs.lever.co/lifestance/abc-123?utm=a&utm_source=x');
-        expect(key).toBe('/lifestance/abc-123');
+        expect(key).toBe('jobs.lever.co/lifestance/abc-123');
     });
 
-    it('matches across host variants when the pathname is identical', () => {
-        // The current contract is path-only; same path on different hosts
-        // still collides. This is intentional — it catches scrapers that
-        // re-host the same lever path on a different domain.
-        expect(buildApplyUrlPathKey('https://a.example.com/foo/123')).toBe(
+    it('does NOT collide across hosts with an identical path (cross-tenant fix)', () => {
+        // Two different employers on the same ATS platform share long path
+        // prefixes; the old path-only key wrongly treated them as duplicates and
+        // dropped the second employer's job. Including the host disambiguates.
+        expect(buildApplyUrlPathKey('https://a.example.com/foo/123')).not.toBe(
             buildApplyUrlPathKey('https://b.example.com/foo/123'),
         );
     });
 
-    it('truncates pathnames longer than 60 chars consistently', () => {
-        const long = 'https://example.com/' + 'a'.repeat(80);
+    it('bounds key length and stays stable across query strings', () => {
+        const long = 'https://example.com/' + 'a'.repeat(300);
         const key = buildApplyUrlPathKey(long)!;
-        expect(key.length).toBeLessThanOrEqual(60);
+        expect(key.length).toBeLessThanOrEqual(200);
         expect(buildApplyUrlPathKey(long + '?x=1')).toBe(key);
     });
 });

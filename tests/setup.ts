@@ -37,6 +37,7 @@ vi.mock('@/lib/prisma', () => {
             },
             employerJob: {
                 findFirst: vi.fn(),
+                findUnique: vi.fn(),
                 findMany: vi.fn(),
                 count: vi.fn(),
                 create: vi.fn(),
@@ -68,7 +69,9 @@ vi.mock('@/lib/prisma', () => {
             jobCharge: {
                 create: vi.fn(),
                 findFirst: vi.fn(),
+                findUnique: vi.fn(),
                 findMany: vi.fn(),
+                update: vi.fn(),
             },
             jobDraft: {
                 deleteMany: vi.fn(),
@@ -204,5 +207,9 @@ beforeEach(() => {
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+// Service-role key — some modules (e.g. lib/supabase-storage.ts) instantiate a
+// service client at import time; without this they throw "supabaseKey is
+// required" during test collection. DB calls are mocked, so the value is inert.
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
 process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
 // NODE_ENV is set via vitest config
