@@ -65,7 +65,7 @@ interface AshbyResponse {
     jobs: AshbyJob[];
 }
 
-const TIME_BUDGET_MS = 240_000;
+const TIME_BUDGET_MS = 180_000; // under orchestrator MAX_INGESTION_MS (240s) so the insert loop has headroom
 const TENANT_GAP_MS = 250;
 const BATCH_SIZE = 3;
 

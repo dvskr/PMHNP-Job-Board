@@ -30,9 +30,11 @@ export async function GET(req: NextRequest) {
 
     const employerJobs = await prisma.employerJob.findMany({
         where: {
+            // P5.A: contactEmail fallback limited to unclaimed legacy rows so a
+            // user can't list another account's billing history by email match.
             OR: [
                 { userId: user.id },
-                { contactEmail: user.email! },
+                { userId: null, contactEmail: user.email! },
             ],
         },
         include: {

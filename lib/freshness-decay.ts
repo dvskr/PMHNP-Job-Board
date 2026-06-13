@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { computeQualityScore } from './utils/quality-score';
 
 /**
@@ -111,10 +112,20 @@ export async function applyFreshnessDecay(): Promise<{
 
     console.log(`[Freshness Decay] Processing ${totalJobs} published jobs`);
 
-    let skip = 0;
-    while (skip < totalJobs) {
+    // Stable id-cursor pagination. Offset (`skip`) pagination is WRONG here:
+    // the loop unpublishes rows from the same isPublished:true set it is paging
+    // over, so every unpublish shrinks the set and shifts later rows back under
+    // a fixed `skip`, silently skipping them (compounded by no orderBy). A
+    // forward-only id cursor never revisits or skips: we only ever fetch still-
+    // published rows with id greater than the last one seen.
+    let cursor: string | null = null;
+    let processedCount = 0;
+    while (true) {
+      const where: Prisma.JobWhereInput = cursor
+        ? { isPublished: true, id: { gt: cursor } }
+        : { isPublished: true };
       const jobs = await prisma.job.findMany({
-        where: { isPublished: true },
+        where,
         select: {
           id: true,
           createdAt: true,
@@ -134,11 +145,12 @@ export async function applyFreshnessDecay(): Promise<{
           qualityScore: true,
           expiresAt: true,
         },
+        orderBy: { id: 'asc' },
         take: BATCH_SIZE,
-        skip,
       });
 
       if (jobs.length === 0) break;
+      cursor = jobs[jobs.length - 1].id;
 
       for (const job of jobs) {
         try {
@@ -191,10 +203,10 @@ export async function applyFreshnessDecay(): Promise<{
         }
       }
 
-      skip += BATCH_SIZE;
+      processedCount += jobs.length;
 
-      if ((skip % 1000) === 0) {
-        console.log(`[Freshness Decay] Progress: ${skip}/${totalJobs} | Unpublished: ${unpublished} | Scores updated: ${scoresRecomputed}`);
+      if ((processedCount % 1000) < BATCH_SIZE) {
+        console.log(`[Freshness Decay] Progress: ~${processedCount}/${totalJobs} | Unpublished: ${unpublished} | Scores updated: ${scoresRecomputed}`);
       }
     }
 

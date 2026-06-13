@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import SignUpForm from '@/components/auth/SignUpForm'
 import AuthLayout from '@/components/auth/AuthLayout'
 import { getCurrentUser } from '@/lib/auth/protect'
+import { safeInternalPath } from '@/lib/auth/safe-redirect'
 import { Suspense } from 'react'
 
 export const metadata = {
@@ -21,8 +22,7 @@ export default async function SignUpPage({
 }) {
   const currentUser = await getCurrentUser()
   const params = await searchParams
-  const redirectTo = params.redirectTo || '/dashboard'
-  const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
+  const safeRedirect = safeInternalPath(params.redirectTo, '/dashboard')
   if (currentUser) {
     redirect(safeRedirect)
   }

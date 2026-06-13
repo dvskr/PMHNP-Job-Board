@@ -268,9 +268,6 @@ export default function CheckoutPage() {
         </div>
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-gray-700">
           <li className="flex items-center gap-2">
-            <span className="text-teal-500">✓</span> Featured badge
-          </li>
-          <li className="flex items-center gap-2">
             <span className="text-teal-500">✓</span> Top search placement
           </li>
           <li className="flex items-center gap-2">

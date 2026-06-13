@@ -84,6 +84,16 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
+    // A refunded posting was pulled (refund/moderation). The renewal webhook
+    // unconditionally re-publishes + flips paymentStatus to 'paid', which would
+    // bypass the refund-unpublish moderation gate (toggle-publish 402s these).
+    // Block renewal so a refunded post can't quietly relist at the discount.
+    if (employerJob.paymentStatus === 'refunded') {
+      return NextResponse.json(
+        { error: 'This posting was refunded and is no longer eligible for renewal. Please contact support or create a new posting.' },
+        { status: 409 }
+      );
+    }
 
     // Single-tier: all renewals cost $179 (10% off $199)
     const price = config.stripeRenewalPriceInCents;

@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
                         employerJobs: {
                             OR: [
                                 { userId: user.id },
-                                { contactEmail: user.email! },
+                                { userId: null, contactEmail: user.email! },
                             ],
                         },
                     },
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
                     where: {
                         OR: [
                             { userId: user.id },
-                            { contactEmail: user.email! },
+                            { userId: null, contactEmail: user.email! },
                         ],
                         job: { isFeatured: true },
                     },

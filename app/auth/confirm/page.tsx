@@ -115,7 +115,6 @@ export default function AuthConfirmPage() {
         const errorParam = params.get('error')
         const errorDescription = params.get('error_description')
 
-        console.log('Auth confirm - type:', type, 'hasAccessToken:', !!accessToken, 'error:', errorParam)
 
         if (errorParam) {
           console.error('Auth error from hash:', errorParam, errorDescription)
@@ -147,7 +146,6 @@ export default function AuthConfirmPage() {
           return
         }
 
-        console.log('Session set successfully, type:', type, 'user:', data.session?.user?.email)
 
         // Handle different auth types
         if (type === 'recovery') {

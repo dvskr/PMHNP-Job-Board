@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Clock, ArrowUpRight, Briefcase, DollarSign } from 'lucide-react';
@@ -206,6 +206,13 @@ const css = `
 `;
 
 export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
+    // Hydration guard: relativeTime() depends on Date.now(), so the ISR-cached
+    // server HTML ("2m ago") differs from the client's recompute, firing React
+    // hydration error #418 (same class JobCard already mount-guards). Render an
+    // empty label on the server pass, swap to the live value after mount.
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
+
     useEffect(() => {
         if (jobs.length === 0) return;
         trackJobListView(
@@ -387,7 +394,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                                             )}
                                             {/* "New" recency badge removed — relativeTime below already conveys freshness. */}
                                             <span style={{ fontSize: '12px', color: 'rgba(248,232,236,0.35)' }}>
-                                                {relativeTime(postedDate)}
+                                                {mounted ? relativeTime(postedDate) : ''}
                                             </span>
                                         </div>
 

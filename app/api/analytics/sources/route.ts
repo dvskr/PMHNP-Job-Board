@@ -6,6 +6,8 @@ import {
   updateDailyStats,
 } from '@/lib/source-analytics';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/analytics/sources
@@ -18,6 +20,13 @@ import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
  */
 export async function GET(request: NextRequest) {
   try {
+    // Admin-only: whole-platform source performance analytics. Previously open.
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const viewer = await prisma.userProfile.findUnique({ where: { supabaseId: user.id }, select: { role: true } });
+    if (viewer?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
     const { searchParams } = new URL(request.url);
     const source = searchParams.get('source');
     const days = parseInt(searchParams.get('days') || '30', 10);

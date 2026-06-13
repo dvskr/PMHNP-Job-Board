@@ -3,11 +3,14 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { syncToBeehiiv } from '@/lib/beehiiv'
 import { sendSignupWelcomeEmail } from '@/lib/email-service'
+import { safeInternalPath } from '@/lib/auth/safe-redirect'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') || '/dashboard'
+  // Open-redirect guard: `${origin}${next}` with an unsanitized next allows
+  // e.g. next='@evil.com' -> https://pmhnphiring.com@evil.com (external host).
+  const next = safeInternalPath(requestUrl.searchParams.get('next'), '/dashboard')
   const origin = requestUrl.origin
 
   if (!code) {
@@ -175,7 +178,7 @@ export async function GET(request: Request) {
             profile?.firstName || data.user.user_metadata?.first_name || '',
             profile?.role || data.user.user_metadata?.role || 'job_seeker'
           )
-          console.log('Welcome email sent', { email: data.user.email })
+          console.log('Welcome email sent', { userId: data.user.id })
         }
       } catch (welcomeErr) {
         console.error('Failed to send welcome email', welcomeErr)

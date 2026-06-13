@@ -51,6 +51,14 @@ export function postedWithinToMs(window: string): number | null {
  * Single source of truth for all category page filters.
  * Used by both /jobs/[category]/page.tsx AND /jobs?category=[slug]
  */
+// Per-slug structured-flag OR clauses that augment the keyword regex. Shared by
+// BOTH the category-page builder and the ?category= querystring builder so
+// /jobs/new-grad and /jobs?category=new-grad return the same set (they used to
+// disagree — the querystring path omitted the newGradFriendly flag branch).
+export const CATEGORY_EXTRA_OR: Record<string, Prisma.JobWhereInput[]> = {
+  'new-grad': [{ newGradFriendly: true }],
+};
+
 export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
   'child-adolescent': [
     { title: { contains: 'child and adolescent', mode: 'insensitive' } },
@@ -409,18 +417,9 @@ export function buildCategoryWhereClause(
 ): Prisma.JobWhereInput {
   const andConditions: Prisma.JobWhereInput[] = [];
 
-  // Per-slug extra OR clauses that augment the keyword regex with
-  // structured-flag matches. Lets /jobs/new-grad reach employers who
-  // explicitly toggled `newGradFriendly: true` without a residency or
-  // training-program word in the title — the same OR the unified
-  // `?newGrad=1` checkbox uses. Without this the category page and the
-  // checkbox disagree (29 vs 176).
-  const CATEGORY_EXTRA_OR: Record<string, Prisma.JobWhereInput[]> = {
-    'new-grad': [{ newGradFriendly: true }],
-  };
-
   // Category filter (OR conditions from registry, plus any structured
-  // extras for this slug)
+  // extras for this slug — CATEGORY_EXTRA_OR is module-scoped and shared
+  // with buildWhereClause's ?category= branch).
   const baseOr = CATEGORY_FILTERS[slug] ?? [];
   const extraOr = CATEGORY_EXTRA_OR[slug] ?? [];
   if (baseOr.length || extraOr.length) {
@@ -474,10 +473,12 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     }
   }
 
-  // Category filter (enterprise pattern: reuses same filter as category pages)
-  if (filters.category && CATEGORY_FILTERS[filters.category]) {
+  // Category filter (enterprise pattern: reuses same filter as category pages).
+  // Include CATEGORY_EXTRA_OR so ?category=new-grad matches the same jobs as the
+  // /jobs/new-grad page (both reach newGradFriendly-flagged jobs).
+  if (filters.category && (CATEGORY_FILTERS[filters.category] || CATEGORY_EXTRA_OR[filters.category])) {
     andConditions.push({
-      OR: CATEGORY_FILTERS[filters.category],
+      OR: [...(CATEGORY_FILTERS[filters.category] ?? []), ...(CATEGORY_EXTRA_OR[filters.category] ?? [])],
     });
     // Apply exclusions to remove false positives
     if (CATEGORY_EXCLUSIONS[filters.category]) {

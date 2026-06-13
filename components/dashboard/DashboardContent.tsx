@@ -232,12 +232,12 @@ function FeedbackRatingCard() {
         if (selected === 0) return
         setLoading(true)
         try {
-            await fetch('/api/feedback', {
+            const res = await fetch('/api/feedback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ rating: selected, message, page: 'dashboard' }),
             })
-            setSubmitted(true)
+            if (res.ok) setSubmitted(true)
         } catch { /* silent */ }
         setLoading(false)
     }
@@ -355,7 +355,7 @@ function TestimonialCard({ firstName }: { firstName: string | null }) {
         if (!review.trim()) return
         setLoading(true)
         try {
-            await fetch('/api/feedback', {
+            const res = await fetch('/api/feedback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -364,7 +364,7 @@ function TestimonialCard({ firstName }: { firstName: string | null }) {
                     page: 'dashboard-testimonial',
                 }),
             })
-            setSubmitted(true)
+            if (res.ok) setSubmitted(true)
         } catch { /* silent */ }
         setLoading(false)
     }

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { sendBroadcastEmail, buildBroadcastHtml } from '@/lib/email-service';
+import { sendBroadcastEmail, buildBroadcastHtml, isEmailSuppressed } from '@/lib/email-service';
 import { logger } from '@/lib/logger';
 
 // ── Rate limiting config (Resend Pro: 10/sec) ──────────────────
@@ -48,6 +48,7 @@ export interface BroadcastProgress {
     total: number;
     sent: number;
     failed: number;
+    skipped: number;
     status: 'sending' | 'sent' | 'failed';
 }
 
@@ -76,6 +77,7 @@ export async function executeBroadcast(broadcastId: string): Promise<BroadcastPr
 
     let sent = broadcast.sentCount;
     let failed = broadcast.failedCount;
+    let skipped = 0;
 
     // Pre-render the base HTML (merge tags still present for per-recipient personalization)
     const bodyHtml = markdownToEmailHtml(broadcast.body);
@@ -85,6 +87,19 @@ export async function executeBroadcast(broadcastId: string): Promise<BroadcastPr
         const batch = recipients.slice(i, i + BATCH_SIZE);
 
         for (const recipient of batch) {
+            // Honor the suppression list (bounced / complained / unsubscribed /
+            // soft-deleted). Sending to these addresses harms deliverability and
+            // breaks CAN-SPAM/GDPR opt-out guarantees. Mark as skipped, not
+            // failed, so it doesn't inflate the failure rate or flip final status.
+            if (await isEmailSuppressed(recipient.email)) {
+                await prisma.emailBroadcastRecipient.update({
+                    where: { id: recipient.id },
+                    data: { status: 'skipped', error: 'suppressed' },
+                });
+                skipped++;
+                continue;
+            }
+
             const personalizedBody = personalize(bodyHtml, {
                 email: recipient.email,
                 firstName: recipient.firstName,
@@ -159,13 +174,14 @@ export async function executeBroadcast(broadcastId: string): Promise<BroadcastPr
         },
     });
 
-    logger.info(`[Broadcast] Complete: ${sent} sent, ${failed} failed`, { broadcastId });
+    logger.info(`[Broadcast] Complete: ${sent} sent, ${failed} failed, ${skipped} suppressed`, { broadcastId });
 
     return {
         broadcastId,
         total: recipients.length,
         sent,
         failed,
+        skipped,
         status: finalStatus,
     };
 }

@@ -267,6 +267,14 @@
     {
       "path": "/api/cron/purge-inactive-users",
       "schedule": "45 8 * * *"
+    },
+    {
+      "path": "/api/cron/dsar-overdue",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-site-stats",
+      "schedule": "15 * * * *"
     }
   ],
   "headers": [

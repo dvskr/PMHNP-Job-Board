@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MessageEmployerModal from './MessageEmployerModal';
 
 interface MessageEmployerButtonProps {
@@ -8,6 +8,13 @@ interface MessageEmployerButtonProps {
     jobTitle: string;
     employerName: string;
     disabled?: boolean;
+    /**
+     * Supabase user id of the job's owner. Used to disable the button when the
+     * viewer is the employer who posted this job (you can't message yourself).
+     * Resolved CLIENT-SIDE so the parent job-detail page stays ISR-cached —
+     * the server no longer reads cookies to compute an `isOwnJob` flag.
+     */
+    employerUserId?: string | null;
 }
 
 /**
@@ -20,45 +27,59 @@ export default function MessageEmployerButton({
     jobTitle,
     employerName,
     disabled = false,
+    employerUserId = null,
 }: MessageEmployerButtonProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [isOwnJob, setIsOwnJob] = useState(false);
 
-    const baseShadow = disabled
+    useEffect(() => {
+        if (!employerUserId) return;
+        let active = true;
+        fetch('/api/auth/me')
+            .then((r) => r.json())
+            .then((d) => { if (active && d?.id) setIsOwnJob(d.id === employerUserId); })
+            .catch(() => { });
+        return () => { active = false; };
+    }, [employerUserId]);
+
+    const isDisabled = disabled || isOwnJob;
+
+    const baseShadow = isDisabled
         ? '3px 3px 6px rgba(0,0,0,0.04), inset 1px 1px 3px rgba(255,255,255,0.5)'
         : '5px 5px 12px rgba(13,148,136,0.12), -3px -3px 8px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.5), inset -1px -1px 2px rgba(0,0,0,0.03)';
 
     return (
         <>
             <button
-                onClick={() => !disabled && setIsOpen(true)}
-                disabled={disabled}
-                title={disabled ? 'This is your job posting' : `Send InMail to ${employerName}`}
+                onClick={() => !isDisabled && setIsOpen(true)}
+                disabled={isDisabled}
+                title={isDisabled ? 'This is your job posting' : `Send InMail to ${employerName}`}
                 style={{
                     width: '100%',
                     padding: '10px 18px',
                     borderRadius: '16px',
                     border: '1px solid rgba(255,255,255,0.5)',
-                    backgroundColor: disabled ? '#F3F4F6' : '#D5F5F1',
-                    color: disabled ? '#9CA3AF' : '#0D9488',
+                    backgroundColor: isDisabled ? '#F3F4F6' : '#D5F5F1',
+                    color: isDisabled ? '#9CA3AF' : '#0D9488',
                     fontSize: '14px',
                     fontWeight: 600,
-                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
                     transition: 'all 0.2s',
-                    opacity: disabled ? 0.5 : 1,
+                    opacity: isDisabled ? 0.5 : 1,
                     boxShadow: baseShadow,
                 }}
                 onMouseEnter={e => {
-                    if (!disabled) {
+                    if (!isDisabled) {
                         e.currentTarget.style.transform = 'translateY(-2px)';
                         e.currentTarget.style.boxShadow = '7px 7px 16px rgba(13,148,136,0.15), -4px -4px 10px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.03)';
                     }
                 }}
                 onMouseLeave={e => {
-                    if (!disabled) {
+                    if (!isDisabled) {
                         e.currentTarget.style.transform = 'translateY(0)';
                         e.currentTarget.style.boxShadow = baseShadow;
                     }

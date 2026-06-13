@@ -21,7 +21,7 @@ export async function GET(request: Request) {
         const savedJobIds = savedJobIdsParam ? savedJobIdsParam.split(',').filter(Boolean) : []
 
         // Run all queries in parallel
-        const [profile, applicationCount, applications, alertCount, savedJobs, recommendedJobs, emailLead, unreadMessages] =
+        const [profile, applicationCount, applications, alertCount, savedJobs, recommendedJobs, emailLead] =
             await Promise.all([
                 // 1. User profile
                 // Selecting EVERY field calculateCompleteness reads from
@@ -33,6 +33,7 @@ export async function GET(request: Request) {
                 prisma.userProfile.findUnique({
                     where: { supabaseId: user.id },
                     select: {
+                        id: true,
                         firstName: true,
                         lastName: true,
                         role: true,
@@ -138,15 +139,22 @@ export async function GET(request: Request) {
                     where: { email: user.email! },
                     select: { newsletterOptIn: true },
                 }),
+            ])
 
-                // 8. Unread messages count
+        // EmployerMessage.recipientId and ProfileView.candidateId both reference
+        // UserProfile.id (a cuid), NOT the Supabase auth UUID (user.id). These two
+        // counts therefore have to run AFTER the profile resolves — querying them
+        // with user.id silently returned 0 for every candidate.
+        const [unreadMessages, profileViews] = profile
+            ? await Promise.all([
                 prisma.employerMessage.count({
-                    where: {
-                        recipientId: user.id,
-                        readAt: null,
-                    },
+                    where: { recipientId: profile.id, readAt: null },
+                }),
+                prisma.profileView.count({
+                    where: { candidateId: profile.id },
                 }),
             ])
+            : [0, 0]
 
         // Note: dashboard is primarily for job seekers but accessible to all authenticated users
 
@@ -158,7 +166,7 @@ export async function GET(request: Request) {
             stats: {
                 savedJobs: savedJobIds.length,
                 applied: applicationCount,
-                profileViews: 0, // placeholder — tracked in Slice 25
+                profileViews,
                 activeAlerts: alertCount,
             },
             applications,

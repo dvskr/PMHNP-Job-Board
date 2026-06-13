@@ -33,7 +33,7 @@ const INGEST_DEAD_REASONS: ReadonlySet<HealthReason> = new Set([
 
 // ── Global dedup maps (pre-loaded once at start of full ingestion run) ──
 let globalExternalIdMap: Map<string, { id: string; sourceProvider: string; originalPostedAt: Date | null }> | null = null;
-let globalApplyLinkMap: Map<string, string> | null = null; // URL.pathname.slice(0,60) -> jobId
+let globalApplyLinkMap: Map<string, string> | null = null; // buildApplyUrlPathKey(applyLink) -> jobId
 // 2026-05-05: third map added after prod audit found Strategy 2 ("exact
 // title+employer+location") was silently dropping dupes whenever > 50
 // candidates shared a title prefix (LifeStance had 27× duplicates of one
@@ -149,7 +149,10 @@ function mergeLlmIntoNormalized(job: any, llm: LLMExtractResult): any {
     next.maxSalary = max;
     next.salaryIsEstimated = true;
     next.salaryConfidence = 0.7;
-    if (llm.salary_period) next.salaryPeriod = llm.salary_period;
+    // The LLM already annualizes salary_min/max, but reports salary_period as the
+    // ORIGINAL unit ('hour'/'month'). Storing that period made the detail page
+    // render e.g. "$140,000/hr". The values are annual, so the period is 'year'.
+    next.salaryPeriod = 'year';
     next.displaySalary = `$${Math.round(min / 1000)}k - $${Math.round(max / 1000)}k/yr`;
   }
 

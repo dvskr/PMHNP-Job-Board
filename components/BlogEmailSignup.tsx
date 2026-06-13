@@ -20,11 +20,12 @@ export default function BlogEmailSignup({ source }: { source: string }) {
                 if (!email) return;
                 setStatus('loading');
                 try {
-                    await fetch('/api/email-job', {
+                    const res = await fetch('/api/newsletter', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email, source }),
                     });
+                    if (!res.ok) throw new Error('Subscription failed');
                     setStatus('done');
                 } catch {
                     setStatus('error');

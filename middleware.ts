@@ -746,8 +746,24 @@ export async function middleware(request: NextRequest) {
     });
 
     if (paramsToRemove.length > 0) {
+        // Capture attribution BEFORE we strip it from the URL. The widget appends
+        // utm_source=widget&utm_campaign=pd-{program} for Program-Director
+        // attribution, but the SEO strip+301 would destroy it before any client
+        // analytics runs. Stash source/campaign in a short-lived first-party
+        // cookie so attribution survives the redirect while the URL stays clean.
+        const utmSource = url.searchParams.get('utm_source');
+        const utmCampaign = url.searchParams.get('utm_campaign');
+        const utmMedium = url.searchParams.get('utm_medium');
         paramsToRemove.forEach(key => url.searchParams.delete(key));
-        return NextResponse.redirect(url, 301);
+        const redirectRes = NextResponse.redirect(url, 301);
+        if (utmSource || utmCampaign || utmMedium) {
+            redirectRes.cookies.set(
+                'pmhnp_attribution',
+                JSON.stringify({ source: utmSource, campaign: utmCampaign, medium: utmMedium }),
+                { path: '/', sameSite: 'lax', secure: !isLocalhost, maxAge: 60 * 30 },
+            );
+        }
+        return redirectRes;
     }
 
     // ── Company URL Normalization ─────────────────────────────────────
@@ -868,12 +884,22 @@ export async function middleware(request: NextRequest) {
         ? 'implied'
         : 'strict';
     response.headers.set('x-consent-region', region);
-    response.cookies.set('pmhnp_consent_region', region, {
-        path: '/',
-        sameSite: 'lax',
-        secure: !isLocalhost,
-        maxAge: 60 * 60 * 24, // 1 day — re-evaluated on every visit
-    });
+    // Skip the per-request consent-region cookie for known crawlers. Bots never
+    // see the banner or run analytics, so they don't need it — and a Set-Cookie
+    // header makes the response un-cacheable at the CDN. Dropping it lets crawler
+    // responses on public listing pages be edge-cached (see the CDN-Cache-Control
+    // block below), so a Googlebot crawl burst hits the CDN instead of
+    // re-rendering (and re-running ~10+ DB queries) on every URL. Safe because
+    // the region is read CLIENT-SIDE from this cookie (lib/consent.ts
+    // getConsentRegion) and the SSR HTML itself is geo-neutral.
+    if (!isCrawler) {
+        response.cookies.set('pmhnp_consent_region', region, {
+            path: '/',
+            sameSite: 'lax',
+            secure: !isLocalhost,
+            maxAge: 60 * 60 * 24, // 1 day — re-evaluated on every visit
+        });
+    }
 
     // ── CORS Headers for API Routes ──────────────────────────────────
     // Restrict cross-origin API access to only our own domain.
@@ -967,6 +993,32 @@ export async function middleware(request: NextRequest) {
         if (Number.isFinite(pageNum) && pageNum >= 2) {
             response.headers.set('X-Robots-Tag', 'noindex, follow');
         }
+    }
+
+    // ── Edge-cache public pSEO listing pages for crawlers ────────────
+    // These listing pages render dynamically (they read ?page), so each hit
+    // runs ~10+ DB queries. A Googlebot crawl across many of them can exhaust
+    // the DB connection pool and start returning 5xx — which is the thing that
+    // actually hurts SEO (crawl errors + wasted crawl budget).
+    //
+    // For CRAWLERS ONLY (real users keep fresh, per-request responses with their
+    // consent cookie), cache the rendered HTML at Vercel's edge for a few
+    // minutes. Crawler responses carry no Set-Cookie (consent block above), so
+    // the CDN will cache them; `CDN-Cache-Control` controls the edge cache only,
+    // not the browser. Listings stay at most ~5 min stale (fine — jobs don't
+    // change second-by-second). Job-detail pages already have their own ISR, so
+    // they're excluded here. NOTE: confirm in prod by checking the response
+    // headers / `x-vercel-cache` on a pSEO URL with a crawler UA.
+    const isJobDetailUrl =
+        /\/jobs\/[^/]*[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(pathname);
+    if (
+        isCrawler &&
+        request.method === 'GET' &&
+        !isNoindexPath &&
+        !isJobDetailUrl &&
+        (pathname === '/jobs' || pathname.startsWith('/jobs/'))
+    ) {
+        response.headers.set('CDN-Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
     }
 
     return response;

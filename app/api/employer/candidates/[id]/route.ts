@@ -128,7 +128,7 @@ export async function GET(
                     id: requestedPostingId,
                     OR: [
                         { userId: user.id },
-                        { contactEmail: user.email ?? '' },
+                        { userId: null, contactEmail: user.email ?? '' },
                     ],
                     job: { isPublished: true, expiresAt: { gt: new Date() } },
                 },

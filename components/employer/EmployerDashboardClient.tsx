@@ -82,7 +82,6 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     const isTokenAccess = !!dashboardToken;
 
     const [renewingJobId, setRenewingJobId] = useState<string | null>(null);
-    const [upgradingJobId, setUpgradingJobId] = useState<string | null>(null);
     const [showRenewModal, setShowRenewModal] = useState(false);
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [togglingJobId, setTogglingJobId] = useState<string | null>(null);
@@ -268,37 +267,6 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
             console.error('Renewal checkout error:', err);
             alert(err instanceof Error ? err.message : 'Failed to start renewal process');
             setRenewingJobId(null);
-        }
-    };
-
-    const handleUpgradeClick = async (job: Job) => {
-        setUpgradingJobId(job.id);
-
-        try {
-            const response = await fetch('/api/create-upgrade-checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    jobId: job.id,
-                    editToken: job.editToken,
-                }),
-            });
-
-            const result = await response.json();
-
-            if (!response.ok || result.error) {
-                throw new Error(result.error || 'Failed to create checkout');
-            }
-
-            if (result.url) {
-                window.location.href = result.url;
-            } else if (result.success && result.free) {
-                window.location.reload();
-            }
-        } catch (err) {
-            console.error('Upgrade checkout error:', err);
-            alert(err instanceof Error ? err.message : 'Failed to start upgrade process');
-            setUpgradingJobId(null);
         }
     };
 

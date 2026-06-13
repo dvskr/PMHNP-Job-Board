@@ -101,22 +101,40 @@ export async function POST(request: NextRequest) {
             ? `${profile.firstName} ${profile.lastName || ''}`.trim()
             : null;
 
-        // Create report
-        const report = await prisma.jobReport.create({
-            data: {
-                jobId,
-                reason,
-                details: details?.slice(0, 500) || null,
-                ipHash: hashIp(ip),
-                reporterEmail,
-                reporterName,
-            },
-        });
+        // De-dup per reporter: one logged-in account must not be able to drive
+        // the auto-unpublish threshold by filing the same job 3× (that would let
+        // any single user take down any competitor's listing). If this reporter
+        // already reported this job, acknowledge without creating a duplicate.
+        const existingReport = reporterEmail
+            ? await prisma.jobReport.findFirst({
+                where: { jobId, reporterEmail },
+                select: { id: true },
+            })
+            : null;
 
-        // Check if auto-unpublish threshold reached
-        const reportCount = await prisma.jobReport.count({
+        let report = existingReport;
+        if (!existingReport) {
+            report = await prisma.jobReport.create({
+                data: {
+                    jobId,
+                    reason,
+                    details: details?.slice(0, 500) || null,
+                    ipHash: hashIp(ip),
+                    reporterEmail,
+                    reporterName,
+                },
+                select: { id: true },
+            });
+        }
+
+        // Threshold is measured in DISTINCT reporters, not raw report rows, so
+        // legacy duplicate rows can't inflate it either.
+        const distinctReporters = await prisma.jobReport.findMany({
             where: { jobId },
+            distinct: ['reporterEmail'],
+            select: { reporterEmail: true },
         });
+        const reportCount = distinctReporters.length;
 
         let autoUnpublished = false;
         if (reportCount >= AUTO_UNPUBLISH_THRESHOLD && job.isPublished) {
@@ -132,7 +150,8 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            reportId: report.id,
+            reportId: report?.id ?? null,
+            alreadyReported: !!existingReport,
             totalReports: reportCount,
             autoUnpublished,
         });

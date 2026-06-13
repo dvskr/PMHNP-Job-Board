@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyExtensionToken } from '@/lib/verify-extension-token';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { mintResumeReadUrl, extractRequestContext } from '@/lib/resume-storage';
 
 
 export async function POST(req: NextRequest) {
@@ -89,9 +90,22 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        // Build AI prompt with resume context
+        // Build AI prompt with resume context. resumeUrl is a bare storage path,
+        // so mint a signed URL before fetching (fetching the path directly threw
+        // and returned '' — the answer was generated without the resume).
         const profileContext = buildProfileContext(candidateProfile);
-        const resumeText = await extractResumeText(candidateProfile?.resumeUrl);
+        let resumeText = '';
+        if (candidateProfile?.resumeUrl) {
+            const signedUrl = await mintResumeReadUrl(candidateProfile.resumeUrl, {
+                actorId: candidateProfile.supabaseId,
+                ownerId: candidateProfile.supabaseId,
+                audience: 'extension',
+                action: 'view',
+                ...extractRequestContext(req),
+                reason: 'chrome autofill — generate-answer',
+            });
+            if (signedUrl) resumeText = await extractResumeText(signedUrl);
+        }
         const prompt = buildPrompt(questionText, jobTitle, jobDescription, employerName, profileContext, resumeText, maxLength);
 
         // Call OpenAI

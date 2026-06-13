@@ -37,7 +37,7 @@ const QUERIES: readonly string[] = [
     'behavioral health nurse practitioner',
 ];
 
-const TIME_BUDGET_MS = 230_000;
+const TIME_BUDGET_MS = 180_000; // under orchestrator MAX_INGESTION_MS (240s) so the insert loop has headroom
 const MAX_PAGES_PER_QUERY = 10;
 const PAGE_GAP_MS = 400;
 const DETAIL_GAP_MS = 250;

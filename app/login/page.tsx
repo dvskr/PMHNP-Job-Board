@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth/protect'
+import { safeInternalPath } from '@/lib/auth/safe-redirect'
 import LoginContent from '@/components/auth/LoginContent'
 import AuthLayout from '@/components/auth/AuthLayout'
 import { Suspense } from 'react'
@@ -21,8 +22,7 @@ export default async function LoginPage({
 }) {
   const currentUser = await getCurrentUser()
   const params = await searchParams
-  const redirectTo = params.redirectTo || '/dashboard'
-  const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
+  const safeRedirect = safeInternalPath(params.redirectTo, '/dashboard')
   if (currentUser) {
     redirect(safeRedirect)
   }

@@ -104,7 +104,7 @@ const RESULTS_PER_PAGE = 500;
 const MAX_PAGES_PER_QUERY = 20; // 500 × 20 = 10k cap per query — far more than the federal pipeline produces
 const REQUEST_GAP_MS = 500;
 const QUERY_GAP_MS = 300;
-const TIME_BUDGET_MS = 250_000;
+const TIME_BUDGET_MS = 180_000; // under orchestrator MAX_INGESTION_MS (240s) so the insert loop has headroom
 // USAJobs `DatePosted` accepts 0, 1, 3, 7, 15, 30, 60. 30d matches the
 // ingest-gate freshness policy (see project memory freshness_policy).
 const DATE_POSTED_DAYS = '30';

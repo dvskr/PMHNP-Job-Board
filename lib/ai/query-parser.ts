@@ -139,12 +139,15 @@ export function parseSemanticQuery(raw: string): ParsedSemanticQuery {
     if (!state) {
         // Pass 2 — uppercase-only code at a word boundary in the ORIGINAL query.
         // " CA" / "CA " / "CA," all qualify; "in", "or", "ca" do not.
-        const upperMatch = original.match(/(?:^|\s)([A-Z]{2})(?=\s|$|,|\.)/);
-        if (upperMatch) {
-            const code = upperMatch[1];
+        // Scan ALL uppercase pairs and take the first that is a real state code —
+        // a non-global single match stopped at "NP" (e.g. "telepsych NP CA") and
+        // never reached the actual state code that followed.
+        for (const m of original.matchAll(/(?:^|\s)([A-Z]{2})(?=\s|$|,|\.)/g)) {
+            const code = m[1];
             if (VALID_STATE_CODES.has(code)) {
                 state = code;
                 working = working.replace(new RegExp(`(?:^|\\s)${code.toLowerCase()}(?=\\s|$|,|\\.)`, 'i'), ' ');
+                break;
             }
         }
     }

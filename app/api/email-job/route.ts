@@ -3,10 +3,26 @@ import {
   emailShellV2, headerBlockV2, primaryButtonV2, secondaryButtonV2,
   spacerV2, closeContentV2, infoCardV2, V2, SANS, SERIF,
 } from '@/lib/email-templates-v2'
-import { sendAndLog, isEmailSuppressed, getOrCreateUnsubToken } from '@/lib/email-service'
+import { sendAndLog, isEmailSuppressed, getOrCreateUnsubToken, escapeHtml } from '@/lib/email-service'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const BASE_URL = 'https://pmhnphiring.com'
+
+/**
+ * Resolve the user-supplied jobUrl to a same-origin link only. This route is
+ * unauthenticated, so an attacker could otherwise point the CTA at an arbitrary
+ * site and send phishing mail from our domain. We accept a relative path, or an
+ * absolute URL only when it's on our own host; anything else falls back to /jobs.
+ */
+function safeJobUrl(jobUrl: unknown): string {
+  if (typeof jobUrl !== 'string' || jobUrl.length === 0) return `${BASE_URL}/jobs`
+  if (jobUrl.startsWith('/') && !jobUrl.startsWith('//')) return `${BASE_URL}${jobUrl}`
+  try {
+    const u = new URL(jobUrl)
+    if (u.hostname === 'pmhnphiring.com' || u.hostname === 'www.pmhnphiring.com') return u.toString()
+  } catch { /* not a valid absolute URL */ }
+  return `${BASE_URL}/jobs`
+}
 
 /**
  * POST /api/email-job — Send job details to user's email
@@ -23,7 +39,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
 
-    const fullUrl = jobUrl?.startsWith('http') ? jobUrl : `${BASE_URL}${jobUrl}`
+    // Escape user-supplied title before it goes into HTML/subject, and clamp the
+    // CTA to a same-origin URL — this route is unauthenticated.
+    const safeTitle = escapeHtml(String(jobTitle))
+    const fullUrl = safeJobUrl(jobUrl)
 
     const html = emailShellV2(`
       ${headerBlockV2('Job Saved for You', 'View it anytime from this email')}
@@ -35,7 +54,7 @@ export async function POST(request: NextRequest) {
       </td></tr>
       ${infoCardV2(`
         <p style="margin:0 0 6px;font-family:${SANS};font-size:12px;color:${V2.textMuted};text-transform:uppercase;letter-spacing:1px;font-weight:700;">Job Title</p>
-        <p style="margin:0;font-family:${SERIF};font-size:20px;font-weight:700;color:${V2.textHeading};">${jobTitle}</p>
+        <p style="margin:0;font-family:${SERIF};font-size:20px;font-weight:700;color:${V2.textHeading};">${safeTitle}</p>
       `, V2.teal)}
       ${spacerV2(24)}
       <tr><td class="content-pad" style="padding:0 40px;">
@@ -51,7 +70,7 @@ export async function POST(request: NextRequest) {
         &nbsp;&middot;&nbsp;
         <a href="mailto:support@pmhnphiring.com" style="color:${V2.textMuted};text-decoration:underline;">Contact us</a>
       </p>`,
-      `You saved "${jobTitle}" — view the full listing and apply!`
+      `You saved "${safeTitle}" — view the full listing and apply!`
     )
 
     if (await isEmailSuppressed(email)) {
@@ -62,7 +81,7 @@ export async function POST(request: NextRequest) {
     await sendAndLog({
       from: '', // overridden by sendAndLog based on emailType
       to: email,
-      subject: `Saved: ${jobTitle}`,
+      subject: `Saved: ${String(jobTitle).replace(/[\r\n]+/g, ' ').slice(0, 150)}`,
       html,
     }, 'email_job', { jobTitle }, `${BASE_URL}/unsubscribe?token=${unsubToken}`)
 

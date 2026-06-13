@@ -8,9 +8,16 @@
  */
 import { chromium, type Page } from 'playwright';
 
-const EMAIL = 'test@pmhnphiring.com';
-const PASSWORD = '1729@Akari';
-const BASE = 'http://localhost:3000';
+// Credentials come from the environment — never commit real accounts.
+//   $env:TEST_LOGIN_EMAIL='...'; $env:TEST_LOGIN_PASSWORD='...'; npx tsx scripts/trace-pagination-nav.ts
+const EMAIL = process.env.TEST_LOGIN_EMAIL;
+const PASSWORD = process.env.TEST_LOGIN_PASSWORD;
+const BASE = process.env.TEST_BASE_URL || 'http://localhost:3000';
+
+if (!EMAIL || !PASSWORD) {
+    console.error('Set TEST_LOGIN_EMAIL and TEST_LOGIN_PASSWORD env vars before running this script.');
+    process.exit(1);
+}
 
 async function logUrl(page: Page, label: string): Promise<void> {
     console.log(`[${label}] ${page.url()}`);

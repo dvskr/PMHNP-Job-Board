@@ -47,9 +47,31 @@ export async function POST(request: NextRequest) {
 
 // DELETE: Unsubscribe from push notifications
 export async function DELETE(request: NextRequest) {
+    const rateLimitResult = await rateLimit(request, 'push-unsub', RATE_LIMITS.general);
+    if (rateLimitResult) return rateLimitResult;
+
     try {
         const { endpoint } = await request.json()
         if (!endpoint) return NextResponse.json({ error: 'Endpoint required' }, { status: 400 })
+
+        const sub = await prisma.pushSubscription.findUnique({
+            where: { endpoint },
+            select: { userId: true },
+        })
+        // Idempotent: nothing to remove.
+        if (!sub) return NextResponse.json({ success: true })
+
+        // If the subscription is tied to an account, only its owner may remove
+        // it — otherwise anyone who learns the endpoint could unsubscribe a
+        // victim. Anonymous subscriptions (userId null) are keyed solely by
+        // their secret endpoint URL, which is itself the unsubscribe credential.
+        if (sub.userId) {
+            const supabase = await createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user || user.id !== sub.userId) {
+                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+            }
+        }
 
         await prisma.pushSubscription.deleteMany({
             where: { endpoint },

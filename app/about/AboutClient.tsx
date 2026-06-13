@@ -92,7 +92,7 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
               <div className="ab-feat"><div className="ab-feat-ico coral"><DollarSign size={22} /></div><div><h4>Unmatched Salary Transparency</h4><p>We pierce the veil on compensation, comparing state benchmarks with thousands of real-time listings so you can negotiate fairly.</p></div></div>
               <div className="ab-feat"><div className="ab-feat-ico" style={{ color: '#6F63C0' }}><CalendarDays size={22} /></div><div><h4>Licensure-aware Alerts</h4><p>Your compact and state licensure drive the feed — you only ever see roles you can actually accept.</p></div></div>
             </div>
-            <Link href="/sign-up" className="ab-btn ab-btn-primary" style={{ marginTop: 36 }}>Create a free profile <ArrowRight size={16} /></Link>
+            <Link href="/signup" className="ab-btn ab-btn-primary" style={{ marginTop: 36 }}>Create a free profile <ArrowRight size={16} /></Link>
           </div>
           <div>
             <div className="ab-diorama-card mint" style={{ padding: 0 }}>

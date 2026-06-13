@@ -193,7 +193,10 @@ export async function POST(request: NextRequest) {
           {
             await prisma.employerJob.update({
               where: { id: employerJob.id },
-              data: { paymentStatus: 'paid', pricingTier: renewalTier },
+              // Reset expiryWarningSentAt so the renewed posting (new, later
+              // expiresAt) gets its own 5-day-out warning. Without this, a job
+              // warned once is permanently excluded from the expiry-warnings cron.
+              data: { paymentStatus: 'paid', pricingTier: renewalTier, expiryWarningSentAt: null },
             });
 
             // Audit #2: record a JobCharge for this renewal so invoices reflect
@@ -532,15 +535,25 @@ export async function POST(request: NextRequest) {
         });
 
         if (employerJob) {
-          await prisma.employerJob.update({
-            where: { id: employerJob.id },
-            data: { paymentStatus: 'refunded' },
-          });
-
+          // Only a FULL refund revokes entitlement. A partial/goodwill refund
+          // must leave paymentStatus='paid' — otherwise the customer keeps a
+          // live job but permanently loses invoice/receipt downloads (those
+          // 400 unless 'paid') and can never republish. The ledger row above
+          // already records refundedAmountCents for accounting either way.
           if (isFullRefund) {
+            await prisma.employerJob.update({
+              where: { id: employerJob.id },
+              data: { paymentStatus: 'refunded' },
+            });
             await prisma.job.update({
               where: { id: employerJob.jobId },
               data: { isPublished: false },
+            });
+          } else if (isPartial) {
+            logger.info('charge.refunded: partial refund — entitlement retained', {
+              employerJobId: employerJob.id,
+              refundedAmount,
+              totalCents: jobCharge.amountCents,
             });
           }
 
@@ -572,6 +585,59 @@ export async function POST(request: NextRequest) {
         logger.error('Error handling charge.refunded webhook', refundErr);
         await cleanupDedupe();  // C2
         return NextResponse.json({ error: 'Failed to handle refund' }, { status: 500 });
+      }
+    }
+
+    // Chargeback / dispute: when a customer disputes a charge the bank pulls the
+    // funds and Stripe does NOT emit charge.refunded — so without this the
+    // disputed posting stayed live with paymentStatus='paid'. Revoke entitlement
+    // (unpublish + mark 'disputed', which the invoice/receipt routes and
+    // toggle-publish already treat as non-paid).
+    // NOTE: requires `charge.dispute.created` to be enabled on the Stripe webhook
+    // endpoint's event list.
+    if (event.type === 'charge.dispute.created') {
+      try {
+        const dispute = event.data.object as Stripe.Dispute;
+        const paymentIntentId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : null;
+        if (!paymentIntentId) {
+          logger.warn('charge.dispute.created with no payment_intent — cannot match to JobCharge', { disputeId: dispute.id });
+          return NextResponse.json({ received: true, note: 'no payment_intent' });
+        }
+
+        const jobCharge = await prisma.jobCharge.findUnique({
+          where: { stripePaymentIntentId: paymentIntentId },
+        });
+        if (!jobCharge) {
+          logger.warn('charge.dispute.created: no matching JobCharge', { paymentIntentId, disputeId: dispute.id });
+          return NextResponse.json({ received: true, note: 'no matching JobCharge' });
+        }
+
+        const employerJob = await prisma.employerJob.findUnique({
+          where: { id: jobCharge.employerJobId },
+          include: { job: { select: { id: true, title: true } } },
+        });
+
+        if (employerJob) {
+          await prisma.employerJob.update({
+            where: { id: employerJob.id },
+            data: { paymentStatus: 'disputed' },
+          });
+          await prisma.job.update({
+            where: { id: employerJob.jobId },
+            data: { isPublished: false },
+          });
+          logger.warn('Chargeback: revoked posting on dispute', {
+            employerJobId: employerJob.id,
+            disputeId: dispute.id,
+            amount: dispute.amount,
+          });
+        } else {
+          logger.warn('charge.dispute.created: JobCharge has no matching EmployerJob', { jobChargeId: jobCharge.id });
+        }
+      } catch (disputeErr) {
+        logger.error('Error handling charge.dispute.created webhook', disputeErr);
+        await cleanupDedupe();  // C2
+        return NextResponse.json({ error: 'Failed to handle dispute' }, { status: 500 });
       }
     }
 

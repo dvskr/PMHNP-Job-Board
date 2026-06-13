@@ -45,7 +45,7 @@ export async function GET() {
       where: {
         OR: [
           { userId: user.id },
-          { contactEmail: user.email },
+          { userId: null, contactEmail: user.email },
         ],
       },
       include: {
