@@ -7,12 +7,12 @@ import { config } from '@/lib/config';
 import { Check, ArrowRight, X, HelpCircle, RefreshCw } from 'lucide-react';
 
 export const metadata: Metadata = {
-    title: `Pricing — PMHNP Job Board | First ${config.freePostsPerEmail} Posts Free, Then $${config.postingPrice}`,
+    title: `Pricing — PMHNP Job Board | First Post Free, Then $${config.postingPrice}`,
     description:
-        `Simple, transparent pricing for PMHNP job postings. First ${config.freePostsPerEmail} posts are free with all features. After that, $${config.postingPrice} per post. No subscriptions, no contracts.`,
+        `Simple, transparent pricing for PMHNP job postings. Your first post is free with all features. After that, $${config.postingPrice} per post. No subscriptions, no contracts.`,
     openGraph: {
         title: 'Pricing — PMHNP Job Board',
-        description: `Post PMHNP jobs — first ${config.freePostsPerEmail} free, then $${config.postingPrice}/post. Every post gets the full package.`,
+        description: `Post PMHNP jobs — first one free, then $${config.postingPrice}/post. Every post gets the full package.`,
         images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP job board pricing' }],
     },
     twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp'] },
@@ -38,7 +38,7 @@ const clayIconWrap = (gradient: string): React.CSSProperties => ({
 const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: true | false | 'partial'; linkedin: true | false | 'partial'; note?: string }[] = [
     { feature: '100% Psychiatric NP Audience', us: true, indeed: false, linkedin: false },
     { feature: 'No Unqualified Applicants', us: true, indeed: false, linkedin: false },
-    { feature: `First ${config.freePostsPerEmail} Posts Free (No Card)`, us: true, indeed: false, linkedin: false },
+    { feature: `First Post Free (No Card)`, us: true, indeed: false, linkedin: false },
     { feature: `Flat $${config.postingPrice}/Post — No Bidding`, us: true, indeed: false, linkedin: false, note: 'Indeed is pay-per-click' },
     { feature: `${config.durationDays}-Day Listing Duration`, us: true, indeed: false, linkedin: false, note: 'Others: 30 days' },
     { feature: 'Direct Candidate Messaging', us: true, indeed: false, linkedin: 'partial', note: 'LinkedIn: paid add-on' },
@@ -49,8 +49,8 @@ const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: t
 ];
 
 const faqs = [
-    { q: 'How many free posts do I get?', a: `Your first ${config.freePostsPerEmail} job posts per email address are completely free — no credit card required. Every feature is included.` },
-    { q: 'What happens after my free posts?', a: `Posts 3+ cost a flat $${config.postingPrice} each. Same features, same visibility. Just add payment at checkout.` },
+    { q: 'How many free posts do I get?', a: `Your first job post is completely free — no credit card required, and every feature is included.` },
+    { q: 'What happens after my free post?', a: `Every post after your first is a flat $${config.postingPrice}. Same features, same visibility. Just add payment at checkout.` },
     { q: 'How long do job postings stay active?', a: `Paid postings (and renewals) run for ${config.durationDays} days. Free postings run for ${config.freeDurationDays} days — a shorter trial window. You can renew paid postings at any time from your employer dashboard.` },
     { q: 'What does renewal cost?', a: `Renewals are $${config.renewalPrice} (10% off the regular price) and apply to paid postings only. Your listing gets another ${config.durationDays} days and is boosted back to the top of search results.` },
     { q: 'If I renew before my posting expires, do I lose the remaining days?', a: `No. Renewing early adds ${config.durationDays} days to your current expiration date — you don't lose any time you've already paid for. Renew whenever it's convenient.` },
@@ -84,7 +84,7 @@ export default function PricingPage() {
                             fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 800, lineHeight: 1.15,
                             color: '#1A2E35', marginBottom: '16px',
                         }}>
-                            First 2 Posts Free, Then ${config.postingPrice}
+                            First Post Free, Then ${config.postingPrice}
                         </h1>
                         <p style={{ fontSize: '17px', color: '#5A4A42', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
                             Every post gets the full package — no downgrades, no hidden fees. Start hiring in under 5 minutes.
@@ -128,7 +128,7 @@ export default function PricingPage() {
                                             <span style={{ fontSize: '56px', fontWeight: 800, color: '#134E4A', lineHeight: 1 }}>${config.postingPrice}</span>
                                             <span style={{ fontSize: '16px', color: '#0D9488', fontWeight: 500 }}>/post</span>
                                         </div>
-                                        <p style={{ fontSize: '14px', color: '#0D9488', fontWeight: 700, marginTop: '6px' }}>First 2 posts FREE — no card required</p>
+                                        <p style={{ fontSize: '14px', color: '#0D9488', fontWeight: 700, marginTop: '6px' }}>First post FREE — no card required</p>
                                     </div>
 
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: 'rgba(255,255,255,0.7)', borderRadius: '10px', border: '1px solid rgba(13,148,136,0.1)', marginBottom: '20px' }}>
@@ -145,7 +145,7 @@ export default function PricingPage() {
                                         textDecoration: 'none',
                                         boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
                                     }}>
-                                        Start Posting — First {config.freePostsPerEmail} Free <ArrowRight size={16} />
+                                        Start Posting — First Post Free <ArrowRight size={16} />
                                     </Link>
                                 </div>
 
@@ -335,7 +335,7 @@ export default function PricingPage() {
                                     <span style={{ color: '#0D9488' }}>Next PMHNP</span>?
                                 </h3>
                                 <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: '0 0 20px' }}>
-                                    First 2 posts free — all features included. Then just ${config.postingPrice}/post.
+                                    First post free — all features included. Then just ${config.postingPrice}/post.
                                 </p>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                     <Link href="/post-job" className="emp-cta-primary" style={{
@@ -344,7 +344,7 @@ export default function PricingPage() {
                                         textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                         boxShadow: '4px 4px 12px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
                                     }}>
-                                        Post a Job — First {config.freePostsPerEmail} Free <ArrowRight size={15} />
+                                        Post a Job — First Post Free <ArrowRight size={15} />
                                     </Link>
                                     <Link href="/contact" className="emp-cta-secondary" style={{
                                         padding: '12px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '14px',

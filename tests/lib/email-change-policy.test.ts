@@ -57,7 +57,7 @@ describe('evaluateEmailChange', () => {
         expect(result.lockedDomain).toBe('acme.com');
     });
 
-    it('blocks domain change with multiple free posts (HCA at 2/2 cap)', async () => {
+    it('blocks domain change with any free posts used (defensive: count >= 1)', async () => {
         vi.mocked(prisma.employerJob.count).mockResolvedValue(2 as never);
 
         const result = await evaluateEmailChange(USER_ID, 'bob@hcahealthcare.com', 'bob@elsewhere.com');

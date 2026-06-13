@@ -1398,7 +1398,7 @@ function PostJobContent() {
                   </div>
                   <div>
                     <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Full Package — Every Post</h3>
-                    <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>First 2 posts free, then ${config.postingPrice}/post</p>
+                    <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>First post free, then ${config.postingPrice}/post</p>
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>

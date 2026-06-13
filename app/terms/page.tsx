@@ -116,7 +116,7 @@ export default function TermsPage() {
           <h2 style={h2Style}>7. Pricing, Free Postings & Payments</h2>
           <p style={{ ...pStyle, fontWeight: 600, color: '#1A2E35' }}>Pricing schedule (current as of the &quot;Last updated&quot; date above):</p>
           <ul style={ulStyle}>
-            <li style={liStyle}>Each verified employer email domain is allowed up to 2 free job postings, lifetime, with no credit card required</li>
+            <li style={liStyle}>Each verified employer email domain is allowed one free job posting (the first), lifetime, with no credit card required</li>
             <li style={liStyle}>Additional postings (after the free quota is exhausted) are $199 USD each, one-time</li>
             <li style={liStyle}>Renewals of paid postings are $179 USD, one-time, and add 60 days to the existing expiration</li>
             <li style={liStyle}>All postings — free, paid, or renewed — receive the same features: 60-day duration, Featured badge, top placement in search results, 25 candidate profile unlocks, 25 InMails, and full analytics</li>

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: 'For Employers — Hire PMHNPs | PMHNP Job Board',
   // Trimmed from 189 chars to ~145 for SERP display (audit 09 M-20).
   description:
-    'Hire Psychiatric Mental Health Nurse Practitioners. First 2 posts free — all features included. Reach thousands actively searching for PMHNP roles.',
+    'Hire Psychiatric Mental Health Nurse Practitioners. First post free — all features included. Reach thousands actively searching for PMHNP roles.',
   openGraph: {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP employer hiring solutions' }],
   },
@@ -50,7 +50,7 @@ async function getEmployerStats() {
 const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: true | false | 'partial'; linkedin: true | false | 'partial'; note?: string }[] = [
   { feature: '100% Psychiatric NP Audience', us: true, indeed: false, linkedin: false },
   { feature: 'No Unqualified Applicants', us: true, indeed: false, linkedin: false },
-  { feature: `First ${config.freePostsPerEmail} Posts Free (No Card)`, us: true, indeed: false, linkedin: false },
+  { feature: `First Post Free (No Card)`, us: true, indeed: false, linkedin: false },
   { feature: `Flat $${config.postingPrice}/Post — No Bidding`, us: true, indeed: false, linkedin: false, note: 'Indeed is pay-per-click' },
   { feature: `${config.durationDays}-Day Listing Duration`, us: true, indeed: false, linkedin: false, note: 'Others: 30 days' },
   { feature: 'Direct Candidate Messaging', us: true, indeed: false, linkedin: 'partial', note: 'LinkedIn: paid add-on' },
@@ -99,7 +99,7 @@ export default async function ForEmployersPage() {
                   background: '#0D9488', color: '#fff',
                   textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px',
                 }}>
-                  Post a Job — First {config.freePostsPerEmail} Free <ArrowRight size={17} />
+                  Post a Job — First Post Free <ArrowRight size={17} />
                 </Link>
                 <Link href="/pricing" className="clay-btn emp-cta-secondary" style={{
                   padding: '16px 36px', borderRadius: '16px', fontWeight: 600, fontSize: '15px',
@@ -172,7 +172,7 @@ export default async function ForEmployersPage() {
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
         <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '80px 20px 56px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
-            First 2 Posts Free · Then ${config.postingPrice}/post
+            First Post Free · Then ${config.postingPrice}/post
           </p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
             Every Post Gets the Full Package
@@ -273,7 +273,7 @@ export default async function ForEmployersPage() {
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '14px' }} />
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>Simple Pricing</h3>
               <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
-                First 2 posts free. Then ${config.postingPrice}/post.<br />
+                First post free. Then ${config.postingPrice}/post.<br />
                 Renewals just ${config.renewalPrice}. No hidden fees.
               </p>
               <Link href="/post-job" className="emp-cta-primary" style={{
@@ -376,7 +376,7 @@ export default async function ForEmployersPage() {
                   <span style={{ color: '#0D9488' }}>Next PMHNP</span>?
                 </h3>
                 <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: '0 0 20px' }}>
-                  First 2 posts free — all features included. Then just ${config.postingPrice}/post.
+                  First post free — all features included. Then just ${config.postingPrice}/post.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <Link href="/post-job" className="emp-cta-primary" style={{
@@ -385,7 +385,7 @@ export default async function ForEmployersPage() {
                     textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                     boxShadow: '4px 4px 12px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
                   }}>
-                    Post a Job — First {config.freePostsPerEmail} Free <ArrowRight size={15} />
+                    Post a Job — First Post Free <ArrowRight size={15} />
                   </Link>
                   <Link href="/contact" className="emp-cta-secondary" style={{
                     padding: '12px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '14px',
