@@ -157,8 +157,8 @@ export async function POST(request: NextRequest) {
 
     // Per-domain freebie quota anchored to an IMMUTABLE per-row snapshot
     // (EmployerJob.quotaDomain), not to mutable contactEmail or nullable userId.
-    // Rule unchanged: 2 free posts per email domain, lifetime, shared across
-    // every employee at that domain.
+    // Rule: 1 free post per email domain, lifetime, shared across
+    // every employee at that domain (config.freePostsPerEmail).
     //
     // Why the immutable snapshot:
     //   - Editing contactEmail later cannot shift the count (audit #23)
@@ -355,7 +355,7 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json(
           {
-            error: `Your organization (${quotaDomain}) has used all ${config.freePostsPerEmail} free posts. Additional posts cost $${config.postingPrice}.`,
+            error: `Your organization (${quotaDomain}) has already used its free post. Additional posts cost $${config.postingPrice}.`,
             requiresPayment: true,
             freePostsUsed: txErr.usedCount,
             freePostsLimit: config.freePostsPerEmail,

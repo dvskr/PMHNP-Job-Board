@@ -63,7 +63,7 @@ export default function FAQPage() {
   const employerFaqs = [
     {
       question: "How much does it cost to post a job?",
-      answer: `Your first ${config.freePostsPerEmail} job posts are completely FREE with all features included — no credit card required. After that, each additional post costs $${config.postingPrice} flat. Renewals are discounted at $${config.renewalPrice} (${Math.round((1 - config.renewalPrice / config.postingPrice) * 100)}% off).`
+      answer: `Your first job post is completely FREE with all features included — no credit card required. After that, each additional post costs $${config.postingPrice} flat. Renewals are discounted at $${config.renewalPrice} (${Math.round((1 - config.renewalPrice / config.postingPrice) * 100)}% off).`
     },
     {
       question: "What features are included?",

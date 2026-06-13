@@ -2,8 +2,13 @@
  * Pricing Config — Single-Tier Model
  *
  * All job posts get the SAME features (60-day, featured, 25 unlocks, 25 InMails).
- * First 2 posts per employer email are free. Posts 3+ cost $199.
+ * The FIRST post per employer domain is free. Posts 2+ cost $199.
  * Renewals cost $179 (10% off).
+ *
+ * `freePostsPerEmail` is the source of truth for the gate + the dynamic quota
+ * counters. Marketing copy is hand-written for the current single-free-post
+ * model ("your first post is free"); if this number ever changes, revisit the
+ * employer-facing copy (pricing / for-employers / faq / terms / emails).
  *
  * Every employer_jobs row has pricing_tier='pro' after the 2026-04-30 migration
  * (see prisma/migrations/20260430_normalize_pricing_tier_to_pro/). The schema
@@ -15,15 +20,14 @@ export type PricingTier = 'pro';
 
 export const config = {
   // ─── Single-Tier Pricing ───
-  freePostsPerEmail: 2,
+  freePostsPerEmail: 1,    // first post free; posts 2+ are paid
   postingPrice: 199,       // dollars
   renewalPrice: 179,       // dollars (10% off)
   stripePriceInCents: 19900,
   stripeRenewalPriceInCents: 17900,
   // Duration split (audit #30): paid posts get 60 days as the headline value;
-  // free posts get 30 days (trial-feel) so a domain's lifetime free giveaway
-  // is 60 days total instead of 120, and there's headroom to add a Premium
-  // tier at 90 days later without rewriting customer expectations.
+  // the single free post gets 30 days (trial-feel), so a domain's lifetime free
+  // giveaway is 30 days, with headroom to add a Premium tier at 90 days later.
   durationDays: 60,        // paid posts + paid renewals
   freeDurationDays: 30,    // free posts only
 
