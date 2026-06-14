@@ -160,7 +160,7 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
             <span className="ab-kicker"><Users size={12} /> Who built this</span>
             <h2 style={{ marginTop: 20 }}>One person, one focused job board.</h2>
             <p>I built PMHNP Hiring because every general nursing job site I looked at made psychiatric NPs do the same thing over and over: filter out hundreds of unrelated RN postings just to find the handful of psych roles. There was no good reason for that, so I built something focused on one specialty instead.</p>
-            <p>I&apos;m an AI/data engineer, not a clinician. My job here is the data pipeline — pulling job postings, normalizing salary fields, mapping state licensure rules, and surfacing the result through a fast, ad-light interface. The clinical content on this site is editorial commentary aggregated from public sources, not medical advice.</p>
+            <p>I&apos;m a solo developer who built this entire project end to end, and I&apos;m not a clinician. My job here is the data pipeline — pulling job postings, normalizing salary fields, mapping state licensure rules, and surfacing the result through a fast, ad-light interface. The clinical content on this site is editorial commentary aggregated from public sources, not medical advice.</p>
             <p>If something on the site is wrong, missing, or could be better, the fastest way to reach me is the <Link href="/contact" style={{ color: 'inherit', textDecoration: 'underline' }}>contact page</Link>.</p>
             <div className="ab-sig">
               <div className="ab-sig-mark">SK</div>

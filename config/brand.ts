@@ -54,7 +54,7 @@ export const brand = {
          * legal umbrella.
          */
         creatorName: 'Sathish Kumar',
-        creatorTitle: 'Creator · AI Data Engineer',
+        creatorTitle: 'Creator',
         /**
          * Registered LLC member of record. Used ONLY in legal contexts
          * where the registered owner of Akari Labs LLC must be named —
