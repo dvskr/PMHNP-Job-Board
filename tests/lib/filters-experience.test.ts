@@ -60,6 +60,13 @@ describe('buildWhereClause — experience filters', () => {
     expect(json).toContain('"NOT"');
   });
 
+  it('the new-grad filter also matches the 0-yr bucket (minYearsExperience=0)', () => {
+    // A post in the "New grad accepted" (min=0) bucket shows "New grad welcome"
+    // on the card; the filter must catch it too, even if the boolean is unset.
+    const where = buildWhereClause({ ...DEFAULT_FILTERS, newGradFriendly: true });
+    expect(JSON.stringify(where)).toContain('"minYearsExperience":0');
+  });
+
   it('does NOT filter when newGradFriendly is null (no preference)', () => {
     const where = buildWhereClause({ ...DEFAULT_FILTERS, newGradFriendly: null });
     expect(JSON.stringify(where)).not.toContain('newGradFriendly');
