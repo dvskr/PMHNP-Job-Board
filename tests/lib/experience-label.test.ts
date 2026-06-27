@@ -426,4 +426,31 @@ describe('effectiveNewGradFriendly', () => {
       }),
     ).toBe(false);
   });
+
+  it('is green for a "New grad welcome" label even when the flag is off (0-yr bucket)', () => {
+    // The chip color must agree with the chip text — a min=0 post shows
+    // "New grad welcome" and must render the success (green) variant.
+    expect(
+      effectiveNewGradFriendly({
+        title: 'Telehealth PMHNP',
+        experienceLabel: 'New grad welcome',
+        newGradFriendly: false,
+      }),
+    ).toBe(true);
+    expect(
+      effectiveNewGradFriendly({
+        title: 'PMHNP',
+        experienceLabel: '2+ yrs · new grads welcome',
+        newGradFriendly: false,
+      }),
+    ).toBe(true);
+    // A non-new-grad label stays gray (outline).
+    expect(
+      effectiveNewGradFriendly({
+        title: 'PMHNP',
+        experienceLabel: '1-2 yrs',
+        newGradFriendly: false,
+      }),
+    ).toBe(false);
+  });
 });

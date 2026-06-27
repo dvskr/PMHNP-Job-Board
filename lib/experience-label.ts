@@ -195,16 +195,22 @@ export function effectiveExperienceLabel(job: {
 }
 
 /**
- * Companion to `effectiveExperienceLabel` — true when the chip should
- * use the success (mint) variant. Mirrors the override so the card and
- * detail page agree on color too.
+ * Companion to `effectiveExperienceLabel` — true when the chip should use the
+ * success (mint/green) variant. Keyed off the SAME rendered label so the chip's
+ * color always agrees with its text: any "new grad(s)" label gets the green
+ * variant — whether it came from the explicit flag, the 0-yr "New grad accepted"
+ * bucket ("New grad welcome"), the "· new grads welcome" suffix, or a new-grad
+ * title override. Previously this read only the boolean, so 0-yr-bucket chips
+ * showed green text on a gray pill.
  */
 export function effectiveNewGradFriendly(job: {
   title?: string | null;
+  experienceLabel?: string | null;
   newGradFriendly?: boolean | null;
 }): boolean {
-  if (titleIndicatesNewGrad(job.title)) return true;
-  return job.newGradFriendly === true;
+  if (job.newGradFriendly === true) return true;
+  const label = effectiveExperienceLabel(job);
+  return !!label && /new\s+grad/i.test(label);
 }
 
 /**
