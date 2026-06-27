@@ -123,7 +123,11 @@ export function normalizeExperienceFromInput(input: {
   const bucket = minMatch !== null ? EXPERIENCE_BUCKETS.find((b) => b.min === minMatch) : undefined;
   const max = bucket?.max ?? null;
 
-  const newGradFriendly = input.newGradFriendly === true;
+  // The 0-year ("New grad accepted") bucket IS a new-grad-friendly statement on
+  // its own, so it sets the flag too. Keeps the column consistent with the chip
+  // (deriveExperienceLabel already renders "New grad welcome" for min=0) and
+  // with the candidate "Open to new grads" filter (lib/filters newGradWhereClause).
+  const newGradFriendly = input.newGradFriendly === true || minMatch === 0;
   const experienceQualifier = input.experienceQualifier?.trim() || null;
 
   const experienceLabel = deriveExperienceLabel({

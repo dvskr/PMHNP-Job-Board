@@ -34,10 +34,9 @@ describe('deriveExperienceLabel', () => {
     });
 
     it('returns "New grad welcome" when min=0 alone (the bucket IS the signal)', () => {
-      // Post-form-simplification (2026-05-13): selecting the "New grad
-      // accepted" bucket is itself the complete signal. We no longer
-      // auto-set newGradFriendly on bucket change, so this combo must
-      // produce the right label without the checkbox being checked.
+      // The 0-yr ("New grad accepted") bucket is itself a complete new-grad
+      // signal: deriveExperienceLabel renders the label from min=0 alone,
+      // independent of the flag (defensive — a row could still arrive that way).
       expect(
         deriveExperienceLabel({
           minYearsExperience: 0,
@@ -208,6 +207,17 @@ describe('normalizeExperienceFromInput', () => {
       experienceQualifier: null,
     });
     expect(result.maxYearsExperience).toBe(2);
+  });
+
+  it('the 0-yr "New grad accepted" bucket sets newGradFriendly=true (chip + filter agree)', () => {
+    const result = normalizeExperienceFromInput({
+      minYearsExperience: 0,
+      newGradFriendly: false, // employer picked the 0-yr bucket but didn't toggle
+      experienceQualifier: null,
+    });
+    expect(result.minYearsExperience).toBe(0);
+    expect(result.newGradFriendly).toBe(true);
+    expect(result.experienceLabel).toBe('New grad welcome');
   });
 
   it('rejects non-bucket min values as null', () => {

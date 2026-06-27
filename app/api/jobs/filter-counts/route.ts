@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import type { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { FilterState, FilterCounts } from '@/types/filters';
-import { buildWhereClause, freshnessClause, minYearsQualifyClause, CATEGORY_FILTERS, CATEGORY_EXCLUSIONS } from '@/lib/filters';
+import { buildWhereClause, freshnessClause, minYearsQualifyClause, newGradWhereClause } from '@/lib/filters';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
@@ -229,17 +228,10 @@ export async function POST(request: NextRequest) {
     // Candidate-qualifies clause + null handling are shared with
     // buildWhereClause via minYearsQualifyClause / EXPERIENCE_NULL_QUALIFIES,
     // so the badge counts and the actual filter predicate can never diverge.
-    // Unified new-grad match (mirrors buildWhereClause): explicit flag
-    // OR title keyword match minus the CATEGORY_EXCLUSIONS. Same clause
-    // shape so the badge count agrees with what the filter returns.
-    const newGradOrClauses: Prisma.JobWhereInput[] = [
-      { newGradFriendly: true },
-      ...(CATEGORY_FILTERS['new-grad'] ?? []),
-    ];
-    const newGradNotClauses: Prisma.JobWhereInput[] = (CATEGORY_EXCLUSIONS['new-grad'] ?? []).map((ex) => ({ NOT: ex }));
-    const newGradMatchClause: Prisma.JobWhereInput = {
-      AND: [{ OR: newGradOrClauses }, ...newGradNotClauses],
-    };
+    // New-grad match is the SAME shared clause buildWhereClause uses
+    // (newGradFriendly OR minYearsExperience=0 OR title keywords, minus
+    // exclusions), so the badge count can never disagree with the filter.
+    const newGradMatchClause = newGradWhereClause();
 
     // Only the live candidate buckets {1,2,5} — 7+/10+ were provably identical
     // to 5+ (no job states a minimum above 5 years) and were removed.

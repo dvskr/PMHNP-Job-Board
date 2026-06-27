@@ -96,7 +96,10 @@ export function minYearsQualifyClause(n: number): Prisma.JobWhereInput {
 // /jobs/new-grad and /jobs?category=new-grad return the same set (they used to
 // disagree — the querystring path omitted the newGradFriendly flag branch).
 export const CATEGORY_EXTRA_OR: Record<string, Prisma.JobWhereInput[]> = {
-  'new-grad': [{ newGradFriendly: true }],
+  // newGradFriendly flag OR the 0-yr "New grad accepted" bucket (min=0). The
+  // latter is the same signal the JobCard chip shows for min=0, so the filter,
+  // the ?category=new-grad path, and the /jobs/new-grad pSEO page all agree.
+  'new-grad': [{ newGradFriendly: true }, { minYearsExperience: 0 }],
 };
 
 export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
@@ -575,6 +578,34 @@ export function buildCategoryWhereClause(
   };
 }
 
+/**
+ * "Open to new grads" match — the single source of truth shared by
+ * buildWhereClause AND the filter-counts route, so the filter predicate and the
+ * badge count can never diverge. A job qualifies when ANY of:
+ *   (a) employer flagged newGradFriendly: true
+ *   (b) it declares a 0-year minimum — the "New grad accepted" bucket, the SAME
+ *       signal the JobCard chip shows for min=0 (deriveExperienceLabel). Without
+ *       this, a min=0 post read "New grad welcome" on the card but was invisible
+ *       to this filter.
+ *   (c) title matches CATEGORY_FILTERS['new-grad'] keywords
+ * ...minus CATEGORY_EXCLUSIONS['new-grad'] (director, instructor, "no new grad").
+ */
+export function newGradWhereClause(): Prisma.JobWhereInput {
+  return {
+    AND: [
+      {
+        OR: [
+          // structured flags (newGradFriendly OR min=0) + title keywords —
+          // identical OR to buildCategoryWhereClause('new-grad').
+          ...(CATEGORY_EXTRA_OR['new-grad'] ?? []),
+          ...(CATEGORY_FILTERS['new-grad'] ?? []),
+        ],
+      },
+      ...(CATEGORY_EXCLUSIONS['new-grad'] ?? []).map((ex): Prisma.JobWhereInput => ({ NOT: ex })),
+    ],
+  };
+}
+
 export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
   const where: Prisma.JobWhereInput = {
     isPublished: true,
@@ -752,16 +783,7 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
   // ...AND none of CATEGORY_EXCLUSIONS['new-grad'] apply (director,
   // instructor, "no new grad", etc.).
   if (filters.newGradFriendly === true) {
-    const newGradCategoryOr = CATEGORY_FILTERS['new-grad'] ?? [];
-    andConditions.push({
-      OR: [
-        { newGradFriendly: true },
-        ...newGradCategoryOr,
-      ],
-    });
-    for (const exclusion of CATEGORY_EXCLUSIONS['new-grad'] ?? []) {
-      andConditions.push({ NOT: exclusion });
-    }
+    andConditions.push(newGradWhereClause());
   }
 
   // "Your experience" (candidate-qualifies). Clause shape + null handling live
