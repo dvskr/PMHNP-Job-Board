@@ -29,7 +29,11 @@ const US_STATES = [
 ]
 
 const SETTING_SLUGS = ['remote', 'telehealth', 'inpatient', 'outpatient', 'travel']
-const SPECIALTY_SLUGS = ['addiction', 'child-adolescent', 'substance-abuse', 'new-grad', 'per-diem', 'locum-tenens', 'correctional', '1099']
+// 'behavioral-health' added 2026-07: the /jobs/behavioral-health page has
+// existed (middleware allowlist + API sitemap category lists include it) but
+// was missing from this hand-maintained list, so its landing page was never
+// advertised in the primary sitemap.
+const SPECIALTY_SLUGS = ['addiction', 'child-adolescent', 'substance-abuse', 'new-grad', 'per-diem', 'locum-tenens', 'correctional', '1099', 'behavioral-health']
 const JOB_TYPE_SLUGS = ['full-time', 'part-time', 'contract']
 const EXPERIENCE_SLUGS = ['entry-level', 'mid-career', 'senior']
 const EMPLOYER_SLUGS = ['hospital', 'private-practice', 'community-health', 'va']

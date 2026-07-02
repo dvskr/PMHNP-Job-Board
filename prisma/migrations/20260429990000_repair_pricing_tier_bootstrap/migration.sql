@@ -1,0 +1,23 @@
+-- Fresh-DB bootstrap ordering repair for employer_jobs.pricing_tier.
+--
+-- WHY THIS EXISTS: "pricing_tier" was a db-push-era column — it existed on
+-- production but was never created by any migration. The data migration
+-- 20260430_normalize_pricing_tier_to_pro then ran
+--   UPDATE employer_jobs SET pricing_tier = 'pro' ...;
+--   ALTER TABLE employer_jobs ALTER COLUMN pricing_tier SET DEFAULT 'pro';
+-- which works on prod (column already there) but makes a fresh
+-- `prisma migrate deploy` fail with `column "pricing_tier" does not exist`
+-- before it ever reaches the 20260702000000 drift catch-up migration.
+--
+-- We cannot edit 20260430_normalize_pricing_tier_to_pro in place — migrate
+-- deploy validates checksums of already-applied migrations, so changing its
+-- content would break prod deploys. Instead this NEW migration is pre-dated
+-- ("20260429990000" sorts lexicographically before every "20260430_*"
+-- directory) so on a fresh database it creates the column just in time.
+--
+-- On production it is applied as a pending migration out of chronological
+-- order, where ADD COLUMN IF NOT EXISTS makes it a pure no-op (the column
+-- already exists). No data is read or written. Default 'pro' matches both
+-- prisma/schema.prisma (@default("pro")) and the post-normalization state.
+
+ALTER TABLE "employer_jobs" ADD COLUMN IF NOT EXISTS "pricing_tier" TEXT NOT NULL DEFAULT 'pro';

@@ -10,6 +10,21 @@ const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
+  // Destructive-wipe guard: this seed DELETES EVERY JOB before inserting
+  // test fixtures. Running it against a database that already has real data
+  // (e.g. a mistakenly-set prod DATABASE_URL/DIRECT_URL) would destroy the
+  // live board. Refuse unless the target is empty or the operator opts in
+  // explicitly with SEED_ALLOW_WIPE=1.
+  const existingJobs = await prisma.job.count()
+  if (existingJobs > 0 && process.env.SEED_ALLOW_WIPE !== '1') {
+    console.error(
+      `[seed] REFUSING to run: target database already contains ${existingJobs} jobs.\n` +
+      `[seed] This script deletes ALL jobs before seeding. If you really mean to\n` +
+      `[seed] wipe this database, re-run with SEED_ALLOW_WIPE=1.`
+    )
+    process.exit(1)
+  }
+
   // Clear existing data
   await prisma.job.deleteMany()
 
