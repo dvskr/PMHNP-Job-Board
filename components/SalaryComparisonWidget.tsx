@@ -1,5 +1,7 @@
 'use client';
 
+import { NATIONAL_AVG_PMHNP_SALARY_K } from '@/lib/salary-stats';
+
 interface SalaryComparisonWidgetProps {
     stateName: string | null;
     stateAvgSalary: number; // in thousands (e.g., 155 = $155k)
@@ -7,7 +9,7 @@ interface SalaryComparisonWidgetProps {
     jobMaxSalary?: number | null;
 }
 
-const NATIONAL_AVG_SALARY = 158; // $158k national average for PMHNPs
+const NATIONAL_AVG_SALARY = NATIONAL_AVG_PMHNP_SALARY_K; // $158k national average for PMHNPs
 
 export default function SalaryComparisonWidget({
     stateName,

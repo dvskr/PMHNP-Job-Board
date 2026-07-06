@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { NATIONAL_AVG_PMHNP_SALARY_K } from '@/lib/salary-stats';
 
 /* ──────────────────────────────────────────────
  *  SidebarVisualCards
@@ -136,7 +137,7 @@ export function CareerPulseCard() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <StatPebble emoji="📈" value="43%" label="Projected growth 2024-2034" color="#D5F5F1" />
-          <StatPebble emoji="💰" value="$160K+" label="Median annual salary" color="#FDE68A" />
+          <StatPebble emoji="💰" value={`$${NATIONAL_AVG_PMHNP_SALARY_K}K`} label="Median annual salary" color="#FDE68A" />
           <StatPebble emoji="🏥" value="2,400+" label="Active openings nationwide" color="#BFDBFE" />
         </div>
 

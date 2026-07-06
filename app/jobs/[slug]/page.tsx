@@ -19,7 +19,6 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import RelatedJobs from '@/components/RelatedJobs';
 import AboutEmployer from '@/components/AboutEmployer';
-import SalaryInsights from '@/components/SalaryInsights';
 import { JobViewTracker } from '@/components/analytics/ViewTrackers';
 import SalaryComparisonWidget from '@/components/SalaryComparisonWidget';
 import RelatedBlogPosts, { getRelevantBlogSlugs } from '@/components/RelatedBlogPosts';

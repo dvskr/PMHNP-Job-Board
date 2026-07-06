@@ -234,12 +234,11 @@ describe('normalizeJobWithReason — salary period passthrough (Bug #1)', () => 
         expect(result.job!.normalizedMaxSalary).toBe(100000);
     });
 
-    it('without the period hint, magnitude-based inference would mislabel as monthly', () => {
-        // No salaryPeriod hint → validator's magnitude rule kicks in. For
-        // a value <= 40000 with no period it'd bucket as 'monthly'. This
-        // test pins that legacy behavior so we know what we're protecting
-        // against. The fix above (Bug #1) is what makes this NOT happen
-        // when the source supplies the period.
+    it('without the period hint, a $35k value is inferred as annual, not monthly', () => {
+        // Policy changed 2026-07-06 (audit #13): the magnitude rule used to
+        // bucket period-less values <= $40k as 'monthly', turning a $35k
+        // posting into a fabricated 12×35000 = $420k annual. The threshold
+        // now matches lib/salary-normalizer.ts: < $20k → monthly, else annual.
         const result = normalizeJobWithReason(
             rawJob({
                 minSalary: 35000,
@@ -249,9 +248,12 @@ describe('normalizeJobWithReason — salary period passthrough (Bug #1)', () => 
             'adzuna',
         );
         expect(result.job).not.toBeNull();
-        // Magnitude $35k → period inferred as 'monthly' → normalized to 12*35000 = 420000
-        // (which is now within the new $550k cap, so it actually appears as $420k annual)
-        expect(result.job!.salaryPeriod).toBe('monthly');
+        expect(result.job!.salaryPeriod).toBe('annual');
+        // Raw value survives ingest ($30k-$500k band) …
+        expect(result.job!.minSalary).toBe(35000);
+        // … but the normalizer band floor ($64k − 15%) drops it from display
+        // rather than inflating it to $64k.
+        expect(result.job!.normalizedMinSalary).toBeNull();
     });
 
     it('high annual salary $487k passes (Bug #2 — was killed by old $400k cap)', () => {
@@ -268,10 +270,10 @@ describe('normalizeJobWithReason — salary period passthrough (Bug #1)', () => 
         expect(result.job!.normalizedMaxSalary).toBe(486652);
     });
 
-    it('above-cap salary $700k is clamped to $550k high-confidence ceiling', () => {
-        // Behavior changed 2026-05-05: out-of-range values are now CLAMPED
-        // to the band edge instead of dropped to null. The source still
-        // gave us a number; a clamped useable value beats no signal.
+    it('far-above-cap salary $700k is dropped, not rewritten', () => {
+        // Policy changed 2026-07-06 (audit #13): $700k is beyond the $500k
+        // ingest cap + 15% tolerance, so it is dropped instead of being
+        // rewritten to the cap. The job itself still ingests (salary-less).
         const result = normalizeJobWithReason(
             rawJob({
                 minSalary: 700000,
@@ -281,11 +283,75 @@ describe('normalizeJobWithReason — salary period passthrough (Bug #1)', () => 
             'adzuna',
         );
         expect(result.job).not.toBeNull();
-        // Stored raw values stay clamped at the validator step ($500k cap
-        // for annual). normalizeSalary then takes the clamped value into
-        // its 0.5-confidence path.
+        expect(result.job!.minSalary).toBeNull();
+        expect(result.job!.maxSalary).toBeNull();
+        expect(result.job!.normalizedMinSalary).toBeNull();
+    });
+
+    it('biweekly pay annualizes at ×26, not ×52 (was doubling displayed salaries)', () => {
+        // PERIOD_MULTIPLIERS had no 'biweekly' key and the substring loop
+        // resolved it to 'weekly' (×52): $3,500 biweekly (~$91k/yr real)
+        // displayed as "$182k/yr". Fixed 2026-07-06.
+        const result = normalizeJobWithReason(
+            rawJob({
+                minSalary: 3500,
+                maxSalary: 3500,
+                salaryPeriod: 'biweekly',
+            }),
+            'adzuna',
+        );
+        expect(result.job).not.toBeNull();
+        expect(result.job!.salaryPeriod).toBe('biweekly');
+        expect(result.job!.normalizedMinSalary).toBe(91000); // 3500 × 26
+    });
+
+    it('a source-labeled "monthly" $80k is reinterpreted as annual, not ×12 or dropped', () => {
+        // Stage 1 used to trust the label: $80k against the monthly band
+        // ($2k-$40k) was dropped entirely, losing a clean annual salary.
+        const result = normalizeJobWithReason(
+            rawJob({
+                minSalary: 80000,
+                maxSalary: 80000,
+                salaryPeriod: 'monthly',
+            }),
+            'adzuna',
+        );
+        expect(result.job).not.toBeNull();
+        expect(result.job!.salaryPeriod).toBe('annual');
+        expect(result.job!.minSalary).toBe(80000);
+        expect(result.job!.normalizedMinSalary).toBe(80000);
+    });
+
+    it('a range whose min fails the policy floor drops BOTH bounds, not just the min', () => {
+        // A "$35k-$90k" posting must not display as "$90k/yr" — showing the
+        // surviving bound alone misrepresents the stated range.
+        const result = normalizeJobWithReason(
+            rawJob({
+                minSalary: 35000,
+                maxSalary: 90000,
+                salaryPeriod: 'annual',
+            }),
+            'adzuna',
+        );
+        expect(result.job).not.toBeNull();
+        expect(result.job!.normalizedMinSalary).toBeNull();
+        expect(result.job!.normalizedMaxSalary).toBeNull();
+    });
+
+    it('near-miss above-cap salary $520k clamps to the $500k ingest cap', () => {
+        const result = normalizeJobWithReason(
+            rawJob({
+                minSalary: 520000,
+                maxSalary: 520000,
+                salaryPeriod: 'annual',
+            }),
+            'adzuna',
+        );
+        expect(result.job).not.toBeNull();
+        // Within +15% of the $500k ingest bound → clamped there; $500k is
+        // then inside the normalizer's $550k high-confidence cap.
         expect(result.job!.minSalary).toBe(500000);
-        expect(result.job!.maxSalary).toBe(500000);
+        expect(result.job!.normalizedMinSalary).toBe(500000);
     });
 });
 
