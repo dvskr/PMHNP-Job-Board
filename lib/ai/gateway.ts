@@ -33,6 +33,7 @@ import { recordAiCall } from './cost-tracker';
 import { checkAiRateLimit } from './rate-limiter';
 import * as breaker from './circuit-breaker';
 import { getProvider } from './providers';
+import { getPromptContentHash } from './prompts/registry';
 import { getTaskConfig } from './tasks';
 import {
     AiGatewayError,
@@ -110,9 +111,20 @@ export async function complete<T = unknown>(req: CompleteRequest<T>): Promise<Co
     const task = getTaskConfig(req.task);
     const startedAt = Date.now();
 
+    // Registry-backed prompts contribute their content hash to the cache key
+    // so editing a prompt file busts stale cached responses automatically —
+    // promptVersion alone only changes on explicit human bumps. Inline-prompt
+    // callers (no registry entry) resolve to undefined and keep their key as-is.
+    const promptContentHash = req.promptId
+        ? getPromptContentHash(req.promptId, req.promptVersion)
+        : undefined;
+    const cacheKeyParts = req.cacheKey && promptContentHash
+        ? [...req.cacheKey, promptContentHash]
+        : req.cacheKey;
+
     // ── 1. Cache lookup (free; no rate-limit consumed) ───────────────────
-    if (!req.options?.skipCacheRead && req.cacheKey) {
-        const cached = await readCache<T>(req.task, req.cacheKey);
+    if (!req.options?.skipCacheRead && cacheKeyParts) {
+        const cached = await readCache<T>(req.task, cacheKeyParts);
         if (cached.hit && cached.response) {
             const out = cached.response;
             if (req.outputSchema) {
@@ -228,7 +240,7 @@ export async function complete<T = unknown>(req: CompleteRequest<T>): Promise<Co
                 }
             }
 
-            await writeCache(req.task, req.cacheKey, response, task.cacheTtlSeconds);
+            await writeCache(req.task, cacheKeyParts, response, task.cacheTtlSeconds);
             await recordAiCall({
                 task: req.task,
                 provider: target.provider,

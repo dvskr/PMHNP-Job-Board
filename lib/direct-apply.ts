@@ -16,20 +16,17 @@
  * false negatives are more annoying because they undermine trust.
  */
 
-export const ATS_PATTERNS: ReadonlyArray<RegExp> = [
-  /\.myworkdayjobs\.com/i,
-  /greenhouse\.io/i,
-  /lever\.co/i,
-  /jobs\.ashbyhq\.com/i,
-  /smartrecruiters\.com/i,
-  /icims\.com/i,
-  /jazz\.co/i,
-  /bamboohr\.com/i,
-  /usajobs\.gov/i,
-  /apply\.workable\.com/i,
-  /careers\./i,
-  /jobs\./i,
-];
+import { ATS_HOST_SUBSTRINGS } from '@/lib/ai/job-classifier';
+
+/**
+ * Regex form of the shared ATS host list — derived from ATS_HOST_SUBSTRINGS
+ * in lib/ai/job-classifier.ts (the single source of truth) so the badge and
+ * the server-side classifier can never disagree. Dots are escaped; `careers.`
+ * and `jobs.` stay plain substring matches, same as before the extraction.
+ */
+export const ATS_PATTERNS: ReadonlyArray<RegExp> = ATS_HOST_SUBSTRINGS.map(
+  (s) => new RegExp(s.replace(/\./g, '\\.'), 'i'),
+);
 
 /** True when the apply URL points to a recognized ATS / employer career page. */
 export function isDirectApplyUrl(url: string | null | undefined): boolean {

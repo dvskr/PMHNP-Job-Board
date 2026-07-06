@@ -17,25 +17,11 @@ import type { ClassifiableJob } from './job-classifier';
  * whose applyLink matches one of these are classified as direct_apply (one
  * click to the employer ATS, no aggregator middleman).
  *
- * IMPORTANT: keep this list in sync with `ATS_PATTERNS` in
- * lib/ai/job-classifier.ts — the regex form there is the source of truth for
- * client-side classification, this substring form is for DB-side
- * `applyLink contains` filters that can't easily express regex.
+ * Single source of truth lives in lib/ai/job-classifier.ts — re-exported here
+ * because DB-side `applyLink contains` builders (lib/job-alerts-service,
+ * FeaturedJobsSection) import it from the policy layer.
  */
-export const ATS_HOST_SUBSTRINGS: ReadonlyArray<string> = [
-    '.myworkdayjobs.com',
-    'greenhouse.io',
-    'lever.co',
-    'jobs.ashbyhq.com',
-    'smartrecruiters.com',
-    'icims.com',
-    'jazz.co',
-    'bamboohr.com',
-    'usajobs.gov',
-    'apply.workable.com',
-    'careers.',
-    'jobs.',
-];
+export { ATS_HOST_SUBSTRINGS } from './job-classifier';
 
 /** True iff the job was posted directly by an employer through our platform. */
 export function isEmployerPosting(job: Pick<ClassifiableJob, 'sourceType'>): boolean {
