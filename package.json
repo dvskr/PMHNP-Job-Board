@@ -2,14 +2,10 @@
   "name": "pmhnp-job-board",
   "version": "0.1.0",
   "private": true,
-  "prisma": {
-    "schema": "prisma/schema.prisma",
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
-  },
   "scripts": {
     "dev": "prisma migrate deploy && next dev",
     "dev:nomigrate": "next dev",
-    "prebuild": "node -e \"process.env.TEMP=process.env.USERPROFILE+'\\\\AppData\\\\Local\\\\Temp';process.env.TMP=process.env.TEMP\"",
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
     "build": "prisma migrate deploy && prisma generate && next build",
     "start": "next start",
     "lint": "eslint",

@@ -1,0 +1,15 @@
+-- Placeholder mirror (added 2026-07-06).
+--
+-- Production's _prisma_migrations table records a migration named
+-- 20260702000000_baseline_db_push_drift (verified via read-only introspection
+-- 2026-07-06) that was applied outside this repo — most likely from the
+-- standalone "pmhnp fork" template repo's drift-baseline work on 2026-07-02.
+-- This repo never had the file, leaving the ledger and the directory out of
+-- sync (prisma migrate dev/status flag that state as an error).
+--
+-- This placeholder re-syncs the directory with the ledger:
+--   * prod: already recorded by name, so migrate deploy skips it;
+--   * fresh databases: intentionally a no-op — everything the original
+--     baseline repaired on prod is covered idempotently by
+--     20260430_add_pricing_tier_column and 20260703_repair_schema_drift.
+SELECT 1;

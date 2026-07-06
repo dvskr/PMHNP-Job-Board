@@ -10,6 +10,25 @@ const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
+  // Destructive-seed guard: the deleteMany() below wipes every job and
+  // cascades into the 9 dependent tables with onDelete: Cascade. Refuse to
+  // run against a database that already has data unless explicitly forced,
+  // so pointing DATABASE_URL/DIRECT_URL at production can never wipe it.
+  const existingJobs = await prisma.job.count()
+  if (existingJobs > 0 && process.env.SEED_FORCE !== '1') {
+    let host = 'unknown-host'
+    try {
+      host = new URL(connectionString ?? '').host
+    } catch {
+      // non-URL connection string; keep the placeholder
+    }
+    console.error(
+      `Refusing to seed: database at ${host} already has ${existingJobs} jobs. ` +
+        'Set SEED_FORCE=1 to wipe and reseed (destructive).'
+    )
+    process.exit(1)
+  }
+
   // Clear existing data
   await prisma.job.deleteMany()
 

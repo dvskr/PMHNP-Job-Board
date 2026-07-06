@@ -1064,7 +1064,7 @@ model EmployerTestimonial {
   consent       Boolean   @default(false)
   // 'full' | 'initial' | 'anonymous' — controls how the name appears when
   // featured. Stored as text so we can extend without a migration.
-  displayAs     String    @default("initial")
+  displayAs     String    @default("initial") @map("display_as")
   // Set by an admin when this testimonial is approved for public display
   // on the marketing site / employer landing page. Null = never featured.
   featuredAt    DateTime? @map("featured_at")
