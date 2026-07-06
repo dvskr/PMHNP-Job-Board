@@ -1,6 +1,6 @@
 # PMHNP Pricing System — Architecture & Operations
 
-**Last verified:** 2026-05-01
+**Last verified:** 2026-05-01 (free-post quota updated 2 → 1 on 2026-07-03 to match commit ffd274c)
 **Source of truth:** [lib/config.ts](../lib/config.ts) + [prisma/schema.prisma](../prisma/schema.prisma)
 **Companion doc:** [pricing-audit.md](./pricing-audit.md) (historical change log + open items)
 
@@ -14,10 +14,11 @@ This document describes the live state of the pricing system after the 2026-04-3
 
 | Item | Value | Source |
 |---|---|---|
-| Free posts per email domain (lifetime) | 2 | `config.freePostsPerEmail` |
+| Free posts per email domain (lifetime) | 1 | `config.freePostsPerEmail` |
 | Paid post price | $199 | `config.postingPrice` |
 | Renewal price | $179 (10% off) | `config.renewalPrice` |
-| Listing duration | 60 days | `config.durationDays` |
+| Listing duration (paid) | 60 days | `config.durationDays` |
+| Listing duration (free post) | 30 days | `config.freeDurationDays` |
 | Featured badge | Always on | `config.isFeatured` |
 | Candidate unlocks per posting | 25 | `config.limits.candidateUnlocksPerPosting` |
 | InMails per posting | 25 | `config.limits.inmailsPerPosting` |
@@ -28,18 +29,18 @@ This document describes the live state of the pricing system after the 2026-04-3
 
 ## 2. End-to-end flows
 
-### 2a. Free post (first 2 per domain, lifetime)
+### 2a. Free post (first post per domain, lifetime)
 
 ```
 Employer signs up → /post-job → /post-job/preview → POST /api/jobs/post-free
   ├─ Auth required (must be role='employer')
   ├─ FREE_EMAIL_DOMAINS check on signup email (gmail/yahoo/etc → 400)
   ├─ Quota check (Serializable txn): COUNT WHERE quotaDomain=<signupDomain> AND paymentStatus='free'
-  │    ├─ <2 → continue
-  │    └─ ≥2 → 403 with requiresPayment=true → frontend redirects to /post-job/checkout
+  │    ├─ <1 → continue
+  │    └─ ≥1 → 403 with requiresPayment=true → frontend redirects to /post-job/checkout
   ├─ Duplicate-active-job check (same title+location)
   ├─ Atomic transaction (Serializable):
-  │    ├─ Job.create (isPublished=true, expiresAt=now+60d)
+  │    ├─ Job.create (isPublished=true, expiresAt=now+30d — `config.freeDurationDays`)
   │    ├─ Job.update (slug)
   │    └─ EmployerJob.create (quotaDomain=<signupDomain>, paymentStatus='free', userId)
   ├─ sendConfirmationEmail (with feature breakdown)
@@ -259,9 +260,9 @@ One row per Stripe checkout. Invoices generated from this ledger so amount match
 
 | Feature | When they have it |
 |---|---|
-| Post a job (free) | First 2 per domain, lifetime |
+| Post a job (free) | First post per domain, lifetime |
 | Post a job (paid, $199) | Always available |
-| 60-day listing | Every post |
+| 60-day listing | Paid posts (the free post gets 30 days) |
 | Featured badge + top placement | Every post |
 | 25 candidate unlocks | Per active posting |
 | 25 InMails (new conversations) | Per active posting |
@@ -325,7 +326,7 @@ Gates: contact email, resume signed URL, LinkedIn URL, AND Layer 2 metadata on t
 |---|---|---|
 | Unlock new candidate | `canUnlockCandidate(userId, tier)` | 25 per active posting |
 | Start new conversation (InMail) | `canSendInMail(senderId, employerId, tier)` | 25 per active posting |
-| Free post creation | inline count in `/api/jobs/post-free` | 2 per `quotaDomain`, lifetime |
+| Free post creation | inline count in `/api/jobs/post-free` | 1 per `quotaDomain`, lifetime |
 
 ---
 
@@ -356,7 +357,7 @@ Gates: contact email, resume signed URL, LinkedIn URL, AND Layer 2 metadata on t
 
 | # | Loophole | Why deferred | Mitigation in place |
 |---|---|---|---|
-| **Shell domains** | Buy 25 cheap domains @ $12 each, sign up with each, get 50 freebies | Domain registration is free-form; no public registry distinguishes "real company" from "registered yesterday" | Free email providers (gmail/yahoo/etc) blocked. Per-org verification (audit-doc deferred item) is the real fix |
+| **Shell domains** | Buy 25 cheap domains @ $12 each, sign up with each, get 25 freebies | Domain registration is free-form; no public registry distinguishes "real company" from "registered yesterday" | Free email providers (gmail/yahoo/etc) blocked. Per-org verification (audit-doc deferred item) is the real fix |
 | **#25 Admin hard-delete** | `/api/admin/jobs/[id]` cascade-deletes EmployerJob → freebie count drops | Internal-only attack vector; admins are trusted; audit logs mitigate | Audit #25 tracks soft-delete remediation |
 | **#27 Email-domain change** | Authenticated user changes their email domain → future freebies attribute to new domain | No user-facing email-change endpoint exists today | `evaluateEmailChange` helper landed at [lib/auth/email-change-policy.ts](../lib/auth/email-change-policy.ts); enforces same-domain rule when invoked. Whoever adds the email-change endpoint MUST call this helper |
 

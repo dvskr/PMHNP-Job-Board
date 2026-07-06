@@ -4,31 +4,25 @@ import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { isKnownCitySlug } from '@/lib/pseo/city-data/city-slugs-edge';
 import { resolveStateSlug } from '@/lib/pseo/setting-state-config';
 import { getAllMetroSlugs } from '@/lib/metro-data';
-import { JOBS_TOP_SEGMENTS, isUnknownJobsTaxonomy } from '@/lib/pseo/jobs-segments-edge';
+import {
+    JOBS_TOP_SEGMENTS,
+    isUnknownJobsTaxonomy,
+    STATE_ELIGIBLE_CATEGORY_SLUGS,
+    CITY_ELIGIBLE_CATEGORY_SLUGS,
+} from '@/lib/pseo/jobs-segments-edge';
+import { FIRST_PARTY_ORIGINS } from '@/lib/origins';
 
 // ── pSEO Taxonomy Allowlists (P1.2) ────────────────────────────────
 // Used to detect structurally invalid pSEO URLs and return 410 instead of 404.
 // 410 is a permanent-gone signal that Google de-indexes faster than 404.
 //
-// Keep in sync with:
-//   - state-eligible: app/jobs/{taxonomy}/[state]/page.tsx routes (13 dirs)
-//   - city-eligible:  app/jobs/{taxonomy}/city/[slug]/page.tsx routes (28+ dirs)
-const STATE_ELIGIBLE_TAXONOMIES = new Set<string>([
-    'remote', 'telehealth', 'inpatient', 'outpatient', 'travel',
-    'full-time', 'part-time', 'contract',
-    'addiction', 'new-grad', '1099', 'behavioral-health', 'correctional',
-]);
+// Derived from the JOBS_TAXONOMY registry in lib/pseo/jobs-segments-edge.ts
+// (single source of truth; drift-guarded by tests/seo/jobs-segments-drift.test.ts):
+//   - state-eligible: app/jobs/{taxonomy}/[state]/page.tsx routes
+//   - city-eligible:  app/jobs/{taxonomy}/city/[slug]/page.tsx routes
+const STATE_ELIGIBLE_TAXONOMIES = new Set<string>(STATE_ELIGIBLE_CATEGORY_SLUGS);
 
-const CITY_ELIGIBLE_TAXONOMIES = new Set<string>([
-    'remote', 'telehealth', 'inpatient', 'outpatient', 'travel',
-    'full-time', 'part-time', 'contract',
-    'addiction', 'child-adolescent', 'substance-abuse', 'new-grad',
-    'per-diem', 'locum-tenens', 'correctional', '1099',
-    'behavioral-health',
-    'entry-level', 'mid-career', 'senior',
-    'hospital', 'private-practice', 'community-health', 'va',
-    'geriatric', 'veterans', 'lgbtq', 'crisis',
-]);
+const CITY_ELIGIBLE_TAXONOMIES = new Set<string>(CITY_ELIGIBLE_CATEGORY_SLUGS);
 
 const METRO_SLUG_SET = new Set<string>(getAllMetroSlugs());
 
@@ -913,15 +907,8 @@ export async function middleware(request: NextRequest) {
     // security boundary; Vary just hardens the cache layer.
     if (pathname.startsWith('/api/')) {
         const origin = request.headers.get('origin');
-        const allowedOrigins = [
-            'https://pmhnphiring.com',
-            'https://www.pmhnphiring.com',
-            process.env.NEXT_PUBLIC_BASE_URL,
-            'http://localhost:3000',
-            'http://localhost:3001',
-        ].filter(Boolean);
-
-        if (origin && allowedOrigins.includes(origin)) {
+        // Allowlist is shared with lib/csrf.ts — see lib/origins.ts.
+        if (origin && FIRST_PARTY_ORIGINS.includes(origin)) {
             response.headers.set('Access-Control-Allow-Origin', origin);
         }
         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');

@@ -13,7 +13,9 @@
  *     sites that spam.
  *
  * Env requirements:
- *   - INDEXNOW_KEY: 32-128 char hex string. Must match the file at /key.txt.
+ *   - INDEXNOW_API_KEY (preferred) or INDEXNOW_KEY: 32-128 char hex string.
+ *     Must match the file at /key.txt. Either name works everywhere;
+ *     INDEXNOW_API_KEY wins when both are set.
  *
  * Behavior:
  *   - When the key is missing, calls become no-ops (logged) so dev /
@@ -28,7 +30,7 @@ const ENDPOINT = 'https://api.indexnow.org/IndexNow';
 const HOST = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
 function getKey(): string | null {
-  const key = process.env.INDEXNOW_KEY;
+  const key = process.env.INDEXNOW_API_KEY || process.env.INDEXNOW_KEY;
   if (!key || key.length < 8) return null;
   return key;
 }
@@ -60,7 +62,7 @@ export async function pingIndexNow(urls: string[]): Promise<{ ok: boolean; submi
 
   const key = getKey();
   if (!key) {
-    logger.info('IndexNow ping skipped — INDEXNOW_KEY not set', { count: filtered.length });
+    logger.info('IndexNow ping skipped — INDEXNOW_API_KEY / INDEXNOW_KEY not set', { count: filtered.length });
     return { ok: false, submitted: 0, reason: 'no_key' };
   }
 

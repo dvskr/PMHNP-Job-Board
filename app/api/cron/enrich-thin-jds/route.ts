@@ -21,6 +21,7 @@
  * cost spike can't happen. Cost-per-call is recorded in the AI gateway
  * cost-tracker by virtue of routing through `complete()`.
  */
+import { createHash } from 'crypto';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
@@ -53,6 +54,10 @@ Output requirements:
 - Never invent specifics (salaries, neighborhoods, named drugs not in the source).
 - Faithfully preserve any facts from the source description: schedule, salary, benefits, mode, setting.
 - If the source omits a section, write a generic placeholder paragraph that reads naturally without making up specifics.`;
+
+// Cache-buster — any edit to the inline system prompt above invalidates
+// previously cached completions without needing a manual version bump.
+const SYSTEM_PROMPT_HASH = createHash('sha256').update(SYSTEM_PROMPT).digest('hex').slice(0, 12);
 
 interface ThinJob {
   id: string;
@@ -89,7 +94,8 @@ async function enrichOne(job: ThinJob): Promise<{ ok: boolean; reason?: string }
       ],
       // Cache key: anchor on the original description hash so re-running
       // the cron doesn't repay for the same input. Source params first.
-      cacheKey: ['enrich_thin_jd', 'v1', job.id, visibleLength(job.description)],
+      // SYSTEM_PROMPT_HASH busts the cache whenever the inline prompt changes.
+      cacheKey: ['enrich_thin_jd', 'v1', SYSTEM_PROMPT_HASH, job.id, visibleLength(job.description)],
     });
   } catch (err) {
     if (err instanceof AiGatewayError) {

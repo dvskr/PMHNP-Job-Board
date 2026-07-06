@@ -44,7 +44,9 @@ describe('sendNewCandidateAlertEmail — E3 suppression + List-Unsubscribe', () 
     expect(result.success).toBe(false);
     expect(result.error).toBe('suppressed');
     expect(resendSendMock).not.toHaveBeenCalled();
-  });
+    // 15s: this first test pays the dynamic import of the email-service module
+    // graph, which has blown vitest's 5s default under full-suite load.
+  }, 15_000);
 
   it('skips the send when suppressed via userProfile.emailSuppressed', async () => {
     vi.mocked(prisma.emailLead.findUnique).mockResolvedValue(null as never);

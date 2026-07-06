@@ -27,15 +27,10 @@ import { isRelevantJob } from '@/lib/utils/job-filter';
 import type { Aggregator, RawJobData } from './types';
 import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
 import { htmlToReadableText } from '@/lib/sanitize';
+// HCC shares DocCafe's query set — both boards respond to the same PMHNP keywords.
+import { DOCCAFE_SEARCH_QUERIES as QUERIES } from './search-terms/doccafe';
 
 const HCC_BASE = 'https://jobs.healthcareercenter.com';
-const QUERIES: readonly string[] = [
-    'PMHNP',
-    'psychiatric mental health nurse practitioner',
-    'psychiatric nurse practitioner',
-    'mental health nurse practitioner',
-    'behavioral health nurse practitioner',
-];
 
 const TIME_BUDGET_MS = 180_000; // under orchestrator MAX_INGESTION_MS (240s) so the insert loop has headroom
 const MAX_PAGES_PER_QUERY = 10;

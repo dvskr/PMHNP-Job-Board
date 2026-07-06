@@ -170,16 +170,25 @@ describe('validateAndNormalizeSalary', () => {
         expect(r.salaryPeriod).toBe('hourly');
     });
 
-    it('clamps impossibly high hourly rate to the 300/hr ceiling', () => {
-        // Behavior changed 2026-05-05: out-of-range values are clamped
-        // to the period's bound rather than dropped to null.
+    it('drops an implausibly high hourly rate (beyond +15% tolerance)', () => {
+        // Policy changed 2026-07-06 (audit #13): values are never adjusted
+        // upward, and above-cap values beyond CLAMP_TOLERANCE are dropped.
         const r = validateAndNormalizeSalary(500, null, 'hourly', 'PMHNP', 'hour');
-        expect(r.minSalary).toBe(300); // clamped from 500 to bounds.max
+        expect(r.minSalary).toBeNull(); // $500/hr is not a $350/hr job
     });
 
-    it('clamps impossibly low annual salary to the $30k floor', () => {
-        const r = validateAndNormalizeSalary(10000, null, 'annual', 'PMHNP', 'year');
-        expect(r.minSalary).toBe(30000); // clamped from 10000 to bounds.min
+    it('clamps a near-miss high hourly rate DOWN to the $350/hr ceiling', () => {
+        // Ceiling harmonized 300 → 350 (2026-07-06) to match
+        // NORMALIZER_BAND.contractorHourlyMax.
+        const r = validateAndNormalizeSalary(360, null, 'hourly', 'PMHNP', 'hour');
+        expect(r.minSalary).toBe(350); // within +15% tolerance → clamp down
+    });
+
+    it('drops below-floor annual salaries instead of raising them', () => {
+        // No upward adjustment, ever — raising fabricates. Both the far-out
+        // and the near-miss low values are dropped.
+        expect(validateAndNormalizeSalary(10000, null, 'annual', 'PMHNP', 'year').minSalary).toBeNull();
+        expect(validateAndNormalizeSalary(27000, null, 'annual', 'PMHNP', 'year').minSalary).toBeNull();
     });
 
     it('swaps min/max if reversed', () => {

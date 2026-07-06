@@ -64,7 +64,7 @@ export default async function HospitalPage({ searchParams }: PageProps) {
         heroAlt="Hospital PMHNP acute psychiatric care"
         badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Hospital']}
-        indexLabel="? 22 / 28"
+        indexLabel="№ 22 / 28"
         headlineLine1="Hospital"
         headlineLine2="PMHNP"
         headlineSub="jobs, acute care psych."

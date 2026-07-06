@@ -31,7 +31,9 @@ export type AiTaskId =
     // Phase 4 — wired in Sprint 4.x.
     | 'spam_fraud_detection'
     | 'support_bot'
-    | 'seo_content';
+    | 'seo_content'
+    // Ingest pipeline — JD structured-field extraction (lib/llm-enrichment.ts).
+    | 'jd_enrichment';
 
 /** Output mode hint per task — drives JSON-mode and parser selection. */
 export type AiOutputMode = 'json' | 'text' | 'vector';

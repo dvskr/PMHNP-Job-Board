@@ -24,6 +24,7 @@
  *     });
  */
 
+import { createHash } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { z } from 'zod';
@@ -47,6 +48,13 @@ export interface LoadedPrompt {
     id: AiTaskId;
     version: string;
     supersedes?: string;
+    /**
+     * Short sha256 of system + user_template. The gateway appends this to
+     * cache keys so ANY content edit to a prompt file invalidates cached
+     * responses automatically — `version` stays a human-readable bump.
+     * `notes` edits deliberately don't change it (notes never reach runtime).
+     */
+    contentHash: string;
     /** Render the user template with the provided variables → ready-to-send messages. */
     render(variables: Record<string, string>): AiMessage[];
     /** Unrendered system prompt — useful for tests + diff tooling. */
@@ -57,6 +65,8 @@ export interface LoadedPrompt {
 
 const PROMPTS_DIR = path.join(process.cwd(), 'lib', 'ai', 'prompts');
 const cache = new Map<string, LoadedPrompt>();
+/** `${id}:${version}` → contentHash. Populated as a side effect of loadPrompt(). */
+const contentHashIndex = new Map<string, string>();
 
 function renderTemplate(template: string, variables: Record<string, string>): string {
     return template.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (_, key: string) => {
@@ -104,10 +114,16 @@ export async function loadPrompt(task: AiTaskId, version?: string): Promise<Load
         throw new Error(`Prompt file ${file} declares version="${parsed.version}" but filename is "${pinned}"`);
     }
 
+    const contentHash = createHash('sha256')
+        .update(`${parsed.system}\n${parsed.user_template}`)
+        .digest('hex')
+        .slice(0, 12);
+
     const loaded: LoadedPrompt = {
         id: parsed.id as AiTaskId,
         version: parsed.version,
         supersedes: parsed.supersedes,
+        contentHash,
         rawSystem: parsed.system,
         rawUserTemplate: parsed.user_template,
         render(variables) {
@@ -118,7 +134,22 @@ export async function loadPrompt(task: AiTaskId, version?: string): Promise<Load
         },
     };
     cache.set(cacheKey, loaded);
+    contentHashIndex.set(`${parsed.id}:${parsed.version}`, contentHash);
+    contentHashIndex.set(parsed.id, contentHash);
     return loaded;
+}
+
+/**
+ * Synchronous content-hash lookup for the gateway's cache-key assembly.
+ * Populated as a side effect of loadPrompt() — registry-backed callers always
+ * load their prompt before calling complete(), so the entry exists by the
+ * time the gateway asks. Returns undefined for inline / unregistered prompt
+ * ids (those callers keep their cache keys unchanged).
+ */
+export function getPromptContentHash(promptId: string, version?: string): string | undefined {
+    return version
+        ? contentHashIndex.get(`${promptId}:${version}`)
+        : contentHashIndex.get(promptId);
 }
 
 /** List every prompt registered on disk — used by drift / diff tooling. */
@@ -138,6 +169,6 @@ export async function listPrompts(): Promise<Array<{ task: string; versions: str
 }
 
 export const __testing = {
-    clearCache(): void { cache.clear(); },
+    clearCache(): void { cache.clear(); contentHashIndex.clear(); },
     renderTemplate,
 };

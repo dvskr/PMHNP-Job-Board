@@ -237,6 +237,29 @@ export const TASK_REGISTRY: Record<AiTaskId, TaskConfig> = {
         timeoutMs: 90_000,
         rateLimit: { limit: 30, windowSeconds: 3600 },
     },
+
+    // ── INGEST PIPELINE — structured-field extraction from JDs ────────────
+    jd_enrichment: {
+        primary:   { provider: 'openai', model: 'gpt-5-mini' },
+        // Deliberately no fallback: enrichment is best-effort (callers treat
+        // null as "no enrichment") and a cross-provider fallback would change
+        // output shape mid-pipeline.
+        fallbacks: [],
+        outputMode: 'json',
+        cacheTtlSeconds: 7 * 86_400,
+        // Inert for gpt-5-mini (provider suppresses temperature for the
+        // GPT-5 family) — kept low to match the extraction-style tasks.
+        temperature: 0.1,
+        // Matches the pre-gateway direct call's max_completion_tokens (4096).
+        maxOutputTokens: 4_096,
+        // Hard wall on per-call latency. Without this, a hung OpenAI request
+        // can starve the orchestrator's 240s ingest budget. 8s is generous —
+        // typical gpt-5-mini calls return in 1-2s.
+        timeoutMs: 8_000,
+        // enrich-jobs cron caps at 200 jobs/run; the inline ingest rescue adds
+        // a handful more per tick. 1000/h leaves ample headroom.
+        rateLimit: { limit: 1_000, windowSeconds: 3600 },
+    },
 };
 
 export function getTaskConfig(task: AiTaskId): TaskConfig {
@@ -245,4 +268,13 @@ export function getTaskConfig(task: AiTaskId): TaskConfig {
         throw new Error(`Unknown AI task "${task}" — register it in lib/ai/tasks.ts`);
     }
     return config;
+}
+
+/**
+ * Primary embedding model — exposed so embedding upserts (lib/ai/vector-search)
+ * can compare the stored `model` column against the current routing target and
+ * regenerate vectors after a model swap instead of trusting input_hash alone.
+ */
+export function getEmbeddingModel(): string {
+    return TASK_REGISTRY.embeddings_generic.primary.model;
 }

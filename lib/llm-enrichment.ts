@@ -8,9 +8,25 @@
  * Returns parsed structured fields when GPT-5-mini can find them, null
  * otherwise. Callers decide what to do with the result (merge into
  * existing record, etc.) — this module just does the extraction.
+ *
+ * Routed through the AI gateway (task `jd_enrichment` in lib/ai/tasks.ts)
+ * so calls get ai_call_log cost tracking, Redis caching, rate limiting, and
+ * the circuit breaker for free. Model + timeout live in the task registry.
  */
 
-import OpenAI from 'openai';
+import { createHash } from 'crypto';
+import { z } from 'zod';
+import { complete } from './ai/gateway';
+import { AiGatewayError } from './ai/types';
+import { ENRICHMENT_BOUNDS } from './salary-bounds';
+
+// Loose shape check passed to the gateway as outputSchema. Its real job is
+// pre-cache validation: without it the gateway caches raw provider content,
+// so an empty/truncated response (e.g. the model burning its token budget
+// on reasoning) became a sticky null for the full cache TTL. Any JSON
+// object passes; empty/malformed content throws invalid_output BEFORE the
+// cache write and is retried on the next attempt.
+const EXTRACT_OUTPUT_SCHEMA = z.object({}).passthrough();
 
 export interface LLMExtractResult {
     salary_min?: number;
@@ -50,66 +66,55 @@ Fields:
 
 Rules:
 - ONLY include if explicitly stated in text
-- Salary must be $40k-$500k/yr range for PMHNP roles
+- Salary must be $${ENRICHMENT_BOUNDS.annualMin / 1000}k-$${ENRICHMENT_BOUNDS.annualMax / 1000}k/yr range for PMHNP roles
 - Return {} if nothing found`;
 
-let _openai: OpenAI | null = null;
-function getOpenAI(): OpenAI | null {
-    if (!process.env.OPENAI_API_KEY) return null;
-    if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    return _openai;
-}
-
-export interface ExtractWithLLMOptions {
-    /** Per-call timeout (ms). Default 8s — caller should always set this for inline use. */
-    timeoutMs?: number;
-}
+// Cache-buster — any edit to the inline system prompt above invalidates
+// previously cached completions without needing a manual version bump.
+const SYSTEM_PROMPT_HASH = createHash('sha256').update(SYSTEM_PROMPT).digest('hex').slice(0, 12);
 
 export async function extractWithLLM(
     description: string,
     title: string,
     employer: string,
     location: string,
-    options: ExtractWithLLMOptions = {},
 ): Promise<LLMExtractResponse> {
     const start = Date.now();
-    const openai = getOpenAI();
-    if (!openai) {
+    // Preserve the pre-gateway contract: no key configured → quiet no-op
+    // (no rate-limit consumption, no ai_call_log noise, no failed-call rows).
+    if (!process.env.OPENAI_API_KEY) {
         return { result: null, inputTokens: 0, outputTokens: 0, elapsedMs: 0 };
     }
-    const { timeoutMs = 8000 } = options;
     try {
         const truncated = description.substring(0, 2500);
+        const userContent = `Title: ${title}\nEmployer: ${employer}\nLocation: ${location}\n\n${truncated}`;
+        // Hash the FULL user message (not just the description) — two jobs
+        // with identical bodies but different title/employer/location must
+        // not share a cache entry.
+        const inputHash = createHash('sha256').update(userContent).digest('hex').slice(0, 12);
 
-        const response = await openai.chat.completions.create({
-            model: 'gpt-5-mini',
-            response_format: { type: 'json_object' },
+        const response = await complete({
+            task: 'jd_enrichment',
+            tenant: { type: 'system', id: 'llm-enrichment' },
             messages: [
                 { role: 'system', content: SYSTEM_PROMPT },
-                {
-                    role: 'user',
-                    content: `Title: ${title}\nEmployer: ${employer}\nLocation: ${location}\n\n${truncated}`,
-                },
+                { role: 'user', content: userContent },
             ],
-            max_completion_tokens: 4096,
-        }, {
-            // Hard wall on per-call latency. Without this, a hung OpenAI
-            // request can starve the orchestrator's 240s ingest budget.
-            // 8s is generous — typical gpt-5-mini calls return in 1-2s.
-            timeout: timeoutMs,
+            cacheKey: ['jd_enrichment', SYSTEM_PROMPT_HASH, inputHash],
+            outputSchema: EXTRACT_OUTPUT_SCHEMA,
         });
 
-        const inputTokens = response.usage?.prompt_tokens || 0;
-        const outputTokens = response.usage?.completion_tokens || 0;
+        const inputTokens = response.usage.inputTokens;
+        const outputTokens = response.usage.outputTokens;
         const elapsedMs = Date.now() - start;
 
-        const content = response.choices[0]?.message?.content;
-        if (!content) return { result: null, inputTokens, outputTokens, elapsedMs };
+        if (!response.content) return { result: null, inputTokens, outputTokens, elapsedMs };
 
-        const parsed = JSON.parse(content) as LLMExtractResult;
+        const parsed = JSON.parse(response.content) as LLMExtractResult;
 
         // Validate salary range — toss obviously wrong values rather than letting them through.
-        if (parsed.salary_min && (parsed.salary_min < 40000 || parsed.salary_min > 500000)) {
+        // Same bounds as the prompt text above (both derive from ENRICHMENT_BOUNDS).
+        if (parsed.salary_min && (parsed.salary_min < ENRICHMENT_BOUNDS.annualMin || parsed.salary_min > ENRICHMENT_BOUNDS.annualMax)) {
             delete parsed.salary_min;
             delete parsed.salary_max;
             delete parsed.salary_period;
@@ -117,7 +122,21 @@ export async function extractWithLLM(
 
         const result = Object.keys(parsed).length > 0 ? parsed : null;
         return { result, inputTokens, outputTokens, elapsedMs };
-    } catch {
+    } catch (err) {
+        // Infrastructure failures (rate limit, breaker open / all providers
+        // down, timeout) are RETHROWN so callers don't mistake "the gateway
+        // was unavailable" for "the LLM found nothing" — enrich-jobs stamps
+        // lastEnrichedAt on null results, which would permanently skip the
+        // job. Both callers handle rejection (the cron skips the DB write,
+        // the ingest rescue is try/catch-wrapped).
+        if (
+            err instanceof AiGatewayError &&
+            (err.code === 'rate_limited' || err.code === 'all_providers_failed' || err.code === 'timeout')
+        ) {
+            throw err;
+        }
+        // Content-level failures (invalid_output, JSON parse, misconfig)
+        // keep the null contract: deterministic "no enrichment".
         return { result: null, inputTokens: 0, outputTokens: 0, elapsedMs: Date.now() - start };
     }
 }

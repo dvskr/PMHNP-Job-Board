@@ -2,16 +2,10 @@
 // SALARY UTILITIES - Store Both Approach
 // ===========================================
 
-// PMHNP-specific thresholds
-const THRESHOLDS = {
-  // Hourly rates (PMHNP contractors typically $100-$300/hr)
-  MIN_HOURLY: 25,
-  MAX_HOURLY: 400,
+import { MAINTENANCE_SCRIPT_BOUNDS } from './salary-bounds';
 
-  // Annual salaries
-  MIN_ANNUAL: 40000,
-  MAX_ANNUAL: 400000,
-};
+// PMHNP-specific thresholds — values live in lib/salary-bounds.ts
+const THRESHOLDS = MAINTENANCE_SCRIPT_BOUNDS;
 
 // Conversion factor for hourly → annual
 // 40 hrs/week × 52 weeks = 2,080 hours (standard full-time)
@@ -216,7 +210,7 @@ function processDailySalary(
   const maxRate = max || min || null;
 
   // Validate (daily rates typically $500-$3000 for PMHNP)
-  if (minRate && (minRate < 200 || minRate > 5000)) {
+  if (minRate && (minRate < THRESHOLDS.MIN_DAILY || minRate > THRESHOLDS.MAX_DAILY)) {
     return {
       normalizedMin: null,
       normalizedMax: null,

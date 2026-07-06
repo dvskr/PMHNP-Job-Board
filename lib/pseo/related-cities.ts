@@ -8,9 +8,10 @@
  * 404s waste crawl budget and look like broken links in GSC. This filter keeps
  * the threshold identical to the page's render gate so a linked city always renders.
  */
+import { MIN_JOBS_FOR_CATEGORY_CITY } from './render-gate';
 
-/** Keep in lockstep with the city page's MIN_JOBS render gate. */
-export const MIN_RELATED_CITY_JOBS = 3;
+/** In lockstep with the city page's MIN_JOBS render gate — same SSOT constant. */
+export const MIN_RELATED_CITY_JOBS = MIN_JOBS_FOR_CATEGORY_CITY;
 
 export function selectEligibleCities<T extends { city: string | null; count: number }>(
   rows: readonly T[],

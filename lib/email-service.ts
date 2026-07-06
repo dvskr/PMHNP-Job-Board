@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { slugify } from '@/lib/utils';
+import { brand } from '@/config/brand';
 import { config } from '@/lib/config';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
@@ -46,16 +47,16 @@ function statBlockV2(value: string, label: string): string {
 const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
 
 // ── Sender addresses — separate transactional from marketing ──
-// Defaults match config/brand.ts; runtime values come from env (validated in lib/env.ts).
-const EMAIL_FROM_TRANSACTIONAL = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
-const EMAIL_FROM_MARKETING = process.env.EMAIL_FROM_MARKETING || 'PMHNP Hiring <alerts@pmhnphiring.com>';
+// Fallbacks come from config/brand.ts (SSOT); runtime values come from env (validated in lib/env.ts).
+const EMAIL_FROM_TRANSACTIONAL = process.env.EMAIL_FROM || brand.email.transactionalFrom;
+const EMAIL_FROM_MARKETING = process.env.EMAIL_FROM_MARKETING || brand.email.marketingFrom;
 // PD outreach gets its own from-name — the campaign is a personal pitch
 // from Sathish, not an automated job-board notification. Falls back to
 // EMAIL_FROM_MARKETING if unset (the previous behavior).
 const EMAIL_FROM_PD_OUTREACH =
   process.env.EMAIL_FROM_PD_OUTREACH || EMAIL_FROM_MARKETING;
 const EMAIL_FROM = EMAIL_FROM_TRANSACTIONAL; // backward compat
-const EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO || 'support@pmhnphiring.com';
+const EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO || brand.email.replyTo;
 
 // Canonical EmailType union — every value the platform sends should be in this list.
 // Drives MARKETING_EMAIL_TYPES below and is the type for `sendAndLog`'s emailType param,

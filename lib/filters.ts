@@ -606,6 +606,100 @@ export function newGradWhereClause(): Prisma.JobWhereInput {
   };
 }
 
+/**
+ * Per-option work-mode clause shared by buildWhereClause AND the
+ * filter-counts route, so the checkbox predicate and its badge count can
+ * never diverge. "Onsite" is the absence of BOTH flags (isRemote/isHybrid
+ * false) — not a column of its own — so both sides must derive it the
+ * same way.
+ */
+export type WorkMode = 'remote' | 'hybrid' | 'onsite';
+
+export function workModeClause(mode: WorkMode): Prisma.JobWhereInput {
+  switch (mode) {
+    case 'remote': return { isRemote: true };
+    case 'hybrid': return { isHybrid: true };
+    case 'onsite': return { isRemote: false, isHybrid: false };
+  }
+}
+
+/**
+ * Job-type clause shared by buildWhereClause AND the filter-counts route.
+ * Named types match the structured jobType column exactly; the synthetic
+ * "Other" option means a NULL jobType (unnormalized/unstated), so the
+ * checkbox and its badge count agree on what "Other" is.
+ */
+export function jobTypeClause(types: string[]): Prisma.JobWhereInput {
+  const hasOther = types.includes('Other');
+  const namedTypes = types.filter(t => t !== 'Other');
+
+  if (hasOther && namedTypes.length > 0) {
+    // Match named types OR NULL
+    return {
+      OR: [
+        { jobType: { in: namedTypes } },
+        { jobType: null },
+      ],
+    };
+  }
+  if (hasOther) {
+    // Only "Other" selected — match NULL
+    return { jobType: null };
+  }
+  // Only named types
+  return { jobType: { in: namedTypes } };
+}
+
+/**
+ * Salary-floor clause shared by buildWhereClause AND the filter-counts
+ * route: a job qualifies when EITHER normalized bound clears the floor
+ * (a $90k–$120k range qualifies for "$100k+" via its max).
+ */
+export function salaryAtLeastClause(min: number): Prisma.JobWhereInput {
+  return {
+    OR: [
+      { normalizedMinSalary: { gte: min } },
+      { normalizedMaxSalary: { gte: min } },
+    ],
+  };
+}
+
+/**
+ * Specialty keyword registry — the checkbox options under "Specialty",
+ * keyed by the FilterState.specialty value. Each entry lists the
+ * case-insensitive substrings matched against title / description.
+ * Shared (via specialtyClause) by buildWhereClause AND the filter-counts
+ * route so the predicate and the badge count can never diverge.
+ */
+export const SPECIALTY_KEYWORDS: Record<string, { title: string[]; description: string[] }> = {
+  Telehealth: {
+    title: ['telehealth', 'telemedicine', 'telepsychiatry'],
+    description: ['telehealth', 'telemedicine'],
+  },
+  // Title-only: JDs mention "travel" for commute requirements too, so the
+  // description is deliberately not consulted.
+  Travel: {
+    title: ['travel', 'locum'],
+    description: [],
+  },
+};
+
+/**
+ * Keyword OR-clause for one specialty option. Unknown specialties return {}
+ * (a match-all no-op) — callers only pass registry keys, so this arm is
+ * defensive.
+ */
+export function specialtyClause(specialty: string): Prisma.JobWhereInput {
+  const keywords = SPECIALTY_KEYWORDS[specialty];
+  if (!keywords) return {};
+  return {
+    OR: [
+      ...keywords.title.map((w): Prisma.JobWhereInput => ({ title: { contains: w, mode: 'insensitive' } })),
+      ...keywords.description.map((w): Prisma.JobWhereInput => ({ description: { contains: w, mode: 'insensitive' } })),
+    ],
+  };
+}
+
 export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
   const where: Prisma.JobWhereInput = {
     isPublished: true,
@@ -649,18 +743,19 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     }
   }
 
-  // Work Mode (OR within category)
+  // Work Mode (OR within category) — per-mode clause shared with the
+  // filter-counts route via workModeClause.
   if (filters.workMode.length > 0) {
     const workModeConditions: Prisma.JobWhereInput[] = [];
 
     if (filters.workMode.includes('remote')) {
-      workModeConditions.push({ isRemote: true });
+      workModeConditions.push(workModeClause('remote'));
     }
     if (filters.workMode.includes('hybrid')) {
-      workModeConditions.push({ isHybrid: true });
+      workModeConditions.push(workModeClause('hybrid'));
     }
     if (filters.workMode.includes('onsite')) {
-      workModeConditions.push({ isRemote: false, isHybrid: false });
+      workModeConditions.push(workModeClause('onsite'));
     }
 
     if (workModeConditions.length > 0) {
@@ -668,36 +763,16 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     }
   }
 
-  // Job Type (OR within category)
+  // Job Type (OR within category) — Other/NULL handling lives in
+  // jobTypeClause, shared with the filter-counts route.
   if (filters.jobType.length > 0) {
-    const hasOther = filters.jobType.includes('Other');
-    const namedTypes = filters.jobType.filter(t => t !== 'Other');
-
-    if (hasOther && namedTypes.length > 0) {
-      // Match named types OR NULL
-      andConditions.push({
-        OR: [
-          { jobType: { in: namedTypes } },
-          { jobType: null },
-        ],
-      });
-    } else if (hasOther) {
-      // Only "Other" selected — match NULL
-      andConditions.push({ jobType: null });
-    } else {
-      // Only named types
-      andConditions.push({ jobType: { in: namedTypes } });
-    }
+    andConditions.push(jobTypeClause(filters.jobType));
   }
 
-  // Salary
+  // Salary — floor clause shared with the filter-counts route via
+  // salaryAtLeastClause.
   if (filters.salaryMin) {
-    andConditions.push({
-      OR: [
-        { normalizedMinSalary: { gte: filters.salaryMin } },
-        { normalizedMaxSalary: { gte: filters.salaryMin } },
-      ],
-    });
+    andConditions.push(salaryAtLeastClause(filters.salaryMin));
   }
 
   // Posted Within — see `freshnessClause` for the windowed semantics.
@@ -737,28 +812,16 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     });
   }
 
-  // Specialty (keyword-based, OR within category)
+  // Specialty (keyword-based, OR within category) — per-specialty keyword
+  // clause shared with the filter-counts route via specialtyClause.
   if (filters.specialty && filters.specialty.length > 0) {
     const specialtyConditions: Prisma.JobWhereInput[] = [];
 
     if (filters.specialty.includes('Telehealth')) {
-      specialtyConditions.push({
-        OR: [
-          { title: { contains: 'telehealth', mode: 'insensitive' } },
-          { title: { contains: 'telemedicine', mode: 'insensitive' } },
-          { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
-          { description: { contains: 'telehealth', mode: 'insensitive' } },
-          { description: { contains: 'telemedicine', mode: 'insensitive' } },
-        ],
-      });
+      specialtyConditions.push(specialtyClause('Telehealth'));
     }
     if (filters.specialty.includes('Travel')) {
-      specialtyConditions.push({
-        OR: [
-          { title: { contains: 'travel', mode: 'insensitive' } },
-          { title: { contains: 'locum', mode: 'insensitive' } },
-        ],
-      });
+      specialtyConditions.push(specialtyClause('Travel'));
     }
 
     if (specialtyConditions.length > 0) {

@@ -10,10 +10,12 @@
  * Schedule (vercel.json):
  *   12:50 UTC — covers the morning wave (10:00 → 12:30 UTC, ~3h window)
  *   17:55 UTC — covers the afternoon wave (16:00 → 17:35 UTC, ~2h window)
+ *   00:55 UTC — covers the night wave (23:00 → 00:54 UTC) plus the
+ *               standalone 21:00 fantastic-jobs-db run
  *
  * Window logic: query cron_runs WHERE name='ingest' AND finishedAt is in
- * [now - WINDOW_MINUTES, now]. WINDOW_MINUTES is set wide enough to cover
- * the longest wave (3h) plus slack.
+ * [now - WINDOW_MINUTES, now]. See the WINDOW_MINUTES comment for the
+ * sizing constraints.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -23,7 +25,12 @@ import { withCronTracking } from '@/lib/cron/track';
 
 export const maxDuration = 30;
 
-const WINDOW_MINUTES = 200; // 3h20m — covers worst-case morning wave with slack
+// Must cover the longest gap from a wave's earliest cron to its summary run:
+// 21:00 fantastic-jobs-db → 00:55 night summary = 235m (a 200m window started
+// at 21:35 and silently excluded that run from every summary). Windows must
+// also not overlap between consecutive summaries — the smallest gap is
+// 12:50 → 17:55 = 305m, so 240m windows never double-count a run.
+const WINDOW_MINUTES = 240;
 
 interface PerSourceMetric {
     source: string;

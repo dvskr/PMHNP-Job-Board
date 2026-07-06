@@ -7,6 +7,7 @@
  * implementation: same import path, same props.
  */
 import StateFAQAccordion from './StateFAQAccordion';
+import { NATIONAL_AVG_PMHNP_SALARY_FORMATTED } from '@/lib/salary-stats';
 
 interface FAQItem {
     question: string;
@@ -39,7 +40,7 @@ function buildStateFaqs({
             question: `What is the average PMHNP salary in ${stateName}?`,
             answer: avgSalary > 0
                 ? `The average PMHNP salary in ${stateName} is approximately $${avgSalary},000 per year. However, salaries can range significantly based on experience level, practice setting (hospital, outpatient, private practice), and whether the position is full-time, part-time, or per diem. Telehealth positions may offer different compensation structures.`
-                : `PMHNP salaries in ${stateName} vary based on experience, setting, and job type. The national average for PMHNPs is approximately $155,000 per year. Check our salary guide for more detailed information about compensation by state and setting.`,
+                : `PMHNP salaries in ${stateName} vary based on experience, setting, and job type. The national average for PMHNPs is approximately ${NATIONAL_AVG_PMHNP_SALARY_FORMATTED} per year. Check our salary guide for more detailed information about compensation by state and setting.`,
         },
         {
             question: `What are the PMHNP licensure requirements in ${stateName}?`,

@@ -1,9 +1,15 @@
 /**
  * Re-Normalize Salary Data for Existing Jobs
- * 
- * This script re-processes all existing jobs to apply the updated
- * salary normalization logic that now accepts high hourly rates
- * ($200-350/hour for PMHNP contractors).
+ *
+ * Re-processes all published jobs through the current salary normalization
+ * logic. As of 2026-07-06 (audit #13) that logic drops implausible values
+ * (beyond ±15% of the band) instead of clamping them, so this script also
+ * CLEARS previously fabricated normalized/display values when the new logic
+ * yields none, and refreshes displaySalary to match.
+ *
+ * Usage:
+ *   npx tsx scripts/renormalize-salaries.ts --dry-run   # report only, no writes
+ *   npx tsx scripts/renormalize-salaries.ts             # apply changes
  */
 
 // Load environment variables
@@ -16,12 +22,17 @@ config({ path: resolve(process.cwd(), '.env') });
 
 import { prisma } from '../lib/prisma';
 import { normalizeSalary } from '../lib/salary-normalizer';
+import { formatDisplaySalary } from '../lib/salary-display';
+
+const DRY_RUN = process.argv.includes('--dry-run');
 
 interface Stats {
   total: number;
   hadRawSalary: number;
   previouslyNormalized: number;
   newlyNormalized: number;
+  cleared: number;
+  unchanged: number;
   stillNoSalary: number;
   updated: number;
   errors: number;
@@ -46,10 +57,16 @@ async function renormalizeSalaries() {
     hadRawSalary: 0,
     previouslyNormalized: 0,
     newlyNormalized: 0,
+    cleared: 0,
+    unchanged: 0,
     stillNoSalary: 0,
     updated: 0,
     errors: 0,
   };
+
+  if (DRY_RUN) {
+    console.log('🧪 DRY RUN — no database writes will be performed.\n');
+  }
 
   const sourceBreakdown: SourceBreakdown = {};
 
@@ -69,6 +86,8 @@ async function renormalizeSalaries() {
       description: true,
       normalizedMinSalary: true,
       normalizedMaxSalary: true,
+      displaySalary: true,
+      salaryIsEstimated: true,
     },
   });
 
@@ -120,9 +139,27 @@ async function renormalizeSalaries() {
           stats.hadRawSalary++;
         }
 
-        // Skip if no raw salary data
+        // Skip if no raw salary data. Rows with normalized-but-no-raw values
+        // are LLM-enriched extractions (the enrichment pipeline is their
+        // owner) — leave them alone rather than clearing them.
         if (!job.minSalary && !job.maxSalary) {
           stats.stillNoSalary++;
+          continue;
+        }
+
+        // Provenance guard (2026-07-06): LLM-enriched salaries are stored
+        // with salaryPeriod='year' (ingest always writes 'annual') and no
+        // source salaryRange (the regex pass found nothing, so the LLM
+        // filled it). Re-deriving them from raw fields here wiped the
+        // estimated flag/confidence — the enrichment pipeline owns these
+        // rows; skip them. 'year' rows WITH a salaryRange are maintenance
+        // relabels (scripts/fix-stale-salary-periods.ts) and are fair game.
+        // (scripts/repair-enriched-salaries.ts restores rows damaged before
+        // this guard existed.)
+        if (job.salaryPeriod === 'year' && !job.salaryRange) {
+          stats.unchanged++;
+          const source = job.sourceProvider || 'unknown';
+          sourceBreakdown[source].after++;
           continue;
         }
 
@@ -137,31 +174,56 @@ async function renormalizeSalaries() {
 
         // Check if normalization produced results
         const hasNow = normalized.normalizedMinSalary !== null || normalized.normalizedMaxSalary !== null;
+        const newDisplaySalary = formatDisplaySalary(
+          normalized.normalizedMinSalary,
+          normalized.normalizedMaxSalary,
+          job.salaryPeriod
+        );
 
-        if (hasNow) {
-          // Update the job in database
+        const changed =
+          normalized.normalizedMinSalary !== job.normalizedMinSalary ||
+          normalized.normalizedMaxSalary !== job.normalizedMaxSalary ||
+          newDisplaySalary !== job.displaySalary;
+
+        if (!changed) {
+          stats.unchanged++;
+          if (hasNow) {
+            const source = job.sourceProvider || 'unknown';
+            sourceBreakdown[source].after++;
+          } else {
+            stats.stillNoSalary++;
+          }
+          continue;
+        }
+
+        // Write both the recomputed normalization AND the display string;
+        // when the new policy yields null this CLEARS previously fabricated
+        // values (e.g. a $38k posting stored/displayed as "$64k/yr").
+        if (!DRY_RUN) {
           await prisma.job.update({
             where: { id: job.id },
             data: {
               normalizedMinSalary: normalized.normalizedMinSalary,
               normalizedMaxSalary: normalized.normalizedMaxSalary,
-              salaryConfidence: normalized.salaryConfidence,
+              salaryConfidence: hasNow ? normalized.salaryConfidence : null,
               salaryIsEstimated: normalized.salaryIsEstimated,
+              displaySalary: newDisplaySalary,
             },
           });
+        }
 
-          stats.updated++;
-          batchUpdated++;
+        stats.updated++;
+        batchUpdated++;
 
-          // Track source-level stats
+        if (hasNow) {
           const source = job.sourceProvider || 'unknown';
           sourceBreakdown[source].after++;
 
           // Check if this is a NEW normalization (previously failed, now succeeds)
-          if (!hadBefore && hasNow) {
+          if (!hadBefore) {
             stats.newlyNormalized++;
             batchNew++;
-            
+
             // Log NEW normalizations (previously rejected, now accepted)
             console.log(`\n   ✨ NEW: ${job.title.substring(0, 50)}...`);
             console.log(`      Source: ${job.sourceProvider} | Employer: ${job.employer}`);
@@ -171,6 +233,13 @@ async function renormalizeSalaries() {
           }
         } else {
           stats.stillNoSalary++;
+          if (hadBefore) {
+            stats.cleared++;
+            console.log(`\n   🧹 CLEARED: ${job.title.substring(0, 50)}...`);
+            console.log(`      Source: ${job.sourceProvider} | Raw: $${job.minSalary || '?'}${job.maxSalary ? `-${job.maxSalary}` : ''} ${job.salaryPeriod || '(no period)'}`);
+            console.log(`      Was: ${job.displaySalary || `$${job.normalizedMinSalary?.toLocaleString()}+`} — implausible under the bounded-clamp policy`);
+            process.stdout.write(`   Batch ${batchNum}/${batches.length}: `);
+          }
         }
       } catch (error: unknown) {
         stats.errors++;
@@ -190,8 +259,10 @@ async function renormalizeSalaries() {
   console.log(`   Total jobs processed:           ${stats.total}`);
   console.log(`   Jobs with raw salary data:      ${stats.hadRawSalary} (${(stats.hadRawSalary / stats.total * 100).toFixed(1)}%)`);
   console.log(`   Previously normalized:          ${stats.previouslyNormalized} (${(stats.previouslyNormalized / stats.total * 100).toFixed(1)}%)`);
-  console.log(`   Database updates performed:     ${stats.updated}`);
+  console.log(`   ${DRY_RUN ? 'Updates that WOULD be made:  ' : 'Database updates performed:  '}   ${stats.updated}`);
+  console.log(`   Unchanged (no write needed):    ${stats.unchanged}`);
   console.log(`   NEW normalizations (recovered): ${stats.newlyNormalized} 🎯`);
+  console.log(`   CLEARED fabricated values:      ${stats.cleared} 🧹`);
   console.log(`   Still no salary:                ${stats.stillNoSalary} (${(stats.stillNoSalary / stats.total * 100).toFixed(1)}%)`);
   console.log(`   Errors:                         ${stats.errors}`);
 

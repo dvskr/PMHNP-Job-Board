@@ -17,6 +17,8 @@
 import { createHash } from 'crypto';
 import { prisma } from '../prisma';
 import { embed } from './gateway';
+import { ATS_HOST_SUBSTRINGS } from './job-classifier';
+import { getEmbeddingModel } from './tasks';
 import { logger } from '../logger';
 
 export interface JobSearchHit {
@@ -63,6 +65,16 @@ function toVectorLiteral(values: readonly number[]): string {
 interface JobSearchRow { job_id: string; distance: number }
 
 /**
+ * Postgres-flavor regex matching any known ATS host — built from the shared
+ * ATS_HOST_SUBSTRINGS list so it stays in lockstep with job-classifier.ts.
+ * Safe to interpolate into SQL: it's a trusted compile-time constant derived
+ * from the hardcoded host list (regex metachars escaped), never user input.
+ */
+const ATS_APPLY_LINK_REGEX = ATS_HOST_SUBSTRINGS
+    .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|');
+
+/**
  * Compute similarity between a query embedding and EVERY direct-apply-tier
  * job (employer-posted + Easy Apply + aggregator scrapes whose apply_link
  * goes straight to a known employer ATS), regardless of vector rank.
@@ -77,16 +89,14 @@ interface JobSearchRow { job_id: string; distance: number }
  * license / health / freshness / diversity filters as usual — inclusion in
  * this pool is a fair-shot guarantee, not a slot guarantee.
  *
- * The ATS pattern set MUST mirror lib/ai/job-classifier.ts so jobs that the
- * classifier calls "direct_apply" are the same set this query returns.
+ * The ATS pattern set is derived from ATS_HOST_SUBSTRINGS in
+ * lib/ai/job-classifier.ts so jobs that the classifier calls "direct_apply"
+ * are the same set this query returns.
  */
 export async function platformRevenueJobsWithSimilarity(
     queryEmbedding: readonly number[],
 ): Promise<JobSearchHit[]> {
     const vec = toVectorLiteral(queryEmbedding);
-    // The regex below is the postgres-flavor counterpart of the ATS_PATTERNS
-    // array in job-classifier.ts. Keep them aligned: changes to one require
-    // changes to the other.
     const sql = `
         SELECT je.job_id, (je.embedding <=> '${vec}'::vector) AS distance
         FROM job_embeddings je
@@ -97,7 +107,7 @@ export async function platformRevenueJobsWithSimilarity(
               j.source_type = 'employer'
               OR j.apply_on_platform = true
               OR j.source_type = 'direct'
-              OR j.apply_link ~* '\\.myworkdayjobs\\.com|greenhouse\\.io|lever\\.co|jobs\\.ashbyhq\\.com|smartrecruiters\\.com|icims\\.com|jazz\\.co|bamboohr\\.com|usajobs\\.gov|apply\\.workable\\.com|careers\\.|jobs\\.'
+              OR j.apply_link ~* '${ATS_APPLY_LINK_REGEX}'
           );
     `;
     const rows = await prisma.$queryRawUnsafe<JobSearchRow[]>(sql);
@@ -284,7 +294,9 @@ function sha256Hex(s: string): string {
 
 /**
  * Upsert a job embedding. Returns true if a new embedding was generated, false
- * if the text hash matched the existing row (no-op).
+ * if the text hash AND embedding model matched the existing row (no-op).
+ * Comparing the model too means a swap in tasks.ts regenerates stale vectors
+ * instead of silently mixing old-model rows with new-model queries.
  */
 export async function upsertJobEmbedding(
     jobId: string,
@@ -293,11 +305,15 @@ export async function upsertJobEmbedding(
 ): Promise<{ updated: boolean }> {
     const inputHash = sha256Hex(inputText);
 
-    const existing = await prisma.$queryRawUnsafe<Array<{ input_hash: string }>>(
-        `SELECT input_hash FROM job_embeddings WHERE job_id = $1`,
+    const existing = await prisma.$queryRawUnsafe<Array<{ input_hash: string; model: string }>>(
+        `SELECT input_hash, model FROM job_embeddings WHERE job_id = $1`,
         jobId,
     );
-    if (existing.length > 0 && existing[0].input_hash === inputHash) {
+    if (
+        existing.length > 0 &&
+        existing[0].input_hash === inputHash &&
+        existing[0].model === getEmbeddingModel()
+    ) {
         return { updated: false };
     }
 
@@ -326,6 +342,7 @@ export async function upsertJobEmbedding(
 
 /**
  * Upsert a candidate embedding. Returns true if a new embedding was generated.
+ * Same skip rule as jobs: hash AND model must both match to no-op.
  */
 export async function upsertCandidateEmbedding(
     supabaseId: string,
@@ -333,11 +350,15 @@ export async function upsertCandidateEmbedding(
 ): Promise<{ updated: boolean }> {
     const inputHash = sha256Hex(inputText);
 
-    const existing = await prisma.$queryRawUnsafe<Array<{ input_hash: string }>>(
-        `SELECT input_hash FROM candidate_embeddings WHERE supabase_id = $1`,
+    const existing = await prisma.$queryRawUnsafe<Array<{ input_hash: string; model: string }>>(
+        `SELECT input_hash, model FROM candidate_embeddings WHERE supabase_id = $1`,
         supabaseId,
     );
-    if (existing.length > 0 && existing[0].input_hash === inputHash) {
+    if (
+        existing.length > 0 &&
+        existing[0].input_hash === inputHash &&
+        existing[0].model === getEmbeddingModel()
+    ) {
         return { updated: false };
     }
 

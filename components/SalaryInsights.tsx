@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { TrendingUp, TrendingDown, Minus, DollarSign } from 'lucide-react';
+import { NATIONAL_AVG_PMHNP_SALARY_K } from '@/lib/salary-stats';
 
 interface SalaryInsightsProps {
     stateName: string | null;
     stateAvgSalary: number; // in thousands (e.g., 155 for $155k)
     jobMinSalary?: number | null; // annual salary
     jobMaxSalary?: number | null; // annual salary
-    nationalAvgSalary?: number; // in thousands, defaults to 155
+    nationalAvgSalary?: number; // in thousands, defaults to the national average
 }
 
 export default function SalaryInsights({
@@ -14,7 +15,7 @@ export default function SalaryInsights({
     stateAvgSalary,
     jobMinSalary,
     jobMaxSalary,
-    nationalAvgSalary = 155,
+    nationalAvgSalary = NATIONAL_AVG_PMHNP_SALARY_K,
 }: SalaryInsightsProps) {
     // Calculate job's average salary if available
     const hasJobSalary = (jobMinSalary && jobMinSalary >= 30000) || (jobMaxSalary && jobMaxSalary >= 30000);

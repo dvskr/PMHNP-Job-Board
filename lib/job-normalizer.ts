@@ -1,5 +1,6 @@
 import { Job } from '@/lib/types';
 import { normalizeSalary } from './salary-normalizer';
+import { CLAMP_TOLERANCE, INGEST_PERIOD_BOUNDS } from './salary-bounds';
 import { parseLocation } from './location-parser';
 import { formatDisplaySalary } from './salary-display';
 import { cleanDescription } from './description-cleaner';
@@ -416,6 +417,15 @@ export function validateAndNormalizeSalary(
   // Use extracted period if available, otherwise detect from magnitude
   if (extractedPeriod && periodMap[extractedPeriod]) {
     period = periodMap[extractedPeriod];
+    // Sanity override (2026-07-06, audit #13): a source-labeled "monthly"
+    // of $20k+ is virtually always a mislabeled ANNUAL figure. Without this,
+    // stage 1 either dropped the value against the monthly band (losing an
+    // $80k annual entirely) or stored the bad label for stage 2 to trip on.
+    // Mirrors the identical override in lib/salary-normalizer.ts.
+    if (period === 'monthly' && Math.max(min || 0, max || 0) >= 20000) {
+      console.log(`Overriding implausible monthly period for ${title}: $${min || max} → annual`);
+      period = 'annual';
+    }
   } else if ((min && min > 40000) || (max && max > 40000)) {
     period = 'annual';
   } else {
@@ -424,38 +434,38 @@ export function validateAndNormalizeSalary(
       period = 'hourly';    // $50-200/hr typical PMHNP
     } else if (ref < 2000) {
       period = 'weekly';    // $1,000-1,800/week typical
-    } else if (ref <= 40000) {
+    } else if (ref < 20000) {
       period = 'monthly';   // $7,000-15,000/month typical PMHNP
     } else {
+      // 2026-07-06: threshold lowered from 40000 to 20000 (aligned with
+      // lib/salary-normalizer.ts detectSalaryPeriod). Treating a period-less
+      // $30k-$40k value as monthly multiplied it ×12 into a fabricated
+      // $360k-$480k annual; a low ANNUAL figure is the far likelier reading.
       period = 'annual';
     }
   }
 
-  // Step 2: Clamp out-of-range values to the period's bounds rather than
-  // dropping them. The source TRIED to give us a salary, so a usable value
-  // is better than null. A $20k "annual" gets clamped up to $30k; a $700k
-  // "annual" gets clamped down to $500k. (Changed 2026-05-05 from drop-on-
-  // invalid to clamp-on-invalid per user request.)
-  const PERIOD_BOUNDS: Record<string, { min: number; max: number }> = {
-    hourly:    { min: 20,    max: 300 },
-    annual:    { min: 30000, max: 500000 },
-    daily:     { min: 100,   max: 2000 },
-    weekly:    { min: 400,   max: 10000 },
-    biweekly:  { min: 800,   max: 20000 },
-    monthly:   { min: 2000,  max: 40000 },
-  };
-
+  // Step 2: bounded clamp (2026-07-06, audit #13). No value is ever adjusted
+  // UPWARD — the old clamp-everything behavior (2026-05-05) rewrote a $20k
+  // "annual" as $30k, fabricating salaries that then flowed into the raw
+  // fields shown on job detail pages. Below the band floor → dropped.
+  // Above the cap within CLAMP_TOLERANCE (+15%) → clamped DOWN (never
+  // overstates); further above → dropped. Bounds live in lib/salary-bounds.ts.
   const clampToBounds = (salary: number | null, p: string): number | null => {
     if (!salary) return null;
-    const bounds = PERIOD_BOUNDS[p];
+    const bounds = INGEST_PERIOD_BOUNDS[p];
     if (!bounds) return salary; // unknown period — leave alone
     if (salary < bounds.min) {
-      console.log(`Clamped low salary ${salary} ${p} → ${bounds.min}`);
-      return bounds.min;
+      console.log(`Dropped below-floor salary ${salary} ${p}`);
+      return null;
     }
     if (salary > bounds.max) {
-      console.log(`Clamped high salary ${salary} ${p} → ${bounds.max}`);
-      return bounds.max;
+      if (salary <= bounds.max * (1 + CLAMP_TOLERANCE)) {
+        console.log(`Clamped high salary ${salary} ${p} → ${bounds.max}`);
+        return bounds.max;
+      }
+      console.log(`Dropped implausible high salary ${salary} ${p} (above tolerance)`);
+      return null;
     }
     return salary;
   };

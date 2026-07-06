@@ -22,7 +22,9 @@ import {
 } from 'lucide-react';
 import { cache } from 'react';
 import { withTagFallback } from './category-tagger';
-import { shouldRenderCategoryCity } from './render-gate';
+import { categoryCanonicalTarget } from './jobs-segments-edge';
+import { shouldRenderCategoryCity, MIN_JOBS_FOR_CATEGORY_CITY } from './render-gate';
+import { hasLicensePost } from './license-posts';
 import { JOB_LISTING_OMIT } from './job-listing-omit';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { prisma } from '@/lib/prisma';
@@ -34,6 +36,7 @@ import { CityData } from './city-data/types';
 import { getCityBySlug } from './city-data/cities';
 import { SETTING_CONFIGS, SettingConfig, stateToSlug } from './setting-state-config';
 import { CATEGORY_ASSET_REGISTRY } from './category-asset-registry';
+import { siteAsset } from '@/lib/asset-url';
 import {
   getStatePracticeAuthority,
   getAuthorityColor,
@@ -850,7 +853,8 @@ function getMarketDemandScore(city: CityData, totalJobs: number): { score: numbe
 
 // Minimum jobs threshold for indexing — pages below this are noindex, follow.
 // Enterprise standard: thin doorway pages (1-2 jobs) hurt domain quality signals.
-const MIN_JOBS_FOR_INDEX = 3;
+// Imported from render-gate.ts (SSOT) so page gate, sitemap, and cron agree.
+const MIN_JOBS_FOR_INDEX = MIN_JOBS_FOR_CATEGORY_CITY;
 
 function getPageQualityScore(city: CityData, totalJobs: number): number {
   if (totalJobs === 0) return 0; // Redirected before reaching here, but belt-and-suspenders
@@ -904,8 +908,11 @@ export async function buildCategoryCityMetadata(
   const shouldIndex = isHighQuality && page === 1;
 
   // Canonical consolidation:
-  //   • Thin pages (1-2 jobs, score < 25)         → canonical to parent category
-  //     so Google consolidates ranking signals upward.
+  //   • Thin pages (1-2 jobs, score < 25)         → canonical to the parent
+  //     category's CANONICAL target so Google consolidates ranking signals
+  //     upward. categoryCanonicalTarget matters for near-duplicate categories:
+  //     substance-abuse canonicalizes to /jobs/addiction, and pointing thin
+  //     city pages at /jobs/substance-abuse would create a two-hop chain.
   //   • High-quality page 1                        → self canonical.
   //   • High-quality page N>1 (paginated view)     → canonical to page 1 of the
   //     SAME city (basePath), NOT the parent. Pointing page-2 to the parent
@@ -914,7 +921,7 @@ export async function buildCategoryCityMetadata(
   //     listing, not jump up two levels.
   const canonicalUrl = isHighQuality
     ? `https://pmhnphiring.com${basePath}`
-    : `https://pmhnphiring.com/jobs/${config.slug}`;
+    : `https://pmhnphiring.com/jobs/${categoryCanonicalTarget(config.slug)}`;
 
   // Build salary display for OG image (rawAvgSalary is already in thousands, e.g. 130 = $130K)
   const salaryDisplay = stats.rawAvgSalary && stats.rawAvgSalary > 0
@@ -1167,7 +1174,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
       {/* ═══ D2: HERO — CategoryHero with category's watercolor ═══ */}
       <CategoryHero
         bgColor={assets?.bgColor || '#0D9488'}
-        heroImage={assets?.heroImage || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_remote.webp'}
+        heroImage={assets?.heroImage || siteAsset('images/categories/hero_wc_remote.webp')}
         heroAlt={`${config.label} PMHNP working in ${city!.name}, ${city!.stateCode}`}
         badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', config.label, city!.name]}
@@ -1482,9 +1489,13 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                     <Shield size={14} style={{ color: '#0D9488' }} />
                     <span style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35' }}>{practiceAuthority.authority}</span>
                   </div>
-                  <Link href={`/blog/pmhnp-license-${stateToSlug(city!.state)}`} style={{ fontSize: '11px', color: '#0D9488', textDecoration: 'none' }}>
-                    {city!.state} Licensure Guide →
-                  </Link>
+                  {/* Item 29: DC has practice-authority data but no license
+                      post — gate the link on the MDX file actually existing. */}
+                  {hasLicensePost(stateToSlug(city!.state)) && (
+                    <Link href={`/blog/pmhnp-license-${stateToSlug(city!.state)}`} style={{ fontSize: '11px', color: '#0D9488', textDecoration: 'none' }}>
+                      {city!.state} Licensure Guide →
+                    </Link>
+                  )}
                 </div>
               )}
             </div>

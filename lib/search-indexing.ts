@@ -174,10 +174,10 @@ export async function pingBingBatch(urls: string[]): Promise<IndexResult[]> {
 // ─── IndexNow (Bing, Yandex, Seznam, Naver) ─────────────────────────────────
 
 export async function pingIndexNow(urls: string | string[]): Promise<IndexResult[]> {
-    const apiKey = process.env.INDEXNOW_API_KEY;
+    const apiKey = process.env.INDEXNOW_API_KEY || process.env.INDEXNOW_KEY;
     if (!apiKey) {
         const urlList = Array.isArray(urls) ? urls : [urls];
-        return urlList.map(url => ({ engine: 'IndexNow', url, success: false, error: 'INDEXNOW_API_KEY not set' }));
+        return urlList.map(url => ({ engine: 'IndexNow', url, success: false, error: 'INDEXNOW_API_KEY / INDEXNOW_KEY not set' }));
     }
 
     const urlList = Array.isArray(urls) ? urls : [urls];

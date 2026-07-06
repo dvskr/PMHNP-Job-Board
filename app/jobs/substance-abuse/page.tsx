@@ -85,7 +85,12 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
                 width: 1200, height: 630, alt: 'Substance Abuse PMHNP Jobs',
             }],
         },
-        alternates: { canonical: `${brand.baseUrl}/jobs/substance-abuse` },
+        // 2026-07 (audit #30): this page and /jobs/addiction are near-duplicate
+        // keyword queries with no query-time separation, so they competed as
+        // duplicate content. The page stays live for users and internal links,
+        // but canonicalizes to /jobs/addiction (also removed from the primary
+        // sitemap via lib/pseo/jobs-segments-edge.ts inPrimarySitemap: false).
+        alternates: { canonical: `${brand.baseUrl}/jobs/addiction` },
         ...(page > 1 && { robots: { index: false, follow: true } }),
     };
 }

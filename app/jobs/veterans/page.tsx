@@ -113,7 +113,7 @@ export default async function VeteransPage({ searchParams }: PageProps) {
         heroAlt="Veterans mental health PMHNP care"
         badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Veterans']}
-        indexLabel="? 28 / 28"
+        indexLabel="№ 28 / 28"
         headlineLine1="Veterans"
         headlineLine2="PMHNP"
         headlineSub="jobs, veteran mental health."

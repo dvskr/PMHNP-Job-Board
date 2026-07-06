@@ -3,7 +3,8 @@
  * site — STATES, TOP_500_CITIES, etc).
  *
  * Per-source search-term lists live in lib/aggregators/search-terms/
- * (extracted 2026-05-05 from this file + fantastic-jobs-db.ts).
+ * (adzuna/usajobs/fantastic extracted 2026-05-05 from this file +
+ * fantastic-jobs-db.ts; doccafe + workday extracted 2026-07-03).
  */
 
 export const STATES = [

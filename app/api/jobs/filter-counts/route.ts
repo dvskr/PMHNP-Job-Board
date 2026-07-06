@@ -2,7 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { FilterState, FilterCounts } from '@/types/filters';
-import { buildWhereClause, freshnessClause, minYearsQualifyClause, newGradWhereClause } from '@/lib/filters';
+import {
+  buildWhereClause,
+  freshnessClause,
+  jobTypeClause,
+  minYearsQualifyClause,
+  newGradWhereClause,
+  salaryAtLeastClause,
+  specialtyClause,
+  workModeClause,
+} from '@/lib/filters';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
@@ -58,24 +67,27 @@ export async function POST(request: NextRequest) {
 
     const [
       remoteCount, hybridCount, onsiteCount,
-      jobTypeCounts,
+      fullTimeCount, partTimeCount, contractCount, perDiemCount, otherCount,
       anySalary, over100k, over150k, over200k,
       day, threeDays, week, month,
       total
     ] = await Promise.all([
-      // Work Mode
-      prisma.job.count({ where: { AND: [workModeBase, { isRemote: true }] } }),
-      prisma.job.count({ where: { AND: [workModeBase, { isHybrid: true }] } }),
-      prisma.job.count({ where: { AND: [workModeBase, { isRemote: false, isHybrid: false }] } }),
+      // Work Mode — same per-mode clauses the /jobs WHERE uses.
+      prisma.job.count({ where: { AND: [workModeBase, workModeClause('remote')] } }),
+      prisma.job.count({ where: { AND: [workModeBase, workModeClause('hybrid')] } }),
+      prisma.job.count({ where: { AND: [workModeBase, workModeClause('onsite')] } }),
 
-      // Job Type
-      prisma.job.groupBy({
-        by: ['jobType'],
-        where: jobTypeBase,
-        _count: { _all: true },
-      }),
+      // Job Type — per-option counts through the same jobTypeClause the
+      // /jobs WHERE uses ('Other' ⇔ NULL jobType). Replaces the old groupBy
+      // whose NULL→'Other' mapping was hand-mirrored here.
+      prisma.job.count({ where: { AND: [jobTypeBase, jobTypeClause(['Full-Time'])] } }),
+      prisma.job.count({ where: { AND: [jobTypeBase, jobTypeClause(['Part-Time'])] } }),
+      prisma.job.count({ where: { AND: [jobTypeBase, jobTypeClause(['Contract'])] } }),
+      prisma.job.count({ where: { AND: [jobTypeBase, jobTypeClause(['Per Diem'])] } }),
+      prisma.job.count({ where: { AND: [jobTypeBase, jobTypeClause(['Other'])] } }),
 
-      // Salary
+      // Salary — "any" is route-only (has a stated salary at all); the
+      // floor counts share salaryAtLeastClause with the /jobs WHERE.
       prisma.job.count({
         where: {
           AND: [
@@ -89,45 +101,9 @@ export async function POST(request: NextRequest) {
           ],
         },
       }),
-      prisma.job.count({
-        where: {
-          AND: [
-            salaryBase,
-            {
-              OR: [
-                { normalizedMinSalary: { gte: 100000 } },
-                { normalizedMaxSalary: { gte: 100000 } },
-              ],
-            },
-          ],
-        },
-      }),
-      prisma.job.count({
-        where: {
-          AND: [
-            salaryBase,
-            {
-              OR: [
-                { normalizedMinSalary: { gte: 150000 } },
-                { normalizedMaxSalary: { gte: 150000 } },
-              ],
-            },
-          ],
-        },
-      }),
-      prisma.job.count({
-        where: {
-          AND: [
-            salaryBase,
-            {
-              OR: [
-                { normalizedMinSalary: { gte: 200000 } },
-                { normalizedMaxSalary: { gte: 200000 } },
-              ],
-            },
-          ],
-        },
-      }),
+      prisma.job.count({ where: { AND: [salaryBase, salaryAtLeastClause(100000)] } }),
+      prisma.job.count({ where: { AND: [salaryBase, salaryAtLeastClause(150000)] } }),
+      prisma.job.count({ where: { AND: [salaryBase, salaryAtLeastClause(200000)] } }),
 
       // Posted Within — see lib/filters.ts:freshnessClause for semantics.
       // Past 24h
@@ -153,55 +129,20 @@ export async function POST(request: NextRequest) {
       }),
     ]);
 
-    const jobTypeMap: Record<string, number> = {};
-    let knownTypeTotal = 0;
-    for (const jt of jobTypeCounts) {
-      if (jt.jobType) {
-        jobTypeMap[jt.jobType] = jt._count._all;
-        knownTypeTotal += jt._count._all;
-      }
-    }
-    // Count jobs with NULL jobType as "Other"
-    const nullTypeCount = jobTypeCounts.find((jt: { jobType: string | null }) => jt.jobType === null);
-    const otherCount = nullTypeCount ? nullTypeCount._count._all : 0;
-
     // Specialty counts (keyword-based)
     // Exclude specialty filter from base so counts don't self-filter
     const specialtyFilters = { ...baseFilters, specialty: [] };
     const specialtyBase = buildWhereClause(specialtyFilters);
-    // Wrap the keyword OR inside the AND envelope so it composes with
-    // `specialtyBase`'s own AND-conditions instead of overriding them
+    // Wrap the shared keyword clause inside the AND envelope so it composes
+    // with `specialtyBase`'s own AND-conditions instead of overriding them
     // when other filters are active. Mirrors how /jobs adds specialty
-    // via `andConditions.push({OR:[...]})`.
+    // via `andConditions.push({OR:[...]})` — same specialtyClause per option.
     const [telehealthCount, travelCount] = await Promise.all([
       prisma.job.count({
-        where: {
-          AND: [
-            specialtyBase,
-            {
-              OR: [
-                { title: { contains: 'telehealth', mode: 'insensitive' } },
-                { title: { contains: 'telemedicine', mode: 'insensitive' } },
-                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
-                { description: { contains: 'telehealth', mode: 'insensitive' } },
-                { description: { contains: 'telemedicine', mode: 'insensitive' } },
-              ],
-            },
-          ],
-        },
+        where: { AND: [specialtyBase, specialtyClause('Telehealth')] },
       }),
       prisma.job.count({
-        where: {
-          AND: [
-            specialtyBase,
-            {
-              OR: [
-                { title: { contains: 'travel', mode: 'insensitive' } },
-                { title: { contains: 'locum', mode: 'insensitive' } },
-              ],
-            },
-          ],
-        },
+        where: { AND: [specialtyBase, specialtyClause('Travel')] },
       }),
     ]);
 
@@ -249,10 +190,10 @@ export async function POST(request: NextRequest) {
         onsite: onsiteCount,
       },
       jobType: {
-        'Full-Time': jobTypeMap['Full-Time'] || 0,
-        'Part-Time': jobTypeMap['Part-Time'] || 0,
-        'Contract': jobTypeMap['Contract'] || 0,
-        'Per Diem': jobTypeMap['Per Diem'] || 0,
+        'Full-Time': fullTimeCount,
+        'Part-Time': partTimeCount,
+        'Contract': contractCount,
+        'Per Diem': perDiemCount,
         'Other': otherCount,
       },
       salary: {

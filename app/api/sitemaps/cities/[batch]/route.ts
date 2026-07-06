@@ -18,13 +18,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 import { getAllSettingSlugs, getAllStateSlugs } from '@/lib/pseo/setting-state-config';
+import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
+import { CITY_SITEMAP_CATEGORIES as SITEMAP_CATEGORIES } from '@/lib/pseo/jobs-segments-edge';
 
-// Must match SITEMAP_CATEGORIES in index/route.ts
-const SITEMAP_CATEGORIES = [
-  'remote', 'telehealth', 'inpatient', 'outpatient', 'travel',
-  'full-time', 'part-time', 'contract',
-  'addiction', 'new-grad', '1099', 'behavioral-health', 'correctional',
-];
+// SITEMAP_CATEGORIES is derived from the JOBS_TAXONOMY registry
+// (lib/pseo/jobs-segments-edge.ts, inCitySitemaps flag) — shared with
+// index/route.ts so the index and batches can never drift.
 
 const BATCH_SIZE = 10000;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
@@ -44,13 +43,14 @@ const SITEMAP_CATEGORY_SET = new Set(SITEMAP_CATEGORIES);
 // ═══ DYNAMIC SITEMAP PRUNING ═══
 // Only emit URLs that meet quality thresholds — must mirror the page-level
 // gates exactly so we never advertise a URL that renders noindex:
-//   • Category × City: pseoStats.totalJobs ≥ MIN_SITEMAP_JOBS (matches
-//     MIN_JOBS_FOR_INDEX = 3 in lib/pseo/category-city-template.tsx)
+//   • Category × City: pseoStats.totalJobs ≥ MIN_SITEMAP_JOBS (same SSOT
+//     constant as MIN_JOBS_FOR_INDEX in lib/pseo/category-city-template.tsx,
+//     imported from lib/pseo/render-gate.ts)
 //   • Setting × State: pseoStats.totalJobs ≥ 1 (state pages render content
 //     even at low counts since state-level demand is broader)
 //   • City population ≥ MIN_SITEMAP_POPULATION (defense-in-depth)
 //   • pseoStats row must be fresh (≤ 36h since last aggregator run)
-const MIN_SITEMAP_JOBS = 3;
+const MIN_SITEMAP_JOBS = MIN_JOBS_FOR_CATEGORY_CITY;
 const MIN_SITEMAP_POPULATION = 10000;
 
 // 36h = 3x the 12h aggregate-pseo cron cadence. Allows a single missed run

@@ -2,27 +2,6 @@ import { prisma } from '@/lib/prisma';
 import ClayDoughStrip from '@/components/ClayDoughStrip';
 import { findCanonicalName, normalizeCompanyName } from '@/lib/company-normalizer';
 
-const FALLBACK_EMPLOYERS = [
-    { name: 'Talkiatry', count: 47 },
-    { name: 'LifeStance Health', count: 32 },
-    { name: 'Cerebral', count: 18 },
-    { name: 'Headway', count: 24 },
-    { name: 'Grow Therapy', count: 39 },
-    { name: 'Spring Health', count: 15 },
-    { name: 'Modern Health', count: 22 },
-    { name: 'Lyra Health', count: 28 },
-    { name: 'BetterHelp', count: 41 },
-    { name: 'Alma', count: 13 },
-    { name: 'Geode Health', count: 17 },
-    { name: 'Mindpath Health', count: 19 },
-    { name: 'Rula Health', count: 12 },
-    { name: 'Brightside', count: 14 },
-    { name: 'Noom', count: 35 },
-    { name: 'Eleanor Health', count: 11 },
-    { name: 'Quartet Health', count: 9 },
-    { name: 'SilverCloud', count: 16 },
-];
-
 /**
  * EmployerTrustSection (Server Component)
  *
@@ -75,15 +54,10 @@ export default async function EmployerTrustSection() {
         console.error('Error fetching employer data:', error);
     }
 
-    // Use fallbacks if insufficient data
-    if (employers.length < 10) {
-        const existing = new Set(employers.map((e) => e.name.toLowerCase()));
-        for (const fallback of FALLBACK_EMPLOYERS) {
-            if (!existing.has(fallback.name.toLowerCase())) {
-                employers.push(fallback);
-            }
-            if (employers.length >= 18) break;
-        }
+    // Too few real employers (thin data or DB error): render nothing rather
+    // than padding the strip with fabricated names and counts.
+    if (employers.length < 5) {
+        return null;
     }
 
     return <ClayDoughStrip employers={employers} />;

@@ -10,7 +10,7 @@ export async function GET(
     _request: Request,
     { params }: { params: Promise<{ indexnow: string }> }
 ) {
-    const key = process.env.INDEXNOW_API_KEY;
+    const key = process.env.INDEXNOW_API_KEY || process.env.INDEXNOW_KEY;
     if (!key) {
         notFound();
     }
