@@ -83,7 +83,7 @@ export default async function CrisisPage({ searchParams }: PageProps) {
         heroAlt="Crisis PMHNP emergency psychiatric care"
         badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Crisis']}
-        indexLabel="? 23 / 28"
+        indexLabel="№ 23 / 28"
         headlineLine1="Crisis"
         headlineLine2="PMHNP"
         headlineSub="jobs, crisis intervention."

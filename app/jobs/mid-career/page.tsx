@@ -70,7 +70,7 @@ export default async function MidCareerPage({ searchParams }: PageProps) {
         heroAlt="Mid-career PMHNP advancement opportunities"
         badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Mid-Career']}
-        indexLabel="? 26 / 28"
+        indexLabel="№ 26 / 28"
         headlineLine1="Mid-Career"
         headlineLine2="PMHNP"
         headlineSub="jobs, advance your career."

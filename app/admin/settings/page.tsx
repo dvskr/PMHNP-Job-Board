@@ -129,7 +129,7 @@ export default function AdminSettingsPage() {
                     label="Search Indexing"
                     description="Auto-ping Google, Bing, and IndexNow on new content"
                 >
-                    <EnvIndicator name="INDEXNOW_KEY" />
+                    <EnvIndicator name="INDEXNOW_API_KEY" />
                 </ConfigRow>
             </div>
 

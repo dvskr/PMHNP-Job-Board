@@ -89,7 +89,7 @@ export const metadata: Metadata = {
     description: `The #1 job board for ${brand.niche.short}s. Browse remote and in-person ${brand.niche.descriptor} jobs across all 50 states.`,
     images: [
       {
-        url: '/api/og',
+        url: '/api/og?v=2',
         width: 1200,
         height: 630,
         alt: `${brand.name} - ${brand.niche.long} Job Board`,
@@ -101,7 +101,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: `${brand.name} - ${brand.niche.long} Job Board`,
     description: `Find your next ${brand.niche.short} position. Remote and in-person jobs across 50 states, updated daily.`,
-    images: ['/api/og'],
+    images: ['/api/og?v=2'],
   },
 
   icons: {

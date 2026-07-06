@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { brand } from '@/config/brand';
 
 const envSchema = z.object({
     // Database (required)
@@ -22,9 +23,9 @@ const envSchema = z.object({
 
     // Email (required for production)
     RESEND_API_KEY: z.string().optional(),
-    EMAIL_FROM: z.string().optional().default('PMHNP Hiring <noreply@pmhnphiring.com>'),
-    EMAIL_FROM_MARKETING: z.string().optional().default('PMHNP Hiring <alerts@pmhnphiring.com>'),
-    EMAIL_REPLY_TO: z.string().optional().default('support@pmhnphiring.com'),
+    EMAIL_FROM: z.string().optional().default(brand.email.transactionalFrom),
+    EMAIL_FROM_MARKETING: z.string().optional().default(brand.email.marketingFrom),
+    EMAIL_REPLY_TO: z.string().optional().default(brand.email.replyTo),
     EMAIL_ASSETS_URL: z.string().url().optional().default('https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/email-assets'),
     SALARY_GUIDE_URL: z.string().url().optional().default('https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf'),
     // Required so the Resend webhook can verify Svix signatures. Webhook returns 500 at

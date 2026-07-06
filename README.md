@@ -44,7 +44,7 @@
 
 ## 📖 Overview
 
-**PMHNP Job Board** is a specialized, full-stack job platform designed exclusively for Psychiatric Mental Health Nurse Practitioners. It aggregates jobs from **10 different sources** (1,674+ healthcare companies), applies strict PMHNP-relevance filtering, deduplicates, normalizes salaries, and serves them through a modern, SEO-optimized Next.js frontend.
+**PMHNP Job Board** is a specialized, full-stack job platform designed exclusively for Psychiatric Mental Health Nurse Practitioners. It aggregates jobs from **13 different sources** (1,674+ healthcare companies), applies strict PMHNP-relevance filtering, deduplicates, normalizes salaries, and serves them through a modern, SEO-optimized Next.js frontend.
 
 ### 🌟 Key Features
 
@@ -79,7 +79,7 @@
 #### Smart Job Aggregation System
 | Feature | Description |
 |---------|-------------|
-| **10 Data Sources** | Adzuna, Jooble, Greenhouse, Lever, USAJobs, Workday, Ashby, BambooHR, JSearch, ATS-Jobs-DB |
+| **13 Data Sources** | Adzuna, Greenhouse, Lever, Workday, Fantastic-Jobs-DB, SmartRecruiters, USAJobs, Ashby, BambooHR, JazzHR, Workable, DocCafe, HealthCareerCenter |
 | **1,674+ Companies** | Master list from healthcare ATS CSV, distributed across aggregators |
 | **Parallel Batch Processing** | Companies processed in concurrent batches (10/batch) with configurable delays |
 | **Chunked Ingestion** | Large sources split into chunks across separate cron invocations |
@@ -91,7 +91,7 @@
 | **Location Parsing** | Extracts city, state, country, remote/hybrid status |
 | **Company Linking** | Automatic company normalization and profile creation |
 | **Quality Scoring** | Multi-factor confidence scores for data quality ranking |
-| **Dead Link Detection** | Weekly cron validates apply links and unpublishes dead ones |
+| **Dead Link Detection** | Twice-daily cron validates apply links and unpublishes dead ones |
 
 #### SEO & Performance
 | Feature | Description |
@@ -171,20 +171,21 @@
 │  │                   33 API Route Groups                          │  │
 │  ├───────────┬──────────┬───────────┬──────────┬────────────────┤  │
 │  │ Jobs API  │ Auth API │ Cron API  │ Employer │ Profile/Alerts │  │
-│  │ (CRUD,    │(Supabase │(55 crons) │(Dashboard│ (Candidate     │  │
+│  │ (CRUD,    │(Supabase │(69 crons) │(Dashboard│ (Candidate     │  │
 │  │ Filters)  │ OAuth)   │           │ Payments)│  Management)   │  │
 │  └─────┬─────┴─────┬────┴─────┬─────┴────┬─────┴───────┬────────┘  │
 │        │           │          │           │             │            │
 │  ┌─────▼────┐ ┌───▼────┐ ┌──▼──────┐ ┌─▼──────┐ ┌───▼──────┐    │
-│  │10-Source │ │Supabase│ │ Vercel  │ │ Stripe │ │ Resend   │    │
+│  │13-Source │ │Supabase│ │ Vercel  │ │ Stripe │ │ Resend   │    │
 │  │Aggregator│ │Auth +  │ │ Cron   │ │Payments│ │ Emails   │    │
-│  │ Engine   │ │Storage │ │ (55x)  │ │Webhooks│ │          │    │
+│  │ Engine   │ │Storage │ │ (69x)  │ │Webhooks│ │          │    │
 │  └────┬─────┘ └────────┘ └────────┘ └────────┘ └──────────┘    │
 │       │                                                           │
 │  ┌────▼──────────────────────────────────────────────────────┐    │
 │  │  External APIs                                             │    │
-│  │  Adzuna · Jooble · Greenhouse · Lever · USAJobs ·          │    │
-│  │  Workday · Ashby · BambooHR · JSearch · ATS-Jobs-DB        │    │
+│  │  Adzuna · Greenhouse · Lever · Workday · SmartRecruiters · │    │
+│  │  USAJobs · Ashby · BambooHR · JazzHR · Workable ·          │    │
+│  │  DocCafe · HealthCareerCenter · Fantastic-Jobs-DB          │    │
 │  └────────────────────────────────────────────────────────────┘    │
 │                                                                      │
 └──────────────────────────────────────────────────────────────────────┘
@@ -192,7 +193,7 @@
 
 ### Data Flow
 
-1. **Job Ingestion** (Vercel Cron — 55 entries, twice daily)
+1. **Job Ingestion** (Vercel Cron — 43 ingest entries, sources run 2–3× daily)
    - Cron triggers `/api/cron/ingest?source=X&chunk=N`
    - Aggregator fetches companies in parallel batches (10/batch, 200ms delay)
    - Each job → Normalize → Filter (`isRelevantJob`) → Deduplicate → Insert → Location parse → Company link → Quality score
@@ -211,13 +212,13 @@
    - Webhook confirms payment → job published
 
 4. **Job Alerts** (Automated)
-   - Cron runs daily at 8 AM UTC
+   - Cron runs daily at 13:30 UTC
    - Queries active alerts, matches new jobs since last send
    - Sends personalized HTML emails via Resend
 
 5. **Housekeeping** (Automated)
    - Freshness decay updates quality scores daily
-   - Dead link checker validates apply URLs weekly
+   - Dead link checker validates apply URLs twice daily
    - Expired jobs cleanup runs daily
    - Description cleanup strips malformed HTML daily
    - IndexNow pings search engines for new URLs daily
@@ -243,7 +244,7 @@
    ```
 
 2. **Configure environment:**
-   Copy `.env.local.example` to `.env.local` and fill in values (see [Environment Variables](#-environment-variables)).
+   Copy `.env.example` to `.env.local` and fill in values (see [Environment Variables](#-environment-variables)).
 
 3. **Setup database:**
    ```bash
@@ -419,7 +420,7 @@ pmhnp-job-board/
 ├── types/                        # Shared TypeScript types
 ├── public/                       # Static assets (favicons, OG images, resume CSV)
 ├── pmhnp-autofill-extension/     # Chrome extension (90 files)
-├── vercel.json                   # 55 cron entries + cache headers
+├── vercel.json                   # 69 cron entries + cache headers
 └── package.json                  # Dependencies & scripts
 ```
 
@@ -560,7 +561,7 @@ Strict filter applied to ALL aggregator jobs at ingestion time:
 - Returns `true` only for genuinely PMHNP-relevant positions
 
 ### `lib/job-normalizer.ts` — Data Normalization
-Standardizes raw job data from all 10 sources into a consistent schema:
+Standardizes raw job data from all 13 sources into a consistent schema:
 - Title cleaning + capitalization
 - Description HTML sanitization
 - Salary extraction and normalization
@@ -640,22 +641,27 @@ State-by-state PMHNP practice authority information:
 
 ## 🤖 Job Aggregation System
 
-### 10 Source Connectors
+### 13 Source Connectors
 
-Each aggregator lives in `lib/aggregators/` and processes companies in **parallel batches** using `Promise.allSettled`:
+Each aggregator lives in `lib/aggregators/` (registered in `lib/aggregators/registry.ts`) and processes companies in **parallel batches** using `Promise.allSettled`:
 
-| Source | File | Companies | Chunks | Batch Size | Delay | Description |
-|--------|------|-----------|--------|------------|-------|-------------|
-| **Greenhouse** | `greenhouse.ts` (36KB) | 764 | 8 | 10/batch | 200ms | ATS — public job board API. Largest source. |
-| **Workday** | `workday.ts` (60KB) | 493 | 25 | 5/batch | 300ms | ATS — scrapes Workday career pages. Heaviest processing. |
-| **BambooHR** | `bamboohr.ts` (15KB) | 193 | 1 | 10/batch | 300ms | ATS — public job feed API |
-| **Ashby** | `ashby.ts` (13KB) | 107 | 1 | 10/batch | 200ms | ATS — public GraphQL API |
-| **Lever** | `lever.ts` (10KB) | 104 | 1 | 10/batch | 200ms | ATS — public JSON API |
-| **JSearch** | `jsearch.ts` (18KB) | N/A | 8 | N/A | N/A | RapidAPI job search (search-term based) |
-| **Adzuna** | `adzuna.ts` (5KB) | N/A | 1 | N/A | N/A | REST API with app ID/key auth |
-| **Jooble** | `jooble.ts` (6KB) | N/A | 1 | N/A | N/A | POST API with keywords |
-| **USAJobs** | `usajobs.ts` (8KB) | N/A | 1 | N/A | N/A | Federal government jobs API |
-| **ATS-Jobs-DB** | `ats-jobs-db.ts` (7KB) | N/A | 1 | N/A | N/A | Secondary job search aggregator |
+| Source | File | Chunks | Description |
+|--------|------|--------|-------------|
+| **Greenhouse** | `greenhouse.ts` | 4 | ATS — public job board API. Largest source. |
+| **Workday** | `workday.ts` | 5 | ATS — scrapes Workday career pages. Heaviest processing. |
+| **Lever** | `lever.ts` | 1 | ATS — public JSON API |
+| **SmartRecruiters** | `smartrecruiters.ts` | 1 | ATS — public postings API |
+| **Ashby** | `ashby.ts` | 1 | ATS — public GraphQL API |
+| **BambooHR** | `bamboohr.ts` | 1 | ATS — public job feed API |
+| **JazzHR** | `jazzhr.ts` | 1 | ATS — public job board feed |
+| **Workable** | `workable.ts` | 1 | ATS — public job board API |
+| **Adzuna** | `adzuna.ts` | 1 | REST API with app ID/key auth |
+| **USAJobs** | `usajobs.ts` | 1 | Federal government jobs API |
+| **Fantastic-Jobs-DB** | `fantastic-jobs-db.ts` | 1 | RapidAPI aggregated ATS job database (24h + 6-month endpoints) |
+| **DocCafe** | `doccafe.ts` | 1 | Healthcare-specific job board |
+| **HealthCareerCenter** | `healthcareercenter.ts` | 1 | Healthcare-specific job board |
+
+(Jooble, JSearch, and ATS-Jobs-DB were decommissioned — see `lib/aggregators/registry.ts` for the rationale.)
 
 **Total ATS companies tracked: 1,674** (from `public/resume/final_healthcare_ats_all_sources_2026.csv`)
 
@@ -667,10 +673,9 @@ Contains:
 - `TOP_EMPLOYERS` — Known healthcare employers
 
 ### Chunking Strategy
-Large aggregators are split into chunks, each run as a separate cron invocation:
-- **Greenhouse**: 8 chunks (~96 companies each)
-- **Workday**: 25 chunks (~20 companies each, heavier processing)
-- **JSearch**: 8 chunks (by search term groups)
+Large aggregators are split into chunks, each run as a separate cron invocation (cron entry count must equal the adapter's `chunkCount` — see `tests/aggregators/chunk-count.test.ts`):
+- **Greenhouse**: 4 chunks
+- **Workday**: 5 chunks
 - Other sources: 1 chunk (small enough to process in one run)
 
 ---
@@ -859,36 +864,59 @@ Heavily indexed for query performance:
 
 ## ⏰ Cron Jobs
 
-**55 total cron entries** in `vercel.json` (within Vercel Pro's 64-entry limit).
+**69 total cron entries** in `vercel.json` (⚠️ this EXCEEDS the historically documented 64-entry Vercel Pro cron limit — verify the current limit/entitlement in the Vercel dashboard).
 
-### Ingestion Schedule (48 entries — twice daily)
+### Ingestion Schedule (43 entries — 40 source ingests + 3 wave summaries)
 
-All ingestion runs twice daily. Times shown are UTC:
+Most sources run 2–3× daily across three waves. Times shown are UTC:
 
-| Source | Chunks | Schedule | Time Window |
+| Source | Chunks | Runs/day | Times (UTC) |
 |--------|--------|----------|-------------|
-| Adzuna | 1 | `0 4,16 * * *` | 4:00 / 16:00 |
-| Jooble | 1 | `5 4,16 * * *` | 4:05 / 16:05 |
-| Greenhouse | 8 | `10-45/5 4,16 * * *` | 4:10–4:45 / 16:10–16:45 |
-| Lever | 1 | `50 4,16 * * *` | 4:50 / 16:50 |
-| USAJobs | 1 | `55 4,16 * * *` | 4:55 / 16:55 |
-| JSearch | 8 | `0-35/5 5,17 * * *` | 5:00–5:35 / 17:00–17:35 |
-| Ashby | 1 | `40 5,17 * * *` | 5:40 / 17:40 |
-| Workday | 25 | `45 5–55 7,17–19 * * *` | 5:45–7:45 / 17:45–19:45 |
-| ATS-Jobs-DB | 1 | `50 7,19 * * *` | 7:50 / 19:50 |
-| BambooHR | 1 | `55 7,19 * * *` | 7:55 / 19:55 |
+| Adzuna | 1 | 3 | 10:00 / 16:00 / 23:00 |
+| Greenhouse | 4 | 3 waves | 10:10–10:25 / 16:10–16:25 / 23:10–23:25 |
+| Lever | 1 | 3 | 10:50 / 16:50 / 23:50 |
+| Workday | 5 | 3 waves | 11:05–11:25 / 17:05–17:25 / 00:05–00:25 |
+| SmartRecruiters | 1 | 3 | 11:35 / 17:35 / 00:35 |
+| USAJobs | 1 | 1 | 11:45 |
+| Ashby | 1 | 2 | 11:40 / 00:40 |
+| BambooHR | 1 | 2 | 11:50 / 00:45 |
+| JazzHR | 1 | 2 | 11:55 / 00:48 |
+| Workable | 1 | 2 | 12:00 / 00:52 |
+| DocCafe | 1 | 2 | 12:05 / 00:53 |
+| HealthCareerCenter | 1 | 2 | 12:10 / 00:54 |
+| Fantastic-Jobs-DB | 1 | 2 (24h endpoint) | 12:30 / 21:00 — plus annual 6-month backfill (Jan 1) |
+| Wave Summary | — | 3 | 12:50 / 17:55 / 00:55 |
 
-### Housekeeping Schedule (7 entries)
+### Housekeeping & Other Schedules (26 entries)
 
 | Cron | Schedule | Description |
 |------|----------|-------------|
-| Freshness Decay | `0 10 * * *` (daily 10 AM) | Recompute quality scores with time decay |
-| Send Alerts | `0 14 * * *` (daily 2 PM) | Send job alert digest emails |
-| Expiry Warnings | `30 22 * * *` (daily 10:30 PM) | Email employers about expiring jobs |
-| Check Dead Links | `0 3 * * 0` (weekly Sunday 3 AM) | Validate apply URLs, unpublish dead ones |
-| Cleanup Expired | `0 2 * * *` (daily 2 AM) | Unpublish jobs past expiry date |
-| Cleanup Descriptions | `30 2 * * *` (daily 2:30 AM) | Strip malformed HTML from descriptions |
-| Index URLs | `0 11 * * *` (daily 11 AM) | Ping search engines with new job URLs |
+| Enrich Jobs | `0 6,12,18,22 * * *` | Enrich thin job descriptions |
+| Cleanup Expired | `10 12,18 * * *` | Unpublish jobs past expiry date |
+| Cleanup Rejected Jobs | `45 4 * * *` | Purge rejected/blocked jobs |
+| Aggregate pSEO | `15 0,6,12,18 * * *` | Refresh pSEO aggregate pages |
+| Freshness Decay | `20 12,18 * * *` | Recompute quality scores with time decay |
+| Check Dead Links | `30 12,18 * * *` | Validate apply URLs, unpublish dead ones |
+| Engagement Anomaly | `0 5 * * *` | Detect engagement anomalies |
+| Daily Report | `0 13 * * *` | Daily ops report |
+| Index URLs | `15 13 * * *` | Ping search engines with new job URLs |
+| Index pSEO | `45 13 * * *` | Ping search engines with pSEO URLs |
+| Deindex Expired | `45 12,18 * * *` | De-index expired job URLs |
+| Historical Deindex | `0 1,7,19 * * *` | De-index historical/stale URLs |
+| GSC Health Check | `30 9 * * *` | Google Search Console health check |
+| Embedding Drift Check | `0 14 * * *` | Semantic-search embedding drift check |
+| Send Alerts | `30 13 * * *` | Send job alert digest emails |
+| Candidate Alerts | `45 13 * * *` | Candidate alert emails |
+| Employer Report | `0 14 1 * *` (monthly) | Employer performance report |
+| Saved Job Reminder | `0 13 * * 3,6` (Wed/Sat) | Saved-job reminder emails |
+| Push Notifications | `30 14 * * *` | Web push notifications |
+| Expiry Warnings | `0 22 * * *` | Email employers about expiring jobs |
+| Source Presence Unpublish | `55 12 * * *` | Unpublish jobs missing from source feeds |
+| Health Anomaly Check | `0 13 * * *` | Ingestion health anomaly check |
+| Purge Soft-Deleted | `30 8 * * *` | Purge soft-deleted records |
+| Purge Inactive Users | `45 8 * * *` | Purge inactive users |
+| DSAR Overdue | `0 9 * * *` | Alert on overdue data requests |
+| Refresh Site Stats | `15 * * * *` (hourly) | Refresh cached site stats |
 
 **Security:** All cron endpoints require `Authorization: Bearer <CRON_SECRET>` header. Vercel automatically includes this header for scheduled cron invocations.
 
@@ -1008,9 +1036,8 @@ NEXT_PUBLIC_BASE_URL="http://localhost:3000"  # or https://pmhnphiring.com
 ```env
 ADZUNA_APP_ID="your-adzuna-app-id"
 ADZUNA_APP_KEY="your-adzuna-app-key"
-JOOBLE_API_KEY="your-jooble-api-key"
-JSEARCH_API_KEY="your-rapidapi-key"        # RapidAPI JSearch
-USAJOBS_AUTH_KEY="your-usajobs-auth-key"
+RAPIDAPI_KEY="your-rapidapi-key"           # Fantastic-Jobs-DB
+USAJOBS_API_KEY="your-usajobs-api-key"
 USAJOBS_USER_AGENT="your-email@example.com"
 ```
 
@@ -1068,7 +1095,7 @@ Tests in `tests/` using Vitest:
 
 1. Push to `main` branch → auto-deploys application code to Vercel
 2. **Environment Variables**: Set all required vars in Vercel Dashboard → Settings → Environment Variables
-3. **Cron Jobs**: Auto-configured from `vercel.json` (55 entries)
+3. **Cron Jobs**: Auto-configured from `vercel.json` (69 entries)
 4. **Stripe Webhook**: Set endpoint to `https://pmhnphiring.com/api/webhooks/stripe`
 5. **Deployment Protection**: Set to "Standard Protection" (protects preview deploys, not production custom domain)
 

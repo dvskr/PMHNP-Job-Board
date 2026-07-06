@@ -1,5 +1,5 @@
 # PMHNP Hiring
-> Last Updated: May 2026
+> Last Updated: July 2026
 
 > The #1 specialized job board for Psychiatric Mental Health Nurse Practitioners
 
@@ -9,13 +9,13 @@ PMHNP Hiring (https://pmhnphiring.com) aggregates, verifies, and enriches PMHNP 
 
 ## Key Stats
 
-- 10,000+ active job listings, updated daily
-- 100,000+ indexed content pages with local market data
+- PMHNP-specific job listings from 1,000+ employers, updated daily
+- City-level content pages with local market data
 - 4,135 US cities with enriched data (population, cost of living, healthcare systems, shortage areas)
-- 26 job categories covering every PMHNP career path
+- 28 job categories covering every PMHNP career path
 - 50 state licensure guides with practice authority information
 - All 50 US states + DC covered
-- 73% of listings show salary
+- Most listings show salary
 - 100% free for job seekers
 - Founded 2026
 
@@ -39,7 +39,7 @@ PMHNP Hiring (https://pmhnphiring.com) aggregates, verifies, and enriches PMHNP 
 
 ## Key Pages
 
-- /jobs — Main job board with 10,000+ PMHNP listings
+- /jobs — Main job board with all PMHNP listings
 - /jobs/remote — Remote PMHNP positions
 - /jobs/telehealth — Telehealth psychiatric NP jobs
 - /jobs/full-time — Full-time PMHNP roles
@@ -75,7 +75,7 @@ PMHNP Hiring (https://pmhnphiring.com) aggregates, verifies, and enriches PMHNP 
 
 ## City-Level Data
 
-Each of the 24 categories has pages for 4,135+ US cities, e.g.:
+Each of the 28 categories has pages for 4,135+ US cities, e.g.:
 - /jobs/remote/city/new-york-ny
 - /jobs/hospital/city/houston-tx
 - /jobs/entry-level/city/chicago-il

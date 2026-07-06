@@ -94,7 +94,7 @@ export default async function SeniorPage({ searchParams }: PageProps) {
         heroAlt="Senior PMHNP clinical leadership roles"
         badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Senior']}
-        indexLabel="? 27 / 28"
+        indexLabel="№ 27 / 28"
         headlineLine1="Senior"
         headlineLine2="PMHNP"
         headlineSub="jobs, leadership roles."

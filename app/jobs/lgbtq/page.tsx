@@ -64,7 +64,7 @@ export default async function LgbtqPage({ searchParams }: PageProps) {
         heroAlt="LGBTQ+ affirming PMHNP psychiatric care"
         badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'LGBTQ+']}
-        indexLabel="? 25 / 28"
+        indexLabel="№ 25 / 28"
         headlineLine1="LGBTQ+"
         headlineLine2="PMHNP"
         headlineSub="jobs, affirming care."

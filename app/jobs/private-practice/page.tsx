@@ -70,7 +70,7 @@ export default async function PrivatePracticePage({ searchParams }: PageProps) {
         heroAlt="Private practice PMHNP entrepreneurial independence"
         badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Private Practice']}
-        indexLabel="? 21 / 28"
+        indexLabel="№ 21 / 28"
         headlineLine1="Private Practice"
         headlineLine2="PMHNP"
         headlineSub="jobs, own your practice."

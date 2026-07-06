@@ -18,7 +18,7 @@ interface CategoryHeroProps {
   badgeText: string;
   /** Breadcrumb trail labels */
   breadcrumbs: string[];
-  /** Category index label, e.g. "№ 04 / 26" */
+  /** Category index label, e.g. "№ 04 / 28" */
   indexLabel?: string;
   /** Line 1 of the oversized heading */
   headlineLine1: string;

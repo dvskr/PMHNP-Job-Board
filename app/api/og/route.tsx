@@ -157,9 +157,9 @@ export async function GET(request: NextRequest) {
                 paddingTop: 24,
               }}>
                 {[
-                  { number: '10,000+', label: 'PMHNP Jobs' },
-                  { number: '3,000+', label: 'Companies' },
-                  { number: '50', label: 'States' },
+                  { number: 'All 50 States', label: 'Coverage' },
+                  { number: 'Updated Daily', label: 'Fresh Listings' },
+                  { number: 'Salary Shown', label: 'Transparency' },
                 ].map((stat, i) => (
                   <div key={stat.label} style={{
                     display: 'flex',

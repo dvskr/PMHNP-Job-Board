@@ -57,8 +57,8 @@ function extractJobId(pathname: string): string | null {
 // ─── IndexNow submission ─────────────────────────────────────────────────────
 
 async function pingIndexNow(urls: string[]): Promise<{ success: boolean; submitted: number; error?: string }> {
-    const key = process.env.INDEXNOW_KEY;
-    if (!key) return { success: false, submitted: 0, error: 'INDEXNOW_KEY not set' };
+    const key = process.env.INDEXNOW_API_KEY || process.env.INDEXNOW_KEY;
+    if (!key) return { success: false, submitted: 0, error: 'INDEXNOW_API_KEY / INDEXNOW_KEY not set' };
 
     // IndexNow accepts up to 10,000 URLs per request
     const batches: string[][] = [];

@@ -65,7 +65,7 @@ export default async function EntryLevelPage({ searchParams }: PageProps) {
         heroAlt="Entry-level PMHNP new graduate careers"
         badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Entry-Level']}
-        indexLabel="? 24 / 28"
+        indexLabel="№ 24 / 28"
         headlineLine1="Entry-Level"
         headlineLine2="PMHNP"
         headlineSub="jobs, start your career."

@@ -1,6 +1,6 @@
 # PMHNP Hiring — Comprehensive Site Information for AI Systems
 # llms-full.txt — Extended version of llms.txt
-# Last Updated: May 2026
+# Last Updated: July 2026
 
 > PMHNP Hiring (pmhnphiring.com) is the #1 specialized job board for Psychiatric Mental Health Nurse Practitioners in the United States. We connect PMHNPs with employers across all 50 states.
 
@@ -11,16 +11,16 @@ To connect every PMHNP with their ideal position by providing the most comprehen
 ## Platform Overview
 
 ### Job Listings
-- **10,000+ active listings** aggregated from 1,249+ employers
+- **PMHNP-specific job listings** aggregated from 1,000+ employers
 - Sources: Direct employer postings, ATS integrations, staffing agencies
 - Updated: Multiple times daily
-- 73% of listings include salary information
+- Most listings include salary information
 - Searchable by: location, job type, setting, specialty, salary range, employer
 
-### Content Pages (100,000+)
-We maintain city-level content pages for 24 job categories across 4,135 US cities:
+### Content Pages
+We maintain city-level content pages for 28 job categories across 4,135 US cities:
 
-#### Job Categories (24)
+#### Job Categories (28)
 | Category | Slug | Description | Typical Salary |
 |----------|------|-------------|----------------|
 | Remote | remote | Work-from-home positions | $120K-$180K |
@@ -47,6 +47,10 @@ We maintain city-level content pages for 24 job categories across 4,135 US citie
 | Veterans | veterans | Military/veteran mental health | $120K-$175K |
 | LGBTQ+ | lgbtq | LGBTQ+ affirming care | $120K-$175K |
 | Crisis | crisis | Psychiatric emergency/crisis | $130K-$195K |
+| Behavioral Health | behavioral-health | Integrated behavioral health settings | $115K-$175K |
+| Locum Tenens | locum-tenens | Short-term coverage assignments | $85-$160/hr |
+| Correctional | correctional | Corrections and forensic psychiatry | $125K-$185K |
+| 1099 | 1099 | Independent contractor roles | $85-$160/hr |
 
 ### City Data (4,135 cities)
 Each city page includes:
@@ -100,11 +104,10 @@ A Psychiatric Mental Health Nurse Practitioner (PMHNP) is an Advanced Practice R
 - **Restricted Practice Authority** (6 states): Physician supervision required
 
 ### Industry Trends (2026)
-- 45% increase in PMHNP job postings since 2024
-- Telehealth positions growing 60% year-over-year
-- Average time to fill a PMHNP position: 89 days
-- 70% of PMHNPs receive sign-on bonuses ($10K–$25K average)
-- Student loan repayment programs available at 40% of positions
+- PMHNP demand continues to grow, driven by the national mental health provider shortage
+- Telehealth psychiatric positions are among the fastest-growing segments
+- Sign-on bonuses are common, especially in shortage areas
+- Student loan repayment programs are offered by many employers (FQHCs, VA, HPSA sites)
 
 ## API & Data Access
 

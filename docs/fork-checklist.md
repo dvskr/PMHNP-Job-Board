@@ -21,7 +21,7 @@ Everything in Sprints 1–4 is generic compliance infrastructure:
 - Resume virus scan (`lib/virus-scan.ts`)
 - GA Consent Mode v2, GPC handling, region detection, CSP, HttpOnly consent cookie
 - Incident-response runbook (`docs/incident-response.md`) — template, swap brand
-- Privacy/terms/security/sub-processors/do-not-sell/data-request pages — read from `config/brand.ts`
+- Privacy/security/sub-processors/do-not-sell/data-request pages — read from `config/brand.ts`. **Exception: the terms page does NOT** — `app/terms/page.tsx` hardcodes the legal entity (Akari Labs LLC / Wyoming / Sheridan address / "PMHNP Hiring") throughout and only uses `config/brand.ts` for the canonical URL, so it must be manually rewritten per fork. (The privacy page correctly reads `brand.legal.*`.)
 
 You **do not** redo any of this per fork. It's library code now.
 
@@ -71,10 +71,11 @@ npx prisma migrate deploy
 #      structure, swap copy + filters)
 #    - lib/pseo/* (programmatic SEO templates)
 
-# 6. Reissue compliance docs (privacy + DPIA)
+# 6. Reissue compliance docs (privacy + DPIA + terms)
 #    Most content auto-updates from config/brand.ts. Verify:
 $EDITOR docs/dpia.md           # confirm processing description still accurate
 $EDITOR app/sub-processors/page.tsx  # check vendors list (same usually)
+$EDITOR app/terms/page.tsx     # hardcoded legal entity — rewrite per fork
 
 # 7. Rotate environment secrets in Vercel
 #    - SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (new project)
