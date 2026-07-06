@@ -16,6 +16,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { CITIES } from '@/lib/pseo/city-data/cities';
+import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
+import { PSEO_INDEXING_CATEGORIES } from '@/lib/pseo/jobs-segments-edge';
 import { pingGoogle, pingBingBatch, pingIndexNow } from '@/lib/search-indexing';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
@@ -25,14 +27,11 @@ export const maxDuration = 300;
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
-// Only submit broad categories that have meaningful city-level coverage
-const PSEO_INDEXING_CATEGORIES = [
-  'remote', 'telehealth', 'inpatient', 'outpatient', 'travel',
-  'full-time', 'part-time', 'contract', 'behavioral-health',
-  '1099', 'addiction', 'new-grad',
-];
+// PSEO_INDEXING_CATEGORIES (imported above) is derived from the JOBS_TAXONOMY
+// registry in lib/pseo/jobs-segments-edge.ts (pseoIndexing flag) — only broad
+// categories with meaningful city-level coverage are flagged.
 
-const MIN_JOBS = 3;
+const MIN_JOBS = MIN_JOBS_FOR_CATEGORY_CITY; // SSOT: lib/pseo/render-gate.ts
 const MIN_POPULATION = 10000;
 const GOOGLE_PSEO_CAP = 100; // Reserve 100 of Google's 200/day quota for pSEO
 

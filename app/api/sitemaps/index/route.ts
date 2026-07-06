@@ -12,13 +12,11 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { activeIndexableJobWhere } from '@/lib/active-job-filter';
 import { CITIES } from '@/lib/pseo/city-data/cities';
+import { CITY_SITEMAP_CATEGORIES as SITEMAP_CATEGORIES } from '@/lib/pseo/jobs-segments-edge';
 
-// Must match SITEMAP_CATEGORIES in cities/[batch]/route.ts
-const SITEMAP_CATEGORIES = [
-  'remote', 'telehealth', 'inpatient', 'outpatient', 'travel',
-  'full-time', 'part-time', 'contract',
-  'addiction', 'new-grad', '1099', 'behavioral-health', 'correctional',
-];
+// SITEMAP_CATEGORIES is derived from the JOBS_TAXONOMY registry
+// (lib/pseo/jobs-segments-edge.ts, inCitySitemaps flag) — shared with
+// cities/[batch]/route.ts so the index and batches can never drift.
 const SITEMAP_CATEGORY_SET = new Set(SITEMAP_CATEGORIES);
 const CITY_POPULATION_LOOKUP = new Map<string, number>(
   CITIES.map(c => [c.slug, c.population])

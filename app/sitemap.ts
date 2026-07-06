@@ -4,6 +4,8 @@ import { logger } from '@/lib/logger'
 import { getAllPublishedSlugs } from '@/lib/blog'
 import { getAllMetroSlugs } from '@/lib/metro-data'
 import { activeIndexableJobWhere } from '@/lib/active-job-filter'
+import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate'
+import { PRIMARY_SITEMAP_CATEGORY_SLUGS } from '@/lib/pseo/jobs-segments-edge'
 
 // GSC Fix: Cache sitemap for 1 hour. Without this, every Googlebot request to
 // /sitemap.xml triggers a full DB scan across jobs, companies, and blog tables.
@@ -28,13 +30,12 @@ const US_STATES = [
   'west-virginia', 'wisconsin', 'wyoming', 'district-of-columbia'
 ]
 
-const SETTING_SLUGS = ['remote', 'telehealth', 'inpatient', 'outpatient', 'travel']
-const SPECIALTY_SLUGS = ['addiction', 'child-adolescent', 'substance-abuse', 'new-grad', 'per-diem', 'locum-tenens', 'correctional', '1099']
-const JOB_TYPE_SLUGS = ['full-time', 'part-time', 'contract']
-const EXPERIENCE_SLUGS = ['entry-level', 'mid-career', 'senior']
-const EMPLOYER_SLUGS = ['hospital', 'private-practice', 'community-health', 'va']
-const POPULATION_SLUGS = ['geriatric', 'veterans', 'lgbtq', 'crisis']
-const ALL_CATEGORY_SLUGS = [...SETTING_SLUGS, ...SPECIALTY_SLUGS, ...JOB_TYPE_SLUGS, ...EXPERIENCE_SLUGS, ...EMPLOYER_SLUGS, ...POPULATION_SLUGS]
+// Category landing slugs — derived from the JOBS_TAXONOMY registry in
+// lib/pseo/jobs-segments-edge.ts (single source of truth for the /jobs
+// category taxonomy; drift-guarded by tests/seo/jobs-segments-drift.test.ts).
+// Only slugs flagged inPrimarySitemap are emitted here — substance-abuse is
+// deliberately excluded (canonicalized to /jobs/addiction; see the registry).
+const ALL_CATEGORY_SLUGS = PRIMARY_SITEMAP_CATEGORY_SLUGS
 
 // State name-to-code lookup for slug generation
 const STATE_NAME_TO_CODE: Record<string, string> = {
@@ -209,7 +210,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // grows. 2000 is well above the 28 city-eligible taxonomies × any
     // plausible per-city threshold and still loads in milliseconds; pages
     // beyond the cap are extremely thin (<3 jobs) and would be filtered
-    // out anyway by the downstream `_count.city >= 3` guard.
+    // out anyway by the downstream MIN_JOBS_FOR_CATEGORY_CITY guard.
     const topCities = await prisma.job.groupBy({
       by: ['city', 'state'],
       where: { ...ACTIVE_JOB_WHERE, city: { not: null }, state: { not: null } },
@@ -222,7 +223,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .filter(c => c.city && c.state)
       // GSC Fix: Only include cities with ≥3 active jobs to prevent submitting
       // thin city pages that get flagged as soft 404 or crawled-not-indexed.
-      .filter(c => c._count.city >= 3)
+      // Threshold imported from lib/pseo/render-gate.ts (SSOT with page gates).
+      .filter(c => c._count.city >= MIN_JOBS_FOR_CATEGORY_CITY)
       .map(c => {
         const stateVal = c.state!.trim();
         const code = stateVal.length === 2 ? stateVal.toUpperCase() : STATE_NAME_TO_CODE[stateVal] || null;

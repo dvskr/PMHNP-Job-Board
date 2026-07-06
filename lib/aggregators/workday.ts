@@ -12,6 +12,7 @@
  */
 
 import { WORKDAY_TENANTS, type WorkdayTenant } from './tenants/workday';
+import { WORKDAY_SEARCH_TERMS } from './search-terms/workday';
 type WorkdayCompany = WorkdayTenant;
 const WORKDAY_COMPANIES: readonly WorkdayCompany[] = WORKDAY_TENANTS;
 
@@ -153,20 +154,11 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
     const baseUrl = `https://${company.slug}.wd${company.instance}.myworkdayjobs.com/wday/cxs/${company.slug}/${company.site}/jobs`;
     const applyBase = `https://${company.slug}.wd${company.instance}.myworkdayjobs.com/en-US/${company.site}`;
 
-    // PMHNP search terms - cast a wide net, let isRelevantJob filter precisely
-    const searchTerms = [
-        'Psychiatric Nurse Practitioner',
-        'PMHNP',
-        'Psychiatric Mental Health',
-        'Behavioral Health Nurse Practitioner',
-        'Psychiatric APRN',
-        'Psych NP',
-    ];
-
     const allJobs: WorkdayJobRaw[] = [];
     const seenPaths = new Set<string>();
 
-    for (const searchText of searchTerms) {
+    // Search terms live in search-terms/workday.ts — wide net, precise filter later.
+    for (const searchText of WORKDAY_SEARCH_TERMS) {
         let offset = 0;
         const limit = 20;
         let hasMore = true;

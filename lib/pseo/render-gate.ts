@@ -7,8 +7,11 @@
  * not enough (Google still crawls and may not honor it on doorway pages), so the
  * page calls notFound() instead.
  *
- * Threshold = 3, aligned with the city page (app/jobs/city/[slug]/page.tsx), the
- * sitemap gate, and the seo_threshold_decision.md project memory (do NOT raise).
+ * Threshold = 3, per the seo_threshold_decision.md project memory (do NOT raise).
+ * MIN_JOBS_FOR_CATEGORY_CITY is the single source of truth — it is imported by
+ * the city page (app/jobs/city/[slug]/page.tsx), the category×city template,
+ * related-cities, both sitemap emitters, the index-pseo cron, and the
+ * audit-city-pages script. Change the value here and every gate moves together.
  */
 
 export const MIN_JOBS_FOR_CATEGORY_CITY = 3;

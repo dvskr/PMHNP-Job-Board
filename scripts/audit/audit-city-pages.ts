@@ -13,6 +13,8 @@
  * Shares the env-flag pattern with scripts/audit/wichita-rca.ts.
  */
 import { config as dotenvConfig } from 'dotenv';
+// Safe to import before dotenv: render-gate is pure and reads no env vars.
+import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 
 type EnvKind = 'dev' | 'prod';
 function parseEnvFlag(): EnvKind {
@@ -38,9 +40,9 @@ if (ENV === 'prod') {
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { prisma } = require('@/lib/prisma') as typeof import('@/lib/prisma');
 
-// Mirror MIN_JOBS_FOR_INDEX from lib/pseo/category-city-template.tsx
-// and MIN_SITEMAP_JOBS from app/api/sitemaps/cities/[batch]/route.ts.
-const MIN_JOBS = 3;
+// Same SSOT constant as MIN_JOBS_FOR_INDEX (lib/pseo/category-city-template.tsx)
+// and MIN_SITEMAP_JOBS (app/api/sitemaps/cities/[batch]/route.ts).
+const MIN_JOBS = MIN_JOBS_FOR_CATEGORY_CITY;
 
 // Mirror parseCitySlug in app/jobs/city/[slug]/page.tsx
 const STATE_CODES: Record<string, string> = {

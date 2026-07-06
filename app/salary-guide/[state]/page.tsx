@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import { hasLicensePost } from '@/lib/pseo/license-posts';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import {
     DollarSign,
@@ -229,8 +230,10 @@ export default async function StateSalaryPage({ params }: PageProps) {
     const diffPct = nationalAvg > 0 ? Math.round((diff / nationalAvg) * 100) : 0;
     const aboveBelow = diff >= 0 ? 'above' : 'below';
 
-    // Find the licensure blog post slug
+    // Find the licensure blog post slug. Item 29: DC has no pmhnp-license-*
+    // post, so the card below only renders when the MDX file actually exists.
     const licenseSlug = `pmhnp-license-${slug}`;
+    const showLicenseGuide = hasLicensePost(slug);
 
     return (
         <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
@@ -583,31 +586,33 @@ export default async function StateSalaryPage({ params }: PageProps) {
                         </div>
                     </Link>
 
-                    {/* Link to licensure guide */}
-                    <Link
-                        href={`/blog/${licenseSlug}`}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            padding: '20px 24px',
-                            borderRadius: '14px',
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-color)',
-                            textDecoration: 'none',
-                            transition: 'border-color 0.3s',
-                        }}
-                    >
-                        <BookOpen size={22} style={{ color: '#E86C2C', flexShrink: 0 }} />
-                        <div>
-                            <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>
-                                {stateName} Licensure Guide →
-                            </p>
-                            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                Requirements, process & timeline
-                            </p>
-                        </div>
-                    </Link>
+                    {/* Link to licensure guide — gated on the post existing (Item 29) */}
+                    {showLicenseGuide && (
+                        <Link
+                            href={`/blog/${licenseSlug}`}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '20px 24px',
+                                borderRadius: '14px',
+                                backgroundColor: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                textDecoration: 'none',
+                                transition: 'border-color 0.3s',
+                            }}
+                        >
+                            <BookOpen size={22} style={{ color: '#E86C2C', flexShrink: 0 }} />
+                            <div>
+                                <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>
+                                    {stateName} Licensure Guide →
+                                </p>
+                                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                    Requirements, process & timeline
+                                </p>
+                            </div>
+                        </Link>
+                    )}
 
                     {/* Link to national salary guide */}
                     <Link

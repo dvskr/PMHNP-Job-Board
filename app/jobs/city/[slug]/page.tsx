@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { selectEligibleCities } from '@/lib/pseo/related-cities';
+import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, TrendingUp, Building2, Bell, MapPinned, ArrowRight } from 'lucide-react';
@@ -386,12 +387,12 @@ export default async function CityJobsPage({ params }: CityPageProps) {
     ]);
 
     // SEO Fix: 404 thin city pages.
-    // Aligns with sitemap gate (`_count.city >= 3` in app/sitemap.ts:230)
-    // and the category×city template's MIN_JOBS_FOR_INDEX = 3 — pages
-    // with 1-2 jobs were rendering with stub content and getting flagged
-    // as soft 404 / thin content in GSC. The threshold matches the saved
-    // pSEO policy (MIN_JOBS = 3, see memory seo_threshold_decision.md).
-    const MIN_JOBS = 3;
+    // Threshold imported from lib/pseo/render-gate.ts (SSOT) — the sitemap
+    // gate and the category×city template's MIN_JOBS_FOR_INDEX share the
+    // same constant, so all gates move together. Pages with 1-2 jobs were
+    // rendering with stub content and getting flagged as soft 404 / thin
+    // content in GSC. (MIN_JOBS = 3, see memory seo_threshold_decision.md).
+    const MIN_JOBS = MIN_JOBS_FOR_CATEGORY_CITY;
     if (stats.totalJobs < MIN_JOBS) {
         notFound();
     }
