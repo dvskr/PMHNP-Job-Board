@@ -7,14 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-
-const ALLOWED_ORIGINS = [
-    'https://pmhnphiring.com',
-    'https://www.pmhnphiring.com',
-    'https://dev.pmhnphiring.com',
-    'http://localhost:3000',
-    'http://localhost:3001',
-];
+import { FIRST_PARTY_ORIGINS } from '@/lib/origins';
 
 /**
  * Call at the top of any state-changing API handler (POST/PUT/PATCH/DELETE).
@@ -43,7 +36,7 @@ export function verifyCsrf(request: NextRequest): NextResponse | null {
 
     // Check Origin header first (more reliable)
     if (origin) {
-        if (ALLOWED_ORIGINS.includes(origin)) {
+        if (FIRST_PARTY_ORIGINS.includes(origin)) {
             return null;
         }
         return NextResponse.json(
@@ -56,7 +49,7 @@ export function verifyCsrf(request: NextRequest): NextResponse | null {
     if (referer) {
         try {
             const refererOrigin = new URL(referer).origin;
-            if (ALLOWED_ORIGINS.includes(refererOrigin)) {
+            if (FIRST_PARTY_ORIGINS.includes(refererOrigin)) {
                 return null;
             }
         } catch {
