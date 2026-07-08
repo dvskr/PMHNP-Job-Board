@@ -201,7 +201,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
         bgColor="#e8af9b"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_remote.webp"
         heroAlt="PMHNP working remotely from home via telehealth"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Remote']}
         indexLabel="№ 02 / 28"
         headlineLine1="Remote"

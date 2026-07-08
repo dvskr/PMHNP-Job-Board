@@ -103,7 +103,7 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
         bgColor="#a0b7c4"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_v3_inpatient.webp"
         heroAlt="PMHNP working in inpatient hospital setting"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Inpatient']}
         indexLabel="№ 12 / 28"
         headlineLine1="Inpatient"

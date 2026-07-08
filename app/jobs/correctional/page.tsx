@@ -179,7 +179,7 @@ export default async function CorrectionalJobsPage({ searchParams }: PageProps) 
         bgColor="#95aabd"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_v2_correctional.webp"
         heroAlt="Correctional PMHNP forensic practice"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Correctional']}
         indexLabel="№ 18 / 28"
         headlineLine1="Correctional"

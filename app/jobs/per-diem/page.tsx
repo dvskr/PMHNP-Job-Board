@@ -68,7 +68,7 @@ export default async function PerDiemPage({ searchParams }: PageProps) {
         bgColor="#dcba74"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_v2_perdiem.webp"
         heroAlt="Per diem PMHNP flexible scheduling"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Per Diem']}
         indexLabel="№ 05 / 28"
         headlineLine1="Per Diem"

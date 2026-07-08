@@ -178,7 +178,7 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
         bgColor="#5b7455"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_communityhealth_v2.webp"
         heroAlt="Community health PMHNP integrated care"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Community Health']}
         indexLabel="№ 19 / 28"
         headlineLine1="Community Health"

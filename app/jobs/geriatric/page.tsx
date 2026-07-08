@@ -62,7 +62,7 @@ export default async function GeriatricPage({ searchParams }: PageProps) {
         bgColor="#d5c6e7"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_geriatric.webp"
         heroAlt="Geriatric PMHNP with elderly patient"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Geriatric']}
         indexLabel="№ 17 / 28"
         headlineLine1="Geriatric"

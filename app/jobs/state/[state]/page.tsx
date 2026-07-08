@@ -517,7 +517,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
         bgColor="#0D9488"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_states.webp"
         heroAlt={`PMHNP Jobs in ${stateName}`}
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'By State', stateName]}
         headlineLine1="PMHNP"
         headlineLine2="Jobs"

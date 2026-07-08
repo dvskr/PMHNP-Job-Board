@@ -68,7 +68,7 @@ export default async function MidCareerPage({ searchParams }: PageProps) {
         bgColor="#accfb9"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_midcareer.webp"
         heroAlt="Mid-career PMHNP advancement opportunities"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Mid-Career']}
         indexLabel="№ 26 / 28"
         headlineLine1="Mid-Career"

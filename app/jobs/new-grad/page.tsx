@@ -178,7 +178,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
         bgColor="#99a7d4"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_newgrad.webp"
         heroAlt="New grad PMHNP career launch"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'New Grad']}
         indexLabel="№ 09 / 28"
         headlineLine1="New Grad"

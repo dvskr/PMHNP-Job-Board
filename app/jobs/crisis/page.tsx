@@ -81,7 +81,7 @@ export default async function CrisisPage({ searchParams }: PageProps) {
         bgColor="#dbafac"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_crisis.webp"
         heroAlt="Crisis PMHNP emergency psychiatric care"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Crisis']}
         indexLabel="№ 23 / 28"
         headlineLine1="Crisis"

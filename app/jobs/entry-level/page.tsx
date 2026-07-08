@@ -63,7 +63,7 @@ export default async function EntryLevelPage({ searchParams }: PageProps) {
         bgColor="#cbd9b8"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_entrylevel.webp"
         heroAlt="Entry-level PMHNP new graduate careers"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Entry-Level']}
         indexLabel="№ 24 / 28"
         headlineLine1="Entry-Level"

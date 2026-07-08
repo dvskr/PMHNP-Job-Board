@@ -7,6 +7,12 @@ import { ArrowRight } from 'lucide-react';
    Fonts: Lora (heading), Inter (body/ui)
    ═══════════════════════════════════════════════════════════════ */
 
+/**
+ * Breadcrumb entry: a plain string renders as static text (existing category
+ * pages keep working unchanged); an object renders as a clickable Link.
+ */
+export type CategoryHeroBreadcrumb = string | { label: string; href: string };
+
 interface CategoryHeroProps {
   /** Category background color (from the watercolor asset) */
   bgColor: string;
@@ -14,10 +20,12 @@ interface CategoryHeroProps {
   heroImage: string;
   /** Alt text for the hero image */
   heroAlt: string;
-  /** Live badge text, e.g. "395 live roles · updated 4 min ago" */
-  badgeText: string;
-  /** Breadcrumb trail labels */
-  breadcrumbs: string[];
+  /** Live badge pill rendered above the H1, e.g. "395 live roles".
+   *  Optional — omit on pages without a live count (a pulsing "live" dot
+   *  next to a static label reads as a fake real-time signal). */
+  badgeText?: string;
+  /** Breadcrumb trail — strings or {label, href} links */
+  breadcrumbs: CategoryHeroBreadcrumb[];
   /** Category index label, e.g. "№ 04 / 28" */
   indexLabel?: string;
   /** Line 1 of the oversized heading */
@@ -85,28 +93,44 @@ export default function CategoryHero({
       <div className="cath5-swatch" />
 
       <div style={{ position: 'relative' }}>
-        {/* ── Visible breadcrumb trail.
+        {/* ── Row 1: live badge pill + visible breadcrumb trail.
             BreadcrumbSchema emits the JSON-LD for SEO; this renders the
             same hierarchy in the DOM so users can orient themselves
-            (WCAG 2.4.8). The existing prop is `string[]` of labels only,
-            so we render spans here -- not clickable links yet. Last item
-            is marked aria-current="page". */}
-        {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav aria-label="Breadcrumb" className="cath5-row1" style={{ marginBottom: 16 }}>
-            <ol className="cath5-crumbs" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap' }}>
-              {breadcrumbs.map((label, i) => {
-                const isLast = i === breadcrumbs.length - 1;
-                return (
-                  <li key={`${label}-${i}`} style={{ display: 'inline' }}>
-                    <span aria-current={isLast ? 'page' : undefined} className={isLast ? 'cath5-crumb-now' : undefined}>
-                      {label}
-                    </span>
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
-        )}
+            (WCAG 2.4.8). String crumbs render as static text; {label, href}
+            crumbs render as Links. Last item is marked aria-current="page". */}
+        <div className="cath5-row1" style={{ marginBottom: 16 }}>
+          {/* Zero-guard: callers pass "{count} live roles" — a pulsing "live"
+              pill reading "0 live roles" is worse than no pill at all. */}
+          {badgeText && !/^0\s/.test(badgeText) && (
+            <span className="cath5-badge">
+              <span className="cath5-dot" aria-hidden="true" />
+              {badgeText}
+            </span>
+          )}
+          {breadcrumbs && breadcrumbs.length > 0 && (
+            <nav aria-label="Breadcrumb" className="cath5-crumbs-nav">
+              <ol className="cath5-crumbs" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap' }}>
+                {breadcrumbs.map((crumb, i) => {
+                  const isLast = i === breadcrumbs.length - 1;
+                  const label = typeof crumb === 'string' ? crumb : crumb.label;
+                  return (
+                    <li key={`${label}-${i}`} style={{ display: 'inline' }}>
+                      {typeof crumb === 'string' ? (
+                        <span aria-current={isLast ? 'page' : undefined} className={isLast ? 'cath5-crumb-now' : undefined}>
+                          {label}
+                        </span>
+                      ) : (
+                        <Link href={crumb.href} aria-current={isLast ? 'page' : undefined} className={isLast ? 'cath5-crumb-now' : undefined}>
+                          {label}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            </nav>
+          )}
+        </div>
         {/* ── STAGE: Oversized type + photo ── */}
         <div className="cath5-stage">
           <h1 className="cath5-h1">
@@ -175,6 +199,8 @@ export default function CategoryHero({
           --teal: ${teal};
           --teal-deep: ${tealDeep};
           --cat-color: ${bgColor};
+          --pill-bg: rgba(255,255,255,.72);
+          --pill-border: rgba(31,26,23,.12);
         }
 
         /* ── Decorative swatch ── */
@@ -229,14 +255,28 @@ export default function CategoryHero({
           0%, 100% { opacity: .4; transform: scale(1); }
           50% { opacity: 1; transform: scale(1.2); }
         }
-        .cath5-crumbs {
+        .cath5-crumbs-nav {
           justify-self: center;
+          min-width: 0;
+        }
+        .cath5-crumbs {
           display: flex; gap: 14px;
           color: var(--ink-soft);
           opacity: 0.7;
         }
-        .cath5-crumbs span:not(:last-child)::after {
+        .cath5-crumbs li:not(:last-child)::after {
           content: "·"; margin-left: 14px;
+        }
+        .cath5-crumbs a {
+          color: inherit;
+          text-decoration: none;
+          transition: color 0.2s ease;
+        }
+        .cath5-crumbs a:hover,
+        .cath5-crumbs a:focus-visible {
+          color: var(--teal);
+          text-decoration: underline;
+          text-underline-offset: 3px;
         }
         .cath5-crumb-now { color: var(--ink) !important; opacity: 1; }
         .cath5-index {
@@ -370,7 +410,8 @@ export default function CategoryHero({
         @media (max-width: 900px) {
           .cath5 { padding: 32px 24px 0 !important; }
           .cath5-row1 { grid-template-columns: 1fr; gap: 12px; }
-          .cath5-crumbs { justify-self: start; }
+          .cath5-crumbs-nav { justify-self: start; }
+          .cath5-badge { justify-self: start; }
           .cath5-index { display: none; }
           .cath5-stage { grid-template-columns: 1fr; gap: 16px; }
           .cath5-h1 { font-size: clamp(56px, 15vw, 96px); }

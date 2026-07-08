@@ -62,7 +62,7 @@ export default async function HospitalPage({ searchParams }: PageProps) {
         bgColor="#a0c3d6"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_hospital.webp"
         heroAlt="Hospital PMHNP acute psychiatric care"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Hospital']}
         indexLabel="№ 22 / 28"
         headlineLine1="Hospital"

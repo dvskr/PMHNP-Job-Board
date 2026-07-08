@@ -62,7 +62,7 @@ export default async function LgbtqPage({ searchParams }: PageProps) {
         bgColor="#e0c7a9"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_lgbtq.webp"
         heroAlt="LGBTQ+ affirming PMHNP psychiatric care"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'LGBTQ+']}
         indexLabel="№ 25 / 28"
         headlineLine1="LGBTQ+"

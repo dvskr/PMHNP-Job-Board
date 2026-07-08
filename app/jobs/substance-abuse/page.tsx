@@ -118,7 +118,7 @@ export default async function SubstanceAbuseJobsPage({ searchParams }: PageProps
         bgColor="#9bb7a5"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_sa_people.webp"
         heroAlt="Substance Abuse PMHNP counseling session"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Substance Abuse']}
         indexLabel="№ 13 / 28"
         headlineLine1="Substance Abuse"

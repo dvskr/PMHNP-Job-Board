@@ -68,7 +68,7 @@ export default async function PrivatePracticePage({ searchParams }: PageProps) {
         bgColor="#d4b0a3"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_privatepractice.webp"
         heroAlt="Private practice PMHNP entrepreneurial independence"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Private Practice']}
         indexLabel="№ 21 / 28"
         headlineLine1="Private Practice"

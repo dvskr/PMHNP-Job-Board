@@ -83,7 +83,7 @@ export default async function ContractPage({ searchParams }: PageProps) {
         bgColor="#adc2d7"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_contract.webp"
         heroAlt="Contract PMHNP signing agreement"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Contract']}
         indexLabel="№ 06 / 28"
         headlineLine1="Contract"

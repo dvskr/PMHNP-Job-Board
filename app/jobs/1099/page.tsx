@@ -182,7 +182,7 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
         bgColor="#d19b99"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_v2_1099.webp"
         heroAlt="PMHNP independent contractor workspace"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', '1099 PMHNP']}
         indexLabel="№ 01 / 28"
         headlineLine1="1099"

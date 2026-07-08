@@ -76,7 +76,7 @@ export default async function FullTimePage({ searchParams }: PageProps) {
         bgColor="#88a7c4"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_fulltime.webp"
         heroAlt="Full-time PMHNP in clinic office"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Full-Time']}
         indexLabel="№ 07 / 28"
         headlineLine1="Full-Time"

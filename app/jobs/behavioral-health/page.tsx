@@ -132,7 +132,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
         bgColor="#bda3cd"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_v2_behavioralhealth.webp"
         heroAlt="Behavioral health nurse practitioner setting"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Behavioral Health']}
         indexLabel="№ 14 / 28"
         headlineLine1="Behavioral Health"

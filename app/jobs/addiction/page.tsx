@@ -135,7 +135,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
         bgColor="#aabe9c"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_v2_addiction.webp"
         heroAlt="PMHNP addiction medicine practice"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Addiction']}
         indexLabel="№ 15 / 28"
         headlineLine1="Addiction"

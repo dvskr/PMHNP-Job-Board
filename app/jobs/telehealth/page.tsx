@@ -155,7 +155,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
         bgColor="#f1d49c"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_th_people.webp"
         heroAlt="Telehealth PMHNP virtual session"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Telehealth']}
         indexLabel="№ 03 / 28"
         headlineLine1="Telehealth"

@@ -9,6 +9,12 @@ import { LazyMotion, domAnimation, m } from 'framer-motion';
 
 interface HomepageHeroProps {
     jobCountDisplay: string;
+    /** Real employer count for the subtitle stats line. Optional so
+     *  app/page.tsx keeps working unchanged; the subtitle falls back to the
+     *  50-states line when either stat is missing. */
+    totalCompanies?: number;
+    /** Percentage (0-100) of published jobs that display a salary. */
+    salaryTransparencyPct?: number;
 }
 
 const quickFilters = [
@@ -28,10 +34,14 @@ const fadeUp = {
     show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] } },
 };
 
-export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
+export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTransparencyPct }: HomepageHeroProps) {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
     const [locationQuery, setLocationQuery] = useState('');
+
+    const hasRealStats =
+        typeof totalCompanies === 'number' && totalCompanies > 0 &&
+        typeof salaryTransparencyPct === 'number' && salaryTransparencyPct > 0;
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -44,6 +54,10 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
 
     return (
         <LazyMotion features={domAnimation}>
+        {/* minHeight 85vh (not a fixed 100vh) + statically-positioned content:
+            the section can GROW when the content is taller than the viewport
+            (short/mobile screens) instead of clipping behind overflow:hidden,
+            and jobs below start closer to the fold on desktop. */}
         <section
             style={{
                 position: 'relative',
@@ -51,7 +65,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 padding: 0,
                 marginTop: -80,
                 overflow: 'hidden',
-                minHeight: '100vh',
+                minHeight: '85vh',
             }}
         >
             {/* ── Nurse crowd background — fills viewport, anchored bottom ── */}
@@ -85,14 +99,14 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 }}
             />
 
-            {/* ── Centered content ── */}
+            {/* ── Centered content — in normal flow so the section grows with
+                   it; only the background image/gradient stay absolute ── */}
             <m.div
                 variants={container}
                 initial="hidden"
                 animate="show"
                 style={{
-                    position: 'absolute',
-                    inset: 0,
+                    position: 'relative',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -143,7 +157,9 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                         maxWidth: '480px',
                     }}
                 >
-                    {jobCountDisplay} verified positions across all 50 states.
+                    {hasRealStats
+                        ? `${jobCountDisplay} open roles · ${totalCompanies} employers · ${salaryTransparencyPct}% show salary.`
+                        : `${jobCountDisplay} open positions across all 50 states.`}
                 </m.p>
 
                 {/* ── Search bar ── */}
