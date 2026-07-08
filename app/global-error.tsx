@@ -53,11 +53,11 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 </div>
 
                 <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#0F172A', marginBottom: '12px' }}>
-                    Critical Global Failure
+                    Something went wrong
                 </h1>
-                
+
                 <p style={{ fontSize: '15px', color: '#64748B', lineHeight: 1.6, maxWidth: '400px', margin: '0 auto 30px' }}>
-                    The application root encountered an unrecoverable exception.
+                    The page hit an error. Try again, or head back to the job board.
                 </p>
 
                 <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -69,9 +69,11 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                         boxShadow: '0 4px 12px rgba(13,148,136,0.3), inset 1px 1px 3px rgba(255,255,255,0.3)',
                         border: 'none', cursor: 'pointer', transition: 'all 0.2s ease'
                     }}>
-                        ↻ Restart Engine
+                        Try again
                     </button>
-                    <button onClick={() => window.location.href = '/'} style={{
+                    {/* Plain anchor-style navigation: global-error replaces the
+                        root layout, so keep dependencies minimal. */}
+                    <button onClick={() => window.location.href = '/jobs'} style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
                         padding: '12px 24px', borderRadius: '16px',
                         fontSize: '15px', fontWeight: 600, color: '#334155',
@@ -80,7 +82,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                         boxShadow: '4px 4px 10px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7)',
                         cursor: 'pointer', transition: 'all 0.2s ease'
                     }}>
-                        🏠 Return Home
+                        Browse jobs
                     </button>
                 </div>
             </div>

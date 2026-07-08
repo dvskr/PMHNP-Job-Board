@@ -8,7 +8,6 @@
  *   - CookieConsent       (legal — must always win when undecided)
  *   - PushNotificationPrompt
  *   - PWAInstallBanner
- *   - ExitIntentPopup
  *
  * Without coordination, two of these can stack, which (a) looks broken and
  * (b) is exactly the "intrusive interstitial" pattern Google penalizes.
@@ -26,7 +25,6 @@
  *   1. cookie  — consent must be granted/declined before anything else shows
  *   2. push    — notification permission ask
  *   3. pwa     — install banner
- *   4. exit    — exit-intent newsletter popup
  *
  * Module-scoped state is fine here: the coordinator is per-tab, browser
  * navigation reloads it, and overlays are all sibling clients of the same
@@ -35,13 +33,12 @@
 
 import { useEffect, useState } from 'react';
 
-export type OverlayId = 'cookie' | 'push' | 'pwa' | 'exit';
+export type OverlayId = 'cookie' | 'push' | 'pwa';
 
 const PRIORITY: Record<OverlayId, number> = {
     cookie: 1,
     push: 2,
     pwa: 3,
-    exit: 4,
 };
 
 interface CoordinatorState {

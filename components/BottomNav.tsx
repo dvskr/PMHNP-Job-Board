@@ -1,16 +1,22 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Briefcase, Bookmark, Mail, LayoutDashboard, Users, FileText } from 'lucide-react';
+import { Home, Briefcase, Bookmark, Mail, Bell, LayoutDashboard, Users, FileText } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
-// Job-seeker / marketing default — Home + Jobs + Saved + Messages
-const seekerNavItems = [
+// Job-seeker / marketing default — Home + Jobs + Saved + a 4th slot that
+// depends on auth state. Messages is useless without an account, so
+// logged-out visitors get Job Alerts (a page they can actually use);
+// authenticated seekers keep Messages.
+const seekerNavBase = [
   { label: 'Home', href: '/', icon: Home },
   { label: 'Jobs', href: '/jobs', icon: Briefcase },
   { label: 'Saved', href: '/saved', icon: Bookmark },
-  { label: 'Messages', href: '/messages', icon: Mail },
 ];
+const seekerMessagesItem = { label: 'Messages', href: '/messages', icon: Mail };
+const seekerAlertsItem = { label: 'Alerts', href: '/job-alerts', icon: Bell };
 
 // Employer surfaces — Dashboard + Talent + Applicants + Messages. The prior
 // nav (Home/Jobs/Saved) didn't reflect what employers actually do, and
@@ -33,9 +39,27 @@ const EMPLOYER_PREFIXES = ['/employer', '/admin'];
 export default function BottomNav() {
   const pathname = usePathname();
 
+  // Auth state decides the 4th seeker slot (same conditional pattern as the
+  // employer-shell swap below). getSession reads the local cookie store —
+  // no network round-trip. SSR and the first client paint render the
+  // logged-out variant, which is also the majority case for mobile organic
+  // traffic; signed-in users flip to Messages right after hydration.
+  const [isAuthed, setIsAuthed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    createClient()
+      .auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!cancelled) setIsAuthed(Boolean(session));
+      })
+      .catch(() => { /* treat as logged out */ });
+    return () => { cancelled = true; };
+  }, []);
+
   const isEmployerShell = EMPLOYER_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
+  const seekerNavItems = [...seekerNavBase, isAuthed ? seekerMessagesItem : seekerAlertsItem];
   const navItems = isEmployerShell ? employerNavItems : seekerNavItems;
 
   const isActive = (href: string) => {

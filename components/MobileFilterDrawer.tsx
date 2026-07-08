@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import LinkedInFilters from '@/components/jobs/LinkedInFilters';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
@@ -14,6 +14,11 @@ export default function MobileFilterDrawer({ isOpen, onClose }: MobileFilterDraw
     // Focus trap, ESC handler, and focus restore are centralised in
     // useFocusTrap so all dialogs in the app behave consistently.
     const trapRef = useFocusTrap<HTMLDivElement>({ isOpen, onEscape: onClose });
+
+    // Live filtered total, reported by LinkedInFilters as counts land.
+    // Filters apply immediately (each toggle pushes a new URL), so the
+    // footer button only closes the drawer — its label reflects that.
+    const [totalJobs, setTotalJobs] = useState<number | null>(null);
 
     // Prevent body scroll when drawer is open
     useEffect(() => {
@@ -61,16 +66,21 @@ export default function MobileFilterDrawer({ isOpen, onClose }: MobileFilterDraw
 
                 {/* Filter Content */}
                 <div className="p-4">
-                    <LinkedInFilters />
+                    <LinkedInFilters onTotalChange={setTotalJobs} />
                 </div>
 
-                {/* Footer with Apply button */}
+                {/* Footer close button — filters apply live, so this only
+                    dismisses the drawer. "Show {n} jobs" says exactly what
+                    tapping it reveals; the old apply-style label implied a
+                    pending action that didn't exist. */}
                 <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
                     <button
                         onClick={onClose}
                         className="w-full py-3 px-4 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition-colors"
                     >
-                        Apply Filters
+                        {totalJobs === null
+                            ? 'Show jobs'
+                            : `Show ${totalJobs.toLocaleString()} ${totalJobs === 1 ? 'job' : 'jobs'}`}
                     </button>
                 </div>
             </div>

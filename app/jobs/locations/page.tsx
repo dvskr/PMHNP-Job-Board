@@ -211,7 +211,6 @@ export default async function LocationsPage() {
         bgColor="#0D9488"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_states.webp"
         heroAlt="PMHNP Jobs by Location"
-        badgeText="Nationwide"
         breadcrumbs={['Home', 'Jobs', 'Locations']}
         indexLabel="№ 02"
         headlineLine1="PMHNP"
