@@ -47,9 +47,21 @@ describe('hashIp', () => {
   })
 
   it('does not include the raw IP in the hash output', () => {
-    const h = hashIp('203.0.113.42', new Date('2026-05-12T10:00:00Z'))!
-    expect(h.includes('203')).toBe(false)
-    expect(h.includes('113')).toBe(false)
+    // Deterministic salt: without it the fallback salt embeds process.pid,
+    // making the hash differ per run — and the old assertions checked for
+    // 3-digit substrings ("203", "113") inside a 64-char HEX string, which
+    // any given hash contains with ~3% probability. That flaked CI on a
+    // pure dice roll. Hex output can never contain the dotted IP, and with
+    // a pinned salt the digit checks are stable too.
+    vi.stubEnv('SHORTLINK_HASH_SECRET', 'test-hash-secret')
+    try {
+      const h = hashIp('203.0.113.42', new Date('2026-05-12T10:00:00Z'))!
+      expect(h).toMatch(/^[a-f0-9]{64}$/)
+      expect(h.includes('203.0.113.42')).toBe(false)
+      expect(h).not.toBe('203.0.113.42')
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 })
 
