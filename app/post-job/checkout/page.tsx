@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ChevronLeft, Loader2, Lock } from 'lucide-react';
 import { config } from '@/lib/config';
 import { trackBeginCheckout } from '@/lib/analytics';
 
@@ -43,11 +44,72 @@ interface JobFormData {
   screeningQuestions?: ScreeningQuestion[];
 }
 
+/* ═══ Clay Tokens — matched to app/post-job/preview/page.tsx ═══ */
+const cardBase: React.CSSProperties = {
+  background: '#FFFFFF',
+  borderRadius: '20px',
+  border: '1px solid rgba(0,0,0,0.06)',
+  boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+};
+
+const clayBtn: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '8px',
+  padding: '14px 28px', borderRadius: '14px',
+  fontSize: '14px', fontWeight: 600,
+  border: '1px solid rgba(255,255,255,0.5)',
+  boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.6)',
+  cursor: 'pointer', transition: 'all 0.2s ease',
+};
+
+const detailLabel: React.CSSProperties = {
+  fontSize: '11px', fontWeight: 700, color: '#8A9BA6',
+  textTransform: 'uppercase', letterSpacing: '0.05em',
+  display: 'block', marginBottom: '2px',
+};
+
+const detailValue: React.CSSProperties = {
+  fontSize: '14px', color: '#1A2E35', margin: 0,
+  overflow: 'hidden', textOverflow: 'ellipsis',
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [jobData, setJobData] = useState<JobFormData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Why this post is paid — read-only quota check (same endpoint the preview
+  // page uses). We only ASSERT a reason we actually verified:
+  //   'quota-used'          eligible + willBeFree:false → free post consumed
+  //   'free-email-provider' personal-email account never qualified
+  //   'free-eligible'       eligible + willBeFree:true → they should NOT pay;
+  //                         warn instead of charging $199 for a free post
+  //   null                  unknown (fetch failed / auth reasons) → neutral copy
+  const [quotaContext, setQuotaContext] = useState<
+    'quota-used' | 'free-email-provider' | 'free-eligible' | null
+  >(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/employer/free-quota-status');
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          eligible?: boolean; willBeFree?: boolean; reason?: string;
+        };
+        if (cancelled) return;
+        if (data.eligible === true) {
+          setQuotaContext(data.willBeFree ? 'free-eligible' : 'quota-used');
+        } else if (data.reason === 'free-email-provider') {
+          setQuotaContext('free-email-provider');
+        }
+        // unauthenticated / not-employer / server-error → stay null (neutral)
+      } catch {
+        /* leave null — neutral copy, never a false claim */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     // Checkout always requires paid form data
@@ -181,159 +243,211 @@ export default function CheckoutPage() {
   // Show loading while checking localStorage
   if (!jobData) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
+        <div style={{
+          width: '36px', height: '36px', borderRadius: '50%',
+          border: '3px solid #E5E7EB', borderTopColor: '#0D9488',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
+  const hasExternalApply = !jobData.applyOnPlatform && !!jobData.applyUrl;
+
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-4 pb-8">
-      {/* Page Header */}
-      <div className="mb-6 text-center">
-        <h1 className="text-3xl font-bold mb-1">Confirm Your Job Posting</h1>
-        <p className="text-gray-600">Review your listing before payment</p>
-      </div>
+    <div style={{ background: '#F5F0EB', minHeight: '100vh', padding: '0 16px 80px' }}>
+      <div style={{ maxWidth: '720px', margin: '0 auto' }}>
 
-      {/* Job Summary Card */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Job Posting Summary</h2>
+        {/* Page Header */}
+        <div style={{ padding: '24px 0 20px', textAlign: 'center' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 4px' }}>
+            Confirm Your Job Posting
+          </h1>
+          <p style={{ fontSize: '14px', color: '#8A9BA6', margin: 0 }}>Review your listing before payment</p>
+        </div>
 
-        <div className="space-y-4">
+        {/* Free-post context — why this post is paid. Only asserts a reason
+            the quota endpoint actually confirmed; unknown states get neutral
+            copy instead of a false "free post used" claim. */}
+        {quotaContext === 'free-eligible' ? (
+          <div style={{
+            ...cardBase, padding: '12px 18px', marginBottom: '16px',
+            background: '#FFFBEB', border: '1px solid #FDE68A',
+          }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#92400E', margin: 0, lineHeight: 1.5 }}>
+              Your first post is still free — you don&apos;t need to pay for this listing.{' '}
+              <Link href="/post-job/preview" style={{ color: '#92400E', textDecoration: 'underline' }}>
+                Return to preview to publish it free
+              </Link>.
+            </p>
+          </div>
+        ) : (
+          <div style={{
+            ...cardBase, padding: '12px 18px', marginBottom: '16px',
+            background: '#F0FDFA', border: '1px solid #99F6E4',
+          }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#115E59', margin: 0, lineHeight: 1.5 }}>
+              {quotaContext === 'free-email-provider'
+                ? `Free first posts require a company email — this listing is $${config.postingPrice}.`
+                : quotaContext === 'quota-used'
+                  ? `Your free post is used — this listing is $${config.postingPrice}.`
+                  : `Standard listing — $${config.postingPrice} for ${config.durationDays} days.`}
+            </p>
+          </div>
+        )}
+
+        {/* Job Summary Card */}
+        <div style={{ ...cardBase, padding: '24px', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: '0 0 16px' }}>Job Posting Summary</h2>
+
           {/* Title and Company */}
-          <div className="border-b pb-4">
-            <h3 className="text-lg font-semibold text-gray-900">{jobData.title}</h3>
-            <p className="text-gray-600">{jobData.companyName}</p>
+          <div style={{ paddingBottom: '14px', marginBottom: '14px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 2px' }}>{jobData.title}</h3>
+            <p style={{ fontSize: '14px', color: '#5A6B73', margin: 0 }}>{jobData.companyName}</p>
           </div>
 
           {/* Details Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px 20px' }}>
             <div>
-              <span className="text-sm font-medium text-gray-500">Location</span>
-              <p className="text-gray-900">{jobData.location}</p>
+              <span style={detailLabel}>Location</span>
+              <p style={detailValue}>{jobData.location}</p>
             </div>
             <div>
-              <span className="text-sm font-medium text-gray-500">Work Mode</span>
-              <p className="text-gray-900">{jobData.mode}</p>
+              <span style={detailLabel}>Work Mode</span>
+              <p style={detailValue}>{jobData.mode}</p>
             </div>
             <div>
-              <span className="text-sm font-medium text-gray-500">Job Type</span>
-              <p className="text-gray-900">{jobData.jobType}</p>
+              <span style={detailLabel}>Job Type</span>
+              <p style={detailValue}>{jobData.jobType}</p>
             </div>
             <div>
-              <span className="text-sm font-medium text-gray-500">Salary</span>
-              <p className="text-gray-900">{formatSalary()}</p>
+              <span style={detailLabel}>Salary</span>
+              <p style={detailValue}>{formatSalary()}</p>
             </div>
             <div>
-              <span className="text-sm font-medium text-gray-500">Contact Email</span>
-              <p className="text-gray-900">{jobData.contactEmail}</p>
+              <span style={detailLabel}>Contact Email</span>
+              <p style={detailValue}>{jobData.contactEmail}</p>
             </div>
             {jobData.companyWebsite && (
               <div>
-                <span className="text-sm font-medium text-gray-500">Company Website</span>
-                <p className="text-gray-900 truncate">{jobData.companyWebsite}</p>
+                <span style={detailLabel}>Company Website</span>
+                <p style={{ ...detailValue, whiteSpace: 'nowrap' }}>{jobData.companyWebsite}</p>
+              </div>
+            )}
+            {/* Application method — the URL row renders only for external
+                apply; platform-apply jobs have no URL and used to show a
+                blank row here. */}
+            {hasExternalApply ? (
+              <div>
+                <span style={detailLabel}>Application URL</span>
+                <p style={{ ...detailValue, whiteSpace: 'nowrap' }}>{jobData.applyUrl}</p>
+              </div>
+            ) : (
+              <div>
+                <span style={detailLabel}>How Candidates Apply</span>
+                <p style={detailValue}>On PMHNP Hiring — applications arrive in your dashboard.</p>
               </div>
             )}
           </div>
 
-          {/* Apply URL */}
-          <div>
-            <span className="text-sm font-medium text-gray-500">Application URL</span>
-            <p className="text-gray-900 truncate">{jobData.applyUrl}</p>
-          </div>
-
           {/* Description Preview */}
-          <div>
-            <span className="text-sm font-medium text-gray-500">Description Preview</span>
-            <p className="text-gray-700 text-sm mt-1 leading-relaxed">
+          <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+            <span style={detailLabel}>Description Preview</span>
+            <p style={{ fontSize: '13px', color: '#4A5568', margin: '4px 0 0', lineHeight: 1.6 }}>
               {getDescriptionExcerpt(jobData.description)}
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Pricing Card */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex items-start justify-between gap-6 mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">{getPlanName()}</h3>
-            <p className="text-sm text-gray-500 mt-0.5">{config.durationDays}-day listing</p>
+        {/* Pricing Card */}
+        <div style={{ ...cardBase, padding: '24px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 2px' }}>{getPlanName()}</h3>
+              <p style={{ fontSize: '13px', color: '#8A9BA6', margin: 0 }}>{config.durationDays}-day listing</p>
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <span style={{ fontSize: '28px', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35' }}>{getPrice()}</span>
+              <p style={{ fontSize: '12px', color: '#8A9BA6', margin: 0 }}>one-time</p>
+            </div>
           </div>
-          <div className="text-right shrink-0">
-            <span className="text-3xl font-bold text-gray-900">{getPrice()}</span>
-            <p className="text-sm text-gray-500">one-time</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {[
+              'Top search placement',
+              `${config.limits.candidateUnlocksPerPosting} candidate unlocks`,
+              `${config.limits.inmailsPerPosting} InMail credits`,
+              'Applicant analytics',
+              'Email candidate alerts',
+            ].map((f) => (
+              <span key={f} style={{
+                fontSize: '12px', fontWeight: 500, padding: '5px 12px',
+                borderRadius: '10px', background: '#CCFBF1', color: '#0D9488',
+                boxShadow: 'inset 1px 1px 3px rgba(0,0,0,0.04), inset -1px -1px 2px rgba(255,255,255,0.4)',
+              }}>✓ {f}</span>
+            ))}
           </div>
         </div>
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-gray-700">
-          <li className="flex items-center gap-2">
-            <span className="text-teal-500">✓</span> Top search placement
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="text-teal-500">✓</span> {config.limits.candidateUnlocksPerPosting} candidate unlocks
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="text-teal-500">✓</span> {config.limits.inmailsPerPosting} InMail credits
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="text-teal-500">✓</span> Applicant analytics
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="text-teal-500">✓</span> Email candidate alerts
-          </li>
-        </ul>
-      </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <p className="text-red-600">{error}</p>
-        </div>
-      )}
-
-      {/* Payment Button */}
-      <button
-        onClick={handlePayment}
-        disabled={loading}
-        className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        {loading ? (
-          <>
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-            Creating checkout session...
-          </>
-        ) : (
-          `Proceed to Payment - ${getPrice()}`
+        {/* Error Message */}
+        {error && (
+          <div style={{ ...cardBase, padding: '14px 18px', marginBottom: '16px', background: '#FEF2F2', border: '1px solid #FECACA' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#DC2626', margin: 0 }}>{error}</p>
+          </div>
         )}
-      </button>
 
-      {/* Terms acknowledgement — visible at point-of-purchase per consumer
-          protection norms. Reduces post-charge "I didn't know it was
-          non-refundable" support tickets and chargeback risk. */}
-      <p className="text-center text-xs text-gray-500 mt-3">
-        By clicking Pay, you agree to our{' '}
-        <Link href="/terms" className="text-teal-600 hover:text-teal-700 underline">
-          Terms of Service
-        </Link>
-        .
-      </p>
-
-      {/* Back Link */}
-      <div className="text-center mt-4">
-        <Link
-          href="/post-job"
-          className="text-gray-600 hover:text-teal-500 transition-colors text-sm"
+        {/* Payment Button */}
+        <button
+          onClick={handlePayment}
+          disabled={loading}
+          className="checkout-btn-primary"
+          style={{
+            ...clayBtn, width: '100%', justifyContent: 'center',
+            background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+            boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
+            opacity: loading ? 0.6 : 1,
+            cursor: loading ? 'not-allowed' : 'pointer',
+          }}
         >
-          ← Back to edit job posting
-        </Link>
+          {loading ? (
+            <><Loader2 size={16} className="animate-spin" /> Creating checkout session...</>
+          ) : (
+            <><Lock size={15} /> Proceed to Payment — {getPrice()}</>
+          )}
+        </button>
+
+        {/* Terms acknowledgement — visible at point-of-purchase per consumer
+            protection norms. Reduces post-charge "I didn't know it was
+            non-refundable" support tickets and chargeback risk. */}
+        <p style={{ textAlign: 'center', fontSize: '12px', color: '#8A9BA6', margin: '12px 0 0' }}>
+          By clicking Pay, you agree to our{' '}
+          <Link href="/terms" style={{ color: '#0D9488', textDecoration: 'underline' }}>
+            Terms of Service
+          </Link>
+          .
+        </p>
+
+        {/* Back Link */}
+        <div style={{ textAlign: 'center', marginTop: '16px' }}>
+          <Link href="/post-job" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '4px',
+            fontSize: '13px', fontWeight: 600, color: '#6B7F8A', textDecoration: 'none',
+          }}>
+            <ChevronLeft size={14} /> Back to edit job posting
+          </Link>
+        </div>
+
+        {/* Secure Payment Note */}
+        <p style={{ textAlign: 'center', fontSize: '11px', color: '#B0BEC5', marginTop: '20px' }}>
+          Secure payment powered by Stripe. Your card details are never stored on our servers.
+        </p>
       </div>
 
-      {/* Secure Payment Note */}
-      <p className="text-center text-xs text-gray-400 mt-6">
-        Secure payment powered by Stripe. Your card details are never stored on our servers.
-      </p>
+      <style>{`
+        .checkout-btn-primary:hover { transform: translateY(-1px); box-shadow: 6px 6px 16px rgba(13,148,136,0.3), inset 1px 1px 2px rgba(255,255,255,0.15) !important; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }
-

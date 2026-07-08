@@ -203,7 +203,7 @@ export default async function MetroLandingPage({ params }: PageProps) {
         bgColor={metro.practiceAuthority === 'Full' ? '#86c1a8' : metro.practiceAuthority === 'Reduced' ? '#c1a886' : '#c1868a'}
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_states.webp"
         heroAlt={`PMHNP jobs in ${metro.city}, ${metro.stateCode}`}
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', metro.state, metro.city]}
         headlineLine1={metro.city}
         headlineLine2="PMHNP"

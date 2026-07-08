@@ -764,7 +764,7 @@ async function getCityJobs(config: CategoryConfig, city: CityData, skip = 0, tak
   }
 }
 
-const EMPTY_STATS = { totalJobs: 0, rawAvgSalary: 0, colAdjustedSalary: 0 };
+const EMPTY_STATS = { totalJobs: 0, rawAvgSalary: 0, colAdjustedSalary: 0, updatedAt: null as Date | null };
 
 // Perf2: cache() dedupes the duplicate call within a render (metadata + page
 // component both call getCityStats with the same module-level config/city refs).
@@ -785,6 +785,9 @@ const getCityStats = cache(async function getCityStats(config: CategoryConfig, c
         totalJobs: stats.totalJobs,
         rawAvgSalary: stats.rawAvgSalary,
         colAdjustedSalary: stats.colAdjustedSalary,
+        // Real refresh timestamp — powers the "updated {date}" badge without
+        // fabricating a freshness claim.
+        updatedAt: stats.updatedAt as Date | null,
       };
     }
     
@@ -800,7 +803,8 @@ const getCityStats = cache(async function getCityStats(config: CategoryConfig, c
       });
       const rawAvg = Math.round(((salaryAgg._avg.normalizedMinSalary ?? 0) + (salaryAgg._avg.normalizedMaxSalary ?? 0)) / 2 / 1000);
       const colAdj = Math.round(rawAvg * (100 / (city.costOfLivingIndex || 100)));
-      return { totalJobs: liveCount, rawAvgSalary: rawAvg, colAdjustedSalary: colAdj };
+      // Live count computed just now, so "now" is the honest refresh time.
+      return { totalJobs: liveCount, rawAvgSalary: rawAvg, colAdjustedSalary: colAdj, updatedAt: new Date() as Date | null };
     }
 
     return EMPTY_STATS;
@@ -1176,8 +1180,23 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
         bgColor={assets?.bgColor || '#0D9488'}
         heroImage={assets?.heroImage || siteAsset('images/categories/hero_wc_remote.webp')}
         heroAlt={`${config.label} PMHNP working in ${city!.name}, ${city!.stateCode}`}
-        badgeText={`${stats.totalJobs} live roles · updated today`}
-        breadcrumbs={['Careers', config.label, city!.name]}
+        badgeText={
+          stats.updatedAt
+            ? `${stats.totalJobs} live roles · updated ${stats.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+            : `${stats.totalJobs} live roles`
+        }
+        // Clickable trail mirroring the BreadcrumbSchema above. The state
+        // crumb only links when its pSEO page actually has jobs (same
+        // showStateLink gate as the resource links below).
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Jobs', href: '/jobs' },
+          { label: config.label, href: `/jobs/${config.slug}` },
+          showStateLink
+            ? { label: city!.state, href: `/jobs/${config.slug}/${stateToSlug(city!.state)}` }
+            : city!.state,
+          city!.name,
+        ]}
         headlineLine1={config.label}
         headlineLine2="PMHNP"
         headlineSub={`jobs in ${city!.name}, ${city!.stateCode}.`}
@@ -1187,13 +1206,17 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
           { value: demand.label, label: 'demand' },
         ]}
         description={`${config.label} psychiatric NP positions in ${city!.name}. ${config.heroSubtitle}.`}
-        ctaLabel={`Browse ${config.label} Jobs`}
-        ctaHref={`/jobs/${config.slug}`}
+        // Point the primary CTA at the local list on THIS page — the national
+        // category page stays reachable via the "View All Jobs" link below.
+        ctaLabel={`See the ${stats.totalJobs} local openings`}
+        ctaHref="#positions"
         secondaryCtaLabel="Set Alert"
         secondaryCtaHref="/job-alerts"
       />
 
-      <div className="container mx-auto px-4 py-8 md:py-12">
+      {/* id="positions" — anchor target for the hero CTA; scroll-margin keeps
+          the heading clear of the fixed header. */}
+      <div id="positions" className="container mx-auto px-4 py-8 md:py-12" style={{ scrollMarginTop: '90px' }}>
         <div className="max-w-7xl mx-auto">
 
           {/* Job Listings */}

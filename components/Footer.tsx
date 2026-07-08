@@ -207,39 +207,39 @@ export default function Footer() {
               borderTop: '1px solid rgba(255,255,255,0.08)',
             }}
           >
-            <Link href="/privacy" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none', whiteSpace: 'nowrap' }}
+            <Link href="/privacy" style={{ fontSize: '13px', color: '#a8a29e', textDecoration: 'none', whiteSpace: 'nowrap' }}
               onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#a8a29e'; }}
             >Privacy</Link>
-            <Link href="/terms" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none', whiteSpace: 'nowrap' }}
+            <Link href="/terms" style={{ fontSize: '13px', color: '#a8a29e', textDecoration: 'none', whiteSpace: 'nowrap' }}
               onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#a8a29e'; }}
             >Terms</Link>
-            <Link href="/security" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none', whiteSpace: 'nowrap' }}
+            <Link href="/security" style={{ fontSize: '13px', color: '#a8a29e', textDecoration: 'none', whiteSpace: 'nowrap' }}
               onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#a8a29e'; }}
             >Security</Link>
-            <Link href="/sub-processors" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none', whiteSpace: 'nowrap' }}
+            <Link href="/sub-processors" style={{ fontSize: '13px', color: '#a8a29e', textDecoration: 'none', whiteSpace: 'nowrap' }}
               onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#a8a29e'; }}
             >Sub-processors</Link>
-            <Link href="/data-request" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none', whiteSpace: 'nowrap' }}
+            <Link href="/data-request" style={{ fontSize: '13px', color: '#a8a29e', textDecoration: 'none', whiteSpace: 'nowrap' }}
               onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#a8a29e'; }}
             >Data Request</Link>
-            <Link href="/do-not-sell" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none', whiteSpace: 'nowrap' }}
+            <Link href="/do-not-sell" style={{ fontSize: '13px', color: '#a8a29e', textDecoration: 'none', whiteSpace: 'nowrap' }}
               onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#a8a29e'; }}
             >Do Not Sell or Share</Link>
             <button
               type="button"
               onClick={reopenConsentBanner}
               style={{
-                fontSize: '13px', color: '#78716c', background: 'none', border: 'none',
+                fontSize: '13px', color: '#a8a29e', background: 'none', border: 'none',
                 padding: 0, cursor: 'pointer', font: 'inherit', whiteSpace: 'nowrap',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#a8a29e'; }}
             >Cookie Settings</button>
           </nav>
 
@@ -264,7 +264,7 @@ export default function Footer() {
                 </span>
               </Link>
               <span className="footer-pipe" style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.15)' }} />
-              <p className="footer-tagline" style={{ fontSize: '13px', color: '#78716c', margin: 0, whiteSpace: 'nowrap' }}>
+              <p className="footer-tagline" style={{ fontSize: '13px', color: '#a8a29e', margin: 0, whiteSpace: 'nowrap' }}>
                 The #1 specialized job board for psychiatric nurse practitioners.
               </p>
             </div>
@@ -320,9 +320,11 @@ export default function Footer() {
             {/* Right: Copyright + legal address.
                 SEO Fix M15: surface the legal mailing address as a trust
                 signal for E-E-A-T (a real LLC operates this site, with a
-                real registered address). */}
+                real registered address). #8a8580 keeps this line quieter
+                than the nav links while clearing WCAG AA 4.5:1 on #1c1917
+                (the previous darker gray sat at ~2.3:1). */}
             <div className="footer-bar-right" style={{ display: 'flex', alignItems: 'center' }}>
-              <p style={{ fontSize: '13px', color: '#57534e', margin: 0, lineHeight: 1.6, textAlign: 'right' }}>
+              <p style={{ fontSize: '13px', color: '#8a8580', margin: 0, lineHeight: 1.6, textAlign: 'right' }}>
                 © {new Date().getFullYear()} {brand.name} · operated by {brand.legal.entityName}
                 <span className="footer-address-sep" style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
                 <span style={{ whiteSpace: 'nowrap' }}>{brand.legal.addressLine}, {brand.legal.addressCity}, {brand.legal.addressRegion} {brand.legal.addressPostalCode}</span>

@@ -92,7 +92,7 @@ export default async function SeniorPage({ searchParams }: PageProps) {
         bgColor="#6a85a0"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_senior.webp"
         heroAlt="Senior PMHNP clinical leadership roles"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Senior']}
         indexLabel="№ 27 / 28"
         headlineLine1="Senior"

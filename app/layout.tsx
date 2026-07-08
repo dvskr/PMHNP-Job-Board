@@ -12,8 +12,8 @@ import Footer from '@/components/Footer';
 import dynamic from 'next/dynamic';
 // BottomNav was previously dynamic() with no SSR, which meant the 56px
 // fixed bar was injected after hydration -- causing a CLS spike on every
-// mobile route. Static-render it: the component only uses usePathname()
-// which is SSR-safe.
+// mobile route. Static-render it: it uses usePathname() (SSR-safe) plus a
+// post-hydration auth check that swaps one nav slot without layout shift.
 import BottomNav from '@/components/BottomNav';
 
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -25,7 +25,10 @@ import GoogleAnalytics from '@/components/GoogleAnalytics';
 import ConsentGatedTelemetry from '@/components/ConsentGatedTelemetry';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import { ToastProvider } from '@/components/ui/ToastProvider';
-const ExitIntentPopup = dynamic(() => import('@/components/ExitIntentPopup'));
+// Session-scoped visit counting lives in its own no-UI component so both
+// PWAInstallBanner and PushNotificationPrompt can read the same
+// localStorage counter without either of them owning the increment.
+import VisitCounter from '@/components/VisitCounter';
 const PushNotificationPrompt = dynamic(() => import('@/components/PushNotificationPrompt'));
 const CookieConsent = dynamic(() => import('@/components/CookieConsent'));
 const PWAInstallBanner = dynamic(() => import('@/components/PWAInstallBanner'));
@@ -297,7 +300,7 @@ export default async function RootLayout({
                 </MobileHideOnAppRoutes>
                 <BottomNav />
                 <ScrollIndicator />
-                <ExitIntentPopup />
+                <VisitCounter />
                 <PushNotificationPrompt />
                 <CookieConsent initialConsent={initialConsent} />
                 <PWAInstallBanner />

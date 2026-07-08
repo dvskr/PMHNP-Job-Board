@@ -484,7 +484,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                 bgColor="#7eb8c9"
                 heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_states.webp"
                 heroAlt={`PMHNP jobs in ${cityName}, ${stateCode}`}
-                badgeText={`${stats.totalJobs} live roles · updated today`}
+                badgeText={`${stats.totalJobs} live roles`}
                 breadcrumbs={['Careers', stateName, cityName]}
                 headlineLine1={cityName}
                 headlineLine2="PMHNP"

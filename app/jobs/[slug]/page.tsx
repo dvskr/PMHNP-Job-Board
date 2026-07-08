@@ -920,7 +920,25 @@ export default async function JobPage({ params }: JobPageProps) {
                       </Badge>
                     );
                   })()}
+                  {/* Freshness chip — the "Posted X ago" signal used to live
+                      only in the footer, below the fold. Surfacing it in the
+                      hero lets candidates gauge staleness before reading. */}
+                  {freshness && (
+                    <Badge variant="outline" size="md">{freshness}</Badge>
+                  )}
                 </div>
+
+                {/* Urgent expiry — mobile. The sidebar expiry notice is
+                    desktop-only (hidden lg:block), so mobile users never saw
+                    a closing-soon deadline. Factual text only. */}
+                {!expiryStatus.isExpired && expiryStatus.isUrgent && expiryStatus.text && (
+                  <div className="lg:hidden flex items-center gap-2 text-orange-500">
+                    <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-sm font-medium">{expiryStatus.text}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1091,7 +1109,7 @@ export default async function JobPage({ params }: JobPageProps) {
                 )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
-                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} applyOnPlatform={job.applyOnPlatform} sourceType={job.sourceType} />
+                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} applyOnPlatform={job.applyOnPlatform} sourceType={job.sourceType} state={job.state} jobType={job.jobType} />
                   <div style={{ display: 'grid', gridTemplateColumns: job.sourceType === 'employer' ? '1fr 1fr' : '1fr', gap: '8px' }}>
                     <SaveJobButton jobId={job.id} />
                     {job.sourceType === 'employer' && (
@@ -1162,6 +1180,16 @@ export default async function JobPage({ params }: JobPageProps) {
                 />
               </div>
 
+              {/* Mobile-only message-the-employer section. The sticky bottom
+                  bar no longer carries this button (it collapsed to a single
+                  Apply + Save row), and the sidebar copy is desktop-only —
+                  this keeps messaging reachable on phones for employer posts. */}
+              {job.sourceType === 'employer' && (
+                <div className="lg:hidden mb-4">
+                  <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} employerUserId={employerUserId} />
+                </div>
+              )}
+
               {/* Mobile-only share section below content */}
               <div className="lg:hidden rounded-2xl p-5 mb-4" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                 <p className="text-sm mb-3" style={{ color: 'var(--text-tertiary)' }}>Share this job:</p>
@@ -1215,17 +1243,20 @@ export default async function JobPage({ params }: JobPageProps) {
       </div>
       </div>
 
-      {/* Sticky Apply Button - Mobile Only */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+      {/* Sticky Apply Bar - Mobile Only. ONE row: Apply (flex-1) + compact
+          bookmark icon. The previous two-row stack (Apply above a
+          Save/Message pair) occluded ~120px of content on small screens.
+          MessageEmployer stays available in the in-page sidebar section. */}
+      {/* maxHeight + scroll: ApplyButton's taller states (auth wall, post-
+          apply success panel) render inside this fixed bar; uncapped they
+          occlude most of a small viewport. */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid rgba(0,0,0,0.06)', maxHeight: '70vh', overflowY: 'auto' }}>
         <div className="px-4 py-2 pb-safe">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} applyOnPlatform={job.applyOnPlatform} sourceType={job.sourceType} />
-            <div style={{ display: 'grid', gridTemplateColumns: job.sourceType === 'employer' ? '1fr 1fr' : '1fr', gap: '8px' }}>
-              <SaveJobButton jobId={job.id} />
-              {job.sourceType === 'employer' && (
-                <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} employerUserId={employerUserId} />
-              )}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} applyOnPlatform={job.applyOnPlatform} sourceType={job.sourceType} state={job.state} jobType={job.jobType} compact />
             </div>
+            <SaveJobButton jobId={job.id} variant="icon" />
           </div>
         </div>
       </div>

@@ -116,7 +116,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
         bgColor="#9ed2ba"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_v2_outpatient.webp"
         heroAlt="Outpatient PMHNP clinic setting"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Outpatient']}
         indexLabel="№ 11 / 28"
         headlineLine1="Outpatient"

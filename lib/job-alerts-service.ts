@@ -67,7 +67,8 @@ const CODE_TO_STATE: Record<string, string> = Object.fromEntries(
 )
 
 // ─── Build human-readable criteria summary ────────────────────────────────────
-function buildCriteriaSummary(alert: { keyword?: string | null; location?: string | null; mode?: string | null; jobType?: string | null; minSalary?: number | null; maxSalary?: number | null }): string {
+// Exported: /api/job-alerts POST reuses this to personalize the welcome email.
+export function buildCriteriaSummary(alert: { keyword?: string | null; location?: string | null; mode?: string | null; jobType?: string | null; minSalary?: number | null; maxSalary?: number | null }): string {
   const parts: string[] = []
   if (alert.keyword) parts.push(`"${alert.keyword}"`)
   if (alert.location) parts.push(`in ${alert.location}`)
@@ -84,7 +85,8 @@ function buildCriteriaSummary(alert: { keyword?: string | null; location?: strin
 }
 
 // ─── Build pre-filtered jobs URL from alert criteria ──────────────────────────
-function buildFilteredJobsUrl(alert: { keyword?: string | null; location?: string | null; mode?: string | null; jobType?: string | null; minSalary?: number | null; maxSalary?: number | null }): string {
+// Exported: /api/job-alerts POST reuses this for the welcome email CTA link.
+export function buildFilteredJobsUrl(alert: { keyword?: string | null; location?: string | null; mode?: string | null; jobType?: string | null; minSalary?: number | null; maxSalary?: number | null }): string {
   // Param names MUST match parseFiltersFromParams (lib/filters.ts): the /jobs
   // page reads workMode/jobType/salaryMin — the old mode/type/minSalary/maxSalary
   // names were silently ignored, so "View All Matching Jobs" landed on an

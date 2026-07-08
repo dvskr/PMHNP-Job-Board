@@ -238,26 +238,63 @@ export async function getOrCreateUnsubToken(email: string): Promise<string> {
 // 1. WELCOME EMAIL (Job Alert Subscription)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export async function sendWelcomeEmail(email: string, unsubscribeToken: string): Promise<EmailResult> {
+/** Alert details for personalizing the welcome email. The caller computes
+ *  criteriaSummary / filteredJobsUrl via buildCriteriaSummary /
+ *  buildFilteredJobsUrl (lib/job-alerts-service.ts) so this module does not
+ *  need to import the alert pipeline (avoids a circular dependency \u2014
+ *  job-alerts-service already imports from this file). */
+export interface WelcomeAlertDetails {
+  criteriaSummary: string;
+  filteredJobsUrl: string;
+  frequency?: string | null;
+  location?: string | null;
+}
+
+export async function sendWelcomeEmail(
+  email: string,
+  unsubscribeToken: string,
+  alert?: WelcomeAlertDetails
+): Promise<EmailResult> {
   try {
+    const frequencyLabel = alert?.frequency === 'weekly' ? 'weekly digest' : 'daily digest';
+    const criteriaSummary = alert?.criteriaSummary || 'All PMHNP jobs';
+    const ctaUrl = alert?.filteredJobsUrl || `${BASE_URL}/jobs`;
+
+    // Echo the exact criteria back so the subscriber knows what they set up.
+    const criteriaCard = alert
+      ? `${spacerV2(20)}
+      <tr><td style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${V2.bgCardAlt};border-radius:8px;border:1px solid ${V2.borderLight};">
+          <tr><td style="padding:12px 16px;">
+            <p style="margin:0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};text-transform:uppercase;letter-spacing:0.5px;font-weight:700;">Your Alert</p>
+            <p style="margin:4px 0 0;font-family:${SANS_V2};font-size:14px;color:${V2.textBody};">${escapeHtml(criteriaSummary)}</p>
+            <p style="margin:4px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};">Delivered as a ${frequencyLabel}.</p>
+          </td></tr>
+        </table>
+      </td></tr>`
+      : '';
+
     const html = emailShellV2(`
-      ${headerBlockV2('Your Alerts Are Live', '')}
+      ${headerBlockV2('Your Alert Is Active', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-alert-subscription.png', 'Your job alerts are now active. We scan thousands of PMHNP positions daily and deliver matches straight to your inbox \u2014 so you never miss the right opportunity.')}
-      ${spacerV2(32)}
+      ${simpleBlock('hero-alert-subscription.png', `Your job alert is now active. We scan thousands of PMHNP positions daily and will send you a ${frequencyLabel} with new matches \u2014 so you never miss the right opportunity.`)}
+      ${criteriaCard}
+      ${spacerV2(28)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
-        ${primaryButtonV2('Browse Open Positions', `${BASE_URL}/jobs`)}
+        ${primaryButtonV2('See Matching Jobs', ctaUrl)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2(unsubscribeToken),
-      'Your PMHNP job alerts are active.'
+      `Your PMHNP job alert is active: ${criteriaSummary}.`
     );
 
     await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: 'Welcome — Your Job Alerts Are Active!',
+      subject: alert?.location
+        ? `Your ${alert.location} PMHNP alert is active`
+        : 'Your PMHNP job alert is active',
       html,
     }, 'welcome_alert', undefined, `${BASE_URL}/unsubscribe?token=${unsubscribeToken}`);
 
@@ -1397,8 +1434,8 @@ export async function sendSavedJobReminderEmail(
 
     const headline = jobs.length === 1 ? 'Your Saved Job Is Still Open' : `${jobs.length} Saved Jobs Still Open`;
     const bodyMsg = jobs.length === 1
-      ? `You saved this position recently. It's still accepting applications \u2014 do not miss your window.`
-      : `You saved <strong>${jobs.length} jobs</strong> recently. These positions are still accepting applications \u2014 do not miss your window.`;
+      ? `You saved this position recently, and it is still accepting applications.`
+      : `You saved <strong>${jobs.length} jobs</strong> recently, and these positions are still accepting applications.`;
 
     const html = emailShellV2(`
       ${headerBlockV2(headline, '')}
@@ -1419,7 +1456,7 @@ export async function sendSavedJobReminderEmail(
     await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: `💾 ${jobs.length} job${jobs.length !== 1 ? 's' : ''} you saved ${jobs.length !== 1 ? 'are' : 'is'} still open — apply now!`,
+      subject: `💾 ${jobs.length} job${jobs.length !== 1 ? 's' : ''} you saved ${jobs.length !== 1 ? 'are' : 'is'} still open`,
       html,
     }, 'saved_job_reminder', { jobCount: jobs.length }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
 

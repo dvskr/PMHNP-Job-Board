@@ -178,7 +178,7 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
         bgColor="#e3ac73"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_childadolescent.webp"
         heroAlt="Child and adolescent PMHNP pediatric care"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Child & Adolescent']}
         indexLabel="№ 16 / 28"
         headlineLine1="Child & Adolescent"

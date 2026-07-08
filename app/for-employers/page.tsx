@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import EmployerHowItWorks from '@/components/EmployerHowItWorks';
+import EmployerTestimonials from '@/components/EmployerTestimonials';
 import { config } from '@/lib/config';
 import { prisma } from '@/lib/prisma';
 import {
@@ -125,7 +126,9 @@ export default async function ForEmployersPage() {
             </div>
           </div>
 
-          {/* Stats — Real Data */}
+          {/* Stats — Real Data. Hidden entirely when the DB query failed
+              (getEmployerStats returns zeros) so we never render "0+" pills. */}
+          {stats.totalJobs > 0 && (
           <div className="emp-stats-grid" style={{
             display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap',
             marginTop: '48px',
@@ -158,6 +161,7 @@ export default async function ForEmployersPage() {
               );
             })}
           </div>
+          )}
         </div>
       </section>
 
@@ -165,6 +169,10 @@ export default async function ForEmployersPage() {
           SECTION 2: HOW EMPLOYERS HIRE (shared component from homepage)
           ═══════════════════════════════════════════════════════════════ */}
       <EmployerHowItWorks />
+
+      {/* Real, consented employer testimonials (admin-featured; renders
+          nothing when none are featured — never fabricated). */}
+      <EmployerTestimonials />
 
       {/* ═══════════════════════════════════════════════════════════════
           SECTION 3: BENTO GRID FEATURES
@@ -196,9 +204,14 @@ export default async function ForEmployersPage() {
             }}>
               <div style={{ padding: '32px 28px' }}>
                 <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-calendar.webp" alt="" width={56} height={56} style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px' }} />
-                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>60-Day Listing</h3>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>{config.durationDays}-Day Listing</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
                   Double the industry standard. Your job stays visible for 2 full months — no daily budget, no bidding.
+                </p>
+                {/* Duration disclosure — same split /pricing states: the free
+                    first post runs the shorter trial window. */}
+                <p style={{ fontSize: '12px', color: '#7A6A62', margin: '8px 0 0', lineHeight: 1.5 }}>
+                  Paid posts run {config.durationDays} days; your free first post runs {config.freeDurationDays} days.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>

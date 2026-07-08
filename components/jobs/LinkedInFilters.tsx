@@ -21,7 +21,9 @@ function CheckboxFilter({ label, count, checked, onChange, disabled }: CheckboxF
       className={`li-filter-row ${disabled ? 'li-filter-disabled' : ''}`}
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '8px 6px', borderRadius: '8px', cursor: 'pointer',
+        // 12px vertical padding pushes each row past the 44px touch-target
+        // minimum (WCAG 2.5.8 / Apple HIG) — 8px produced ~36px rows.
+        padding: '12px 6px', borderRadius: '8px', cursor: 'pointer',
         transition: 'background 0.15s',
       }}
     >
@@ -91,9 +93,16 @@ function FilterSection({ title, defaultExpanded = true, children }: FilterSectio
   );
 }
 
-// Empty interface removed - not needed
+interface LinkedInFiltersProps {
+  /**
+   * Reports the live filtered-job total whenever fresh counts land, so hosts
+   * (e.g. MobileFilterDrawer's "Show {n} jobs" button) can surface it without
+   * re-fetching. Pass a stable callback (a setState setter is fine).
+   */
+  onTotalChange?: (total: number) => void;
+}
 
-export default function LinkedInFilters() {
+export default function LinkedInFilters({ onTotalChange }: LinkedInFiltersProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -124,13 +133,14 @@ export default function LinkedInFilters() {
       if (response.ok) {
         const data = await response.json();
         setCounts(data);
+        if (typeof data?.total === 'number') onTotalChange?.(data.total);
       }
     } catch (error) {
       console.error('Failed to fetch filter counts:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [searchParams]);
+  }, [searchParams, onTotalChange]);
 
   // Defer the filter-count POST off the critical render path. Audit 07
   // M-3: this fired on every page load before any user interaction,

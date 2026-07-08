@@ -205,7 +205,7 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
         bgColor="#91c9e7"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_v2_locumtenens.webp"
         heroAlt="Locum tenens travel PMHNP assignment"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Locum Tenens']}
         indexLabel="№ 04 / 28"
         headlineLine1="Locum Tenens"

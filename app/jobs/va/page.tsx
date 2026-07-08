@@ -169,7 +169,7 @@ export default async function VAJobsPage({ searchParams }: PageProps) {
         bgColor="#97b0c9"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_v2_va.webp"
         heroAlt="VA PMHNP Veterans Affairs medical center"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'VA']}
         indexLabel="№ 20 / 28"
         headlineLine1="VA"

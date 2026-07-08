@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { MapPin, CheckCircle, Eye, Bookmark, ExternalLink, BadgeCheck, Zap, Mail } from 'lucide-react';
+import { MapPin, Eye, Bookmark, BadgeCheck, Zap, Mail } from 'lucide-react';
 import { slugify, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
@@ -55,15 +55,30 @@ function buildSalaryDisplay(job: Job): string | null {
   return null;
 }
 
-// Direct-apply detection moved to lib/direct-apply.ts so the detail
-// page's ApplyButton uses the exact same logic — no more mismatch
-// between "Direct Apply" on the card and "Apply Now" on the detail.
-import { isDirectApplyUrl } from '@/lib/direct-apply';
 // Render-time experience-label override so residency/fellowship/
 // training-program jobs always show "New grad welcome" — even when
 // the inference regex previously mis-extracted "5 years" from
 // "5 years of accredited training" in the description.
 import { effectiveExperienceLabel, effectiveNewGradFriendly } from '@/lib/experience-label';
+
+/**
+ * Cards always show a RELATIVE posted date. getJobFreshness falls back to
+ * an absolute "Posted on Apr 29, 2026" for jobs older than 30 days, which
+ * made card rows read inconsistently ("Posted 3 weeks ago" next to
+ * "Posted on Apr 29, 2026"). This converts the absolute fallback into
+ * "Posted N months/years ago" and passes every relative label through
+ * unchanged. Exported for unit tests.
+ */
+export function formatRelativePostedLabel(label: string, postedAt: Date, now: Date = new Date()): string {
+  if (!label.startsWith('Posted on ')) return label;
+  const days = Math.floor((now.getTime() - postedAt.getTime()) / (1000 * 60 * 60 * 24));
+  if (days >= 365) {
+    const years = Math.floor(days / 365);
+    return `Posted ${years} year${years !== 1 ? 's' : ''} ago`;
+  }
+  const months = Math.max(1, Math.floor(days / 30));
+  return `Posted ${months} month${months !== 1 ? 's' : ''} ago`;
+}
 
 function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const { isApplied } = useAppliedJobs();
@@ -98,23 +113,23 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   // hydration error #418 (the most common error reported in production
   // logs). Mount-guard: emit empty server-side, swap to live label after
   // hydration. isHydrated is already wired via useViewedJobs() above.
-  const freshness = isHydrated ? getJobFreshness(job) : '';
+  // formatRelativePostedLabel keeps the label relative even past 30 days
+  // (getEffectiveDate contract: freshness is based on createdAt).
+  const freshness = isHydrated
+    ? formatRelativePostedLabel(getJobFreshness(job), new Date(job.createdAt as unknown as string))
+    : '';
   const shareTitle = `${job.title} at ${job.employer}`;
   const shareDescription = `Check out this PMHNP job: ${job.title} at ${job.employer}`;
   const viewed = isHydrated && isViewed(jobSlug);
   const easyApply = job.applyOnPlatform === true;
-  // "Direct Apply" = employer posted the job here AND links to their own
-  // ATS, OR an aggregated job whose apply URL matches a known ATS pattern.
-  // Either way, the user is going straight to the employer (no aggregator
-  // middleman) so the "Direct Apply" label is honest.
-  const directApply =
-    !easyApply &&
-    !!job.applyLink &&
-    (job.sourceType === 'employer' || isDirectApplyUrl(job.applyLink));
 
-  // Card "Easy Apply" → navigate to job detail with ?apply=1 so the apply
-  // popup auto-opens. Stops the surrounding card-link from firing too.
-  const handleEasyApplyClick = (e: React.MouseEvent) => {
+  // EVERY card apply button (Easy Apply and external alike) navigates to
+  // the job detail page with ?apply=1, where ApplyButton auto-triggers the
+  // apply flow. Cards used to window.open external links directly, which
+  // bypassed both the sign-up wall and /api/jobs/[id]/track-apply — so
+  // apply_click_count undercounted the metric employers pay for. Stops the
+  // surrounding card-link from firing too.
+  const handleApplyClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     markAsViewed(jobSlug);
@@ -353,7 +368,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               {easyApply ? (
                 <button
                   className="jc-easy-apply-btn"
-                  onClick={handleEasyApplyClick}
+                  onClick={handleApplyClick}
                   style={{
                     padding: '8px 16px', borderRadius: '14px',
                     fontSize: '13px', fontWeight: 700, color: '#fff',
@@ -370,16 +385,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                 </button>
               ) : job.applyLink && (
                 <button
-                  className={directApply ? "jc-direct-apply-btn" : "jc-apply-btn"}
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(job.applyLink!, '_blank', 'noopener,noreferrer'); }}
-                  style={directApply ? {
-                    padding: '8px 16px', borderRadius: '14px',
-                    fontSize: '13px', fontWeight: 600, color: '#1E40AF',
-                    backgroundColor: '#BFDBFE', whiteSpace: 'nowrap',
-                    border: '1px solid rgba(255,255,255,0.5)',
-                    boxShadow: '4px 4px 10px rgba(59,130,246,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
-                    cursor: 'pointer', transition: 'all 0.2s ease',
-                  } : {
+                  className="jc-apply-btn"
+                  onClick={handleApplyClick}
+                  style={{
                     padding: '8px 16px', borderRadius: '14px',
                     fontSize: '13px', fontWeight: 600, color: '#fff',
                     backgroundColor: '#0d9488', whiteSpace: 'nowrap',
@@ -388,7 +396,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                     cursor: 'pointer', transition: 'all 0.2s ease',
                   }}
                 >
-                  {directApply ? 'Direct Apply' : 'Apply'}
+                  Apply
                 </button>
               )}
             </div>
@@ -519,7 +527,11 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                 clip the rightmost ~30px under the bookmark icon but
                 that's preferred over starving every row of 50px. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'clip' }}>
+              {/* textOverflow must be 'ellipsis', not 'clip': at narrow mobile
+                  widths (e.g. 390px) 'clip' cuts mid-glyph, so "Caring Hearts"
+                  rendered as the garbled "Caring I". An honest "Caring He…"
+                  beats a chopped letter that reads as a different name. */}
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {(() => {
                   // Short names (≤20 chars) render in full so "Sol Mental
                   // Health" isn't needlessly cut to "Sol Mental". Anything
@@ -650,7 +662,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             {easyApply ? (
               <button
                 className="jc-easy-apply-btn"
-                onClick={handleEasyApplyClick}
+                onClick={handleApplyClick}
                 style={{
                   fontSize: '13px', fontWeight: 700, color: '#fff',
                   background: 'linear-gradient(135deg, #2DD4BF, #0D9488)',
@@ -666,17 +678,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               </button>
             ) : job.applyLink && (
               <button
-                className={directApply ? "jc-direct-apply-btn" : "jc-apply-btn"}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(job.applyLink!, '_blank', 'noopener,noreferrer'); }}
-                style={directApply ? {
-                  fontSize: '13px', fontWeight: 700, color: '#1E40AF',
-                  backgroundColor: '#BFDBFE',
-                  padding: '7px 16px', borderRadius: '14px',
-                  display: 'inline-flex', alignItems: 'center', gap: '4px',
-                  border: '1px solid rgba(255,255,255,0.5)',
-                  boxShadow: '4px 4px 10px rgba(59,130,246,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
-                  cursor: 'pointer', transition: 'all 0.2s ease',
-                } : {
+                className="jc-apply-btn"
+                onClick={handleApplyClick}
+                style={{
                   fontSize: '13px', fontWeight: 700, color: '#fff',
                   backgroundColor: '#0d9488',
                   padding: '7px 16px', borderRadius: '14px',
@@ -686,7 +690,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                   cursor: 'pointer', transition: 'all 0.2s ease',
                 }}
               >
-                {directApply ? 'Direct Apply' : 'Apply'}
+                Apply
               </button>
             )}
           </div>
@@ -735,15 +739,6 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         .jc-easy-apply-btn:active {
           transform: translateY(1px);
           box-shadow: inset 3px 3px 6px rgba(0,0,0,0.15), inset -2px -2px 4px rgba(255,255,255,0.15) !important;
-        }
-        .jc-direct-apply-btn:hover {
-          background-color: #93C5FD !important;
-          transform: translateY(-2px);
-          box-shadow: 6px 6px 16px rgba(59,130,246,0.20), -3px -3px 8px rgba(255,255,255,0.6), inset 2px 2px 4px rgba(255,255,255,0.5), inset -1px -1px 2px rgba(0,0,0,0.05) !important;
-        }
-        .jc-direct-apply-btn:active {
-          transform: translateY(1px);
-          box-shadow: inset 3px 3px 6px rgba(0,0,0,0.1), inset -2px -2px 4px rgba(255,255,255,0.1) !important;
         }
         .jc-apply-btn:active {
           transform: translateY(1px);

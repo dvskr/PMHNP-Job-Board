@@ -108,8 +108,37 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
         isValidTab(tabFromUrl) ? tabFromUrl : 'jobs',
     );
     const [mounted, setMounted] = useState(false);
+    // Unfinished post-job draft (auto-saved by /post-job). Surfaced as a
+    // "continue where you left off" card above the jobs list — without it
+    // the draft exists server-side but the dashboard never mentions it.
+    const [draft, setDraft] = useState<{ title: string; savedAt: string } | null>(null);
 
     useEffect(() => { setMounted(true); }, []);
+
+    // Fetch the employer's saved draft. GET /api/job-draft returns
+    // { success, draft: { id, formData, email, savedAt, expiresAt } | null }
+    // for authenticated employers; token-access visitors aren't
+    // authenticated, so skip the call entirely for them.
+    useEffect(() => {
+        if (isTokenAccess) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch('/api/job-draft', { cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (cancelled || !data?.draft?.formData) return;
+                const formData = data.draft.formData as { title?: string };
+                setDraft({
+                    title: (formData.title || '').trim() || 'Untitled post',
+                    savedAt: data.draft.savedAt,
+                });
+            } catch {
+                /* silent — the card is a nicety, not critical data */
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [isTokenAccess]);
 
     // Sync internal tab state when the URL query changes (top-nav navigation
     // between Dashboard and Applicants is the primary trigger).
@@ -145,6 +174,18 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     const isExpired = (job: Job): boolean => {
         if (!job.expiresAt) return false;
         return new Date(job.expiresAt) < new Date();
+    };
+
+    // Human-friendly age for the draft card ("saved 2 hours ago").
+    const relativeTimeSince = (iso: string): string => {
+        const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+        if (!Number.isFinite(seconds) || seconds < 60) return 'moments';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'}`;
+        const days = Math.floor(hours / 24);
+        return `${days} day${days === 1 ? '' : 's'}`;
     };
 
     const isExpiringSoon = (job: Job): boolean => {
@@ -524,6 +565,49 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 {/* ═══ Jobs Tab ═══ */}
                 {(activeTab === 'jobs' || isTokenAccess) && (
                     <>
+                        {/* ═══ Unfinished Draft — shown in both empty and
+                            non-empty states so a half-written post is never
+                            silently stranded. mounted gate avoids a
+                            hydration mismatch on the relative timestamp. ═══ */}
+                        {mounted && draft && (
+                            <div style={{
+                                ...cardBase, padding: '16px 20px', marginBottom: '14px',
+                                background: '#F0FDFA', border: '1px solid #99F6E4',
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                gap: '14px', flexWrap: 'wrap',
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                                    <div style={{
+                                        width: '38px', height: '38px', borderRadius: '12px', flexShrink: 0,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: '#CCFBF1', color: '#0D9488',
+                                        border: '1px solid rgba(255,255,255,0.5)',
+                                        boxShadow: '3px 3px 8px rgba(0,0,0,0.04), inset 1px 1px 2px rgba(255,255,255,0.6)',
+                                    }}>
+                                        <FileText size={17} />
+                                    </div>
+                                    <div style={{ minWidth: 0 }}>
+                                        <p style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#134E4A', margin: 0 }}>
+                                            Continue your unfinished post
+                                        </p>
+                                        <p style={{
+                                            fontSize: '12px', color: '#0F766E', margin: '2px 0 0',
+                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                        }}>
+                                            &ldquo;{draft.title}&rdquo; saved {relativeTimeSince(draft.savedAt)} ago
+                                        </p>
+                                    </div>
+                                </div>
+                                <Link href="/post-job" style={{
+                                    ...clayBtn, background: 'linear-gradient(145deg, #10B981, #0D9488)',
+                                    color: '#fff', border: 'none', flexShrink: 0,
+                                    boxShadow: '3px 3px 8px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                }}>
+                                    Continue draft →
+                                </Link>
+                            </div>
+                        )}
+
                         {/* Empty State */}
                         {localJobs.length === 0 && (
                             <div style={{ ...cardBase, padding: '48px 24px', textAlign: 'center' }}>

@@ -117,12 +117,40 @@ export default function PreviewPage() {
 
   const handleBack = () => { router.push('/post-job'); };
 
+  // Derived quota flags — drive the banner copy, the CTA label, and which
+  // endpoint the continue button hits. Null/erroring quotaStatus falls back
+  // to the optimistic free-first path (the API re-checks server-side).
+  const willBeFree = quotaStatus?.eligible === true && quotaStatus.willBeFree === true;
+  const isPaidPost = quotaStatus?.eligible === true && quotaStatus.willBeFree === false;
+  const isFreeEmailBlocked = quotaStatus?.eligible === false && quotaStatus.reason === 'free-email-provider';
+  const needsLogin = quotaStatus?.eligible === false && quotaStatus.reason === 'unauthenticated';
+  // Both of these are guaranteed-paid posts — calling /api/jobs/post-free
+  // would only bounce with an error, so we route straight to checkout.
+  const goesToCheckout = isPaidPost || isFreeEmailBlocked;
+  const contactDomain = formData ? ((formData.contactEmail || '').split('@')[1] || '') : '';
+
   const handleContinue = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Always try free posting first — API checks if employer has free posts remaining
       if (!formData) return;
+
+      // Known-paid post: skip the doomed free-post call and go straight to
+      // payment. The limit-hit event still fires here so the P7 funnel sees
+      // the same moment it used to capture via the API rejection.
+      if (goesToCheckout) {
+        if (isPaidPost) {
+          trackFreePostLimitHit(
+            contactDomain || 'unknown',
+            quotaStatus?.limit ?? config.freePostsPerEmail,
+            quotaStatus?.limit ?? config.freePostsPerEmail
+          );
+        }
+        router.push('/post-job/checkout');
+        return;
+      }
+
+      // Otherwise try free posting first — API re-checks the quota server-side
       const response = await fetch('/api/jobs/post-free', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -165,18 +193,23 @@ export default function PreviewPage() {
           // Non-fatal — the dashboard list is a UX nicety, not data
           // integrity; a stale draft can be cleared from the dashboard.
         }
-        router.push('/success?free=true');
+        // Carry the new job's id to the success page for the P7
+        // submit_free_post conversion event.
+        router.push(result.jobId
+          ? `/success?free=true&jobId=${encodeURIComponent(result.jobId)}`
+          : '/success?free=true');
       } else if (result.requiresPayment) {
         // Free posts exhausted — fire P7 limit-hit event then redirect to checkout
-        const domain = (formData.contactEmail || '').split('@')[1] || 'unknown';
         trackFreePostLimitHit(
-          domain,
+          contactDomain || 'unknown',
           result.freePostsUsed ?? config.freePostsPerEmail,
           result.freePostsLimit ?? config.freePostsPerEmail
         );
         router.push('/post-job/checkout');
       } else {
-        setError(result.error || 'Failed to post job');
+        // Prefer the server's explanatory `message` (e.g. the company-email
+        // requirement) over the terse `error` code.
+        setError(result.message || result.error || 'Failed to post job');
       }
     } catch {
       setError('Something went wrong. Please try again.');
@@ -265,12 +298,14 @@ export default function PreviewPage() {
     companyLogoUrl: formData.companyLogoUrl || null,
   };
 
-  const willBeFree = quotaStatus?.eligible === true && quotaStatus.willBeFree === true;
+  const paidDays = quotaStatus?.paidDurationDays ?? config.durationDays;
   const packageHeadline = willBeFree
     ? `Free trial post — live for ${quotaStatus?.freeDurationDays ?? config.freeDurationDays} days`
-    : quotaStatus?.eligible === true
-      ? `Live for ${quotaStatus?.paidDurationDays ?? config.durationDays} days`
-      : `Live for ${config.durationDays} days`;
+    : isPaidPost
+      ? `Your organization${contactDomain ? ` (${contactDomain})` : ''} has used its free post — this listing is $${config.postingPrice} for ${paidDays} days`
+      : isFreeEmailBlocked
+        ? `This listing is $${config.postingPrice} for ${paidDays} days`
+        : `Live for ${config.durationDays} days`;
   const packageDetails = `Top placement · ${config.limits.candidateUnlocksPerPosting} candidate unlocks · ${config.limits.inmailsPerPosting} InMails · Applicant analytics`;
 
   return (
@@ -284,6 +319,36 @@ export default function PreviewPage() {
           </h1>
           <p style={{ fontSize: '14px', color: '#8A9BA6', margin: 0 }}>Review how your job will appear to candidates</p>
         </div>
+
+        {/* Up-front quota explanations — surfaced BEFORE the user clicks
+            submit so known-doomed requests never happen blind. */}
+        {needsLogin && (
+          <div style={{ ...cardBase, padding: '16px 20px', marginBottom: '16px', background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+            <p style={{ fontSize: '14px', fontWeight: 700, color: '#92400E', margin: '0 0 4px' }}>
+              You need to be logged in to publish this post.
+            </p>
+            <p style={{ fontSize: '13px', color: '#92400E', margin: '0 0 12px', lineHeight: 1.5 }}>
+              Your draft is saved on this device, so you can log in and pick up right where you left off.
+            </p>
+            <a href="/login?next=/post-job/preview" style={{
+              ...clayBtn, padding: '10px 20px', fontSize: '13px', textDecoration: 'none',
+              background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+              boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
+            }}>
+              Log in to continue
+            </a>
+          </div>
+        )}
+        {isFreeEmailBlocked && (
+          <div style={{ ...cardBase, padding: '16px 20px', marginBottom: '16px', background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+            <p style={{ fontSize: '14px', fontWeight: 700, color: '#92400E', margin: '0 0 4px' }}>
+              Free first posts require a company email.
+            </p>
+            <p style={{ fontSize: '13px', color: '#92400E', margin: 0, lineHeight: 1.5 }}>
+              Your account is registered with a personal email provider (Gmail, Yahoo, etc.), so the free first post does not apply — this listing will be a paid post at ${config.postingPrice}. To claim a free first post, create an employer account with your company email address.
+            </p>
+          </div>
+        )}
 
         {/* Section 1: Card Preview — uses the REAL <JobCard> component so this
             is pixel-identical to what candidates see in jobs listings.
@@ -550,6 +615,8 @@ export default function PreviewPage() {
           }}>
             {isLoading ? (
               <><Loader2 size={16} className="animate-spin" /> Processing...</>
+            ) : goesToCheckout ? (
+              <>Continue to Payment — ${config.postingPrice} <ChevronRight size={16} /></>
             ) : (
               <>Looks Good — Post Job <ChevronRight size={16} /></>
             )}

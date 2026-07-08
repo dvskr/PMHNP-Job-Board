@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { Home, RefreshCw, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Briefcase, RefreshCw, AlertTriangle } from 'lucide-react';
 
 /* ═══ Clay Tokens ═══ */
 const clayShadow = '8px 8px 20px rgba(0,0,0,0.07), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)';
@@ -55,11 +55,11 @@ export default function Error({ error, reset }: ErrorProps) {
                 </div>
 
                 <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#0F172A', marginBottom: '12px' }}>
-                    System Malfunction
+                    Something went wrong
                 </h1>
-                
+
                 <p style={{ fontSize: '15px', color: '#64748B', lineHeight: 1.6, maxWidth: '400px', margin: '0 auto 30px' }}>
-                    An unexpected error actively disrupted your session. Our engineers have been securely notified.
+                    The page hit an error. Try again, or head back to the job board.
                 </p>
 
                 <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -72,9 +72,9 @@ export default function Error({ error, reset }: ErrorProps) {
                         border: 'none', cursor: 'pointer', transition: 'all 0.2s ease'
                     }}>
                         <RefreshCw size={18} />
-                        Reinitialize Request
+                        Try again
                     </button>
-                    <Link href="/" className="clay-btn-secondary" style={{
+                    <Link href="/jobs" className="clay-btn-secondary" style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
                         padding: '12px 24px', borderRadius: '16px',
                         fontSize: '15px', fontWeight: 600, color: '#334155',
@@ -83,8 +83,8 @@ export default function Error({ error, reset }: ErrorProps) {
                         boxShadow: '4px 4px 10px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7)',
                         textDecoration: 'none', transition: 'all 0.2s ease'
                     }}>
-                        <Home size={18} />
-                        Abort to Safety
+                        <Briefcase size={18} />
+                        Browse jobs
                     </Link>
                 </div>
             </div>
@@ -99,7 +99,7 @@ export default function Error({ error, reset }: ErrorProps) {
                     boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.8)'
                 }}>
                     <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#991B1B', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                        Local Diagnostic Matrix
+                        Error details (development only)
                     </h3>
                     <div style={{ padding: '16px', background: '#FEF2F2', borderRadius: '12px', border: '1px dashed #FCA5A5' }}>
                         <p style={{ fontSize: '13px', fontFamily: 'monospace', color: '#B91C1C', wordBreak: 'break-all' }}>

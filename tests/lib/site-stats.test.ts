@@ -77,3 +77,56 @@ describe('refreshSiteStats', () => {
     expect(prisma.siteStat.create).not.toHaveBeenCalled();
   });
 });
+
+describe('getExtendedSiteStats', () => {
+  // The SiteStat row is fixed-column (no migration wanted), so the two
+  // engagement counters are computed at read time behind an in-module TTL
+  // cache. forceRefresh bypasses that cache for test isolation.
+  it('combines the cached snapshot with fresh engagement counts', async () => {
+    vi.mocked(prisma.siteStat.findFirst).mockResolvedValue({ id: 's1', totalJobs: 1234, totalCompanies: 88, totalSubscribers: 4200 } as never);
+    vi.mocked(prisma.job.count)
+      .mockResolvedValueOnce(12 as never)   // published, created in last 7d
+      .mockResolvedValueOnce(400 as never)  // published total
+      .mockResolvedValueOnce(300 as never); // published with displaySalary
+    const { getExtendedSiteStats } = await import('@/lib/site-stats');
+    const stats = await getExtendedSiteStats({ forceRefresh: true });
+    expect(stats).toEqual({
+      totalJobs: 1234,
+      totalCompanies: 88,
+      totalSubscribers: 4200,
+      jobsAddedThisWeek: 12,
+      salaryTransparencyPct: 75,
+    });
+  });
+
+  it('rounds the salary transparency percentage', async () => {
+    vi.mocked(prisma.siteStat.findFirst).mockResolvedValue({ id: 's1', totalJobs: 3, totalCompanies: 2, totalSubscribers: 0 } as never);
+    vi.mocked(prisma.job.count)
+      .mockResolvedValueOnce(1 as never)
+      .mockResolvedValueOnce(3 as never)
+      .mockResolvedValueOnce(2 as never); // 2/3 → 66.67 → 67
+    const { getExtendedSiteStats } = await import('@/lib/site-stats');
+    const stats = await getExtendedSiteStats({ forceRefresh: true });
+    expect(stats?.salaryTransparencyPct).toBe(67);
+  });
+
+  it('serves engagement counts from the in-memory cache within the TTL', async () => {
+    vi.mocked(prisma.siteStat.findFirst).mockResolvedValue({ id: 's1', totalJobs: 10, totalCompanies: 2, totalSubscribers: 1 } as never);
+    vi.mocked(prisma.job.count)
+      .mockResolvedValueOnce(5 as never)
+      .mockResolvedValueOnce(10 as never)
+      .mockResolvedValueOnce(4 as never);
+    const { getExtendedSiteStats } = await import('@/lib/site-stats');
+    await getExtendedSiteStats({ forceRefresh: true }); // primes the cache
+    vi.mocked(prisma.job.count).mockClear();
+    const second = await getExtendedSiteStats();
+    expect(prisma.job.count).not.toHaveBeenCalled();
+    expect(second?.salaryTransparencyPct).toBe(40);
+  });
+
+  it('returns null instead of fabricated numbers when the DB is down', async () => {
+    vi.mocked(prisma.job.count).mockRejectedValue(new Error('db down'));
+    const { getExtendedSiteStats } = await import('@/lib/site-stats');
+    expect(await getExtendedSiteStats({ forceRefresh: true })).toBeNull();
+  });
+});

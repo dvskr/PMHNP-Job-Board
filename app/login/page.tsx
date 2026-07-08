@@ -18,11 +18,14 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ redirectTo?: string }>
+  searchParams: Promise<{ redirectTo?: string; next?: string }>
 }) {
   const currentUser = await getCurrentUser()
   const params = await searchParams
-  const safeRedirect = safeInternalPath(params.redirectTo, '/dashboard')
+  // Some entry points (auth/confirm fallback, post-job preview) send ?next=
+  // instead of ?redirectTo= — honor both for already-authenticated visitors,
+  // matching the client-side LoginContent behavior.
+  const safeRedirect = safeInternalPath(params.redirectTo ?? params.next, '/dashboard')
   if (currentUser) {
     redirect(safeRedirect)
   }

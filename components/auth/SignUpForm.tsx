@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Bell, ArrowRight, User, Building2, Mail } from 'lucide-react'
 import { trackSignUp } from '@/lib/analytics'
+import { safeInternalPath } from '@/lib/auth/safe-redirect'
 import GoogleSignInButton from './GoogleSignInButton'
 import {
   inputStyle, inputWithRightIcon, inputWithLeftIcon, labelStyle, helperStyle,
@@ -77,6 +78,13 @@ export default function SignUpForm() {
     if (roleParam === 'employer') setRole('employer');
   }, [searchParams]);
 
+  // Post-signup return target (e.g. the /post-job wall sends
+  // ?redirectTo=/post-job so the employer lands back on the form instead
+  // of having to re-find it from the dashboard). Validated to a
+  // same-origin path — never an absolute/protocol-relative URL — so the
+  // param can't be abused as an open redirect. Null when absent/invalid.
+  const redirectTo = safeInternalPath(searchParams.get('redirectTo'), '') || null;
+
   const handleResendConfirmation = async () => {
     if (resendCooldown > 0) return;
     setResendStatus('sending');
@@ -133,7 +141,10 @@ export default function SignUpForm() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+          // Carry the return target through the email-confirmation loop —
+          // /auth/confirm reads ?redirectTo= and routes there (re-validated
+          // on that page) instead of hardcoding /dashboard.
+          emailRedirectTo: `${window.location.origin}/auth/confirm${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ''}`,
           data: {
             first_name: firstName,
             last_name: lastName,
@@ -172,12 +183,14 @@ export default function SignUpForm() {
 
         if (data.session) {
           router.refresh();
-          // Seekers go through the 1-screen professional-info interstitial so
-          // headline/specialties/yearsExperience get filled before they hit the
-          // dashboard. The page itself short-circuits to /dashboard if the
-          // profile is already searchable (returning users in autoconfirm
-          // setups), so it's safe to route everyone through it.
-          router.push(role === 'employer' ? '/employer/dashboard' : '/onboarding/professional');
+          // A validated ?redirectTo= wins (e.g. back to /post-job from the
+          // posting wall). Otherwise: seekers go through the 1-screen
+          // professional-info interstitial so headline/specialties/
+          // yearsExperience get filled before they hit the dashboard. The
+          // page itself short-circuits to /dashboard if the profile is
+          // already searchable (returning users in autoconfirm setups), so
+          // it's safe to route everyone through it.
+          router.push(redirectTo ?? (role === 'employer' ? '/employer/dashboard' : '/onboarding/professional'));
         }
       }
     } catch {

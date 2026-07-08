@@ -69,7 +69,7 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
         bgColor="#81c1da"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_travel.webp"
         heroAlt="Travel PMHNP nationwide assignments"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Travel']}
         indexLabel="№ 10 / 28"
         headlineLine1="Travel"

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 
-import { getSiteStats } from '@/lib/site-stats';
+import { getSiteStats, getExtendedSiteStats } from '@/lib/site-stats';
 import { brand } from '@/config/brand';
 import { STAT_SOURCES } from '@/lib/stats-sources';
 import EmployerTrustSection from '@/components/EmployerTrustSection';
@@ -10,14 +10,6 @@ import HomepageHero from '@/components/HomepageHero';
 import VideoJsonLd from '@/components/VideoJsonLd';
 import HomepageBlogSection from '@/components/HomepageBlogSection';
 import EmployerHowItWorks from '@/components/EmployerHowItWorks';
-import dynamic from 'next/dynamic';
-
-// Below-fold interactive components — defer from critical bundle
-const ExitIntentPopup = dynamic(() => import('@/components/ExitIntentPopup'));
-
-
-
-
 
 
 // Revalidate every 60 seconds
@@ -80,7 +72,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
-  const totalJobs = await getTotalJobCount();
+  const [stats, extended] = await Promise.all([
+    getSiteStats(),
+    getExtendedSiteStats(),
+  ]);
+  const totalJobs = stats.totalJobs;
   const jobCountDisplay = totalJobs > 1000
     ? `${Math.floor(totalJobs / 100) * 100}+`
     : totalJobs.toLocaleString();
@@ -221,8 +217,13 @@ export default async function Home() {
           on the same URL. Removed. */}
       {/* Main content */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #F5D5C4 15%, #F0C4AF 50%, #FDFBF7 100%)' }}>
-        {/* 1. Hero — above the fold */}
-        <HomepageHero jobCountDisplay={jobCountDisplay} />
+        {/* 1. Hero — above the fold. Real-stats subtitle renders only when
+            the extended stats are available (never fabricated fallbacks). */}
+        <HomepageHero
+          jobCountDisplay={jobCountDisplay}
+          totalCompanies={stats.totalCompanies}
+          salaryTransparencyPct={extended?.salaryTransparencyPct}
+        />
 
         {/* 2. Employer Clay Dough Strip */}
         <EmployerTrustSection />
@@ -238,8 +239,6 @@ export default async function Home() {
         <EmployerHowItWorks />
 
         <HomepageBlogSection />
-
-        <ExitIntentPopup />
       </div>
     </>
   );

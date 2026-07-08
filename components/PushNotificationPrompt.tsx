@@ -84,8 +84,15 @@ export default function PushNotificationPrompt() {
                 localStorage.setItem(DISMISS_KEY, '1');
             }, 2000);
         } catch {
+            // Only a real user decision earns the permanent dismiss key.
+            // Denying the browser permission prompt is that decision;
+            // transient failures (network, SW not ready) leave no flag so
+            // a future visit can retry.
+            if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+                localStorage.setItem(DISMISS_KEY, '1');
+            }
+            setStatus('idle');
             setShow(false);
-            localStorage.setItem(DISMISS_KEY, '1');
         }
     }, []);
 
@@ -148,8 +155,11 @@ export default function PushNotificationPrompt() {
                                 <p style={{ margin: 0, fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
                                     Get notified about new jobs
                                 </p>
+                                {/* Honest claim: the push cron sends one newest-jobs
+                                    digest to all subscribers — no per-user relevance
+                                    filtering exists, so don't promise it. */}
                                 <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>
-                                    We&apos;ll only notify you about relevant PMHNP positions
+                                    Get a short daily update of new PMHNP jobs.
                                 </p>
                             </div>
                         </div>

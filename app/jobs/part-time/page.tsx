@@ -68,7 +68,7 @@ export default async function PartTimePage({ searchParams }: PageProps) {
         bgColor="#c5bc77"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_parttime.webp"
         heroAlt="Part-time PMHNP leaving clinic"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Part-Time']}
         indexLabel="№ 08 / 28"
         headlineLine1="Part-Time"

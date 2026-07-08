@@ -5,6 +5,7 @@ import { sanitizeJobAlert } from '@/lib/sanitize';
 import { syncToBeehiiv } from '@/lib/beehiiv';
 import { logger } from '@/lib/logger';
 import { sendWelcomeEmail } from '@/lib/email-service';
+import { buildCriteriaSummary, buildFilteredJobsUrl } from '@/lib/job-alerts-service';
 
 interface CreateAlertBody {
   email: string;
@@ -72,8 +73,10 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.toLowerCase();
 
-    // Upsert EmailLead — create if new, optionally flip newsletterOptIn
-    const newsletterOptIn = body.newsletterOptIn !== false; // default true
+    // Upsert EmailLead — create if new, optionally flip newsletterOptIn.
+    // Newsletter consent is EXPLICIT opt-in only: creating a job alert must
+    // never silently subscribe someone to the newsletter.
+    const newsletterOptIn = body.newsletterOptIn === true;
     await prisma.emailLead.upsert({
       where: { email: normalizedEmail },
       update: newsletterOptIn ? { newsletterOptIn: true } : {},
@@ -84,8 +87,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Sync to Beehiiv newsletter (fire-and-forget)
-    syncToBeehiiv(normalizedEmail, { utmSource: 'job_alert' });
+    // Sync to Beehiiv newsletter (fire-and-forget) — ONLY with explicit consent.
+    if (newsletterOptIn) {
+      syncToBeehiiv(normalizedEmail, { utmSource: 'job_alert' });
+    }
 
     // Dedup: match BOTH confirmed (is_active = true) and unconfirmed
     // alerts. Without checking the unconfirmed bucket too, a user who
@@ -113,6 +118,12 @@ export async function POST(request: NextRequest) {
     // the old flow.
     const now = new Date();
 
+    // Re-submitting identical criteria signals intent to receive alerts, so a
+    // paused alert IS reactivated — but never silently: the response carries
+    // `reactivated` so the UI says so instead of pretending a new alert was
+    // created (the unsubscribe page's Pause option must not be undone without
+    // the user being told).
+    const wasPaused = !!existing && !existing.isActive;
     if (existing) {
       jobAlert = await prisma.jobAlert.update({
         where: { id: existing.id },
@@ -148,11 +159,19 @@ export async function POST(request: NextRequest) {
     // Only send for newly confirmed alerts to avoid spamming on every form submit.
     const isNewlyConfirmed = !existing || !existing.confirmedAt;
     if (isNewlyConfirmed) {
-      await sendWelcomeEmail(normalizedEmail, jobAlert.token);
+      // Personalized welcome: echo the alert's criteria + frequency back to the
+      // subscriber and deep-link the CTA to the matching /jobs search.
+      await sendWelcomeEmail(normalizedEmail, jobAlert.token, {
+        criteriaSummary: buildCriteriaSummary(jobAlert),
+        filteredJobsUrl: buildFilteredJobsUrl(jobAlert),
+        frequency: jobAlert.frequency,
+        location: jobAlert.location,
+      });
     }
 
     return NextResponse.json({
       success: true,
+      reactivated: wasPaused,
       alert: {
         id: jobAlert.id,
         token: jobAlert.token,

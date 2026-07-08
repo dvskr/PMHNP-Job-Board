@@ -3,8 +3,13 @@ import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import EmployerTestimonials from '@/components/EmployerTestimonials';
 import { config } from '@/lib/config';
 import { Check, ArrowRight, X, HelpCircle, RefreshCw } from 'lucide-react';
+
+// ISR: featured employer testimonials come from the database, so revalidate
+// hourly (same cadence as /for-employers) instead of freezing at build time.
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
     title: `Pricing — PMHNP Job Board | First Post Free, Then $${config.postingPrice}`,
@@ -250,6 +255,10 @@ export default function PricingPage() {
 
                     </div>
                 </section>
+
+                {/* ─── Featured Employer Testimonials (renders nothing until an
+                     admin features a consented testimonial) ─── */}
+                <EmployerTestimonials />
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════

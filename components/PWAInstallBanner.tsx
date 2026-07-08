@@ -28,15 +28,15 @@ export default function PWAInstallBanner() {
             }
         } catch { return; }
 
-        // Check visit count.
+        // Check visit count (read-only — VisitCounter in the root layout owns
+        // the increment, once per session on every device).
         // SEO Fix L6: previously triggered after 3 visits. Bumped to 5
         // visits to keep this from feeling like an interstitial — Google's
         // intrusive-interstitial doc cares about timing + frequency, and
         // 5 visits implies a returning user who's invested enough that an
         // install prompt is welcome rather than friction.
         try {
-            const visits = parseInt(localStorage.getItem('pmhnp_visit_count') || '0', 10) + 1;
-            localStorage.setItem('pmhnp_visit_count', visits.toString());
+            const visits = parseInt(localStorage.getItem('pmhnp_visit_count') || '0', 10);
             if (visits < 5) return;
         } catch { return; }
 
