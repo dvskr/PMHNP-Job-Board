@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { safeInternalPath } from '@/lib/auth/safe-redirect'
 
 /**
  * /auth/confirm
@@ -30,6 +31,13 @@ export default function AuthConfirmPage() {
 
         // --- Check for errors from Supabase (e.g. expired OTP) ---
         const urlParams = new URLSearchParams(window.location.search)
+
+        // Post-confirmation return target. SignUpForm threads the wall's
+        // ?redirectTo= (e.g. /post-job) through emailRedirectTo so the user
+        // lands back where they started instead of on the dashboard.
+        // Re-validated here as a same-origin path — no open redirects.
+        const nextPath = safeInternalPath(urlParams.get('redirectTo'), '/dashboard')
+
         const queryError = urlParams.get('error')
         const queryErrorCode = urlParams.get('error_code')
         const queryErrorDesc = urlParams.get('error_description')
@@ -65,7 +73,13 @@ export default function AuthConfirmPage() {
             // We just can't establish a client session without the verifier.
             setMessage('Email confirmed! Please log in to continue.')
             setStatus('success')
-            setTimeout(() => router.push('/login?confirmed=true'), 2000)
+            // Thread the return target through login (?next= is honored by
+            // LoginContent) so the user still lands back where they started.
+            setTimeout(() => router.push(
+              nextPath !== '/dashboard'
+                ? `/login?confirmed=true&next=${encodeURIComponent(nextPath)}`
+                : '/login?confirmed=true'
+            ), 2000)
             return
           }
 
@@ -81,7 +95,9 @@ export default function AuthConfirmPage() {
           }
 
           // Email confirmation — user is now logged in
-          setMessage('Email confirmed! Redirecting to dashboard...')
+          setMessage(nextPath === '/dashboard'
+            ? 'Email confirmed! Redirecting to dashboard...'
+            : 'Email confirmed! Taking you back to where you left off...')
           setStatus('success')
           // Send welcome email (fire-and-forget, dedup handled server-side)
           const userEmail = data.session?.user?.email
@@ -92,7 +108,7 @@ export default function AuthConfirmPage() {
               body: JSON.stringify({ email: userEmail }),
             }).catch(() => {})
           }
-          setTimeout(() => router.push('/dashboard'), 1500)
+          setTimeout(() => router.push(nextPath), 1500)
           return
         }
 
@@ -156,7 +172,9 @@ export default function AuthConfirmPage() {
         }
 
         // Magic link / email confirmation — user is now logged in
-        setMessage('Email confirmed! Redirecting to dashboard...')
+        setMessage(nextPath === '/dashboard'
+          ? 'Email confirmed! Redirecting to dashboard...'
+          : 'Email confirmed! Taking you back to where you left off...')
         setStatus('success')
         // Send welcome email (fire-and-forget, dedup handled server-side)
         const userEmail2 = data.session?.user?.email
@@ -167,7 +185,7 @@ export default function AuthConfirmPage() {
             body: JSON.stringify({ email: userEmail2 }),
           }).catch(() => {})
         }
-        setTimeout(() => router.push('/dashboard'), 1500)
+        setTimeout(() => router.push(nextPath), 1500)
       } catch (err) {
         console.error('Auth confirm unexpected error:', err)
         setStatus('error')

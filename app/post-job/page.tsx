@@ -10,7 +10,7 @@ import { config } from '@/lib/config';
 import { trackViewPostJobPage } from '@/lib/analytics';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import ScreeningQuestionsBuilder from '@/components/ScreeningQuestionsBuilder';
-import { Building2, MapPin, FileText, DollarSign, Rocket, ChevronRight, ChevronLeft, Check, Loader2, Trash2, Upload } from 'lucide-react';
+import { Building2, MapPin, FileText, DollarSign, ChevronRight, ChevronLeft, Check, Loader2, Trash2, Upload } from 'lucide-react';
 import { EXPERIENCE_BUCKETS, deriveExperienceLabel } from '@/lib/experience-label';
 import JdStarterPanel from '@/components/post-job/JdStarterPanel';
 import ConfirmDialog, { type ConfirmConfig } from '@/components/ui/ConfirmDialog';
@@ -178,12 +178,15 @@ const clayPillActive: React.CSSProperties = {
   boxShadow: '3px 3px 8px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
 };
 
+// Step 5 ('Plan') removed 2026-07-08 — pricingTier is hardcoded 'pro' in
+// defaultValues and the step only rendered a read-only feature card, so it
+// was an empty click for the employer. The feature card now lives at the
+// end of Step 4; the form submits identical data.
 const STEPS = [
   { id: 1, label: 'Company', icon: Building2, fields: ['title', 'companyName', 'companyWebsite', 'contactEmail'] },
   { id: 2, label: 'Role', icon: MapPin, fields: ['location', 'mode', 'jobType', 'minYearsExperience'] },
   { id: 3, label: 'Description', icon: FileText, fields: ['description'] },
   { id: 4, label: 'Details', icon: DollarSign, fields: ['salaryMin', 'salaryMax', 'salaryPeriod', 'applyUrl'] },
-  { id: 5, label: 'Plan', icon: Rocket, fields: ['pricingTier'] },
 ];
 
 function LoadingFallback() {
@@ -402,7 +405,6 @@ function PostJobContent() {
     },
   });
 
-  const selectedPricingTier = watch('pricingTier');
   const contactEmail = watch('contactEmail');
   const salaryPeriod = watch('salaryPeriod');
 
@@ -768,7 +770,7 @@ function PostJobContent() {
     const isValid = await validateCurrentStep();
     if (isValid) {
       setCompletedSteps(prev => new Set([...prev, currentStep]));
-      if (currentStep < 5) {
+      if (currentStep < 4) {
         setCurrentStep(currentStep + 1);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
@@ -805,13 +807,13 @@ function PostJobContent() {
             <Building2 size={24} color="#fff" />
           </div>
           <h2 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 8px' }}>
-            Post a Job
+            Your first job post is free
           </h2>
           <p style={{ fontSize: '14px', color: '#6B7F8A', margin: '0 0 28px', lineHeight: 1.5 }}>
-            You must be logged in as an employer to post jobs. Create an account to manage listings and track applicants.
+            Create a free employer account to post — no card required, takes about 5 minutes. ${config.postingPrice} per post after your first.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <a href="/signup?role=employer" style={{
+            <a href="/signup?role=employer&redirectTo=/post-job" style={{
               ...clayBtn, justifyContent: 'center',
               background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
               boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
@@ -860,7 +862,7 @@ function PostJobContent() {
                 const supabase = createClient();
                 await supabase.auth.signOut();
                 router.refresh();
-                router.push('/signup?role=employer');
+                router.push('/signup?role=employer&redirectTo=/post-job');
               }}
               style={{ ...clayBtn, width: '100%', justifyContent: 'center', background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}
             >
@@ -1371,43 +1373,36 @@ function PostJobContent() {
                     </>
                   )}
                 </div>
-              </div>
-            </div>
-          )}
 
-          {/* ═══ STEP 5: Review Features ═══ */}
-          {currentStep === 5 && (
-            <div style={{ ...cardBase, padding: '28px 24px' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 4px' }}>
-                Your Posting Includes
-              </h2>
-              <p style={{ fontSize: '13px', color: '#8A9BA6', margin: '0 0 24px' }}>Every job post gets the full package — free or paid</p>
-
-              <div style={{
-                ...cardBase, padding: '20px',
-                background: '#F0FDFA', border: '1px solid #99F6E4',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-                  <div style={{
-                    width: '40px', height: '40px', borderRadius: '12px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'linear-gradient(145deg, #0D9488, #10B981)',
-                    boxShadow: '3px 3px 8px rgba(13,148,136,0.2)',
-                  }}>
-                    <Check size={18} color="#fff" />
+                {/* Full-package feature card — moved here from the retired
+                    Step 5 ('Plan'). There is no plan to pick: every post
+                    gets the same package, first post free, then paid. */}
+                <div style={{
+                  ...cardBase, padding: '20px',
+                  background: '#F0FDFA', border: '1px solid #99F6E4',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                    <div style={{
+                      width: '40px', height: '40px', borderRadius: '12px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'linear-gradient(145deg, #0D9488, #10B981)',
+                      boxShadow: '3px 3px 8px rgba(13,148,136,0.2)',
+                    }}>
+                      <Check size={18} color="#fff" />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Full Package — Every Post</h3>
+                      <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>First post free, then ${config.postingPrice}/post</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Full Package — Every Post</h3>
-                    <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>First post free, then ${config.postingPrice}/post</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {[`${config.durationDays}-day paid · ${config.freeDurationDays}-day free`, 'Featured badge', 'Top placement', 'Email alerts', `${config.limits.candidateUnlocksPerPosting} candidate unlocks`, `${config.limits.inmailsPerPosting} InMails`, 'Analytics'].map(f => (
+                      <span key={f} style={{
+                        fontSize: '11px', fontWeight: 500, padding: '4px 10px',
+                        borderRadius: '10px', background: '#CCFBF1', color: '#0D9488',
+                      }}>✓ {f}</span>
+                    ))}
                   </div>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {[`${config.durationDays}-day paid · ${config.freeDurationDays}-day free`, 'Featured badge', 'Top placement', 'Email alerts', `${config.limits.candidateUnlocksPerPosting} candidate unlocks`, `${config.limits.inmailsPerPosting} InMails`, 'Analytics'].map(f => (
-                    <span key={f} style={{
-                      fontSize: '11px', fontWeight: 500, padding: '4px 10px',
-                      borderRadius: '10px', background: '#CCFBF1', color: '#0D9488',
-                    }}>✓ {f}</span>
-                  ))}
                 </div>
               </div>
             </div>
@@ -1440,7 +1435,7 @@ function PostJobContent() {
           </div>
 
           {/* Right: Continue / Submit */}
-          {currentStep < 5 ? (
+          {currentStep < 4 ? (
             <button type="button" onClick={handleNext} className="wizard-next-btn" style={{
               ...clayBtn,
               background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
