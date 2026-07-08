@@ -128,8 +128,13 @@ export default function SavedJobsPage() {
   };
 
   const handleClearAll = () => {
-    clearSavedJobs();
-    setJobs([]);
+    // Mirror the applied-history twin below: clearing is destructive (it
+    // also deletes the server-side rows for authenticated users), so it
+    // must not fire from a single stray tap.
+    if (confirm('Are you sure you want to remove all of your saved jobs? This cannot be undone.')) {
+      clearSavedJobs();
+      setJobs([]);
+    }
   };
 
   const handleClearApplied = () => {
