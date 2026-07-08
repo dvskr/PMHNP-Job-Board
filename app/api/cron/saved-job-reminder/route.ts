@@ -13,14 +13,19 @@ export async function GET(request: NextRequest) {
 
     try {
         return await withCronTracking('saved-job-reminder', async () => {
-        // Find saved jobs that are 3+ days old (user hasn't applied)
+        // Find saved jobs that are 3-30 days old (user hasn't applied).
+        // The 30-day upper bound caps the reminder lifecycle: combined with
+        // the 6-day per-user dedup below, each saved job triggers roughly two
+        // reminders and then goes quiet instead of nagging indefinitely.
         const threeDaysAgo = new Date()
         threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+        const thirtyDaysAgo = new Date()
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-        // Get users who have saved jobs > 3 days ago
+        // Get users who have saved jobs 3-30 days ago
         const savedJobs = await prisma.savedJob.findMany({
             where: {
-                savedAt: { lte: threeDaysAgo },
+                savedAt: { lte: threeDaysAgo, gte: thirtyDaysAgo },
             },
         })
 
@@ -28,7 +33,7 @@ export async function GET(request: NextRequest) {
             return {
                 response: NextResponse.json({
                     success: true,
-                    message: 'No saved jobs older than 3 days',
+                    message: 'No saved jobs in the 3-30 day reminder window',
                     remindersSent: 0,
                 }),
                 metrics: { usersProcessed: 0, remindersSent: 0 },

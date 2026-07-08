@@ -165,8 +165,10 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     } catch (err) {
+      // Full technical detail goes to the console only — users get plain copy
+      // plus a Retry button (rendered in the error block below).
       console.error('[fetchJobs] Error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError("We couldn't load jobs. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -399,9 +401,10 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               onClose={() => setIsMobileFilterOpen(false)}
             />
 
-            {/* Create Alert Button (shown when filters are active) */}
-            {activeFilterCount > 0 && (
-              <div style={{ marginBottom: '20px' }}>
+            {/* Create Alert Button — always visible. With filters active it
+                captures the current search; with none it creates an
+                all-PMHNP-jobs alert (CreateAlertForm handles empty criteria). */}
+            <div style={{ marginBottom: '20px' }}>
                 <button
                   onClick={() => setIsAlertModalOpen(true)}
                   className="jp-alert-btn"
@@ -428,13 +431,13 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                       <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                     </svg>
                   </span>
-                  Create Alert for This Search
+                  {activeFilterCount > 0 ? 'Create Alert for This Search' : 'Get new jobs by email'}
                 </button>
-              </div>
-            )}
+            </div>
 
-            {/* Results Count, Sort, and View Toggle */}
-            {!loading && !error && (
+            {/* Results Count, Sort, and View Toggle — stays mounted during
+                loading so the page doesn't jump; controls disable instead. */}
+            {!error && (
               <div className="jp-search-row" style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 marginBottom: '20px', flexWrap: 'wrap', gap: '12px',
@@ -486,7 +489,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                     <button
                       type="submit"
                       className="hero-search-btn"
-                      disabled={aiQuery.trim().length < 2 || aiLoading}
+                      disabled={aiQuery.trim().length < 2 || aiLoading || loading}
                       style={{
                         background: '#0D9488',
                         color: 'white',
@@ -494,8 +497,8 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                         fontSize: '14px',
                         fontWeight: 600,
                         border: 'none',
-                        cursor: (aiQuery.trim().length < 2 || aiLoading) ? 'not-allowed' : 'pointer',
-                        opacity: (aiQuery.trim().length < 2 || aiLoading) ? 0.55 : 1,
+                        cursor: (aiQuery.trim().length < 2 || aiLoading || loading) ? 'not-allowed' : 'pointer',
+                        opacity: (aiQuery.trim().length < 2 || aiLoading || loading) ? 0.55 : 1,
                         flexShrink: 0,
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -503,7 +506,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                         transition: 'all 0.2s ease',
                         boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.2), inset -1px -1px 2px rgba(0,0,0,0.08)',
                       }}
-                      onMouseEnter={(e) => { if (aiQuery.trim().length >= 2 && !aiLoading) { e.currentTarget.style.background = '#0f766e'; e.currentTarget.style.transform = 'scale(1.02)'; } }}
+                      onMouseEnter={(e) => { if (aiQuery.trim().length >= 2 && !aiLoading && !loading) { e.currentTarget.style.background = '#0f766e'; e.currentTarget.style.transform = 'scale(1.02)'; } }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = '#0D9488'; e.currentTarget.style.transform = 'scale(1)'; }}
                     >
                       <Sparkles size={14} aria-hidden="true" />
@@ -524,13 +527,15 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                       value={sortOption}
                       onChange={(e) => handleSortChange(e.target.value)}
                       className="jp-sort-select"
+                      disabled={loading}
                       style={{
                         appearance: 'none', WebkitAppearance: 'none',
                         padding: '8px 32px 8px 14px', borderRadius: '14px',
                         backgroundColor: '#EDF2EE',
                         border: '1px solid rgba(255,255,255,0.5)',
                         color: 'var(--text-primary)', fontSize: '13px', fontWeight: 500,
-                        cursor: 'pointer', outline: 'none',
+                        cursor: loading ? 'not-allowed' : 'pointer', outline: 'none',
+                        opacity: loading ? 0.6 : 1,
                         transition: 'all 0.2s',
                         boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
                       }}
@@ -557,11 +562,12 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                     <button
                       onClick={() => setViewMode('grid')}
                       className={`jp-view-btn ${viewMode === 'grid' ? 'jp-view-active' : ''}`}
+                      disabled={loading}
                       style={{
                         padding: '6px', borderRadius: '8px',
                         background: viewMode === 'grid' ? '#F7FBF8' : 'transparent',
                         color: viewMode === 'grid' ? '#0D9488' : 'var(--text-tertiary)',
-                        border: 'none', cursor: 'pointer', display: 'flex',
+                        border: 'none', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex',
                         transition: 'all 0.2s',
                         boxShadow: viewMode === 'grid' ? '2px 2px 4px rgba(0,0,0,0.05), -1px -1px 2px rgba(255,255,255,0.6)' : 'none',
                       }}
@@ -573,11 +579,12 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                     <button
                       onClick={() => setViewMode('list')}
                       className={`jp-view-btn ${viewMode === 'list' ? 'jp-view-active' : ''}`}
+                      disabled={loading}
                       style={{
                         padding: '6px', borderRadius: '8px',
                         background: viewMode === 'list' ? '#F7FBF8' : 'transparent',
                         color: viewMode === 'list' ? '#0D9488' : 'var(--text-tertiary)',
-                        border: 'none', cursor: 'pointer', display: 'flex',
+                        border: 'none', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex',
                         transition: 'all 0.2s',
                         boxShadow: viewMode === 'list' ? '2px 2px 4px rgba(0,0,0,0.05), -1px -1px 2px rgba(255,255,255,0.6)' : 'none',
                       }}
@@ -652,17 +659,45 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               </div>
             )}
 
-            {/* Loading State (regular browse fetch — NOT AI) */}
-            {loading && !aiResults && <JobsListSkeleton count={9} />}
+            {/* Loading State (regular browse fetch — NOT AI). In list view the
+                skeleton stacks in a single column (via .jp-skel-list override)
+                so the placeholder layout matches the results layout. */}
+            {loading && !aiResults && (
+              viewMode === 'list'
+                ? <div className="jp-skel-list"><JobsListSkeleton count={6} /></div>
+                : <JobsListSkeleton count={9} />
+            )}
 
-            {/* Error State (regular browse) */}
+            {/* Error State (regular browse) — friendly copy + Retry. The
+                technical detail stays in the console (see fetchJobs catch). */}
             {error && (
               <div style={{
                 backgroundColor: 'rgba(239,68,68,0.08)',
                 border: '1px solid rgba(239,68,68,0.2)',
                 borderRadius: '12px', padding: '16px', marginBottom: '20px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: '12px', flexWrap: 'wrap',
               }}>
-                <p style={{ color: '#EF4444', fontSize: '14px', margin: 0 }}>{error}</p>
+                <p style={{ color: '#B91C1C', fontSize: '14px', margin: 0 }}>{error}</p>
+                <button
+                  type="button"
+                  onClick={() => fetchJobs(currentFilters, currentPage, sortOption)}
+                  className="jp-clay-btn"
+                  style={{
+                    fontSize: '13px', fontWeight: 600,
+                    padding: '8px 16px', borderRadius: '12px',
+                    backgroundColor: '#EDF2EE',
+                    border: '1px solid rgba(255,255,255,0.5)',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer', flexShrink: 0,
+                    transition: 'all 0.2s',
+                    boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#E4ECE5'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#EDF2EE'; }}
+                >
+                  Retry
+                </button>
               </div>
             )}
 
@@ -696,9 +731,29 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                     </Link>
                   </>
                 ) : (
-                  <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
-                    New positions are added daily. Set up a job alert to be notified.
-                  </p>
+                  <>
+                    <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
+                      New positions are added daily. Set up a job alert and we will email you when they arrive.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsAlertModalOpen(true)}
+                      style={{
+                        display: 'inline-block',
+                        marginTop: '16px',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        background: 'var(--color-primary)',
+                        color: '#fff',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        border: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Set up a job alert
+                    </button>
+                  </>
                 )}
               </div>
             )}
@@ -942,6 +997,13 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
         }
         .jp-page-btn:hover:not(:disabled) {
           border-color: rgba(45,212,191,0.4) !important;
+        }
+        /* List-view skeleton: collapse JobsListSkeleton's grid to one column
+           so the loading placeholder matches the list results layout. */
+        .jp-skel-list > div {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 12px !important;
         }
         @media (max-width: 600px) {
           .jobs-hero-grid { grid-template-columns: 1fr !important; text-align: center; }

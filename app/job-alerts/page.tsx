@@ -75,6 +75,23 @@ function JobAlertsContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | ''; text: string }>({ type: '', text: '' });
   const [emailError, setEmailError] = useState('');
+  // Real active-jobs count for the hero/sidebar stats — fetched from the
+  // existing /api/jobs endpoint. Stays null (stats hidden) if the fetch fails;
+  // we never show fabricated numbers.
+  const [activeJobsCount, setActiveJobsCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/jobs?limit=1')
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (!cancelled && data && typeof data.total === 'number' && data.total > 0) {
+          setActiveJobsCount(data.total);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   // Pre-fill email for logged-in users
   useEffect(() => {
@@ -131,7 +148,12 @@ function JobAlertsContent() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setMessage({ type: 'success', text: 'Job alert created! Check your email to confirm.' });
+        setMessage({
+          type: 'success',
+          text: data.reactivated
+            ? 'You already had this alert paused — we turned it back on. Your next digest arrives soon.'
+            : 'Your alert is active — your first digest arrives soon.',
+        });
         // Reset form
         setEmail('');
         setLocation('');
@@ -164,16 +186,14 @@ function JobAlertsContent() {
         bgColor="#0D9488"
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_alerts.webp"
         heroAlt="Job Alerts"
-        badgeText="Job Alerts"
         breadcrumbs={['Home', 'Job Alerts']}
         indexLabel="№ 03"
         headlineLine1="Never Miss"
         headlineLine2="a Dream Job"
         headlineSub="Personalized alerts"
-        stats={[
-          { value: "200+", label: 'New Daily' },
-          { value: "10K+", label: 'Active Jobs' }
-        ]}
+        stats={activeJobsCount !== null
+          ? [{ value: activeJobsCount.toLocaleString(), label: 'Active Jobs' }]
+          : []}
         description="Get personalized PMHNP job alerts delivered straight to your inbox. Be the first to apply to jobs that match your exact criteria."
         ctaLabel="Manage Alerts"
         ctaHref="/job-alerts/manage"
@@ -448,22 +468,19 @@ function JobAlertsContent() {
               </div>
             </div>
 
-            {/* Stats */}
-            <div style={{ ...cardBase, padding: '20px' }}>
-              <p style={{ fontSize: '12px', fontWeight: 700, color: '#0D9488', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Trusted by PMHNPs
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            {/* Stats — real count from /api/jobs; the card only renders once
+                the number has loaded so we never display fabricated figures. */}
+            {activeJobsCount !== null && (
+              <div style={{ ...cardBase, padding: '20px' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0D9488', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Live on the board
+                </p>
                 <div style={{ ...cardRecessed, padding: '12px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '22px', fontWeight: 800, color: '#0D9488', margin: '0 0 2px' }}>200+</p>
-                  <p style={{ fontSize: '10px', color: '#8A9BA6', margin: 0 }}>New jobs daily</p>
-                </div>
-                <div style={{ ...cardRecessed, padding: '12px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '22px', fontWeight: 800, color: '#0D9488', margin: '0 0 2px' }}>10,000+</p>
-                  <p style={{ fontSize: '10px', color: '#8A9BA6', margin: 0 }}>Active listings</p>
+                  <p style={{ fontSize: '22px', fontWeight: 800, color: '#0D9488', margin: '0 0 2px' }}>{activeJobsCount.toLocaleString()}</p>
+                  <p style={{ fontSize: '10px', color: '#8A9BA6', margin: 0 }}>Active job listings</p>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Manage link */}
             <div style={{ textAlign: 'center', padding: '8px 0' }}>

@@ -20,6 +20,7 @@ interface CreateAlertFormProps {
 interface FormData {
   email: string;
   frequency: 'daily' | 'weekly';
+  newsletterOptIn: boolean;
 }
 
 function buildCriteriaSummary(filters: InitialFilters): string {
@@ -45,6 +46,9 @@ function buildCriteriaSummary(filters: InitialFilters): string {
 export default function CreateAlertForm({ initialFilters = {}, onSuccess }: CreateAlertFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  // True when the API matched a previously PAUSED alert and reactivated it —
+  // the success copy must say so rather than pretend a new alert was made.
+  const [wasReactivated, setWasReactivated] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -54,6 +58,8 @@ export default function CreateAlertForm({ initialFilters = {}, onSuccess }: Crea
   } = useForm<FormData>({
     defaultValues: {
       frequency: 'daily',
+      // Explicit consent only — the newsletter box must start unchecked.
+      newsletterOptIn: false,
     },
   });
 
@@ -72,6 +78,7 @@ export default function CreateAlertForm({ initialFilters = {}, onSuccess }: Crea
         body: JSON.stringify({
           email: data.email,
           frequency: data.frequency,
+          newsletterOptIn: data.newsletterOptIn === true,
           ...initialFilters,
         }),
       });
@@ -82,6 +89,7 @@ export default function CreateAlertForm({ initialFilters = {}, onSuccess }: Crea
         throw new Error(result.error || 'Failed to create alert');
       }
 
+      setWasReactivated(result.reactivated === true);
       setIsSuccess(true);
       onSuccess?.();
     } catch (err) {
@@ -105,8 +113,14 @@ export default function CreateAlertForm({ initialFilters = {}, onSuccess }: Crea
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
           </svg>
         </div>
-        <h3 className="text-lg font-semibold text-emerald-900">Alert created!</h3>
-        <p className="mt-1 text-sm text-emerald-700">Check your email for confirmation.</p>
+        <h3 className="text-lg font-semibold text-emerald-900">
+          {wasReactivated ? 'Alert reactivated' : 'Alert created!'}
+        </h3>
+        <p className="mt-1 text-sm text-emerald-700">
+          {wasReactivated
+            ? 'You already had this alert paused — we turned it back on. Your next digest arrives soon.'
+            : 'Your alert is active — your first digest arrives soon.'}
+        </p>
       </div>
     );
   }
@@ -161,6 +175,20 @@ export default function CreateAlertForm({ initialFilters = {}, onSuccess }: Crea
           <option value="weekly">Weekly digest</option>
         </select>
       </div>
+
+      {/* Newsletter Opt-In — OFF by default; the API only syncs to the
+          newsletter when this is explicitly checked. */}
+      <label htmlFor="newsletterOptIn" className="flex items-start gap-2.5 cursor-pointer">
+        <input
+          type="checkbox"
+          id="newsletterOptIn"
+          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+          {...register('newsletterOptIn')}
+        />
+        <span className="text-xs text-slate-600 leading-relaxed">
+          Also send me the PMHNP Hiring newsletter with salary data and career resources. This is optional.
+        </span>
+      </label>
 
       {/* Error Message */}
       {error && (
