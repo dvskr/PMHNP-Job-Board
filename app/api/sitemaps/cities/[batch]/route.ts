@@ -46,8 +46,11 @@ const SITEMAP_CATEGORY_SET = new Set(SITEMAP_CATEGORIES);
 //   • Category × City: pseoStats.totalJobs ≥ MIN_SITEMAP_JOBS (same SSOT
 //     constant as MIN_JOBS_FOR_INDEX in lib/pseo/category-city-template.tsx,
 //     imported from lib/pseo/render-gate.ts)
-//   • Setting × State: pseoStats.totalJobs ≥ 1 (state pages render content
-//     even at low counts since state-level demand is broader)
+//   • Setting × State: pseoStats.totalJobs ≥ MIN_SITEMAP_JOBS. GSC Fix
+//     (2026-07 audit P2.4): this was ≥ 1, but the page template noindexes
+//     below 3 (lib/pseo/setting-state-template.tsx), so the sitemap was
+//     advertising URLs that render noindex — ~1,300 of the GSC noindex
+//     bucket. Must match the template's threshold.
 //   • City population ≥ MIN_SITEMAP_POPULATION (defense-in-depth)
 //   • pseoStats row must be fresh (≤ 36h since last aggregator run)
 const MIN_SITEMAP_JOBS = MIN_JOBS_FOR_CATEGORY_CITY;
@@ -99,12 +102,15 @@ async function getActiveCategoryCityUrls(): Promise<string[]> {
   // Setting × State URLs — quality-gated via pseoStats.
   // GSC Fix (P1.1): previously emitted all 13 settings × 51 states = 663 URLs
   // unconditionally. Most had 0 matching jobs and 404'd, polluting GSC with
-  // "Not found" entries. Now only emit URLs where ≥1 active job exists.
+  // "Not found" entries.
+  // GSC Fix (2026-07 audit P2.4): raised ≥1 → ≥MIN_SITEMAP_JOBS to match the
+  // page template's noindex threshold (setting-state-template.tsx noindexes
+  // below 3) — never advertise a URL that renders noindex.
   try {
     const settingStateRows = await prisma.pseoStats.findMany({
       where: {
         type: 'setting-state',
-        totalJobs: { gte: 1 },
+        totalJobs: { gte: MIN_SITEMAP_JOBS },
         updatedAt: { gte: freshnessThreshold },
       },
       select: { categorySlug: true, locationSlug: true },
@@ -144,13 +150,21 @@ export async function GET(
   const end = Math.min(start + BATCH_SIZE, allUrls.length);
   const batchUrls = allUrls.slice(start, end);
 
-  const lastmod = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-
+  // GSC Fix (2026-07 audit P2.5, revised by review): lastmod is OMITTED.
+  // Stamping today's date on every request was the anti-pattern documented as
+  // "SEO Fix #17" in index/route.ts — but pseoStats.updatedAt is no better:
+  // the aggregate-pseo cron upserts every row on every run (4x/day), so it
+  // tracks aggregator LIVENESS, not content change, and would still claim
+  // perpetual freshness. A missing lastmod is the honest state (Google
+  // ignores unreliable lastmod anyway) and protects trust in the one surface
+  // where lastmod is genuinely accurate: the per-job updatedAt in the
+  // job-detail sitemaps. TODO(operator): add a pseoStats.contentChangedAt
+  // column (set only when totalJobs/salary values actually change) and emit
+  // it here — requires a schema migration.
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${batchUrls.map(url => `  <url>
     <loc>${url}</loc>
-    <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>`).join('\n')}

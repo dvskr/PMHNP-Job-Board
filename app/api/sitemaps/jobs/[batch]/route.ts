@@ -22,21 +22,34 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { activeIndexableJobWhere } from '@/lib/active-job-filter';
+import { slugify } from '@/lib/utils';
 
 const BATCH_SIZE = 25000;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
-// Published, not expired, and not a repeated dead link (S6).
-const ACTIVE_JOB_WHERE = activeIndexableJobWhere();
+// GSC Fix (2026-07 audit): jobs within 7 days of expiry are excluded from
+// this sitemap — Google's median index latency exceeds their remaining
+// lifetime, so advertising them spends crawl budget on URLs that will 410
+// before earning an impression. Must stay in lockstep with the job-batch
+// count in /api/sitemaps/index. (Previously the where-clause was built at
+// module scope, freezing `now` at cold start — it's now built per request.)
+const SITEMAP_EXPIRY_BUFFER_DAYS = 7;
 
 interface JobBatchRow {
     id: string;
     title: string;
+    slug: string | null;
     updatedAt: Date;
 }
 
+// GSC Fix (2026-07 audit, review finding): the sitemap must advertise the
+// SAME URL the page emits as its canonical — app/jobs/[slug]/page.tsx uses
+// `job.slug || slugify(title, id)`. The previous local slug computation
+// diverged from stored slugs (different algorithm), so the sitemap
+// systematically advertised non-canonical variant URLs. Stored slug wins;
+// the shared slugify is only the legacy null-slug fallback.
 function jobSlug(job: JobBatchRow): string {
-    return `${job.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${job.id}`;
+    return job.slug || slugify(job.title, job.id);
 }
 
 export async function GET(
@@ -50,8 +63,11 @@ export async function GET(
         return NextResponse.json({ error: 'Invalid batch index' }, { status: 404 });
     }
 
+    // Published, not expired (with the near-expiry buffer), not a dead link.
+    const activeJobWhere = activeIndexableJobWhere(new Date(), { expiryBufferDays: SITEMAP_EXPIRY_BUFFER_DAYS });
+
     // Cheap count first to validate batch index without paying the full findMany.
-    const totalJobs = await prisma.job.count({ where: ACTIVE_JOB_WHERE });
+    const totalJobs = await prisma.job.count({ where: activeJobWhere });
     const totalBatches = Math.max(1, Math.ceil(totalJobs / BATCH_SIZE));
 
     if (batchIndex >= totalBatches) {
@@ -60,8 +76,8 @@ export async function GET(
 
     const skip = batchIndex * BATCH_SIZE;
     const jobs: JobBatchRow[] = await prisma.job.findMany({
-        where: ACTIVE_JOB_WHERE,
-        select: { id: true, title: true, updatedAt: true },
+        where: activeJobWhere,
+        select: { id: true, title: true, slug: true, updatedAt: true },
         orderBy: [
             { qualityScore: 'desc' },
             { createdAt: 'desc' },

@@ -57,9 +57,17 @@ describe('slugify', () => {
 
     it('handles empty title gracefully', () => {
         const out = slugify('', SAMPLE_UUID);
-        expect(out).toBe(`-${SAMPLE_UUID}`);
+        // GSC Fix (2026-07 audit P3): degenerate titles now yield the bare
+        // id — never a leading-hyphen "-{uuid}" slug (the old pinned value).
+        expect(out).toBe(SAMPLE_UUID);
         // The route regex still finds the UUID at the tail.
         expect(out.match(/([a-f0-9-]{36})$/)?.[1]).toBe(SAMPLE_UUID);
+    });
+
+    it('trims leading hyphens from titles starting with non-alphanumerics (GSC Fix 2026-07)', () => {
+        const out = slugify('(Remote) Nurse Practitioner', SAMPLE_UUID);
+        expect(out).toBe(`remote-nurse-practitioner-${SAMPLE_UUID}`);
+        expect(out.startsWith('-')).toBe(false);
     });
 
     it('handles unicode by stripping (current behavior)', () => {

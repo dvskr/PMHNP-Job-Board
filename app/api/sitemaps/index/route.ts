@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma';
 import { activeIndexableJobWhere } from '@/lib/active-job-filter';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 import { CITY_SITEMAP_CATEGORIES as SITEMAP_CATEGORIES } from '@/lib/pseo/jobs-segments-edge';
+import { getAllSettingSlugs, getAllStateSlugs } from '@/lib/pseo/setting-state-config';
 
 // SITEMAP_CATEGORIES is derived from the JOBS_TAXONOMY registry
 // (lib/pseo/jobs-segments-edge.ts, inCitySitemaps flag) — shared with
@@ -78,15 +79,28 @@ export async function GET() {
       totalUrls++;
     }
 
-    // Setting × State: pseoStats.totalJobs ≥ 1 and fresh.
-    const settingStateCount = await prisma.pseoStats.count({
+    // Setting × State: pseoStats.totalJobs ≥ MIN_SITEMAP_JOBS and fresh.
+    // GSC Fix (2026-07 audit P2.4): was ≥ 1 — must match cities/[batch] and
+    // the page template's noindex threshold (< 3 renders noindex).
+    // Review finding: also apply the SAME valid-slug filters the batch route
+    // applies (settingSlugs + validStateSlugs) — a raw count() over-reported
+    // whenever a stale/retired pseoStats row existed, breaking the "must
+    // match exactly" contract at batch boundaries.
+    const settingSlugs = new Set(getAllSettingSlugs());
+    const validStateSlugs = new Set(getAllStateSlugs());
+    const settingStateRows = await prisma.pseoStats.findMany({
       where: {
         type: 'setting-state',
-        totalJobs: { gte: 1 },
+        totalJobs: { gte: MIN_SITEMAP_JOBS },
         updatedAt: { gte: freshnessThreshold },
       },
+      select: { categorySlug: true, locationSlug: true },
     });
-    totalUrls += settingStateCount;
+    for (const row of settingStateRows) {
+      if (!settingSlugs.has(row.categorySlug)) continue;
+      if (!validStateSlugs.has(row.locationSlug)) continue;
+      totalUrls++;
+    }
   } catch {
     // Fallback: conservative estimate. Better to under-list batches than
     // to advertise empty ones.
@@ -100,10 +114,12 @@ export async function GET() {
   // sitemap is never rejected wholesale once ingestion volume scales.
   let activeJobCount = 0;
   try {
-    // #3 fix: use the SAME filter the batch route uses (includes the
-    // healthConsecutiveMissing dead-link gate) so the index never advertises
-    // more job batches than /api/sitemaps/jobs/[batch] actually serves.
-    activeJobCount = await prisma.job.count({ where: activeIndexableJobWhere() });
+    // #3 fix: use the SAME filter the batch route uses (dead-link gate + the
+    // 7-day near-expiry buffer, GSC Fix 2026-07 audit) so the index never
+    // advertises more job batches than /api/sitemaps/jobs/[batch] serves.
+    activeJobCount = await prisma.job.count({
+      where: activeIndexableJobWhere(new Date(), { expiryBufferDays: 7 }),
+    });
   } catch {
     // Fall back to a single batch — better to under-list than to hide jobs entirely.
     activeJobCount = 0;
