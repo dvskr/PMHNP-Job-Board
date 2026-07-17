@@ -107,6 +107,35 @@ export async function getPublishedPosts(
     return data as BlogPost[];
 }
 
+// Published-post count per category, in one query. Used by the blog index
+// to render filter pills only for categories that actually have posts —
+// empty ?category= URLs returned 200 "No posts yet" soft-404s that crawlers
+// kept discovering through the pill links (GSC Fix 2026-07 audit P3).
+// Returns null on failure so the caller can FAIL OPEN (render all pills)
+// instead of hiding every category behind a transient Supabase error.
+export async function getPublishedCategoryCounts(): Promise<Record<string, number> | null> {
+    const supabase = getSupabaseClient();
+
+    // Explicit limit: PostgREST caps unbounded selects at 1000 rows, which
+    // would silently truncate counts once the post catalog grows past that.
+    const { data, error } = await supabase
+        .from('blog_posts')
+        .select('category')
+        .eq('status', 'published')
+        .limit(10000);
+
+    if (error || !data) {
+        if (error) console.error('Error fetching blog category counts:', error);
+        return null;
+    }
+
+    const counts: Record<string, number> = {};
+    for (const row of data) {
+        if (row.category) counts[row.category] = (counts[row.category] || 0) + 1;
+    }
+    return counts;
+}
+
 export async function getPostCount(category?: string): Promise<number> {
     const supabase = getSupabaseClient();
 
@@ -255,27 +284,45 @@ export function generateSlug(title: string): string {
         .slice(0, 80);
 }
 
+// GSC Fix (2026-07 audit P2.12): thrown when a new post's slug collides with
+// an existing one. On an automated pipeline a base-slug collision is a
+// duplicate submission until proven otherwise — silently minting "-2" is how
+// the live duplicate of the residency directory (the #2 page on the site) got
+// published with its own self-canonical, splitting ranking signals.
+export class SlugCollisionError extends Error {
+    readonly slug: string;
+    constructor(slug: string) {
+        super(
+            `A blog post with slug "${slug}" already exists — refusing to create a "-2" duplicate. ` +
+            `If this is genuinely a different article, retitle it so it produces a distinct slug.`
+        );
+        this.name = 'SlugCollisionError';
+        this.slug = slug;
+    }
+}
+
 export async function generateUniqueSlug(title: string): Promise<string> {
     const supabase = getSupabaseServiceClient();
     const baseSlug = generateSlug(title);
 
-    // Check if slug exists
-    const { data } = await supabase
+    // Check if slug exists. A FAILED check must throw (review finding): the
+    // old code treated query errors as "no collision", silently bypassing
+    // the SlugCollisionError contract exactly when Supabase is flaky.
+    const { data, error } = await supabase
         .from('blog_posts')
         .select('slug')
         .like('slug', `${baseSlug}%`);
+
+    if (error) {
+        throw new Error(`Slug collision check failed for "${baseSlug}": ${error.message}`);
+    }
 
     if (!data || data.length === 0) return baseSlug;
 
     const existingSlugs = new Set(data.map((d) => d.slug));
     if (!existingSlugs.has(baseSlug)) return baseSlug;
 
-    // Find next available number
-    let counter = 2;
-    while (existingSlugs.has(`${baseSlug}-${counter}`)) {
-        counter++;
-    }
-    return `${baseSlug}-${counter}`;
+    throw new SlugCollisionError(baseSlug);
 }
 
 // ─── Markdown to HTML ────────────────────────────────────────────────────────
