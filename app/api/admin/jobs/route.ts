@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 import { logAudit } from '@/lib/audit-log';
 import { createClient } from '@/lib/supabase/server';
+import { slugify } from '@/lib/utils';
 
 /**
  * GET /api/admin/jobs
@@ -158,16 +160,17 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Generate slug
-        const baseSlug = `${title}-${employer}`
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-|-$/g, '')
-            .slice(0, 80);
-        const slug = `${baseSlug}-${Date.now().toString(36)}`;
+        // GSC Fix (2026-07 audit, review finding): mint the id first and use
+        // the shared slugify(title, id) — the same pattern as ingest
+        // (lib/ingestion-service.ts). The previous base36-timestamp suffix
+        // produced non-UUID slugs that middleware.ts's unknown-taxonomy guard
+        // answered with 410, killing every admin-created job's page.
+        const id = randomUUID();
+        const slug = slugify(`${title} ${employer}`, id);
 
         const job = await prisma.job.create({
             data: {
+                id,
                 title,
                 employer,
                 location,

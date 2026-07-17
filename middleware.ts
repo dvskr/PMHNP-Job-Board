@@ -459,6 +459,19 @@ export async function middleware(request: NextRequest) {
                         // Supabase responded with non-2xx — log so we can detect index/quota issues.
                         // Do NOT cache the result; transient failures must be retried.
                         console.error('[middleware:job-410] Supabase non-OK response', { status: res.status, jobId });
+                        // GSC Fix (2026-07 audit P2.9, scoped by review): fail
+                        // closed (503 + Retry-After) ONLY for transient classes
+                        // (429/5xx) where "status unverifiable right now, retry"
+                        // is true. 401/403 mean the REST credentials/config are
+                        // broken PERMANENTLY — a rotated service-role key would
+                        // otherwise 503 the entire job-detail surface (the majority of
+                        // clicks) indefinitely while the page route serves jobs
+                        // fine via Prisma, which doesn't share these creds. On
+                        // auth errors fail OPEN to the page route: live jobs
+                        // render 200, deleted jobs 404 via the page's own check.
+                        if (res.status !== 401 && res.status !== 403) {
+                            return unavailable503();
+                        }
                     }
                 }
             } catch (err) {

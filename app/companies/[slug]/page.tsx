@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import type { Metadata } from 'next';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import { activeIndexableJobWhere } from '@/lib/active-job-filter';
 
 // GSC Fix: ISR caching prevents DB pool exhaustion when Googlebot crawls company pages.
 // Previously defaulted to dynamic (no cache) → every crawl hit the DB.
@@ -37,6 +38,14 @@ async function resolveCompanyNormalizedName(slug: string): Promise<string | null
 }
 
 // Generate dynamic metadata
+// Minimum active jobs for a company page to be indexable. Mirrors the
+// ≥8 filter in app/sitemap.ts companyPages — keep the two in lockstep.
+// GSC Fix (2026-07 audit P3): companies with 1-7 jobs rendered 200 +
+// indexable while the sitemap never advertised them — an unowned,
+// churn-prone crawl surface (indexed in a transient window, then
+// soft-404/crawled-not-indexed when the jobs expired).
+const MIN_COMPANY_JOBS_FOR_INDEX = 8;
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
 
@@ -51,13 +60,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
         if (!company) return { title: 'Company Not Found' };
 
-        // GSC Fix: Check if company has any active jobs.
-        // Companies with 0 active jobs get noindexed to prevent soft 404 flags.
+        // GSC Fix (2026-07 audit, review finding): count with the SAME
+        // predicate app/sitemap.ts companyPages uses (activeIndexableJobWhere:
+        // includes expiresAt-null jobs + the dead-link gate). The previous
+        // local filter dropped expiresAt-null jobs and ignored dead links, so
+        // the sitemap's ≥8 gate and this page's noindex gate could disagree —
+        // advertising a URL that renders noindex.
         const activeJobCount = await prisma.job.count({
             where: {
                 company: { normalizedName: resolvedName },
-                isPublished: true,
-                expiresAt: { gt: new Date() },
+                ...activeIndexableJobWhere(),
             },
         });
 
@@ -80,8 +92,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             alternates: {
                 canonical: `https://pmhnphiring.com/companies/${slug}`,
             },
-            // GSC Fix: noindex companies with 0 active jobs (prevents soft 404)
-            ...(activeJobCount === 0 && {
+            // GSC Fix: noindex below the sitemap threshold (0 jobs also 404s
+            // in the page body). 1-7 jobs stays useful for direct visitors
+            // but is kept out of the index — see MIN_COMPANY_JOBS_FOR_INDEX.
+            ...(activeJobCount < MIN_COMPANY_JOBS_FOR_INDEX && {
                 robots: { index: false, follow: true },
             }),
         };
@@ -104,10 +118,9 @@ export default async function CompanyPage({ params }: Props) {
             where: { normalizedName: resolvedName },
             include: {
                 jobs: {
-                    where: {
-                        isPublished: true,
-                        expiresAt: { gt: new Date() },
-                    },
+                    // Same shared predicate as generateMetadata + app/sitemap.ts
+                    // (review finding: the old filter dropped expiresAt-null jobs).
+                    where: activeIndexableJobWhere(),
                     orderBy: [
                         { isFeatured: 'desc' },
                         { createdAt: 'desc' },
