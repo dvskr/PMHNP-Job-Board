@@ -1,15 +1,20 @@
 /**
  * pSEO URL Indexing Cron
- * 
- * Submits high-quality pSEO city pages to Google Indexing API, Bing, and IndexNow.
- * 
+ *
+ * Submits high-quality pSEO city pages to Bing and IndexNow.
+ *
  * Strategy:
- * - Uses the same quality thresholds as sitemap pruning (≥3 jobs, ≥10K pop)
+ * - Uses the same quality gate as sitemap pruning: per-(category, city)
+ *   pseoStats rows with ≥3 jobs, city population ≥10K, fresh aggregator data
  * - Tracks which URLs have been submitted via pseoStats to avoid re-submission
- * - Submits up to 100 NEW URLs per run (respecting Google's 200/day quota,
- *   splitting 100 for new jobs + 100 for pSEO pages)
- * - Prioritizes high-score pages first (more jobs + larger cities)
- * 
+ * - Submits up to 100 NEW URLs per run, highest-score pages first
+ * - Deliberately does NOT use the Google Indexing API: that API is restricted
+ *   to JobPosting/BroadcastEvent pages, and these ItemList pSEO pages carry no
+ *   JobPosting markup. Ineligible submissions risk throttling/revocation of
+ *   the service account that powers expired-job URL_DELETED de-indexing
+ *   (deindex-expired / historical-deindex). Google discovers these pages via
+ *   the city sitemaps instead.
+ *
  * Route: GET /api/cron/index-pseo
  * Auth: Bearer ${CRON_SECRET}
  */
@@ -18,7 +23,7 @@ import { prisma } from '@/lib/prisma';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 import { PSEO_INDEXING_CATEGORIES } from '@/lib/pseo/jobs-segments-edge';
-import { pingGoogle, pingBingBatch, pingIndexNow } from '@/lib/search-indexing';
+import { pingBingBatch, pingIndexNow } from '@/lib/search-indexing';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
@@ -33,7 +38,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
 const MIN_JOBS = MIN_JOBS_FOR_CATEGORY_CITY; // SSOT: lib/pseo/render-gate.ts
 const MIN_POPULATION = 10000;
-const GOOGLE_PSEO_CAP = 100; // Reserve 100 of Google's 200/day quota for pSEO
+const SUBMIT_CAP = 100; // URLs per run — keeps the 7-day dedupe window meaningful
+// Mirrors PSEO_STALENESS_HOURS in /api/sitemaps/cities/[batch]/route.ts —
+// stale aggregator rows must not resurrect URLs the sitemap already dropped.
+const PSEO_STALENESS_HOURS = 36;
 
 interface ScoredUrl {
   url: string;
@@ -49,53 +57,44 @@ export async function GET(request: NextRequest) {
 
   try {
     return await withCronTracking('index-pseo', async () => {
-    // 1. Get cities with actual job counts from DB
-    const citiesWithJobs = await prisma.job.groupBy({
-      by: ['city', 'state'],
+    // 1. Get quality-gated (category, city) combos from pseoStats — the same
+    //    SSOT the sitemap batch route queries (/api/sitemaps/cities/[batch]).
+    //    GSC Fix: the previous city-level Job groupBy ignored category, so a
+    //    city with ≥3 total jobs got EVERY indexing category submitted —
+    //    including 0-job combos that permanentRedirect(308) at crawl time.
+    const freshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
+    const categoryCityRows = await prisma.pseoStats.findMany({
       where: {
-        isPublished: true,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
-        ],
-        city: { not: null },
-        state: { not: null },
+        type: 'category-city',
+        totalJobs: { gte: MIN_JOBS },
+        updatedAt: { gte: freshnessThreshold },
       },
-      _count: { city: true },
+      select: { categorySlug: true, locationSlug: true, totalJobs: true },
     });
 
-    // Build lookup: "city|state" → job count
-    const cityJobCounts = new Map(
-      citiesWithJobs
-        .filter(r => r.city && r.state)
-        .map(r => [`${r.city!.toLowerCase().trim()}|${r.state!.toLowerCase().trim()}`, r._count.city])
-    );
+    const indexingCategorySet = new Set<string>(PSEO_INDEXING_CATEGORIES);
+    const cityBySlug = new Map(CITIES.map(c => [c.slug, c]));
 
     // 2. Build scored URL list — only pages meeting quality thresholds
     const scoredUrls: ScoredUrl[] = [];
-    
-    for (const category of PSEO_INDEXING_CATEGORIES) {
-      for (const city of CITIES) {
-        if (city.population < MIN_POPULATION) continue;
-        
-        const key = `${city.name.toLowerCase().trim()}|${city.state.toLowerCase().trim()}`;
-        const jobCount = cityJobCounts.get(key) || 0;
-        
-        if (jobCount >= MIN_JOBS) {
-          // Score: job count (0-40) + population tier (0-20) + MH shortage (0-15)
-          let score = Math.min(40, jobCount * 2);
-          if (city.population >= 500000) score += 20;
-          else if (city.population >= 100000) score += 15;
-          else if (city.population >= 50000) score += 10;
-          else score += 5;
-          if (city.mentalHealthShortage) score += 15;
-          
-          scoredUrls.push({
-            url: `${BASE_URL}/jobs/${category}/city/${city.slug}`,
-            score,
-          });
-        }
-      }
+
+    for (const row of categoryCityRows) {
+      if (!indexingCategorySet.has(row.categorySlug)) continue;
+      const city = cityBySlug.get(row.locationSlug);
+      if (!city || city.population < MIN_POPULATION) continue;
+
+      // Score: job count (0-40) + population tier (0-20) + MH shortage (0-15)
+      let score = Math.min(40, row.totalJobs * 2);
+      if (city.population >= 500000) score += 20;
+      else if (city.population >= 100000) score += 15;
+      else if (city.population >= 50000) score += 10;
+      else score += 5;
+      if (city.mentalHealthShortage) score += 15;
+
+      scoredUrls.push({
+        url: `${BASE_URL}/jobs/${row.categorySlug}/city/${city.slug}`,
+        score,
+      });
     }
 
     // Sort by score descending — submit highest-value pages first
@@ -132,7 +131,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Take only up to the cap
-    const urlsToSubmit = newUrls.slice(0, GOOGLE_PSEO_CAP);
+    const urlsToSubmit = newUrls.slice(0, SUBMIT_CAP);
     
     if (urlsToSubmit.length === 0) {
       console.log('[CRON:index-pseo] All qualifying URLs already submitted within 7 days');
@@ -157,21 +156,14 @@ export async function GET(request: NextRequest) {
 
     console.log(`[CRON:index-pseo] Submitting ${urls.length} pSEO URLs (${scoredUrls.length} total qualifying, ${newUrls.length} new)`);
 
-    // 4. Submit to Google (individual, rate-limited)
-    const googleResults = [];
-    for (const url of urls) {
-      const result = await pingGoogle(url);
-      googleResults.push(result);
-      await new Promise(resolve => setTimeout(resolve, 150)); // Rate limit
-    }
-
-    // 5. Submit to Bing (batch)
+    // 4. Submit to Bing (batch). Google is intentionally excluded — see the
+    //    header comment; discovery happens via the city sitemaps.
     const bingResults = await pingBingBatch(urls);
 
-    // 6. Submit to IndexNow (batch)
+    // 5. Submit to IndexNow (batch)
     const indexNowResults = await pingIndexNow(urls);
 
-    // 7. Track submitted URLs in DB so we don't re-submit
+    // 6. Track submitted URLs in DB so we don't re-submit
     for (const su of urlsToSubmit) {
       const match = su.url.match(/\/jobs\/([^/]+)\/city\/([^/]+)$/);
       if (!match) continue;
@@ -205,8 +197,6 @@ export async function GET(request: NextRequest) {
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    const googleSuccess = googleResults.filter(r => r.success).length;
-    const googleFailed = googleResults.filter(r => !r.success).length;
     const bingSuccess = bingResults.filter(r => r.success).length;
     const bingFailed = bingResults.filter(r => !r.success).length;
     const indexNowSuccess = indexNowResults.filter(r => r.success).length;
@@ -217,7 +207,6 @@ export async function GET(request: NextRequest) {
       totalQualifying: scoredUrls.length,
       newToSubmit: newUrls.length,
       submitted: urls.length,
-      google: { submitted: googleSuccess, failed: googleFailed },
       bing: { submitted: bingSuccess, failed: bingFailed },
       indexNow: { submitted: indexNowSuccess, failed: indexNowFailed },
       topUrls: urls.slice(0, 5), // Show first 5 for debugging
@@ -232,8 +221,6 @@ export async function GET(request: NextRequest) {
         totalQualifying: scoredUrls.length,
         newToSubmit: newUrls.length,
         submitted: urls.length,
-        googleSubmitted: googleSuccess,
-        googleFailed,
         bingSubmitted: bingSuccess,
         bingFailed,
         indexNowSubmitted: indexNowSuccess,

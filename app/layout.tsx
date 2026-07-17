@@ -240,15 +240,12 @@ export default async function RootLayout({
                   "description": `Find ${brand.niche.descriptor} jobs`,
                   "publisher": {
                     "@id": `${brand.baseUrl}/#organization`
-                  },
-                  "potentialAction": {
-                    "@type": "SearchAction",
-                    "target": {
-                      "@type": "EntryPoint",
-                      "urlTemplate": `${brand.baseUrl}/jobs?q={search_term_string}`
-                    },
-                    "query-input": "required name=search_term_string"
                   }
+                  // SearchAction removed (GSC Fix 2026-07 audit, review):
+                  // Google retired the sitelinks-searchbox rich result, and
+                  // its urlTemplate pointed at /jobs?q= — a URL pattern
+                  // robots.txt now deliberately disallows (P1.2). Dead markup
+                  // advertising a blocked URL is worse than no markup.
                 }
               ]
             })

@@ -115,6 +115,21 @@ const FULL_DISALLOW = [
   '/success',
   // Raw media assets (sitemap exposes the indexable ones)
   '/videos/',
+  // GSC Fix (2026-07 audit P1.2): parameterized filter/prefill URLs were
+  // the dominant share of noindexed-page crawl volume (thousands of URLs in the
+  // noindex drilldown). They exist only as filter/prefill conveniences,
+  // are permanently noindexed anyway, and every job they could surface is
+  // already in the job sitemaps — crawling them is pure budget waste.
+  // /jobs?page= stays crawlable DELIBERATELY: deep unfiltered pagination
+  // is a documented job-detail discovery channel (app/jobs/page.tsx).
+  // '?' is a literal in robots matching; '*' wildcards are honored by
+  // Google and Bing.
+  '/job-alerts?',
+  '/jobs?*employer=',
+  '/jobs?*location=',
+  '/jobs?*q=',
+  '/jobs?*jobType=',
+  '/jobs?*category=',
 ]
 
 // Lighter disallow for social/link-preview bots — they only fetch the
