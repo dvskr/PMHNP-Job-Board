@@ -1,5 +1,6 @@
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
+import { cache } from 'react';
 import VideoJsonLd from '@/components/VideoJsonLd';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -70,7 +71,9 @@ async function getSalaryByState(): Promise<StateSalary[]> {
     .sort((a, b) => b.avgSalary - a.avgSalary);
 }
 
-async function getOverallStats() {
+// cache(): generateMetadata and the page body both call this — dedupe to one
+// DB aggregate per render.
+const getOverallStats = cache(async function getOverallStats() {
   const stats = await prisma.job.aggregate({
     where: { isPublished: true, normalizedMinSalary: { not: null } },
     _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
@@ -88,25 +91,45 @@ async function getOverallStats() {
     maxSalary: Math.round(stats._max.normalizedMaxSalary || 200000),
     jobsWithSalary: stats._count.id,
   };
-}
+});
 
-export const metadata: Metadata = {
-  // `absolute` opts out of the layout title template so the brand suffix
-  // doesn't get appended a second time (was rendering "... | PMHNP Hiring
-  // | PMHNP Hiring" — audit 09 M-17).
-  title: { absolute: 'PMHNP Salary Guide 2026 — $155K+ Avg by State | PMHNP Hiring' },
-  description: 'Complete 2026 PMHNP salary data: national avg $155K+, top 10% earn $210K+. All 50 states, by experience level, practice setting, and negotiation tips.',
-  keywords: ['pmhnp salary', 'psych np salary', 'psychiatric nurse practitioner salary', 'pmhnp salary by state', 'how much do pmhnps make', 'pmhnp pay', 'pmhnp salary 2026', 'psychiatric np salary', 'pmhnp salary guide'],
-  openGraph: {
-    title: 'PMHNP Salary Guide 2026 | $155,000+ Average',
-    description: 'Complete guide to PMHNP salaries. National average $155,000+, top 10% earn $210,000+. State-by-state breakdown and tips to maximize earnings.',
-    type: 'website',
-    url: `${BASE_URL}/salary-guide`,
-    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp', width: 1280, height: 900, alt: 'PMHNP salary guide 2026 showing psychiatric nurse practitioner pay by state with interactive salary comparison table' }],
-  },
-  twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp'] },
-  alternates: { canonical: `${brand.baseUrl}/salary-guide` },
-};
+// GSC Fix (2026-07 audit): /salary-guide had the worst snippet CTR on the site despite heavy
+// impressions, while its title carried a
+// hardcoded average that drifts from the data the page actually renders.
+// The title/description now lead with the LIVE computed average and current
+// year. getOverallStats carries safe static fallbacks for degraded renders,
+// and revalidate=86400 keeps this to one aggregate per day.
+export async function generateMetadata(): Promise<Metadata> {
+  // Fallbacks mirror getOverallStats' own degraded-mode numbers.
+  let avgK = 155;
+  let topK = 210;
+  try {
+    const stats = await getOverallStats();
+    if (stats.avgSalary > 0) avgK = Math.round(stats.avgSalary / 1000);
+    if (stats.maxSalary > 0) topK = Math.round(stats.maxSalary / 1000);
+  } catch {
+    // DB-degraded: keep static fallbacks.
+  }
+  const year = new Date().getFullYear();
+
+  return {
+    // `absolute` opts out of the layout title template so the brand suffix
+    // doesn't get appended a second time (was rendering "... | PMHNP Hiring
+    // | PMHNP Hiring" — audit 09 M-17).
+    title: { absolute: `PMHNP Salary Guide ${year} — $${avgK}K Avg by State | PMHNP Hiring` },
+    description: `Complete ${year} PMHNP salary data: national average $${avgK}K, top offers up to $${topK}K. All 50 states, by experience level, practice setting, and negotiation tips.`,
+    keywords: ['pmhnp salary', 'psych np salary', 'psychiatric nurse practitioner salary', 'pmhnp salary by state', 'how much do pmhnps make', 'pmhnp pay', `pmhnp salary ${year}`, 'psychiatric np salary', 'pmhnp salary guide'],
+    openGraph: {
+      title: `PMHNP Salary Guide ${year} | $${avgK},000+ Average`,
+      description: `Complete guide to PMHNP salaries. National average $${avgK},000+, top offers up to $${topK},000. State-by-state breakdown and tips to maximize earnings.`,
+      type: 'website',
+      url: `${BASE_URL}/salary-guide`,
+      images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp', width: 1280, height: 900, alt: 'PMHNP salary guide showing psychiatric nurse practitioner pay by state with interactive salary comparison table' }],
+    },
+    twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp'] },
+    alternates: { canonical: `${brand.baseUrl}/salary-guide` },
+  };
+}
 
 /* ═══ Clay Design Tokens ═══ */
 const clayCard: React.CSSProperties = {
