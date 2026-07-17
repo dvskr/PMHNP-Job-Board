@@ -61,11 +61,18 @@ const MIN_SITEMAP_POPULATION = 10000;
 // before Google indexes pages whose underlying jobs already expired.
 const PSEO_STALENESS_HOURS = 36;
 
+interface SitemapEntry {
+  url: string;
+  // pseoStats.contentChangedAt (set only when aggregated values actually
+  // change) — null for rows minted before the column existed.
+  lastmod: string | null;
+}
+
 // Generate only URLs where sufficient jobs exist in quality cities, plus
 // state-level pSEO URLs. All gating is driven by pseoStats so the sitemap
 // never disagrees with the page-level noindex gate.
-async function getActiveCategoryCityUrls(): Promise<string[]> {
-  const urls: string[] = [];
+async function getActiveCategoryCityUrls(): Promise<SitemapEntry[]> {
+  const urls: SitemapEntry[] = [];
   const freshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
   const validStateSlugs = new Set(getAllStateSlugs());
   const settingSlugs = new Set(getAllSettingSlugs());
@@ -83,7 +90,7 @@ async function getActiveCategoryCityUrls(): Promise<string[]> {
         totalJobs: { gte: MIN_SITEMAP_JOBS },
         updatedAt: { gte: freshnessThreshold },
       },
-      select: { categorySlug: true, locationSlug: true },
+      select: { categorySlug: true, locationSlug: true, contentChangedAt: true },
     });
     for (const row of categoryCityRows) {
       // Defense in depth against stale aggregator rows whose slugs were
@@ -91,7 +98,10 @@ async function getActiveCategoryCityUrls(): Promise<string[]> {
       if (!SITEMAP_CATEGORY_SET.has(row.categorySlug)) continue;
       const population = CITY_POPULATION_LOOKUP.get(row.locationSlug);
       if (population === undefined || population < MIN_SITEMAP_POPULATION) continue;
-      urls.push(`${BASE_URL}/jobs/${row.categorySlug}/city/${row.locationSlug}`);
+      urls.push({
+        url: `${BASE_URL}/jobs/${row.categorySlug}/city/${row.locationSlug}`,
+        lastmod: row.contentChangedAt ? row.contentChangedAt.toISOString().split('T')[0] : null,
+      });
     }
   } catch (err) {
     // If pseoStats is empty/unreachable, skip category×city URLs entirely.
@@ -113,12 +123,15 @@ async function getActiveCategoryCityUrls(): Promise<string[]> {
         totalJobs: { gte: MIN_SITEMAP_JOBS },
         updatedAt: { gte: freshnessThreshold },
       },
-      select: { categorySlug: true, locationSlug: true },
+      select: { categorySlug: true, locationSlug: true, contentChangedAt: true },
     });
     for (const row of settingStateRows) {
       if (!settingSlugs.has(row.categorySlug)) continue;
       if (!validStateSlugs.has(row.locationSlug)) continue;
-      urls.push(`${BASE_URL}/jobs/${row.categorySlug}/${row.locationSlug}`);
+      urls.push({
+        url: `${BASE_URL}/jobs/${row.categorySlug}/${row.locationSlug}`,
+        lastmod: row.contentChangedAt ? row.contentChangedAt.toISOString().split('T')[0] : null,
+      });
     }
   } catch (err) {
     console.error('[sitemaps/cities] pseoStats setting-state lookup failed; omitting setting×state URLs:', err);
@@ -150,21 +163,18 @@ export async function GET(
   const end = Math.min(start + BATCH_SIZE, allUrls.length);
   const batchUrls = allUrls.slice(start, end);
 
-  // GSC Fix (2026-07 audit P2.5, revised by review): lastmod is OMITTED.
-  // Stamping today's date on every request was the anti-pattern documented as
-  // "SEO Fix #17" in index/route.ts — but pseoStats.updatedAt is no better:
-  // the aggregate-pseo cron upserts every row on every run (4x/day), so it
-  // tracks aggregator LIVENESS, not content change, and would still claim
-  // perpetual freshness. A missing lastmod is the honest state (Google
-  // ignores unreliable lastmod anyway) and protects trust in the one surface
-  // where lastmod is genuinely accurate: the per-job updatedAt in the
-  // job-detail sitemaps. TODO(operator): add a pseoStats.contentChangedAt
-  // column (set only when totalJobs/salary values actually change) and emit
-  // it here — requires a schema migration.
+  // GSC Fix (2026-07 audit P2.5, final form): lastmod comes from
+  // pseoStats.contentChangedAt, which aggregate-pseo sets ONLY when the
+  // aggregated values actually change. Neither "today" (the SEO Fix #17
+  // anti-pattern) nor updatedAt (bumped by every 4x/day aggregator run —
+  // liveness, not content change) is honest. Rows that haven't changed since
+  // the column shipped simply omit <lastmod> — a missing lastmod is the
+  // honest state, and Google ignores unreliable ones anyway.
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${batchUrls.map(url => `  <url>
-    <loc>${url}</loc>
+${batchUrls.map(entry => `  <url>
+    <loc>${entry.url}</loc>${entry.lastmod ? `
+    <lastmod>${entry.lastmod}</lastmod>` : ''}
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>`).join('\n')}

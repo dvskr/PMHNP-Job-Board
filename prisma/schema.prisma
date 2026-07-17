@@ -1395,14 +1395,19 @@ model CategoryCitySnippet {
 
 // ─── Programmatic SEO Stats ──────────────────────────────────────────
 model PseoStats {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   type              String
   categorySlug      String
   locationSlug      String
-  totalJobs         Int      @default(0)
-  rawAvgSalary      Int      @default(0)
-  colAdjustedSalary Int      @default(0)
-  updatedAt         DateTime @updatedAt
+  totalJobs         Int       @default(0)
+  rawAvgSalary      Int       @default(0)
+  colAdjustedSalary Int       @default(0)
+  updatedAt         DateTime  @updatedAt
+  // GSC Fix (2026-07 audit): set by aggregate-pseo ONLY when the aggregated
+  // values actually change. updatedAt tracks aggregator liveness (bumped on
+  // every run — the sitemap staleness gate depends on that); this column is
+  // the honest content-change timestamp the city sitemaps emit as lastmod.
+  contentChangedAt  DateTime?
 
   @@unique([type, categorySlug, locationSlug])
   @@index([type, locationSlug])

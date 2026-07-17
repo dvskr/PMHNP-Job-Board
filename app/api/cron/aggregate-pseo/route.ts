@@ -34,6 +34,18 @@ export async function GET(request: NextRequest) {
       const stateSlugs = getAllStateSlugs()
       const settingKeys = Object.keys(SETTING_CONFIGS)
 
+      // GSC Fix (2026-07 audit): bulk pre-read so each upsert can stamp
+      // contentChangedAt ONLY when values actually differ. updatedAt keeps
+      // bumping on every run (liveness for the sitemap staleness gate);
+      // contentChangedAt is the honest lastmod source for city sitemaps.
+      const existingSettingState = await prisma.pseoStats.findMany({
+        where: { type: 'setting-state' },
+        select: { categorySlug: true, locationSlug: true, totalJobs: true, rawAvgSalary: true, colAdjustedSalary: true },
+      })
+      const existingSSMap = new Map(
+        existingSettingState.map(r => [`${r.categorySlug}|${r.locationSlug}`, r])
+      )
+
       for (const settingKey of settingKeys) {
         const config = SETTING_CONFIGS[settingKey]
         for (const stateSlug of stateSlugs) {
@@ -56,10 +68,12 @@ export async function GET(request: NextRequest) {
               )
             }
 
+            const prev = existingSSMap.get(`${config.slug}|${stateSlug}`)
+            const changed = !prev || prev.totalJobs !== totalJobs || prev.rawAvgSalary !== rawAvg || prev.colAdjustedSalary !== 0
             await prisma.pseoStats.upsert({
               where: { type_categorySlug_locationSlug: { type: 'setting-state', categorySlug: config.slug, locationSlug: stateSlug } },
-              update: { totalJobs, rawAvgSalary: rawAvg, colAdjustedSalary: 0 },
-              create: { type: 'setting-state', categorySlug: config.slug, locationSlug: stateSlug, totalJobs, rawAvgSalary: rawAvg, colAdjustedSalary: 0 },
+              update: { totalJobs, rawAvgSalary: rawAvg, colAdjustedSalary: 0, ...(changed && { contentChangedAt: new Date() }) },
+              create: { type: 'setting-state', categorySlug: config.slug, locationSlug: stateSlug, totalJobs, rawAvgSalary: rawAvg, colAdjustedSalary: 0, contentChangedAt: new Date() },
             })
             settingStateCount++
           } catch (error) {
@@ -87,6 +101,18 @@ export async function GET(request: NextRequest) {
     const cityBatch = CITIES.slice(offset, offset + BATCH_SIZE).filter(Boolean)
     const categoryKeys = Object.keys(ALL_CATEGORY_CONFIGS)
     const isLastBatch = offset + BATCH_SIZE >= CITIES.length
+
+    // Same bulk pre-read as Phase 1, scoped to this city batch — one query
+    // instead of a per-combo findUnique.
+    const existingCategoryCity = cityBatch.length > 0
+      ? await prisma.pseoStats.findMany({
+          where: { type: 'category-city', locationSlug: { in: cityBatch.map(c => c!.slug) } },
+          select: { categorySlug: true, locationSlug: true, totalJobs: true, rawAvgSalary: true, colAdjustedSalary: true },
+        })
+      : []
+    const existingCCMap = new Map(
+      existingCategoryCity.map(r => [`${r.categorySlug}|${r.locationSlug}`, r])
+    )
 
     for (const city of cityBatch) {
       if (!city) continue
@@ -130,10 +156,12 @@ export async function GET(request: NextRequest) {
             colAdjustedSalary = rawAvg > 0 ? Math.round(rawAvg * (100 / city.costOfLivingIndex)) : 0
           }
 
+          const prev = existingCCMap.get(`${config.slug}|${city.slug}`)
+          const changed = !prev || prev.totalJobs !== totalJobs || prev.rawAvgSalary !== rawAvg || prev.colAdjustedSalary !== colAdjustedSalary
           await prisma.pseoStats.upsert({
             where: { type_categorySlug_locationSlug: { type: 'category-city', categorySlug: config.slug, locationSlug: city.slug } },
-            update: { totalJobs, rawAvgSalary: rawAvg, colAdjustedSalary },
-            create: { type: 'category-city', categorySlug: config.slug, locationSlug: city.slug, totalJobs, rawAvgSalary: rawAvg, colAdjustedSalary },
+            update: { totalJobs, rawAvgSalary: rawAvg, colAdjustedSalary, ...(changed && { contentChangedAt: new Date() }) },
+            create: { type: 'category-city', categorySlug: config.slug, locationSlug: city.slug, totalJobs, rawAvgSalary: rawAvg, colAdjustedSalary, contentChangedAt: new Date() },
           })
           categoryCityCount++
         } catch (error) {
