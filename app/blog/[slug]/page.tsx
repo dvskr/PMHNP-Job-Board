@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
+import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 import {
     getPostBySlug,
     getRelatedPosts,
@@ -90,9 +91,11 @@ export default async function BlogPostPage({ params }: Props) {
     const relatedPosts = await getRelatedPosts(post.category, post.slug);
     const currentUrl = `https://pmhnphiring.com/blog/${slug}`;
 
-    // GSC Fix (P1.5): for state-license blog posts (slug like "pmhnp-license-{state}"),
-    // we render CTA links to /jobs/{cat}/{state} pages. If a setting-state combo has
-    // 0 jobs, that page now 410s — so don't render the link at all.
+    // GSC Fix (P1.5 + 2026-07 audit): for state-license blog posts (slug like
+    // "pmhnp-license-{state}"), we render CTA links to /jobs/{cat}/{state}
+    // pages. Those pages noindex below MIN_JOBS_FOR_CATEGORY_CITY (and the
+    // sitemap gates them at the same threshold) — don't link what we won't
+    // index. The previous ≥1 gate still fed noindexed 1-2-job pages.
     const licenseSlugMatch = slug.match(/^pmhnp-license-(.+)$/);
     const validBlogStateSettings = new Set<string>();
     if (licenseSlugMatch) {
@@ -102,7 +105,7 @@ export default async function BlogPostPage({ params }: Props) {
                 where: {
                     type: 'setting-state',
                     locationSlug: stateSlugFromBlog,
-                    totalJobs: { gte: 1 },
+                    totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
                     categorySlug: { in: ['remote', 'telehealth', 'outpatient'] },
                 },
                 select: { categorySlug: true },

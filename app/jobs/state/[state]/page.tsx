@@ -11,6 +11,7 @@ import JobCard from '@/components/JobCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { stateToSlug } from '@/lib/pseo/setting-state-config';
+import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 import StateFAQ from '@/components/StateFAQ';
 import { Job } from '@/lib/types';
 import {
@@ -451,18 +452,25 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
     notFound();
   }
 
-  // GSC Fix (P1.5): only render setting pills for setting×state combos that
-  // actually have ≥1 active job. Linking to empty pages generated thousands
-  // of "Discovered — currently not indexed" entries.
+  // GSC Fix (P1.5 + 2026-07 audit): only render setting pills for
+  // setting×state combos clearing the render gate — those pages noindex
+  // below 3 and the sitemap now gates them at 3 (P2.4), so a ≥1 link gate
+  // steadily fed Googlebot pages we won't index. Guarded: a pseoStats
+  // hiccup degrades to "no pills", never a page 500.
   const stateSlugForLookup = stateToSlug(stateName);
-  const validSettingRows = await prisma.pseoStats.findMany({
-    where: {
-      type: 'setting-state',
-      locationSlug: stateSlugForLookup,
-      totalJobs: { gte: 1 },
-    },
-    select: { categorySlug: true },
-  });
+  let validSettingRows: Array<{ categorySlug: string }> = [];
+  try {
+    validSettingRows = await prisma.pseoStats.findMany({
+      where: {
+        type: 'setting-state',
+        locationSlug: stateSlugForLookup,
+        totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
+      },
+      select: { categorySlug: true },
+    });
+  } catch (err) {
+    console.error('[state-page] setting-pill lookup failed; omitting pills:', err);
+  }
   const validSettingSlugs = new Set(validSettingRows.map(r => r.categorySlug));
 
   const totalPages = Math.ceil(stats.totalJobs / limit);
@@ -498,19 +506,15 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
           })),
         }) }} />
       )}
-      {/* AggregateOffer schema — shows salary range in SERPs */}
-      {stats.avgSalary > 0 && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'AggregateOffer',
-          name: `PMHNP Jobs in ${stateName}`,
-          offerCount: stats.totalJobs,
-          lowPrice: Math.round(stats.avgSalary * 0.8) * 1000,
-          highPrice: Math.round(stats.avgSalary * 1.2) * 1000,
-          priceCurrency: 'USD',
-          url: `https://pmhnphiring.com/jobs/state/${stateSlug}`,
-        }) }} />
-      )}
+      {/* GSC Fix (2026-07 audit P2.6): the old AggregateOffer block here was
+          parsed by Google as product-snippet markup (it produced the "Product
+          snippets" search appearance) and its ±20% band was synthesized —
+          removed. Deliberately NOT replaced with Occupation/
+          OccupationAggregationByRegion: Google retired the "estimated salary"
+          rich result in June 2025, so that markup can no longer produce any
+          search appearance and would cost a salary-distribution query on
+          every render of this dynamic page. Salary visibility comes from
+          visible content instead (hero avg-salary stat + /salary-guide). */}
 
       {/* ═══ HERO ═══ */}
       <CategoryHero
@@ -570,7 +574,10 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
                 {totalPages > 1 && (
                   <div className="mt-8 flex items-center justify-center gap-4">
                     {page > 1 ? (
-                      <Link href={`${basePath}?page=${page - 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ ...clayCard, color: '#1A2E35', padding: '8px 16px' }}>
+                      // GSC Fix (P2.11): page 2's Prev links to the bare basePath —
+                      // a literal ?page=1 href gets 301-stripped by middleware on
+                      // every crawl, perpetually feeding GSC's redirect bucket.
+                      <Link href={page - 1 === 1 ? basePath : `${basePath}?page=${page - 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ ...clayCard, color: '#1A2E35', padding: '8px 16px' }}>
                         ← Previous
                       </Link>
                     ) : (

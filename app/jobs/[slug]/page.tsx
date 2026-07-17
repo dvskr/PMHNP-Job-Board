@@ -385,20 +385,18 @@ export async function generateMetadata({ params }: JobPageProps) {
     };
   }
 
-  // GSC Fix: Expired jobs → noindex page with rich content instead of bare 404.
-  // Previously used notFound() which inflated the 2,682 "Not found (404)" count in GSC.
-  // A 200 + noindex + rich content (links to similar jobs) tells Google to de-index
-  // the URL without wasting crawl budget re-crawling 404s.
+  // GSC Fix (2026-07 audit P2.9): expired jobs are owned by the middleware,
+  // which returns HTTP 410 + branded HTML (middleware.ts job-410 handler) —
+  // this branch is only reachable in a cache-TTL race (job expired after the
+  // middleware cached "live") or in local dev without Supabase env keys.
+  // The old 200+noindex "Position Filled" response here contradicted the
+  // middleware's 410, letting the SAME URL answer different status codes
+  // depending on infra state. 404 metadata keeps the signals consistent.
   if (result.status === 'expired') {
-    const expiredTitle = result.title || 'PMHNP Position';
-    const expiredEmployer = result.employer || 'Employer';
     return {
-      title: `${expiredTitle} — Position Filled`,
-      description: `This ${expiredTitle} position at ${expiredEmployer} is no longer available. Browse similar PMHNP jobs on PMHNP Hiring.`,
-      robots: {
-        index: false,
-        follow: true,
-      },
+      title: 'Page Not Found',
+      description: 'This PMHNP position is no longer available. Browse current job openings on PMHNP Hiring.',
+      robots: { index: false, follow: true },
     };
   }
 
@@ -666,20 +664,14 @@ export default async function JobPage({ params }: JobPageProps) {
     notFound();
   }
 
-  // Job exists but expired/unpublished → render rich expired page
-  // (not notFound() — see generateMetadata for rationale)
+  // GSC Fix (2026-07 audit P2.9): expired/unpublished → 404. The middleware
+  // job-410 handler owns this state in prod (HTTP 410 + branded HTML, or 503
+  // when the DB check is unavailable); this branch only fires in a cache-TTL
+  // race or local dev without Supabase keys. The previous renderRemovedPage()
+  // 200+noindex response meant the same URL could answer 410, 200, or 404
+  // depending on transient infra state — one owner, one status code.
   if (result.status === 'expired') {
-    const expiredTitle = result.title || 'PMHNP Position';
-    const expiredEmployer = result.employer || 'an employer';
-
-    return renderRemovedPage({
-      badge: 'Position Filled',
-      badgeGradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
-      heading: 'This Position Has Been Filled',
-      subtext: 'This job has been filled or the listing has expired.',
-      title: expiredTitle,
-      employer: expiredEmployer,
-    });
+    notFound();
   }
 
   const job = result.job;

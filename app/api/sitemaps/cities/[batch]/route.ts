@@ -46,8 +46,11 @@ const SITEMAP_CATEGORY_SET = new Set(SITEMAP_CATEGORIES);
 //   • Category × City: pseoStats.totalJobs ≥ MIN_SITEMAP_JOBS (same SSOT
 //     constant as MIN_JOBS_FOR_INDEX in lib/pseo/category-city-template.tsx,
 //     imported from lib/pseo/render-gate.ts)
-//   • Setting × State: pseoStats.totalJobs ≥ 1 (state pages render content
-//     even at low counts since state-level demand is broader)
+//   • Setting × State: pseoStats.totalJobs ≥ MIN_SITEMAP_JOBS. GSC Fix
+//     (2026-07 audit P2.4): this was ≥ 1, but the page template noindexes
+//     below 3 (lib/pseo/setting-state-template.tsx), so the sitemap was
+//     advertising URLs that render noindex — ~1,300 of the GSC noindex
+//     bucket. Must match the template's threshold.
 //   • City population ≥ MIN_SITEMAP_POPULATION (defense-in-depth)
 //   • pseoStats row must be fresh (≤ 36h since last aggregator run)
 const MIN_SITEMAP_JOBS = MIN_JOBS_FOR_CATEGORY_CITY;
@@ -58,11 +61,18 @@ const MIN_SITEMAP_POPULATION = 10000;
 // before Google indexes pages whose underlying jobs already expired.
 const PSEO_STALENESS_HOURS = 36;
 
+interface SitemapEntry {
+  url: string;
+  // pseoStats.contentChangedAt (set only when aggregated values actually
+  // change) — null for rows minted before the column existed.
+  lastmod: string | null;
+}
+
 // Generate only URLs where sufficient jobs exist in quality cities, plus
 // state-level pSEO URLs. All gating is driven by pseoStats so the sitemap
 // never disagrees with the page-level noindex gate.
-async function getActiveCategoryCityUrls(): Promise<string[]> {
-  const urls: string[] = [];
+async function getActiveCategoryCityUrls(): Promise<SitemapEntry[]> {
+  const urls: SitemapEntry[] = [];
   const freshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
   const validStateSlugs = new Set(getAllStateSlugs());
   const settingSlugs = new Set(getAllSettingSlugs());
@@ -80,7 +90,7 @@ async function getActiveCategoryCityUrls(): Promise<string[]> {
         totalJobs: { gte: MIN_SITEMAP_JOBS },
         updatedAt: { gte: freshnessThreshold },
       },
-      select: { categorySlug: true, locationSlug: true },
+      select: { categorySlug: true, locationSlug: true, contentChangedAt: true },
     });
     for (const row of categoryCityRows) {
       // Defense in depth against stale aggregator rows whose slugs were
@@ -88,7 +98,10 @@ async function getActiveCategoryCityUrls(): Promise<string[]> {
       if (!SITEMAP_CATEGORY_SET.has(row.categorySlug)) continue;
       const population = CITY_POPULATION_LOOKUP.get(row.locationSlug);
       if (population === undefined || population < MIN_SITEMAP_POPULATION) continue;
-      urls.push(`${BASE_URL}/jobs/${row.categorySlug}/city/${row.locationSlug}`);
+      urls.push({
+        url: `${BASE_URL}/jobs/${row.categorySlug}/city/${row.locationSlug}`,
+        lastmod: row.contentChangedAt ? row.contentChangedAt.toISOString().split('T')[0] : null,
+      });
     }
   } catch (err) {
     // If pseoStats is empty/unreachable, skip category×city URLs entirely.
@@ -99,20 +112,26 @@ async function getActiveCategoryCityUrls(): Promise<string[]> {
   // Setting × State URLs — quality-gated via pseoStats.
   // GSC Fix (P1.1): previously emitted all 13 settings × 51 states = 663 URLs
   // unconditionally. Most had 0 matching jobs and 404'd, polluting GSC with
-  // "Not found" entries. Now only emit URLs where ≥1 active job exists.
+  // "Not found" entries.
+  // GSC Fix (2026-07 audit P2.4): raised ≥1 → ≥MIN_SITEMAP_JOBS to match the
+  // page template's noindex threshold (setting-state-template.tsx noindexes
+  // below 3) — never advertise a URL that renders noindex.
   try {
     const settingStateRows = await prisma.pseoStats.findMany({
       where: {
         type: 'setting-state',
-        totalJobs: { gte: 1 },
+        totalJobs: { gte: MIN_SITEMAP_JOBS },
         updatedAt: { gte: freshnessThreshold },
       },
-      select: { categorySlug: true, locationSlug: true },
+      select: { categorySlug: true, locationSlug: true, contentChangedAt: true },
     });
     for (const row of settingStateRows) {
       if (!settingSlugs.has(row.categorySlug)) continue;
       if (!validStateSlugs.has(row.locationSlug)) continue;
-      urls.push(`${BASE_URL}/jobs/${row.categorySlug}/${row.locationSlug}`);
+      urls.push({
+        url: `${BASE_URL}/jobs/${row.categorySlug}/${row.locationSlug}`,
+        lastmod: row.contentChangedAt ? row.contentChangedAt.toISOString().split('T')[0] : null,
+      });
     }
   } catch (err) {
     console.error('[sitemaps/cities] pseoStats setting-state lookup failed; omitting setting×state URLs:', err);
@@ -144,13 +163,18 @@ export async function GET(
   const end = Math.min(start + BATCH_SIZE, allUrls.length);
   const batchUrls = allUrls.slice(start, end);
 
-  const lastmod = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-
+  // GSC Fix (2026-07 audit P2.5, final form): lastmod comes from
+  // pseoStats.contentChangedAt, which aggregate-pseo sets ONLY when the
+  // aggregated values actually change. Neither "today" (the SEO Fix #17
+  // anti-pattern) nor updatedAt (bumped by every 4x/day aggregator run —
+  // liveness, not content change) is honest. Rows that haven't changed since
+  // the column shipped simply omit <lastmod> — a missing lastmod is the
+  // honest state, and Google ignores unreliable ones anyway.
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${batchUrls.map(url => `  <url>
-    <loc>${url}</loc>
-    <lastmod>${lastmod}</lastmod>
+${batchUrls.map(entry => `  <url>
+    <loc>${entry.url}</loc>${entry.lastmod ? `
+    <lastmod>${entry.lastmod}</lastmod>` : ''}
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>`).join('\n')}

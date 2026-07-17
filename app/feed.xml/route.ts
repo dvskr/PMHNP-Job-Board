@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { slugify } from '@/lib/utils';
 
 const BASE_URL = 'https://pmhnphiring.com';
 
@@ -16,6 +17,7 @@ export async function GET() {
       select: {
         id: true,
         title: true,
+        slug: true,
         employer: true,
         location: true,
         city: true,
@@ -36,7 +38,10 @@ export async function GET() {
       : new Date().toUTCString();
 
     const items = jobs.map(job => {
-      const slug = `${job.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}-${job.id}`;
+      // Stored slug first, shared slugify fallback — identical to the page
+      // canonical and /api/sitemaps/jobs/[batch] (GSC Fix 2026-07 audit,
+      // review finding: local slug computation advertised non-canonical URLs).
+      const slug = job.slug || slugify(job.title, job.id);
       const salary = job.normalizedMinSalary && job.normalizedMaxSalary
         ? ` | $${Math.round(Number(job.normalizedMinSalary) / 1000)}K-$${Math.round(Number(job.normalizedMaxSalary) / 1000)}K`
         : '';

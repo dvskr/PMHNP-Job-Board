@@ -133,12 +133,12 @@ export const PAGE_IMAGE_SEO: Record<string, PageImageSEO> = {
         caption: 'Post a PMHNP job on our board',
         title: 'Post a PMHNP Job',
     },
-    '/job-alerts': {
-        image: `${BASE}/pmhnp-job-alerts-signup.webp`,
-        alt: 'PMHNP job alerts signup page to receive email notifications for new psychiatric nurse practitioner positions matching your criteria',
-        caption: 'Sign up for PMHNP job alerts',
-        title: 'PMHNP Job Alerts',
-    },
+    // '/job-alerts' removed (GSC Fix 2026-07 audit P3): the page is
+    // permanently noindexed (app/job-alerts/layout.tsx) and was deliberately
+    // dropped from the primary sitemap — advertising it here reintroduced
+    // the "submitted URL marked noindex" contradiction through the image
+    // sitemap side door. Every entry in this registry must also be an
+    // indexable page in the primary sitemap.
 };
 
 /**

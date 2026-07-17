@@ -6,15 +6,32 @@ import { getAllMetroSlugs } from '@/lib/metro-data'
 import { activeIndexableJobWhere } from '@/lib/active-job-filter'
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate'
 import { PRIMARY_SITEMAP_CATEGORY_SLUGS } from '@/lib/pseo/jobs-segments-edge'
+import { CITIES } from '@/lib/pseo/city-data/cities'
 
 // GSC Fix: Cache sitemap for 1 hour. Without this, every Googlebot request to
 // /sitemap.xml triggers a full DB scan across jobs, companies, and blog tables.
 export const revalidate = 3600;
 
 const METRO_SLUGS = getAllMetroSlugs();
+// GSC Fix (2026-07 audit P2.7): metro slugs must be excluded from the
+// /jobs/city/* section — app/jobs/city/[slug]/page.tsx 308-redirects metro
+// slugs to /jobs/metro/{slug}, and the sitemap already lists the metro URLs.
+// Advertising both meant 12 permanent "Submitted URL redirected" entries.
+const METRO_SLUG_SET = new Set<string>(METRO_SLUGS);
 
-// Shared filter: published, not expired, and not a repeated dead link (S6).
-const ACTIVE_JOB_WHERE = activeIndexableJobWhere();
+// NOTE: the ACTIVE_JOB_WHERE filter is built per render inside sitemap() —
+// building it at module scope froze `now` at cold start, so a long-lived
+// server instance kept including jobs that had expired since boot.
+
+// GSC Fix (2026-07 audit P2.8): mirror the CITIES-registry + population gate
+// that /api/sitemaps/cities/[batch] applies. The raw job groupBy alone let
+// location-parsing noise (neighborhood-grade entities, malformed slugs) into
+// the sitemap during a transient ≥3-job window, after which they churned to
+// 404/crawled-not-indexed.
+const CITY_POPULATION_LOOKUP = new Map<string, number>(
+  CITIES.map(c => [c.slug, c.population])
+);
+const MIN_SITEMAP_POPULATION = 10000;
 
 // All 50 US states + DC
 const US_STATES = [
@@ -61,6 +78,12 @@ const STATE_NAME_TO_CODE: Record<string, string> = {
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'
+
+  // Shared filter: published, not expired, and not a repeated dead link (S6).
+  // Built per render — see the module-scope NOTE above. Deliberately
+  // UNBUFFERED (no expiryBufferDays): these aggregates drive the city/company
+  // section gates, which must agree with the page-level render gates.
+  const ACTIVE_JOB_WHERE = activeIndexableJobWhere();
 
   // GSC Fix (P1.4): use the actual latest job date, or "now" as a safe live
   // fallback. Previously hard-coded "2026-03-01" — a stale stamp made every
@@ -149,9 +172,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Category × State pages — handled by /api/sitemaps/cities/[batch] (which
   // emits both category×city AND setting×state URLs via pseoStats with
-  // totalJobs ≥ 1). Keep this empty here to avoid duplicating URLs across
-  // sitemaps — Google treats duplicate <loc> entries across sitemap files as
-  // a quality signal hit.
+  // totalJobs ≥ MIN_JOBS_FOR_CATEGORY_CITY). Keep this empty here to avoid
+  // duplicating URLs across sitemaps — Google treats duplicate <loc> entries
+  // across sitemap files as a quality signal hit.
   const categoryStatePages: MetadataRoute.Sitemap = [];
 
   try {
@@ -181,24 +204,41 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       by: ['state'],
       where: { ...ACTIVE_JOB_WHERE, state: { not: null } },
       _count: { state: true },
+      _max: { updatedAt: true },
     });
     const stateSalaryCounts = await prisma.job.groupBy({
       by: ['state'],
       where: { ...ACTIVE_JOB_WHERE, state: { not: null }, normalizedMinSalary: { not: null } },
       _count: { state: true },
+      _max: { updatedAt: true },
     });
     const slugify = (s: string) => s.toLowerCase().replace(/\s+/g, '-');
     const statesWithJobs = new Set(stateJobCounts.map(r => slugify((r.state || '').trim())));
     const statesWithSalary = new Set(stateSalaryCounts.map(r => slugify((r.state || '').trim())));
+    // GSC Fix (2026-07 audit P2.5): per-entity lastmod. Previously every
+    // state/city/company entry carried the single sitewide latestJobDate
+    // (bumped every ≤4h by ingest), claiming perpetual freshness for pages
+    // whose jobs may not have changed in weeks — eroding Google's trust in
+    // lastmod exactly where it matters most (the churning job-detail
+    // sitemaps). High-churn listing hubs (homepage, /jobs, category landings,
+    // metros) keep latestJobDate: they genuinely change with every ingest.
+    const stateLastMod = new Map<string, Date>();
+    for (const r of stateJobCounts) {
+      if (r._max?.updatedAt) stateLastMod.set(slugify((r.state || '').trim()), r._max.updatedAt);
+    }
+    const stateSalaryLastMod = new Map<string, Date>();
+    for (const r of stateSalaryCounts) {
+      if (r._max?.updatedAt) stateSalaryLastMod.set(slugify((r.state || '').trim()), r._max.updatedAt);
+    }
     statePages = US_STATES.filter(s => statesWithJobs.has(s)).map(state => ({
       url: `${baseUrl}/jobs/state/${state}`,
-      lastModified: latestJobDate,
+      lastModified: stateLastMod.get(state) ?? latestJobDate,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     }));
     salaryGuideStatePages = US_STATES.filter(s => statesWithSalary.has(s)).map(state => ({
       url: `${baseUrl}/salary-guide/${state}`,
-      lastModified: latestJobDate,
+      lastModified: stateSalaryLastMod.get(state) ?? latestJobDate,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     }));
@@ -215,6 +255,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       by: ['city', 'state'],
       where: { ...ACTIVE_JOB_WHERE, city: { not: null }, state: { not: null } },
       _count: { city: true },
+      _max: { updatedAt: true },
       orderBy: { _count: { city: 'desc' } },
       take: 2000,
     })
@@ -230,9 +271,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const code = stateVal.length === 2 ? stateVal.toUpperCase() : STATE_NAME_TO_CODE[stateVal] || null;
         if (!code) return null;
         const slug = `${c.city!.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${code.toLowerCase()}`;
+        // P2.7: metro slugs 308 to /jobs/metro/* — never advertise a
+        // redirecting URL (the metro URLs are already in staticPages).
+        if (METRO_SLUG_SET.has(slug)) return null;
+        // P2.8: CITIES-registry + population gate — mirrors
+        // /api/sitemaps/cities/[batch] so junk location-parse entities
+        // can't be advertised during a transient ≥3-job window.
+        const population = CITY_POPULATION_LOOKUP.get(slug);
+        if (population === undefined || population < MIN_SITEMAP_POPULATION) return null;
         return {
           url: `${baseUrl}/jobs/city/${slug}`,
-          lastModified: latestJobDate,
+          lastModified: c._max?.updatedAt ?? latestJobDate,
           changeFrequency: 'weekly' as const,
           priority: 0.7,
         };
@@ -259,13 +308,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             },
           },
         },
+        // P2.5: latest active job per company drives that company's lastmod.
+        jobs: {
+          where: ACTIVE_JOB_WHERE,
+          orderBy: { updatedAt: 'desc' },
+          take: 1,
+          select: { updatedAt: true },
+        },
       },
     });
     const companyPages: MetadataRoute.Sitemap = companiesWithJobs
-      .filter(c => c._count.jobs >= 8) // Only companies with ≥8 active jobs (tightened from 5 to reduce thin pages)
+      // Only companies with ≥8 active jobs (tightened from 5 to reduce thin
+      // pages). Mirrors MIN_COMPANY_JOBS_FOR_INDEX in app/companies/[slug]/
+      // page.tsx (noindex below 8) — keep the two in lockstep.
+      .filter(c => c._count.jobs >= 8)
       .map(c => ({
         url: `${baseUrl}/companies/${c.normalizedName}`,
-        lastModified: latestJobDate,
+        lastModified: c.jobs?.[0]?.updatedAt ?? latestJobDate,
         changeFrequency: 'weekly' as const,
         priority: 0.6,
       }))

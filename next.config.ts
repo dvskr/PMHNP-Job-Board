@@ -213,6 +213,22 @@ const nextConfig: NextConfig = {
         destination: '/blog/pmhnp-interview-questions-2026',
         permanent: true,
       },
+      // GSC Fix (2026-07 audit P2.12): "-2" duplicate copies minted by blog
+      // pipeline re-submissions (generateUniqueSlug silently suffixed on
+      // collision — now it throws instead). The residency directory is the
+      // #2 page on the site; its "-2" twin was live with a self-canonical,
+      // splitting ranking signals. The job-outlook "-2" row is already
+      // deleted (404) — the 301 recovers whatever inbound equity it earned.
+      {
+        source: '/blog/pmhnp-residency-fellowship-programs-2026-directory-how-to-apply-2',
+        destination: '/blog/pmhnp-residency-fellowship-programs-2026-directory-how-to-apply',
+        permanent: true,
+      },
+      {
+        source: '/blog/pmhnp-job-outlook-2026-growth-rate-demand-future-predictions-2',
+        destination: '/blog/pmhnp-job-outlook',
+        permanent: true,
+      },
     ];
   },
 };

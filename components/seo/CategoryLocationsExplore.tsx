@@ -9,10 +9,14 @@
  * those pSEO pages matter — Google needs internal-link votes, not just
  * sitemap entries, before promoting a page from "discovered" to "indexed".
  *
- * Gating rule: every link rendered here was filtered through `pseoStats`
- * with `totalJobs >= 1`. We never link to an empty page. The ingest cron
- * (/api/cron/aggregate-pseo) refreshes `pseoStats` every 12h, so the link
- * set tracks live data within that window.
+ * Gating rule (GSC Fix, 2026-07 audit): every link rendered here is
+ * filtered through `pseoStats` with `totalJobs >= MIN_JOBS_FOR_CATEGORY_CITY`
+ * and the 36h freshness window — the linked category-city pages hard-404
+ * below the render gate and setting-state pages noindex below it, so the
+ * previous ≥1 gate steadily fed Googlebot doomed URLs. City links are only
+ * emitted for categories still in the city sitemaps (retired categories
+ * render noindex). Queries are guarded — a pseoStats hiccup renders nothing
+ * rather than 500ing the category landing page.
  *
  * Server component — runs in the RSC pass, no client JS shipped.
  */
@@ -21,6 +25,13 @@ import { ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { getCityBySlug } from '@/lib/pseo/city-data/cities';
 import { CODE_TO_STATE } from '@/lib/pseo/setting-state-config';
+import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
+import { CITY_SITEMAP_CATEGORIES } from '@/lib/pseo/jobs-segments-edge';
+
+const CITY_SITEMAP_CATEGORY_SET = new Set<string>(CITY_SITEMAP_CATEGORIES);
+// Mirrors PSEO_STALENESS_HOURS in the sitemap routes — stale aggregator rows
+// must not keep links alive for pages whose jobs already expired.
+const PSEO_STALENESS_HOURS = 36;
 
 interface CategoryLocationsExploreProps {
     /** The category slug, matching pseoStats.categorySlug (e.g. 'full-time'). */
@@ -60,29 +71,43 @@ export default async function CategoryLocationsExplore({
     cityLimit = 18,
 }: CategoryLocationsExploreProps) {
     // Two parallel pseoStats queries — both indexed on (type, locationSlug)
-    // and (categorySlug). totalJobs filter keeps us off the 0-job pages.
-    const [stateRows, cityRows] = await Promise.all([
-        prisma.pseoStats.findMany({
-            where: {
-                type: 'setting-state',
-                categorySlug,
-                totalJobs: { gte: 1 },
-            },
-            select: { locationSlug: true, totalJobs: true },
-            orderBy: { totalJobs: 'desc' },
-            take: stateLimit,
-        }),
-        prisma.pseoStats.findMany({
-            where: {
-                type: 'category-city',
-                categorySlug,
-                totalJobs: { gte: 1 },
-            },
-            select: { locationSlug: true, totalJobs: true },
-            orderBy: { totalJobs: 'desc' },
-            take: cityLimit,
-        }),
-    ]);
+    // and (categorySlug). Gate at the render threshold so we never link a
+    // page that 404s (category-city below 3) or noindexes (setting-state
+    // below 3). Retired categories get no city links at all — their city
+    // pages render noindex (P2.3).
+    const freshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
+    let stateRows: Array<{ locationSlug: string; totalJobs: number }> = [];
+    let cityRows: Array<{ locationSlug: string; totalJobs: number }> = [];
+    try {
+        [stateRows, cityRows] = await Promise.all([
+            prisma.pseoStats.findMany({
+                where: {
+                    type: 'setting-state',
+                    categorySlug,
+                    totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
+                    updatedAt: { gte: freshnessThreshold },
+                },
+                select: { locationSlug: true, totalJobs: true },
+                orderBy: { totalJobs: 'desc' },
+                take: stateLimit,
+            }),
+            CITY_SITEMAP_CATEGORY_SET.has(categorySlug)
+                ? prisma.pseoStats.findMany({
+                    where: {
+                        type: 'category-city',
+                        categorySlug,
+                        totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
+                        updatedAt: { gte: freshnessThreshold },
+                    },
+                    select: { locationSlug: true, totalJobs: true },
+                    orderBy: { totalJobs: 'desc' },
+                    take: cityLimit,
+                })
+                : Promise.resolve([]),
+        ]);
+    } catch (err) {
+        console.error('[CategoryLocationsExplore] pseoStats lookup failed; rendering nothing:', err);
+    }
 
     // Resolve city display names; drop any whose slug isn't in CITIES (stale row).
     const cityLinks = cityRows

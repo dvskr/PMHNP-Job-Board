@@ -17,6 +17,7 @@ import {
   DollarSign, Users, ArrowRight,
 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { MIN_JOBS_FOR_CATEGORY_CITY } from './render-gate';
 import JobCard from '@/components/JobCard';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryHero from '@/components/CategoryHero';
@@ -217,10 +218,13 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
   const rawNeighbors = NEIGHBORING_STATES[stateName!] || [];
   const basePath = `/jobs/${config.slug}/${stateSlug}`;
 
-  // GSC Fix (P1.5): gate cross-links by pseoStats.totalJobs ≥ 1 so we never
-  // link Googlebot to empty pages. Empty cross-links generated thousands of
-  // "Discovered — currently not indexed" entries before. One pseoStats fan-out
-  // query per concern; all rows pre-aggregated, so this is fast.
+  // GSC Fix (P1.5 + 2026-07 audit): gate cross-links by pseoStats.totalJobs ≥
+  // MIN_JOBS_FOR_CATEGORY_CITY. The previous ≥1 gate linked category-city
+  // pages that hard-404 below the render gate and setting-state pages that
+  // render noindex below 3 — a steady feed of doomed URLs for Googlebot.
+  // One pseoStats fan-out query per concern; all rows pre-aggregated, and
+  // each lookup is guarded so a pseoStats hiccup degrades to "no
+  // cross-links", never a page 500.
   //
   // SEO Fix #18: also gate on pseoStats freshness (36h, 3x the 12h aggregator
   // cadence). If the aggregator silently fails, stale rows can advertise
@@ -229,40 +233,51 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
   const PSEO_STALENESS_HOURS = 36;
   const pseoFreshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
 
-  // Other-settings for THIS state with ≥1 job
-  const otherSettingRows = await prisma.pseoStats.findMany({
-    where: {
-      type: 'setting-state',
-      locationSlug: stateSlug,
-      totalJobs: { gte: 1 },
-      categorySlug: { not: config.slug },
-      updatedAt: { gte: pseoFreshnessThreshold },
-    },
-    select: { categorySlug: true },
-  });
+  // Other-settings for THIS state clearing the gate
+  let otherSettingRows: Array<{ categorySlug: string }> = [];
+  try {
+    otherSettingRows = await prisma.pseoStats.findMany({
+      where: {
+        type: 'setting-state',
+        locationSlug: stateSlug,
+        totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
+        categorySlug: { not: config.slug },
+        updatedAt: { gte: pseoFreshnessThreshold },
+      },
+      select: { categorySlug: true },
+    });
+  } catch (err) {
+    console.error('[setting-state] other-settings cross-link lookup failed; omitting section:', err);
+  }
   const otherSettingSlugs = new Set(otherSettingRows.map(r => r.categorySlug));
   const otherSettings = Object.values(SETTING_CONFIGS).filter(
     (s) => s.slug !== config.slug && otherSettingSlugs.has(s.slug),
   );
 
-  // Neighbor states where THIS setting has ≥1 job
+  // Neighbor states where THIS setting clears the gate
   const neighborSlugs = rawNeighbors.map(n => stateToSlug(n));
-  const validNeighborRows = neighborSlugs.length > 0
-    ? await prisma.pseoStats.findMany({
+  let validNeighborRows: Array<{ locationSlug: string }> = [];
+  if (neighborSlugs.length > 0) {
+    try {
+      validNeighborRows = await prisma.pseoStats.findMany({
         where: {
           type: 'setting-state',
           categorySlug: config.slug,
           locationSlug: { in: neighborSlugs },
-          totalJobs: { gte: 1 },
+          totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
           updatedAt: { gte: pseoFreshnessThreshold },
         },
         select: { locationSlug: true },
-      })
-    : [];
+      });
+    } catch (err) {
+      console.error('[setting-state] neighbor-states cross-link lookup failed; omitting section:', err);
+    }
+  }
   const validNeighborSlugs = new Set(validNeighborRows.map(r => r.locationSlug));
   const neighbors = rawNeighbors.filter(n => validNeighborSlugs.has(stateToSlug(n)));
 
-  // Top cities in this state where THIS setting has ≥1 city-level job
+  // Top cities in this state where THIS setting clears the category-city
+  // render gate (those pages hard-404 at 1-2 jobs — never link below it)
   const stateCode = STATE_CODES[stateName!];
   const candidateCities = stateCode
     ? getCitiesByState(stateCode)
@@ -270,18 +285,23 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
         .slice(0, 30) // overshoot — we'll filter then trim to 10
     : [];
   const candidateSlugs = candidateCities.map(c => c.slug);
-  const validCityRows = candidateSlugs.length > 0
-    ? await prisma.pseoStats.findMany({
+  let validCityRows: Array<{ locationSlug: string }> = [];
+  if (candidateSlugs.length > 0) {
+    try {
+      validCityRows = await prisma.pseoStats.findMany({
         where: {
           type: 'category-city',
           categorySlug: config.slug,
           locationSlug: { in: candidateSlugs },
-          totalJobs: { gte: 1 },
+          totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
           updatedAt: { gte: pseoFreshnessThreshold },
         },
         select: { locationSlug: true },
-      })
-    : [];
+      });
+    } catch (err) {
+      console.error('[setting-state] top-cities cross-link lookup failed; omitting section:', err);
+    }
+  }
   const validCitySlugs = new Set(validCityRows.map(r => r.locationSlug));
   const topCities = candidateCities.filter(c => validCitySlugs.has(c.slug)).slice(0, 10);
   const assets = CATEGORY_ASSET_REGISTRY[config.slug];
@@ -413,7 +433,10 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                   {totalPages > 1 && (
                     <div className="mt-8 flex items-center justify-center gap-4">
                       {page > 1 ? (
-                        <Link href={`${basePath}?page=${page - 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ ...clayCard, color: '#1A2E35', padding: '8px 16px' }}>
+                        // GSC Fix (P2.11): Prev to page 1 links the bare basePath — a
+                        // literal ?page=1 href gets 301-stripped by middleware on every
+                        // crawl, perpetually feeding GSC's redirect bucket.
+                        <Link href={page - 1 === 1 ? basePath : `${basePath}?page=${page - 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ ...clayCard, color: '#1A2E35', padding: '8px 16px' }}>
                           â† Previous
                         </Link>
                       ) : (
@@ -641,22 +664,28 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                 <p style={{ fontSize: '11px', color: '#7A6A62', marginTop: '8px', lineHeight: 1.4 }}>{practiceAuthority.details}</p>
               </div>
             )}
-            {/* Cost of Living */}
-            <div className="pseo-pill" style={{ ...clayCard, padding: '20px', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', color: '#7A6A62', marginBottom: '6px' }}>Avg Cost of Living</div>
-              <div style={{ fontSize: '28px', fontWeight: 800, color: avgCOL > 110 ? '#ef4444' : avgCOL > 100 ? '#f59e0b' : '#22c55e' }}>{avgCOL}</div>
-              <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '4px' }}>
-                {avgCOL > 110 ? 'Above national avg' : avgCOL > 100 ? 'Near national avg' : 'Below national avg'} (100 = US avg)
-              </div>
-            </div>
-            {/* Shortage Areas */}
-            <div className="pseo-pill" style={{ ...clayCard, padding: '20px', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', color: '#7A6A62', marginBottom: '6px' }}>MH Shortage Areas</div>
-              <div style={{ fontSize: '28px', fontWeight: 800, color: shortageCount > 0 ? '#ef4444' : '#22c55e' }}>{shortageCount}/{topCities.length}</div>
-              <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '4px' }}>
-                top cities with HPSA designation
-              </div>
-            </div>
+            {/* Cost of Living + Shortage Areas — only when we actually have
+                gated top cities (review finding: with the gate raised to ≥3,
+                topCities can be empty, rendering a fabricated COL=100 and a
+                nonsense "0/0" HPSA stat). */}
+            {topCities.length > 0 && (
+              <>
+                <div className="pseo-pill" style={{ ...clayCard, padding: '20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#7A6A62', marginBottom: '6px' }}>Avg Cost of Living</div>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: avgCOL > 110 ? '#ef4444' : avgCOL > 100 ? '#f59e0b' : '#22c55e' }}>{avgCOL}</div>
+                  <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '4px' }}>
+                    {avgCOL > 110 ? 'Above national avg' : avgCOL > 100 ? 'Near national avg' : 'Below national avg'} (100 = US avg)
+                  </div>
+                </div>
+                <div className="pseo-pill" style={{ ...clayCard, padding: '20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#7A6A62', marginBottom: '6px' }}>MH Shortage Areas</div>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: shortageCount > 0 ? '#ef4444' : '#22c55e' }}>{shortageCount}/{topCities.length}</div>
+                  <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '4px' }}>
+                    top cities with HPSA designation
+                  </div>
+                </div>
+              </>
+            )}
             {/* Salary */}
             {stats.avgSalary > 0 && (
               <div className="pseo-pill" style={{ ...clayCard, padding: '20px', textAlign: 'center' }}>

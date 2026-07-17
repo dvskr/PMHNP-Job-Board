@@ -6,6 +6,7 @@ import { ArrowRight, BookOpen, Newspaper, PenLine } from 'lucide-react';
 import {
     getPublishedPosts,
     getPostCount,
+    getPublishedCategoryCounts,
     BLOG_CATEGORIES,
 } from '@/lib/blog';
 import VideoJsonLd from '@/components/VideoJsonLd';
@@ -66,10 +67,23 @@ export default async function BlogIndexPage({
     const currentPage = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
     const categoryFilter = category || undefined;
 
-    const [posts, totalCount] = await Promise.all([
+    const [posts, totalCount, categoryCounts] = await Promise.all([
         getPublishedPosts(currentPage, POSTS_PER_PAGE, categoryFilter),
         getPostCount(categoryFilter),
+        getPublishedCategoryCounts(),
     ]);
+
+    // GSC Fix (2026-07 audit P3): only render pills for categories with ≥1
+    // published post. Empty ?category= URLs returned 200 "No posts in this
+    // category yet" — a soft-404 crawlers rediscovered on every crawl of
+    // /blog. Keep the active filter's pill visible even if empty so the
+    // "no posts" state stays navigable. null counts = lookup failed → FAIL
+    // OPEN and render all pills rather than none.
+    const visibleCategories = categoryCounts === null
+        ? BLOG_CATEGORIES
+        : BLOG_CATEGORIES.filter(
+            (cat) => (categoryCounts[cat.id] || 0) > 0 || categoryFilter === cat.id
+        );
 
     const totalPages = Math.ceil(totalCount / POSTS_PER_PAGE);
 
@@ -208,7 +222,7 @@ export default async function BlogIndexPage({
                         >
                             All
                         </Link>
-                        {BLOG_CATEGORIES.map((cat) => {
+                        {visibleCategories.map((cat) => {
                             const isActive = categoryFilter === cat.id;
                             const cs = getCatStyle(cat.id);
                             return (

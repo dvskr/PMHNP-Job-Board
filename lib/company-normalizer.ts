@@ -204,11 +204,29 @@ export function findCanonicalName(name: string): string | null {
   return null;
 }
 
+// GSC Fix (2026-07 audit): aggregator feeds sometimes put their own brand in
+// the employer field — bebee.com mints synthetic employer names like
+// "bebeemental" / "bebeeautonomy" — and each unique junk name created a
+// Company row plus a public /companies/{slug} page that churned through GSC
+// as soft-404 / crawled-not-indexed. No real employer is named after a job
+// aggregator, so names matching these brand tokens never get an entity page.
+// The job itself still ingests; it just carries companyId = null.
+const AGGREGATOR_ARTIFACT_TOKENS = [
+  'bebee', 'lensa', 'jobilize', 'whatjobs', 'jooble', 'adzuna',
+  'jobrapido', 'learn4good', 'ziprecruiter', 'simplyhired', 'snagajob',
+];
+
+export function isAggregatorArtifactName(employerName: string): boolean {
+  const compact = normalizeCompanyName(employerName).replace(/-/g, '');
+  return AGGREGATOR_ARTIFACT_TOKENS.some(t => compact === t || compact.startsWith(t));
+}
+
 /**
- * Gets an existing company or creates a new one
- * Returns the company ID
+ * Gets an existing company or creates a new one.
+ * Returns the company ID, or null when the employer name is an aggregator
+ * artifact that must not mint a Company entity.
  */
-export async function getOrCreateCompany(employerName: string): Promise<string> {
+export async function getOrCreateCompany(employerName: string): Promise<string | null> {
   try {
     if (!employerName || !employerName.trim()) {
       throw new Error('Employer name is required');
@@ -253,9 +271,17 @@ export async function getOrCreateCompany(employerName: string): Promise<string> 
       return company.id;
     }
 
+    // Never mint NEW entities from aggregator-artifact names. (Existing rows
+    // above still resolve — the company page's noindex/404 gates contain
+    // legacy junk; this stops the supply of new junk.)
+    if (isAggregatorArtifactName(finalName)) {
+      console.info(`[company-normalizer] Skipping Company creation for aggregator-artifact employer name: "${finalName}"`);
+      return null;
+    }
+
     // Create new company
     const aliases = canonicalName ? KNOWN_COMPANIES[canonicalName] || [] : [];
-    
+
     company = await prisma.company.create({
       data: {
         name: finalName,
@@ -293,8 +319,11 @@ export async function linkJobToCompany(jobId: string): Promise<void> {
       return;
     }
 
-    // Get or create company
+    // Get or create company (null = aggregator-artifact name; leave unlinked)
     const companyId = await getOrCreateCompany(job.employer);
+    if (!companyId) {
+      return;
+    }
 
     // Update job with company ID
     await prisma.job.update({
@@ -319,7 +348,10 @@ export async function linkAllJobsToCompanies(): Promise<{
   const BATCH_SIZE = 100;
   let processed = 0;
   let linked = 0;
-  const companiesMap = new Map<string, string>(); // normalized name -> company ID
+  // normalized name -> company ID, or null for aggregator-artifact names.
+  // Null verdicts are memoized too (review finding) — otherwise every
+  // artifact-named job re-hits getOrCreateCompany on every run, forever.
+  const companiesMap = new Map<string, string | null>();
 
   try {
     // Get count of jobs without companies
@@ -345,19 +377,27 @@ export async function linkAllJobsToCompanies(): Promise<{
         try {
           const normalized = normalizeCompanyName(job.employer);
           
-          // Check if we've already processed this company in this batch
-          let companyId = companiesMap.get(normalized);
-          
-          if (!companyId) {
-            // Get or create company
+          // Check if we've already processed this company in this run
+          // (.has, not .get — a memoized null verdict must not re-resolve)
+          let companyId: string | null;
+          if (companiesMap.has(normalized)) {
+            companyId = companiesMap.get(normalized) ?? null;
+            if (companyId) {
+              // Just increment the count for existing company
+              await prisma.company.update({
+                where: { id: companyId },
+                data: { jobCount: { increment: 1 } },
+              });
+            }
+          } else {
+            // Get or create company (null = aggregator artifact; skip linking)
             companyId = await getOrCreateCompany(job.employer);
             companiesMap.set(normalized, companyId);
-          } else {
-            // Just increment the count for existing company
-            await prisma.company.update({
-              where: { id: companyId },
-              data: { jobCount: { increment: 1 } },
-            });
+          }
+
+          if (!companyId) {
+            processed++;
+            continue;
           }
 
           // Update job with company ID
@@ -378,7 +418,8 @@ export async function linkAllJobsToCompanies(): Promise<{
       console.log(`Processed ${processed}/${totalJobs} jobs...`);
     }
 
-    const companiesCreated = companiesMap.size;
+    // Count only resolved companies — null entries are memoized skip verdicts.
+    const companiesCreated = [...companiesMap.values()].filter(Boolean).length;
 
     console.log(`Completed: ${processed} processed, ${linked} linked, ${companiesCreated} companies created/used`);
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
     createBlogPost,
     generateUniqueSlug,
+    SlugCollisionError,
     BlogCategory,
 } from '@/lib/blog';
 import { formatBlogContent } from '@/lib/blog-formatter';
@@ -90,8 +91,22 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Generate unique slug
-        const slug = await generateUniqueSlug(title);
+        // Generate unique slug. Throws SlugCollisionError on a duplicate
+        // submission (GSC Fix P2.12) — surfaced as 409 so the pipeline
+        // (n8n) sees an explicit failure instead of silently publishing a
+        // "-2" twin that splits ranking signals with the original.
+        let slug: string;
+        try {
+            slug = await generateUniqueSlug(title);
+        } catch (err) {
+            if (err instanceof SlugCollisionError) {
+                return NextResponse.json(
+                    { error: err.message, existingSlug: err.slug },
+                    { status: 409 }
+                );
+            }
+            throw err;
+        }
 
         // Create the post
         // Only auto-format if explicitly requested (format: true)

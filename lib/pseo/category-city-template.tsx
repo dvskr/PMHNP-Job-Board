@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { cache } from 'react';
 import { withTagFallback } from './category-tagger';
-import { categoryCanonicalTarget } from './jobs-segments-edge';
+import { categoryCanonicalTarget, CITY_SITEMAP_CATEGORIES } from './jobs-segments-edge';
 import { shouldRenderCategoryCity, MIN_JOBS_FOR_CATEGORY_CITY } from './render-gate';
 import { hasLicensePost } from './license-posts';
 import { JOB_LISTING_OMIT } from './job-listing-omit';
@@ -860,8 +860,16 @@ function getMarketDemandScore(city: CityData, totalJobs: number): { score: numbe
 // Imported from render-gate.ts (SSOT) so page gate, sitemap, and cron agree.
 const MIN_JOBS_FOR_INDEX = MIN_JOBS_FOR_CATEGORY_CITY;
 
+// Categories still allowed in the city sitemaps (inCitySitemaps flag in
+// JOBS_TAXONOMY). GSC Fix (2026-07 audit P2.3): the flag previously gated
+// only sitemap emission and the index-pseo cron — retired-category city
+// pages kept rendering 200 + indexable with no sitemap presence, refilling
+// GSC's "Crawled - currently not indexed" bucket. Pages for retired
+// categories now render noindex,follow regardless of job count.
+const CITY_SITEMAP_CATEGORY_SET = new Set<string>(CITY_SITEMAP_CATEGORIES);
+
 function getPageQualityScore(city: CityData, totalJobs: number): number {
-  if (totalJobs === 0) return 0; // Redirected before reaching here, but belt-and-suspenders
+  if (totalJobs === 0) return 0; // 404'd before reaching here (P2.10), but belt-and-suspenders
 
   // Pages with fewer than MIN_JOBS are thin content → noindex but still render
   if (totalJobs < MIN_JOBS_FOR_INDEX) return 10; // Below the 25-point index threshold
@@ -898,18 +906,23 @@ export async function buildCategoryCityMetadata(
   // getCityStats is already try-catch protected — returns EMPTY_STATS on failure
   const stats = await getCityStats(config, city);
 
-  // SEO: 308 permanent redirect for 0-job pages (metadata phase)
-  // The page component also redirects, but this catches the metadata call first
+  // GSC Fix (2026-07 audit P2.10): 0-job pages 404 like 1-2-job pages — one
+  // consistent signal below the render gate. The previous permanentRedirect
+  // (308 → parent category) contradicted its own semantics under job churn
+  // (a "permanent" redirect that un-redirects when jobs return), made combos
+  // oscillate between GSC's redirect and 404 buckets, and risked Google
+  // reclassifying blanket up-tree redirects of empty pages as soft-404s.
   if (stats.totalJobs === 0) {
-    const { permanentRedirect } = await import('next/navigation');
-    permanentRedirect(`/jobs/${config.slug}`);
+    const { notFound } = await import('next/navigation');
+    notFound();
   }
 
   const basePath = `/jobs/${config.slug}/city/${citySlug}`;
 
   const qualityScore = getPageQualityScore(city, stats.totalJobs);
   const isHighQuality = qualityScore >= 25;
-  const shouldIndex = isHighQuality && page === 1;
+  const isRetiredCategory = !CITY_SITEMAP_CATEGORY_SET.has(config.slug);
+  const shouldIndex = isHighQuality && page === 1 && !isRetiredCategory;
 
   // Canonical consolidation:
   //   • Thin pages (1-2 jobs, score < 25)         → canonical to the parent
@@ -996,22 +1009,17 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
   // 1. Instantly fetch pre-calculated stats (single indexed row lookup ~2ms)
   const stats = await getCityStats(config, city!);
 
-  // ═══ SEO GUARD: 308 permanent redirect for 0-job pages ═══
-  // Instead of a hard 404 (which wastes crawl budget and loses link equity),
-  // 308 redirect to the parent category page so Google consolidates the signal.
-  // 308 is the modern equivalent of 301 — tells search engines the move is permanent.
-  if (stats.totalJobs === 0) {
-    const { permanentRedirect } = await import('next/navigation');
-    // Redirect to: /jobs/{category} — the parent enterprise category page
-    permanentRedirect(`/jobs/${config.slug}`);
-  }
-
-  // ═══ SEO GUARD (S4): hard 404 for thin doorway pages (1-2 jobs) ═══
-  // 0 jobs already redirected above. 1-2 jobs render near-identical content
-  // across thousands of URLs; meta-robots noindex alone is insufficient because
-  // Google still crawls and processes the 200. notFound() removes them from the
-  // crawl entirely. Threshold = 3 (shared with the city page, sitemap gate, and
-  // seo_threshold_decision.md).
+  // ═══ SEO GUARD: hard 404 below the render gate (0-2 jobs) ═══
+  // GSC Fix (2026-07 audit P2.10): 0-job pages previously permanentRedirect
+  // (308) to the parent category while 1-2-job pages 404'd — combos
+  // oscillating around the threshold flip-flopped between GSC's redirect and
+  // 404 buckets, and a "permanent" redirect that un-redirects when jobs
+  // return contradicts 308 semantics (Google also reclassifies blanket
+  // up-tree redirects of empty pages as soft-404s). Below-gate pages render
+  // near-identical content across thousands of URLs; meta-robots noindex
+  // alone is insufficient because Google still crawls and processes the 200.
+  // notFound() gives one consistent signal. Threshold = 3 (shared with the
+  // city page, sitemap gate, and seo_threshold_decision.md).
   if (!shouldRenderCategoryCity(stats.totalJobs)) {
     const { notFound: notFoundFn } = await import('next/navigation');
     notFoundFn();
@@ -1039,41 +1047,69 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
     // State not found, skip
   }
 
-  // GSC Fix (P1.5): gate cross-links by pseoStats.totalJobs ≥ 1.
-  // Empty cross-links generated thousands of "Discovered — currently not
-  // indexed" entries. Pseo stats are pre-aggregated, so these queries are fast.
-  const allOtherCategoryConfigs = Object.values(ALL_CATEGORY_CONFIGS).filter((c) => c.slug !== config.slug);
-  const otherCategoryRows = await prisma.pseoStats.findMany({
-    where: {
-      type: 'category-city',
-      locationSlug: citySlug,
-      totalJobs: { gte: 1 },
-      categorySlug: { in: allOtherCategoryConfigs.map(c => c.slug) },
-    },
-    select: { categorySlug: true },
-  });
+  // GSC Fix (P1.5 + 2026-07 audit): gate cross-links by pseoStats.totalJobs ≥
+  // MIN_JOBS_FOR_CATEGORY_CITY. The linked category-city pages hard-404 below
+  // the render gate, so the previous ≥1 gate steadily linked Googlebot to
+  // doomed URLs (and empty cross-links before that generated thousands of
+  // "Discovered — currently not indexed" entries). Retired categories
+  // (inCitySitemaps: false) are excluded outright — their pages render
+  // noindex (P2.3), so linking them only wastes crawl. Lookups are guarded:
+  // a pseoStats hiccup degrades to "no cross-links", never a page 500.
+  const allOtherCategoryConfigs = Object.values(ALL_CATEGORY_CONFIGS).filter(
+    (c) => c.slug !== config.slug && CITY_SITEMAP_CATEGORY_SET.has(c.slug)
+  );
+  let otherCategoryRows: Array<{ categorySlug: string }> = [];
+  try {
+    otherCategoryRows = await prisma.pseoStats.findMany({
+      where: {
+        type: 'category-city',
+        locationSlug: citySlug,
+        totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
+        categorySlug: { in: allOtherCategoryConfigs.map(c => c.slug) },
+      },
+      select: { categorySlug: true },
+    });
+  } catch (err) {
+    console.error('[category-city] other-category cross-link lookup failed; omitting section:', err);
+  }
   const validOtherCategorySlugs = new Set(otherCategoryRows.map(r => r.categorySlug));
   const otherCategories = allOtherCategoryConfigs.filter(c => validOtherCategorySlugs.has(c.slug));
 
   // Get visual assets from the registry for this category
   const assets = CATEGORY_ASSET_REGISTRY[config.slug];
 
-  // Nearby cities — gate by THIS category having ≥1 job in each candidate
+  // GSC Fix (2026-07 audit): explore cards were ungated — static hrefs like
+  // /jobs/per-diem became /jobs/per-diem/city/{slug}, linking retired or
+  // below-gate category-city URLs that 404 or render noindex. Gate on the
+  // same validated set as the text cross-links; the JSX falls back to
+  // otherCategories when this comes up empty.
+  const gatedExploreCards = (assets?.exploreCards ?? []).filter(c => {
+    const match = c.href.match(/^\/jobs\/([^/]+)$/);
+    return match !== null && validOtherCategorySlugs.has(match[1]);
+  });
+
+  // Nearby cities — gate by THIS category clearing the render gate in each
+  // candidate (≥1 previously linked cities whose pages 404 at 1-2 jobs).
   const candidateNearby = city!.nearbyCities
     .map((slug) => getCityBySlug(slug))
     .filter((c): c is CityData => c !== undefined)
     .slice(0, 12); // overshoot, then filter to 6
-  const nearbyRows = candidateNearby.length > 0
-    ? await prisma.pseoStats.findMany({
+  let nearbyRows: Array<{ locationSlug: string }> = [];
+  if (candidateNearby.length > 0) {
+    try {
+      nearbyRows = await prisma.pseoStats.findMany({
         where: {
           type: 'category-city',
           categorySlug: config.slug,
           locationSlug: { in: candidateNearby.map(c => c.slug) },
-          totalJobs: { gte: 1 },
+          totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
         },
         select: { locationSlug: true },
-      })
-    : [];
+      });
+    } catch (err) {
+      console.error('[category-city] nearby-cities cross-link lookup failed; omitting section:', err);
+    }
+  }
   const validNearbySlugs = new Set(nearbyRows.map(r => r.locationSlug));
   const nearbyCities = candidateNearby.filter(c => validNearbySlugs.has(c.slug)).slice(0, 6);
 
@@ -1082,17 +1118,24 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
   // taxonomies are city-only and never have a state page; others may have a
   // state page but with 0 jobs right now).
   const cityStateSlug = stateToSlug(city!.state);
-  const stateLinkRow = await prisma.pseoStats.findUnique({
-    where: {
-      type_categorySlug_locationSlug: {
-        type: 'setting-state',
-        categorySlug: config.slug,
-        locationSlug: cityStateSlug,
+  let stateLinkRow: { totalJobs: number } | null = null;
+  try {
+    stateLinkRow = await prisma.pseoStats.findUnique({
+      where: {
+        type_categorySlug_locationSlug: {
+          type: 'setting-state',
+          categorySlug: config.slug,
+          locationSlug: cityStateSlug,
+        },
       },
-    },
-    select: { totalJobs: true },
-  });
-  const showStateLink = (stateLinkRow?.totalJobs ?? 0) >= 1;
+      select: { totalJobs: true },
+    });
+  } catch (err) {
+    console.error('[category-city] state-link lookup failed; omitting link:', err);
+  }
+  // ≥ render-gate (2026-07 audit): setting-state pages noindex below 3 and
+  // the sitemap now gates them at 3 (P2.4) — don't link what we won't index.
+  const showStateLink = (stateLinkRow?.totalJobs ?? 0) >= MIN_JOBS_FOR_CATEGORY_CITY;
 
   // P3.4: per-(taxonomy, city) narrative. DB override wins; otherwise the
   // deterministic builder produces unique-per-(city,taxonomy,jobcount) text.
@@ -1274,7 +1317,10 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                   {totalPages > 1 && (
                     <div className="mt-8 flex items-center justify-center gap-4">
                       {page > 1 ? (
-                        <Link href={`${basePath}?page=${page - 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                        // GSC Fix (P2.11): Prev to page 1 links the bare basePath — a
+                        // literal ?page=1 href gets 301-stripped by middleware on every
+                        // crawl, perpetually feeding GSC's redirect bucket.
+                        <Link href={page - 1 === 1 ? basePath : `${basePath}?page=${page - 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                           ← Previous
                         </Link>
                       ) : (
@@ -1562,34 +1608,42 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
         </section>
       )}
 
-      {/* D6 + D8: Explore More — Warm bg with clay icon cards */}
+      {/* D6 + D8: Explore More — Warm bg with clay icon cards.
+          Header + grid render only when at least one gated link survived
+          (review finding: a bare "Keep Exploring" header over an empty grid
+          on long-tail cities reads as broken). Resource links below have
+          their own always-valid targets and stay. */}
       <div style={{ background: 'linear-gradient(180deg, #FFF8F0 0%, #FFF3E8 50%, #FFF8F0 100%)' }}>
         <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
-            Keep Exploring
-          </p>
-          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>
-            Other PMHNP Job Types in {city!.name}
-          </h2>
-          <div className="pseo-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-            {assets?.exploreCards && assets.exploreCards.length > 0 ? (
-              assets.exploreCards.map(c => (
-                <Link key={c.href} href={c.href.includes('/city/') ? c.href : `${c.href}/city/${citySlug}`} className="pseo-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                  <Image src={c.icon} alt="" width={48} height={48} sizes="48px" style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
-                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
-                  <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
-                </Link>
-              ))
-            ) : (
-              otherCategories.slice(0, 6).map((cat) => (
-                <Link key={cat.slug} href={`/jobs/${cat.slug}/city/${citySlug}`}
-                  className="pseo-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{cat.label}</span>
-                  <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>in {city!.name}</span>
-                </Link>
-              ))
-            )}
-          </div>
+          {(gatedExploreCards.length > 0 || otherCategories.length > 0) && (
+            <>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+                Keep Exploring
+              </p>
+              <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>
+                Other PMHNP Job Types in {city!.name}
+              </h2>
+              <div className="pseo-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                {gatedExploreCards.length > 0 ? (
+                  gatedExploreCards.map(c => (
+                    <Link key={c.href} href={`${c.href}/city/${citySlug}`} className="pseo-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                      <Image src={c.icon} alt="" width={48} height={48} sizes="48px" style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
+                      <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
+                    </Link>
+                  ))
+                ) : (
+                  otherCategories.slice(0, 6).map((cat) => (
+                    <Link key={cat.slug} href={`/jobs/${cat.slug}/city/${citySlug}`}
+                      className="pseo-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{cat.label}</span>
+                      <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>in {city!.name}</span>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </>
+          )}
 
           {/* Resource Links */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginTop: '32px' }}>

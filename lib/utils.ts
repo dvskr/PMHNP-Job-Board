@@ -116,7 +116,11 @@ export function slugify(title: string, id: string): string {
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-    .trim();
+    // GSC Fix (2026-07 audit P3): trim leading/trailing hyphens — titles
+    // starting with non-alphanumerics (e.g. "(Remote) NP…") minted slugs
+    // like "/jobs/-nurse-practitioner-…". The previous `.trim()` here only
+    // stripped whitespace, which the \s+ replacement had already consumed.
+    .replace(/^-+|-+$/g, '');
 
   // Truncate the title prefix at a word boundary when possible so the URL
   // doesn't end mid-word before the UUID suffix.
@@ -128,8 +132,9 @@ export function slugify(title: string, id: string): string {
     slug = slug.replace(/-+$/, '');
   }
 
-  // Use full UUID to match database slugs
-  return `${slug}-${id}`;
+  // Use full UUID to match database slugs. Degenerate titles (no ASCII
+  // alphanumerics at all) fall back to the bare id — never "-{id}".
+  return slug ? `${slug}-${id}` : id;
 }
 
 export function isNewJob(job: { originalPostedAt?: Date | null; createdAt: Date } | Date): boolean {

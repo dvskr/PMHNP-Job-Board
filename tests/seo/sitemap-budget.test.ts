@@ -13,6 +13,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prisma } from '@/lib/prisma';
 import sitemapHandler from '@/app/sitemap';
 import robotsHandler from '@/app/robots';
+import { CITIES } from '@/lib/pseo/city-data/cities';
+import { getAllMetroSlugs } from '@/lib/metro-data';
 
 // Build a synthetic catalog that's representative of production scale.
 function jobsFixture(count: number) {
@@ -22,6 +24,15 @@ function jobsFixture(count: number) {
         updatedAt: new Date('2026-05-04'),
     }));
 }
+
+// P2.7/P2.8 (2026-07 GSC audit): the sitemap now gates /jobs/city/* on the
+// CITIES registry (population ≥ 10k) and excludes metro slugs (they 308 to
+// /jobs/metro/*). Fixture rows must be real registry cities or the gate
+// (correctly) filters them all out.
+const METRO_SLUG_SET = new Set(getAllMetroSlugs());
+const FIXTURE_CITIES = CITIES
+    .filter((c) => c.population >= 10000 && !METRO_SLUG_SET.has(c.slug))
+    .slice(0, 80);
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -37,12 +48,15 @@ describe('P4.1: sitemap budget guard', () => {
         // ~5k active jobs (close to current production)
         vi.mocked(prisma.job.findMany).mockResolvedValue(jobsFixture(5000) as never);
 
-        // ~80 cities with ≥3 jobs (close to current)
+        // ~80 registry cities with ≥3 jobs (close to current). Full state
+        // names (c.state) so the same groupBy mock also populates the
+        // statesWithJobs / statesWithSalary sets.
         vi.mocked(prisma.job.groupBy).mockResolvedValue(
-            Array.from({ length: 80 }, (_, i) => ({
-                city: `City${i}`,
-                state: i % 2 === 0 ? 'California' : 'Texas',
-                _count: { city: 5 + (i % 30) },
+            FIXTURE_CITIES.map((c, i) => ({
+                city: c.name,
+                state: c.state,
+                _count: { city: 5 + (i % 30), state: 5 + (i % 30) },
+                _max: { updatedAt: new Date('2026-05-04') },
             })) as never
         );
 
@@ -51,6 +65,7 @@ describe('P4.1: sitemap budget guard', () => {
             Array.from({ length: 30 }, (_, i) => ({
                 normalizedName: `company-${i}`,
                 _count: { jobs: 10 + i },
+                jobs: [{ updatedAt: new Date('2026-05-04') }],
             })) as never
         );
 
