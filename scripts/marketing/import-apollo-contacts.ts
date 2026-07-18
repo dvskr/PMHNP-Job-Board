@@ -2,7 +2,7 @@
  * Import Apollo-verified contacts into employer_leads + quarantine mined rows.
  *
  * Two actions in one idempotent pass:
- *   1. Upsert every row of tmp/marketing/tier-a-revealed.csv with
+ *   1. Upsert every row of tmp/marketing/all-verified-contacts.csv with
  *      email_status=verified as an EmployerLead (status 'prospect',
  *      source 'apollo_verified'). Match key: contactEmail (exact), else
  *      (companyName + contactName).
@@ -26,7 +26,7 @@ if (process.env.PROD_DATABASE_URL && !process.env.DATABASE_URL) process.env.DATA
 if (process.env.PROD_DIRECT_URL && !process.env.DIRECT_URL) process.env.DIRECT_URL = process.env.PROD_DIRECT_URL;
 
 const EXECUTE = process.argv.includes('--execute');
-const CSV_PATH = path.join(process.cwd(), 'tmp', 'marketing', 'tier-a-revealed.csv');
+const CSV_PATH = path.join(process.cwd(), 'tmp', 'marketing', 'all-verified-contacts.csv');
 const QUARANTINE_SOURCES = ['mined_from_description', 'employer_site'];
 
 function parseCsv(text: string): Array<Record<string, string>> {
