@@ -318,7 +318,11 @@ export default function CompensationGuidePage() {
           </div>
 
           {/* Related Resources */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <Link href="/tools/1099-vs-w2-calculator" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+              <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🧮 1099 vs W-2 Calculator</h3>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Run your own numbers — SE tax, benefits value, break-even rate.</p>
+            </Link>
             <Link href="/jobs/1099" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
               <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>📋 Browse 1099 PMHNP Jobs</h3>
               <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Independent contractor positions updated daily.</p>

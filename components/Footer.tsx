@@ -24,6 +24,7 @@ const linkColumns = [
       { label: 'Saved Jobs', href: '/saved' },
       { label: 'Job Alerts', href: '/job-alerts' },
       { label: 'PMHNP Salary Guide', href: '/salary-guide' },
+      { label: 'Free Career Tools', href: '/tools' },
       { label: 'FAQ', href: '/faq' },
     ],
   },
