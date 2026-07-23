@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -134,7 +135,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
+                        __html: jsonLdString({
                             '@context': 'https://schema.org',
                             '@type': 'ItemList',
                             name: 'Telehealth PMHNP Jobs',
@@ -379,7 +380,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
               </div>
             ))}
           </div>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:'Do I need special licensure for telehealth?',a:'You need an active NP license in the state where your patient is located. PSYPACT and the Nurse Licensure Compact can streamline multi-state practice.'},{q:'What technology do I need for telehealth?',a:'A HIPAA-compliant video platform, reliable high-speed internet, dual monitors, a private workspace, and EPCS-enabled e-prescribing software.'},{q:'What is the salary range for telehealth PMHNPs?',a:'Telehealth PMHNP salaries range from $130K to $200K+, depending on patient volume, state, and whether the role is W-2 or 1099 contract.'},{q:'Can I prescribe controlled substances via telehealth?',a:'Yes, with proper DEA registration and EPCS setup. The DEA now permits initial prescriptions via telehealth in many circumstances.'},{q:'How many patients do telehealth PMHNPs see per day?',a:'Typically 12-20 patients per day, with 30-minute follow-ups and 60-minute intakes.'}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:'Do I need special licensure for telehealth?',a:'You need an active NP license in the state where your patient is located. PSYPACT and the Nurse Licensure Compact can streamline multi-state practice.'},{q:'What technology do I need for telehealth?',a:'A HIPAA-compliant video platform, reliable high-speed internet, dual monitors, a private workspace, and EPCS-enabled e-prescribing software.'},{q:'What is the salary range for telehealth PMHNPs?',a:'Telehealth PMHNP salaries range from $130K to $200K+, depending on patient volume, state, and whether the role is W-2 or 1099 contract.'},{q:'Can I prescribe controlled substances via telehealth?',a:'Yes, with proper DEA registration and EPCS setup. The DEA now permits initial prescriptions via telehealth in many circumstances.'},{q:'How many patients do telehealth PMHNPs see per day?',a:'Typically 12-20 patients per day, with 30-minute follow-ups and 60-minute intakes.'}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
         </section>
       </div>
 

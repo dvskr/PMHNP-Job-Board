@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 /**
  * Category × City pSEO Template Factory
  * 
@@ -1176,7 +1177,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: jsonLdString({
               '@context': 'https://schema.org',
               '@type': 'ItemList',
               name: `${config.label} PMHNP Jobs in ${city!.name}, ${city!.stateCode}`,
@@ -1195,7 +1196,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: jsonLdString({
             '@context': 'https://schema.org',
             '@type': 'Place',
             name: `${city!.name}, ${city!.stateCode}`,
@@ -1728,7 +1729,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                 <script
                   type="application/ld+json"
                   dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
+                    __html: jsonLdString({
                       '@context': 'https://schema.org',
                       '@type': 'FAQPage',
                       mainEntity: faqs.map(faq => ({
@@ -1746,7 +1747,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                 <script
                   type="application/ld+json"
                   dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
+                    __html: jsonLdString({
                       '@context': 'https://schema.org',
                       '@type': 'WebPage',
                       name: `${config.label} PMHNP Jobs in ${city!.name}, ${city!.stateCode}`,

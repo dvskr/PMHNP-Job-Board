@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 /**
  * Setting Ã— State pSEO Template Factory
  * 
@@ -343,7 +344,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: jsonLdString({
               '@context': 'https://schema.org',
               '@type': 'ItemList',
               name: `${config.label} PMHNP Jobs in ${stateName}`,

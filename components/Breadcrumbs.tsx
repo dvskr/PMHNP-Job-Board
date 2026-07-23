@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ChevronRight, Home } from 'lucide-react';
+import { jsonLdString } from '@/lib/seo/json-ld';
 
 interface BreadcrumbItem {
   label: string;
@@ -30,7 +31,7 @@ export default function Breadcrumbs({ items }: BreadcrumbsProps) {
       {/* Schema markup for SEO */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdString(schemaData) }}
       />
 
       {/* Visual breadcrumbs */}

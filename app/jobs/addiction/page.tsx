@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -127,7 +128,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
                 { name: "Addiction", url: "https://pmhnphiring.com/jobs/addiction" }
             ]} />
             {jobs.length > 0 && (
-              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Addiction PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Addiction PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
             )}
 
             {/* ═══ HERO ═══ */}
@@ -387,7 +388,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
               </div>
             ))}
           </div>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:"What does an addiction PMHNP do?",a:"An addiction PMHNP specializes in treating substance use disorders (SUD) and co-occurring mental health conditions. They prescribe medications like buprenorphine and naltrexone for medication-assisted treatment (MAT), manage detox protocols, provide therapy, and coordinate comprehensive recovery plans."},{q:"Do I need special certification for addiction PMHNP work?",a:"While not always required, the DEA X-waiver (now integrated into standard DEA registration) is essential for prescribing buprenorphine. ASAM certification or CARN credentials significantly strengthen your candidacy and are preferred by many employers."},{q:"How much do addiction PMHNPs earn?",a:"Addiction PMHNPs typically earn $130K–$180K annually, with some positions in high-demand areas exceeding $200K. Many roles include loan repayment programs, sign-on bonuses, and relocation assistance."},{q:"Is addiction psychiatry a good PMHNP specialty?",a:"Yes — addiction psychiatry is one of the fastest-growing PMHNP specialties with 40%+ growth in positions. The work is deeply meaningful, with high job security and competitive compensation."}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:"What does an addiction PMHNP do?",a:"An addiction PMHNP specializes in treating substance use disorders (SUD) and co-occurring mental health conditions. They prescribe medications like buprenorphine and naltrexone for medication-assisted treatment (MAT), manage detox protocols, provide therapy, and coordinate comprehensive recovery plans."},{q:"Do I need special certification for addiction PMHNP work?",a:"While not always required, the DEA X-waiver (now integrated into standard DEA registration) is essential for prescribing buprenorphine. ASAM certification or CARN credentials significantly strengthen your candidacy and are preferred by many employers."},{q:"How much do addiction PMHNPs earn?",a:"Addiction PMHNPs typically earn $130K–$180K annually, with some positions in high-demand areas exceeding $200K. Many roles include loan repayment programs, sign-on bonuses, and relocation assistance."},{q:"Is addiction psychiatry a good PMHNP specialty?",a:"Yes — addiction psychiatry is one of the fastest-growing PMHNP specialties with 40%+ growth in positions. The work is deeply meaningful, with high job security and competitive compensation."}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
         </section>
       </div>
 

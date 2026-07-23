@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -77,11 +78,11 @@ export default async function SeniorPage({ searchParams }: PageProps) {
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Senior Jobs" />
 
       {/* Schema Markup */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({
         '@context': 'https://schema.org', '@type': 'FAQPage',
         mainEntity: seniorFaqs.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })),
       }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({
         '@context': 'https://schema.org', '@type': 'ItemList', name: 'Senior PMHNP Jobs',
         numberOfItems: stats.totalJobs, itemListOrder: 'https://schema.org/ItemListOrderDescending',
         itemListElement: jobs.slice(0, 10).map((j: Job, i: number) => ({ '@type': 'ListItem', position: i + 1, url: `https://pmhnphiring.com/jobs/${j.slug}`, name: j.title })),

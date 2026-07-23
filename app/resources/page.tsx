@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -154,7 +155,7 @@ export default async function ResourcesPage() {
           tiles), which was semantically wrong — the CollectionPage is the
           guide hub, not a blog index. Now lists the actual featured guide
           URLs and counts them. */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({
         '@context': 'https://schema.org',
         '@type': 'CollectionPage',
         name: `PMHNP Resources & Career Guides — ${currentYear}`,

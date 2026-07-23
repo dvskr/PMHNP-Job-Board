@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 /**
  * CategoryFAQ — server-component wrapper.
  *
@@ -45,7 +46,7 @@ export default function CategoryFAQ({ category, totalJobs, avgSalary, customFaqs
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+                dangerouslySetInnerHTML={{ __html: jsonLdString(faqSchema) }}
             />
             <CategoryFAQAccordion faqs={faqs} categoryLabel={CATEGORY_LABELS[category]} />
         </>

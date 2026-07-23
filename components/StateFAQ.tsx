@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 /**
  * StateFAQ — server-component wrapper.
  *
@@ -83,7 +84,7 @@ export default function StateFAQ(props: StateFAQProps) {
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+                dangerouslySetInnerHTML={{ __html: jsonLdString(faqSchema) }}
             />
             <StateFAQAccordion stateName={props.stateName} faqs={faqs} />
         </>

@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -171,7 +172,7 @@ export default async function MetroLandingPage({ params }: PageProps) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: jsonLdString({
               '@context': 'https://schema.org',
               '@type': 'FAQPage',
               mainEntity: metro.faqs.map(faq => ({
@@ -188,7 +189,7 @@ export default async function MetroLandingPage({ params }: PageProps) {
       )}
       {/* ItemList schema */}
       {stats.recentJobs.length > 0 && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({
           '@context': 'https://schema.org', '@type': 'ItemList',
           name: `PMHNP Jobs in ${metro.city}, ${metro.stateCode}`,
           numberOfItems: stats.totalJobs,

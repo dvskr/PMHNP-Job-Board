@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -141,7 +142,7 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: jsonLdString({
             '@context': 'https://schema.org',
             '@type': 'FAQPage',
             mainEntity: communityHealthFaqs.map((faq) => ({
@@ -156,7 +157,7 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: jsonLdString({
               '@context': 'https://schema.org',
               '@type': 'ItemList',
               name: 'Community Health PMHNP Jobs',

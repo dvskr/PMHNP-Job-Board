@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -108,7 +109,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
                 { name: "Outpatient", url: "https://pmhnphiring.com/jobs/outpatient" }
             ]} />
             {jobs.length > 0 && (
-              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Outpatient PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Outpatient PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
             )}
 
             {/* ═══ HERO ═══ */}
@@ -344,7 +345,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
               </div>
             ))}
           </div>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:'What does a typical outpatient PMHNP schedule look like?',a:'Most outpatient positions offer Monday-Friday, 8am-5pm schedules with no nights, weekends, or on-call.'},{q:'How many patients will I see per day?',a:'Outpatient PMHNPs typically see 15-20 patients per day, with a mix of 30-minute follow-ups and 60-minute initial evaluations.'},{q:'What is the salary range for outpatient PMHNPs?',a:'Outpatient PMHNP salaries range from $130K to $190K+, depending on location, experience, and practice setting.'},{q:'Do outpatient PMHNPs need to be credentialed with insurers?',a:'In most group practices, the employer handles insurance credentialing. Private practice may require your own panel memberships.'},{q:'What EHR systems are common in outpatient settings?',a:'Common outpatient EHRs include SimplePractice, Valant, TherapyNotes, and Epic Ambulatory.'}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:'What does a typical outpatient PMHNP schedule look like?',a:'Most outpatient positions offer Monday-Friday, 8am-5pm schedules with no nights, weekends, or on-call.'},{q:'How many patients will I see per day?',a:'Outpatient PMHNPs typically see 15-20 patients per day, with a mix of 30-minute follow-ups and 60-minute initial evaluations.'},{q:'What is the salary range for outpatient PMHNPs?',a:'Outpatient PMHNP salaries range from $130K to $190K+, depending on location, experience, and practice setting.'},{q:'Do outpatient PMHNPs need to be credentialed with insurers?',a:'In most group practices, the employer handles insurance credentialing. Private practice may require your own panel memberships.'},{q:'What EHR systems are common in outpatient settings?',a:'Common outpatient EHRs include SimplePractice, Valant, TherapyNotes, and Epic Ambulatory.'}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
         </section>
       </div>
 

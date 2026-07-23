@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import { cache } from 'react';
@@ -216,22 +217,19 @@ export default async function SalaryGuidePage() {
     "mainEntityOfPage": { "@type": "WebPage", "@id": "https://pmhnphiring.com/salary-guide" }
   };
 
-  const sanitizeJson = (obj: object): string => {
-    return JSON.stringify(obj).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
-  };
 
   const fmt = (n: number) => n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
 
   return (
     <>
       <VideoJsonLd pathname="/salary-guide" />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sanitizeJson(faqSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sanitizeJson(articleSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(articleSchema) }} />
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://pmhnphiring.com" },
         { name: "Salary Guide", url: "https://pmhnphiring.com/salary-guide" }
       ]} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sanitizeJson({
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({
         "@context": "https://schema.org", "@type": "WebPage",
         "name": `${currentYear} PMHNP Salary Guide`,
         "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".quick-answer-box", "h1"] },

@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
@@ -222,7 +223,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
       <>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jobListSchema).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') }}
+          dangerouslySetInnerHTML={{ __html: jsonLdString(jobListSchema) }}
         />
         {/* Breadcrumb renders INSIDE JobsPageClient, in the right-hand main
             column above the H1 — that puts it at the top-right corner of
