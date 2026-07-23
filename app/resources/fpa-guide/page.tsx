@@ -299,6 +299,7 @@ export default function FPAGuidePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/jobs" className="inline-block bg-teal-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-teal-700 transition-colors">Browse All Jobs</Link>
+              <Link href="/tools/practice-authority-map" className="inline-block bg-white px-8 py-3 rounded-lg font-medium border border-teal-200 hover:bg-teal-50 transition-colors" style={{ color: 'var(--color-primary)' }}>Interactive FPA Map</Link>
               <Link href="/salary-guide" className="inline-block bg-white px-8 py-3 rounded-lg font-medium border border-teal-200 hover:bg-teal-50 transition-colors" style={{ color: 'var(--color-primary)' }}>View Salary Guide</Link>
             </div>
           </div>
