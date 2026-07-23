@@ -99,6 +99,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (latestJob) latestJobDate = latestJob.updatedAt;
 
   const STATIC_CONTENT_DATE = new Date('2026-05-04');
+  // The /tools suite shipped later than the last sitewide static-content
+  // audit date above — carrying STATIC_CONTENT_DATE would claim these pages
+  // existed ~11 weeks before they did.
+  const TOOLS_LAUNCH_DATE = new Date('2026-07-23');
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [
@@ -150,6 +154,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/resources/fpa-guide`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/resources/private-practice-guide`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/resources/1099-vs-w2`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.8 },
+    // Free candidate tools (launched 2026-07-23 — STATIC_CONTENT_DATE
+    // predates them, so static tools carry their own launch date). The two
+    // data-backed tools re-render with the job set and carry latestJobDate;
+    // page ISR is daily, so that lastmod can lead the cached page by up to
+    // 24h — accepted granularity, same as the salary-guide state pages.
+    { url: `${baseUrl}/tools`, lastModified: TOOLS_LAUNCH_DATE, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${baseUrl}/tools/offer-analyzer`, lastModified: latestJobDate, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/tools/salary-converter`, lastModified: latestJobDate, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${baseUrl}/tools/1099-vs-w2-calculator`, lastModified: TOOLS_LAUNCH_DATE, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/tools/practice-authority-map`, lastModified: TOOLS_LAUNCH_DATE, changeFrequency: 'monthly', priority: 0.7 },
   ]
 
   // State pages — DB-gated below in the try block so empty states never
@@ -206,15 +220,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       _count: { state: true },
       _max: { updatedAt: true },
     });
+    // Mirrors the /salary-guide/[state] gate: the page notFound()s below 3
+    // clean disclosed-salary rows, so the sitemap must not advertise states
+    // under that floor (the WHERE approximates cleanSalaryRows' estimated +
+    // both-bounds gates; the ratio/sanity quarantine can't run in SQL, so a
+    // state right at the floor may rarely still 404 until the next crawl).
     const stateSalaryCounts = await prisma.job.groupBy({
       by: ['state'],
-      where: { ...ACTIVE_JOB_WHERE, state: { not: null }, normalizedMinSalary: { not: null } },
+      where: {
+        ...ACTIVE_JOB_WHERE,
+        state: { not: null },
+        normalizedMinSalary: { not: null },
+        normalizedMaxSalary: { not: null },
+        salaryIsEstimated: false,
+      },
       _count: { state: true },
       _max: { updatedAt: true },
     });
     const slugify = (s: string) => s.toLowerCase().replace(/\s+/g, '-');
     const statesWithJobs = new Set(stateJobCounts.map(r => slugify((r.state || '').trim())));
-    const statesWithSalary = new Set(stateSalaryCounts.map(r => slugify((r.state || '').trim())));
+    const statesWithSalary = new Set(
+      stateSalaryCounts.filter(r => r._count.state >= 3).map(r => slugify((r.state || '').trim()))
+    );
     // GSC Fix (2026-07 audit P2.5): per-entity lastmod. Previously every
     // state/city/company entry carried the single sitewide latestJobDate
     // (bumped every ≤4h by ingest), claiming perpetual freshness for pages

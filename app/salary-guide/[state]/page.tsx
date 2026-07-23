@@ -14,7 +14,14 @@ import {
     BarChart3,
     Stethoscope,
     BookOpen,
+    BadgeDollarSign,
 } from 'lucide-react';
+import {
+    cleanSalaryRows,
+    summarizeMidpoints,
+    roundDisplayDollars,
+} from '@/lib/salary-report/stats';
+import { getOfferMarketData } from '@/lib/salary-report/market-data';
 
 export const revalidate = 86400; // ISR daily
 
@@ -45,57 +52,61 @@ const ALL_STATE_SLUGS = Object.keys(SLUG_TO_STATE);
 
 // ── Data fetching ───────────────────────────────────────────────────────────
 
-async function getStateSalaryData(stateName: string) {
-    const stats = await prisma.job.aggregate({
-        where: {
-            isPublished: true,
-            state: stateName,
-            normalizedMinSalary: { not: null },
-        },
-        _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
-        _min: { normalizedMinSalary: true },
-        _max: { normalizedMaxSalary: true },
-        _count: { id: true },
-    });
+const SETTINGS = ['Telehealth', 'Outpatient', 'Inpatient', 'Remote'] as const;
 
-    const avgMin = stats._avg.normalizedMinSalary || 0;
-    const avgMax = stats._avg.normalizedMaxSalary || 0;
-
-    return {
-        avgSalary: Math.round((avgMin + avgMax) / 2),
-        minSalary: Math.round(stats._min.normalizedMinSalary || 0),
-        maxSalary: Math.round(stats._max.normalizedMaxSalary || 0),
-        jobCount: stats._count.id,
-    };
+interface SettingStat {
+    setting: string;
+    median: number;
+    n: number;
 }
 
-async function getStateSalaryBySetting(stateName: string) {
-    const settings = ['Telehealth', 'Outpatient', 'Inpatient', 'Remote'];
-    const results = await Promise.all(
-        settings.map(async (setting) => {
-            const jobs = await prisma.job.aggregate({
-                where: {
-                    isPublished: true,
-                    state: stateName,
-                    normalizedMinSalary: { not: null },
-                    OR: [
-                        { title: { contains: setting, mode: 'insensitive' } },
-                        { jobType: { contains: setting, mode: 'insensitive' } },
-                    ],
-                },
-                _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
-                _count: { id: true },
-            });
-            const aMin = jobs._avg.normalizedMinSalary || 0;
-            const aMax = jobs._avg.normalizedMaxSalary || 0;
-            return {
-                setting,
-                avgSalary: Math.round((aMin + aMax) / 2),
-                jobCount: jobs._count.id,
-            };
-        })
-    );
-    return results.filter((r) => r.jobCount > 0);
+/**
+ * One row fetch per state; every dollar figure downstream is derived from
+ * these rows through lib/salary-report/stats.ts (medians, quarantine,
+ * tiered n-gating). Never aggregate means in SQL for display.
+ */
+async function getStateData(stateName: string) {
+    const [rows, totalOpen] = await Promise.all([
+        prisma.job.findMany({
+            where: {
+                isPublished: true,
+                state: stateName,
+                normalizedMinSalary: { not: null },
+                normalizedMaxSalary: { not: null },
+                salaryIsEstimated: false,
+            },
+            select: {
+                normalizedMinSalary: true,
+                normalizedMaxSalary: true,
+                salaryIsEstimated: true,
+                title: true,
+                jobType: true,
+            },
+        }),
+        prisma.job.count({ where: { isPublished: true, state: stateName } }),
+    ]);
+
+    const overall = cleanSalaryRows(rows);
+    const summary = summarizeMidpoints(overall.midpoints);
+
+    // Per-setting medians from the SAME row set. A setting only renders when
+    // it clears the median tier (n >= 5) on its own.
+    const bySetting: SettingStat[] = [];
+    for (const setting of SETTINGS) {
+        const settingRows = rows.filter(
+            (r) =>
+                r.title.toLowerCase().includes(setting.toLowerCase()) ||
+                (r.jobType || '').toLowerCase().includes(setting.toLowerCase())
+        );
+        const clean = cleanSalaryRows(settingRows);
+        const s = summarizeMidpoints(clean.midpoints);
+        if (s.tier === 'full' || s.tier === 'median') {
+            bySetting.push({ setting, median: s.median, n: s.n });
+        }
+    }
+    bySetting.sort((a, b) => b.median - a.median);
+
+    return { summary, bySetting, totalOpen, quarantined: overall.quarantined };
 }
 
 async function getTopEmployers(stateName: string) {
@@ -106,10 +117,7 @@ async function getTopEmployers(stateName: string) {
         orderBy: { _count: { id: 'desc' } },
         take: 10,
     });
-    return employers.map((e) => ({
-        name: e.employer,
-        jobCount: e._count.id,
-    }));
+    return employers.map((e) => ({ name: e.employer, jobCount: e._count.id }));
 }
 
 async function getTopCities(stateName: string) {
@@ -128,16 +136,6 @@ async function getTopCities(stateName: string) {
             jobCount: c._count.id,
             slug: `${c.city!.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${stateCode.toLowerCase()}`,
         }));
-}
-
-async function getNationalAvg() {
-    const stats = await prisma.job.aggregate({
-        where: { isPublished: true, normalizedMinSalary: { not: null } },
-        _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
-    });
-    const aMin = stats._avg.normalizedMinSalary || 120000;
-    const aMax = stats._avg.normalizedMaxSalary || 150000;
-    return Math.round((aMin + aMax) / 2);
 }
 
 // ── Static Params ───────────────────────────────────────────────────────────
@@ -159,16 +157,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const code = STATE_CODES[stateName];
 
-    // Empty-state defense lives in the page handler (notFound() when
-    // salaryData.jobCount === 0). We deliberately do NOT duplicate that
-    // gate here: generateMetadata + the page handler run in parallel, so
-    // adding a count() query here would double the per-request DB load
-    // for marginal benefit (the 404 itself is the strongest signal Google
-    // needs to drop the URL).
-    // Title trimmed to <60 chars (was 77-82 — reliably truncated mid-phrase).
-    // The "Average Pay, Jobs & Cost of Living" suffix moved into the description.
-    const title = `PMHNP Salary in ${stateName} (${code}) 2026 — Avg Pay & Jobs`;
-    const description = `PMHNP salary data for ${stateName}: average pay by practice setting, top employers, and open positions. Updated daily.`;
+    // Empty-state defense lives in the page handler (notFound() when the
+    // clean sample is below the 3-row floor). We deliberately do NOT
+    // duplicate that gate here: generateMetadata + the page handler run in
+    // parallel, so an extra count() here would double per-request DB load.
+    const title = `PMHNP Salary in ${stateName} (${code}): 2026 Pay & Jobs`;
+    const description = `Advertised PMHNP pay in ${stateName}: median and range from live postings, by practice setting, with top employers and open positions. Updated daily.`;
     const ogImage = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp';
 
     return {
@@ -176,8 +170,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         description,
         alternates: { canonical: `https://pmhnphiring.com/salary-guide/${slug}` },
         openGraph: {
-            title: `PMHNP Salary in ${stateName} (${code}) — 2026 Data`,
-            description: `Average PMHNP salary in ${stateName} by practice setting, top employers, and open positions.`,
+            title: `PMHNP Salary in ${stateName} (${code}): 2026 Data`,
+            description: `Median advertised PMHNP pay in ${stateName} by practice setting, top employers, and open positions.`,
             type: 'website',
             url: `https://pmhnphiring.com/salary-guide/${slug}`,
             siteName: 'PMHNP Hiring',
@@ -194,10 +188,24 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatSalary(n: number) {
-    if (n >= 1000) return `$${Math.round(n / 1000)}K`;
-    return `$${n.toLocaleString()}`;
+function fmtK(n: number) {
+    return `$${Math.round(roundDisplayDollars(n) / 1000)}K`;
 }
+
+/* Clay design tokens, matched to /tools and /salary-guide */
+const clayCard: React.CSSProperties = {
+    background: '#FFFFFF',
+    borderRadius: '20px',
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow:
+        '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+};
+
+const loraHeading: React.CSSProperties = {
+    fontFamily: 'var(--font-lora), Georgia, serif',
+    fontWeight: 800,
+    color: '#1A2E35',
+};
 
 // ── Page ────────────────────────────────────────────────────────────────────
 
@@ -209,34 +217,76 @@ export default async function StateSalaryPage({ params }: PageProps) {
     const stateCode = STATE_CODES[stateName];
     const stateSlug = slug;
 
-    const [salaryData, bySetting, topEmployers, topCities, nationalAvg] = await Promise.all([
-        getStateSalaryData(stateName),
-        getStateSalaryBySetting(stateName),
+    const [stateData, topEmployers, topCities, market] = await Promise.all([
+        getStateData(stateName),
         getTopEmployers(stateName),
         getTopCities(stateName),
-        getNationalAvg(),
+        getOfferMarketData(),
     ]);
+    const { summary, bySetting, totalOpen } = stateData;
 
-    // GSC Fix: empty-state guard. Without this, a state with 0 normalized-salary
-    // jobs renders the full guide showing "$0 – $0", "0 active jobs in WY",
-    // and a CTA pointing at /jobs/state/wy — classic soft-404 cluster.
-    // notFound() is preferable to a noindex render because the page also
-    // sits in the sitemap; a hard 404 lets Google drop it cleanly.
-    if (salaryData.jobCount === 0) {
+    // Gate: below 3 clean salary rows the page has nothing honest to say
+    // about pay. notFound() (mirrored by the sitemap's >= 3 filter) beats a
+    // thin render that Google files under soft-404.
+    if (summary.tier === 'none') {
         notFound();
     }
 
-    const diff = salaryData.avgSalary - nationalAvg;
-    const diffPct = nationalAvg > 0 ? Math.round((diff / nationalAvg) * 100) : 0;
-    const aboveBelow = diff >= 0 ? 'above' : 'below';
+    const national = summarizeMidpoints(market.national);
+    const nationalMedian =
+        national.tier === 'full' || national.tier === 'median' ? national.median : null;
+    const stateMedian =
+        summary.tier === 'full' || summary.tier === 'median' ? summary.median : null;
 
-    // Find the licensure blog post slug. Item 29: DC has no pmhnp-license-*
-    // post, so the card below only renders when the MDX file actually exists.
+    const diffPct =
+        stateMedian != null && nationalMedian != null && nationalMedian > 0
+            ? Math.round(((stateMedian - nationalMedian) / nationalMedian) * 100)
+            : null;
+
     const licenseSlug = `pmhnp-license-${slug}`;
     const showLicenseGuide = hasLicensePost(slug);
 
+    // Hero stat cards: which cards render depends on the tier, and every
+    // dollar figure carries its n.
+    const statCards: { icon: React.ElementType; label: string; value: string; sub: string }[] = [];
+    if (stateMedian != null) {
+        statCards.push({
+            icon: DollarSign,
+            label: 'Median Advertised Pay',
+            value: fmtK(stateMedian),
+            sub:
+                diffPct != null
+                    ? `${Math.abs(diffPct)}% ${diffPct >= 0 ? 'above' : 'below'} the national median`
+                    : `from ${summary.n} postings`,
+        });
+    }
+    if (summary.tier === 'full') {
+        statCards.push({
+            icon: TrendingUp,
+            label: 'Advertised Range',
+            value: `${fmtK(summary.p25)} to ${fmtK(summary.p75)}`,
+            sub: 'middle 50% of postings (p25 to p75)',
+        });
+    }
+    statCards.push({
+        icon: Briefcase,
+        label: 'Open Positions',
+        value: totalOpen.toLocaleString(),
+        sub: `${summary.n} disclose a usable salary range`,
+    });
+    if (nationalMedian != null) {
+        statCards.push({
+            icon: BarChart3,
+            label: 'National Median',
+            value: fmtK(nationalMedian),
+            sub: `all states, n=${national.n.toLocaleString()}`,
+        });
+    }
+
+    const maxSettingMedian = bySetting.length > 0 ? bySetting[0].median : 0;
+
     return (
-        <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
+        <div style={{ backgroundColor: '#FDFBF7', minHeight: '100vh' }}>
             <BreadcrumbSchema
                 items={[
                     { name: 'Home', url: 'https://pmhnphiring.com' },
@@ -246,31 +296,30 @@ export default async function StateSalaryPage({ params }: PageProps) {
             />
 
             {/* Hero */}
-            <section style={{ padding: '72px 16px 48px', textAlign: 'center' }}>
+            <section style={{ padding: '20px 16px 40px', textAlign: 'center' }}>
                 <div style={{ maxWidth: '800px', margin: '0 auto' }}>
                     <div
                         style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '8px',
-                            backgroundColor: 'rgba(45,212,191,0.1)',
-                            border: '1px solid rgba(45,212,191,0.2)',
+                            backgroundColor: '#F0FDFA',
+                            border: '1px solid #99F6E4',
                             borderRadius: '999px',
                             padding: '6px 16px',
                             marginBottom: '20px',
                             fontSize: '13px',
                             fontWeight: 600,
-                            color: '#2DD4BF',
+                            color: '#0D9488',
                         }}
                     >
-                        <MapPin size={14} /> {stateCode} Salary Data · Updated Daily
+                        <MapPin size={14} /> {stateCode} Advertised Pay · Updated Daily
                     </div>
 
                     <h1
                         style={{
-                            fontSize: 'clamp(1.75rem, 4.5vw, 2.75rem)',
-                            fontWeight: 800,
-                            color: 'var(--text-primary)',
+                            ...loraHeading,
+                            fontSize: 'clamp(1.9rem, 4.5vw, 2.9rem)',
                             lineHeight: 1.15,
                             marginBottom: '14px',
                         }}
@@ -281,140 +330,123 @@ export default async function StateSalaryPage({ params }: PageProps) {
                     <p
                         style={{
                             fontSize: '16px',
-                            color: 'var(--text-secondary)',
-                            maxWidth: '600px',
+                            color: '#5A4A42',
+                            maxWidth: '620px',
                             margin: '0 auto',
                             lineHeight: 1.6,
                         }}
                     >
-                        Average psychiatric nurse practitioner compensation in {stateName}, broken down by
-                        practice setting, top employers, and cities.
+                        What employers are advertising for psychiatric nurse practitioners in{' '}
+                        {stateName}: median pay from live postings, practice settings, top employers,
+                        and cities. Advertised pay is not the same as what every working PMHNP earns.
                     </p>
                 </div>
             </section>
 
             {/* Salary Overview Cards */}
-            <section style={{ padding: '0 16px 64px', maxWidth: '900px', margin: '0 auto' }}>
+            <section style={{ padding: '0 16px 56px', maxWidth: '960px', margin: '0 auto' }}>
                 <div
                     style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                         gap: '16px',
-                        marginBottom: '32px',
+                        marginBottom: '28px',
                     }}
                 >
-                    {[
-                        {
-                            icon: DollarSign,
-                            label: 'Average Salary',
-                            value: formatSalary(salaryData.avgSalary),
-                            sub: `${Math.abs(diffPct)}% ${aboveBelow} national avg`,
-                            color: '#2DD4BF',
-                        },
-                        {
-                            icon: TrendingUp,
-                            label: 'Salary Range',
-                            value: `${formatSalary(salaryData.minSalary)} – ${formatSalary(salaryData.maxSalary)}`,
-                            sub: 'Min – Max reported',
-                            color: '#E86C2C',
-                        },
-                        {
-                            icon: Briefcase,
-                            label: 'Open Positions',
-                            value: salaryData.jobCount.toLocaleString(),
-                            sub: `Active jobs in ${stateCode}`,
-                            color: '#A855F7',
-                        },
-                        {
-                            icon: BarChart3,
-                            label: 'National Average',
-                            value: formatSalary(nationalAvg),
-                            sub: 'All 50 states',
-                            color: '#3B82F6',
-                        },
-                    ].map(({ icon: Ic, label, value, sub, color }) => (
-                        <div
-                            key={label}
-                            style={{
-                                padding: '24px 20px',
-                                borderRadius: '16px',
-                                backgroundColor: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-color)',
-                            }}
-                        >
-                            <Ic size={22} style={{ color, marginBottom: '10px' }} />
-                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {statCards.map(({ icon: Ic, label, value, sub }) => (
+                        <div key={label} style={{ ...clayCard, padding: '24px 20px' }}>
+                            <div
+                                style={{
+                                    display: 'inline-flex',
+                                    padding: '10px',
+                                    borderRadius: '12px',
+                                    background: '#F0FDFA',
+                                    marginBottom: '10px',
+                                }}
+                            >
+                                <Ic size={20} style={{ color: '#0D9488' }} />
+                            </div>
+                            <p style={{ fontSize: '12px', color: '#8A7A6E', marginBottom: '4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 {label}
                             </p>
-                            <p style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                                {value}
-                            </p>
-                            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{sub}</p>
+                            <p style={{ ...loraHeading, fontSize: '24px', marginBottom: '4px' }}>{value}</p>
+                            <p style={{ fontSize: '12px', color: '#8A7A6E' }}>{sub}</p>
                         </div>
                     ))}
                 </div>
 
-                {/* Salary by Setting */}
+                {/* Small-sample honesty note for the median-only tier */}
+                {summary.tier === 'median' && (
+                    <div style={{ ...clayCard, padding: '18px 24px', marginBottom: '28px', background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                        <p style={{ fontSize: '13px', color: '#92400E', margin: 0, lineHeight: 1.6 }}>
+                            Only {summary.n} live {stateName} postings disclose a usable salary range,
+                            so we publish the median alone. Percentile ranges need at least 10 postings.
+                        </p>
+                    </div>
+                )}
+                {summary.tier === 'countOnly' && (
+                    <div style={{ ...clayCard, padding: '18px 24px', marginBottom: '28px', background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                        <p style={{ fontSize: '13px', color: '#92400E', margin: 0, lineHeight: 1.6 }}>
+                            Only {summary.n} live {stateName} postings disclose a usable salary range,
+                            which is below our 5-posting minimum for publishing dollar figures. Browse
+                            the open positions below or compare against the national data instead.
+                        </p>
+                    </div>
+                )}
+
+                {/* Salary by Setting: each row cleared its own n >= 5 gate */}
                 {bySetting.length > 0 && (
-                    <div
-                        style={{
-                            padding: '32px 28px',
-                            borderRadius: '18px',
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-color)',
-                            marginBottom: '32px',
-                        }}
-                    >
+                    <div style={{ ...clayCard, padding: '32px 28px', marginBottom: '28px' }}>
                         <h2
                             style={{
+                                ...loraHeading,
                                 fontSize: '20px',
-                                fontWeight: 700,
-                                color: 'var(--text-primary)',
-                                marginBottom: '20px',
+                                marginBottom: '6px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '8px',
                             }}
                         >
-                            <Stethoscope size={20} style={{ color: '#2DD4BF' }} />
-                            Salary by Practice Setting
+                            <Stethoscope size={20} style={{ color: '#0D9488' }} />
+                            Median Advertised Pay by Practice Setting
                         </h2>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {bySetting.sort((a, b) => b.avgSalary - a.avgSalary).map((s) => {
-                                const pct = salaryData.maxSalary > 0
-                                    ? Math.min(100, Math.round((s.avgSalary / salaryData.maxSalary) * 100))
+                        <p style={{ fontSize: '12.5px', color: '#8A7A6E', marginBottom: '20px' }}>
+                            Settings appear only when at least 5 postings disclose a range.
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                            {bySetting.map((s) => {
+                                const pct = maxSettingMedian > 0
+                                    ? Math.min(100, Math.round((s.median / maxSettingMedian) * 100))
                                     : 50;
                                 return (
                                     <div key={s.setting}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                            <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                            <span style={{ fontSize: '14px', fontWeight: 600, color: '#5A4A42' }}>
                                                 {s.setting}
                                             </span>
-                                            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                                {formatSalary(s.avgSalary)}
+                                            <span style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35' }}>
+                                                {fmtK(s.median)}
+                                                <span style={{ fontWeight: 500, color: '#8A7A6E' }}> · n={s.n}</span>
                                             </span>
                                         </div>
                                         <div
                                             style={{
-                                                height: '8px',
-                                                borderRadius: '4px',
-                                                backgroundColor: 'var(--bg-tertiary)',
+                                                height: '10px',
+                                                borderRadius: '6px',
+                                                background: '#F1EBE4',
                                                 overflow: 'hidden',
+                                                boxShadow: 'inset 1px 1px 3px rgba(0,0,0,0.06)',
                                             }}
                                         >
                                             <div
                                                 style={{
                                                     height: '100%',
                                                     width: `${pct}%`,
-                                                    borderRadius: '4px',
-                                                    background: 'linear-gradient(90deg, #2DD4BF, #0D9488)',
-                                                    transition: 'width 0.5s',
+                                                    borderRadius: '6px',
+                                                    background: 'linear-gradient(90deg, #5EEAD4, #0D9488)',
                                                 }}
                                             />
                                         </div>
-                                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                            {s.jobCount} {s.jobCount === 1 ? 'position' : 'positions'}
-                                        </p>
                                     </div>
                                 );
                             })}
@@ -422,40 +454,61 @@ export default async function StateSalaryPage({ params }: PageProps) {
                     </div>
                 )}
 
+                {/* Offer analyzer funnel */}
+                {(summary.tier === 'full' || summary.tier === 'median') && (
+                    <Link href="/tools/offer-analyzer" style={{ textDecoration: 'none' }}>
+                        <div
+                            style={{
+                                ...clayCard,
+                                padding: '20px 24px',
+                                marginBottom: '28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '14px',
+                                background: '#F0FDFA',
+                                border: '1px solid #99F6E4',
+                            }}
+                        >
+                            <BadgeDollarSign size={24} style={{ color: '#0D9488', flexShrink: 0 }} />
+                            <div style={{ flex: 1 }}>
+                                <p style={{ fontSize: '15px', fontWeight: 700, color: '#134E4A', margin: 0 }}>
+                                    Have an offer in {stateName}?
+                                </p>
+                                <p style={{ fontSize: '13px', color: '#0F766E', margin: 0 }}>
+                                    See its percentile against these postings with the free Offer Analyzer.
+                                    Your number never leaves your browser.
+                                </p>
+                            </div>
+                            <ArrowRight size={18} style={{ color: '#0D9488', flexShrink: 0 }} />
+                        </div>
+                    </Link>
+                )}
+
                 {/* Two-column: Top Employers + Top Cities */}
                 <div
                     style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                        gap: '24px',
-                        marginBottom: '32px',
+                        gap: '20px',
+                        marginBottom: '28px',
                     }}
                 >
-                    {/* Top Employers */}
                     {topEmployers.length > 0 && (
-                        <div
-                            style={{
-                                padding: '28px 24px',
-                                borderRadius: '18px',
-                                backgroundColor: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-color)',
-                            }}
-                        >
+                        <div style={{ ...clayCard, padding: '28px 24px' }}>
                             <h2
                                 style={{
+                                    ...loraHeading,
                                     fontSize: '18px',
-                                    fontWeight: 700,
-                                    color: 'var(--text-primary)',
                                     marginBottom: '16px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '8px',
                                 }}
                             >
-                                <Building2 size={18} style={{ color: '#E86C2C' }} />
+                                <Building2 size={18} style={{ color: '#0D9488' }} />
                                 Top Employers in {stateCode}
                             </h2>
-                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {topEmployers.map((emp, i) => (
                                     <li
                                         key={emp.name}
@@ -464,19 +517,19 @@ export default async function StateSalaryPage({ params }: PageProps) {
                                             justifyContent: 'space-between',
                                             alignItems: 'center',
                                             padding: '10px 14px',
-                                            borderRadius: '10px',
-                                            backgroundColor: i % 2 === 0 ? 'var(--bg-tertiary)' : 'transparent',
+                                            borderRadius: '12px',
+                                            backgroundColor: i % 2 === 0 ? '#FAF6F0' : 'transparent',
                                         }}
                                     >
-                                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                        <span style={{ fontSize: '13px', color: '#5A4A42', fontWeight: 500 }}>
                                             {emp.name}
                                         </span>
                                         <span
                                             style={{
                                                 fontSize: '12px',
                                                 fontWeight: 600,
-                                                color: '#E86C2C',
-                                                backgroundColor: 'rgba(232,108,44,0.1)',
+                                                color: '#0D9488',
+                                                backgroundColor: '#F0FDFA',
                                                 padding: '2px 10px',
                                                 borderRadius: '999px',
                                             }}
@@ -489,31 +542,22 @@ export default async function StateSalaryPage({ params }: PageProps) {
                         </div>
                     )}
 
-                    {/* Top Cities */}
                     {topCities.length > 0 && (
-                        <div
-                            style={{
-                                padding: '28px 24px',
-                                borderRadius: '18px',
-                                backgroundColor: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-color)',
-                            }}
-                        >
+                        <div style={{ ...clayCard, padding: '28px 24px' }}>
                             <h2
                                 style={{
+                                    ...loraHeading,
                                     fontSize: '18px',
-                                    fontWeight: 700,
-                                    color: 'var(--text-primary)',
                                     marginBottom: '16px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '8px',
                                 }}
                             >
-                                <MapPin size={18} style={{ color: '#A855F7' }} />
+                                <MapPin size={18} style={{ color: '#0D9488' }} />
                                 Top Cities in {stateCode}
                             </h2>
-                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {topCities.map((city, i) => (
                                     <li key={city.name}>
                                         <Link
@@ -523,21 +567,20 @@ export default async function StateSalaryPage({ params }: PageProps) {
                                                 justifyContent: 'space-between',
                                                 alignItems: 'center',
                                                 padding: '10px 14px',
-                                                borderRadius: '10px',
-                                                backgroundColor: i % 2 === 0 ? 'var(--bg-tertiary)' : 'transparent',
+                                                borderRadius: '12px',
+                                                backgroundColor: i % 2 === 0 ? '#FAF6F0' : 'transparent',
                                                 textDecoration: 'none',
-                                                transition: 'background 0.2s',
                                             }}
                                         >
-                                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                            <span style={{ fontSize: '13px', color: '#5A4A42', fontWeight: 500 }}>
                                                 {city.name}
                                             </span>
                                             <span
                                                 style={{
                                                     fontSize: '12px',
                                                     fontWeight: 600,
-                                                    color: '#A855F7',
-                                                    backgroundColor: 'rgba(168,85,247,0.1)',
+                                                    color: '#0D9488',
+                                                    backgroundColor: '#F0FDFA',
                                                     padding: '2px 10px',
                                                     borderRadius: '999px',
                                                 }}
@@ -552,7 +595,18 @@ export default async function StateSalaryPage({ params }: PageProps) {
                     )}
                 </div>
 
-                {/* Cross-links (C17 + C18) */}
+                {/* Methodology, mirrors the stats-engine contract */}
+                <div style={{ ...clayCard, padding: '20px 24px', marginBottom: '28px', background: 'rgba(0,0,0,0.02)' }}>
+                    <p style={{ fontSize: '12px', color: '#8A7A6E', margin: 0, lineHeight: 1.6 }}>
+                        <strong>Methodology:</strong> figures are medians of advertised salary
+                        midpoints in live {stateName} postings on this site. Employer-estimated
+                        ranges are excluded; ranges with parsing defects (implausible bounds, max
+                        more than 3× min, midpoints outside $50k to $500k) are quarantined. Every
+                        figure ships with its sample size. Refreshed daily.
+                    </p>
+                </div>
+
+                {/* Cross-links */}
                 <div
                     style={{
                         display: 'grid',
@@ -560,81 +614,69 @@ export default async function StateSalaryPage({ params }: PageProps) {
                         gap: '16px',
                     }}
                 >
-                    {/* C17: Link to state jobs page */}
                     <Link
                         href={`/jobs/state/${stateSlug}`}
                         style={{
+                            ...clayCard,
                             display: 'flex',
                             alignItems: 'center',
                             gap: '12px',
                             padding: '20px 24px',
-                            borderRadius: '14px',
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-color)',
                             textDecoration: 'none',
-                            transition: 'border-color 0.3s',
                         }}
                     >
-                        <Briefcase size={22} style={{ color: '#2DD4BF', flexShrink: 0 }} />
+                        <Briefcase size={22} style={{ color: '#0D9488', flexShrink: 0 }} />
                         <div>
-                            <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>
-                                Browse All {stateCode} PMHNP Jobs →
+                            <p style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '2px' }}>
+                                Browse All {stateCode} PMHNP Jobs
                             </p>
-                            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                {salaryData.jobCount} open positions in {stateName}
+                            <p style={{ fontSize: '12px', color: '#8A7A6E' }}>
+                                {totalOpen} open positions in {stateName}
                             </p>
                         </div>
                     </Link>
 
-                    {/* Link to licensure guide — gated on the post existing (Item 29) */}
                     {showLicenseGuide && (
                         <Link
                             href={`/blog/${licenseSlug}`}
                             style={{
+                                ...clayCard,
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '12px',
                                 padding: '20px 24px',
-                                borderRadius: '14px',
-                                backgroundColor: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-color)',
                                 textDecoration: 'none',
-                                transition: 'border-color 0.3s',
                             }}
                         >
-                            <BookOpen size={22} style={{ color: '#E86C2C', flexShrink: 0 }} />
+                            <BookOpen size={22} style={{ color: '#0D9488', flexShrink: 0 }} />
                             <div>
-                                <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>
-                                    {stateName} Licensure Guide →
+                                <p style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '2px' }}>
+                                    {stateName} Licensure Guide
                                 </p>
-                                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                    Requirements, process & timeline
+                                <p style={{ fontSize: '12px', color: '#8A7A6E' }}>
+                                    Requirements, process, and timeline
                                 </p>
                             </div>
                         </Link>
                     )}
 
-                    {/* Link to national salary guide */}
                     <Link
                         href="/salary-guide"
                         style={{
+                            ...clayCard,
                             display: 'flex',
                             alignItems: 'center',
                             gap: '12px',
                             padding: '20px 24px',
-                            borderRadius: '14px',
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-color)',
                             textDecoration: 'none',
-                            transition: 'border-color 0.3s',
                         }}
                     >
-                        <BarChart3 size={22} style={{ color: '#3B82F6', flexShrink: 0 }} />
+                        <BarChart3 size={22} style={{ color: '#0D9488', flexShrink: 0 }} />
                         <div>
-                            <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>
-                                National Salary Guide →
+                            <p style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '2px' }}>
+                                National Salary Guide
                             </p>
-                            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                            <p style={{ fontSize: '12px', color: '#8A7A6E' }}>
                                 Compare all 50 states
                             </p>
                         </div>
@@ -645,30 +687,17 @@ export default async function StateSalaryPage({ params }: PageProps) {
             {/* CTA */}
             <section
                 style={{
-                    padding: '64px 16px',
+                    padding: '56px 16px',
                     textAlign: 'center',
-                    backgroundColor: 'var(--bg-secondary)',
+                    background: 'linear-gradient(180deg, #FDFBF7 0%, #F5F0EB 100%)',
                 }}
             >
                 <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                    <h2
-                        style={{
-                            fontSize: '24px',
-                            fontWeight: 800,
-                            color: 'var(--text-primary)',
-                            marginBottom: '12px',
-                        }}
-                    >
+                    <h2 style={{ ...loraHeading, fontSize: '24px', marginBottom: '12px' }}>
                         Find PMHNP Jobs in {stateName}
                     </h2>
-                    <p
-                        style={{
-                            fontSize: '15px',
-                            color: 'var(--text-secondary)',
-                            marginBottom: '24px',
-                        }}
-                    >
-                        Browse {salaryData.jobCount} active positions and get daily alerts for new openings.
+                    <p style={{ fontSize: '15px', color: '#5A4A42', marginBottom: '24px' }}>
+                        Browse {totalOpen} active positions and get daily alerts for new openings.
                     </p>
                     <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
                         <Link
@@ -682,9 +711,9 @@ export default async function StateSalaryPage({ params }: PageProps) {
                                 fontWeight: 700,
                                 fontSize: '15px',
                                 color: '#fff',
-                                background: 'linear-gradient(135deg, #2DD4BF, #0D9488)',
+                                background: '#0D9488',
                                 textDecoration: 'none',
-                                boxShadow: '0 4px 16px rgba(45,212,191,0.25)',
+                                boxShadow: '0 4px 16px rgba(13,148,136,0.25)',
                             }}
                         >
                             Browse {stateCode} Jobs <ArrowRight size={16} />
@@ -699,9 +728,9 @@ export default async function StateSalaryPage({ params }: PageProps) {
                                 borderRadius: '14px',
                                 fontWeight: 600,
                                 fontSize: '15px',
-                                color: 'var(--text-primary)',
-                                backgroundColor: 'var(--bg-primary)',
-                                border: '1px solid var(--border-color)',
+                                color: '#1A2E35',
+                                backgroundColor: '#FFFFFF',
+                                border: '1px solid rgba(0,0,0,0.08)',
                                 textDecoration: 'none',
                             }}
                         >
