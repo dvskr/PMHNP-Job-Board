@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { selectEligibleCities } from '@/lib/pseo/related-cities';
@@ -445,7 +446,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
+                        __html: jsonLdString({
                             '@context': 'https://schema.org',
                             '@type': 'ItemList',
                             name: `PMHNP Jobs in ${cityName}, ${stateCode}`,
@@ -465,7 +466,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
+                    __html: jsonLdString({
                         '@context': 'https://schema.org',
                         '@type': 'Place',
                         name: `${cityName}, ${stateCode}`,

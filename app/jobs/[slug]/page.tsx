@@ -16,7 +16,6 @@ import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import JobNotFound from '@/components/JobNotFound';
 import JobStructuredData from '@/components/JobStructuredData';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import RelatedJobs from '@/components/RelatedJobs';
 import AboutEmployer from '@/components/AboutEmployer';
 import { JobViewTracker } from '@/components/analytics/ViewTrackers';
@@ -51,7 +50,10 @@ const getJob = cache(async function getJob(id: string): Promise<JobResult> {
     // First check if job exists at all (any status)
     const anyJob = await prisma.job.findUnique({
       where: { id },
-      select: { id: true, isPublished: true, employer: true, title: true },
+      select: {
+        id: true, isPublished: true, employer: true, title: true,
+        expiresAt: true, originalPostedAt: true, createdAt: true,
+      },
     });
 
     if (!anyJob) {
@@ -61,6 +63,20 @@ const getJob = cache(async function getJob(id: string): Promise<JobResult> {
 
     // Job exists but is unpublished/expired → 410 Gone
     if (!anyJob.isPublished) {
+      return { status: 'expired', employer: anyJob.employer, title: anyJob.title };
+    }
+
+    // Defense-in-depth: the cleanup-expired cron unpublishes past-expiry jobs
+    // twice daily, but between cron runs (or if the cron fails open) a job
+    // whose expiresAt has passed would still serve a 200 with live JobPosting
+    // markup — Google flags past-validThrough markup as a policy violation.
+    // Treat it as expired at read time too. Null expiresAt mirrors the
+    // JobStructuredData validThrough fallback (datePosted + 60d) so a job can
+    // never outlive the validThrough its own markup advertises.
+    const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
+    const effectiveExpiry = anyJob.expiresAt
+      ?? new Date((anyJob.originalPostedAt ?? anyJob.createdAt).getTime() + SIXTY_DAYS_MS);
+    if (effectiveExpiry.getTime() < Date.now()) {
       return { status: 'expired', employer: anyJob.employer, title: anyJob.title };
     }
 
@@ -766,12 +782,11 @@ export default async function JobPage({ params }: JobPageProps) {
       <JobStructuredData
         job={job}
       />
-      <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://pmhnphiring.com' },
-        { name: 'Jobs', url: 'https://pmhnphiring.com/jobs' },
-        ...(job.state ? [{ name: job.state, url: `https://pmhnphiring.com/jobs/state/${job.state.toLowerCase().replace(/\s+/g, '-')}` }] : []),
-        { name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` },
-      ]} />
+      {/* BreadcrumbList schema comes from <Breadcrumbs> below — it mirrors
+          the visible trail (including the City crumb) exactly. A second
+          <BreadcrumbSchema> block used to live here with a divergent trail
+          (no city, non-canonical last-item URL); one page must emit one
+          BreadcrumbList. */}
       <JobViewTracker job={{ id: job.id, title: job.title, employer: job.employer, jobType: job.jobType || undefined, stateCode: job.stateCode || undefined, sourceProvider: job.sourceProvider || undefined, normalizedMinSalary: job.normalizedMinSalary }} />
       <div style={{ backgroundColor: '#F5F0EB', minHeight: '100vh', paddingTop: '1px', paddingBottom: '40px' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">

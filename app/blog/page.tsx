@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -128,7 +129,7 @@ export default async function BlogIndexPage({
                 app/layout.tsx, and ItemList stays as the listing payload. */}
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                dangerouslySetInnerHTML={{ __html: jsonLdString({
                     '@context': 'https://schema.org',
                     '@graph': [
                         {
@@ -159,7 +160,7 @@ export default async function BlogIndexPage({
                             })),
                         },
                     ],
-                }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') }}
+                }) }}
             />
 
             {/* ═══ HERO — Warm Cream ═══ */}

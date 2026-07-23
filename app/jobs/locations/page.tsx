@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -204,7 +205,7 @@ export default async function LocationsPage() {
       {/* SEO Fix #15: CollectionPage + ItemList for the state directory */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdString(collectionSchema) }}
       />
       {/* ═══ HERO ═══ */}
       <CategoryHero

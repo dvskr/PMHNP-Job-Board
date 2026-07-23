@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -91,7 +92,7 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
         { name: "Inpatient", url: "https://pmhnphiring.com/jobs/inpatient" }
       ]} />
       {jobs.length > 0 && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({
           '@context': 'https://schema.org', '@type': 'ItemList', name: 'Inpatient PMHNP Jobs', numberOfItems: stats.totalJobs,
           itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })),
         }) }} />

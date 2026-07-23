@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -438,18 +439,18 @@ export default async function BlogPostPage({ params }: Props) {
             <EditorialStickyFix />
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
             />
             {faqSchema && (
-                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(faqSchema) }} />
             )}
             {videoSchema && (
-                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }} />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(videoSchema) }} />
             )}
             {howToSchema && (
-                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }} />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(howToSchema) }} />
             )}
-            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({
                 '@context': 'https://schema.org', '@type': 'BreadcrumbList',
                 itemListElement: [
                     { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://pmhnphiring.com' },

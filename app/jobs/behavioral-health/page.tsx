@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -124,7 +125,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
                 { name: "Behavioral Health", url: "https://pmhnphiring.com/jobs/behavioral-health" }
             ]} />
             {jobs.length > 0 && (
-              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Behavioral Health PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Behavioral Health PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
             )}
 
             {/* ═══ HERO ═══ */}
@@ -382,7 +383,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
               </div>
             ))}
           </div>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:"What is behavioral health vs mental health?",a:"Behavioral health is a broader term encompassing mental health, substance use, and health behaviors. BH PMHNPs work in integrated settings alongside primary care."},{q:"What settings do BH PMHNPs work in?",a:"CMHCs, FQHCs, school-based clinics, primary care offices with integrated BH, corporate wellness, residential facilities, and telehealth platforms."},{q:"How much do behavioral health PMHNPs earn?",a:"BH PMHNPs typically earn $130K–$170K annually. FQHC and CMHC positions often include loan repayment programs up to $50K."},{q:"What skills are important for BH PMHNPs?",a:"Collaborative care model experience, proficiency with screening tools (PHQ-9, GAD-7, AUDIT), cultural competency, EHR documentation, and trauma-informed care."}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:"What is behavioral health vs mental health?",a:"Behavioral health is a broader term encompassing mental health, substance use, and health behaviors. BH PMHNPs work in integrated settings alongside primary care."},{q:"What settings do BH PMHNPs work in?",a:"CMHCs, FQHCs, school-based clinics, primary care offices with integrated BH, corporate wellness, residential facilities, and telehealth platforms."},{q:"How much do behavioral health PMHNPs earn?",a:"BH PMHNPs typically earn $130K–$170K annually. FQHC and CMHC positions often include loan repayment programs up to $50K."},{q:"What skills are important for BH PMHNPs?",a:"Collaborative care model experience, proficiency with screening tools (PHQ-9, GAD-7, AUDIT), cultural competency, EHR documentation, and trauma-informed care."}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
         </section>
       </div>
 

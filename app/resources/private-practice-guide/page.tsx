@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -136,7 +137,7 @@ export default function PrivatePracticeGuidePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: jsonLdString({
             '@context': 'https://schema.org',
             '@type': 'FAQPage',
             mainEntity: ppFaqs.map((faq) => ({
@@ -153,7 +154,7 @@ export default function PrivatePracticeGuidePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: jsonLdString({
             '@context': 'https://schema.org',
             '@type': 'Article',
             headline: 'How to Start a PMHNP Private Practice — 2026 Step-by-Step Guide',
@@ -170,7 +171,7 @@ export default function PrivatePracticeGuidePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: jsonLdString({
             '@context': 'https://schema.org',
             '@type': 'HowTo',
             name: 'How to Start a PMHNP Private Practice',

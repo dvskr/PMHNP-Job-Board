@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { prisma } from '@/lib/prisma';
 import FeaturedJobs from '@/components/FeaturedJobs';
 import { Prisma } from '@prisma/client';
@@ -194,7 +195,7 @@ export default async function FeaturedJobsSection() {
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
+                        __html: jsonLdString({
                             '@context': 'https://schema.org',
                             '@type': 'ItemList',
                             name: 'Featured PMHNP Jobs',

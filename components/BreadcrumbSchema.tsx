@@ -1,4 +1,5 @@
 import React from 'react';
+import { jsonLdString } from '@/lib/seo/json-ld';
 
 interface BreadcrumbItem {
     name: string;
@@ -20,7 +21,7 @@ export default function BreadcrumbSchema({ items }: { items: BreadcrumbItem[] })
     return (
         <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+            dangerouslySetInnerHTML={{ __html: jsonLdString(schema) }}
         />
     );
 }

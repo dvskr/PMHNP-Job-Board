@@ -1,3 +1,4 @@
+import { jsonLdString } from '@/lib/seo/json-ld';
 import { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
@@ -497,7 +498,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
         { name: stateName, url: `https://pmhnphiring.com/jobs/state/${stateSlug}` },
       ]} />
       {jobs.length > 0 && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({
           '@context': 'https://schema.org', '@type': 'ItemList',
           name: `PMHNP Jobs in ${stateName}`, numberOfItems: stats.totalJobs,
           itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({
@@ -857,7 +858,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
               </details>
             ))}
           </div>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [
             { q: `How many PMHNP jobs are in ${stateName}?`, a: `There are currently ${stats.totalJobs} positions available in ${stateName}.` },
             { q: `What is the practice authority in ${stateName}?`, a: practiceAuthority?.details || `Practice authority varies by state.` },
             { q: `What is the average PMHNP salary in ${stateName}?`, a: stats.avgSalary > 0 ? `$${stats.avgSalary}K/year` : `$130K-$200K+` },
