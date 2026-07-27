@@ -4,6 +4,7 @@
  */
 
 import { prisma } from './prisma';
+import { STATE_NAME_TO_CODE } from './us-states';
 
 export interface ParsedLocation {
   city: string | null;
@@ -16,22 +17,9 @@ export interface ParsedLocation {
   confidence: number; // 0-1
 }
 
-// State name to code mappings
-const STATE_CODES: Record<string, string> = {
-  'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
-  'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
-  'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
-  'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
-  'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
-  'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
-  'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
-  'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
-  'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
-  'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
-  'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
-  'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
-  'Wisconsin': 'WI', 'Wyoming': 'WY', 'District of Columbia': 'DC',
-};
+// State name to code mappings — sourced from the canonical registry so this
+// parser can never drift from the rest of the app again.
+const STATE_CODES: Record<string, string> = { ...STATE_NAME_TO_CODE };
 
 // Code to state name mappings
 const CODE_TO_STATE: Record<string, string> = Object.entries(STATE_CODES)
@@ -105,6 +93,12 @@ export function parseLocation(location: string): ParsedLocation {
 
   // Handle Workday "US-ST-City" format → "City, ST" (BEFORE stripping "US")
   cleaned = cleaned.replace(/^US-([A-Z]{2})-(.+)$/i, '$2, $1');
+
+  // Normalize "D.C." / "D.C" → "DC" so the standard code paths catch it.
+  // Without this, "Washington, D.C." fell through every pattern until the
+  // state-NAME scan, where bare "Washington" matched and filed the nation's
+  // capital under WA.
+  cleaned = cleaned.replace(/\bD\.\s?C\.?(?=\s|$|,)/gi, 'DC');
 
   // Now remove country markers
   cleaned = cleaned
@@ -195,9 +189,14 @@ export function parseLocation(location: string): ParsedLocation {
     }
   }
 
-  // Try to find state name in the location string
+  // Try to find state name in the location string.
+  // Longest name first: "Virginia" must not match inside "West Virginia"
+  // (seen in prod: location "West Virginia" parsed as city "West", state
+  // "Virginia", filing the job under VA).
   const toParseL = toParse.toLowerCase();
-  for (const [stateName, code] of Object.entries(STATE_CODES)) {
+  const statesLongestFirst = Object.entries(STATE_CODES)
+    .sort((a, b) => b[0].length - a[0].length);
+  for (const [stateName, code] of statesLongestFirst) {
     // Use word boundary to match full state names only
     const stateRegex = new RegExp(`\\b${stateName}\\b`, 'i');
     if (!stateRegex.test(toParse)) continue;

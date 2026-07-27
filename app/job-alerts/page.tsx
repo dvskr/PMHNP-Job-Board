@@ -6,17 +6,11 @@ import Link from 'next/link';
 import { Bell, MapPin, Briefcase, Zap, CheckCircle, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import CategoryHero from '@/components/CategoryHero';
 
-// US States array for dropdown
-const US_STATES = [
-  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
-  'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa',
-  'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan',
-  'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire',
-  'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio',
-  'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
-  'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
-  'Wisconsin', 'Wyoming'
-];
+// Canonical 51-entry list (incl. District of Columbia). The old local copy
+// here had 50 — no DC — so a DC candidate could never create a DC alert even
+// though the matcher in lib/job-alerts-service.ts understands it.
+import { US_STATE_NAMES } from '@/lib/us-states';
+const US_STATES = US_STATE_NAMES;
 
 // Work mode options
 const WORK_MODES = ['Remote', 'Hybrid', 'In-Person'];

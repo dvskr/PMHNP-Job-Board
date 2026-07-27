@@ -18,59 +18,13 @@
  * sees a tighter signal.
  */
 
-const US_STATES: ReadonlyArray<{ code: string; names: ReadonlyArray<string> }> = [
-    { code: 'AL', names: ['alabama'] },
-    { code: 'AK', names: ['alaska'] },
-    { code: 'AZ', names: ['arizona'] },
-    { code: 'AR', names: ['arkansas'] },
-    { code: 'CA', names: ['california', 'calif'] },
-    { code: 'CO', names: ['colorado'] },
-    { code: 'CT', names: ['connecticut'] },
-    { code: 'DE', names: ['delaware'] },
-    { code: 'DC', names: ['district of columbia', 'washington dc', 'washington d.c.'] },
-    { code: 'FL', names: ['florida'] },
-    { code: 'GA', names: ['georgia'] },
-    { code: 'HI', names: ['hawaii'] },
-    { code: 'ID', names: ['idaho'] },
-    { code: 'IL', names: ['illinois'] },
-    { code: 'IN', names: ['indiana'] },
-    { code: 'IA', names: ['iowa'] },
-    { code: 'KS', names: ['kansas'] },
-    { code: 'KY', names: ['kentucky'] },
-    { code: 'LA', names: ['louisiana'] },
-    { code: 'ME', names: ['maine'] },
-    { code: 'MD', names: ['maryland'] },
-    { code: 'MA', names: ['massachusetts', 'mass'] },
-    { code: 'MI', names: ['michigan'] },
-    { code: 'MN', names: ['minnesota'] },
-    { code: 'MS', names: ['mississippi'] },
-    { code: 'MO', names: ['missouri'] },
-    { code: 'MT', names: ['montana'] },
-    { code: 'NE', names: ['nebraska'] },
-    { code: 'NV', names: ['nevada'] },
-    { code: 'NH', names: ['new hampshire'] },
-    { code: 'NJ', names: ['new jersey'] },
-    { code: 'NM', names: ['new mexico'] },
-    { code: 'NY', names: ['new york'] },
-    { code: 'NC', names: ['north carolina'] },
-    { code: 'ND', names: ['north dakota'] },
-    { code: 'OH', names: ['ohio'] },
-    { code: 'OK', names: ['oklahoma'] },
-    { code: 'OR', names: ['oregon'] },
-    { code: 'PA', names: ['pennsylvania', 'penn'] },
-    { code: 'RI', names: ['rhode island'] },
-    { code: 'SC', names: ['south carolina'] },
-    { code: 'SD', names: ['south dakota'] },
-    { code: 'TN', names: ['tennessee'] },
-    { code: 'TX', names: ['texas'] },
-    { code: 'UT', names: ['utah'] },
-    { code: 'VT', names: ['vermont'] },
-    { code: 'VA', names: ['virginia'] },
-    { code: 'WA', names: ['washington state', 'washington'] }, // disambiguates from DC above
-    { code: 'WV', names: ['west virginia'] },
-    { code: 'WI', names: ['wisconsin'] },
-    { code: 'WY', names: ['wyoming'] },
-];
+import { US_STATES as CANONICAL_US_STATES } from '@/lib/us-states';
+
+// Canonical registry adapted to this parser's { code, names } shape.
+// lib/us-states.ts preserves the DC-before-WA ordering this matcher's
+// longest-name-first pass depends on.
+const US_STATES: ReadonlyArray<{ code: string; names: ReadonlyArray<string> }> =
+    CANONICAL_US_STATES.map((s) => ({ code: s.code, names: s.aliases }));
 
 // Pre-built lookup tables for fast matching.
 const STATE_BY_NAME = new Map<string, string>();
