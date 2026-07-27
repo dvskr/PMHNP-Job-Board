@@ -247,7 +247,7 @@ export function sanitizeJobAlert(input: JobAlertInput): JobAlertInput {
  *
  * Quill (and Word-paste handlers) emit `&nbsp;` / U+00A0 between regular
  * words, which surfaces in two ways downstream:
- *   1. The browser treats `Tessahealth is hiring...` as ONE
+ *   1. The browser treats `AcmeClinic is hiring...` as ONE
  *      unbreakable word and splits it mid-character when the line wraps,
  *      producing artefacts like "Th ere" / "b illing" reported by users.
  *   2. Plain-text consumers (meta description, structured data, email

@@ -16,10 +16,15 @@ import { computeQualityScore } from '@/lib/utils/quality-score';
 import { inngest } from '@/lib/inngest/client';
 import { parseLocation } from '@/lib/location-parser';
 import { summarizeForMeta } from '@/lib/description-cleaner';
+import { buildQuotaKeys, describeQuotaKey, rawDomainFromEmail, FREE_EMAIL_DOMAINS } from '@/lib/employer-quota';
 import { normalizeExperienceFromInput } from '@/lib/experience-label';
 
 class FreeQuotaExceededError extends Error {
-  constructor(public readonly usedCount: number) {
+  constructor(
+    public readonly usedCount: number,
+    /** Which identity key matched, so the refusal is diagnosable in support. */
+    public readonly matchedKey: string | null = null,
+  ) {
     super('Free post quota exceeded');
     this.name = 'FreeQuotaExceededError';
   }
@@ -138,13 +143,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Block free email providers — keyed off SIGNUP email, not form input.
-    const FREE_EMAIL_DOMAINS = [
-      'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
-      'aol.com', 'icloud.com', 'mail.com', 'protonmail.com',
-      'ymail.com', 'live.com', 'msn.com', 'googlemail.com'
-    ];
-
-    const signupDomain = signupEmail.toLowerCase().split('@')[1];
+    // The list AND the derivation live in lib/employer-quota.ts so this
+    // check, the preview endpoint, the checkout guard, and the key builder
+    // can never diverge (a local copy here had drifted to 12 entries against
+    // the library's 20, and a raw split('@')[1] let "x@gmail.com." sail past
+    // the exact-match blocklist).
+    const signupDomain = rawDomainFromEmail(signupEmail);
     if (!signupDomain || FREE_EMAIL_DOMAINS.includes(signupDomain)) {
       return NextResponse.json(
         {
@@ -155,19 +159,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Per-domain freebie quota anchored to an IMMUTABLE per-row snapshot
-    // (EmployerJob.quotaDomain), not to mutable contactEmail or nullable userId.
-    // Rule: 1 free post per email domain, lifetime, shared across
-    // every employee at that domain (config.freePostsPerEmail).
+    // Legacy anchor, still written and still counted. Rows created before
+    // quotaKeys existed only have this column, so the gate below ORs the two
+    // together rather than replacing one with the other.
     //
-    // Why the immutable snapshot:
+    // It is an IMMUTABLE per-row snapshot rather than a live lookup because:
     //   - Editing contactEmail later cannot shift the count (audit #23)
-    //   - Account deletion / userId being nulled cannot drop the count
     //   - Form contactEmail can be anything (recruiter posting on behalf of a
     //     client, multi-brand orgs); the quota is keyed off who signed up
-    //   - Hard-deleting the row is the only way to drop the count, and that's
-    //     admin-only (audit #25 — separate concern)
+    //   - Hard-deleting the row is the only way to drop the count, and that is
+    //     admin-only and now refused while a free post is anchored to it
+    //
+    // Snapshotting alone was not enough: the DERIVATION was mutable. Support
+    // changed one account's address and the domain changed with it, minting a
+    // fresh key and a second free post. quotaKeys below closes that.
     const quotaDomain = signupDomain;
+
+    // Quota identity. SESSION-VERIFIED signals only: the account id (so an
+    // email change can no longer reset the freebie, which is the leak this
+    // fixes) and the signup domain (the original per-company rule). Form
+    // fields are deliberately excluded — being attacker controlled, they would
+    // let one poster burn a rival's free post, and shared ATS/site-builder
+    // domains would refuse unrelated clinics. See lib/employer-quota.ts.
+    const quotaKeys = buildQuotaKeys({ userId, signupEmail });
 
     // Validate sanitized URL (only for external apply)
     if (!applyOnPlatform && !sanitized.applyLink) {
@@ -256,19 +270,37 @@ export async function POST(request: NextRequest) {
     let job;
     try {
       job = await prisma.$transaction(async (tx) => {
-        // Per-domain freebie quota — see comment block above. Counted from the
-        // immutable EmployerJob.quotaDomain snapshot. Re-checked inside the
-        // Serializable transaction so two parallel submitters at the same
-        // domain can't both slip past.
-        const existingPostCount = await tx.employerJob.count({
+        // Freebie gate — see comment block above. Re-checked inside the
+        // Serializable transaction so two parallel submitters can't both
+        // slip past the count.
+        // quotaKeys carries exactly two SESSION-VERIFIED keys (account id +
+        // signup domain; see lib/employer-quota.ts). The domain alone was
+        // defeatable: derived from the CURRENT account email, so changing
+        // that email's domain minted a second free post (seen in prod). The
+        // acct: key survives email changes. The legacy quotaDomain arm keeps
+        // pre-quotaKeys rows counting.
+        // Fetch rather than count so the matching key can be reported: a bare
+        // count made every refusal blame quotaDomain even when the account key
+        // was the real match, leaving support unable to explain the block.
+        const priorFree = await tx.employerJob.findMany({
           where: {
-            quotaDomain: quotaDomain,
             paymentStatus: 'free',
+            OR: [
+              { quotaKeys: { hasSome: quotaKeys } },
+              // Legacy rows predating quotaKeys still hold their domain claim.
+              { quotaDomain: quotaDomain },
+            ],
           },
+          select: { quotaKeys: true, quotaDomain: true },
+          take: config.freePostsPerEmail + 1,
         });
 
-        if (existingPostCount >= config.freePostsPerEmail) {
-          throw new FreeQuotaExceededError(existingPostCount);
+        if (priorFree.length >= config.freePostsPerEmail) {
+          const hit = priorFree.find((r) => r.quotaKeys.some((k) => quotaKeys.includes(k)));
+          const matchedKey = hit
+            ? hit.quotaKeys.find((k) => quotaKeys.includes(k)) ?? null
+            : `dom:${quotaDomain}`;
+          throw new FreeQuotaExceededError(priorFree.length, matchedKey);
         }
 
         const created = await tx.job.create({
@@ -338,8 +370,9 @@ export async function POST(request: NextRequest) {
             paymentStatus: 'free',
             pricingTier: 'pro',
             userId: userId,
-            // Immutable quota anchor — never written by any update path
+            // Immutable quota anchors — never written by any update path
             quotaDomain: quotaDomain,
+            quotaKeys: quotaKeys,
           },
         });
 
@@ -347,15 +380,23 @@ export async function POST(request: NextRequest) {
       }, { isolationLevel: 'Serializable' });
     } catch (txErr) {
       if (txErr instanceof FreeQuotaExceededError) {
-        logger.info('Free post limit reached for domain', {
+        logger.info('Free post limit reached', {
           domain: quotaDomain,
           userId,
+          // Which signal actually matched. Without this every refusal read as
+          // a domain match and support could not explain or override it.
+          matchedKey: txErr.matchedKey,
           existingCount: txErr.usedCount,
           limit: config.freePostsPerEmail,
         });
         return NextResponse.json(
           {
-            error: `Your organization (${quotaDomain}) has already used its free post. Additional posts cost $${config.postingPrice}.`,
+            // Describe the real reason rather than asserting a domain match
+            // that may be false (an account-key match is the common case after
+            // an email change).
+            error: `${describeQuotaKey(txErr.matchedKey ?? '')} has already used its free post. Additional posts cost $${config.postingPrice}.`
+              .replace(/^this account/, 'This account')
+              .replace(/^the domain/, 'The domain'),
             requiresPayment: true,
             freePostsUsed: txErr.usedCount,
             freePostsLimit: config.freePostsPerEmail,

@@ -181,7 +181,13 @@ export default function CheckoutPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({} as { error?: string; cause?: string }));
+        const errorData = await response.json().catch(() => ({} as { error?: string; cause?: string; code?: string }));
+        // Server-side guard: this poster still has their free post. Good news,
+        // not an error — send them to the preview, which routes to the free flow.
+        if (response.status === 409 && errorData.code === 'FREE_POST_AVAILABLE') {
+          router.push('/post-job/preview');
+          return;
+        }
         const baseMsg = errorData.error || 'Failed to create checkout session';
         const fullMsg = errorData.cause ? `${baseMsg} — ${errorData.cause}` : baseMsg;
         throw new Error(fullMsg);

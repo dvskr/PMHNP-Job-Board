@@ -20,6 +20,7 @@ import { computeQualityScore } from '@/lib/utils/quality-score';
 import { parseLocation } from '@/lib/location-parser';
 import { summarizeForMeta } from '@/lib/description-cleaner';
 import { normalizeExperienceFromInput } from '@/lib/experience-label';
+import { buildQuotaKeys, domainFromEmail } from '@/lib/employer-quota';
 
 // Lazy Stripe client — instantiated per-request so a missing STRIPE_SECRET_KEY
 // surfaces as a clean 503 instead of crashing on module import.
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
 
     // Auth — paid posts still must be tied to an authenticated employer.
     let userId: string | null = null;
+    let signupEmail: string | null = null;
     try {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -102,9 +104,47 @@ export async function POST(request: NextRequest) {
         );
       }
       userId = user.id;
+      signupEmail = user.email ?? null;
     } catch (authErr) {
       logger.warn('Failed to fetch user session in create-checkout', { error: authErr });
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
+    }
+
+    // FREE-ELIGIBILITY GUARD. The free-vs-paid decision used to live only in
+    // the preview page's client-side routing, so any false "paid" verdict
+    // (stale quota fetch, drifted preview predicate, direct navigation to
+    // /post-job/checkout) charged a customer for the post they were entitled
+    // to free — silently, with no server check anywhere before the Stripe
+    // session. Refuse to charge when the SAME predicate the free gate uses
+    // says this poster still has a free post. Fails open on lookup errors:
+    // wrongly blocking a genuine paid post costs more than the rare double
+    // check, and /api/jobs/post-free re-validates everything anyway.
+    try {
+      const signupDomain = domainFromEmail(signupEmail);
+      if (signupDomain) {
+        const priorFree = await prisma.employerJob.count({
+          where: {
+            paymentStatus: 'free',
+            OR: [
+              { quotaKeys: { hasSome: buildQuotaKeys({ userId, signupEmail }) } },
+              { quotaDomain: signupDomain },
+            ],
+          },
+        });
+        if (priorFree < config.freePostsPerEmail) {
+          return NextResponse.json(
+            {
+              error: 'Your first post is free. This listing does not need payment.',
+              code: 'FREE_POST_AVAILABLE',
+            },
+            { status: 409 }
+          );
+        }
+      }
+    } catch (guardErr) {
+      logger.warn('Free-eligibility guard lookup failed in create-checkout; proceeding to paid flow', {
+        error: guardErr,
+      });
     }
 
     // Sanitize core fields
@@ -269,10 +309,18 @@ export async function POST(request: NextRequest) {
           paymentStatus: 'pending',
           pricingTier: pricing,
           userId,
-          // Anchor — paid posts don't consume free quota (the count query
-          // filters paymentStatus='free'), but we still record the domain so
-          // ownership reporting stays consistent.
-          quotaDomain: sanitized.contactEmail.split('@')[1] || null,
+          // Anchors — paid posts don't consume free quota (every count query
+          // filters paymentStatus='free'), but identity is still recorded for
+          // ownership reporting. BOTH fields derive from the SESSION, exactly
+          // like post-free. quotaDomain previously snapshotted the form-typed
+          // contact email here, which meant the same column carried two
+          // different identity semantics depending on writer — and since
+          // quotaDomain is a live OR-arm in all three quota predicates, any
+          // future widening past paymentStatus='free' would have let a
+          // form-typed rival domain start consuming that rival's free post.
+          // Nothing form-typed may ever reach an identity column.
+          quotaDomain: domainFromEmail(signupEmail),
+          quotaKeys: buildQuotaKeys({ userId, signupEmail }),
         },
       });
 
