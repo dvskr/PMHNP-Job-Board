@@ -804,6 +804,7 @@ export default function DashboardContent() {
             }}>
                 {[
                     { icon: Search, label: 'Browse Jobs', href: '/jobs' },
+                    { icon: FileText, label: 'Resume Studio', href: '/dashboard/resume-studio' },
                     { icon: FileText, label: 'Upload Resume', href: '/settings' },
                     { icon: Settings, label: 'Preferences', href: '/settings?tab=screening' },
                     { icon: BellRing, label: 'Manage Alerts', href: '/job-alerts/manage' },

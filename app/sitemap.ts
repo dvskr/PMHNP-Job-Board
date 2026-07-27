@@ -164,6 +164,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/tools/salary-converter`, lastModified: latestJobDate, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${baseUrl}/tools/1099-vs-w2-calculator`, lastModified: TOOLS_LAUNCH_DATE, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/tools/practice-authority-map`, lastModified: TOOLS_LAUNCH_DATE, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/tools/resume-checker`, lastModified: TOOLS_LAUNCH_DATE, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${baseUrl}/tools/resume-builder`, lastModified: TOOLS_LAUNCH_DATE, changeFrequency: 'monthly', priority: 0.8 },
   ]
 
   // State pages — DB-gated below in the try block so empty states never

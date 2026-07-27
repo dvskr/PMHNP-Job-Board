@@ -25,6 +25,12 @@ import { midnightCentralTimeAsUtc, nextMidnightCentralTimeAsUtc } from './time';
 export const AI_DAILY_CAPS: Readonly<Record<string, number>> = Object.freeze({
   jd_generator: 5,           // Generous for first-time iteration; PMHNP JDs need a few tries to nail facts
   talent_search_rerank: 10,  // Mirrors the existing limit in app/api/employer/talent/search
+  // Resume studio (candidate tenant). Free tier only for now: generous
+  // enough to never feel gated in one sitting, small enough that runaway
+  // cost is bounded per user per day.
+  resume_review: 3,
+  resume_tailoring: 3,
+  cover_letter: 2,
 });
 
 export interface AiUsageSnapshot {
@@ -36,12 +42,13 @@ export interface AiUsageSnapshot {
 }
 
 /**
- * Returns the employer's current usage for `task` against the daily
- * cap, plus the ISO timestamp at which the window resets. Pure read —
- * never mutates. Callers should invoke before the AI call to decide
- * whether to allow it, and re-invoke after to refresh the badge.
+ * Returns a tenant's current usage for `task` against the daily cap,
+ * plus the ISO timestamp at which the window resets. Pure read — never
+ * mutates. Callers should invoke before the AI call to decide whether
+ * to allow it, and re-invoke after to refresh the badge.
  */
-export async function getEmployerAiUsage(
+export async function getAiUsage(
+  tenantType: 'employer' | 'candidate',
   userId: string,
   task: keyof typeof AI_DAILY_CAPS | string,
 ): Promise<AiUsageSnapshot> {
@@ -51,7 +58,7 @@ export async function getEmployerAiUsage(
   const used = await prisma.aiCallLog.count({
     where: {
       task,
-      tenantType: 'employer',
+      tenantType,
       tenantId: userId,
       createdAt: { gte: since },
       // Guardrail-rejected calls (recordAiCall is called with error set)
@@ -69,4 +76,12 @@ export async function getEmployerAiUsage(
     remaining: Number.isFinite(cap) ? Math.max(0, cap - used) : Infinity,
     resetAtIso: nextMidnightCentralTimeAsUtc().toISOString(),
   };
+}
+
+/** Back-compat wrapper — existing employer routes keep working unchanged. */
+export async function getEmployerAiUsage(
+  userId: string,
+  task: keyof typeof AI_DAILY_CAPS | string,
+): Promise<AiUsageSnapshot> {
+  return getAiUsage('employer', userId, task);
 }

@@ -214,6 +214,47 @@ export default function OfferAnalyzer({ data }: Props) {
                   <span className="absolute -translate-x-1/2" style={{ left: '75%' }}>p75 {fmtK(summary.p75)}</span>
                 </div>
               </div>
+
+              {/* What to do with the number. A percentile alone is trivia; the
+                  actionable part is the distance to the next benchmark and a
+                  concrete figure to counter with, both derived from the same
+                  distribution so nothing here is invented. */}
+              {(() => {
+                const target = annualOffer < summary.median ? summary.median : summary.p75;
+                const targetLabel = annualOffer < summary.median ? 'median' : 'p75';
+                const gap = target - annualOffer;
+                if (gap <= 0) {
+                  return (
+                    <div className="mt-5 rounded-xl p-4" style={{ background: '#F0FDFA', border: '1px solid #99F6E4' }}>
+                      <p className="text-sm font-semibold" style={{ color: '#134E4A' }}>
+                        This offer already sits at or above the top quarter of advertised pay{segmentLabel === 'nationwide' ? ' nationwide' : ` in ${segmentLabel}`}.
+                      </p>
+                      <p className="mt-1 text-sm" style={{ color: '#0F766E' }}>
+                        There is little room to argue on base pay from posted ranges alone. The stronger
+                        asks here are usually the non-salary terms: signing bonus, CME budget, licensure
+                        and DEA reimbursement, admin time per week, and the patient panel cap.
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="mt-5 rounded-xl p-4" style={{ background: '#F0FDFA', border: '1px solid #99F6E4' }}>
+                    <p className="text-sm font-semibold" style={{ color: '#134E4A' }}>
+                      Room to negotiate: about {fmtFull(gap)} to reach the {targetLabel}.
+                    </p>
+                    <p className="mt-1 text-sm" style={{ color: '#0F766E' }}>
+                      A defensible counter is <strong>{fmtFull(target)}</strong>, which is the {targetLabel} of
+                      what employers are advertising for this role in {segmentLabel === 'nationwide' ? 'the country' : segmentLabel}
+                      {' '}({summary.n} postings with disclosed ranges). Anchor on the posted market rather than
+                      on your current pay, and ask what the range for the role is before naming a number.
+                    </p>
+                    <p className="mt-2 text-xs" style={{ color: '#0F766E' }}>
+                      This is advertised pay, not an offer guarantee. Total compensation, panel size, and
+                      call expectations can justify a figure on either side of it.
+                    </p>
+                  </div>
+                );
+              })()}
             </>
           )}
 

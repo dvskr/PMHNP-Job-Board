@@ -73,6 +73,7 @@ export default function Header() {
   const publicNavLinks = [
     { href: '/jobs', label: 'Browse Jobs', icon: Search },
     { href: '/salary-guide', label: 'Salary Guide', icon: DollarSign },
+    { href: '/tools', label: 'Free Tools', icon: Workflow },
     { href: '/for-employers', label: 'Employers', icon: Building2 },
     { href: '/resources', label: 'Resources', icon: BookOpen },
   ];
@@ -83,6 +84,7 @@ export default function Header() {
   const seekerNavLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/jobs', label: 'Browse Jobs', icon: Briefcase },
+    { href: '/dashboard/resume-studio', label: 'Resume', icon: FileText },
     { href: '/saved', label: 'Saved', icon: Bookmark },
     { href: '/messages', label: 'Messages', icon: MessageSquare },
   ];
@@ -166,7 +168,7 @@ export default function Header() {
             // change vs. the previous fixed value), then scales with the
             // viewport up to a ceiling of 1680px on very wide screens.
             // Wrapper padding (16px each side) still bounds it on narrow.
-            maxWidth: 'clamp(1360px, 94vw, 1680px)',
+            maxWidth: 'clamp(1360px, 96vw, 1860px)',
             margin: '0 auto',
             height: 64,
             borderRadius: '18px',

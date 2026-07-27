@@ -127,6 +127,7 @@ model Job {
   @@index([createdAt(sort: Desc)])
   @@index([minSalary, maxSalary])
   @@index([state])
+  @@index([stateCode])
   @@index([isRemote])
   @@index([companyId])
   @@index([slug])
@@ -270,10 +271,20 @@ model EmployerJob {
   //   - Deleting/nullifying userId (account deletion) can't drop the count
   //   - Form-submitted contactEmail can be anything (recruiter posting on
   //     behalf of a client, multi-brand orgs, etc.) without affecting quota
-  // Set ONLY at row creation by /api/jobs/post-free; never written by any
-  // update path. Null on legacy paid rows / pre-2026-05-01 rows that the
-  // backfill couldn't infer; those rows don't drive the quota anyway.
+  // Set ONLY at row creation (post-free and create-checkout, BOTH from the
+  // session signup email; never from a form field). Null on non-free rows
+  // cleaned by the 20260727d hygiene migration and on legacy rows the
+  // backfill couldn't infer; only free rows drive the quota anyway.
   quotaDomain         String?          @map("quota_domain")
+  /// SESSION-VERIFIED identity keys, exactly two possible: acct:<supabase
+  /// user id> and dom:<signup email domain>. See lib/employer-quota.ts for
+  /// why nothing form-typed may ever appear here (a form-derived key lets
+  /// one poster burn a rival's free post). The free-post gate refuses a post
+  /// when ANY candidate key collides with ANY key already stored on a free
+  /// row, so changing the account email domain (which defeated the old
+  /// quotaDomain-only rule) no longer mints a freebie.
+  /// Written ONLY at row creation; never updated.
+  quotaKeys           String[]         @default([]) @map("quota_keys")
   createdAt           DateTime         @default(now()) @map("created_at")
   updatedAt           DateTime         @updatedAt @map("updated_at")
   expiryWarningSentAt DateTime?        @map("expiry_warning_sent_at")
@@ -290,6 +301,9 @@ model EmployerJob {
   @@index([contactEmail])
   @@index([dashboardToken])
   @@index([quotaDomain, paymentStatus])
+  /// GIN index: the gate's hot path is "does any stored key match any of my
+  /// candidate keys", which is an array-overlap query.
+  @@index([quotaKeys], type: Gin)
   @@map("employer_jobs")
 }
 
@@ -599,6 +613,8 @@ model UserProfile {
   workExperience       CandidateWorkExperience[]
   screeningAnswers     CandidateScreeningAnswer[]
   openEndedResponses   CandidateOpenEndedResponse[]
+  resumeDocuments      ResumeDocument[]
+  resumeAnalyses       ResumeAnalysis[]
 
   candidateReferences CandidateReference[]
   autofillUsage       AutofillUsage[]
@@ -879,6 +895,57 @@ model CandidateWorkExperience {
 
   @@index([userId])
   @@map("candidate_work_experience")
+}
+
+/// Resume studio (2026-07): a saved, editable resume version. Content is an
+/// ordered section snapshot seeded from the candidate profile, then edited
+/// per document — the profile stays the single source of truth for
+/// applications; documents are presentation artifacts the user owns and can
+/// delete. userId references UserProfile.id (cuid) like the other
+/// candidate_* tables, cascade on delete.
+model ResumeDocument {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String   @default("My PMHNP Resume")
+  template  String   @default("classic") // classic | compact
+  /// Ordered section content: { contact, summary, licenses, certifications,
+  /// education, experience, skills } — shape versioned by contentVersion.
+  sections        Json
+  contentVersion  Int      @default(1) @map("content_version")
+  isDefault       Boolean  @default(false) @map("is_default")
+  /// Presentation options shared by the live preview and the PDF export:
+  /// { font, density, paper }. Null falls back to the template defaults.
+  styleConfig     Json?    @map("style_config")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  analyses ResumeAnalysis[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("resume_documents")
+}
+
+/// Resume studio analysis history: deterministic rubric scores and AI
+/// results (review, tailoring, cover letters) the user can revisit.
+/// Deleting the user or the document cascades.
+model ResumeAnalysis {
+  id         String  @id @default(cuid())
+  userId     String  @map("user_id")
+  documentId String? @map("document_id")
+  kind       String  // ats_score | resume_review | resume_tailoring | cover_letter
+  /// For tailoring/cover letters: the target job on this site, when one was used.
+  jobId      String? @map("job_id")
+  /// sha256 of the analyzed input, for dedupe and cache correlation.
+  inputHash  String  @map("input_hash")
+  result     Json
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       UserProfile     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document   ResumeDocument? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([documentId])
+  @@map("resume_analyses")
 }
 
 model CandidateScreeningAnswer {

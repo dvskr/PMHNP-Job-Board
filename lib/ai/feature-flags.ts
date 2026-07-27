@@ -34,6 +34,9 @@ export type AiFeatureFlag =
     | 'ai.candidate.application_coach'
     | 'ai.candidate.cover_letter'
     | 'ai.candidate.resume_parser'
+    // Resume studio (2026-07).
+    | 'ai.candidate.resume_review'
+    | 'ai.candidate.resume_tailoring'
     // Phase 3.
     | 'ai.employer.jd_generator'
     | 'ai.employer.bias_audit'
@@ -59,8 +62,10 @@ const FLAG_REGISTRY: Record<AiFeatureFlag, FlagDefault> = {
     'ai.candidate.recommendations_email': { default: false, description: 'Weekly recommendation digest email (opt-in)' },
     'ai.employer.talent_search':          { default: false, description: 'Vector talent search in employer dashboard' },
     'ai.candidate.application_coach':     { default: false, description: 'Pre-submit feedback on applications' },
-    'ai.candidate.cover_letter':          { default: false, description: 'Cover letter generator' },
+    'ai.candidate.cover_letter':          { default: true,  description: 'Cover letter generator (resume studio, quota-capped)' },
     'ai.candidate.resume_parser':         { default: true,  description: 'Resume → profile auto-fill (already shipped)' },
+    'ai.candidate.resume_review':         { default: true,  description: 'Resume studio AI deep review (quota-capped)' },
+    'ai.candidate.resume_tailoring':      { default: true,  description: 'Resume studio tailoring to a specific posting (quota-capped)' },
     'ai.employer.jd_generator':           { default: false, description: 'Job description generator wizard' },
     'ai.employer.bias_audit':             { default: false, description: 'Inline bias audit on JD submit' },
     'ai.employer.outreach_composer':      { default: false, description: 'Pre-drafted personalized outreach messages' },

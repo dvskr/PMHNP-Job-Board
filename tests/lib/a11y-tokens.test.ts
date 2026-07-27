@@ -28,14 +28,14 @@ describe('auth error banners announce to screen readers', () => {
   });
 });
 
-describe('SalaryCalculator selects are label-associated', () => {
-  const src = read('components/SalaryCalculator.tsx');
-  for (const key of ['sal-state', 'sal-experience', 'sal-setting', 'sal-specialty']) {
-    it(`${key} has both id and htmlFor`, () => {
-      expect(src).toContain(`id="${key}"`);
-      expect(src).toContain(`htmlFor="${key}"`);
-    });
-  }
+describe('SalaryStateExplorer select has an accessible name', () => {
+  // SalaryCalculator (four multiplier selects) was replaced by the live-data
+  // SalaryStateExplorer in the 2026-07 salary honesty rebuild; the lock moves
+  // with it: its single state select must keep an aria-label.
+  it('state select carries an aria-label', () => {
+    const src = read('components/SalaryStateExplorer.tsx');
+    expect(src).toMatch(/<select[\s\S]{0,400}?aria-label\s*=\s*["']Choose a state["']/);
+  });
 });
 
 describe('LicensureChecker state select is label-associated', () => {

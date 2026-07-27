@@ -21,7 +21,11 @@ beforeEach(() => {
 describe('lib/ai/feature-flags.isAiFeatureEnabled', () => {
     it('returns the compiled default when no env or DB override exists', async () => {
         await expect(isAiFeatureEnabled('ai.candidate.resume_parser', TENANT)).resolves.toBe(true);
-        await expect(isAiFeatureEnabled('ai.candidate.cover_letter', TENANT)).resolves.toBe(false);
+        // Resume studio launch (2026-07): cover_letter flipped default-on,
+        // alongside the new resume_review / resume_tailoring flags.
+        await expect(isAiFeatureEnabled('ai.candidate.cover_letter', TENANT)).resolves.toBe(true);
+        await expect(isAiFeatureEnabled('ai.candidate.resume_review', TENANT)).resolves.toBe(true);
+        await expect(isAiFeatureEnabled('ai.candidate.application_coach', TENANT)).resolves.toBe(false);
     });
 
     it('env kill switch overrides everything else', async () => {
@@ -42,10 +46,12 @@ describe('lib/ai/feature-flags.isAiFeatureEnabled', () => {
     });
 
     it('global DB override applies when no tenant-specific row exists', async () => {
+        // Override in the OPPOSITE direction of the compiled default (now
+        // true) so this test still proves the override path wins.
         (prisma.aiFeatureFlagOverride.findMany as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([
-            { flag: 'ai.candidate.cover_letter', tenantType: 'global', tenantId: null, enabled: true, expiresAt: null },
+            { flag: 'ai.candidate.cover_letter', tenantType: 'global', tenantId: null, enabled: false, expiresAt: null },
         ]);
-        await expect(isAiFeatureEnabled('ai.candidate.cover_letter', TENANT)).resolves.toBe(true);
+        await expect(isAiFeatureEnabled('ai.candidate.cover_letter', TENANT)).resolves.toBe(false);
     });
 
     it('falls back to default when DB lookup throws (does not block traffic)', async () => {
