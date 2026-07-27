@@ -53,7 +53,8 @@ export async function GET(request: NextRequest) {
               job.viewCount || 0,
               job.applyClickCount || 0,
               employerJob.dashboardToken || employerJob.editToken,
-              null // unsubscribeToken — sendExpiryWarningEmail will mint one if null
+              null, // unsubscribeToken — sendExpiryWarningEmail will mint one if null
+              job.id, // deep links the CTA to this listing's renew flow
             )
             sentCount++
 
