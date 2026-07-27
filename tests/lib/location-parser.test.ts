@@ -180,3 +180,77 @@ describe('parseLocation — Adzuna county format', () => {
         expect(r.city).toBe('Springfield');
     });
 });
+
+describe('parseLocation — Containment states (prod misfile regression)', () => {
+    // Seen in prod: an Ashby listing with location "West Virginia" was stored
+    // as city "West", state "Virginia", stateCode VA — filed under the wrong
+    // state entirely. The fallback name scan matched "Virginia" first because
+    // it iterated in registry order instead of longest-name-first.
+    it('parses bare "West Virginia" as WV, not VA', () => {
+        const r = parseLocation('West Virginia');
+        expect(r.stateCode).toBe('WV');
+        expect(r.state).toBe('West Virginia');
+        expect(r.city).toBeNull();
+    });
+
+    it('parses "Remote - West Virginia" as remote WV', () => {
+        const r = parseLocation('Remote - West Virginia');
+        expect(r.isRemote).toBe(true);
+        expect(r.stateCode).toBe('WV');
+    });
+
+    it('parses "Charleston, West Virginia" as WV with city', () => {
+        const r = parseLocation('Charleston, West Virginia');
+        expect(r.city).toBe('Charleston');
+        expect(r.stateCode).toBe('WV');
+    });
+
+    it('still parses plain "Virginia" as VA', () => {
+        const r = parseLocation('Virginia');
+        expect(r.stateCode).toBe('VA');
+    });
+
+    it('still parses "Virginia Beach, Virginia" with the right city', () => {
+        const r = parseLocation('Virginia Beach, Virginia');
+        expect(r.city).toBe('Virginia Beach');
+        expect(r.stateCode).toBe('VA');
+    });
+
+    it('parses "District of Columbia" as DC', () => {
+        const r = parseLocation('District of Columbia');
+        expect(r.stateCode).toBe('DC');
+    });
+});
+
+describe('parseLocation — District of Columbia forms', () => {
+    // "Washington, D.C." fell through every code pattern (dots defeat the
+    // 2-letter matcher) until the state-NAME scan, where bare "Washington"
+    // matched and filed the nation's capital under WA.
+    it('parses "Washington, D.C." as DC', () => {
+        const r = parseLocation('Washington, D.C.');
+        expect(r.stateCode).toBe('DC');
+        expect(r.city).toBe('Washington');
+    });
+
+    it('parses "Washington D.C." as DC', () => {
+        const r = parseLocation('Washington D.C.');
+        expect(r.stateCode).toBe('DC');
+    });
+
+    it('parses "Washington, DC" as DC', () => {
+        const r = parseLocation('Washington, DC');
+        expect(r.stateCode).toBe('DC');
+        expect(r.city).toBe('Washington');
+    });
+
+    it('still parses bare "Washington" as the state (WA)', () => {
+        const r = parseLocation('Washington');
+        expect(r.stateCode).toBe('WA');
+    });
+
+    it('still parses "Seattle, Washington" as WA', () => {
+        const r = parseLocation('Seattle, Washington');
+        expect(r.city).toBe('Seattle');
+        expect(r.stateCode).toBe('WA');
+    });
+});

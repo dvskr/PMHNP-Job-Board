@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { BadgeDollarSign, Calculator, Map, ArrowLeftRight, ArrowRight } from 'lucide-react';
+import { BadgeDollarSign, Calculator, Map, ArrowLeftRight, ArrowRight, FileSearch, FileText } from 'lucide-react';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
@@ -37,6 +37,22 @@ const clayCard: React.CSSProperties = {
 };
 
 const TOOLS = [
+  {
+    href: '/tools/resume-checker',
+    name: 'Resume Checker',
+    tagline: 'Instant ATS-style score, no signup',
+    description:
+      'Upload your resume and get an instant score against the 8 things PMHNP employers screen for: licensure, ANCC certification, DEA, clinical scope, quantified impact, and more. Scored in memory, never stored.',
+    icon: <FileSearch className="w-6 h-6" aria-hidden="true" />,
+  },
+  {
+    href: '/tools/resume-builder',
+    name: 'Resume Builder',
+    tagline: 'Licensure-first PMHNP resumes',
+    description:
+      'Build from your profile with the sections psychiatric employers expect, keep multiple versions, export clean ATS-friendly PDFs, and get free AI review, tailoring, and cover letters with daily limits.',
+    icon: <FileText className="w-6 h-6" aria-hidden="true" />,
+  },
   {
     href: '/tools/offer-analyzer',
     name: 'Offer Analyzer',

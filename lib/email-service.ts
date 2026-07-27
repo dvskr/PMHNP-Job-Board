@@ -568,7 +568,13 @@ export async function sendExpiryWarningEmail(
   viewCount: number,
   applyClickCount: number,
   dashboardToken: string,
-  unsubscribeToken: string | null
+  unsubscribeToken: string | null,
+  /**
+   * Job being pitched. Used to deep link the CTA straight to that listing's
+   * renew flow. Optional so older callers still compile; without it the CTA
+   * lands on the dashboard and the employer picks the listing manually.
+   */
+  jobId?: string,
 ): Promise<EmailResult> {
   try {
     const now = new Date();
@@ -581,7 +587,18 @@ export async function sendExpiryWarningEmail(
       day: 'numeric'
     });
 
-    const dashboardUrl = `${BASE_URL}/employer/dashboard/${dashboardToken}`;
+    // CTA target. This used to be /employer/dashboard/<token>, which is a
+    // redirect-only stub ("token access deprecated") that dumped the employer
+    // on a bare login screen with no listing, no renew button, and no context.
+    // Every renewal pitch died there. Now the link carries the intent through
+    // login: sign in, land on the dashboard, renew modal already open for this
+    // listing. `dashboardToken` is retained in the signature because callers
+    // still pass it and it identifies the row for support.
+    void dashboardToken;
+    const renewTarget = jobId
+      ? `/employer/dashboard?renew=${encodeURIComponent(jobId)}`
+      : '/employer/dashboard';
+    const dashboardUrl = `${BASE_URL}/login?role=employer&redirectTo=${encodeURIComponent(renewTarget)}`;
     const discountPct = Math.round((1 - config.renewalPrice / config.postingPrice) * 100);
 
     const html = emailShellV2(`

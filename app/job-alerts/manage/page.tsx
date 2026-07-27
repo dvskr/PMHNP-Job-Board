@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Bell, Plus, Trash2, Pause, Play, Clock, Calendar, MapPin, Briefcase, ChevronDown, ChevronUp, Loader2, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
+import { US_STATE_NAMES } from '@/lib/us-states';
 
 /* ═══════════════════════════════════════════
    TYPES
@@ -28,16 +29,9 @@ interface JobAlert {
 /* ═══════════════════════════════════════════
    CONSTANTS
    ═══════════════════════════════════════════ */
-const US_STATES = [
-  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
-  'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa',
-  'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan',
-  'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire',
-  'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio',
-  'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
-  'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
-  'Wisconsin', 'Wyoming'
-];
+// Canonical 51-entry list (incl. District of Columbia); the old 50-entry
+// local copy silently excluded DC from the alert picker.
+const US_STATES = US_STATE_NAMES;
 const WORK_MODES = ['Remote', 'Hybrid', 'In-Person'];
 const JOB_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Per Diem'];
 

@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText, normalizeContentWhitespace } from '@/lib/sanitize';
 import { summarizeForMeta } from '@/lib/description-cleaner';
+import { parseLocation } from '@/lib/location-parser';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { inngest } from '@/lib/inngest/client';
@@ -89,12 +90,27 @@ export async function POST(request: NextRequest) {
     // Apply-on-platform: clear applyLink when switching to in-platform.
     const applyOnPlatform = rawJobData.applyOnPlatform === true;
 
+    // Re-derive structured location exactly like both post routes do
+    // (post-free:262, create-checkout:189). This route used to write the raw
+    // location string WITHOUT re-parsing, so city/state/stateCode/isRemote/
+    // isHybrid stayed frozen at post time through every edit — an employer
+    // changing "Austin, TX" to "Remote (New York)" kept stateCode TX and
+    // isRemote false forever, and the job filtered, mapped, and rendered its
+    // JSON-LD off the stale fields. Nearly every employer job in prod has
+    // been edited at least once, so this was the rule rather than the edge.
+    const parsedLoc = parseLocation(jobData.location);
+
     // Update job
     const updatedJob = await prisma.job.update({
       where: { id: employerJob.jobId },
       data: {
         title: jobData.title,
         location: jobData.location,
+        city: parsedLoc.city,
+        state: parsedLoc.state,
+        stateCode: parsedLoc.stateCode,
+        isRemote: parsedLoc.isRemote,
+        isHybrid: parsedLoc.isHybrid,
         mode: jobData.mode,
         jobType: jobData.jobType,
         description: jobData.description,

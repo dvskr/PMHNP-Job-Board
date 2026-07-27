@@ -2,12 +2,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { config } from '@/lib/config';
+import { buildQuotaKeys, rawDomainFromEmail, FREE_EMAIL_DOMAINS } from '@/lib/employer-quota';
 
-const FREE_EMAIL_DOMAINS = [
-  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
-  'aol.com', 'icloud.com', 'mail.com', 'protonmail.com',
-  'ymail.com', 'live.com', 'msn.com', 'googlemail.com',
-];
+// Imported, not re-declared: a third local copy of this list is exactly how
+// the preview and the gate drifted apart in the first place.
 
 /**
  * GET /api/employer/free-quota-status
@@ -41,13 +39,26 @@ export async function GET() {
       return NextResponse.json({ eligible: false, reason: 'not-employer' });
     }
 
-    const signupDomain = user.email.toLowerCase().split('@')[1];
+    // Same derivation as the gate and the checkout guard: one helper, one
+    // behavior, no raw split('@')[1] edge divergence.
+    const signupDomain = rawDomainFromEmail(user.email);
     if (!signupDomain || FREE_EMAIL_DOMAINS.includes(signupDomain)) {
       return NextResponse.json({ eligible: false, reason: 'free-email-provider' });
     }
 
+    // MUST mirror the gate in /api/jobs/post-free exactly. It previously
+    // counted quotaDomain only, so an account that had changed its email
+    // domain was told "your first post is free", filled in the whole form,
+    // and was refused at submit. Same predicate, same keys.
+    const quotaKeys = buildQuotaKeys({ userId: user.id, signupEmail: user.email });
     const used = await prisma.employerJob.count({
-      where: { quotaDomain: signupDomain, paymentStatus: 'free' },
+      where: {
+        paymentStatus: 'free',
+        OR: [
+          { quotaKeys: { hasSome: quotaKeys } },
+          { quotaDomain: signupDomain },
+        ],
+      },
     });
     const remaining = Math.max(0, config.freePostsPerEmail - used);
     const willBeFree = remaining > 0;

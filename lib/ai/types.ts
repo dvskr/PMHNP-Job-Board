@@ -24,6 +24,9 @@ export type AiTaskId =
     // Phase 2 — wired in Sprint 2.x.
     | 'application_coach'
     | 'cover_letter'
+    // Resume studio (2026-07) — candidate-tenant document intelligence.
+    | 'resume_review'
+    | 'resume_tailoring'
     // Phase 3 — wired in Sprint 3.x.
     | 'jd_generator'
     | 'bias_audit'

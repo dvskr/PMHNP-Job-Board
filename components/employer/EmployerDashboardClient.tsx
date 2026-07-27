@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { formatDate, getExpiryStatus } from '@/lib/utils';
@@ -114,6 +114,21 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     const [draft, setDraft] = useState<{ title: string; savedAt: string } | null>(null);
 
     useEffect(() => { setMounted(true); }, []);
+
+    // Renewal emails link here as ?renew=<jobId> (through login when needed),
+    // so the listing the employer clicked opens its renew modal immediately
+    // rather than making them hunt for it in the list. Runs once: the guard
+    // ref keeps a later re-render from reopening a modal the user dismissed.
+    const renewIntentRef = useRef<string | null>(null);
+    const renewJobId = searchParams.get('renew');
+    useEffect(() => {
+        if (!renewJobId || renewIntentRef.current === renewJobId) return;
+        const target = localJobs.find((j) => j.id === renewJobId);
+        if (!target) return; // not this employer's listing, or not loaded yet
+        renewIntentRef.current = renewJobId;
+        setSelectedJob(target);
+        setShowRenewModal(true);
+    }, [renewJobId, localJobs]);
 
     // Fetch the employer's saved draft. GET /api/job-draft returns
     // { success, draft: { id, formData, email, savedAt, expiresAt } | null }

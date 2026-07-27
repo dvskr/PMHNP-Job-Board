@@ -67,11 +67,31 @@ export async function POST(request: NextRequest) {
                 });
                 break;
 
-            case 'hard_delete':
+            case 'hard_delete': {
+                // employer_jobs.job_id is ON DELETE CASCADE, so hard-deleting a
+                // Job erases the EmployerJob row that anchors the lifetime free
+                // post — the employer silently gets another one. The single-job
+                // DELETE refuses this (audit #25); the bulk path bypassed that
+                // guard entirely, up to 100 ids per call. Same rule here.
+                const freeAnchored = await prisma.employerJob.findMany({
+                    where: { jobId: { in: jobIds }, paymentStatus: 'free' },
+                    select: { jobId: true },
+                });
+                if (freeAnchored.length > 0) {
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            error: 'Refusing hard delete: some jobs anchor a used free-post quota. Hard deleting them would hand those employers another free post. Unpublish them instead, or hard delete them one at a time after confirming intent.',
+                            blockedJobIds: freeAnchored.map((r) => r.jobId),
+                        },
+                        { status: 409 },
+                    );
+                }
                 result = await prisma.job.deleteMany({
                     where: { id: { in: jobIds } },
                 });
                 break;
+            }
 
             default:
                 return NextResponse.json(

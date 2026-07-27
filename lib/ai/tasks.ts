@@ -173,6 +173,34 @@ export const TASK_REGISTRY: Record<AiTaskId, TaskConfig> = {
         rateLimit: { limit: 20, windowSeconds: 3600 },
     },
 
+    // ── Resume studio (2026-07) — candidate document intelligence ────────
+    resume_review: {
+        primary:   { provider: 'openai',    model: 'gpt-5.4' },
+        fallbacks: [{ provider: 'anthropic', model: 'claude-opus-4-7' }],
+        outputMode: 'json',
+        // Same resume → same review; 1h TTL means an accidental double
+        // click never double-bills, while edits (new content hash in the
+        // cacheKey) always get a fresh read.
+        cacheTtlSeconds: 3600,
+        temperature: 0.3,
+        // Reviews return rewritten bullets + per-section commentary on top
+        // of gpt-5.4 reasoning overhead; sized from the resume_parsing
+        // lesson (truncated-JSON failures at small budgets).
+        maxOutputTokens: 8_000,
+        timeoutMs: 120_000,
+        rateLimit: { limit: 20, windowSeconds: 3600 },
+    },
+    resume_tailoring: {
+        primary:   { provider: 'openai',    model: 'gpt-5.4' },
+        fallbacks: [{ provider: 'anthropic', model: 'claude-opus-4-7' }],
+        outputMode: 'json',
+        cacheTtlSeconds: 0, // Tailoring is (resume × posting)-specific and iterative.
+        temperature: 0.3,
+        maxOutputTokens: 8_000,
+        timeoutMs: 120_000,
+        rateLimit: { limit: 10, windowSeconds: 3600 },
+    },
+
     // ── PHASE 3 — wires up in Sprint 3.x ──────────────────────────────────
     jd_generator: {
         primary:   { provider: 'openai',    model: 'gpt-5.4' },
