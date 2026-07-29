@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Image from 'next/image';
+import { isOptimizableImageSrc } from '@/lib/image-src';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -92,9 +94,17 @@ const borderVal = '1px solid rgba(213, 232, 224, 0.6)';
 function Avatar({ user, size = 40 }: { user: OtherUser; size?: number }) {
     if (user.avatarUrl) {
         return (
-            <img
+            <Image
                 src={user.avatarUrl}
                 alt={user.name}
+                width={size}
+                height={size}
+                sizes={`${size}px`}
+                // avatarUrl is normally Supabase storage (upload API) or
+                // lh3.googleusercontent.com (OAuth), but /api/auth/profile
+                // accepts any https URL; non-allowlisted hosts 400 through
+                // the optimizer, so serve those as-is.
+                unoptimized={!isOptimizableImageSrc(user.avatarUrl)}
                 style={{
                     width: size, height: size, borderRadius: '50%', objectFit: 'cover',
                     flexShrink: 0, border: '2px solid #D5E8E0',
@@ -439,7 +449,7 @@ export default function MessagesPage() {
                     backgroundColor: '#F7FBF8', border: borderVal, borderRadius: '20px',
                     boxShadow: '6px 6px 16px rgba(0,0,0,0.05), -3px -3px 10px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.6)',
                 }}>
-                    <img src="/illustrations/empty-messages.png" alt="" style={{ width: '100px', height: '100px', margin: '0 auto 16px', objectFit: 'contain', opacity: 0.85 }} />
+                    <Image src="/illustrations/empty-messages.png" alt="" width={100} height={100} sizes="100px" style={{ width: '100px', height: '100px', margin: '0 auto 16px', objectFit: 'contain', opacity: 0.85 }} />
                     <h2 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 8px' }}>
                         No messages yet
                     </h2>

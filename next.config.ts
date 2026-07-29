@@ -49,6 +49,10 @@ const nextConfig: NextConfig = {
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],
+    // Allowed `quality` values. 75 is the default; 90 is for illustration
+    // surfaces (step/story/cover art) where AVIF at 75 visibly smears the
+    // fine detail of busy 1024px art downscaled to small boxes.
+    qualities: [75, 90],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     // SEO Fix H2: bumped from 30d → 1y. The hero LCP image is served by

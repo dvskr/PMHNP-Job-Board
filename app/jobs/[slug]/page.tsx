@@ -2,6 +2,7 @@ import { cache } from 'react';
 import Image from 'next/image';
 import { formatSalary, slugify, getJobFreshness, getExpiryStatus, expandInlineBullets, splitAtSectionMarkers } from '@/lib/utils';
 import { sanitizeHtmlContent } from '@/lib/sanitize';
+import { isOptimizableImageSrc } from '@/lib/image-src';
 import { MapPin, Briefcase, Monitor, BadgeCheck, ArrowRight, Search } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import { Job, Company } from '@/lib/types';
@@ -621,7 +622,7 @@ function renderRemovedPage({ badge, badgeGradient, heading, subtext, title, empl
                   ...clayCard, display: 'flex', flexDirection: 'column', alignItems: 'center',
                   padding: '20px 12px', textAlign: 'center', textDecoration: 'none',
                 }}>
-                <img src={card.icon} alt="" width={40} height={40} loading="lazy" decoding="async" style={{ marginBottom: '10px', objectFit: 'contain' }} />
+                <Image src={card.icon} alt="" width={40} height={40} sizes="40px" style={{ marginBottom: '10px', objectFit: 'contain' }} />
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', marginBottom: '3px' }}>{card.label}</div>
                 <div style={{ fontSize: '11px', color: '#7A6A62' }}>{card.sub}</div>
               </a>
@@ -643,7 +644,7 @@ function renderRemovedPage({ badge, badgeGradient, heading, subtext, title, empl
               background: 'linear-gradient(135deg, #0D9488, #0F766E)',
               boxShadow: '4px 4px 12px rgba(13,148,136,0.2), -2px -2px 6px rgba(255,255,255,0.3), inset 1px 1px 2px rgba(255,255,255,0.2)',
             }}>
-            <img src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_salary.webp" alt="" width={22} height={22} loading="lazy" decoding="async" style={{ objectFit: 'contain' }} />
+            <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_salary.webp" alt="" width={22} height={22} sizes="22px" style={{ objectFit: 'contain' }} />
             2026 PMHNP Salary Guide →
           </a>
         </div>
@@ -839,6 +840,10 @@ export default async function JobPage({ params }: JobPageProps) {
                         height={52}
                         quality={90}
                         sizes="52px"
+                        // companyLogoUrl can be a free-text URL from employer
+                        // settings (any host); non-allowlisted hosts 400
+                        // through the optimizer, so serve those as-is.
+                        unoptimized={!isOptimizableImageSrc(job.companyLogoUrl)}
                         style={{
                           width: '52px', height: '52px', borderRadius: '50%',
                           objectFit: 'contain', border: '1px solid rgba(0,0,0,0.06)',

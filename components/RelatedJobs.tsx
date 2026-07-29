@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { MapPin, ArrowRight } from 'lucide-react';
 import { slugify } from '@/lib/utils';
+import { isOptimizableImageSrc } from '@/lib/image-src';
 import Badge from '@/components/ui/Badge';
 
 interface RelatedJob {
@@ -88,13 +90,22 @@ export default function RelatedJobs({
                 {/* Company Avatar */}
                 <div style={{ flexShrink: 0 }}>
                   {job.companyLogoUrl ? (
-                    <img
+                    /* next/image serves a right-sized 88/132px variant for
+                       retina instead of the browser downscaling the source
+                       file into a 44px box — same rationale as JobCard.
+                       `unoptimized` gate: companyLogoUrl can be a free-text
+                       URL from employer settings (any host), and hosts
+                       outside images.remotePatterns 400 through the
+                       optimizer — those render the original file as-is. */
+                    <Image
                       src={job.companyLogoUrl}
                       alt={`${job.employer} logo`}
                       width={44}
                       height={44}
+                      quality={90}
+                      sizes="44px"
                       loading="lazy"
-                      decoding="async"
+                      unoptimized={!isOptimizableImageSrc(job.companyLogoUrl)}
                       style={{
                         width: '44px', height: '44px', borderRadius: '50%',
                         objectFit: 'contain', border: '1px solid var(--border-color)',

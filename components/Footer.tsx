@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { XLogo, FacebookLogo, InstagramLogo, LinkedinLogo, YoutubeLogo } from '@phosphor-icons/react';
 import { reopenConsentBanner } from '@/lib/consent';
@@ -259,7 +260,11 @@ export default function Footer() {
             {/* Left: Logo + Name + Tagline */}
             <div className="footer-bar-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
-                <img src="/logo.png" alt="PMHNP Hiring" width="36" height="36" loading="lazy" decoding="async" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+                {/* next/image serves a right-sized AVIF/WebP variant of the
+                    source PNG for this 36px box (72px on 2x displays) instead
+                    of the browser downscaling the full logo.png. Below the
+                    fold, so lazy loading stays. */}
+                <Image src="/logo.png" alt="PMHNP Hiring" width={36} height={36} sizes="36px" loading="lazy" style={{ width: 36, height: 36, objectFit: 'contain' }} />
                 <span className="font-heading" style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginLeft: '-4px', whiteSpace: 'nowrap' }}>
                   PMHNP Hiring
                 </span>

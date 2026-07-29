@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import JobCard from '@/components/JobCard';
 import JobsListSkeleton from '@/components/JobsListSkeleton';
 import { Job } from '@/lib/types';
@@ -392,7 +393,7 @@ export default function SavedJobsPage() {
                 ...cardBase,
                 textAlign: 'center', padding: '60px 24px',
             }}>
-                <img src="/illustrations/spot-saved.png" alt="" style={{ width: '120px', height: '120px', objectFit: 'contain', marginBottom: '16px', marginInline: 'auto', display: 'block' }} />
+                <Image src="/illustrations/spot-saved.png" alt="" width={120} height={120} sizes="120px" style={{ width: '120px', height: '120px', objectFit: 'contain', marginBottom: '16px', marginInline: 'auto', display: 'block' }} />
                 <h2 style={{
                     fontSize: '18px', fontWeight: 700,
                     fontFamily: 'var(--font-lora), Georgia, serif',
@@ -426,7 +427,7 @@ export default function SavedJobsPage() {
                 ...cardBase,
                 textAlign: 'center', padding: '60px 24px',
             }}>
-                <img src="/illustrations/spot-applied.png" alt="" style={{ width: '120px', height: '120px', objectFit: 'contain', marginBottom: '16px', marginInline: 'auto', display: 'block' }} />
+                <Image src="/illustrations/spot-applied.png" alt="" width={120} height={120} sizes="120px" style={{ width: '120px', height: '120px', objectFit: 'contain', marginBottom: '16px', marginInline: 'auto', display: 'block' }} />
                 <h2 style={{
                     fontSize: '18px', fontWeight: 700,
                     fontFamily: 'var(--font-lora), Georgia, serif',

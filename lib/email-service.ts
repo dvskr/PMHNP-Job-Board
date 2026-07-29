@@ -21,6 +21,10 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
 const SITE_URL = BASE_URL; // alias for backward compatibility
 const IMG = process.env.EMAIL_ASSETS_URL || `${BASE_URL}/images/email`;
+// Email images use the pre-resized -160.png derivatives (2x of the 80px
+// render box). Email clients have no image optimizer: referencing the
+// 1024px originals shipped 300-600KB per image, ballooned emails past
+// Gmail's clipping threshold, and let Outlook do the (bad) downscaling.
 
 /** Body text block — keeps the iconFile param for API compat but renders text only.
  *  The heading → text → CTA pattern is cleaner without a sandwiched image. */
@@ -277,7 +281,7 @@ export async function sendWelcomeEmail(
     const html = emailShellV2(`
       ${headerBlockV2('Your Alert Is Active', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-alert-subscription.png', `Your job alert is now active. We scan thousands of PMHNP positions daily and will send you a ${frequencyLabel} with new matches \u2014 so you never miss the right opportunity.`)}
+      ${simpleBlock('hero-alert-subscription-160.png', `Your job alert is now active. We scan thousands of PMHNP positions daily and will send you a ${frequencyLabel} with new matches \u2014 so you never miss the right opportunity.`)}
       ${criteriaCard}
       ${spacerV2(28)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
@@ -337,11 +341,11 @@ export async function sendSignupWelcomeEmail(
       ${spacerV2(28)}
       ${sectionHeadV2('Three steps to your first hire')}
       ${spacerV2(20)}
-      ${stepBlock('icon-emp-megaphone.png', 'Publish your listing', `Our guided form takes under five minutes. ${config.durationDays}-day listing with Featured badge, ${config.limits.candidateUnlocksPerPosting} unlocks, ${config.limits.inmailsPerPosting} InMails included.`)}
+      ${stepBlock('icon-emp-megaphone-160.png', 'Publish your listing', `Our guided form takes under five minutes. ${config.durationDays}-day listing with Featured badge, ${config.limits.candidateUnlocksPerPosting} unlocks, ${config.limits.inmailsPerPosting} InMails included.`)}
       ${spacerV2(16)}
-      ${stepBlock('icon-emp-analytics.png', 'Track engagement', 'Monitor views, apply clicks, and applicant quality in real time.')}
+      ${stepBlock('icon-emp-analytics-160.png', 'Track engagement', 'Monitor views, apply clicks, and applicant quality in real time.')}
       ${spacerV2(16)}
-      ${stepBlock('icon-emp-handshake.png', 'Connect with candidates', 'Message qualified PMHNPs directly through the platform. Candidates you unlock stay accessible forever.')}
+      ${stepBlock('icon-emp-handshake-160.png', 'Connect with candidates', 'Message qualified PMHNPs directly through the platform. Candidates you unlock stay accessible forever.')}
       ${spacerV2(32)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('Post Your First Job', `${SITE_URL}/post-job`)}
@@ -359,11 +363,11 @@ export async function sendSignupWelcomeEmail(
             ${spacerV2(36)}
             <tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF_V2};font-size:26px;font-weight:700;color:${V2.textHeading};text-align:center;">Here is how to get started</p></td></tr>
             ${spacerV2(20)}
-            ${stepBlock('step-build-profile.png', 'Build your profile', 'Take 60 seconds to add your credentials, specialties, and location preferences.')}
+            ${stepBlock('step-build-profile-160.png', 'Build your profile', 'Take 60 seconds to add your credentials, specialties, and location preferences.')}
             ${spacerV2(16)}
-            ${stepBlock('step-ai-alerts.png', 'Turn on AI alerts', 'Get notified the exact minute a perfectly matched role lands on the board.')}
+            ${stepBlock('step-ai-alerts-160.png', 'Turn on AI alerts', 'Get notified the exact minute a perfectly matched role lands on the board.')}
             ${spacerV2(16)}
-            ${stepBlock('step-connect.png', 'Connect directly', 'Connect to hiring managers directly, no recruiters involved.')}
+            ${stepBlock('step-connect-160.png', 'Connect directly', 'Connect to hiring managers directly, no recruiters involved.')}
             ${spacerV2(32)}
             <tr><td class="content-pad" style="padding:0 40px;text-align:center;">${primaryButtonV2('Explore Your Dashboard', `${BASE_URL}/dashboard`)}</td></tr>
             ${spacerV2(16)}
@@ -444,7 +448,7 @@ export async function sendConfirmationEmail(
     const html = emailShellV2(`
       ${headerBlockV2('Your Listing Is Live', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-job-post.png', `Your posting is now visible to thousands of PMHNPs actively searching for their next role. The listing will remain active for ${durationDays} days.`)}
+      ${simpleBlock('hero-job-post-160.png', `Your posting is now visible to thousands of PMHNPs actively searching for their next role. The listing will remain active for ${durationDays} days.`)}
       ${spacerV2(20)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
@@ -520,7 +524,7 @@ export async function sendRenewalConfirmationEmail(
     const html = emailShellV2(`
       ${headerBlockV2('Listing Renewed Successfully', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-renewal.png', `Your posting for <strong>${escapeHtml(jobTitle)}</strong> has been renewed and will remain active until ${expiryStr}.`)}
+      ${simpleBlock('hero-renewal-160.png', `Your posting for <strong>${escapeHtml(jobTitle)}</strong> has been renewed and will remain active until ${expiryStr}.`)}
       ${spacerV2(20)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
@@ -719,7 +723,7 @@ export async function sendDraftSavedEmail(
     const html = emailShellV2(`
       ${headerBlockV2('Your Draft Is Saved', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-draft-saved.png', 'We saved your progress. Your draft is ready whenever you are \u2014 pick up right where you left off. This link expires in 30 days.')}
+      ${simpleBlock('hero-draft-saved-160.png', 'We saved your progress. Your draft is ready whenever you are \u2014 pick up right where you left off. This link expires in 30 days.')}
       ${spacerV2(32)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('Continue Your Posting', resumeUrl)}
@@ -849,7 +853,7 @@ export function buildSalaryGuideHtml(pdfUrl: string, unsubscribeToken: string): 
   return emailShellV2(`
     ${headerBlockV2('Your 2026 Salary Guide', '')}
     ${spacerV2(12)}
-    ${simpleBlock('hero-salary-guide.png', 'Your comprehensive PMHNP compensation report is ready. It includes salary ranges across all 50 states, remote versus in-person pay differentials, and negotiation strategies.')}
+    ${simpleBlock('hero-salary-guide-160.png', 'Your comprehensive PMHNP compensation report is ready. It includes salary ranges across all 50 states, remote versus in-person pay differentials, and negotiation strategies.')}
     ${spacerV2(32)}
     <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
       ${primaryButtonV2('Download Salary Guide (PDF)', pdfUrl)}
@@ -1058,7 +1062,7 @@ export async function sendNewCandidateAlertEmail(
     const html = emailShellV2(`
       ${headerBlockV2('New Candidate Match', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-new-candidate.png', `A new candidate matching your hiring criteria has joined the platform. They specialize in psychiatric mental health nursing and are open to new positions.`)}
+      ${simpleBlock('hero-new-candidate-160.png', `A new candidate matching your hiring criteria has joined the platform. They specialize in psychiatric mental health nursing and are open to new positions.`)}
       ${spacerV2(32)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('View Candidate Profile', `${SITE_URL}/employer/candidates`)}
@@ -1161,7 +1165,7 @@ export async function sendNewApplicationEmail(params: NewApplicationEmailParams)
     const html = emailShellV2(`
       ${headerBlockV2('New Application Received', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-new-application.png', `A new application has been submitted for <strong>${escapeHtml(jobTitle)}</strong>.${candidateHeadline ? ` The candidate ${escapeHtml(candidateHeadline)}.` : ''}${candidateExperience ? ` ${candidateExperience}+ years of experience.` : ''}`)}
+      ${simpleBlock('hero-new-application-160.png', `A new application has been submitted for <strong>${escapeHtml(jobTitle)}</strong>.${candidateHeadline ? ` The candidate ${escapeHtml(candidateHeadline)}.` : ''}${candidateExperience ? ` ${candidateExperience}+ years of experience.` : ''}`)}
       ${spacerV2(32)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('Review Application', `${BASE_URL}/employer/dashboard`)}
@@ -1220,7 +1224,7 @@ export async function sendApplicationConfirmationEmail(params: ApplicationConfir
     const html = emailShellV2(`
       ${headerBlockV2('Application Submitted', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-app-confirm.png', `Your application for <strong>${escapeHtml(jobTitle)}</strong> at ${escapeHtml(employerName)} has been submitted successfully. The employer will review your profile and respond if there is a match.`)}
+      ${simpleBlock('hero-app-confirm-160.png', `Your application for <strong>${escapeHtml(jobTitle)}</strong> at ${escapeHtml(employerName)} has been submitted successfully. The employer will review your profile and respond if there is a match.`)}
       ${spacerV2(32)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('Track Your Applications', `${BASE_URL}/my-applications`)}
@@ -1290,7 +1294,7 @@ export async function sendStatusUpdateEmail(params: StatusUpdateEmailParams): Pr
     const html = emailShellV2(`
       ${headerBlockV2('Application Status Update', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-status-update.png', `There is an update on your application for <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(employerName)}</strong>. Your application has moved to the <strong>${statusInfo.label.toLowerCase()}</strong> stage. ${statusInfo.message}`)}
+      ${simpleBlock('hero-status-update-160.png', `There is an update on your application for <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(employerName)}</strong>. Your application has moved to the <strong>${statusInfo.label.toLowerCase()}</strong> stage. ${statusInfo.message}`)}
       ${spacerV2(32)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('View Application Details', `${BASE_URL}/my-applications`)}
@@ -1369,7 +1373,7 @@ export async function sendPerformanceReportEmail(
     const html = emailShellV2(`
       ${headerBlockV2(`Your ${periodLabel} Hiring Report`, '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-performance.png', `Here is how your listings performed this ${periodNoun}. Use these insights to optimize your postings and attract stronger candidates.`)}
+      ${simpleBlock('hero-performance-160.png', `Here is how your listings performed this ${periodNoun}. Use these insights to optimize your postings and attract stronger candidates.`)}
       ${spacerV2(24)}
       <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(totalViews.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(totalClicks.toLocaleString(), 'Apply Clicks')}<td width="8"></td>${statBlockV2(totalApps.toLocaleString(), 'Applications')}</tr></table></td></tr>
       ${spacerV2(28)}

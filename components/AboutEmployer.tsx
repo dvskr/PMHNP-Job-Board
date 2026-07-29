@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Building2, Globe, Briefcase, ExternalLink } from 'lucide-react';
+import { isOptimizableImageSrc } from '@/lib/image-src';
 
 interface Company {
     id: string;
@@ -58,13 +60,22 @@ export default function AboutEmployer({
             <section style={clayCard}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '14px' }}>
                     {company.logoUrl ? (
-                        <img
+                        /* next/image serves a right-sized 104/156px variant for
+                           retina instead of the browser downscaling the source
+                           file into a 52px box — same rationale as JobCard.
+                           `unoptimized` gate: logoUrl can be a free-text URL
+                           from employer settings (any host), and hosts outside
+                           images.remotePatterns 400 through the optimizer —
+                           those render the original file as-is. */
+                        <Image
                             src={company.logoUrl}
                             alt={`${company.name} logo`}
                             width={52}
                             height={52}
+                            quality={90}
+                            sizes="52px"
                             loading="lazy"
-                            decoding="async"
+                            unoptimized={!isOptimizableImageSrc(company.logoUrl)}
                             style={{
                                 width: '52px', height: '52px', objectFit: 'contain',
                                 borderRadius: '14px',

@@ -217,7 +217,7 @@ export default async function ResourcesPage() {
                   display: 'flex', flexDirection: 'column', gap: '14px',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Image src={g.img} alt={g.title} width={48} height={48} style={{ width: '48px', height: '48px', borderRadius: '14px' }} />
+                    <Image src={g.img} alt={g.title} width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', borderRadius: '14px' }} />
                     <span style={{
                       fontSize: '11px', fontWeight: 700, color: g.badgeColor,
                       background: `${g.badgeColor}15`, padding: '4px 10px', borderRadius: '20px',
@@ -245,7 +245,7 @@ export default async function ResourcesPage() {
                 </p>
               </div>
               <div style={{ padding: '24px 28px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="1099 vs W2" width={56} height={56} style={{ width: '56px', height: '56px', borderRadius: '16px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="1099 vs W2" width={56} sizes="56px" height={56} style={{ width: '56px', height: '56px', borderRadius: '16px' }} />
               </div>
             </Link>
           </div>
@@ -350,7 +350,7 @@ export default async function ResourcesPage() {
               <div key={category} style={{ marginBottom: '48px' }}>
                 {/* Category header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                  <Image src={cfg.icon} alt={cfg.label} width={36} height={36} style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
+                  <Image src={cfg.icon} alt={cfg.label} width={36} sizes="36px" height={36} style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
                   <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>{cfg.label}</h3>
                   <span style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', marginLeft: '4px' }}>({posts.length})</span>
                 </div>
@@ -413,7 +413,7 @@ export default async function ResourcesPage() {
               background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
               border: '2px solid rgba(13,148,136,0.12)',
             }}>
-              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="Salary Calculator" width={48} height={48} style={{ width: '48px', height: '48px', borderRadius: '14px', marginBottom: '12px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="Salary Calculator" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', borderRadius: '14px', marginBottom: '12px' }} />
               <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#134E4A', margin: '0 0 6px' }}>Salary Calculator</h3>
               <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.5, margin: '0 0 14px' }}>
                 Get a personalized salary estimate based on your state, experience, setting, and specialty.
@@ -425,7 +425,7 @@ export default async function ResourcesPage() {
 
             {/* PDF Download */}
             <div className="emp-bento-card" style={{ ...clayCard, padding: '28px 24px' }}>
-              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-envelope.webp" alt="PDF Guide" width={48} height={48} style={{ width: '48px', height: '48px', borderRadius: '14px', marginBottom: '12px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-envelope.webp" alt="PDF Guide" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', borderRadius: '14px', marginBottom: '12px' }} />
               <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Free Salary Guide PDF</h3>
               <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.5, margin: '0 0 14px' }}>
                 Download the complete {currentYear} salary guide with state-by-state data and negotiation tips.
@@ -446,7 +446,7 @@ export default async function ResourcesPage() {
             border: '2px solid rgba(13,148,136,0.10)',
           }}>
             <div style={{ background: 'linear-gradient(145deg, #0D9488, #10B981)', padding: '40px 32px', color: '#fff' }}>
-              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/clay-icon-match.webp" alt="Jobs" width={56} height={56} style={{ width: '56px', height: '56px', margin: '0 auto 16px', borderRadius: '16px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/clay-icon-match.webp" alt="Jobs" width={56} sizes="56px" height={56} style={{ width: '56px', height: '56px', margin: '0 auto 16px', borderRadius: '16px' }} />
               <h2 className="font-lora" style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 8px' }}>Ready to Find Your Next PMHNP Role?</h2>
               <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.8)', margin: '0 0 24px' }}>
                 Browse thousands of psychiatric nurse practitioner positions updated daily.

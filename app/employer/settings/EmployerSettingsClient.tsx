@@ -525,6 +525,7 @@ export default function EmployerSettingsClient() {
                                 />
                                 {company?.logoUrl && (
                                     <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        {/* Raw <img> on purpose: logoUrl is a free-text URL field (any external host), so it can't go through next/image — hosts outside images.remotePatterns would 400. */}
                                         <img
                                             src={company.logoUrl}
                                             alt="Company logo preview"

@@ -996,6 +996,7 @@ function PostJobContent() {
                   <Label>Company Logo</Label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     {logoPreview && (
+                      /* Raw <img> on purpose: logoPreview can be a blob: object URL (upload-failure fallback in handleLogoUpload) or an arbitrary-host URL prefilled from the employer profile — neither is servable by next/image (blob:/unlisted hosts 400 against images.remotePatterns). */
                       <img src={logoPreview} alt="Logo" style={{
                         width: '52px', height: '52px', borderRadius: '14px', objectFit: 'cover',
                         border: '1px solid rgba(0,0,0,0.06)',

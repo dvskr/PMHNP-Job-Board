@@ -454,7 +454,7 @@ export default async function BlogIndexPage({
                                     boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.04), 3px 3px 8px rgba(0,0,0,0.05)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                                 }}>
-                                    <Image src={item.icon} alt={item.title} width={40} height={40} style={{ width: '40px', height: '40px', borderRadius: '10px', objectFit: 'contain' }} />
+                                    <Image src={item.icon} alt={item.title} width={40} sizes="40px" height={40} style={{ width: '40px', height: '40px', borderRadius: '10px', objectFit: 'contain' }} />
                                 </div>
                                 <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>{item.title}</h3>
                                 <p style={{ fontSize: '13px', color: '#5A4A42', margin: 0, lineHeight: 1.5 }}>{item.desc}</p>

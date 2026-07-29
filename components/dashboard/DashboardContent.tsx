@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import Image from 'next/image';
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -844,9 +845,10 @@ export default function DashboardContent() {
                             minHeight: '100px',
                         }}>
                             {/* Vector illustration */}
-                            <img
+                            <Image
                                 src={s.illustration}
                                 alt=""
+                                width={64} height={64} sizes="64px"
                                 style={{
                                     width: '64px', height: '64px',
                                     objectFit: 'contain',
@@ -891,7 +893,7 @@ export default function DashboardContent() {
                             textAlign: 'center', padding: '32px 16px',
                             ...cardRecessed,
                         }}>
-                            <img src="/illustrations/empty-applications.png" alt="" style={{ width: '80px', height: '80px', margin: '0 auto 12px', objectFit: 'contain', opacity: 0.85 }} />
+                            <Image src="/illustrations/empty-applications.png" alt="" width={80} height={80} sizes="80px" style={{ width: '80px', height: '80px', margin: '0 auto 12px', objectFit: 'contain', opacity: 0.85 }} />
                             <p style={{ fontSize: '14px', fontWeight: 600, color: '#4A5E6A', marginBottom: '4px' }}>
                                 No applications yet
                             </p>
@@ -955,7 +957,7 @@ export default function DashboardContent() {
                             textAlign: 'center', padding: '32px 16px',
                             ...cardRecessed,
                         }}>
-                            <img src="/illustrations/empty-saved.png" alt="" style={{ width: '80px', height: '80px', margin: '0 auto 12px', objectFit: 'contain', opacity: 0.85 }} />
+                            <Image src="/illustrations/empty-saved.png" alt="" width={80} height={80} sizes="80px" style={{ width: '80px', height: '80px', margin: '0 auto 12px', objectFit: 'contain', opacity: 0.85 }} />
                             <p style={{ fontSize: '14px', fontWeight: 600, color: '#4A5E6A', marginBottom: '4px' }}>
                                 No saved jobs
                             </p>
@@ -1070,9 +1072,10 @@ export default function DashboardContent() {
                     padding: '0',
                     overflow: 'hidden',
                 }}>
-                    <img
+                    <Image
                         src="/illustrations/vector-share-story-v3.png"
                         alt="Share your story"
+                        width={640} height={400} sizes="320px" quality={90}
                         style={{ width: '100%', height: '200px', objectFit: 'cover', objectPosition: 'top', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />
                     <div style={{ padding: '16px 18px' }}>

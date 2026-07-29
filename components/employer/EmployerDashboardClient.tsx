@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { formatDate, getExpiryStatus } from '@/lib/utils';
@@ -1337,9 +1338,10 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
                 {/* ── Rate + Share Your Story (combined) ── */}
                 <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
-                    <img
+                    <Image
                         src="/illustrations/employer-story.png"
                         alt="Share your story"
+                        width={640} height={360} sizes="320px" quality={90}
                         style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />
                     <div style={{ padding: '16px 18px' }}>

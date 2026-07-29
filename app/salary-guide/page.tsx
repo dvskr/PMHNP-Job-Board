@@ -301,7 +301,7 @@ export default async function SalaryGuidePage() {
               border: '2px solid rgba(13,148,136,0.10)',
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '20px' }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="Salary" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px', flexShrink: 0 }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="Salary" width={44} sizes="44px" height={44} style={{ width: '44px', height: '44px', borderRadius: '14px', flexShrink: 0 }} />
                 <div>
                   <h2 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>Quick Answer: PMHNP Salary in {currentYear}</h2>
                   <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>
@@ -445,7 +445,7 @@ export default async function SalaryGuidePage() {
             {/* Experience honesty card (8 cols) */}
             <div className="sal-bento-exp emp-bento-card" style={{ ...clayCard, gridColumn: 'span 8', padding: '24px 28px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-calendar.webp" alt="Experience" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-calendar.webp" alt="Experience" width={44} sizes="44px" height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
                 <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Why We Don&apos;t Publish an Experience Table</h3>
               </div>
               <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 12px' }}>
@@ -467,7 +467,7 @@ export default async function SalaryGuidePage() {
             {/* Practice Setting: live medians (4 cols) */}
             <div className="sal-bento-setting emp-bento-card" style={{ ...clayCard, gridColumn: 'span 4', padding: '24px 22px', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-briefcase.webp" alt="Setting" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-briefcase.webp" alt="Setting" width={44} sizes="44px" height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>By Setting (Live)</h3>
               </div>
               <p style={{ fontSize: '11px', color: '#94A3B8', margin: '0 0 12px' }}>
@@ -497,7 +497,7 @@ export default async function SalaryGuidePage() {
             {/* High-demand niches (6 cols) */}
             <div className="sal-bento-spec emp-bento-card" style={{ ...clayCard, gridColumn: 'span 6', padding: '24px 28px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-star.webp" alt="Specialty" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-star.webp" alt="Specialty" width={44} sizes="44px" height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>High-Demand Niches</h3>
               </div>
               <p style={{ fontSize: '11px', color: '#94A3B8', margin: '0 0 12px' }}>
@@ -525,7 +525,7 @@ export default async function SalaryGuidePage() {
               ...clayCard, gridColumn: 'span 6', padding: '24px 22px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-chart.webp" alt="Practice Authority" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-chart.webp" alt="Practice Authority" width={44} sizes="44px" height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Full Practice Authority</h3>
               </div>
               <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: '0 0 16px' }}>
@@ -615,7 +615,7 @@ export default async function SalaryGuidePage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
             {factorCards.map(card => (
                 <div key={card.title} className="emp-bento-card" style={{ ...clayCard, padding: '28px 24px' }}>
-                  <Image src={card.img} alt={card.title} width={48} height={48} style={{ width: '48px', height: '48px', borderRadius: '14px', marginBottom: '16px' }} />
+                  <Image src={card.img} alt={card.title} width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', borderRadius: '14px', marginBottom: '16px' }} />
                   <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>{card.title}</h3>
                   <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>{card.desc}</p>
                 </div>
@@ -650,7 +650,7 @@ export default async function SalaryGuidePage() {
                   display: 'flex', alignItems: 'center', gap: '12px',
                   fontSize: '15px', fontWeight: 600, color: '#1A2E35', listStyle: 'none',
                 }}>
-                  <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-envelope.webp" alt="FAQ" width={28} height={28} style={{ width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0 }} />
+                  <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-envelope.webp" alt="FAQ" width={28} sizes="28px" height={28} style={{ width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0 }} />
                   {q}
                 </summary>
                 <div style={{ padding: '0 24px 18px 64px', fontSize: '14px', color: '#5A4A42', lineHeight: 1.65 }}>{a}</div>
@@ -743,7 +743,7 @@ export default async function SalaryGuidePage() {
               <Image
                 src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/cta-illustration.webp"
                 alt="Find high-paying PMHNP jobs"
-                width={280} height={220}
+                width={280} sizes="(max-width: 768px) 100vw, 280px" height={220}
                 style={{ width: '100%', maxWidth: '260px', height: 'auto', borderRadius: '14px' }}
               />
             </div>

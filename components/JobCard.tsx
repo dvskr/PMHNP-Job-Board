@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { MapPin, Eye, Bookmark, BadgeCheck, Zap, Mail } from 'lucide-react';
 import { slugify, getJobFreshness } from '@/lib/utils';
+import { isOptimizableImageSrc } from '@/lib/image-src';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import useSavedJobs from '@/lib/hooks/useSavedJobs';
@@ -237,6 +238,10 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                 quality={90}
                 sizes="48px"
                 loading="lazy"
+                // companyLogoUrl can be a free-text URL from employer settings
+                // (any host); non-allowlisted hosts 400 through the optimizer,
+                // so serve those as-is instead.
+                unoptimized={!isOptimizableImageSrc(job.companyLogoUrl)}
                 style={{
                   width: '48px', height: '48px', borderRadius: '50%',
                   objectFit: 'contain', border: '1px solid var(--border-color)',
@@ -472,6 +477,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                 quality={90}
                 sizes="44px"
                 loading="lazy"
+                // Same unoptimized gate as the grid view: free-text hosts
+                // outside images.remotePatterns must bypass the optimizer.
+                unoptimized={!isOptimizableImageSrc(job.companyLogoUrl)}
                 style={{
                   width: '44px', height: '44px', borderRadius: '50%',
                   objectFit: 'contain', border: '1px solid var(--border-color)',

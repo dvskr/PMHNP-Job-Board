@@ -136,7 +136,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
             <StateImage slug={stateSlug} alt="" width={200} height={200} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
         )}
-        <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-chart.webp" alt="Licensure Checker" width={52} height={52} style={{
+        <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-chart.webp" alt="Licensure Checker" width={52} sizes="52px" height={52} style={{
           width: '52px', height: '52px', borderRadius: '16px',
           boxShadow: '4px 4px 12px rgba(0,0,0,0.15)', position: 'relative', zIndex: 1,
         }} />
@@ -182,7 +182,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
       {/* ─── Results ─── */}
       {!result ? (
         <div style={{ padding: '48px 32px', textAlign: 'center' }}>
-          <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/clay-icon-match.webp" alt="Select a state" width={72} height={72} style={{ width: '72px', height: '72px', margin: '0 auto 16px', opacity: 0.4 }} />
+          <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/clay-icon-match.webp" alt="Select a state" width={72} sizes="72px" height={72} style={{ width: '72px', height: '72px', margin: '0 auto 16px', opacity: 0.4 }} />
           <p style={{ fontSize: '16px', fontWeight: 600, color: '#94A3B8', margin: '0 0 4px' }}>Select a state above</p>
           <p style={{ fontSize: '13px', color: '#CBD5E1', margin: 0 }}>to see licensure requirements, practice authority, salary, and timeline</p>
         </div>
@@ -214,7 +214,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
               marginBottom: '24px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                <Image src={result.config.img} alt={result.config.label} width={28} height={28} style={{ width: '28px', height: '28px', borderRadius: '8px' }} />
+                <Image src={result.config.img} alt={result.config.label} width={28} sizes="28px" height={28} style={{ width: '28px', height: '28px', borderRadius: '8px' }} />
                 <span style={{ fontSize: '15px', fontWeight: 800, color: result.config.color }}>{result.config.label}</span>
               </div>
               <p style={{ fontSize: '12.5px', color: '#5A4A42', margin: 0, lineHeight: 1.5 }}>
@@ -233,7 +233,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
                   padding: '10px 14px', borderRadius: '12px',
                   background: 'rgba(0,0,0,0.015)', border: '1px solid rgba(0,0,0,0.04)',
                 }}>
-                  <Image src={req.img} alt={`Step ${req.step}`} width={28} height={28} style={{ width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0, marginTop: '2px' }} />
+                  <Image src={req.img} alt={`Step ${req.step}`} width={28} sizes="28px" height={28} style={{ width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0, marginTop: '2px' }} />
                   <div>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#0D9488' }}>STEP {req.step}</span>
                     <p style={{ fontSize: '13px', color: '#1A2E35', margin: '2px 0 0', fontWeight: 500 }}>{req.text}</p>
@@ -252,7 +252,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
               border: '1.5px solid rgba(13,148,136,0.12)',
               display: 'flex', alignItems: 'center', gap: '16px',
             }}>
-              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-calendar.webp" alt="Timeline" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-calendar.webp" alt="Timeline" width={44} sizes="44px" height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
               <div>
                 <p style={{ fontSize: '11px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 2px' }}>
                   Estimated Timeline
@@ -273,7 +273,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
                 background: '#FAFAFA', border: '1px solid rgba(0,0,0,0.06)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
-                  <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="Salary" width={36} height={36} style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
+                  <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="Salary" width={36} sizes="36px" height={36} style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
                   <div>
                     <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
                       Average Salary in {selectedState}
@@ -308,7 +308,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
               background: 'rgba(0,0,0,0.015)', border: '1px solid rgba(0,0,0,0.04)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-star.webp" alt="Info" width={24} height={24} style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-star.webp" alt="Info" width={24} sizes="24px" height={24} style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Key Costs</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

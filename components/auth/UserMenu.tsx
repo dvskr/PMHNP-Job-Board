@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
+import Image from 'next/image';
+import { isOptimizableImageSrc } from '@/lib/image-src'
 import { createClient } from '@/lib/supabase/client'
 import { Settings, LayoutDashboard, LogOut, ChevronDown, Shield, MessageSquare } from 'lucide-react'
 
@@ -91,8 +92,11 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
           <Image
             src={avatarUrl}
             alt={displayName}
-            width={32}
+            width={32} sizes="32px"
             height={32}
+            // avatarUrl can be any https URL via /api/auth/profile;
+            // non-allowlisted hosts 400 through the optimizer.
+            unoptimized={!isOptimizableImageSrc(avatarUrl)}
             className="w-8 h-8 rounded-full object-cover"
           />
         ) : (
