@@ -44,11 +44,17 @@ export default function AuthLayout({ children, illustration, testimonial }: Auth
               textDecoration: 'none', marginBottom: '4px', alignSelf: 'center',
             }}
           >
-            <img
+            {/* next/image serves a right-sized AVIF/WebP variant for this
+                100px box instead of the browser downscaling the full
+                logo.png. priority: above the fold on every auth page, same
+                treatment as the Header logo. */}
+            <Image
               src="/logo.png"
               alt="PMHNP Hiring"
-              width="100"
-              height="100"
+              width={100}
+              height={100}
+              sizes="100px"
+              priority
               style={{ width: 100, height: 100, objectFit: 'contain', flexShrink: 0 }}
             />
             <span
@@ -104,7 +110,7 @@ export default function AuthLayout({ children, illustration, testimonial }: Auth
             overflow: 'hidden', border: '1px solid rgba(255,255,255,0.5)',
             boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
           }}>
-            <Image src={illustration} alt="" width={440} height={280}
+            <Image src={illustration} alt="" width={440} sizes="(max-width: 768px) 100vw, 440px" height={280}
               style={{ width: '100%', height: 'auto', display: 'block' }} priority />
           </div>
         )}

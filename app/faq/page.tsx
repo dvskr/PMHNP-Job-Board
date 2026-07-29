@@ -240,7 +240,7 @@ export default function FAQPage() {
                   </p>
               </div>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/clay_hero_faq.webp" alt="FAQ PMHNP Jobs" width={280} height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
+                  <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/clay_hero_faq.webp" alt="FAQ PMHNP Jobs" width={280} sizes="(max-width: 768px) 100vw, 280px" height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
               </div>
           </div>
       </section>

@@ -113,14 +113,14 @@ export default async function ForJobSeekersPage() {
               display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center',
             }}>
               <div style={{ padding: '32px 28px' }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-ai-match.webp" alt="" width={56} height={56} style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-ai-match.webp" alt="" width={56} sizes="56px" height={56} style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>AI Match Scoring</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
                   Every job gets a 0–100 match score based on your license, specialty, experience, location, and salary preferences.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/bento-match.webp" alt="AI match scoring" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/bento-match.webp" alt="AI match scoring" width={280} sizes="(max-width: 768px) 100vw, 280px" height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
               </div>
             </div>
 
@@ -129,10 +129,10 @@ export default async function ForJobSeekersPage() {
               display: 'flex', flexDirection: 'column',
             }}>
               <div style={{ flex: '0 0 auto', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/bento-salary.webp" alt="Salary transparency" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/bento-salary.webp" alt="Salary transparency" width={200} sizes="(max-width: 768px) 100vw, 200px" height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
               </div>
               <div style={{ padding: '24px 22px', flex: 1 }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-salary.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '12px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-salary.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '12px' }} />
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Salary Transparency</h3>
                 <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
                   See salary ranges on every listing. No guessing, no surprises, no &quot;DOE.&quot;
@@ -142,25 +142,25 @@ export default async function ForJobSeekersPage() {
 
             {/* ROW 2: 4 compact cards (3 cols each) */}
             <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-alerts.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-alerts.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Daily Job Alerts</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>New jobs matching your criteria — delivered to your inbox daily.</p>
             </div>
 
             <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-tracking.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-tracking.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Application Tracking</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Track every application status from Applied to Hired.</p>
             </div>
 
             <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-resume.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-resume.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>AI Resume Parser</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Upload your resume — AI fills your profile instantly.</p>
             </div>
 
             <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-save.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-save.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Save & Compare</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Bookmark jobs, compare benefits, decide on your terms.</p>
             </div>
@@ -171,14 +171,14 @@ export default async function ForJobSeekersPage() {
               display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center',
             }}>
               <div style={{ padding: '32px 28px' }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-licensure.webp" alt="" width={56} height={56} style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-licensure.webp" alt="" width={56} sizes="56px" height={56} style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>50-State Licensure Guides</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
                   Requirements, board links, practice authority, salary data, and step-by-step instructions for every state.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
-                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/bento-guides.webp" alt="50-state licensure guides" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/bento-guides.webp" alt="50-state licensure guides" width={280} sizes="(max-width: 768px) 100vw, 280px" height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
               </div>
             </div>
 
@@ -188,7 +188,7 @@ export default async function ForJobSeekersPage() {
               background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
               border: '2px solid rgba(13,148,136,0.15)',
             }}>
-              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-free.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '14px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-free.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '14px' }} />
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>Free Forever</h3>
               <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
                 No subscriptions. No premium tiers.<br />
@@ -314,7 +314,7 @@ export default async function ForJobSeekersPage() {
                 <Image
                   src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/cta-dream-role.webp"
                   alt="Start your PMHNP job search"
-                  width={280} height={220}
+                  width={280} sizes="(max-width: 768px) 100vw, 280px" height={220}
                   style={{ width: '100%', maxWidth: '260px', height: 'auto', borderRadius: '14px' }}
                 />
               </div>
@@ -405,7 +405,7 @@ export default async function ForJobSeekersPage() {
                 display: 'grid', gridTemplateColumns: '100px 1fr', alignItems: 'center',
               }}>
                 <div style={{ background: r.gradient, padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                  <Image src={r.icon} alt="" width={56} height={56} style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
+                  <Image src={r.icon} alt="" width={56} sizes="56px" height={56} style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
                 </div>
                 <div style={{ padding: '20px 22px' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{r.title}</h3>

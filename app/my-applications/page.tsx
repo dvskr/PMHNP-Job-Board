@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Briefcase, Clock, ChevronRight, AlertCircle, Trash2, Loader2, ArrowRight, FileCheck, MapPin } from 'lucide-react';
 
@@ -194,7 +195,7 @@ export default function MyApplicationsPage() {
                 {/* ═══ Empty State ═══ */}
                 {!loading && !error && applications.length === 0 && (
                     <div style={{ ...cardBase, textAlign: 'center', padding: '60px 24px' }}>
-                        <img src="/illustrations/spot-applications.png" alt="" style={{ width: '120px', height: '120px', objectFit: 'contain', marginBottom: '16px', marginInline: 'auto', display: 'block' }} />
+                        <Image src="/illustrations/spot-applications.png" alt="" width={120} height={120} sizes="120px" style={{ width: '120px', height: '120px', objectFit: 'contain', marginBottom: '16px', marginInline: 'auto', display: 'block' }} />
                         <h2 style={{
                             fontSize: '18px', fontWeight: 700,
                             fontFamily: 'var(--font-lora), Georgia, serif',

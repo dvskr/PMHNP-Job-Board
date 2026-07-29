@@ -281,7 +281,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                                     <Image
                                         src={step.img}
                                         alt={step.title}
-                                        width={180}
+                                        width={180} sizes="180px" quality={90}
                                         height={180}
                                         style={{ objectFit: 'cover', borderRadius: '20px' }}
                                         loading="lazy"

@@ -144,7 +144,7 @@ export default function CategoryHero({
             <Image
               src={heroImage}
               alt={heroAlt}
-              width={560}
+              width={560} sizes="(max-width: 768px) 100vw, 560px"
               height={560}
               priority
               style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center bottom', display: 'block' }}

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Image from 'next/image'
+import { isOptimizableImageSrc } from '@/lib/image-src'
 import { createClient } from '@/lib/supabase/client'
 import { Camera, Loader2, User, AlertCircle, Trash2 } from 'lucide-react'
 
@@ -126,8 +127,11 @@ export default function AvatarUpload({
             <Image
               src={displayUrl}
               alt="Profile avatar"
-              width={128}
+              width={128} sizes="128px"
               height={128}
+              // displayUrl can be a just-uploaded preview or a stored
+              // avatarUrl of any https host; gate like every avatar site.
+              unoptimized={!isOptimizableImageSrc(displayUrl)}
               className="w-full h-full object-cover"
             />
           ) : (

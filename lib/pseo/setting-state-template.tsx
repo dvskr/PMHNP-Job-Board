@@ -557,13 +557,13 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                   </p>
                 </div>
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
-                  <Image src={assets.bentoImages[0]} alt={`${config.label} PMHNP`} width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                  <Image src={assets.bentoImages[0]} alt={`${config.label} PMHNP`} width={280} sizes="(max-width: 768px) 100vw, 280px" height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
                 </div>
               </div>
 
               <div style={{ ...clayCard, gridColumn: 'span 4', padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ flex: '0 0 auto', background: 'linear-gradient(145deg, #FFFBEB, #FEF3C7)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Image src={assets.bentoImages[1]} alt={`${config.label} growth`} width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
+                  <Image src={assets.bentoImages[1]} alt={`${config.label} growth`} width={200} sizes="(max-width: 768px) 100vw, 200px" height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
                 </div>
                 <div style={{ padding: '24px 22px', flex: 1 }}>
                   <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>
@@ -578,7 +578,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
               {/* ROW 2: Icon cards */}
               {config.benefits.map((benefit, i) => (
                 <div key={`icon-${i}`} style={{ ...clayCard, gridColumn: `span ${Math.floor(12 / config.benefits.length)}`, padding: '24px 18px', textAlign: 'center' }}>
-                  {assets.bentoIcons[i] && <Image src={assets.bentoIcons[i]} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />}
+                  {assets.bentoIcons[i] && <Image src={assets.bentoIcons[i]} alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />}
                   <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{benefit.title}</h3>
                   <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>{benefit.description}</p>
                 </div>
@@ -595,7 +595,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                     </p>
                   </div>
                   <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
-                    <Image src={assets.bentoImages[2]} alt="Career growth" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                    <Image src={assets.bentoImages[2]} alt="Career growth" width={280} sizes="(max-width: 768px) 100vw, 280px" height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
                   </div>
                 </div>
               )}

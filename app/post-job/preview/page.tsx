@@ -414,6 +414,7 @@ export default function PreviewPage() {
               {/* Company Info Row: Logo + Name + Location */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
                 {formData.companyLogoUrl && (
+                  /* Raw <img> on purpose: companyLogoUrl can be an arbitrary-host URL (employers can type any logo URL in settings, which prefills drafts) — hosts outside images.remotePatterns would 400 through next/image. */
                   <img
                     src={formData.companyLogoUrl}
                     alt={`${formData.companyName} logo`}
