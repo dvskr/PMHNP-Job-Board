@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Briefcase, Target, Users, Menu, X, Home, BarChart3, FileText, Settings, Mail, Activity, HeartPulse, Search, GitBranch, GraduationCap, ShieldCheck, MessageSquareQuote } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Target, Users, Menu, X, Home, BarChart3, FileText, Settings, Mail, Activity, HeartPulse, Search, GitBranch, GraduationCap, ShieldCheck, MessageSquareQuote, Building2 } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -12,6 +12,7 @@ const navItems = [
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'SEO Health', href: '/admin/seo-health', icon: Search },
   { name: 'Users & Subscribers', href: '/admin/users', icon: Users },
+  { name: 'Employers', href: '/admin/employers', icon: Building2 },
   { name: 'Employer Outreach', href: '/admin/outreach', icon: Target },
   { name: 'PD Campaign', href: '/admin/pd-campaign', icon: GraduationCap },
   { name: 'Email Broadcasts', href: '/admin/email', icon: Mail },

@@ -133,9 +133,19 @@ export async function POST(request: NextRequest) {
       where: { supabaseId }
     })
 
-    // On UPDATE we deliberately omit `role` so an existing profile (who may
+    // On UPDATE, `role` is normally omitted so an existing profile (who may
     // have been promoted to admin manually) can never be demoted via a
-    // re-call of the signup endpoint.
+    // re-call of the signup endpoint. ONE transition is allowed through:
+    // job_seeker -> employer. Without it, an employer whose first sign-in
+    // (typically Google OAuth) defaulted them to job_seeker completed the
+    // employer signup form, got a success response, and NOTHING changed —
+    // their "employer profile" never existed and every employer surface
+    // refused them (seen in prod, reported by the employer as an "account
+    // conflict"). The free-email-domain check above already ran for
+    // role === 'employer', so a consumer-address upgrade is still refused.
+    // admin is untouchable in both directions; employer -> job_seeker stays
+    // support-only so quota identity never silently changes hands.
+    const allowRoleUpgrade = existingProfile?.role === 'job_seeker' && role === 'employer'
     const profile = await prisma.userProfile.upsert({
       where: { supabaseId },
       update: {
@@ -143,6 +153,7 @@ export async function POST(request: NextRequest) {
         lastName,
         company,
         phone,
+        ...(allowRoleUpgrade ? { role: 'employer' } : {}),
       },
       create: {
         supabaseId,
@@ -157,7 +168,9 @@ export async function POST(request: NextRequest) {
 
     // Create leads for new signups — job seekers go to email_leads, employers go to employer_leads
     // IMPORTANT: EmailLead must be created BEFORE JobAlert (foreign key: JobAlert.email → EmailLead.email)
-    if (!existingProfile) {
+    // A job_seeker upgrading to employer counts as a new employer signup for
+    // lead purposes (the employerLead lookup below dedupes by email anyway).
+    if (!existingProfile || allowRoleUpgrade) {
       try {
         if (role === 'employer') {
           // Employers go into employer_leads table
