@@ -14,6 +14,7 @@ import {
   describeQuotaKey,
   domainFromEmail,
   rawDomainFromEmail,
+  orgKeyFromCompanyName,
   quotaKeysOverlap,
   FREE_EMAIL_DOMAINS,
 } from '@/lib/employer-quota';
@@ -149,5 +150,81 @@ describe('rawDomainFromEmail (shared derivation for gate, preview, and guard)', 
   it('does NOT screen consumer providers (that is the caller contract)', () => {
     expect(rawDomainFromEmail('x@gmail.com')).toBe('gmail.com');
     expect(domainFromEmail('x@gmail.com')).toBeNull();
+  });
+});
+
+describe('org key from the write-once company name', () => {
+  const UID = 'uid-org-1';
+  const base = { userId: UID, signupEmail: 'hr@northgatepsych.com' };
+
+  it('emits an org key alongside the account and domain keys', () => {
+    expect(buildQuotaKeys({ ...base, lockedCompanyName: 'Northgate Psychiatry PLLC' }))
+      .toEqual([`acct:${UID}`, 'dom:northgatepsych.com', 'org:northgatepsychiatry']);
+  });
+
+  // The evasion this key exists to close: same organization, brand new
+  // account, brand new domain. acct: and dom: both miss; org: catches it.
+  it('catches the same organization on a new account and a new domain', () => {
+    const first = buildQuotaKeys({ userId: 'uid-a', signupEmail: 'hr@acmepsych.com', lockedCompanyName: 'Acme Psychiatry' });
+    const second = buildQuotaKeys({ userId: 'uid-b', signupEmail: 'jobs@acmepsych.org', lockedCompanyName: 'Acme Psychiatry LLC' });
+    expect(quotaKeysOverlap(second, first)).toBe(true);
+  });
+
+  it('ignores legal suffixes and a leading "the" when matching', () => {
+    const a = orgKeyFromCompanyName('The Riverbend Counseling Group, LLC');
+    const b = orgKeyFromCompanyName('Riverbend Counseling');
+    expect(a).toBe(b);
+    expect(a).toBe('org:riverbendcounseling');
+  });
+
+  it('is case and punctuation insensitive', () => {
+    expect(orgKeyFromCompanyName('Blue  Sky  Telepsych')).toBe(orgKeyFromCompanyName('blue-sky telepsych'));
+    expect(orgKeyFromCompanyName('Smith & Jones Psychiatry')).toBe(orgKeyFromCompanyName('Smith and Jones Psychiatry'));
+  });
+
+  // Failing OPEN on generic names is deliberate: refusing a real customer
+  // their free post costs more than missing an evader.
+  it('emits NO key for names too generic to identify an organization', () => {
+    for (const generic of [
+      'Psychiatry', 'Mental Health', 'Behavioral Health', 'Counseling',
+      'Wellness', 'Clinic', 'Healthcare', 'Telehealth', 'Nursing',
+      'Associates', 'Test', 'N/A', 'none', 'The Group LLC',
+    ]) {
+      expect(orgKeyFromCompanyName(generic)).toBeNull();
+    }
+  });
+
+  it('emits NO key for a name shorter than the minimum', () => {
+    expect(orgKeyFromCompanyName('TMR')).toBeNull();
+    expect(orgKeyFromCompanyName('A B')).toBeNull();
+    expect(orgKeyFromCompanyName('')).toBeNull();
+    expect(orgKeyFromCompanyName(null)).toBeNull();
+  });
+
+  it('does not collide two unrelated clinics with similar templated names', () => {
+    const a = buildQuotaKeys({ userId: 'uid-1', signupEmail: 'hr@serenity-tx.com', lockedCompanyName: 'Serenity Behavioral Health of Texas' });
+    const b = buildQuotaKeys({ userId: 'uid-2', signupEmail: 'hr@serenity-oh.com', lockedCompanyName: 'Serenity Behavioral Health of Ohio' });
+    expect(quotaKeysOverlap(a, b)).toBe(false);
+  });
+
+  it('a generic-named employer is unaffected by another generic-named one', () => {
+    const a = buildQuotaKeys({ userId: 'uid-x', signupEmail: 'a@clinic-one.com', lockedCompanyName: 'Wellness' });
+    const b = buildQuotaKeys({ userId: 'uid-y', signupEmail: 'b@clinic-two.com', lockedCompanyName: 'Wellness' });
+    expect(a.some((k) => k.startsWith('org:'))).toBe(false);
+    expect(quotaKeysOverlap(a, b)).toBe(false);
+  });
+
+  it('still refuses to build a key from anything form-shaped', () => {
+    const poisoned = buildQuotaKeys({
+      userId: 'attacker',
+      signupEmail: 'me@attacker-llc.com',
+      ...({ employerName: 'Northgate Psychiatry', company: 'Northgate Psychiatry' } as Record<string, string>),
+    });
+    expect(poisoned.some((k) => k.startsWith('org:'))).toBe(false);
+    expect(poisoned).toEqual(['acct:attacker', 'dom:attacker-llc.com']);
+  });
+
+  it('names the organization in the refusal so support can explain it', () => {
+    expect(describeQuotaKey('org:northgatepsychiatry')).toBe('your organization');
   });
 });

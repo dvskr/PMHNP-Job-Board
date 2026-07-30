@@ -172,6 +172,30 @@ export default function SignUpForm() {
           }),
         });
 
+        // Send OUR scanner-safe confirmation email whenever this signup still
+        // needs confirming (no session means Supabase is holding the account
+        // until the address is verified).
+        //
+        // Why this is here: signUp() relies on Supabase's built-in confirmation
+        // email, whose link is a single-use /auth/v1/verify URL consumed by a
+        // plain GET. Corporate mail security pre-fetches links to sandbox them,
+        // which spends the token before the recipient can click, so the user
+        // sees "invalid or has expired" and can never finish. Our own sender
+        // emails an inert /auth/confirm?token_hash=... URL that only verifies
+        // on an explicit button POST, so a scanner prefetch costs nothing.
+        //
+        // OPERATOR NOTE: disable the built-in "Confirm signup" email in the
+        // Supabase dashboard (Authentication > Emails) so new users receive
+        // only this one. Until that toggle is off, a signup sends two emails:
+        // Supabase's fragile one and this working one.
+        if (!data.session) {
+          fetch('/api/auth/send-confirmation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: data.user.email }),
+          }).catch(() => {});
+        }
+
         fetch('/api/auth/welcome', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

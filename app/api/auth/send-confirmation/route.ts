@@ -52,13 +52,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to send confirmation email' }, { status: 500 })
     }
 
-    if (!data?.properties?.action_link) {
-      logger.error('No action_link in generateLink response', data)
+    // DO NOT email data.properties.action_link. That is a Supabase
+    // /auth/v1/verify?token=... URL which is SINGLE USE and is consumed by a
+    // plain GET. Corporate mail security (Microsoft Defender Safe Links,
+    // Proofpoint, Mimecast, Barracuda) pre-fetches every link in inbound mail
+    // to sandbox it, which SPENT the token before the recipient could click.
+    // They then saw "Email link is invalid or has expired" and could never
+    // finish signing up. It stranded signups for months, corporate mailboxes
+    // worst of all, which is precisely the employer segment.
+    //
+    // Instead we email our own /auth/confirm carrying the hashed token. That
+    // page is inert on GET (it renders a button) and verification happens only
+    // on an explicit POST to /api/auth/verify-confirmation. A scanner prefetch
+    // costs nothing.
+    const hashedToken = data?.properties?.hashed_token
+    if (!hashedToken) {
+      logger.error('No hashed_token in generateLink response', {
+        hasProperties: !!data?.properties,
+      })
       return NextResponse.json({ error: 'Failed to generate confirmation link' }, { status: 500 })
     }
 
-    const confirmationUrl = data.properties.action_link
-    logger.info('Generated confirmation link', { email: normalizedEmail, url: confirmationUrl })
+    const confirmationUrl =
+      `${BASE_URL}/auth/confirm`
+      + `?token_hash=${encodeURIComponent(hashedToken)}`
+      + `&type=magiclink`
+      // Carried so the page's "send me a new link" button has an address to
+      // use if the token turns out to be stale. Not a secret: the recipient
+      // owns this mailbox, and send-confirmation is rate limited.
+      + `&email=${encodeURIComponent(normalizedEmail)}`
+    // Never log the token or the address: this surface was scrubbed of PII in
+    // a prior commit and must stay that way.
+    logger.info('Generated confirmation link')
 
     // Build email using the V2 Warm Diorama design system
     const html = emailShellV2(`
@@ -75,7 +100,9 @@ export async function POST(request: NextRequest) {
       ${spacerV2(24)}
       ${noteCardV2(`
         <p style="margin:0;font-family:${SANS};font-size:13px;color:${V2.textMuted};line-height:1.6;">
-          If the button doesn\u2019t work, try opening this email on a different device or browser.
+          The button opens a page with one more Confirm step. That extra click is
+          deliberate: it keeps corporate email scanners from using up your link
+          before you get to it.
         </p>
       `)}
       ${spacerV2(48)}
@@ -96,7 +123,7 @@ export async function POST(request: NextRequest) {
       html,
     }, 'auth_confirm', { isSignup: true })
 
-    logger.info('Confirmation email sent via Resend', { email: normalizedEmail })
+    logger.info('Confirmation email sent via Resend')
 
     return NextResponse.json({ success: true })
   } catch (error) {
