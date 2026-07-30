@@ -367,8 +367,15 @@ export default function SignUpForm() {
                 }} />
                 <input id="signup-company" type="text" value={company}
                   onChange={(e) => setCompany(e.target.value)} required
+                  aria-describedby="signup-company-note"
                   style={inputWithLeftIcon} placeholder="Your company" />
               </div>
+              {/* The name is locked after signup (settings refuses changes,
+                  support only) and every listing publishes under it, so the
+                  one moment they can choose it deserves a clear warning. */}
+              <p id="signup-company-note" style={{ ...helperStyle, color: '#B45309' }}>
+                Your company name cannot be changed after the account is created. All your job postings will be published under this name.
+              </p>
             </div>
           )}
 
