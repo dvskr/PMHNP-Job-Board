@@ -4,8 +4,9 @@
  * Resume Studio shell (CareResume redesign).
  *
  * Owns document CRUD, the selected document, the presentation style controls,
- * and the three pane layout: form (SectionEditor) | live paper preview
- * (ResumePreview) | copilot rail (InsightRail plus the Design card).
+ * and the three pane layout: design rail (templates, fonts, sizing) |
+ * editor (SectionEditor, with an in-place Preview toggle that swaps in
+ * ResumePreview) | AI rail (InsightRail: score, review, tailoring).
  *
  * Every color, radius, and shadow comes from lib/resume-studio/design.ts, and
  * every paper measurement comes from lib/resume-studio/templates.ts through
@@ -19,6 +20,7 @@ import {
   Check,
   Copy,
   Download,
+  Eye,
   FileText,
   FolderOpen,
   Loader2,
@@ -210,8 +212,9 @@ const STUDIO_CSS = `
    right edges line up with the nav above it at every viewport:
    header = min(100vw - 32px wrapper padding, clamp(1360px, 96vw, 1860px)). */
 .rs-container{width:min(calc(100vw - 32px),clamp(1360px,96vw,1860px));max-width:100%;margin:0 auto;padding:18px 0 0}
-/* Column order: design and insights rail, then the form, then the preview. */
-.rs-grid{display:grid;grid-template-columns:320px minmax(0,1fr) minmax(0,1.02fr);gap:20px;align-items:start;padding-bottom:40px}
+/* Column order: design rail, then the editor (which owns the in-place
+   preview toggle), then the AI rail. */
+.rs-grid{display:grid;grid-template-columns:320px minmax(0,1fr) 360px;gap:20px;align-items:start;padding-bottom:40px}
 .rs-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
 .rs-pulse{animation:crPulse 1.1s ease-in-out infinite}
 @keyframes crPulse{0%,100%{opacity:1}50%{opacity:.45}}
@@ -255,11 +258,13 @@ const STUDIO_CSS = `
 .rs-in{animation:crIn .3s ease}
 
 @media (max-width:1279px){
+  /* Two columns: the design rail stays put, the second column tabs between
+     the editor and the AI rail. The preview needs no tab at any width: it
+     lives inside the editor pane behind the Preview toggle. */
   .rs-grid{grid-template-columns:320px minmax(0,1fr)}
   .rs-seg{display:flex;position:sticky;top:var(--rs-nav);z-index:20;background:${studioColors.canvas};padding:8px 0;border-bottom:1px solid ${studioColors.border};gap:10px;align-items:center;margin-bottom:12px}
-  .rs-grid[data-pane="preview"] .rs-pane-edit{display:none}
-  .rs-grid[data-pane="edit"] .rs-pane-preview{display:none}
-  .rs-grid[data-pane="insights"] .rs-pane-preview{display:none}
+  .rs-grid[data-pane="edit"] .rs-pane-insights{display:none}
+  .rs-grid[data-pane="insights"] .rs-pane-edit{display:none}
 }
 @media (max-width:1023px){
   /* Extra bottom room clears the mobile bottom navigation bar. */
@@ -267,9 +272,12 @@ const STUDIO_CSS = `
   .rs-scrollpane{max-height:none;overflow:visible}
   .rs-form{padding-right:0}
   .rs-rail{position:static;max-height:none;overflow:visible}
-  .rs-grid[data-pane="edit"] .rs-pane-rail{display:none}
-  .rs-grid[data-pane="preview"] .rs-pane-rail{display:none}
+  .rs-grid[data-pane="edit"] .rs-pane-design{display:none}
+  .rs-grid[data-pane="edit"] .rs-pane-insights{display:none}
+  .rs-grid[data-pane="design"] .rs-pane-edit{display:none}
+  .rs-grid[data-pane="design"] .rs-pane-insights{display:none}
   .rs-grid[data-pane="insights"] .rs-pane-edit{display:none}
+  .rs-grid[data-pane="insights"] .rs-pane-design{display:none}
 }
 @media (max-width:767px){
   /* The width formula already provides the 16px gutter that matches the nav,
@@ -604,7 +612,7 @@ function ScoreBadge({ score }: { score: ResumeScoreResult | undefined }) {
 
 type ListState = 'loading' | 'ready' | 'error';
 type DocState = 'idle' | 'loading' | 'error';
-type Pane = 'edit' | 'preview' | 'insights';
+type Pane = 'design' | 'edit' | 'insights';
 type DocumentsResult = Awaited<ReturnType<typeof listDocuments>>;
 type UsageResult = Awaited<ReturnType<typeof getUsage>>;
 
@@ -627,6 +635,10 @@ export default function ResumeStudio() {
   const [busyDocId, setBusyDocId] = useState<string | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [pane, setPane] = useState<Pane>('edit');
+  /** In-place preview: the editor column swaps between the form and the
+   *  rendered sheet. Both stay MOUNTED (hidden via display) so SectionEditor's
+   *  debounced autosave and in-flight edits survive the toggle. */
+  const [centerView, setCenterView] = useState<'edit' | 'preview'>('edit');
   const [scores, setScores] = useState<Record<string, ResumeScoreResult>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
   /** Lifted from SectionEditor so the toolbar owns the one save indicator. */
@@ -983,13 +995,13 @@ export default function ResumeStudio() {
 
   const paneTabs: { id: Pane; label: string }[] = isNarrow
     ? [
+        { id: 'design', label: 'Design' },
         { id: 'edit', label: 'Edit' },
-        { id: 'preview', label: 'Preview' },
-        { id: 'insights', label: 'Insights' },
+        { id: 'insights', label: 'AI & Score' },
       ]
     : [
         { id: 'edit', label: 'Edit' },
-        { id: 'preview', label: 'Preview' },
+        { id: 'insights', label: 'AI & Score' },
       ];
 
   const onTabKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -1364,6 +1376,19 @@ export default function ResumeStudio() {
               </span>
             </button>
             {selectedDoc && (
+              <button
+                type="button"
+                className="rs-btn rs-outline"
+                onClick={() => setCenterView((v) => (v === 'edit' ? 'preview' : 'edit'))}
+                aria-pressed={centerView === 'preview'}
+                style={outlineButton}
+              >
+                {centerView === 'preview'
+                  ? (<><Pencil size={15} aria-hidden="true" /> Back to editor</>)
+                  : (<><Eye size={15} aria-hidden="true" /> Preview</>)}
+              </button>
+            )}
+            {selectedDoc && (
               <a
                 className="rs-btn rs-primary"
                 href={documentPdfUrl(selectedDoc.id)}
@@ -1561,33 +1586,23 @@ export default function ResumeStudio() {
             )}
 
             <div className="rs-grid" data-pane={pane}>
-              {/* Pane 1: design and insights rail. First in the DOM as well as
-                  on screen, so keyboard focus travels left to right the way the
-                  layout reads. */}
+              {/* Pane 1: design rail. First in the DOM as well as on screen,
+                  so keyboard focus travels left to right the way the layout
+                  reads. */}
               <div
-                className="rs-pane-rail rs-rail cr-scroll"
-                id="rs-pane-insights"
+                className="rs-pane-design rs-rail cr-scroll"
+                id="rs-pane-design"
                 role={isNarrow ? 'tabpanel' : 'region'}
-                aria-labelledby={isNarrow ? 'rs-tab-insights' : undefined}
-                aria-label={isNarrow ? undefined : 'Design and insights'}
+                aria-labelledby={isNarrow ? 'rs-tab-design' : undefined}
+                aria-label={isNarrow ? undefined : 'Design'}
               >
                 {docState === 'idle' && selectedDoc && (
-                  <>
-                    <DesignControls
-                      templateId={resolved.template.id}
-                      config={resolved.config}
-                      onTemplate={applyTemplate}
-                      onStyle={applyStyle}
-                    />
-                    <InsightRail
-                      key={selectedDoc.id}
-                      doc={selectedDoc}
-                      usage={usage}
-                      onFeatureUsage={handleFeatureUsage}
-                      onSectionsChange={handleSectionsChange}
-                      onScore={handleScore}
-                    />
-                  </>
+                  <DesignControls
+                    templateId={resolved.template.id}
+                    config={resolved.config}
+                    onTemplate={applyTemplate}
+                    onStyle={applyStyle}
+                  />
                 )}
               </div>
 
@@ -1636,48 +1651,60 @@ export default function ResumeStudio() {
                   </div>
                 )}
                 {docState === 'idle' && selectedDoc && (
-                  <SectionEditor
-                    key={selectedDoc.id}
-                    doc={selectedDoc}
-                    onSectionsChange={handleSectionsChange}
-                    onTemplateChange={handleTemplateChange}
-                    onSaved={handleSaved}
-                    onSaveStateChange={setSaveState}
-                  />
+                  <>
+                    {/* Both stay mounted across the Preview toggle: unmounting
+                        SectionEditor would drop its debounced autosave and any
+                        in-flight edit. display:none keeps timers and state. */}
+                    <div style={{ display: centerView === 'edit' ? 'contents' : 'none' }}>
+                      <SectionEditor
+                        key={selectedDoc.id}
+                        doc={selectedDoc}
+                        onSectionsChange={handleSectionsChange}
+                        onTemplateChange={handleTemplateChange}
+                        onSaved={handleSaved}
+                        onSaveStateChange={setSaveState}
+                      />
+                    </div>
+                    {centerView === 'preview' && (
+                      <div
+                        className="rs-well"
+                        role="region"
+                        tabIndex={0}
+                        aria-label="Resume preview"
+                      >
+                        {/* ResumePreview owns the sheet, the fit-to-width
+                            scaling, and the page break guides; the shell owns
+                            only the well it floats on. */}
+                        <ResumePreview
+                          sections={selectedDoc.sections}
+                          templateId={resolved.template.id}
+                          style={resolved.config}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
-              {/* Pane 3: live preview */}
+              {/* Pane 3: AI rail. Score, review, tailoring, and the JD paste
+                  live here so analysis sits beside the editor instead of
+                  competing with it. */}
               <div
-                className="rs-pane-preview"
-                id="rs-pane-preview"
-                role={isCollapsed ? 'tabpanel' : undefined}
-                aria-labelledby={isCollapsed ? 'rs-tab-preview' : undefined}
-                style={{ minWidth: 0 }}
+                className="rs-pane-insights rs-rail cr-scroll"
+                id="rs-pane-insights"
+                role={isCollapsed ? 'tabpanel' : 'region'}
+                aria-labelledby={isCollapsed ? 'rs-tab-insights' : undefined}
+                aria-label={isCollapsed ? undefined : 'AI insights and score'}
               >
-                {docState === 'idle' && selectedDoc ? (
-                  <div
-                    className="rs-well rs-scrollpane cr-scroll"
-                    role="region"
-                    tabIndex={0}
-                    aria-label="Live resume preview"
-                  >
-                    {/* ResumePreview owns the sheet, the fit-to-width scaling,
-                        and the page break guides; the shell owns only the well
-                        it floats on. */}
-                    <ResumePreview
-                      sections={selectedDoc.sections}
-                      templateId={resolved.template.id}
-                      style={resolved.config}
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className="rs-well"
-                    style={{ minHeight: '320px', textAlign: 'center', color: studioColors.textMuted }}
-                  >
-                    <span style={{ fontSize: '13px' }}>The preview appears once a resume is open.</span>
-                  </div>
+                {docState === 'idle' && selectedDoc && (
+                  <InsightRail
+                    key={selectedDoc.id}
+                    doc={selectedDoc}
+                    usage={usage}
+                    onFeatureUsage={handleFeatureUsage}
+                    onSectionsChange={handleSectionsChange}
+                    onScore={handleScore}
+                  />
                 )}
               </div>
 

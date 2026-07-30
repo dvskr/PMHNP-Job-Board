@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search, HelpCircle, Info, Mail, PenSquare, GraduationCap, UserCheck, Users, Bookmark, FileText, Activity, Workflow, Plus } from 'lucide-react';
+import { Menu, X, Bell, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search, HelpCircle, Info, Mail, PenSquare, GraduationCap, UserCheck, Users, Bookmark, FileText, Activity, Workflow, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 // SEO Fix H5: use LazyMotion + the lightweight `m` namespace instead of the
 // full `motion` import. Header renders on every page, so importing the full
@@ -305,6 +305,29 @@ export default function Header() {
 
           {/* ═══ RIGHT: Auth ═══ */}
           <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
+            {/* Job-alert pill, browse surface only. The modal (and the filter
+                capture that makes "Create Alert for This Search" possible)
+                lives in JobsPageClient, so this button just asks that page to
+                open it via a window event rather than duplicating the form. */}
+            {pathname === '/jobs' && (
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('pmhnp:open-alert-modal'))}
+                title="Get new jobs by email"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '7px',
+                  padding: '8px 16px', borderRadius: '12px',
+                  fontSize: '13px', fontWeight: 600,
+                  color: '#0F766E', backgroundColor: '#B2F5EA',
+                  border: '1px solid rgba(255,255,255,0.5)',
+                  cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap',
+                  boxShadow: '3px 3px 8px rgba(13,148,136,0.12), -2px -2px 5px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.6)',
+                }}
+              >
+                <Bell size={14} aria-hidden="true" />
+                Job Alerts
+              </button>
+            )}
             {userRole === 'employer' && <PostJobCTA />}
             <HeaderAuth onRoleChange={(role) => setUserRole(role)} />
           </div>

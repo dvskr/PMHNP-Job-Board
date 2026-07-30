@@ -39,6 +39,15 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+
+  // The alert button now lives in the nav bar (components/Header.tsx). The
+  // modal and its capture of the active filters stay here, so the nav pill
+  // asks for it with a window event instead of owning a duplicate form.
+  useEffect(() => {
+    const open = () => setIsAlertModalOpen(true);
+    window.addEventListener('pmhnp:open-alert-modal', open);
+    return () => window.removeEventListener('pmhnp:open-alert-modal', open);
+  }, []);
   const [showToast, setShowToast] = useState(false);
   const [currentFilters, setCurrentFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -400,40 +409,6 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               isOpen={isMobileFilterOpen}
               onClose={() => setIsMobileFilterOpen(false)}
             />
-
-            {/* Create Alert Button — always visible. With filters active it
-                captures the current search; with none it creates an
-                all-PMHNP-jobs alert (CreateAlertForm handles empty criteria). */}
-            <div style={{ marginBottom: '20px' }}>
-                <button
-                  onClick={() => setIsAlertModalOpen(true)}
-                  className="jp-alert-btn"
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '8px',
-                    padding: '10px 20px', borderRadius: '16px',
-                    fontSize: '13px', fontWeight: 600,
-                    color: '#0F766E',
-                    backgroundColor: '#B2F5EA',
-                    border: '1px solid rgba(255,255,255,0.5)',
-                    cursor: 'pointer', transition: 'all 0.2s',
-                    boxShadow: '5px 5px 12px rgba(13,148,136,0.12), -3px -3px 8px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.03)',
-                  }}
-                >
-                  {/* Bell icon pebble */}
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    width: 26, height: 26, borderRadius: 9,
-                    backgroundColor: '#CCFBF1',
-                    boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.04), 2px 2px 4px rgba(0,0,0,0.06)',
-                    border: '1px solid rgba(255,255,255,0.6)',
-                  }}>
-                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="#0D9488">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                    </svg>
-                  </span>
-                  {activeFilterCount > 0 ? 'Create Alert for This Search' : 'Get new jobs by email'}
-                </button>
-            </div>
 
             {/* Results Count, Sort, and View Toggle — stays mounted during
                 loading so the page doesn't jump; controls disable instead. */}
