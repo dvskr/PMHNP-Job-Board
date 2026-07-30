@@ -90,22 +90,21 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { firstName, lastName, phone, company, companyDescription, companyWebsite, companyLogoUrl } = body;
 
-    // COMPANY NAME IS WRITE-ONCE.
-    // It anchors organization identity: it is authoritative for every job this
-    // account posts, and it contributes the org key to the free-post quota
-    // (lib/employer-quota.ts). If it stayed freely editable, an employer could
-    // rename the organization between posts and look like a brand new one, which
-    // is exactly the evasion the org key exists to close. So it may be SET when
-    // empty, and after that only support can change it.
-    // Enforced here, server-side, because a disabled input is not a lock.
-    const hasLockedName = !!profile.company?.trim();
+    // COMPANY NAME IS NEVER EDITABLE FROM SETTINGS. It is captured once at
+    // employer signup and anchors organization identity: it is authoritative
+    // for every job this account posts, and it contributes the org key to the
+    // free-post quota (lib/employer-quota.ts). If it were editable here, an
+    // employer could rename the organization between posts and look like a
+    // brand new one, which is exactly the evasion the org key closes. There
+    // is deliberately NO set-while-empty carve-out either, so nobody can park
+    // a blank name and choose one right before posting. Changes go through
+    // support only. Enforced server-side because a read-only input is not a
+    // lock.
     const requestedName = typeof company === 'string' ? company.trim() : null;
-    const isSettingFirstName = !hasLockedName && !!requestedName;
-
-    if (hasLockedName && requestedName && requestedName !== profile.company?.trim()) {
+    if (requestedName && requestedName !== (profile.company?.trim() || '')) {
         return NextResponse.json(
             {
-                error: 'Company name cannot be changed here. Contact support and we will update it for you.',
+                error: 'Company name is set at signup and cannot be changed here. Contact support and we will update it for you.',
                 code: 'COMPANY_NAME_LOCKED',
                 currentName: profile.company,
             },
@@ -113,27 +112,25 @@ export async function PATCH(req: NextRequest) {
         );
     }
 
-    // Update UserProfile
+    // Update UserProfile. `company` is intentionally absent.
     await prisma.userProfile.update({
         where: { id: profile.id },
         data: {
             ...(firstName !== undefined && { firstName }),
             ...(lastName !== undefined && { lastName }),
             ...(phone !== undefined && { phone }),
-            // Only ever writes on the first set. Never overwrites a locked name.
-            ...(isSettingFirstName && { company: requestedName }),
         },
     });
 
     // Update company info on all EmployerJob records
-    if (companyDescription !== undefined || companyWebsite !== undefined || companyLogoUrl !== undefined || company !== undefined) {
+    if (companyDescription !== undefined || companyWebsite !== undefined || companyLogoUrl !== undefined) {
         const companyUpdate: Record<string, string | null> = {};
         if (companyDescription !== undefined) companyUpdate.companyDescription = companyDescription;
         if (companyWebsite !== undefined) companyUpdate.companyWebsite = companyWebsite;
         if (companyLogoUrl !== undefined) companyUpdate.companyLogoUrl = companyLogoUrl;
-        // Only propagate the name on the first set. A locked name never moves,
-        // so past postings keep the identity they were published under.
-        if (isSettingFirstName && requestedName) companyUpdate.employerName = requestedName;
+        // employerName is never written from settings: the name is fixed at
+        // signup, so published listings always keep the identity they went
+        // out under.
 
         await prisma.employerJob.updateMany({
             where: {

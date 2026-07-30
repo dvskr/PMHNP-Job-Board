@@ -21,83 +21,8 @@ import { safeInternalPath } from '@/lib/auth/safe-redirect'
  */
 export default function AuthConfirmPage() {
   const router = useRouter()
-  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'awaiting-click'>('loading')
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('Confirming your account...')
-  /** token_hash strategy state. Held in memory only, never re-logged. */
-  const [pending, setPending] = useState<{ tokenHash: string; type: string; redirectTo: string } | null>(null)
-  const [verifying, setVerifying] = useState(false)
-  const [canResend, setCanResend] = useState(false)
-  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle')
-
-  /**
-   * Verify the token. Runs ONLY from the button's onClick, never on mount.
-   * That is the entire point: a mail scanner pre-fetching this page performs a
-   * GET, which must consume nothing. See app/api/auth/verify-confirmation.
-   */
-  const confirmNow = async () => {
-    if (!pending || verifying) return
-    setVerifying(true)
-    try {
-      const res = await fetch('/api/auth/verify-confirmation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token_hash: pending.tokenHash,
-          type: pending.type,
-          redirectTo: pending.redirectTo,
-        }),
-      })
-      const data = await res.json().catch(() => null)
-
-      if (!res.ok || !data?.success) {
-        setStatus('error')
-        setCanResend(true)
-        setMessage(
-          data?.expired
-            ? 'This confirmation link has already been used or has expired. Send yourself a fresh one below.'
-            : (data?.error || 'Could not confirm your email. Please try again.'),
-        )
-        return
-      }
-
-      setStatus('success')
-      setMessage(data.isRecovery
-        ? 'Verified! Redirecting to reset your password...'
-        : 'Email confirmed! Taking you to your dashboard...')
-      if (data.email && !data.isRecovery) {
-        fetch('/api/auth/welcome', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: data.email }),
-        }).catch(() => {})
-      }
-      setTimeout(() => router.push(data.redirectTo || '/dashboard'), 1200)
-    } catch {
-      setStatus('error')
-      setCanResend(true)
-      setMessage('Could not reach the server. Please try again.')
-    } finally {
-      setVerifying(false)
-    }
-  }
-
-  const resend = async () => {
-    setResendState('sending')
-    try {
-      // The address is not in the URL, so ask Supabase-side by email only if we
-      // have one; otherwise send the user to signup to re-enter it.
-      const email = new URLSearchParams(window.location.search).get('email')
-      if (!email) { router.push('/signup?resend=1'); return }
-      const res = await fetch('/api/auth/send-confirmation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      setResendState(res.ok ? 'sent' : 'failed')
-    } catch {
-      setResendState('failed')
-    }
-  }
 
   useEffect(() => {
     const handleAuth = async () => {
@@ -126,25 +51,6 @@ export default function AuthConfirmPage() {
             setMessage(queryErrorDesc?.replace(/\+/g, ' ') || 'Authentication failed. Please try again.')
           }
           setTimeout(() => router.push('/forgot-password'), 4000)
-          return
-        }
-
-        // --- Strategy 0: token_hash (the scanner-safe path) ---
-        // The confirmation email now links here with ?token_hash=...&type=...
-        // We deliberately DO NOT verify on mount. These tokens are single use
-        // and are spent by a plain GET, so anything that opens the URL before
-        // the human does burns it. Show a button; verify on click.
-        const tokenHash = urlParams.get('token_hash')
-        if (tokenHash) {
-          setPending({
-            tokenHash,
-            type: urlParams.get('type') || 'magiclink',
-            redirectTo: nextPath,
-          })
-          setStatus('awaiting-click')
-          setMessage(urlParams.get('type') === 'recovery'
-            ? 'Confirm it is you to continue resetting your password.'
-            : 'One last step: confirm your email address.')
           return
         }
 
@@ -332,9 +238,6 @@ export default function AuthConfirmPage() {
         {status === 'error' && (
           <div style={{ fontSize: '40px', marginBottom: '16px' }}>⚠️</div>
         )}
-        {status === 'awaiting-click' && (
-          <div style={{ fontSize: '40px', marginBottom: '16px' }}>✉️</div>
-        )}
         <p
           style={{
             color: status === 'error' ? '#EF4444' : 'var(--text-primary, #F1F5F9)',
@@ -345,68 +248,6 @@ export default function AuthConfirmPage() {
         >
           {message}
         </p>
-
-        {status === 'awaiting-click' && (
-          <>
-            <button
-              type="button"
-              onClick={confirmNow}
-              disabled={verifying}
-              style={{
-                marginTop: '24px',
-                width: '100%',
-                padding: '14px 20px',
-                borderRadius: '10px',
-                border: 'none',
-                background: verifying ? '#134E4A' : '#0D9488',
-                color: '#FFFFFF',
-                fontSize: '15px',
-                fontWeight: 700,
-                cursor: verifying ? 'wait' : 'pointer',
-              }}
-            >
-              {verifying ? 'Confirming...' : 'Confirm my email'}
-            </button>
-            <p style={{ color: 'var(--text-muted, #94A3B8)', fontSize: '12px', lineHeight: 1.6, margin: '14px 0 0' }}>
-              Your email provider may scan links before you open them. This
-              button makes sure that scan cannot use up your confirmation.
-            </p>
-          </>
-        )}
-
-        {status === 'error' && canResend && (
-          <div style={{ marginTop: '20px' }}>
-            {resendState === 'sent' ? (
-              <p style={{ color: '#0D9488', fontSize: '13px', fontWeight: 600, margin: 0 }}>
-                A new confirmation email is on its way.
-              </p>
-            ) : (
-              <button
-                type="button"
-                onClick={resend}
-                disabled={resendState === 'sending'}
-                style={{
-                  width: '100%',
-                  padding: '12px 18px',
-                  borderRadius: '10px',
-                  border: '1px solid #0D9488',
-                  background: 'transparent',
-                  color: '#2DD4BF',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: resendState === 'sending' ? 'wait' : 'pointer',
-                }}
-              >
-                {resendState === 'sending' ? 'Sending...' : 'Send me a new link'}
-              </button>
-            )}
-            {resendState === 'failed' && (
-              <p style={{ color: '#EF4444', fontSize: '12px', margin: '10px 0 0' }}>
-                That did not work. Please try signing up again.
-              </p>
-            )}
-          </div>
-        )}
         <style>{`
           @keyframes spin {
             to { transform: rotate(360deg); }
