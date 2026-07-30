@@ -32,7 +32,7 @@ export async function GET() {
 
     const profile = await prisma.userProfile.findUnique({
       where: { supabaseId: user.id },
-      select: { role: true },
+      select: { role: true, company: true },
     });
 
     if (!profile || profile.role !== 'employer') {
@@ -50,7 +50,11 @@ export async function GET() {
     // counted quotaDomain only, so an account that had changed its email
     // domain was told "your first post is free", filled in the whole form,
     // and was refused at submit. Same predicate, same keys.
-    const quotaKeys = buildQuotaKeys({ userId: user.id, signupEmail: user.email });
+    const quotaKeys = buildQuotaKeys({
+      userId: user.id,
+      signupEmail: user.email,
+      lockedCompanyName: profile.company?.trim() || null,
+    });
     const used = await prisma.employerJob.count({
       where: {
         paymentStatus: 'free',

@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
     // Auth — paid posts still must be tied to an authenticated employer.
     let userId: string | null = null;
     let signupEmail: string | null = null;
+    // Write-once organization name from the profile (see lib/employer-quota.ts).
+    let lockedCompanyName: string | null = null;
     try {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -105,6 +107,7 @@ export async function POST(request: NextRequest) {
       }
       userId = user.id;
       signupEmail = user.email ?? null;
+      lockedCompanyName = profile.company?.trim() || null;
     } catch (authErr) {
       logger.warn('Failed to fetch user session in create-checkout', { error: authErr });
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
@@ -126,7 +129,7 @@ export async function POST(request: NextRequest) {
           where: {
             paymentStatus: 'free',
             OR: [
-              { quotaKeys: { hasSome: buildQuotaKeys({ userId, signupEmail }) } },
+              { quotaKeys: { hasSome: buildQuotaKeys({ userId, signupEmail, lockedCompanyName }) } },
               { quotaDomain: signupDomain },
             ],
           },
@@ -239,7 +242,8 @@ export async function POST(request: NextRequest) {
       const created = await tx.job.create({
         data: {
           title: sanitized.title,
-          employer: sanitized.employer,
+          // Account's locked organization name wins over the form value.
+          employer: lockedCompanyName || sanitized.employer,
           location: sanitized.location,
           jobType: sanitized.jobType || null,
           mode: sanitized.mode || null,
@@ -299,7 +303,7 @@ export async function POST(request: NextRequest) {
 
       const ej = await tx.employerJob.create({
         data: {
-          employerName: sanitized.employer,
+          employerName: lockedCompanyName || sanitized.employer,
           contactEmail: sanitized.contactEmail,
           companyWebsite: sanitized.companyWebsite || null,
           companyLogoUrl: rawBody.companyLogoUrl || null,
@@ -320,7 +324,7 @@ export async function POST(request: NextRequest) {
           // form-typed rival domain start consuming that rival's free post.
           // Nothing form-typed may ever reach an identity column.
           quotaDomain: domainFromEmail(signupEmail),
-          quotaKeys: buildQuotaKeys({ userId, signupEmail }),
+          quotaKeys: buildQuotaKeys({ userId, signupEmail, lockedCompanyName }),
         },
       });
 

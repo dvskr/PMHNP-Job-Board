@@ -57,10 +57,15 @@ describe('create-checkout free-eligibility guard', () => {
 
   it('builds keys from session identity only, never form fields', () => {
     const guard = guardBlock();
-    expect(guard).toContain('buildQuotaKeys({ userId, signupEmail })');
+    // Session-derived inputs only. lockedCompanyName is the account's
+    // write-once profile name, not a request body field (see
+    // lib/employer-quota.ts QuotaIdentity for the caller contract).
+    expect(guard).toMatch(/buildQuotaKeys\(\{\s*userId,\s*signupEmail(,\s*lockedCompanyName)?\s*\}\)/);
     expect(guard).not.toContain('contactEmail');
     expect(guard).not.toContain('companyWebsite');
     expect(guard).not.toContain('employerName');
+    expect(guard).not.toContain('rawBody');
+    expect(guard).not.toContain('sanitized.');
   });
 
   it('the paid-row identity write is session-derived, never the form contact email', () => {

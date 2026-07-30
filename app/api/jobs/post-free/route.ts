@@ -112,6 +112,9 @@ export async function POST(request: NextRequest) {
     // contact info and can't shift the quota or sneak past the spam block.
     let userId: string;
     let signupEmail: string;
+    // Write-once organization name from the profile. Authoritative for the
+    // listing and for the org quota key; never taken from the request body.
+    let lockedCompanyName: string | null = null;
     try {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -137,6 +140,7 @@ export async function POST(request: NextRequest) {
 
       userId = user.id;
       signupEmail = user.email;
+      lockedCompanyName = profile.company?.trim() || null;
     } catch (error) {
       logger.warn('Failed to fetch user session in post-free', { error });
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
@@ -181,7 +185,7 @@ export async function POST(request: NextRequest) {
     // fields are deliberately excluded — being attacker controlled, they would
     // let one poster burn a rival's free post, and shared ATS/site-builder
     // domains would refuse unrelated clinics. See lib/employer-quota.ts.
-    const quotaKeys = buildQuotaKeys({ userId, signupEmail });
+    const quotaKeys = buildQuotaKeys({ userId, signupEmail, lockedCompanyName });
 
     // Validate sanitized URL (only for external apply)
     if (!applyOnPlatform && !sanitized.applyLink) {
@@ -306,7 +310,9 @@ export async function POST(request: NextRequest) {
         const created = await tx.job.create({
           data: {
             title: sanitized.title,
-            employer: sanitized.employer,
+            // Account's locked organization name wins over anything typed in
+            // this request, so one account cannot publish under many identities.
+            employer: lockedCompanyName || sanitized.employer,
             location: sanitized.location,
             jobType: sanitized.jobType || null,
             mode: sanitized.mode || null,
@@ -360,7 +366,7 @@ export async function POST(request: NextRequest) {
 
         await tx.employerJob.create({
           data: {
-            employerName: sanitized.employer,
+            employerName: lockedCompanyName || sanitized.employer,
             contactEmail: sanitized.contactEmail,
             companyWebsite: sanitized.companyWebsite || null,
             companyLogoUrl: companyLogoUrl || null,
