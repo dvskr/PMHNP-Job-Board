@@ -1,21 +1,19 @@
 /**
- * Regression lock: email confirmation must survive corporate link scanners.
+ * Regression lock: confirmation links must not be redeemable by a GET.
  *
  * THE BUG THIS PINS SHUT
- * Confirmation emails carried Supabase's `action_link`, a single-use
- * /auth/v1/verify URL that is consumed by a plain GET. Microsoft Defender for
- * Office 365 Safe Links (and Proofpoint, Mimecast, Barracuda) pre-fetch every
- * link in inbound mail to detonate it in a sandbox, which spent the token
- * before the human clicked. Recipients saw "invalid or has expired" and could
- * never finish signing up. It ran for months and hit corporate mailboxes
- * hardest, which is the employer segment. One employer requested four resends
- * in under half an hour before one finally beat the scanner.
+ * Confirmation emails carried a single-use URL that is spent by a plain GET,
+ * so anything opening it before the recipient burned it. Requesting a new link
+ * also invalidates the previous one, so a user who resends a few times and
+ * then clicks an older email sees "invalid or has expired" every time. One
+ * employer requested four links inside half an hour and only got in on the
+ * newest one.
  *
  * THE INVARIANTS
  *  1. No email may ever carry action_link again.
  *  2. The emailed page must NOT verify on mount. A GET has to be inert.
  *  3. Verification happens only on an explicit POST, server-side, rate limited.
- *  4. First-time signup must use our sender, not only the resend buttons.
+ *  4. Signup sends exactly ONE confirmation email, not two competing ones.
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
@@ -107,12 +105,22 @@ describe('server-side verification route', () => {
   });
 });
 
-describe('first-time signup uses our sender', () => {
+describe('signup does not double-send a confirmation email', () => {
   const src = read('components/auth/SignUpForm.tsx');
 
-  it('requests our confirmation email when the signup needs confirming', () => {
+  it('leaves the first confirmation email to Supabase, which has working SMTP', () => {
+    // signUp() already triggers Supabase's own "Confirm sign up" template.
+    // That template is pointed at /auth/confirm?token_hash=... so it is
+    // scanner-safe. Calling our sender here as well would deliver two
+    // competing links, and requesting a second link invalidates the first,
+    // which is the confusion this whole area is meant to remove.
+    const afterSignUp = src.slice(src.indexOf('if (data.user) {'));
+    const upToWelcome = afterSignUp.slice(0, afterSignUp.indexOf("'/api/auth/welcome'"));
+    expect(upToWelcome).not.toContain('send-confirmation');
+  });
+
+  it('still exposes an explicit resend the user can trigger', () => {
+    expect(src).toContain('handleResendConfirmation');
     expect(src).toContain('/api/auth/send-confirmation');
-    // Guarded on there being no session, i.e. confirmation is pending.
-    expect(src).toContain('if (!data.session)');
   });
 });

@@ -7,23 +7,18 @@ import { logger } from '@/lib/logger'
 /**
  * POST /api/auth/verify-confirmation
  *
- * WHY THIS EXISTS (the bug it fixes)
- * Confirmation emails used to carry Supabase's `action_link`, a
- * /auth/v1/verify?token=... URL that is SINGLE USE and is consumed by a plain
- * GET. Corporate mail security (Microsoft Defender for Office 365 Safe Links,
- * Proofpoint, Mimecast, Barracuda) pre-fetches every URL in inbound mail to
- * detonate it in a sandbox. That prefetch spent the token before the human
- * ever clicked, so the recipient landed on "Email link is invalid or has
- * expired" and could never finish signing up. It hit corporate mailboxes
- * hardest, which is exactly the employer segment, and it stranded signups for
- * months before an employer reported it.
+ * WHY THIS EXISTS
+ * Supabase confirmation and recovery links are SINGLE USE and are spent by a
+ * plain GET. Anything that opens the URL before the human does burns it, and
+ * the recipient then sees "invalid or has expired" with no way forward. A
+ * request for a fresh link also invalidates the previous one, so a user who
+ * clicks Resend a few times and then opens an older email hits the same error
+ * repeatedly. That combination stranded real signups, including an employer
+ * who requested four links in half an hour and only got in on the newest.
  *
- * THE FIX
- * The emailed URL now points at our own /auth/confirm carrying `token_hash`,
- * and that page does NOTHING on GET: it renders a button. Verification happens
- * only here, on an explicit POST. Scanners follow links; they do not submit
- * forms. So a prefetch costs nothing and the token survives until the human
- * acts.
+ * So verification must not happen on a GET. The emailed URL points at
+ * /auth/confirm carrying the hashed token, that page renders a button, and the
+ * token is redeemed only here, on an explicit POST.
  *
  * Security notes:
  *  - Rate limited on the shared auth bucket.

@@ -53,18 +53,15 @@ export async function POST(request: NextRequest) {
     }
 
     // DO NOT email data.properties.action_link. That is a Supabase
-    // /auth/v1/verify?token=... URL which is SINGLE USE and is consumed by a
-    // plain GET. Corporate mail security (Microsoft Defender Safe Links,
-    // Proofpoint, Mimecast, Barracuda) pre-fetches every link in inbound mail
-    // to sandbox it, which SPENT the token before the recipient could click.
-    // They then saw "Email link is invalid or has expired" and could never
-    // finish signing up. It stranded signups for months, corporate mailboxes
-    // worst of all, which is precisely the employer segment.
+    // /auth/v1/verify?token=... URL which is SINGLE USE and is spent by a plain
+    // GET, so anything that opens it before the recipient does burns it and they
+    // see "invalid or has expired". Generating a new link also invalidates the
+    // previous one, so a user with several resend emails in their inbox hits
+    // that error on every older link.
     //
     // Instead we email our own /auth/confirm carrying the hashed token. That
-    // page is inert on GET (it renders a button) and verification happens only
-    // on an explicit POST to /api/auth/verify-confirmation. A scanner prefetch
-    // costs nothing.
+    // page is inert on GET and only verifies on an explicit button POST, so
+    // nothing in transit can consume the token.
     const hashedToken = data?.properties?.hashed_token
     if (!hashedToken) {
       logger.error('No hashed_token in generateLink response', {

@@ -131,10 +131,9 @@ export default function AuthConfirmPage() {
 
         // --- Strategy 0: token_hash (the scanner-safe path) ---
         // The confirmation email now links here with ?token_hash=...&type=...
-        // We deliberately DO NOT verify on mount. Mail security products
-        // pre-fetch links to sandbox them, and the previous flow's single-use
-        // Supabase token was consumed by that prefetch, permanently breaking
-        // confirmation for corporate mailboxes. Show a button; verify on click.
+        // We deliberately DO NOT verify on mount. These tokens are single use
+        // and are spent by a plain GET, so anything that opens the URL before
+        // the human does burns it. Show a button; verify on click.
         const tokenHash = urlParams.get('token_hash')
         if (tokenHash) {
           setPending({
