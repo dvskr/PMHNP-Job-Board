@@ -145,9 +145,6 @@ export default function EmployerSettingsClient() {
 
     const [profile, setProfile] = useState<ProfileInfo | null>(null);
     const [company, setCompany] = useState<CompanyInfo | null>(null);
-    /** Company name is write-once. Locked as soon as the server has one stored,
-     *  captured on load so typing in the field cannot flip it. */
-    const [companyNameLocked, setCompanyNameLocked] = useState(false);
     const [payments, setPayments] = useState<Payment[]>([]);
     const [alertPrefs, setAlertPrefs] = useState<AlertPrefs>({ specialties: [], states: [], minExperience: null, workMode: '', isActive: false });
     const [savingAlerts, setSavingAlerts] = useState(false);
@@ -260,11 +257,7 @@ export default function EmployerSettingsClient() {
                     return;
                 }
                 const settingsData = await settingsRes.json();
-                if (settingsData?.profile) {
-                    setProfile(settingsData.profile);
-                    // Lock at load time from what the server actually holds.
-                    setCompanyNameLocked(!!settingsData.profile.company?.trim());
-                }
+                if (settingsData?.profile) setProfile(settingsData.profile);
                 if (settingsData?.companyInfo) setCompany(settingsData.companyInfo);
 
                 if (billingRes.ok) {
@@ -500,29 +493,21 @@ export default function EmployerSettingsClient() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                             <div>
                                 <Label>Company Name</Label>
-                                {/* Write-once. The name anchors organization identity: it is
-                                    authoritative for every job this account posts and it feeds
-                                    the free-post quota, so it can be set while empty and only
-                                    support can change it afterwards. The API enforces this
-                                    independently; this is the explanation, not the lock. */}
+                                {/* Never editable here. The name is captured at employer signup
+                                    and anchors organization identity: it is authoritative for
+                                    every job this account posts and it feeds the free-post
+                                    quota. The API refuses changes independently; this is the
+                                    explanation, not the lock. */}
                                 <input
                                     type="text"
                                     value={profile.company || ''}
-                                    onChange={(e) => {
-                                        if (companyNameLocked) return;
-                                        setProfile({ ...profile, company: e.target.value });
-                                    }}
-                                    readOnly={companyNameLocked}
-                                    aria-readonly={companyNameLocked}
-                                    placeholder="Your company name"
-                                    style={companyNameLocked
-                                        ? { ...clayInput, background: '#F1F5F4', color: '#5A6B72', cursor: 'not-allowed' }
-                                        : clayInput}
+                                    readOnly
+                                    aria-readonly
+                                    placeholder="Set at signup"
+                                    style={{ ...clayInput, background: '#F1F5F4', color: '#5A6B72', cursor: 'not-allowed' }}
                                 />
                                 <p style={{ fontSize: '12px', color: '#7A8B92', margin: '6px 0 0', lineHeight: 1.5 }}>
-                                    {companyNameLocked
-                                        ? 'This is your organization name on every listing you post. To change it, contact support and we will update it for you.'
-                                        : 'Set this once. It becomes your organization name on every listing you post.'}
+                                    Your organization name is set at signup and appears on every listing you post. To change it, contact support and we will update it for you.
                                 </p>
                             </div>
                             <div>
