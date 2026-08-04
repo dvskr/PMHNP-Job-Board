@@ -432,6 +432,32 @@ export async function sendConfirmationEmail(
 
     const featuresLine = `${durationDays}-day listing · Featured badge · ${config.limits.candidateUnlocksPerPosting} candidate unlocks · ${config.limits.inmailsPerPosting} InMails · Full analytics`;
 
+    // ── Share kit — prefilled share-intent links around the job's canonical
+    // URL. Intent URL patterns mirror components/ShareMenu.tsx (the on-site
+    // share menu) so the two surfaces never drift. `&` is entity-escaped for
+    // strict email-client HTML parsers.
+    const canonicalJobUrl = `${BASE_URL}/jobs/${jobSlug}`;
+    const shareText = `We're hiring: ${jobTitle}`;
+    const shareIntents: { name: string; href: string }[] = [
+      { name: 'X', href: `https://x.com/intent/tweet?url=${encodeURIComponent(canonicalJobUrl)}&text=${encodeURIComponent(shareText)}` },
+      { name: 'LinkedIn', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(canonicalJobUrl)}` },
+      { name: 'Facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(canonicalJobUrl)}` },
+      { name: 'WhatsApp', href: `https://wa.me/?text=${encodeURIComponent(`${shareText} ${canonicalJobUrl}`)}` },
+    ];
+    const shareChip = (name: string, href: string): string =>
+      `<td style="padding:0 8px 8px 0;"><a href="${href.replace(/&/g, '&amp;')}" style="display:inline-block;padding:8px 14px;border-radius:10px;background:#ffffff;border:1px solid rgba(13,148,136,0.25);font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-decoration:none;">${name}</a></td>`;
+    const shareKitBlock = `
+      ${spacerV2(24)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <div style="background:#F8FAFC;border:1px solid rgba(0,0,0,0.06);border-radius:12px;padding:16px 20px;">
+          <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.textPrimary};text-transform:uppercase;letter-spacing:0.05em;">Share your post</p>
+          <p style="margin:0 0 12px;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">More eyes means more applicants. Share your listing with your network in one click:</p>
+          <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+            ${shareIntents.map((s) => shareChip(s.name, s.href)).join('')}
+          </tr></table>
+        </div>
+      </td></tr>`;
+
     const invoiceBlock = (invoice?.invoicePdfUrl || invoice?.hostedInvoiceUrl)
       ? `
         ${spacerV2(16)}
@@ -462,7 +488,7 @@ export async function sendConfirmationEmail(
         ${primaryButtonV2('View Your Listing', `${BASE_URL}/jobs/${jobSlug}`)}
       </td></tr>
       ${spacerV2(16)}
-      <tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.6;">Manage your posting from your <a href="${dashboardUrl}" style="color:${V2.teal};text-decoration:underline;">dashboard</a>.</p></td></tr>
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.6;">Manage your posting from your <a href="${dashboardUrl}" style="color:${V2.teal};text-decoration:underline;">dashboard</a>.</p></td></tr>${shareKitBlock}
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2('sample'),

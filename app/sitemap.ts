@@ -103,6 +103,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // audit date above — carrying STATIC_CONTENT_DATE would claim these pages
   // existed ~11 weeks before they did.
   const TOOLS_LAUNCH_DATE = new Date('2026-07-23');
+  // Multi-state licensure explainer (distribution audit D5) — same
+  // rationale: carries its own launch date, not STATIC_CONTENT_DATE.
+  const MULTI_STATE_GUIDE_DATE = new Date('2026-08-04');
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [
@@ -154,6 +157,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/resources/fpa-guide`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/resources/private-practice-guide`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/resources/1099-vs-w2`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${baseUrl}/resources/multi-state-licensure`, lastModified: MULTI_STATE_GUIDE_DATE, changeFrequency: 'monthly', priority: 0.8 },
     // Free candidate tools (launched 2026-07-23 — STATIC_CONTENT_DATE
     // predates them, so static tools carry their own launch date). The two
     // data-backed tools re-render with the job set and carry latestJobDate;

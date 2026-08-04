@@ -16,6 +16,7 @@ import { evalDriftFunctions } from '@/lib/inngest/functions/eval-drift';
 import { embeddingFunctions } from '@/lib/inngest/functions/embeddings';
 import { recommendationFunctions } from '@/lib/inngest/functions/recommendations';
 import { recommendationDigestFunctions } from '@/lib/inngest/functions/recommendation-digest';
+import { employerPublishedFunctions } from '@/lib/inngest/functions/employer-published';
 
 export const { GET, POST, PUT } = serve({
     client: inngest,
@@ -25,5 +26,6 @@ export const { GET, POST, PUT } = serve({
         ...embeddingFunctions,
         ...recommendationFunctions,
         ...recommendationDigestFunctions,
+        ...employerPublishedFunctions,
     ],
 });

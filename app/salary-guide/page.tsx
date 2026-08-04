@@ -153,9 +153,11 @@ export default async function SalaryGuidePage() {
   const fmtK = (n: number) => `$${Math.round(roundDisplayDollars(n) / 1000)}K`;
 
   // FAQ content is built from the SAME live figures the page renders, so
-  // the answers can never contradict the data. Rendered as visible content
-  // only — FAQPage rich results have been dead for non-government sites
-  // since 2023, so no FAQPage JSON-LD is emitted.
+  // the answers can never contradict the data. Distribution audit D3:
+  // emitted as FAQPage JSON-LD below for AI answer engines (AEO), which
+  // parse it even though Google's FAQ rich results have been dead for
+  // non-government sites since 2023. Google eligibility is not the
+  // audience; being quotable by assistants is.
   const faqData = [
     {
       q: `How much do PMHNPs make in ${currentYear}?`,
@@ -195,7 +197,7 @@ export default async function SalaryGuidePage() {
     "datePublished": "2026-01-01T00:00:00Z",
     "dateModified": new Date().toISOString(),
     "author": { "@type": "Person", "name": "Sathish Kumar", "jobTitle": "Creator, PMHNP Hiring", "url": "https://pmhnphiring.com/about" },
-    "publisher": { "@type": "Organization", "name": "PMHNP Hiring", "url": "https://pmhnphiring.com", "logo": { "@type": "ImageObject", "url": "https://pmhnphiring.com/logo.svg" } },
+    "publisher": { "@type": "Organization", "name": "PMHNP Hiring", "url": "https://pmhnphiring.com", "logo": { "@type": "ImageObject", "url": "https://pmhnphiring.com/logo.png" } },
     "mainEntityOfPage": { "@type": "WebPage", "@id": "https://pmhnphiring.com/salary-guide" }
   };
 
@@ -212,6 +214,17 @@ export default async function SalaryGuidePage() {
         "name": `${currentYear} PMHNP Salary Guide`,
         "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".quick-answer-box", "h1"] },
         "url": "https://pmhnphiring.com/salary-guide"
+      }) }} />
+      {/* FAQPage from the live-computed faqData above (audit D3) — answers
+          are the same tier-gated figures the visible FAQ section renders. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": faqData.map(({ q, a }) => ({
+          "@type": "Question",
+          "name": q,
+          "acceptedAnswer": { "@type": "Answer", "text": a },
+        })),
       }) }} />
 
       {/* ═══════════════════════════════════════════════════════════════

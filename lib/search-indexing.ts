@@ -8,6 +8,7 @@
  */
 
 import * as crypto from 'crypto';
+import { logger } from './logger';
 
 const BASE_URL = 'https://pmhnphiring.com';
 
@@ -68,7 +69,7 @@ async function getGoogleAccessToken(): Promise<string | null> {
     });
 
     if (!tokenResponse.ok) {
-        console.error('[Google] Failed to get access token:', await tokenResponse.text());
+        logger.error('[Google Indexing] Failed to get access token', await tokenResponse.text());
         return null;
     }
 
@@ -177,6 +178,11 @@ export async function pingIndexNow(urls: string | string[]): Promise<IndexResult
     const apiKey = process.env.INDEXNOW_API_KEY || process.env.INDEXNOW_KEY;
     if (!apiKey) {
         const urlList = Array.isArray(urls) ? urls : [urls];
+        // Audit fact 9: this used to fail silently while the cron reported
+        // success — an unset key meant zero IndexNow coverage with no signal.
+        logger.warn('[IndexNow] Skipping submission: INDEXNOW_API_KEY / INDEXNOW_KEY not set', {
+            urlCount: urlList.length,
+        });
         return urlList.map(url => ({ engine: 'IndexNow', url, success: false, error: 'INDEXNOW_API_KEY / INDEXNOW_KEY not set' }));
     }
 
@@ -203,8 +209,13 @@ export async function pingIndexNow(urls: string | string[]): Promise<IndexResult
             return urlList.map(url => ({ engine: 'IndexNow', url, success: true }));
         }
         const errorText = await response.text();
+        logger.error('[IndexNow] Endpoint rejected submission', errorText, {
+            status: response.status,
+            urlCount: urlList.length,
+        });
         return urlList.map(url => ({ engine: 'IndexNow', url, success: false, error: `${response.status}: ${errorText}` }));
     } catch (error) {
+        logger.error('[IndexNow] Submission failed', error, { urlCount: urlList.length });
         return urlList.map(url => ({ engine: 'IndexNow', url, success: false, error: String(error) }));
     }
 }
@@ -233,12 +244,13 @@ export async function pingAllSearchEngines(url: string): Promise<IndexResult[]> 
         }
     }
 
-    // Log results
+    // Log results. Failures log at warn so they are visible in production
+    // (info-level console output was how IndexNow died silently — audit fact 9).
     for (const r of flat) {
         if (r.success) {
-            console.log(`[Indexing] ✅ ${r.engine}: ${r.url}`);
+            logger.info(`[Indexing] ${r.engine} accepted URL`, { url: r.url });
         } else {
-            console.log(`[Indexing] ❌ ${r.engine}: ${r.url} — ${r.error}`);
+            logger.warn(`[Indexing] ${r.engine} submission failed`, { url: r.url, error: r.error });
         }
     }
 

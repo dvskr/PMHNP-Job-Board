@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { hasLicensePost } from '@/lib/pseo/license-posts';
+import { jsonLdString } from '@/lib/seo/json-ld';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import {
     DollarSign,
@@ -285,8 +286,74 @@ export default async function StateSalaryPage({ params }: PageProps) {
 
     const maxSettingMedian = bySetting.length > 0 ? bySetting[0].median : 0;
 
+    // ── JSON-LD (distribution audit D3) ─────────────────────────────────
+    // These pages previously shipped ZERO structured data. Article + FAQPage
+    // are emitted here (BreadcrumbSchema below covers BreadcrumbList), with
+    // every FAQ answer computed from the SAME tier-gated figures the page
+    // renders, so the schema can never contradict the visible content.
+    // Questions whose tier gate fails are omitted, never estimated. All
+    // serialization goes through jsonLdString (repo XSS rule). Occupation /
+    // SearchAction / AggregateOffer stay deliberately absent (GSC
+    // remediation 2026-07 decision).
+    const pageUrl = `https://pmhnphiring.com/salary-guide/${stateSlug}`;
+    const currentYear = new Date().getFullYear();
+    const fmtFull = (n: number) => `$${roundDisplayDollars(n).toLocaleString('en-US')}`;
+
+    const faqItems: { q: string; a: string }[] = [];
+    if (stateMedian != null) {
+        faqItems.push({
+            q: `How much do PMHNPs make in ${stateName}?`,
+            a: summary.tier === 'full'
+                ? `Across ${summary.n} live ${stateName} postings with disclosed ranges, the median advertised PMHNP salary is ${fmtFull(summary.median)} per year. The middle 50% of postings advertise between ${fmtFull(summary.p25)} and ${fmtFull(summary.p75)}. These are advertised figures from job postings, not self-reported earnings, and they refresh daily.`
+                : `Across ${summary.n} live ${stateName} postings with disclosed ranges, the median advertised PMHNP salary is ${fmtFull(stateMedian)} per year. Percentile ranges publish once at least 10 postings disclose a range. These are advertised figures from job postings, not self-reported earnings.`,
+        });
+    }
+    if (stateMedian != null && nationalMedian != null && diffPct != null) {
+        faqItems.push({
+            q: `How does ${stateName} PMHNP pay compare to the national median?`,
+            a: `The median advertised salary in ${stateName} is ${fmtFull(stateMedian)}, ${Math.abs(diffPct)}% ${diffPct >= 0 ? 'above' : 'below'} the national median of ${fmtFull(nationalMedian)} computed across all live postings with disclosed ranges (n=${national.n.toLocaleString('en-US')}).`,
+        });
+    }
+    if (bySetting.length > 0) {
+        faqItems.push({
+            q: `Which practice settings advertise the highest PMHNP pay in ${stateName}?`,
+            a: `In current ${stateName} postings with at least 5 disclosed ranges per setting: ${bySetting.map((s) => `${s.setting} ${fmtFull(s.median)} (n=${s.n})`).join(', ')}. Settings below the 5-posting floor are not published.`,
+        });
+    }
+    faqItems.push({
+        q: `How many PMHNP jobs are open in ${stateName}?`,
+        a: `There are ${totalOpen.toLocaleString('en-US')} live PMHNP positions in ${stateName} on this site right now, of which ${summary.n} disclose a usable salary range. Listings update daily at https://pmhnphiring.com/jobs/state/${stateSlug}.`,
+    });
+
+    const articleSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: `PMHNP Salary in ${stateName} (${stateCode}): ${currentYear} Advertised Pay`,
+        description: `Advertised PMHNP pay in ${stateName} computed from live job postings: median, percentile range, practice settings, top employers, and open positions. Every figure ships with its sample size.`,
+        // Same OG image generateMetadata advertises for this page.
+        image: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp',
+        dateModified: new Date().toISOString(),
+        author: { '@type': 'Person', name: 'Sathish Kumar', jobTitle: 'Creator, PMHNP Hiring', url: 'https://pmhnphiring.com/about' },
+        // logo.png, not logo.svg: public/ ships no SVG, and a 404ing
+        // publisher logo invalidates the ImageObject for Google.
+        publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com', logo: { '@type': 'ImageObject', url: 'https://pmhnphiring.com/logo.png' } },
+        mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
+    };
+
     return (
         <div style={{ backgroundColor: '#FDFBF7', minHeight: '100vh' }}>
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(articleSchema) }} />
+            {faqItems.length > 0 && (
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({
+                    '@context': 'https://schema.org',
+                    '@type': 'FAQPage',
+                    mainEntity: faqItems.map((f) => ({
+                        '@type': 'Question',
+                        name: f.q,
+                        acceptedAnswer: { '@type': 'Answer', text: f.a },
+                    })),
+                }) }} />
+            )}
             <BreadcrumbSchema
                 items={[
                     { name: 'Home', url: 'https://pmhnphiring.com' },

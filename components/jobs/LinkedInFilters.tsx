@@ -214,6 +214,7 @@ export default function LinkedInFilters({ onTotalChange }: LinkedInFiltersProps 
     (filters.experienceLevel?.length || 0) +
     (filters.newGradFriendly === true ? 1 : 0) +
     (typeof filters.minYearsExperience === 'number' ? 1 : 0) +
+    (filters.easyApply === true ? 1 : 0) +
     (filters.search ? 1 : 0) +
     (filters.location ? 1 : 0) +
     (filters.salaryMin ? 1 : 0) +
@@ -315,6 +316,13 @@ export default function LinkedInFilters({ onTotalChange }: LinkedInFiltersProps 
         key: 'minYearsExperience',
         label: `${filters.minYearsExperience}+ yrs exp`,
         onRemove: () => setSingleFilter('minYearsExperience', null),
+      });
+    }
+    if (filters.easyApply === true) {
+      pills.push({
+        key: 'easyApply',
+        label: 'Easy Apply',
+        onRemove: () => setSingleFilter('easyApply', null),
       });
     }
     if (filters.salaryMin) {
@@ -555,6 +563,23 @@ export default function LinkedInFilters({ onTotalChange }: LinkedInFiltersProps 
                 checked={filters.workMode.includes('onsite')}
                 onChange={() => toggleArrayFilter('workMode', 'onsite')}
               />
+            </FilterSection>
+
+            {/* Easy Apply — employer-posted or apply-on-platform jobs only.
+                One checkbox; the predicate is easyApplyClause in lib/filters.ts
+                (shared with the badge count so they can never disagree). */}
+            <FilterSection title="Easy Apply">
+              <CheckboxFilter
+                label="Direct employers / Easy Apply"
+                count={counts?.easyApply || 0}
+                checked={filters.easyApply === true}
+                onChange={() =>
+                  setSingleFilter('easyApply', filters.easyApply === true ? null : true)
+                }
+              />
+              <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: '2px 6px 0', lineHeight: 1.4 }}>
+                Jobs posted by the hiring employer, or with one-click apply on this site.
+              </p>
             </FilterSection>
 
             {/* Specialty */}

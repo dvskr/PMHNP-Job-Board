@@ -196,6 +196,15 @@ const AI_CRAWLERS = [
   // to the catch-all '*' rule (no crawl-delay, no per-bot throttle).
   'MistralAI-User',    // Mistral AI live browsing
   'AI2Bot',            // Allen Institute for AI
+  // 2025-26 on-demand AI fetchers (distribution audit D1) — user-triggered
+  // retrieval agents that fetch a page to answer a live question. Named
+  // explicitly (same rationale as the rest of this block) so the "we
+  // welcome these" signal is unmistakable. Their Anthropic siblings
+  // (Claude-User, Claude-SearchBot) live in the dedicated ClaudeBot rule
+  // below, which carries an explicit Allow: / for Anthropic's parser.
+  'Perplexity-User',   // Perplexity live browsing
+  'DuckAssistBot',     // DuckDuckGo AI answers
+  'Meta-ExternalFetcher', // Meta AI live fetch (meta-externalagent above is the crawler)
   'iaskspider',        // iAsk.AI
   'Kangaroo',          // Jina AI Reader
   'Timpibot',          // Timpi search index
@@ -260,8 +269,12 @@ export default function robots(): MetadataRoute.Robots {
       // followed by a tight disallow list covering only the auth-private
       // surfaces. Placed FIRST in the rules array so any parser scanning
       // top-down sees it before the catch-all `*`.
+      //
+      // D1 (distribution audit): Claude-User (user-initiated fetch) and
+      // Claude-SearchBot (Claude search index) share this block — same
+      // vendor, same conservative parser, same explicit-Allow need.
       {
-        userAgent: 'ClaudeBot',
+        userAgent: ['ClaudeBot', 'Claude-User', 'Claude-SearchBot'],
         allow: '/',
         disallow: [
           '/api/',

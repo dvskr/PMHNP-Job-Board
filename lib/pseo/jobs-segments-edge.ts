@@ -70,6 +70,10 @@ export const JOBS_TAXONOMY: ReadonlyArray<JobsTaxonomyEntry> = [
   { slug: 'outpatient', group: 'setting', stateEligible: true, cityEligible: true, inPrimarySitemap: true, inCitySitemaps: true, pseoIndexing: true },
   { slug: 'travel', group: 'setting', stateEligible: true, cityEligible: true, inPrimarySitemap: true, inCitySitemaps: true, pseoIndexing: true },
   { slug: 'behavioral-health', group: 'setting', stateEligible: true, cityEligible: true, inPrimarySitemap: true, inCitySitemaps: true, pseoIndexing: true },
+  // Direct-employer / Easy Apply landing (2026-08): employer-posted +
+  // apply-on-platform jobs only (lib/filters.ts easyApplyClause). Landing
+  // page only — no [state]/city routes, so both eligibility flags stay false.
+  { slug: 'easy-apply', group: 'setting', stateEligible: false, cityEligible: false, inPrimarySitemap: true, inCitySitemaps: false, pseoIndexing: false },
   // ── Specialties ───────────────────────────────────────────────────
   { slug: 'addiction', group: 'specialty', stateEligible: true, cityEligible: true, inPrimarySitemap: true, inCitySitemaps: true, pseoIndexing: true },
   { slug: 'child-adolescent', group: 'specialty', stateEligible: false, cityEligible: true, inPrimarySitemap: true, inCitySitemaps: false, pseoIndexing: false },

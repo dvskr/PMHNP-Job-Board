@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { FilterState, FilterCounts } from '@/types/filters';
 import {
   buildWhereClause,
+  easyApplyClause,
   freshnessClause,
   jobTypeClause,
   minYearsQualifyClause,
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
         typeof raw.minYearsExperience === 'number' && raw.minYearsExperience >= 0
           ? raw.minYearsExperience
           : null,
+      easyApply: raw.easyApply === true ? true : null,
       salaryMin: raw.salaryMin ?? null,
       postedWithin: raw.postedWithin ?? null,
       location: raw.location ?? null,
@@ -174,13 +176,18 @@ export async function POST(request: NextRequest) {
     // exclusions), so the badge count can never disagree with the filter.
     const newGradMatchClause = newGradWhereClause();
 
+    // "Direct employers / Easy Apply" — same shared clause buildWhereClause
+    // applies, with the filter excluded from its own base (no self-filter).
+    const easyApplyBase = buildWhereClause({ ...baseFilters, easyApply: null });
+
     // Only the live candidate buckets {1,2,5} — 7+/10+ were provably identical
     // to 5+ (no job states a minimum above 5 years) and were removed.
-    const [newGradCount, minY1, minY2, minY5] = await Promise.all([
+    const [newGradCount, minY1, minY2, minY5, easyApplyCount] = await Promise.all([
       prisma.job.count({ where: { AND: [newGradBase, newGradMatchClause] } }),
       prisma.job.count({ where: { AND: [minYearsBase, minYearsQualifyClause(1)] } }),
       prisma.job.count({ where: { AND: [minYearsBase, minYearsQualifyClause(2)] } }),
       prisma.job.count({ where: { AND: [minYearsBase, minYearsQualifyClause(5)] } }),
+      prisma.job.count({ where: { AND: [easyApplyBase, easyApplyClause()] } }),
     ]);
 
     const counts: FilterCounts = {
@@ -223,6 +230,7 @@ export async function POST(request: NextRequest) {
         2: minY2,
         5: minY5,
       },
+      easyApply: easyApplyCount,
       total,
     };
 

@@ -117,13 +117,19 @@ export async function POST(req: NextRequest) {
         });
 
         if (!existingConversation) {
-            // NEW outreach — requires a featured job posting + InMail credit
-            // Gate: messaging requires a featured job posting
+            // NEW outreach — requires an ACTIVE featured job posting + InMail
+            // credit. "Active" = featured AND published AND not expired,
+            // mirroring app/api/employer/candidates/[id]/route.ts and the
+            // pricing FAQ ("To unlock new candidates or send new InMails,
+            // you'll need an active posting"). Checking isFeatured alone left
+            // outreach open after a full refund, chargeback, or expiry.
             if (jobId) {
                 const job = await prisma.job.findFirst({
                     where: {
                         id: jobId,
                         isFeatured: true,
+                        isPublished: true,
+                        expiresAt: { gt: new Date() },
                         employerJobs: {
                             OR: [
                                 { userId: user.id },
@@ -134,7 +140,7 @@ export async function POST(req: NextRequest) {
                     select: { id: true },
                 });
                 if (!job) {
-                    return NextResponse.json({ error: 'Messaging is available for featured job postings only' }, { status: 403 });
+                    return NextResponse.json({ error: 'Messaging is available for active featured job postings only' }, { status: 403 });
                 }
             } else {
                 const featuredJob = await prisma.employerJob.findFirst({
@@ -143,12 +149,16 @@ export async function POST(req: NextRequest) {
                             { userId: user.id },
                             { userId: null, contactEmail: user.email! },
                         ],
-                        job: { isFeatured: true },
+                        job: {
+                            isFeatured: true,
+                            isPublished: true,
+                            expiresAt: { gt: new Date() },
+                        },
                     },
                     select: { id: true },
                 });
                 if (!featuredJob) {
-                    return NextResponse.json({ error: 'Messaging is available for featured job postings only' }, { status: 403 });
+                    return NextResponse.json({ error: 'Messaging is available for active featured job postings only' }, { status: 403 });
                 }
             }
 

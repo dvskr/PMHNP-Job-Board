@@ -6,6 +6,8 @@ import { parseLocation } from '@/lib/location-parser';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { inngest } from '@/lib/inngest/client';
+import { pingAllSearchEngines } from '@/lib/search-indexing';
+import { slugify } from '@/lib/utils';
 
 interface ScreeningQuestionInput {
   text: string;
@@ -100,6 +102,21 @@ export async function POST(request: NextRequest) {
     // been edited at least once, so this was the rule rather than the edge.
     const parsedLoc = parseLocation(jobData.location);
 
+    // Snapshot material fields before writing so we can tell whether the edit
+    // actually changed what search engines see (title, description, location,
+    // salary) and only re-ping when it did.
+    const beforeJob = await prisma.job.findUnique({
+      where: { id: employerJob.jobId },
+      select: {
+        title: true,
+        description: true,
+        location: true,
+        minSalary: true,
+        maxSalary: true,
+        salaryPeriod: true,
+      },
+    });
+
     // Update job
     const updatedJob = await prisma.job.update({
       where: { id: employerJob.jobId },
@@ -137,6 +154,26 @@ export async function POST(request: NextRequest) {
     }).catch((err) => {
       logger.warn('inngest.send embedding.refresh.job failed (employer edit)', { error: String(err) });
     });
+
+    // Audit fact 10: employer edits never re-pinged search engines, so Google
+    // kept serving the pre-edit listing for the rest of the term. Mirror the
+    // post-free pattern (post-free:~491): production-gated, fire-and-forget,
+    // and only when a field that changes the indexed page actually changed.
+    const hasMaterialChange = !beforeJob
+      || beforeJob.title !== updatedJob.title
+      || beforeJob.description !== updatedJob.description
+      || beforeJob.location !== updatedJob.location
+      || beforeJob.minSalary !== updatedJob.minSalary
+      || beforeJob.maxSalary !== updatedJob.maxSalary
+      || beforeJob.salaryPeriod !== updatedJob.salaryPeriod;
+    const isProduction = process.env.VERCEL_ENV === 'production'
+      || (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_BASE_URL?.includes('localhost'));
+    if (hasMaterialChange && updatedJob.isPublished && isProduction) {
+      const jobUrl = `https://pmhnphiring.com/jobs/${slugify(updatedJob.title, updatedJob.id)}`;
+      pingAllSearchEngines(jobUrl).catch((err) =>
+        logger.error('[Jobs-Update] Background indexing ping failed', err)
+      );
+    }
 
     // Update employer-level fields (contact email, website, logo)
     if (
@@ -189,7 +226,7 @@ export async function POST(request: NextRequest) {
       job: updatedJob,
     });
   } catch (error) {
-    console.error('Error updating job:', error);
+    logger.error('Error updating job:', error);
     return NextResponse.json(
       { error: 'Failed to update job' },
       { status: 500 }

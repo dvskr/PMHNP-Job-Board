@@ -11,6 +11,11 @@ export interface FilterState {
   //                            candidate has ≥ N years and qualifies)
   newGradFriendly: boolean | null;
   minYearsExperience: number | null;
+  // "Direct employers / Easy Apply" — true limits results to jobs posted by
+  // employers on this platform (sourceType='employer') OR jobs applied to
+  // on-platform (applyOnPlatform). null = any source. Clause lives in
+  // lib/filters.ts easyApplyClause (shared with the filter-counts route).
+  easyApply: boolean | null;
   salaryMin: number | null;
   postedWithin: string | null;  // '24h', '3d', '7d', '30d', 'all'
   location: string | null;
@@ -64,6 +69,9 @@ export interface FilterCounts {
     2: number;
     5: number;
   };
+  // Count of jobs matching the "Direct employers / Easy Apply" checkbox
+  // (employer-posted OR apply-on-platform), through the same shared clause.
+  easyApply: number;
   total: number;
 }
 
@@ -75,6 +83,7 @@ export const DEFAULT_FILTERS: FilterState = {
   experienceLevel: [],
   newGradFriendly: null,
   minYearsExperience: null,
+  easyApply: null,
   salaryMin: null,
   postedWithin: null,
   location: null,

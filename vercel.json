@@ -229,6 +229,10 @@
       "schedule": "0 14 * * *"
     },
     {
+      "path": "/api/cron/recommendation-deadman",
+      "schedule": "15 14 * * *"
+    },
+    {
       "path": "/api/cron/send-alerts",
       "schedule": "30 13 * * *"
     },

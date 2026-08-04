@@ -333,10 +333,16 @@ export async function POST(request: NextRequest) {
             stateCode: parsedLoc.stateCode,
             isRemote: parsedLoc.isRemote,
             isHybrid: parsedLoc.isHybrid,
-            // isFeatured reserved for a future premium tier ($299+). Regular
-            // employer posts (free + paid $199) get top placement via the
-            // EmployerJob relation now, not via this flag (see job-sort.ts).
-            isFeatured: false,
+            // Featured badge promise (2026-08 audit fact 7): every employer
+            // post is featured — /pricing sells the badge on free AND paid
+            // posts ("Same features — Featured badge, top placement...") and
+            // config.isFeaturedTier returns true for all tiers. Free posts
+            // publish immediately, so the flag flips here at creation. The
+            // messaging + candidate-unlock gates (app/api/employer/messages,
+            // app/api/employer/candidates/[id]) key on this flag; ordering
+            // does NOT (top placement comes from the EmployerJob relation,
+            // see lib/utils/job-sort.ts).
+            isFeatured: config.isFeaturedTier('pro'),
             isPublished: true,
             isVerifiedEmployer: true,
             sourceType: 'employer',
@@ -482,6 +488,17 @@ export async function POST(request: NextRequest) {
       data: { jobId: job.id },
     }).catch((err) => {
       logger.warn('inngest.send embedding.refresh.job failed (post-free)', undefined, err);
+    });
+
+    // Distribution audit A4: instant alert fan-out — matches this employer
+    // post against active confirmed job alerts and sends a single-job alert
+    // email that replaces the recipient's daily digest for the day
+    // (handler: lib/inngest/functions/employer-published.ts).
+    inngest.send({
+      name: 'job/employer.published',
+      data: { jobId: job.id },
+    }).catch((err) => {
+      logger.warn('inngest.send job/employer.published failed (post-free)', undefined, err);
     });
 
     // Ping search engines for indexing (production only, fire-and-forget)
