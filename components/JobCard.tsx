@@ -123,6 +123,24 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const shareDescription = `Check out this PMHNP job: ${job.title} at ${job.employer}`;
   const viewed = isHydrated && isViewed(jobSlug);
   const easyApply = job.applyOnPlatform === true;
+  // ★ Featured chip — the sold promise made TRUE (2026-08 audit: "Featured
+  // badge" is sold on /pricing and promised in the confirmation email, but no
+  // UI rendered one). Keyed on employer-posted (sourceType='employer') rather
+  // than isFeatured alone so every live employer post shows it, including
+  // rows created while the post paths still wrote isFeatured:false.
+  // DISPLAY-ONLY: verification proved isFeatured does not affect ordering,
+  // and this chip does not either. Visual treatment mirrors the email card's
+  // ★ Featured badge (lib/utils/render-job-card.ts).
+  const showFeaturedChip = job.sourceType === 'employer' || job.isFeatured === true;
+  const featuredChip = showFeaturedChip ? (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      padding: '5px 12px', borderRadius: '20px',
+      fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em',
+      textTransform: 'uppercase' as const,
+      background: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D',
+    }}>★ Featured</span>
+  ) : null;
 
   // EVERY card apply button (Easy Apply and external alike) navigates to
   // the job detail page with ?apply=1, where ApplyButton auto-triggers the
@@ -305,6 +323,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             {/* Salary + Type + Mode + Experience. Location moved up beside
                 the company name (above), so it's no longer a chip here. */}
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+              {featuredChip}
               {salaryDisplay && (
                 <Badge variant="salary" size="sm">
                   {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
@@ -608,10 +627,11 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </div>
         </div>
 
-        {/* Row 3: Salary + Type + Mode + Experience + Status Badges. Salary
-            leads so it stays the most prominent chip even though it's no
-            longer floating in the top-right corner. */}
+        {/* Row 3: Featured + Salary + Type + Mode + Experience + Status
+            Badges. The Featured chip leads for employer posts (the sold
+            placement); salary stays the most prominent data chip. */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+          {featuredChip}
           {salaryDisplay && (
             <Badge variant="salary" size="sm">
               {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}

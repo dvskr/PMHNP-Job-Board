@@ -14,7 +14,7 @@ import MobileFilterDrawer from '@/components/MobileFilterDrawer';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { Job } from '@/lib/types';
 import { FilterState, DEFAULT_FILTERS } from '@/types/filters';
-import { parseFiltersFromParams } from '@/lib/filters';
+import { filtersToParams, parseFiltersFromParams } from '@/lib/filters';
 import { useViewMode } from '@/lib/hooks/useViewMode';
 import { resolveAiSearchMode } from '@/lib/jobs/resolve-search-mode';
 
@@ -87,8 +87,13 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
       setLoading(true);
       setError(null);
 
-      // Build query string from filters
-      const params = new URLSearchParams();
+      // Serialize through the SHARED filtersToParams helper — the exact
+      // inverse of the parseFiltersFromParams call /api/jobs uses, so every
+      // FilterState field round-trips. The previous hand-built list here
+      // silently dropped filters it didn't know about (newGrad, minYears,
+      // employer — and would have dropped easyApply), so those sidebar
+      // checkboxes filtered the URL but not the fetched results.
+      const params = filtersToParams(filters);
 
       // Add pagination
       params.set('page', page.toString());
@@ -97,63 +102,6 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
       // Add sort
       if (sort && sort !== 'best') {
         params.set('sort', sort);
-      }
-
-      // Add search
-      if (filters.search) {
-        params.set('q', filters.search);
-      }
-
-      // Add location
-      if (filters.location) {
-        params.set('location', filters.location);
-      }
-
-      // Add precise city + state (from metro/city page CTAs)
-      if (filters.cityExact) {
-        params.set('cityExact', filters.cityExact);
-      }
-      if (filters.stateCode) {
-        params.set('stateCode', filters.stateCode);
-      }
-
-      // Add work modes (multi-select)
-      filters.workMode.forEach((mode: string) => {
-        params.append('workMode', mode);
-      });
-
-      // Add job types (multi-select)
-      filters.jobType.forEach((type: string) => {
-        params.append('jobType', type);
-      });
-
-      // Add specialty (multi-select)
-      if (filters.specialty) {
-        filters.specialty.forEach((spec: string) => {
-          params.append('specialty', spec);
-        });
-      }
-
-      // Add experience level (multi-select)
-      if (filters.experienceLevel) {
-        filters.experienceLevel.forEach((el: string) => {
-          params.append('experienceLevel', el);
-        });
-      }
-
-      // Add salary
-      if (filters.salaryMin) {
-        params.set('salaryMin', filters.salaryMin.toString());
-      }
-
-      // Add posted within
-      if (filters.postedWithin) {
-        params.set('postedWithin', filters.postedWithin);
-      }
-
-      // Add category (enterprise filter — same as category pages)
-      if (filters.category) {
-        params.set('category', filters.category);
       }
 
       const url = `/api/jobs?${params.toString()}`;

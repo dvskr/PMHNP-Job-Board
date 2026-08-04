@@ -665,6 +665,32 @@ export function salaryAtLeastClause(min: number): Prisma.JobWhereInput {
 }
 
 /**
+ * "Direct employers / Easy Apply" clause — shared by buildWhereClause, the
+ * filter-counts route, AND the /jobs/easy-apply landing page so the checkbox
+ * predicate, its badge count, and the pSEO page can never diverge.
+ *
+ * A job qualifies when EITHER:
+ *   (a) sourceType='employer' — posted by an employer through our platform.
+ *       This is the established employer-post idiom used DB-side everywhere
+ *       (FeaturedJobsSection, expiry-warnings cron, widget, job-classifier);
+ *       it is written at Job creation by BOTH post paths (post-free and
+ *       create-checkout) alongside the EmployerJob row, so it is equivalent
+ *       to `employerJobs: { isNot: null }` without the relation join.
+ *   (b) applyOnPlatform=true — the candidate applies without leaving the
+ *       site (the "Easy Apply" flow). Today this is only settable on
+ *       employer posts, but keeping it in the OR future-proofs the filter
+ *       against any non-employer on-platform apply path.
+ */
+export function easyApplyClause(): Prisma.JobWhereInput {
+  return {
+    OR: [
+      { sourceType: 'employer' },
+      { applyOnPlatform: true },
+    ],
+  };
+}
+
+/**
  * Specialty keyword registry — the checkbox options under "Specialty",
  * keyed by the FilterState.specialty value. Each entry lists the
  * case-insensitive substrings matched against title / description.
@@ -856,6 +882,12 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     andConditions.push(minYearsQualifyClause(filters.minYearsExperience));
   }
 
+  // "Direct employers / Easy Apply" — shared clause with the filter-counts
+  // route and the /jobs/easy-apply page (see easyApplyClause).
+  if (filters.easyApply === true) {
+    andConditions.push(easyApplyClause());
+  }
+
   // Employer
   if (filters.employer) {
     andConditions.push({
@@ -882,6 +914,7 @@ export function parseFiltersFromParams(searchParams: URLSearchParams): FilterSta
     experienceLevel: searchParams.getAll('experienceLevel'),
     newGradFriendly: searchParams.get('newGrad') === '1' ? true : null,
     minYearsExperience: minYears,
+    easyApply: searchParams.get('easyApply') === '1' ? true : null,
     salaryMin: searchParams.get('salaryMin') ? Number(searchParams.get('salaryMin')) : null,
     postedWithin: searchParams.get('postedWithin') || null,
     location: searchParams.get('location') || null,
@@ -905,6 +938,7 @@ export function filtersToParams(filters: FilterState): URLSearchParams {
   if (typeof filters.minYearsExperience === 'number' && filters.minYearsExperience >= 0) {
     params.set('minYears', String(filters.minYearsExperience));
   }
+  if (filters.easyApply === true) params.set('easyApply', '1');
   if (filters.salaryMin) params.set('salaryMin', String(filters.salaryMin));
   if (filters.postedWithin) params.set('postedWithin', filters.postedWithin);
   if (filters.location) params.set('location', filters.location);

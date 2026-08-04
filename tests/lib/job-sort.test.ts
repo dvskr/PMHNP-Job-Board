@@ -11,7 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     BEST_SORT_ORDER_BY,
-    EMPLOYER_FIRST_KEY,
+    EMPLOYER_FIRST_KEYS,
     buildJobsOrderBy,
     compareJobsBest,
     type JobSortable,
@@ -30,9 +30,10 @@ const job = (overrides: Partial<JobSortable> = {}): JobSortable => ({
 });
 
 describe('BEST_SORT_ORDER_BY (DB orderBy)', () => {
-    it('has exactly five sort keys in canonical order', () => {
+    it('has exactly six sort keys in canonical order', () => {
         expect(BEST_SORT_ORDER_BY).toEqual([
-            { employerJobs: { id: 'asc' } },
+            { employerJobs: { pricingTier: 'asc' } },
+            { employerJobs: { paymentStatus: 'desc' } },
             { isFeatured: 'desc' },
             { qualityScore: 'desc' },
             { originalPostedAt: 'desc' },
@@ -46,16 +47,45 @@ describe('BEST_SORT_ORDER_BY (DB orderBy)', () => {
 });
 
 describe('buildJobsOrderBy — single source of truth for listing order', () => {
-    // The employer-first lead is decoupled so the Phase B switch to a
-    // denormalized boolean is a one-line change. Pin it so the interim trick
-    // can't silently change shape.
-    it('EMPLOYER_FIRST_KEY is the employer-relation lead key', () => {
-        expect(EMPLOYER_FIRST_KEY).toEqual({ employerJobs: { id: 'asc' } });
+    // The employer-first lead is decoupled so the eventual switch to
+    // denormalized columns is localized. Pin the interim relation trick so it
+    // can't silently change shape:
+    //   1. pricingTier ASC  — non-null + non-unique on EmployerJob, so
+    //      Postgres ASC-NULLS-LAST pins employer rows above aggregated
+    //      content while letting them TIE (the old `id: 'asc'` lead was a
+    //      unique UUID that randomly ordered employer posts — the paid post
+    //      could rank last of the pins).
+    //   2. paymentStatus DESC — 'paid' > 'free' lexicographically among the
+    //      tied employer rows. Published rows are only ever paid/free.
+    it('EMPLOYER_FIRST_KEYS pins employer rows first, then paid before free', () => {
+        expect(EMPLOYER_FIRST_KEYS).toEqual([
+            { employerJobs: { pricingTier: 'asc' } },
+            { employerJobs: { paymentStatus: 'desc' } },
+        ]);
     });
 
-    it('best pins employer-first, then featured → quality → recency', () => {
+    it('the pin key is NOT a unique relation column (unique ⇒ random UUID order among pins)', () => {
+        // Regression lock for the exact bug: `{ employerJobs: { id: 'asc' } }`
+        // fully determined the employer-tier order by UUID, so downstream
+        // tie-breaks (paid-first, quality, recency) never applied.
+        const uniqueEmployerJobColumns = ['id', 'jobId', 'editToken', 'dashboardToken'];
+        for (const key of EMPLOYER_FIRST_KEYS) {
+            const relationField = Object.keys((key as { employerJobs: Record<string, string> }).employerJobs)[0];
+            expect(uniqueEmployerJobColumns).not.toContain(relationField);
+        }
+    });
+
+    it('paymentStatus DESC alone must never lead (Postgres DESC = NULLS FIRST would pin aggregated rows)', () => {
+        // The null-separating key (ASC on a non-null relation column) must come
+        // before the DESC paymentStatus key, or aggregated content (NULL
+        // relation) would sort ABOVE every employer post.
+        const first = EMPLOYER_FIRST_KEYS[0] as { employerJobs: Record<string, string> };
+        expect(Object.values(first.employerJobs)).toEqual(['asc']);
+    });
+
+    it('best pins employer-first, then paid-first, then featured → quality → recency', () => {
         expect(buildJobsOrderBy('best')).toEqual([
-            EMPLOYER_FIRST_KEY,
+            ...EMPLOYER_FIRST_KEYS,
             { isFeatured: 'desc' },
             { qualityScore: 'desc' },
             { originalPostedAt: 'desc' },
@@ -65,7 +95,7 @@ describe('buildJobsOrderBy — single source of truth for listing order', () => 
 
     it('newest does NOT pin employer-first (an explicit chronological sort honors recency)', () => {
         const order = buildJobsOrderBy('newest');
-        expect(order[0]).not.toEqual(EMPLOYER_FIRST_KEY);
+        expect(order[0]).not.toEqual(EMPLOYER_FIRST_KEYS[0]);
         expect(order).toEqual([
             { originalPostedAt: { sort: 'desc', nulls: 'last' } },
             { createdAt: 'desc' },
@@ -74,7 +104,7 @@ describe('buildJobsOrderBy — single source of truth for listing order', () => 
 
     it('salary does NOT pin employer-first (pinning would make the salary column lie)', () => {
         const order = buildJobsOrderBy('salary');
-        expect(order[0]).not.toEqual(EMPLOYER_FIRST_KEY);
+        expect(order[0]).not.toEqual(EMPLOYER_FIRST_KEYS[0]);
         expect(order).toEqual([
             { normalizedMaxSalary: { sort: 'desc', nulls: 'last' } },
             { normalizedMinSalary: { sort: 'desc', nulls: 'last' } },
@@ -83,11 +113,11 @@ describe('buildJobsOrderBy — single source of truth for listing order', () => 
     });
 
     it('employerFirst: false drops the lead on best', () => {
-        expect(buildJobsOrderBy('best', { employerFirst: false })[0]).not.toEqual(EMPLOYER_FIRST_KEY);
+        expect(buildJobsOrderBy('best', { employerFirst: false })[0]).not.toEqual(EMPLOYER_FIRST_KEYS[0]);
     });
 
     it('employerFirst: true adds the lead on newest', () => {
-        expect(buildJobsOrderBy('newest', { employerFirst: true })[0]).toEqual(EMPLOYER_FIRST_KEY);
+        expect(buildJobsOrderBy('newest', { employerFirst: true }).slice(0, 2)).toEqual(EMPLOYER_FIRST_KEYS);
     });
 
     it('falls back to the pinned best order for an unknown sort value', () => {
@@ -103,6 +133,43 @@ describe('compareJobsBest', () => {
 
         expect(compareJobsBest(employer, fresh)).toBeLessThan(0);
         expect(compareJobsBest(fresh, employer)).toBeGreaterThan(0);
+    });
+
+    it('within employer tier, PAID beats FREE regardless of quality/recency (the sold placement)', () => {
+        const paid = job({
+            isEmployerPosted: true, employerPaymentStatus: 'paid',
+            qualityScore: 0, originalPostedAt: dayAfter(-30),
+        });
+        const free = job({
+            isEmployerPosted: true, employerPaymentStatus: 'free',
+            qualityScore: 100, originalPostedAt: dayAfter(0),
+        });
+
+        expect(compareJobsBest(paid, free)).toBeLessThan(0);
+        expect(compareJobsBest(free, paid)).toBeGreaterThan(0);
+    });
+
+    it('within the same paymentStatus, employer posts fall through to the tail keys (newer first)', () => {
+        const newerPaid = job({ isEmployerPosted: true, employerPaymentStatus: 'paid', originalPostedAt: dayAfter(0) });
+        const olderPaid = job({ isEmployerPosted: true, employerPaymentStatus: 'paid', originalPostedAt: dayAfter(-7) });
+
+        expect(compareJobsBest(newerPaid, olderPaid)).toBeLessThan(0);
+    });
+
+    it('a FREE employer post still beats any aggregated job (paid-first never demotes below the pin)', () => {
+        const freeEmployer = job({ isEmployerPosted: true, employerPaymentStatus: 'free', qualityScore: 0 });
+        const aggregated = job({ isEmployerPosted: false, qualityScore: 100, originalPostedAt: dayAfter(0) });
+
+        expect(compareJobsBest(freeEmployer, aggregated)).toBeLessThan(0);
+    });
+
+    it('paymentStatus is ignored for non-employer rows (aggregated content never carries one)', () => {
+        // Defensive: even if a caller leaks a status onto an aggregated row,
+        // the employer tier gate keeps the comparison on the tail keys.
+        const a = job({ isEmployerPosted: false, employerPaymentStatus: 'paid', qualityScore: 10 });
+        const b = job({ isEmployerPosted: false, qualityScore: 50 });
+
+        expect(compareJobsBest(b, a)).toBeLessThan(0);
     });
 
     it('within employer tier, featured beats non-featured (reserved for future premium tier)', () => {

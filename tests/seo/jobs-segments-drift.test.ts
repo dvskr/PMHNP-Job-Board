@@ -98,16 +98,20 @@ describe('JOBS_TAXONOMY registry drift guard', () => {
 
     // 13 taxonomies have app/jobs/<slug>/[state] routes (middleware state gate).
     expect(count((e) => e.stateEligible)).toBe(13);
-    // All 28 categories have app/jobs/<slug>/city/[slug] routes.
+    // 28 of 29 categories have app/jobs/<slug>/city/[slug] routes
+    // (easy-apply, added 2026-08, is a landing-only page with no city routes).
     expect(count((e) => e.cityEligible)).toBe(28);
     // 13 categories are emitted by the batched city sitemaps.
     expect(count((e) => e.inCitySitemaps)).toBe(13);
     // 13 categories are submitted by the index-pseo cron.
     expect(count((e) => e.pseoIndexing)).toBe(13);
-    // 27 = 28 categories minus substance-abuse (2026-07: canonicalized to
+    // 28 = 29 categories minus substance-abuse (2026-07: canonicalized to
     // /jobs/addiction — page stays live but only the canonical target is
-    // sitemapped).
-    expect(count((e) => e.inPrimarySitemap)).toBe(27);
+    // sitemapped). easy-apply (2026-08) IS in the primary sitemap.
+    expect(count((e) => e.inPrimarySitemap)).toBe(28);
+    expect(
+      JOBS_TAXONOMY.find((e) => e.slug === 'easy-apply')?.inPrimarySitemap,
+    ).toBe(true);
     expect(
       JOBS_TAXONOMY.find((e) => e.slug === 'substance-abuse')?.inPrimarySitemap,
     ).toBe(false);

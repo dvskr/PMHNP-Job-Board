@@ -264,9 +264,15 @@ export async function POST(request: NextRequest) {
           stateCode: parsedLoc.stateCode,
           isRemote: parsedLoc.isRemote,
           isHybrid: parsedLoc.isHybrid,
-          // isFeatured reserved for a future premium tier. Standard $199
-          // posts get top placement via the EmployerJob relation now —
-          // see lib/utils/job-sort.ts.
+          // Featured badge promise (2026-08 audit fact 7): stays FALSE while
+          // the post is a pending unpaid draft, then the Stripe webhook flips
+          // it to true alongside isPublished on successful payment. Do NOT
+          // set it here: the employer messaging gate
+          // (app/api/employer/messages/route.ts) checks only isFeatured +
+          // ownership — no isPublished — so featuring an unpaid pending row
+          // would unlock InMail outreach for a post that was never paid for.
+          // Top placement comes from the EmployerJob relation
+          // (lib/utils/job-sort.ts), not this flag.
           isFeatured: false,
           isPublished: false, // Will be flipped by webhook on successful payment
           sourceType: 'employer',

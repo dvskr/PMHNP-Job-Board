@@ -1,5 +1,6 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import FeaturedJobs from '@/components/FeaturedJobs';
 import { Prisma } from '@prisma/client';
 import { classifyJob } from '@/lib/ai/job-classifier';
@@ -23,14 +24,20 @@ const EMPLOYER_PIN_COUNT = 2;
  * FeaturedJobsSection (Server Component)
  *
  * Fetches 8 jobs for the homepage:
- *   - Posted within the last 3 days (originalPostedAt or createdAt)
- *   - **Excludes external (aggregator-bounce) jobs** — only direct_apply +
- *     easy_apply paths surface here. Filter is applied DB-side via
- *     sourceType + applyLink-host substrings, then double-checked in JS via
- *     `classifyJob` so a misclassified row never sneaks through.
- *   - Pins up to 2 `sourceType='employer'` postings, rotated by 6h time
- *     bucket so the cached ISR page surfaces fresh employer slots through
- *     the day without per-request DB churn.
+ *   - EMPLOYER PIN POOL: every live, published, unexpired
+ *     `sourceType='employer'` posting is eligible for its WHOLE term. The old
+ *     single 3-day window silently dropped employer posts off the homepage
+ *     after 72h of their 30/60-day listing (2026-08 audit); the freshness cap
+ *     now applies only to the scraped fill pool below.
+ *   - FILL POOL: aggregated jobs posted within the last 3 days
+ *     (originalPostedAt or createdAt). **Excludes external
+ *     (aggregator-bounce) jobs** — only direct_apply + easy_apply paths
+ *     surface here. Filter is applied DB-side via sourceType +
+ *     applyLink-host substrings, then double-checked in JS via `classifyJob`
+ *     so a misclassified row never sneaks through.
+ *   - Pins up to 2 employer postings, rotated by 6h time bucket so the
+ *     cached ISR page surfaces fresh employer slots through the day without
+ *     per-request DB churn.
  *   - Sorts the rest by qualityScore desc.
  *   - Caps any single employer at 2 cards (incl. the pinned slots).
  *   - Skips expired jobs.
@@ -105,47 +112,77 @@ export default async function FeaturedJobsSection() {
     }[] = [];
 
     try {
-        // Overfetch — DB pre-filter is broad (host substrings), JS classify
-        // narrows further, employer-pin + per-employer cap shrink again.
-        // 5× target leaves headroom for all three to reduce.
-        const candidates = await prisma.job.findMany({
-            where: {
-                isPublished: true,
-                OR: [
-                    { originalPostedAt: { gte: threeDaysAgo } },
-                    { originalPostedAt: null, createdAt: { gte: threeDaysAgo } },
+        // Two pools, fetched in parallel:
+        //   1. Employer pin pool — NO freshness window. A paid 30/60-day post
+        //      stays homepage-eligible its entire term (it used to vanish
+        //      after the 3-day cap; 2026-08 audit fix).
+        //   2. Scraped fill pool — keeps the 3-day window so aggregated
+        //      content on the homepage is always fresh. Overfetch: the DB
+        //      pre-filter is broad (host substrings), JS classify narrows
+        //      further, employer-pin + per-employer cap shrink again. 5×
+        //      target leaves headroom for all three to reduce.
+        const [employerCandidates, candidates] = await Promise.all([
+            prisma.job.findMany({
+                where: {
+                    isPublished: true,
+                    sourceType: 'employer',
+                    OR: [
+                        { expiresAt: null },
+                        { expiresAt: { gt: now } },
+                    ],
+                },
+                orderBy: [
+                    { qualityScore: 'desc' },
+                    { originalPostedAt: { sort: 'desc', nulls: 'last' } },
+                    { createdAt: 'desc' },
                 ],
-                AND: [
-                    {
-                        OR: [
-                            { expiresAt: null },
-                            { expiresAt: { gt: now } },
-                        ],
-                    },
-                    directApplyOnly,
+                take: TARGET * 5,
+                select: selectFields,
+            }),
+            prisma.job.findMany({
+                where: {
+                    isPublished: true,
+                    OR: [
+                        { originalPostedAt: { gte: threeDaysAgo } },
+                        { originalPostedAt: null, createdAt: { gte: threeDaysAgo } },
+                    ],
+                    AND: [
+                        {
+                            OR: [
+                                { expiresAt: null },
+                                { expiresAt: { gt: now } },
+                            ],
+                        },
+                        directApplyOnly,
+                    ],
+                },
+                orderBy: [
+                    { qualityScore: 'desc' },
+                    { originalPostedAt: { sort: 'desc', nulls: 'last' } },
+                    { createdAt: 'desc' },
                 ],
-            },
-            orderBy: [
-                { qualityScore: 'desc' },
-                { originalPostedAt: { sort: 'desc', nulls: 'last' } },
-                { createdAt: 'desc' },
-            ],
-            take: TARGET * 5,
-            select: selectFields,
-        });
+                take: TARGET * 5,
+                select: selectFields,
+            }),
+        ]);
 
         // Belt-and-braces JS classification — drops anything the DB filter
         // let through that classifyJob still considers external/unhealthy.
-        const eligible = (candidates as RawJob[]).filter((j) => {
+        const isEligible = (j: RawJob): boolean => {
             const { tier, isHealthy } = classifyJob(j);
             return isHealthy && tier !== 'external';
-        });
+        };
+        const eligible = (candidates as RawJob[]).filter(isEligible);
 
         // 6h-bucket rotation — the same time window across all visitors so
         // the ISR cache stays useful, but the pinned set shifts 4× per day.
         const seed = `homepage-${sixHourBucket()}`;
 
-        const employerPool = eligible.filter((j) => isEmployerPosting(j));
+        // Pin pool draws from the un-windowed employer query (whole-term
+        // eligibility), not from the 3-day fill pool.
+        const employerPool = (employerCandidates as RawJob[])
+            .filter(isEligible)
+            .filter((j) => isEmployerPosting(j));
         const pinnedRaw = sortByJitteredScore(
             employerPool,
             (j) => j.qualityScore ?? 0,
@@ -154,7 +191,9 @@ export default async function FeaturedJobsSection() {
         ).slice(0, EMPLOYER_PIN_COUNT);
         const pinnedIds = new Set(pinnedRaw.map((j) => j.id));
 
-        // Fill from non-pinned, in qualityScore order (Prisma already returned sorted).
+        // Fill from non-pinned, in qualityScore order (Prisma already returned
+        // sorted). Employer posts inside the 3-day window may appear here too
+        // (beyond the pinned slots) — same behavior as before.
         const fillPool = eligible.filter((j) => !pinnedIds.has(j.id));
 
         // Combine: pinned first, then score-sorted fill. Apply the per-employer cap.
@@ -182,11 +221,8 @@ export default async function FeaturedJobsSection() {
             originalPostedAt: j.originalPostedAt?.toISOString() ?? null,
         }));
     } catch (error) {
-        console.error('Error fetching featured jobs:', error instanceof Error ? error.message : error);
-        console.error('Full error:', JSON.stringify(error, null, 2));
+        logger.error('Error fetching featured jobs', error);
     }
-
-    console.log(`[FeaturedJobsSection] Fetched ${jobs.length} jobs`);
 
     return (
         <>

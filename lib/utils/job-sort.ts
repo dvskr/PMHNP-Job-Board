@@ -14,14 +14,16 @@
  *                    (e.g., merging results across multiple alerts before
  *                    truncating to the email's 10-card display cap)
  *
- * "best" ranking factors, in order (2026-05-16 revision):
+ * "best" ranking factors, in order (2026-08 revision — paid-first tie-break):
  *   1. employer-posted  — any Job with an EmployerJob row (paid OR free)
  *                          surfaces above aggregated content.
- *   2. isFeatured       — reserved for a hypothetical future premium tier.
+ *   2. paid-before-free — among employer posts, paymentStatus 'paid' ranks
+ *                          above 'free' (the placement paid posts are sold on).
+ *   3. isFeatured       — reserved for a hypothetical future premium tier.
  *                          No jobs in the current pricing model set it.
- *   3. qualityScore     — link/salary/description/location/freshness signal.
- *   4. originalPostedAt — most recent posting date from the source.
- *   5. createdAt        — fallback when originalPostedAt is null.
+ *   4. qualityScore     — link/salary/description/location/freshness signal.
+ *   5. originalPostedAt — most recent posting date from the source.
+ *   6. createdAt        — fallback when originalPostedAt is null.
  *
  * Pinned by tests in tests/lib/job-sort.test.ts. If you change either side,
  * update both and the test snapshot.
@@ -31,19 +33,45 @@ import type { Prisma } from '@prisma/client';
 /** Listing sort modes exposed by the /jobs UI. */
 export type JobSort = 'best' | 'newest' | 'salary';
 
-// Leading orderBy key that pins employer-posted rows above aggregated content.
-// Decoupled into its own constant so the eventual switch to a denormalized,
-// indexed `Job.isEmployerPosted` boolean (which removes the fragile
-// NULLS-LAST-on-ASC relation dependency below) is a ONE-LINE change here — flip
-// to `{ isEmployerPosted: 'desc' }` once that column ships.
+// Leading orderBy keys that pin employer-posted rows above aggregated content,
+// AND rank paid posts above free posts within the employer tier. Decoupled into
+// their own constant so the eventual switch to denormalized, indexed
+// `Job.isEmployerPosted` / payment columns (which removes the relation
+// dependency below) stays a localized change here.
 //
-// Interim mechanism: `id: 'asc'` on the 1-to-1 EmployerJob relation pushes rows
-// with a null EmployerJob (aggregated content) to the bottom, because Postgres
-// orders `ASC` with NULLS LAST by default. The asc/desc ordering *among*
-// employer-posted rows is irrelevant — the downstream keys tie-break.
-export const EMPLOYER_FIRST_KEY: Prisma.JobOrderByWithRelationInput = {
-  employerJobs: { id: 'asc' },
-};
+// Two keys, both on the 1-to-1 EmployerJob relation:
+//
+//   1. `pricingTier: 'asc'` — the PIN. pricingTier is NON-NULL on every
+//      EmployerJob (String @default("pro")), and Postgres orders ASC with
+//      NULLS LAST by default, so every row with an EmployerJob sorts above
+//      aggregated content (whose LEFT-JOINed relation columns are NULL).
+//      Crucially it is also NON-UNIQUE and single-valued today ('pro' for all
+//      rows), so employer rows TIE on it and fall through to key 2. The
+//      previous single key here was `id: 'asc'` — a UNIQUE UUID, which fully
+//      determined the order among employer posts by random UUID; a paid post
+//      could (and did) rank last of the pins.
+//   2. `paymentStatus: 'desc'` — the PAID-FIRST tie-break. Among published
+//      employer rows paymentStatus is only ever 'paid' or 'free' ('pending' /
+//      'refunded' rows are never published), so lexicographic DESC is exactly
+//      paid-then-free. Recency then falls to the shared tail keys.
+//
+// Why not ONE key `paymentStatus: 'desc'`? Postgres defaults DESC to NULLS
+// FIRST, which would pin aggregated content ABOVE employer posts, and the
+// generated EmployerJobOrderByWithRelationInput types paymentStatus as plain
+// `SortOrder` (the `{ sort, nulls }` form is only generated for nullable
+// scalars), so the NULLS LAST override cannot be expressed on it. Key 1's
+// ASC-NULLS-LAST does the null separation instead; NULL-relation rows never
+// reach key 2.
+//
+// Known fragility (documented, acceptable): if a second pricingTier value ever
+// ships, key 1 would group employer posts alphabetically by tier before the
+// paid/free ordering applies. Employer posts would STILL all pin above
+// aggregated content (any non-null tier < NULL). Revisit alongside the
+// denormalized-column migration if a real second tier launches.
+export const EMPLOYER_FIRST_KEYS: Prisma.JobOrderByWithRelationInput[] = [
+  { employerJobs: { pricingTier: 'asc' } },
+  { employerJobs: { paymentStatus: 'desc' } },
+];
 
 // Sort-specific tail keys (everything after the optional employer-first lead).
 const SORT_TAILS: Record<JobSort, Prisma.JobOrderByWithRelationInput[]> = {
@@ -86,7 +114,7 @@ export function buildJobsOrderBy(
   // 'best' so an unrecognized ?sort= falls back to the pinned default order.
   const safeSort: JobSort = sort in SORT_TAILS ? sort : 'best';
   const pin = opts.employerFirst ?? safeSort === 'best';
-  return pin ? [EMPLOYER_FIRST_KEY, ...SORT_TAILS[safeSort]] : [...SORT_TAILS[safeSort]];
+  return pin ? [...EMPLOYER_FIRST_KEYS, ...SORT_TAILS[safeSort]] : [...SORT_TAILS[safeSort]];
 }
 
 /**
@@ -104,6 +132,11 @@ export interface JobSortable {
   /** True when the job has an EmployerJob row attached (paid OR free
    *  employer post). Tracks the new "employer first" sort criterion. */
   isEmployerPosted?: boolean | null;
+  /** EmployerJob.paymentStatus for employer posts ('paid' | 'free' on
+   *  published rows). Mirrors the DB-side paid-first tie-break; omit /null
+   *  for aggregated content. Callers that don't pass it keep the previous
+   *  behavior (employer posts tie, tail keys decide). */
+  employerPaymentStatus?: string | null;
   isFeatured?: boolean | null;
   qualityScore?: number | null;
   originalPostedAt?: Date | null;
@@ -120,6 +153,16 @@ export function compareJobsBest(a: JobSortable, b: JobSortable): number {
   const aEmployer = a.isEmployerPosted ?? false;
   const bEmployer = b.isEmployerPosted ?? false;
   if (aEmployer !== bEmployer) return aEmployer ? -1 : 1;
+
+  // Paid-before-free among employer posts — mirrors the DB-side
+  // `paymentStatus: 'desc'` lexicographic tie-break ('paid' > 'free'; a
+  // missing status sorts last within the employer tier). Non-employer rows
+  // never carry a status, so this arm is a no-op for aggregated content.
+  if (aEmployer && bEmployer) {
+    const aPay = a.employerPaymentStatus ?? '';
+    const bPay = b.employerPaymentStatus ?? '';
+    if (aPay !== bPay) return aPay > bPay ? -1 : 1;
+  }
 
   const aFeatured = a.isFeatured ?? false;
   const bFeatured = b.isFeatured ?? false;
