@@ -166,8 +166,9 @@ export default async function ResourcesPage() {
           { '@type': 'Article', name: 'PMHNP Full Practice Authority Guide', url: 'https://pmhnphiring.com/resources/fpa-guide' },
           { '@type': 'Article', name: '1099 vs W2 for PMHNPs — Compensation Comparison', url: 'https://pmhnphiring.com/resources/1099-vs-w2' },
           { '@type': 'Article', name: 'How to Start a PMHNP Private Practice', url: 'https://pmhnphiring.com/resources/private-practice-guide' },
+          { '@type': 'Article', name: 'Multi-State Licensure for PMHNPs', url: 'https://pmhnphiring.com/resources/multi-state-licensure' },
         ],
-        numberOfItems: 3,
+        numberOfItems: 4,
       }) }} />
 
       {/* ═══════════════════════════════════════════════════════════════
@@ -236,6 +237,7 @@ export default async function ResourcesPage() {
             <Link href="/resources/1099-vs-w2" className="emp-bento-card" style={{
               ...clayCard, padding: '0', overflow: 'hidden', textDecoration: 'none',
               display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center',
+              marginBottom: '14px',
             }}>
               <div style={{ padding: '24px 28px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: '#F59E0B', background: '#FEF3C7', padding: '4px 10px', borderRadius: '20px' }}>Compensation</span>
@@ -246,6 +248,23 @@ export default async function ResourcesPage() {
               </div>
               <div style={{ padding: '24px 28px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="1099 vs W2" width={56} sizes="56px" height={56} style={{ width: '56px', height: '56px', borderRadius: '16px' }} />
+              </div>
+            </Link>
+
+            {/* Multi-state licensure — full-width banner (audit D5) */}
+            <Link href="/resources/multi-state-licensure" className="emp-bento-card" style={{
+              ...clayCard, padding: '0', overflow: 'hidden', textDecoration: 'none',
+              display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center',
+            }}>
+              <div style={{ padding: '24px 28px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#6366F1', background: '#EEF2FF', padding: '4px 10px', borderRadius: '20px' }}>Licensure</span>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', margin: '10px 0 6px' }}>Multi-State Licensure for PMHNPs</h2>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.55, margin: 0 }}>
+                  What the Nurse Licensure Compact covers (and what it does not), the APRN Compact status, and the playbook for telehealth and travel practice.
+                </p>
+              </div>
+              <div style={{ padding: '24px 28px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-chart.webp" alt="Multi-state licensure" width={56} sizes="56px" height={56} style={{ width: '56px', height: '56px', borderRadius: '16px' }} />
               </div>
             </Link>
           </div>

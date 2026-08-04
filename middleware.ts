@@ -299,6 +299,21 @@ const KNOWN_CRAWLER_UAS = [
     /cohere-ai/i,
     /YouBot/i,
     /Diffbot/i,
+    // 2025-26 on-demand AI fetchers (distribution audit D1). These are the
+    // user-triggered retrieval agents (a person asked the assistant a
+    // question and it fetched a page to answer), distinct from the
+    // training/index crawlers above. They were absent from this roster, so
+    // they fell through to the per-IP rate limit and could be throttled
+    // mid-answer — exactly the moment an AI tool decides whether to cite us.
+    /Claude-User/i,          // Anthropic: user-initiated fetch from Claude
+    /Claude-SearchBot/i,     // Anthropic: Claude search index
+    /Perplexity-User/i,      // Perplexity: user-initiated fetch
+    /DuckAssistBot/i,        // DuckDuckGo AI answers
+    /Meta-ExternalAgent/i,   // Meta AI crawler
+    /Meta-ExternalFetcher/i, // Meta AI user-initiated fetch
+    /MistralAI-User/i,       // Mistral: user-initiated fetch
+    /Amazonbot/i,            // Amazon (Alexa / Rufus answers)
+    /AI2Bot/i,               // Allen Institute for AI
     // Social / link-preview bots (legitimate, low volume)
     /facebookexternalhit/i,
     /LinkedInBot/i,
