@@ -66,6 +66,184 @@ const CODE_TO_STATE: Record<string, string> = Object.fromEntries(
   Object.entries(STATE_TO_CODE).map(([name, code]) => [code, name])
 )
 
+// ─── Alert eligibility window (A2 fix) ────────────────────────────────────────
+// The daily cron fires once every 24h at a fixed slot, but lastSentAt is
+// stamped MINUTES AFTER the slot starts (query + render + Resend batch time).
+// The old predicate compared `lastSentAt < now - 24h`, so an alert stamped at
+// 13:31 yesterday was NOT eligible at 13:30 today — it silently skipped a full
+// day, and the skew compounded (stamp drifts later on every successful send).
+//
+// Fix: shrink the window to 20h. Chosen over "stamp lastSentAt to the slot
+// time" because it is a read-side constant with no write-path changes and no
+// need to reconstruct the intended slot; the 4h slack absorbs stamp drift and
+// cron jitter while still blocking a same-day double send (the cron only runs
+// once per 24h). Weekly gets the same 4h slack for the same reason.
+export const DAILY_ELIGIBILITY_HOURS = 20
+export const WEEKLY_ELIGIBILITY_HOURS = 6 * 24 + 20 // 164h = 7 days minus the same 4h slack
+
+const HOUR_MS = 60 * 60 * 1000
+
+/**
+ * Pure predicate mirroring buildAlertEligibilityWhere (which the daily cron
+ * and the instant employer fan-out both query with). Exported so tests can
+ * pin the exact cadence rule without a database.
+ */
+export function isAlertDue(
+  alert: { frequency: string; lastSentAt: Date | null },
+  now: Date,
+): boolean {
+  if (!alert.lastSentAt) return true
+  if (alert.frequency === 'daily') {
+    return alert.lastSentAt.getTime() < now.getTime() - DAILY_ELIGIBILITY_HOURS * HOUR_MS
+  }
+  if (alert.frequency === 'weekly') {
+    return alert.lastSentAt.getTime() < now.getTime() - WEEKLY_ELIGIBILITY_HOURS * HOUR_MS
+  }
+  // Unknown frequency values were never selected by the old OR either.
+  return false
+}
+
+/** Prisma WHERE for "active, double-opted-in, and due under its frequency". */
+export function buildAlertEligibilityWhere(now: Date): Prisma.JobAlertWhereInput {
+  const dailyCutoff = new Date(now.getTime() - DAILY_ELIGIBILITY_HOURS * HOUR_MS)
+  const weeklyCutoff = new Date(now.getTime() - WEEKLY_ELIGIBILITY_HOURS * HOUR_MS)
+  return {
+    // Double opt-in: both flags must be set. Older rows are grandfathered by
+    // the migration (confirmed_at = created_at).
+    isActive: true,
+    confirmedAt: { not: null },
+    OR: [
+      { lastSentAt: null },
+      { frequency: 'daily', lastSentAt: { lt: dailyCutoff } },
+      { frequency: 'weekly', lastSentAt: { lt: weeklyCutoff } },
+    ],
+  }
+}
+
+// ─── Job freshness gate (A3 fix: renewals re-enter the pool) ──────────────────
+// The old gate was `createdAt > cutoff` only, so an employer post reached
+// alert inboxes exactly once in its lifetime. A paid renewal (Stripe webhook
+// extends expiresAt and stamps Job.lastRenewedAt) is a re-promotion of the
+// posting and re-enters the freshness window here. lastRenewedAt is only ever
+// written by the renewal flow, so no sourceType guard is needed.
+export function buildJobFreshnessOr(cutoff: Date): Prisma.JobWhereInput {
+  return {
+    OR: [
+      { createdAt: { gt: cutoff } },
+      { lastRenewedAt: { gt: cutoff } },
+    ],
+  }
+}
+
+// ─── Pure single-job alert matcher (A4 instant fan-out) ───────────────────────
+/** Job fields the matcher inspects. Subset of the Prisma Job row. */
+export interface AlertMatchableJob {
+  title: string
+  employer: string
+  location: string | null
+  city: string | null
+  state: string | null
+  stateCode: string | null
+  mode: string | null
+  jobType: string | null
+  isRemote: boolean
+  isHybrid: boolean
+  normalizedMinSalary: number | null
+  normalizedMaxSalary: number | null
+  newGradFriendly: boolean
+  minYearsExperience: number | null
+}
+
+/** Alert criteria fields the matcher inspects. Subset of the JobAlert row. */
+export interface AlertMatchCriteria {
+  keyword?: string | null
+  location?: string | null
+  mode?: string | null
+  jobType?: string | null
+  minSalary?: number | null
+  maxSalary?: number | null
+  newGradFriendly?: boolean | null
+  minYearsExperience?: number | null
+}
+
+/**
+ * Inverts the per-alert WHERE builder in sendJobAlerts: instead of "which jobs
+ * match this alert", answers "does THIS job match this alert". Each branch
+ * mirrors the corresponding Prisma clause below — keep them in sync.
+ *
+ * One deliberate narrowing: the digest's newGradFriendly arm also ORs the
+ * CATEGORY_FILTERS['new-grad'] title patterns (minus exclusions) to catch
+ * unstructured aggregator rows. This matcher only ever sees employer posts,
+ * which get structured newGradFriendly/minYearsExperience at write time
+ * (lib/experience-label.ts), so the flag + min=0 check is sufficient here.
+ */
+export function jobMatchesAlert(job: AlertMatchableJob, alert: AlertMatchCriteria): boolean {
+  const contains = (haystack: string | null | undefined, needle: string): boolean =>
+    (haystack ?? '').toLowerCase().includes(needle.toLowerCase())
+
+  // Keyword: title + employer only (description is too noisy).
+  if (alert.keyword) {
+    if (!contains(job.title, alert.keyword) && !contains(job.employer, alert.keyword)) return false
+  }
+
+  // Location: structured state/stateCode fields + freetext fallback.
+  if (alert.location) {
+    const locationLower = alert.location.toLowerCase().trim()
+    const stateCode = STATE_TO_CODE[locationLower] || (locationLower.length === 2 ? locationLower.toUpperCase() : null)
+    const stateName = stateCode ? (CODE_TO_STATE[stateCode] || null) : null
+    if (stateCode) {
+      const matchesState =
+        job.stateCode === stateCode ||
+        (job.state ?? '').toLowerCase() === stateCode.toLowerCase() ||
+        (stateName ? contains(job.state, stateName) : false) ||
+        contains(job.location, alert.location) ||
+        contains(job.location, `, ${stateCode}`)
+      if (!matchesState) return false
+    } else {
+      if (!contains(job.location, alert.location) && !contains(job.city, alert.location)) return false
+    }
+  }
+
+  // Mode: inclusive matching + isRemote/isHybrid booleans.
+  if (alert.mode) {
+    const modeLower = alert.mode.toLowerCase()
+    if (modeLower === 'remote') {
+      if (!contains(job.mode, 'remote') && !job.isRemote) return false
+    } else if (modeLower === 'hybrid') {
+      if (!contains(job.mode, 'hybrid') && !job.isHybrid) return false
+    } else {
+      if (!contains(job.mode, alert.mode)) return false
+    }
+  }
+
+  // Job type: exact match.
+  if (alert.jobType && job.jobType !== alert.jobType) return false
+
+  // Salary: range overlap, but INCLUDE jobs with no salary data.
+  const hasNoSalaryData = job.normalizedMinSalary == null && job.normalizedMaxSalary == null
+  if (alert.minSalary) {
+    const meetsMin = job.normalizedMaxSalary != null && job.normalizedMaxSalary >= alert.minSalary
+    if (!meetsMin && !hasNoSalaryData) return false
+  }
+  if (alert.maxSalary) {
+    const meetsMax = job.normalizedMinSalary != null && job.normalizedMinSalary <= alert.maxSalary
+    if (!meetsMax && !hasNoSalaryData) return false
+  }
+
+  // New-grad: structured flag or explicit zero-experience floor (see docblock).
+  if (alert.newGradFriendly === true) {
+    if (!(job.newGradFriendly === true || job.minYearsExperience === 0)) return false
+  }
+
+  // Candidate-qualifies semantics: alert holder has N years; job qualifies
+  // when it requires ≤ N or doesn't specify.
+  if (typeof alert.minYearsExperience === 'number' && alert.minYearsExperience >= 0) {
+    if (!(job.minYearsExperience == null || job.minYearsExperience <= alert.minYearsExperience)) return false
+  }
+
+  return true
+}
+
 // ─── Build human-readable criteria summary ────────────────────────────────────
 // Exported: /api/job-alerts POST reuses this to personalize the welcome email.
 export function buildCriteriaSummary(alert: { keyword?: string | null; location?: string | null; mode?: string | null; jobType?: string | null; minSalary?: number | null; maxSalary?: number | null }): string {
@@ -116,8 +294,26 @@ function timeAgo(date: Date): string {
 }
 
 // ─── Build a single alert email HTML (V2 Warm Diorama) ────────────────────────
+/** Job fields the alert email card renderer reads. */
+export interface AlertCardJob {
+  id: string
+  title: string
+  employer: string
+  location: string
+  minSalary?: number | null
+  maxSalary?: number | null
+  normalizedMinSalary?: number | null
+  normalizedMaxSalary?: number | null
+  mode?: string | null
+  jobType?: string | null
+  isFeatured?: boolean
+  applyOnPlatform?: boolean
+  sourceType?: string | null
+  createdAt: Date
+}
+
 function buildAlertHtml(
-  jobs: Array<{ id: string; title: string; employer: string; location: string; minSalary?: number | null; maxSalary?: number | null; normalizedMinSalary?: number | null; normalizedMaxSalary?: number | null; mode?: string | null; jobType?: string | null; isFeatured?: boolean; applyOnPlatform?: boolean; sourceType?: string | null; createdAt: Date }>,
+  jobs: AlertCardJob[],
   alertToken: string,
   criteriaText: string,
   filteredUrl: string,
@@ -179,7 +375,7 @@ function buildAlertHtml(
 }
 
 // ─── HTML to plain text (for plain-text email fallback) ───────────────────────
-function htmlToPlainText(html: string): string {
+export function htmlToPlainText(html: string): string {
   return html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<br\s*\/?>/gi, '\n')
@@ -196,9 +392,108 @@ function htmlToPlainText(html: string): string {
     .trim()
 }
 
+// ─── Alert email payload builder ──────────────────────────────────────────────
+export interface AlertEmailPayload {
+  from: string
+  to: string
+  subject: string
+  html: string
+  text: string
+  replyTo: string
+  headers: Record<string, string>
+}
+
+/**
+ * Compose the complete Resend payload for one alert email (from/replyTo,
+ * V2 HTML, plain-text fallback, and the E1-correct List-Unsubscribe pair:
+ * machine POST hits /api/one-click-unsubscribe with the EmailLead token,
+ * human link hits the alert delete page with the JobAlert token).
+ *
+ * Shared by the daily digest below AND the instant employer fan-out
+ * (lib/inngest/functions/employer-published.ts), so an instant single-job
+ * email is byte-compatible with the daily digest instead of a second
+ * hand-rolled template.
+ */
+export function buildAlertEmailPayload(args: {
+  email: string
+  alertToken: string
+  /** EmailLead.unsubscribeToken (getOrCreateUnsubToken) — NOT the alert token. */
+  oneClickToken: string
+  criteriaText: string
+  filteredUrl: string
+  jobs: AlertCardJob[]
+  totalCount: number
+  subject: string
+}): AlertEmailPayload {
+  const unsubUrl = `${BASE_URL}/job-alerts/unsubscribe?token=${args.alertToken}`
+  const oneClickUrl = oneClickUnsubscribeUrl(BASE_URL, args.oneClickToken)
+  const html = buildAlertHtml(args.jobs, args.alertToken, args.criteriaText, args.filteredUrl, args.totalCount)
+  return {
+    from: EMAIL_FROM,
+    to: args.email,
+    subject: args.subject,
+    html,
+    text: htmlToPlainText(html),
+    replyTo: EMAIL_REPLY_TO,
+    headers: {
+      // E1: machine-POST URL targets the real one-click endpoint; human page is the fallback.
+      'List-Unsubscribe': `<${oneClickUrl}>, <${unsubUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  }
+}
+
+// ─── lastSentAt claim revert (claim-first send, see phase 2) ─────────────────
+// updateMany cannot write per-row values, so group ids by their previous
+// stamp. The `lastSentAt: claimValue` guard makes the revert a no-op for any
+// row a concurrent writer touched in between.
+async function revertLastSentAtClaim(
+  alertIds: string[],
+  prevLastSentAt: Map<string, Date | null>,
+  claimValue: Date,
+): Promise<void> {
+  const groups = new Map<string, { prev: Date | null; ids: string[] }>()
+  for (const id of alertIds) {
+    const prev = prevLastSentAt.get(id) ?? null
+    const key = prev ? prev.toISOString() : 'null'
+    const entry = groups.get(key) ?? { prev, ids: [] }
+    entry.ids.push(id)
+    groups.set(key, entry)
+  }
+  try {
+    await prisma.$transaction(
+      Array.from(groups.values()).map(({ prev, ids }) =>
+        prisma.jobAlert.updateMany({
+          where: { id: { in: ids }, lastSentAt: claimValue },
+          data: { lastSentAt: prev },
+        }),
+      ),
+    )
+  } catch (revertErr) {
+    // Fail closed: the claim stays and these alerts skip one cycle. Never
+    // retry into an unknown claim state — that is how duplicates happen.
+    logger.error('[Alerts] Failed to revert lastSentAt claim; covered alerts skip one cycle', revertErr)
+  }
+}
+
 // ─── Main service ─────────────────────────────────────────────────────────────
 
-export async function sendJobAlerts(): Promise<{
+export interface SendJobAlertsOptions {
+  /**
+   * Restrict the run to alerts whose email matches one of these
+   * (case-insensitive). The instant employer fan-out
+   * (lib/inngest/functions/employer-published.ts) uses this to trigger an
+   * EARLY full digest for just the matched recipients. Scoping by EMAIL,
+   * not alert id, folds a recipient's other due alerts into the same send
+   * and stamps them too, so the daily cron cannot email the same person a
+   * second time that day.
+   */
+  restrictToEmails?: string[]
+  /** Restrict to a single frequency ('daily' for the instant fan-out). */
+  frequency?: 'daily' | 'weekly'
+}
+
+export async function sendJobAlerts(options: SendJobAlertsOptions = {}): Promise<{
   sent: number
   skipped: number
   suppressed: number
@@ -211,32 +506,28 @@ export async function sendJobAlerts(): Promise<{
     errors: [] as string[],
   }
 
+  // An explicit empty restriction means "no recipients", not "everyone".
+  if (options.restrictToEmails && options.restrictToEmails.length === 0) return results
+
   try {
     const now = new Date()
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
+    // A2: 20h/164h eligibility windows via the shared builder — see the
+    // comment on DAILY_ELIGIBILITY_HOURS for why 24h/7d raced the cron's
+    // own lastSentAt stamp and silently skipped alerts on many days.
     const alerts = await prisma.jobAlert.findMany({
       where: {
-        // Double opt-in: both flags must be set. Older rows
-        // are grandfathered by the migration (confirmed_at = created_at).
-        isActive: true,
-        confirmedAt: { not: null },
-        OR: [
-          { lastSentAt: null },
-          {
-            frequency: 'daily',
-            lastSentAt: { lt: oneDayAgo },
-          },
-          {
-            frequency: 'weekly',
-            lastSentAt: { lt: oneWeekAgo },
-          },
+        AND: [
+          buildAlertEligibilityWhere(now),
+          ...(options.frequency ? [{ frequency: options.frequency }] : []),
+          ...(options.restrictToEmails
+            ? [{ email: { in: options.restrictToEmails, mode: 'insensitive' as const } }]
+            : []),
         ],
       },
     })
 
-    console.log(`[Alerts] Processing ${alerts.length} job alerts`)
+    logger.info(`[Alerts] Processing ${alerts.length} job alerts`)
 
     // Phase 1a: Run per-alert queries in parallel batches and collect raw results.
     //   We DON'T render HTML or build payloads yet — we need to dedupe matches across
@@ -283,8 +574,10 @@ export async function sendJobAlerts(): Promise<{
 
         const whereClause: Prisma.JobWhereInput = {
           isPublished: true,
-          createdAt: { gt: cutoff },
           AND: [
+            // Freshness: created since the cutoff OR renewed since the cutoff
+            // (A3 — paid renewals re-enter the pool; see buildJobFreshnessOr).
+            buildJobFreshnessOr(cutoff),
             {
               OR: [
                 { expiresAt: null },
@@ -482,7 +775,7 @@ export async function sendJobAlerts(): Promise<{
     const emailPayloads: Array<{
       alertIds: string[]
       email: string
-      payload: { from: string; to: string; subject: string; html: string; text: string; replyTo: string; headers: Record<string, string> }
+      payload: AlertEmailPayload
     }> = []
 
     for (const [, group] of byEmail) {
@@ -566,53 +859,78 @@ export async function sendJobAlerts(): Promise<{
       // Use the first alert's token for the manage/unsubscribe links.
       // If a user has multiple alerts they can navigate to manage all from there.
       const primary = group[0].alert
-      const filteredUrl = buildFilteredJobsUrl(primary)
-      const unsubUrl = `${BASE_URL}/job-alerts/unsubscribe?token=${primary.token}`
       // E1 fix: the one-click endpoint looks up EmailLead.unsubscribeToken, NOT
       // JobAlert.token — feed it the right token or the machine POST 200s into a no-op.
       const oneClickToken = await getOrCreateUnsubToken(primary.email)
-      const oneClickUrl = oneClickUnsubscribeUrl(BASE_URL, oneClickToken)
-      const html = buildAlertHtml(displayJobs, primary.token, combinedCriteria, filteredUrl, dedupedTotal)
       const alertWord = group.length > 1 ? 'Alerts' : 'Alert'
       const subject = `${dedupedTotal} New PMHNP Job${dedupedTotal > 1 ? 's' : ''} Match Your ${alertWord}`
 
       emailPayloads.push({
         alertIds: group.map(r => r.alert.id),
         email: primary.email,
-        payload: {
-          from: EMAIL_FROM,
-          to: primary.email,
+        payload: buildAlertEmailPayload({
+          email: primary.email,
+          alertToken: primary.token,
+          oneClickToken,
+          criteriaText: combinedCriteria,
+          filteredUrl: buildFilteredJobsUrl(primary),
+          jobs: displayJobs,
+          totalCount: dedupedTotal,
           subject,
-          html,
-          text: htmlToPlainText(html),
-          replyTo: EMAIL_REPLY_TO,
-          headers: {
-            // E1: machine-POST URL targets the real one-click endpoint; human page is the fallback.
-            'List-Unsubscribe': `<${oneClickUrl}>, <${unsubUrl}>`,
-            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-          },
-        },
+        }),
       })
     }
 
     const dedupSavings = alertResults.length - emailPayloads.length
-    console.log(`[Alerts] ${emailPayloads.length} emails to send (${dedupSavings} dedup savings across multi-alert users), ${results.skipped} skipped (no matches), ${results.suppressed} suppressed`)
+    logger.info(`[Alerts] ${emailPayloads.length} emails to send (${dedupSavings} dedup savings across multi-alert users), ${results.skipped} skipped (no matches), ${results.suppressed} suppressed`)
 
     if (emailPayloads.length === 0) return results
 
-    // Phase 2: Send in batches via Resend Batch API (up to 100 per request)
+    // Phase 2: Send in batches via Resend Batch API (up to 100 per request).
+    //
+    // CADENCE HARD RULE — claim-first: lastSentAt is stamped BEFORE the batch
+    // is handed to Resend. A crash between send and stamp can therefore only
+    // mean a MISSED email (the alert skips one cycle; the next digest picks
+    // up from the honest lastSentAt cutoff, so no matches are lost), never a
+    // duplicate. The old stamp-after-send order meant a crash or DB blip
+    // between the two re-sent the identical email to the whole batch on the
+    // next cycle (or, in the Inngest fan-out path, on an immediate retry).
+    // Failure handling after a claim:
+    //   - Resend returned an error response (DEFINITIVE — nothing was sent):
+    //     revert the claim so the alerts are re-selected next cycle.
+    //   - The request threw mid-flight (AMBIGUOUS — it may have reached
+    //     Resend): keep the claim. Fail closed: fewer emails, never doubles.
+    const prevLastSentAt = new Map<string, Date | null>(alerts.map(a => [a.id, a.lastSentAt]))
     const BATCH_SIZE = 100
     for (let i = 0; i < emailPayloads.length; i += BATCH_SIZE) {
       const batch = emailPayloads.slice(i, i + BATCH_SIZE)
       const batchNum = Math.floor(i / BATCH_SIZE) + 1
       const totalBatches = Math.ceil(emailPayloads.length / BATCH_SIZE)
 
-      console.log(`[Alerts] Sending batch ${batchNum}/${totalBatches} (${batch.length} emails)`)
+      logger.info(`[Alerts] Sending batch ${batchNum}/${totalBatches} (${batch.length} emails)`)
+
+      // Claim every alert that contributes to this batch (across multi-alert
+      // users). If the claim itself fails, skip the batch entirely — no email
+      // may ever go out ahead of its stamp.
+      const alertIds = batch.flatMap(b => b.alertIds)
+      try {
+        await prisma.jobAlert.updateMany({
+          where: { id: { in: alertIds } },
+          data: { lastSentAt: now },
+        })
+      } catch (claimErr) {
+        const reason = claimErr instanceof Error ? claimErr.message : String(claimErr)
+        for (const b of batch) {
+          results.errors.push(`Alert(s) ${b.alertIds.join(',')} (${b.email}): lastSentAt claim failed, batch not sent: ${reason}`)
+        }
+        continue
+      }
 
       // Retry with backoff on rate limits. Resend returns API errors in the
       // response (it does not throw), so capture the response and interpret it
       // — E2: this is how we recover the per-email message IDs and the real
       // success/failure state instead of assuming "sent".
+      let ambiguousSendFailure = false
       let batchOutcome: BatchOutcome = { ok: false, reason: 'Rate limited after 3 retries' }
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
@@ -625,12 +943,15 @@ export async function sendJobAlerts(): Promise<{
           const errMsg = sendError instanceof Error ? sendError.message : String(sendError)
           if (errMsg.includes('429') || errMsg.toLowerCase().includes('rate')) {
             const backoff = (attempt + 1) * 3000 // 3s, 6s, 9s
-            console.log(`[Alerts] Batch ${batchNum} rate limited, retrying in ${backoff}ms (${attempt + 1}/3)`)
+            logger.warn(`[Alerts] Batch ${batchNum} rate limited, retrying in ${backoff}ms (${attempt + 1}/3)`)
             await new Promise(r => setTimeout(r, backoff))
           } else {
             // Non-rate-limit throw: fail THIS batch only (record it below) and let
             // the loop continue — a single bad batch must not abort all the rest.
+            // The request may still have reached Resend, so the lastSentAt claim
+            // is kept (see the claim-first comment above).
             batchOutcome = { ok: false, reason: errMsg }
+            ambiguousSendFailure = true
             break
           }
         }
@@ -642,19 +963,18 @@ export async function sendJobAlerts(): Promise<{
       )
 
       if (batchOutcome.ok) {
-        // Mark every alert that contributed to a sent email (across multi-alert users).
-        const alertIds = batch.flatMap(b => b.alertIds)
-        await prisma.jobAlert.updateMany({
-          where: { id: { in: alertIds } },
-          data: { lastSentAt: now },
-        })
         results.sent += batch.length
-        console.log(`[Alerts] Batch ${batchNum} sent successfully (${batch.length} emails, covering ${alertIds.length} alerts)`)
+        logger.info(`[Alerts] Batch ${batchNum} sent successfully (${batch.length} emails, covering ${alertIds.length} alerts)`)
       } else {
-        // Not delivered — surface the real reason and do NOT advance lastSentAt
-        // (these users are re-selected next cycle, which is correct).
         for (const b of batch) {
           results.errors.push(`Alert(s) ${b.alertIds.join(',')} (${b.email}): ${batchOutcome.reason}`)
+        }
+        if (ambiguousSendFailure) {
+          logger.error(`[Alerts] Batch ${batchNum} failed ambiguously; lastSentAt claim kept so the covered alerts skip this cycle rather than risk a duplicate: ${batchOutcome.reason}`)
+        } else {
+          // Definitive rejection — nothing was sent. Release the claim so the
+          // alerts are re-selected next cycle.
+          await revertLastSentAtClaim(alertIds, prevLastSentAt, now)
         }
       }
 
@@ -673,7 +993,7 @@ export async function sendJobAlerts(): Promise<{
 
     return results
   } catch (error) {
-    console.error('[Alerts] Job alerts service error:', error)
+    logger.error('[Alerts] Job alerts service error', error)
     throw error
   }
 }

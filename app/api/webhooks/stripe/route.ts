@@ -8,6 +8,7 @@ import { logger } from '@/lib/logger';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { anonymizeEmail } from '@/lib/server-utils';
 import { trackServerPurchase } from '@/lib/analytics-server';
+import { inngest } from '@/lib/inngest/client';
 
 function getStripe(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -166,6 +167,11 @@ export async function POST(request: NextRequest) {
               expiresAt: newExpiresAt,
               isPublished: true,
               isVerifiedEmployer: true,
+              // Distribution audit A3: stamp the renewal so the daily alert
+              // pool's freshness gate (buildJobFreshnessOr in
+              // lib/job-alerts-service.ts) re-admits this posting. A renewal
+              // is a paid re-promotion, not just an expiry extension.
+              lastRenewedAt: new Date(),
               ...(config.isFeaturedTier(renewalTier) && { isFeatured: true }),
             },
           });
@@ -277,6 +283,27 @@ export async function POST(request: NextRequest) {
             jobId,
           }).catch(() => { /* logged inside */ });
 
+          // Distribution audit A1: renewals never fired the embedding refresh,
+          // so renewed paid postings kept a stale or missing vector and dropped
+          // out of AI search + candidate recommendations. Exactly mirrors
+          // post-free's fire-and-forget block — never blocks the webhook
+          // response; Inngest no-ops silently if INNGEST_EVENT_KEY is unset.
+          inngest.send({
+            name: 'embedding.refresh.job',
+            data: { jobId: job.id },
+          }).catch((err) => {
+            logger.warn('inngest.send embedding.refresh.job failed (stripe renewal)', undefined, err);
+          });
+
+          // Distribution audit A4: instant alert fan-out for the renewed post
+          // (handler: lib/inngest/functions/employer-published.ts).
+          inngest.send({
+            name: 'job/employer.published',
+            data: { jobId: job.id },
+          }).catch((err) => {
+            logger.warn('inngest.send job/employer.published failed (stripe renewal)', undefined, err);
+          });
+
           // Ping search engines for renewed job (fire-and-forget)
           if (job.slug) {
             pingAllSearchEngines(`https://pmhnphiring.com/jobs/${job.slug}`).catch((err) =>
@@ -294,10 +321,19 @@ export async function POST(request: NextRequest) {
       } else {
         // Original flow: new job posting
         try {
-          // Update job to published
+          // Update job to published. Featured badge promise (2026-08 audit
+          // fact 7): the paid flip is also the featured flip — mirrors the
+          // renewal branch above and post-free (which features at creation
+          // because free posts publish immediately). create-checkout leaves
+          // pending drafts isFeatured:false so unpaid rows never satisfy the
+          // messaging gate.
           const job = await prisma.job.update({
             where: { id: jobId },
-            data: { isPublished: true, isVerifiedEmployer: true },
+            data: {
+              isPublished: true,
+              isVerifiedEmployer: true,
+              ...(config.isFeaturedTier(session.metadata?.pricing || 'pro') && { isFeatured: true }),
+            },
           });
 
           // Update employer job payment status and get the record
@@ -418,6 +454,26 @@ export async function POST(request: NextRequest) {
             tier: session.metadata?.pricing,
             jobId,
           }).catch(() => { /* logged inside */ });
+
+          // Distribution audit A1: the paid new-post path flipped isPublished
+          // without ever firing the embedding refresh that post-free fires, so
+          // PAID posts never got embeddings (invisible to AI search + recs).
+          // Fire-and-forget, mirroring post-free exactly.
+          inngest.send({
+            name: 'embedding.refresh.job',
+            data: { jobId: job.id },
+          }).catch((err) => {
+            logger.warn('inngest.send embedding.refresh.job failed (stripe new post)', undefined, err);
+          });
+
+          // Distribution audit A4: instant alert fan-out for the new paid post
+          // (handler: lib/inngest/functions/employer-published.ts).
+          inngest.send({
+            name: 'job/employer.published',
+            data: { jobId: job.id },
+          }).catch((err) => {
+            logger.warn('inngest.send job/employer.published failed (stripe new post)', undefined, err);
+          });
 
           // Ping search engines for new job (fire-and-forget)
           if (job.slug) {
@@ -545,9 +601,12 @@ export async function POST(request: NextRequest) {
               where: { id: employerJob.id },
               data: { paymentStatus: 'refunded' },
             });
+            // isFeatured comes off together with isPublished: the employer
+            // messaging + candidate-unlock gates key on the flag, and a fully
+            // refunded post must not retain paid entitlements.
             await prisma.job.update({
               where: { id: employerJob.jobId },
-              data: { isPublished: false },
+              data: { isPublished: false, isFeatured: false },
             });
           } else if (isPartial) {
             logger.info('charge.refunded: partial refund — entitlement retained', {
@@ -622,9 +681,11 @@ export async function POST(request: NextRequest) {
             where: { id: employerJob.id },
             data: { paymentStatus: 'disputed' },
           });
+          // Same as the full-refund branch: revoking the posting also revokes
+          // the featured entitlements (messaging / candidate unlocks).
           await prisma.job.update({
             where: { id: employerJob.jobId },
-            data: { isPublished: false },
+            data: { isPublished: false, isFeatured: false },
           });
           logger.warn('Chargeback: revoked posting on dispute', {
             employerJobId: employerJob.id,

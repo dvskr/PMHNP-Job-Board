@@ -69,8 +69,10 @@ describe('Stripe webhook — refund/dispute entitlement', () => {
         expect(prisma.employerJob.update).toHaveBeenCalledWith(
             expect.objectContaining({ data: expect.objectContaining({ paymentStatus: 'refunded' }) }),
         );
+        // Revocation strips BOTH flags: isFeatured gates messaging + candidate
+        // unlocks, so a fully refunded post must not retain paid entitlements.
         expect(prisma.job.update).toHaveBeenCalledWith(
-            expect.objectContaining({ where: { id: 'job1' }, data: { isPublished: false } }),
+            expect.objectContaining({ where: { id: 'job1' }, data: { isPublished: false, isFeatured: false } }),
         );
     });
 
@@ -85,8 +87,9 @@ describe('Stripe webhook — refund/dispute entitlement', () => {
         expect(prisma.employerJob.update).toHaveBeenCalledWith(
             expect.objectContaining({ data: { paymentStatus: 'disputed' } }),
         );
+        // Chargeback revokes the featured entitlements too (same as refund).
         expect(prisma.job.update).toHaveBeenCalledWith(
-            expect.objectContaining({ where: { id: 'job1' }, data: { isPublished: false } }),
+            expect.objectContaining({ where: { id: 'job1' }, data: { isPublished: false, isFeatured: false } }),
         );
     });
 });

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { isAiFeatureEnabled } from '@/lib/ai/feature-flags'
+import { buildJobsOrderBy } from '@/lib/utils/job-sort'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/dashboard — Return all data needed for the candidate dashboard
@@ -175,7 +177,7 @@ export async function GET(request: Request) {
             unreadMessages: unreadMessages || 0,
         })
     } catch (error) {
-        console.error('Dashboard API error:', error)
+        logger.error('Dashboard API error', error)
         return NextResponse.json({ error: 'Failed to load dashboard' }, { status: 500 })
     }
 }
@@ -273,13 +275,25 @@ const RECOMMENDATION_SELECT = {
  * embedding yet, or the cron hasn't run for them, returns null and the caller
  * falls back to the rule-based heuristic below.
  */
+// Distribution audit A6: serving an arbitrarily old batch made the "For you"
+// panel a museum when the recs cron died — stale rows masked the outage AND
+// recommended jobs that had expired or been unpublished. A batch older than
+// this falls through to the rule-based path, which at least reflects the
+// live board.
+const REC_BATCH_MAX_AGE_DAYS = 7;
+
 async function getAiRecommendedJobs(userId: string, appliedJobIds: ReadonlyArray<string>) {
     const tenant = { type: 'candidate' as const, id: userId };
     const enabled = await isAiFeatureEnabled('ai.candidate.recommendations', tenant);
     if (!enabled) return null;
 
+    const now = new Date();
+    const batchCutoff = new Date(now.getTime() - REC_BATCH_MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
     const latest = await prisma.candidateRecommendation.findFirst({
-        where: { supabaseId: userId, dismissedAt: null },
+        // A6: age cap — ignore batches older than REC_BATCH_MAX_AGE_DAYS so a
+        // dead pipeline degrades to the rule-based fallback instead of
+        // serving stale picks forever.
+        where: { supabaseId: userId, dismissedAt: null, createdAt: { gte: batchCutoff } },
         orderBy: { createdAt: 'desc' },
         select: { batchId: true },
     });
@@ -291,6 +305,12 @@ async function getAiRecommendedJobs(userId: string, appliedJobIds: ReadonlyArray
             batchId: latest.batchId,
             dismissedAt: null,
             ...(appliedJobIds.length > 0 ? { jobId: { notIn: appliedJobIds as string[] } } : {}),
+            // A6: never recommend a job that has been unpublished or has
+            // expired since the batch was computed.
+            job: {
+                isPublished: true,
+                OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+            },
         },
         // The cron persists rows in tier-pinned display order via `rank`,
         // so we just walk the rank order to render Easy/Direct/External
@@ -330,7 +350,12 @@ async function getRecommendedJobs(userId: string) {
     })
 
     // Build filter conditions based on user preferences
-    const where: Record<string, unknown> = { isPublished: true }
+    const where: Record<string, unknown> = {
+        isPublished: true,
+        // A6: match the AI path's not-expired guard so the fallback never
+        // recommends a lapsed listing either.
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }],
+    }
     const hasPrefs = profile?.preferredWorkMode || profile?.preferredJobType || profile?.licenseStates
 
     if (hasPrefs) {
@@ -365,7 +390,10 @@ async function getRecommendedJobs(userId: string) {
 
     const jobs = await prisma.job.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        // A6: the canonical 'best' order (lib/utils/job-sort.ts) — employer
+        // posts pin first, then featured/quality/recency. Plain createdAt desc
+        // buried the paying employers' posts under the aggregator firehose.
+        orderBy: buildJobsOrderBy('best'),
         take: 5,
         select: RECOMMENDATION_SELECT,
     });
