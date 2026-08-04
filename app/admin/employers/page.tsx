@@ -1,34 +1,44 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { formatCT } from '@/lib/format-ct';
 import {
     Building2, UserCheck, UserX, Briefcase, CheckCircle2, CreditCard, Inbox,
-    AlertTriangle, Search, ChevronDown,
+    AlertTriangle, Search, ChevronDown, ChevronRight,
 } from 'lucide-react';
 
 /* ─── Types ───
- * The GET /api/admin/employers contract, imported rather than mirrored. The
- * route produces these exact types from the same module, so a field rename on
- * either side is a compile error instead of a silently blank column. This repo
- * has already paid for hand-mirrored shapes drifting (see
- * tests/lib/filter-clauses-parity.test.ts).
+ * Imported from the canonical contract in lib/admin/employer-overview-types.ts
+ * (type-only, so the shared module adds nothing to the client bundle) and
+ * aliased to the short names the page uses. A field rename on either side is
+ * a compile error, which is the point: the route and this page consume the
+ * same shape and must never drift apart silently.
  *
- * `import type` erases at build time, so nothing from that module reaches the
- * client bundle.
+ * One row per ORGANIZATION: the connected component of employer accounts and
+ * posts that share any quota identity key (the exact semantics of
+ * lib/employer-quota.ts buildQuotaKeys). This is the same grouping the free
+ * post quota gate applies, so the table agrees with why an account was routed
+ * to paid.
  *
- * NOTE: `id` is the Supabase auth id (UserProfile.supabaseId), because
- * EmployerJob.userId references supabaseId. It is NOT the same identifier the
- * /api/admin/users table calls `id` (that one is the UserProfile CUID), so do
- * not feed this id to /api/admin/users/[id]. Account-less posters carry a
- * synthetic 'orphan:<key>' id instead.
+ * NOTE: `id` is an opaque organization key, unique per row. It is NOT a
+ * UserProfile id of any kind and cannot be passed to /api/admin/users/[id].
+ * Per-account ids inside `accounts` are the Supabase auth id
+ * (UserProfile.supabaseId) for real accounts, or 'no-account' for the
+ * account-less poster segment.
  */
 import type {
-    AdminEmployerRow as EmployerRow,
-    AdminEmployerSummary as Summary,
-    EmployerApplicationCounts as EmployerApplications,
-    EmployerHiringStatus as HiringStatus,
+    AdminEmployerSummary,
+    AdminOrganizationAccount,
+    AdminOrganizationRow,
+    EmployerApplicationCounts,
+    EmployerHiringStatus,
+    EmployerPostCounts,
 } from '@/lib/admin/employer-overview-types';
+
+type OrgRow = AdminOrganizationRow;
+type OrganizationAccountRow = AdminOrganizationAccount;
+type Summary = AdminEmployerSummary;
+type HiringStatus = EmployerHiringStatus;
 
 /* ─── Styles ─── */
 const card: React.CSSProperties = { backgroundColor: '#FAFBF9', border: '1px solid rgba(255,255,255,0.7)', borderRadius: '18px', boxShadow: '8px 8px 20px rgba(0,0,0,0.05), -6px -6px 16px rgba(255,255,255,0.9), inset 3px 3px 6px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.02)', overflow: 'hidden' };
@@ -64,16 +74,6 @@ const HIRING_STATUS: Record<HiringStatus, { label: string; color: BadgeColor }> 
 };
 const HIRING_STATUS_KEYS = Object.keys(HIRING_STATUS) as HiringStatus[];
 
-/**
- * Posts whose paymentStatus is none of paid, free, or pending. The Stripe
- * webhook also writes 'refunded' and 'disputed', and those still count toward
- * posts.total, so without this the Payment column renders an empty cell for an
- * employer whose only post was refunded.
- */
-function otherPaymentPosts(emp: EmployerRow): number {
-    return Math.max(0, emp.posts.total - emp.posts.paid - emp.posts.free - emp.posts.pending);
-}
-
 function hiringBadge(status: HiringStatus) {
     const meta = HIRING_STATUS[status];
     // Unknown value fallback, mirroring the pattern in app/admin/users/page.tsx
@@ -81,22 +81,100 @@ function hiringBadge(status: HiringStatus) {
     return badge(meta.label, meta.color);
 }
 
+/**
+ * Per-account hiring status for the expanded subrows. Mirrors the route's
+ * deriveHiringStatus precedence exactly (no_posts, no_applicants, hired,
+ * all_rejected, in_progress, untriaged); the API only ships the org-wide
+ * status, so the subrow one is derived from the same counts client side.
+ */
+function deriveHiringStatus(posts: EmployerPostCounts, apps: EmployerApplicationCounts): HiringStatus {
+    if (posts.total === 0) return 'no_posts';
+    if (apps.total === 0) return 'no_applicants';
+    if (apps.hired > 0) return 'hired';
+    const inFlight = apps.screening + apps.interview + apps.offered;
+    if (apps.rejected > 0 && apps.applied === 0 && inFlight === 0) return 'all_rejected';
+    if (inFlight > 0) return 'in_progress';
+    return 'untriaged';
+}
+
+/**
+ * Posts whose paymentStatus is none of the classified buckets. The API
+ * classifies paid, free, pending, and refunded; anything else the Stripe
+ * webhook writes (a dispute, for example) still counts toward posts.total, so
+ * without this the Payment column renders an empty cell for an organization
+ * whose only post sits on such a status. Refunded is subtracted explicitly so
+ * the remainder never double counts.
+ */
+function otherPaymentPosts(posts: EmployerPostCounts): number {
+    return Math.max(0, posts.total - posts.paid - posts.free - posts.pending - posts.refunded);
+}
+
+/* ─── Org derivations. The contract promises `accounts`; everything the UI
+ * needs about membership is derived from it so the page has one source. ─── */
+
+function linkedAccounts(org: OrgRow): OrganizationAccountRow[] {
+    return org.accounts.filter(a => a.hasAccount);
+}
+
+function orgHasAccount(org: OrgRow): boolean {
+    return org.accounts.some(a => a.hasAccount);
+}
+
+/** Newest real account signup date, for the Accounts cell subline. */
+function newestAccountCreatedAt(org: OrgRow): string | null {
+    let newest: string | null = null;
+    for (const account of org.accounts) {
+        if (!account.hasAccount || !account.accountCreatedAt) continue;
+        if (newest === null || account.accountCreatedAt > newest) newest = account.accountCreatedAt;
+    }
+    return newest;
+}
+
+/** Representative email: the API's pick, else the newest real account, else any member with an email. */
+function orgEmail(org: OrgRow): string {
+    if (org.email) return org.email;
+    let best: OrganizationAccountRow | null = null;
+    for (const account of org.accounts) {
+        if (!account.hasAccount || !account.email) continue;
+        if (best === null || (account.accountCreatedAt ?? '') > (best.accountCreatedAt ?? '')) best = account;
+    }
+    if (best) return best.email;
+    const anyEmail = org.accounts.find(a => a.email);
+    return anyEmail ? anyEmail.email : '';
+}
+
+/** Names beyond the display name, deduped case insensitively, for the "also posts as" subline. */
+function alsoPostsAs(org: OrgRow): string[] {
+    const primary = org.name.trim().toLowerCase();
+    const seen = new Set<string>();
+    const extras: string[] = [];
+    for (const raw of org.allNames) {
+        const name = raw.trim();
+        if (!name) continue;
+        const key = name.toLowerCase();
+        if (key === primary || seen.has(key)) continue;
+        seen.add(key);
+        extras.push(name);
+    }
+    return extras;
+}
+
 type SortKey = 'posts' | 'applications' | 'untriaged' | 'lastPosted' | 'name';
 type SortDir = 'asc' | 'desc';
 
 /**
  * Row filter. 'has_untriaged' is deliberately NOT a hiringStatus: it selects
- * every employer holding at least one applicant still at 'applied', including
- * those whose hiringStatus reads 'in_progress' or 'hired' because they moved
- * some other candidate. That is the same population the summary counts as
- * employersWithUntriaged, so the stat tile and the filtered table agree.
- * Filtering on hiringStatus 'untriaged' alone would silently hide every
- * employer who triaged one applicant and abandoned the rest.
+ * every organization holding at least one applicant still at 'applied',
+ * including those whose hiringStatus reads 'in_progress' or 'hired' because
+ * some account moved another candidate. That is the same population the
+ * summary counts as employersWithUntriaged, so the stat tile and the filtered
+ * table agree. Filtering on hiringStatus 'untriaged' alone would silently hide
+ * every organization that triaged one applicant and abandoned the rest.
  */
 type RowFilter = 'all' | 'has_untriaged' | HiringStatus;
 
 export default function AdminEmployersPage() {
-    const [employers, setEmployers] = useState<EmployerRow[]>([]);
+    const [organizations, setOrganizations] = useState<OrgRow[]>([]);
     const [summary, setSummary] = useState<Summary | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
@@ -110,16 +188,19 @@ export default function AdminEmployersPage() {
     const [sortKey, setSortKey] = useState<SortKey>('applications');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
 
+    // Expanded per-account breakdowns, keyed by organization id.
+    const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+
     useEffect(() => { fetchData(); }, []);
 
     const fetchData = async () => {
         try {
             const res = await fetch('/api/admin/employers');
             const data = await res.json();
-            // The route returns { success: true, summary, employers }; guard on the
-            // payload itself so a bare { summary, employers } body also renders.
-            if (res.ok && data?.summary && Array.isArray(data.employers)) {
-                setEmployers(data.employers);
+            // The route returns { success: true, summary, organizations }; guard on
+            // the payload itself so a bare { summary, organizations } body also renders.
+            if (res.ok && data?.summary && Array.isArray(data.organizations)) {
+                setOrganizations(data.organizations);
                 setSummary(data.summary);
             } else {
                 setLoadError(true);
@@ -128,6 +209,15 @@ export default function AdminEmployersPage() {
             console.error('Error:', err);
             setLoadError(true);
         } finally { setLoading(false); }
+    };
+
+    const toggleExpanded = (id: string) => {
+        setExpanded(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
     };
 
     const applySort = (key: SortKey) => {
@@ -140,25 +230,28 @@ export default function AdminEmployersPage() {
     };
 
     /* ─── Filter, then sort. Both client side over the already fetched rows. ─── */
-    const filtered = employers.filter(e => {
+    const filtered = organizations.filter(org => {
         if (statusFilter === 'has_untriaged') {
-            if (e.applications.applied === 0) return false;
-        } else if (statusFilter !== 'all' && e.hiringStatus !== statusFilter) return false;
-        if (accountFilter === 'with' && !e.hasAccount) return false;
-        if (accountFilter === 'without' && e.hasAccount) return false;
+            if (org.applications.applied === 0) return false;
+        } else if (statusFilter !== 'all' && org.hiringStatus !== statusFilter) return false;
+        if (accountFilter === 'with' && !orgHasAccount(org)) return false;
+        if (accountFilter === 'without' && orgHasAccount(org)) return false;
         if (search) {
             const q = search.toLowerCase();
-            return e.name.toLowerCase().includes(q) || e.email.toLowerCase().includes(q);
+            return org.name.toLowerCase().includes(q)
+                || orgEmail(org).toLowerCase().includes(q)
+                || org.allNames.some(name => name.toLowerCase().includes(q))
+                || org.accounts.some(a => a.email.toLowerCase().includes(q) || a.name.toLowerCase().includes(q));
         }
         return true;
     });
 
-    const sortValue = (e: EmployerRow): number | string => {
-        if (sortKey === 'posts') return e.posts.total;
-        if (sortKey === 'applications') return e.applications.total;
-        if (sortKey === 'untriaged') return e.applications.applied;
-        if (sortKey === 'lastPosted') return e.lastPostedAt ? new Date(e.lastPostedAt).getTime() : 0;
-        return e.name.toLowerCase();
+    const sortValue = (org: OrgRow): number | string => {
+        if (sortKey === 'posts') return org.posts.total;
+        if (sortKey === 'applications') return org.applications.total;
+        if (sortKey === 'untriaged') return org.applications.applied;
+        if (sortKey === 'lastPosted') return org.lastPostedAt ? new Date(org.lastPostedAt).getTime() : 0;
+        return org.name.toLowerCase();
     };
 
     const sorted = [...filtered].sort((a, b) => {
@@ -170,8 +263,9 @@ export default function AdminEmployersPage() {
         return sortDir === 'asc' ? cmp : -cmp;
     });
 
-    const statusCount = (status: HiringStatus) => employers.filter(e => e.hiringStatus === status).length;
-    const untriagedCount = employers.filter(e => e.applications.applied > 0).length;
+    const statusCount = (status: HiringStatus) => organizations.filter(org => org.hiringStatus === status).length;
+    const untriagedCount = organizations.filter(org => org.applications.applied > 0).length;
+    const withAccountCount = organizations.filter(org => orgHasAccount(org)).length;
 
     const sortableTh = (label: string, key: SortKey) => (
         <th style={{ ...th, cursor: 'pointer', color: sortKey === key ? '#0D9488' : '#94A3B8' }}
@@ -217,7 +311,7 @@ export default function AdminEmployersPage() {
             {/* Header */}
             <div style={{ marginBottom: 24 }}>
                 <h1 style={{ ...heading, fontSize: 28, marginBottom: 4 }}>Employers</h1>
-                <p style={sub}>Every employer account with their posts, applicants, and hiring progress</p>
+                <p style={sub}>Every organization with its accounts, posts, applicants, and hiring progress</p>
             </div>
 
             {loadError && (
@@ -247,12 +341,14 @@ export default function AdminEmployersPage() {
                 </div>
             )}
 
-            {/* ═══ EMPLOYER TABLE ═══ */}
+            {/* ═══ ORGANIZATION TABLE ═══ */}
             <div style={card}>
                 {/* Secondary breakdown strip */}
                 {summary && (
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4" style={{ padding: 20, borderBottom: '1px solid #E8ECF0' }}>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4" style={{ padding: 20, borderBottom: '1px solid #E8ECF0' }}>
                         {[
+                            { l: 'Organizations', v: summary.totalOrganizations, c: '#0D9488', t: 'Accounts and posts grouped into one row when they share a quota identity key. Matches how the free post quota sees them.' },
+                            { l: 'Multi-account Orgs', v: summary.organizationsWithMultipleAccounts, c: '#8B5CF6', t: 'Organizations where two or more employer accounts share one identity. Their posts and applicants combine into a single row.' },
                             { l: 'Untriaged Applicants', v: summary.untriagedApplications, c: '#F59E0B', t: 'Applications still sitting at status applied. Nobody has looked at them.' },
                             { l: 'Inactive Posts', v: summary.inactivePosts, c: '#94A3B8', t: 'Unpublished, paused, archived, or expired posts.' },
                             { l: 'Free Posts', v: summary.freePosts, c: '#3B82F6', t: 'Posts published on the free tier.' },
@@ -271,29 +367,29 @@ export default function AdminEmployersPage() {
                 <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8ECF0', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                     <div style={{ position: 'relative', flex: '1 1 200px' }}>
                         <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                        <input type="text" placeholder="Search employer or email..." value={search} onChange={e => setSearch(e.target.value)}
+                        <input type="text" placeholder="Search organization, name, or member email..." value={search} onChange={e => setSearch(e.target.value)}
                             style={{ ...inputStyle, width: '100%', paddingLeft: 32 }} />
                     </div>
                     <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as RowFilter)} style={{ ...inputStyle, cursor: 'pointer' }}>
-                        <option value="all">All Hiring Status ({employers.length})</option>
+                        <option value="all">All Hiring Status ({organizations.length})</option>
                         <option value="has_untriaged">Holding untriaged applicants ({untriagedCount})</option>
                         {HIRING_STATUS_KEYS.map(key => (
                             <option key={key} value={key}>{HIRING_STATUS[key].label} ({statusCount(key)})</option>
                         ))}
                     </select>
                     <select value={accountFilter} onChange={e => setAccountFilter(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
-                        <option value="all">All Accounts ({employers.length})</option>
-                        <option value="with">With Account ({employers.filter(e => e.hasAccount).length})</option>
-                        <option value="without">No Account ({employers.filter(e => !e.hasAccount).length})</option>
+                        <option value="all">All Accounts ({organizations.length})</option>
+                        <option value="with">With Account ({withAccountCount})</option>
+                        <option value="without">No Account ({organizations.length - withAccountCount})</option>
                     </select>
                     <select value={sortKey} onChange={e => applySort(e.target.value as SortKey)} style={{ ...inputStyle, cursor: 'pointer' }}>
                         <option value="applications">Sort: Most applications</option>
                         <option value="untriaged">Sort: Most untriaged</option>
                         <option value="posts">Sort: Most posts</option>
                         <option value="lastPosted">Sort: Last posted</option>
-                        <option value="name">Sort: Employer name</option>
+                        <option value="name">Sort: Organization name</option>
                     </select>
-                    <span style={{ ...muted, marginLeft: 'auto' }}>Showing {sorted.length} of {employers.length}</span>
+                    <span style={{ ...muted, marginLeft: 'auto' }}>Showing {sorted.length} of {organizations.length}</span>
                 </div>
 
                 <div style={{ overflowX: 'auto' }}>
@@ -302,7 +398,7 @@ export default function AdminEmployersPage() {
                             <tr style={{ backgroundColor: '#F8FAF9' }}>
                                 <th style={th}>Employer</th>
                                 <th style={th}>Email</th>
-                                <th style={th}>Account</th>
+                                <th style={th}>Accounts</th>
                                 {sortableTh('Posts', 'posts')}
                                 <th style={th}>Payment</th>
                                 {sortableTh('Applications', 'applications')}
@@ -313,58 +409,75 @@ export default function AdminEmployersPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {sorted.map(emp => {
-                                const untriaged = emp.hiringStatus === 'untriaged';
+                            {sorted.map(org => {
+                                const untriaged = org.hiringStatus === 'untriaged';
+                                const isExpanded = expanded.has(org.id);
+                                const extras = alsoPostsAs(org);
+                                const linked = linkedAccounts(org);
+                                const memberList = org.accounts
+                                    .map(a => a.email || a.name)
+                                    .filter(Boolean)
+                                    .join('\n');
                                 return (
-                                    <tr key={emp.id} style={untriaged ? { backgroundColor: 'rgba(245,158,11,0.06)' } : undefined}>
-                                        <td style={{ ...td, fontWeight: 600, color: '#1A2E35' }}>{emp.name || '—'}</td>
-                                        <td style={td}>{emp.email || '—'}</td>
-                                        <td style={td}>
-                                            {emp.hasAccount ? badge('Yes', 'green') : badge('No', 'orange')}
-                                            <div style={{ ...muted, marginTop: 4 }}>{formatCT(emp.accountCreatedAt, 'date')}</div>
-                                        </td>
-                                        <td style={td}>
-                                            <div style={{ fontWeight: 600, color: '#1A2E35' }}>{emp.posts.total}</div>
-                                            <div style={{ ...muted, marginTop: 2 }}>
-                                                {emp.posts.active} active, {emp.posts.inactive} inactive
-                                            </div>
-                                        </td>
-                                        <td style={td}>
-                                            <div className="flex gap-1">
-                                                {emp.posts.paid > 0 && badge(`${emp.posts.paid} paid`, 'green')}
-                                                {emp.posts.free > 0 && badge(`${emp.posts.free} free`, 'gray')}
-                                                {emp.posts.pending > 0 && badge(`${emp.posts.pending} pending`, 'red')}
-                                                {/* The API classifies paid, free, and pending. Anything else the
-                                                    Stripe webhook writes (a refund or a dispute) would otherwise
-                                                    leave this cell blank, so surface the remainder. */}
-                                                {otherPaymentPosts(emp) > 0 && (
-                                                    <span title="Posts on another payment lifecycle status, for example refunded or disputed.">
-                                                        {badge(`${otherPaymentPosts(emp)} other`, 'purple')}
-                                                    </span>
+                                    <Fragment key={org.id}>
+                                        <tr style={untriaged ? { backgroundColor: 'rgba(245,158,11,0.06)' } : undefined}>
+                                            <td style={{ ...td, fontWeight: 600, color: '#1A2E35' }}>
+                                                <div>{org.name || 'Unknown employer'}</div>
+                                                {extras.length > 0 && (
+                                                    <div style={{ ...muted, marginTop: 2, fontWeight: 400, whiteSpace: 'normal', maxWidth: 280 }}>
+                                                        also posts as: {extras.join(', ')}
+                                                    </div>
                                                 )}
-                                                {emp.posts.total === 0 && badge('None', 'gray')}
-                                            </div>
-                                        </td>
-                                        <td style={td}>
-                                            <div style={{ fontWeight: 600, color: '#1A2E35' }}>{emp.applications.total}</div>
-                                            {emp.applications.withdrawn > 0 && (
-                                                <div style={{ ...muted, marginTop: 2 }}>{emp.applications.withdrawn} withdrawn</div>
-                                            )}
-                                        </td>
-                                        <td style={td}>
-                                            <FunnelCell apps={emp.applications} />
-                                        </td>
-                                        <td style={td}>{hiringBadge(emp.hiringStatus)}</td>
-                                        <td style={td}>
-                                            <div style={{ fontWeight: 600, color: '#1A2E35' }}>{emp.views}</div>
-                                            <div style={{ ...muted, marginTop: 2 }}>{emp.applyClicks} apply clicks</div>
-                                        </td>
-                                        <td style={td}>{formatCT(emp.lastPostedAt, 'date')}</td>
-                                    </tr>
+                                            </td>
+                                            <td style={td}>{orgEmail(org) || '·'}</td>
+                                            <td style={td} title={memberList || undefined}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    {linked.length > 0
+                                                        ? badge(`${linked.length} ${linked.length === 1 ? 'account' : 'accounts'}`, 'green')
+                                                        : badge('No account', 'orange')}
+                                                    {org.accounts.length > 1 && (
+                                                        <button onClick={() => toggleExpanded(org.id)}
+                                                            aria-expanded={isExpanded}
+                                                            aria-label={isExpanded ? 'Hide the per-account breakdown' : 'Show the per-account breakdown'}
+                                                            title={isExpanded ? 'Hide the per-account breakdown' : 'Show the per-account breakdown'}
+                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#0D9488', display: 'inline-flex', alignItems: 'center' }}>
+                                                            <ChevronRight size={14} style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 120ms' }} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div style={{ ...muted, marginTop: 4 }}>{formatCT(newestAccountCreatedAt(org), 'date')}</div>
+                                            </td>
+                                            <td style={td}>
+                                                <div style={{ fontWeight: 600, color: '#1A2E35' }}>{org.posts.total}</div>
+                                                <div style={{ ...muted, marginTop: 2 }}>
+                                                    {org.posts.active} active, {org.posts.inactive} inactive
+                                                </div>
+                                            </td>
+                                            <td style={td}><PaymentCell posts={org.posts} /></td>
+                                            <td style={td}>
+                                                <div style={{ fontWeight: 600, color: '#1A2E35' }}>{org.applications.total}</div>
+                                                {org.applications.withdrawn > 0 && (
+                                                    <div style={{ ...muted, marginTop: 2 }}>{org.applications.withdrawn} withdrawn</div>
+                                                )}
+                                            </td>
+                                            <td style={td}>
+                                                <FunnelCell apps={org.applications} />
+                                            </td>
+                                            <td style={td}>{hiringBadge(org.hiringStatus)}</td>
+                                            <td style={td}>
+                                                <div style={{ fontWeight: 600, color: '#1A2E35' }}>{org.views}</div>
+                                                <div style={{ ...muted, marginTop: 2 }}>{org.applyClicks} apply clicks</div>
+                                            </td>
+                                            <td style={td}>{formatCT(org.lastPostedAt, 'date')}</td>
+                                        </tr>
+                                        {isExpanded && org.accounts.map(account => (
+                                            <AccountSubrow key={account.id} account={account} />
+                                        ))}
+                                    </Fragment>
                                 );
                             })}
                             {sorted.length === 0 && (
-                                <tr><td colSpan={10} style={{ ...td, textAlign: 'center', padding: 40 }}>No employers found</td></tr>
+                                <tr><td colSpan={10} style={{ ...td, textAlign: 'center', padding: 40 }}>No organizations found</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -374,12 +487,80 @@ export default function AdminEmployersPage() {
     );
 }
 
+/* ─── Payment cell ───
+ * Shared between org rows and per-account subrows so both stay in lockstep
+ * on the paid/free/pending/refunded/other breakdown.
+ */
+function PaymentCell({ posts }: { posts: EmployerPostCounts }) {
+    const refunded = posts.refunded;
+    const other = otherPaymentPosts(posts);
+    return (
+        <div className="flex gap-1">
+            {posts.paid > 0 && badge(`${posts.paid} paid`, 'green')}
+            {posts.free > 0 && badge(`${posts.free} free`, 'gray')}
+            {posts.pending > 0 && badge(`${posts.pending} pending`, 'red')}
+            {refunded > 0 && badge(`${refunded} refunded`, 'purple')}
+            {/* The API classifies paid, free, pending, and refunded. Anything
+                else the Stripe webhook writes (a dispute) would otherwise leave
+                this cell blank, so surface the remainder. */}
+            {other > 0 && (
+                <span title="Posts on another payment lifecycle status, for example refunded or disputed.">
+                    {badge(`${other} other`, 'purple')}
+                </span>
+            )}
+            {posts.total === 0 && badge('None', 'gray')}
+        </div>
+    );
+}
+
+/* ─── Per-account subrow ───
+ * Rendered under an expanded organization row, one per member account or
+ * account-less poster segment. Reuses the same td styles so the breakdown
+ * reads as part of the table. Views and Last Posted stay empty: the contract
+ * only ships those org-wide.
+ */
+function AccountSubrow({ account }: { account: OrganizationAccountRow }) {
+    const status = deriveHiringStatus(account.posts, account.applications);
+    return (
+        <tr style={{ backgroundColor: '#F8FAF9' }}>
+            <td style={{ ...td, paddingLeft: 36 }}>
+                <span style={{ color: '#94A3B8', marginRight: 6 }}>↳</span>
+                <span style={{ fontWeight: 600, color: '#6B7F8A' }}>{account.name || account.email || 'Unknown account'}</span>
+            </td>
+            <td style={td}>{account.email || '·'}</td>
+            <td style={td}>
+                {account.hasAccount ? badge('Yes', 'green') : badge('No', 'orange')}
+                <div style={{ ...muted, marginTop: 4 }}>{formatCT(account.accountCreatedAt, 'date')}</div>
+            </td>
+            <td style={td}>
+                <div style={{ fontWeight: 600, color: '#1A2E35' }}>{account.posts.total}</div>
+                <div style={{ ...muted, marginTop: 2 }}>
+                    {account.posts.active} active, {account.posts.inactive} inactive
+                </div>
+            </td>
+            <td style={td}><PaymentCell posts={account.posts} /></td>
+            <td style={td}>
+                <div style={{ fontWeight: 600, color: '#1A2E35' }}>{account.applications.total}</div>
+                {account.applications.withdrawn > 0 && (
+                    <div style={{ ...muted, marginTop: 2 }}>{account.applications.withdrawn} withdrawn</div>
+                )}
+            </td>
+            <td style={td}>
+                <FunnelCell apps={account.applications} />
+            </td>
+            <td style={td}>{hiringBadge(status)}</td>
+            <td style={td} />
+            <td style={td} />
+        </tr>
+    );
+}
+
 /* ─── ATS funnel cell ───
  * Compact stage counts. The 'applied' stage is the operator signal: those are
  * candidates the employer has never actioned, so it stays amber and bold while
  * every other zero stage fades back.
  */
-function FunnelCell({ apps }: { apps: EmployerApplications }) {
+function FunnelCell({ apps }: { apps: EmployerApplicationCounts }) {
     const stages: Array<{ label: string; value: number; color: string }> = [
         { label: 'new', value: apps.applied, color: '#F59E0B' },
         { label: 'screen', value: apps.screening, color: '#3B82F6' },
