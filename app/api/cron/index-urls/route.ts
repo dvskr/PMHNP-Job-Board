@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
                 select: {
                     id: true,
                     title: true,
+                    sourceType: true,
                 },
                 orderBy: { createdAt: 'desc' },
             });
@@ -62,13 +63,22 @@ export async function GET(request: NextRequest) {
                 };
             }
 
-            // Build full URLs
-            const urls = recentJobs.map((job) => {
+            // Employer-posted jobs claim the Google Indexing API slice FIRST.
+            // pingAllSearchEnginesBatch caps Google at 100/day and fills the
+            // quota in array order, so pure recency ordering let scraped churn
+            // crowd paying employers out of the slice on busy ingest days.
+            // Partition keeps the total attempt count within the existing cap.
+            const employerJobs = recentJobs.filter((job) => job.sourceType === 'employer');
+            const scrapedJobs = recentJobs.filter((job) => job.sourceType !== 'employer');
+            const orderedJobs = [...employerJobs, ...scrapedJobs];
+
+            // Build full URLs (employer URLs first — Google slice is positional)
+            const urls = orderedJobs.map((job) => {
                 const slug = slugify(job.title, job.id);
                 return `${BASE_URL}/jobs/${slug}`;
             });
 
-            console.log(`[CRON:index-urls] Submitting ${urls.length} URLs to search engines`);
+            console.log(`[CRON:index-urls] Submitting ${urls.length} URLs to search engines (${employerJobs.length} employer-posted, prioritized)`);
 
             // Submit to all engines (Google, Bing, IndexNow)
             const results = await pingAllSearchEnginesBatch(urls);
@@ -79,15 +89,31 @@ export async function GET(request: NextRequest) {
             const bingFailed = results.bing.filter((r) => !r.success).length;
             const indexNowSuccess = results.indexNow.filter((r) => r.success).length;
             const indexNowFailed = results.indexNow.filter((r) => !r.success).length;
+            const indexNowFirstError = results.indexNow.find((r) => !r.success)?.error;
+
+            // IndexNow failures used to vanish: a missing key or endpoint
+            // rejection still produced a green run. Total failure now pages the
+            // same Discord channel this cron's catch block already alerts.
+            if (indexNowFailed > 0 && indexNowSuccess === 0) {
+                await sendCronFailureAlert(
+                    'index-urls (IndexNow)',
+                    new Error(`IndexNow rejected or skipped all ${indexNowFailed} URLs: ${indexNowFirstError ?? 'unknown error'}`)
+                );
+            }
 
             const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
             const summary = {
                 success: true,
                 jobCount: urls.length,
+                employerJobCount: employerJobs.length,
                 google: { submitted: googleSuccess, failed: googleFailed },
                 bing: { submitted: bingSuccess, failed: bingFailed },
-                indexNow: { submitted: indexNowSuccess, failed: indexNowFailed },
+                indexNow: {
+                    submitted: indexNowSuccess,
+                    failed: indexNowFailed,
+                    ...(indexNowFirstError ? { error: indexNowFirstError } : {}),
+                },
                 duration: `${duration}s`,
                 timestamp: new Date().toISOString(),
             };
@@ -98,12 +124,14 @@ export async function GET(request: NextRequest) {
                 response: NextResponse.json(summary),
                 metrics: {
                     jobCount: urls.length,
+                    employerJobCount: employerJobs.length,
                     googleSubmitted: googleSuccess,
                     googleFailed,
                     bingSubmitted: bingSuccess,
                     bingFailed,
                     indexNowSubmitted: indexNowSuccess,
                     indexNowFailed,
+                    ...(indexNowFirstError ? { indexNowFirstError } : {}),
                 },
             };
         });
