@@ -129,17 +129,22 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   // than isFeatured alone so every live employer post shows it, including
   // rows created while the post paths still wrote isFeatured:false.
   // DISPLAY-ONLY: verification proved isFeatured does not affect ordering,
-  // and this chip does not either. Visual treatment mirrors the email card's
-  // ★ Featured badge (lib/utils/render-job-card.ts).
+  // and this chip does not either. Claymorphic treatment (soft raised pill
+  // with inset highlight) to match the site's clay design system; no star
+  // glyph, per operator direction. The email card keeps its own plain
+  // ★ Featured chip (lib/utils/render-job-card.ts): clay shadows do not
+  // survive email clients.
   const showFeaturedChip = job.sourceType === 'employer' || job.isFeatured === true;
   const featuredChip = showFeaturedChip ? (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '4px',
-      padding: '5px 12px', borderRadius: '20px',
+      display: 'inline-flex', alignItems: 'center',
+      padding: '5px 13px', borderRadius: '12px',
       fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em',
       textTransform: 'uppercase' as const,
-      background: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D',
-    }}>★ Featured</span>
+      background: '#FEF3C7', color: '#92400E',
+      border: '1px solid rgba(255,255,255,0.6)',
+      boxShadow: '3px 3px 7px rgba(146,64,14,0.14), -2px -2px 5px rgba(255,255,255,0.85), inset 1px 1px 2px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.04)',
+    }}>Featured</span>
   ) : null;
 
   // EVERY card apply button (Easy Apply and external alike) navigates to

@@ -4,7 +4,8 @@
  * 2026-08 audit, facts 7-8 and 12:
  *   - "Featured badge" is SOLD on /pricing and promised in the confirmation
  *     email, but no UI ever rendered one. Resolution: make the promise true.
- *     JobCard now renders a ★ Featured chip for employer-posted jobs in BOTH
+ *     JobCard now renders a clay Featured chip (no star, per operator
+ *     direction) for employer-posted jobs in BOTH
  *     grid and list views (display-only; ordering is untouched).
  *   - The homepage pool capped ALL jobs at 3 days old, so a paid 30/60-day
  *     employer post vanished from the homepage after 72h of its term. The
@@ -26,8 +27,13 @@ const read = (rel: string): string =>
 describe('the Featured badge promise is actually rendered', () => {
   const jobCard = read('components/JobCard.tsx');
 
-  it('JobCard renders a ★ Featured chip', () => {
-    expect(jobCard).toMatch(/★ Featured/);
+  it('JobCard renders a clay Featured chip without a star glyph', () => {
+    expect(jobCard).toMatch(/>Featured</);
+    // Clay treatment: inset highlight + soft raised shadow on the chip.
+    expect(jobCard).toMatch(/boxShadow: '3px 3px 7px rgba\(146,64,14/);
+    // No star in the on-site chip (the email chip keeps its own).
+    const chipBlock = jobCard.slice(jobCard.indexOf('const featuredChip'), jobCard.indexOf('const handleApplyClick'));
+    expect(chipBlock).not.toContain('★');
   });
 
   it('the chip keys on employer-posted (not only isFeatured), so legacy rows with isFeatured:false still show it', () => {
