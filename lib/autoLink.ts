@@ -25,6 +25,15 @@ const CATEGORY_LINKS: { pattern: RegExp; href: string; label: string }[] = [
     // Resources
     { pattern: /\b(PMHNP\s+salary\s+(?:guide|data|information|comparison))\b/gi, href: '/salary-guide', label: 'PMHNP salary guide' },
     { pattern: /\b(PMHNP\s+job\s+alerts?)\b/gi, href: '/job-alerts', label: 'PMHNP job alerts' },
+
+    // Career tools (organic audit 2026-08 D7): /tools pages were orphaned —
+    // zero blog posts linked them and no pattern here could. These phrases
+    // already occur naturally in salary/negotiation/contract content.
+    { pattern: /\b(offer\s+analyzer)\b/gi, href: '/tools/offer-analyzer', label: 'the PMHNP Offer Analyzer' },
+    { pattern: /\b(salary\s+converter|hourly[-\s]to[-\s]annual\s+(?:calculator|converter|conversion))\b/gi, href: '/tools/salary-converter', label: 'the hourly to annual salary converter' },
+    { pattern: /\b(1099\s+vs\.?\s+W-?2\s+(?:calculator|take[-\s]?home|comparison))\b/gi, href: '/tools/1099-vs-w2-calculator', label: 'the 1099 vs W-2 calculator' },
+    { pattern: /\b(practice\s+authority\s+map)\b/gi, href: '/tools/practice-authority-map', label: 'the interactive practice authority map' },
+    { pattern: /\b((?:free\s+)?PMHNP\s+career\s+tools)\b/gi, href: '/tools', label: 'free PMHNP career tools' },
 ];
 
 // Link limit per article to avoid over-optimization
@@ -142,8 +151,26 @@ export function getJobRelatedResources(job: {
         links.push({ label: 'Outpatient PMHNP Jobs', href: '/jobs/outpatient' });
     }
 
-    // Always add salary guide
-    links.push({ label: '2026 PMHNP Salary Guide', href: '/salary-guide' });
+    // Career tools (organic audit 2026-08 D7): tools funnel from job-detail
+    // surfaces. The Offer Analyzer is universally relevant (every job page
+    // is an offer-evaluation moment); the converter and 1099 calculator
+    // attach only where the job type makes them concrete.
+    links.push({ label: 'Offer Analyzer: Check Any Salary Offer', href: '/tools/offer-analyzer' });
+    const jobTypeLower = job.jobType?.toLowerCase() || '';
+    if (
+        jobTypeLower.includes('per diem') ||
+        jobTypeLower.includes('travel') ||
+        jobTypeLower.includes('contract') ||
+        jobTypeLower.includes('locum') ||
+        jobTypeLower.includes('1099')
+    ) {
+        links.push({ label: 'Salary Converter: Hourly to Annual', href: '/tools/salary-converter' });
+        links.push({ label: '1099 vs W-2 Take-Home Calculator', href: '/tools/1099-vs-w2-calculator' });
+    }
+
+    // Always add salary guide (year computed, never hardcoded — a literal
+    // "2026" here would go stale every January).
+    links.push({ label: `${new Date().getFullYear()} PMHNP Salary Guide`, href: '/salary-guide' });
 
     return links;
 }

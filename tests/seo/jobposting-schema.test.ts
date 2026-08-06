@@ -136,14 +136,24 @@ describe('JobPosting structured data — location semantics', () => {
     expect(schema.applicantLocationRequirements).toBeUndefined();
   });
 
-  it('degraded hybrid (no parsable address) falls back to TELECOMMUTE instead of emitting no location signal at all', () => {
+  it('degraded hybrid (no parsable address) gets a country-level jobLocation — never TELECOMMUTE, which Google forbids for hybrid roles (audit 2026-08 C4)', () => {
     const schema = renderSchema({
       isRemote: true, isHybrid: true,
       city: null, state: null, stateCode: null,
     });
-    expect(schema.jobLocation).toBeUndefined();
-    expect(schema.jobLocationType).toBe('TELECOMMUTE');
-    expect(schema.applicantLocationRequirements?.['@type']).toBe('Country');
+    expect(schema.jobLocation?.address?.addressCountry).toBe('US');
+    expect(schema.jobLocation?.address?.addressLocality).toBeUndefined();
+    expect(schema.jobLocationType).toBeUndefined();
+    expect(schema.applicantLocationRequirements).toBeUndefined();
+  });
+
+  it('in-person with no parsable address gets the country-level fallback instead of being hard-ineligible (no jobLocation AND no jobLocationType)', () => {
+    const schema = renderSchema({
+      isRemote: false, isHybrid: false,
+      city: null, state: null, stateCode: null,
+    });
+    expect(schema.jobLocation?.address?.addressCountry).toBe('US');
+    expect(schema.jobLocationType).toBeUndefined();
   });
 });
 
@@ -244,6 +254,13 @@ describe('JobPosting structured data — directApply and salary honesty', () => 
       normalizedMaxSalary: null,
     });
     expect(schema.baseSalary).toBeUndefined();
+  });
+
+  it('estimated salaries never publish as baseSalary — an estimate is not an offer (audit 2026-08 C4)', () => {
+    const schema = renderSchema({ salaryIsEstimated: true });
+    expect(schema.baseSalary).toBeUndefined();
+    // The same values with the flag off DO publish — the guard is the flag.
+    expect(renderSchema({ salaryIsEstimated: false }).baseSalary).toBeDefined();
   });
 
   it('single-bound salary emits QuantitativeValue.value, never a one-sided pseudo-range', () => {

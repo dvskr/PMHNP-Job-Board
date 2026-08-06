@@ -325,3 +325,29 @@ export function getMetroCity(slug: string): MetroCity | undefined {
 export function getAllMetroSlugs(): string[] {
   return METRO_CITIES.map(m => m.slug);
 }
+
+/**
+ * Live-jobs where-clause for one metro (B4, organic audit 2026-08).
+ *
+ * Single source of truth shared by the metro page's stats queries
+ * (app/jobs/metro/[slug]/page.tsx) AND the sitemap's metro gate
+ * (app/sitemap.ts), so the page count and the sitemap eligibility can
+ * never disagree. Adjacent-city expansions mirror what the metro pages
+ * have always matched.
+ *
+ * Type-only Prisma import — this module stays edge-safe (plain data).
+ */
+export function buildMetroJobsWhere(metro: MetroCity): import('@prisma/client').Prisma.JobWhereInput {
+  const city = metro.city;
+  return {
+    isPublished: true,
+    OR: [
+      { city: { contains: city, mode: 'insensitive' as const } },
+      // Metro-area adjacent cities
+      ...(city === 'New York' ? [{ city: { contains: 'Brooklyn', mode: 'insensitive' as const } }, { city: { contains: 'Queens', mode: 'insensitive' as const } }, { city: { contains: 'Bronx', mode: 'insensitive' as const } }] : []),
+      ...(city === 'Tampa' ? [{ city: { contains: 'St. Petersburg', mode: 'insensitive' as const } }, { city: { contains: 'Clearwater', mode: 'insensitive' as const } }] : []),
+      ...(city === 'Dallas' ? [{ city: { contains: 'Fort Worth', mode: 'insensitive' as const } }, { city: { contains: 'Plano', mode: 'insensitive' as const } }, { city: { contains: 'Arlington', mode: 'insensitive' as const } }] : []),
+    ],
+    stateCode: { equals: metro.stateCode, mode: 'insensitive' as const },
+  };
+}

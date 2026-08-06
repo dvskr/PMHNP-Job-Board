@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -32,7 +33,7 @@ async function getStats() {
 
 const faqs = [
   { q: 'What is an entry-level PMHNP role?', a: 'Positions designed for newly certified PMHNPs with structured onboarding, mentorship, and gradual caseload ramp-up over 3-6 months.' },
-  { q: 'What salary can new grad PMHNPs expect?', a: 'Entry-level PMHNPs earn $100K-$140K in year one, with rapid increases to $140K-$170K by year two as caseloads grow.' },
+  { q: 'What salary can new grad PMHNPs expect?', a: 'Starting pay varies by setting and location; listings on this page show the advertised range whenever the employer discloses one. Compensation typically rises quickly after the first year as caseloads grow.' },
   { q: 'Do I need experience beyond clinical rotations?', a: 'Most entry-level roles accept new grads with PMHNP-BC certification. Clinical rotation hours count as experience at many employers.' },
   { q: 'What support do new PMHNPs receive?', a: 'Expect structured mentorship, collaborative agreements, peer case consultation, and gradually increasing patient panels.' },
   { q: 'Which settings hire new grads most?', a: 'Community mental health centers, telehealth platforms, group practices, and FQHCs are the most new-grad-friendly employers.' },
@@ -40,7 +41,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `${stats.totalJobs} Entry Level PMHNP Jobs ($100K-140K)`, description: `Find ${stats.totalJobs} entry-level PMHNP jobs. New grad friendly positions with mentorship and structured onboarding.`, alternates: { canonical: `${brand.baseUrl}/jobs/entry-level` } };
+  return { title: `${categoryTitleCount(stats.totalJobs)}Entry Level PMHNP Jobs`, description: `Find ${categoryTitleCount(stats.totalJobs)}entry-level PMHNP jobs. New grad friendly positions with mentorship and structured onboarding.`, alternates: { canonical: `${brand.baseUrl}/jobs/entry-level` }, ...categoryLandingRobotsMeta(stats.totalJobs) };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }
@@ -72,7 +73,7 @@ export default async function EntryLevelPage({ searchParams }: PageProps) {
         headlineSub="jobs, start your career."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : '$125K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Launch your PMHNP career with supervised positions, mentorship, and structured training programs."

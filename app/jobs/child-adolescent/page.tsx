@@ -7,12 +7,14 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import CategoryFAQ from '@/components/CategoryFAQ';
 
 /* Design Tokens */
 const clayCard: React.CSSProperties = {
@@ -77,26 +79,26 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} Child & Adolescent PMHNP Jobs — Pediatric Psych NP Positions`,
-    description: `Find ${stats.totalJobs} child and adolescent PMHNP jobs. Pediatric psychiatric nurse practitioner positions in schools, children's hospitals, and youth behavioral health clinics with specialized training and family-centered care.`,
+    title: `${categoryTitleCount(stats.totalJobs)}Child & Adolescent PMHNP Jobs — Pediatric Psych NP Positions`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}child and adolescent PMHNP jobs. Pediatric psychiatric nurse practitioner positions in schools, children's hospitals, and youth behavioral health clinics with specialized training and family-centered care.`,
     keywords: ['child pmhnp jobs', 'adolescent pmhnp', 'pediatric psychiatric nurse practitioner', 'child psychiatry np', 'CAPMHNP jobs'],
     openGraph: {
-      title: `${stats.totalJobs} Child & Adolescent PMHNP Jobs`,
+      title: `${categoryTitleCount(stats.totalJobs)}Child & Adolescent PMHNP Jobs`,
       description: 'Browse pediatric psychiatric nurse practitioner positions in schools, hospitals, and clinics.',
       type: 'website',
       url: `${brand.baseUrl}/jobs/child-adolescent`,
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Child & Adolescent PMHNP Jobs`)}&subtitle=${encodeURIComponent('Pediatric psychiatric NP positions in schools, hospitals & clinics')}`,
+        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Child & Adolescent PMHNP Jobs`)}&subtitle=${encodeURIComponent('Pediatric psychiatric NP positions in schools, hospitals & clinics')}`,
         width: 1200, height: 630, alt: 'Child & Adolescent PMHNP Jobs',
       }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${stats.totalJobs} Child & Adolescent PMHNP Jobs`,
+      title: `${categoryTitleCount(stats.totalJobs)}Child & Adolescent PMHNP Jobs`,
       description: 'Pediatric PMHNP positions with specialized training and family-centered care.',
     },
     alternates: { canonical: `${brand.baseUrl}/jobs/child-adolescent` },
-    ...(page > 1 && { robots: { index: false, follow: true } }),
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
@@ -120,7 +122,7 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
     },
     {
       question: "How much do pediatric psychiatric NPs earn?",
-      answer: "Child & adolescent PMHNPs earn $125,000–$180,000+ annually depending on setting and location. School-based roles often follow academic calendars with summers off, while children's hospital positions offer shift differentials and sign-on bonuses."
+      answer: "Pay for child & adolescent PMHNPs varies by setting and location; listings on this page show the advertised range whenever the employer discloses one. School-based roles often follow academic calendars with summers off, while children's hospital positions offer shift differentials and sign-on bonuses."
     },
     {
       question: "Do you need special certification for pediatric psychiatry?",
@@ -139,20 +141,10 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
         { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
         { name: "Child & Adolescent", url: "https://pmhnphiring.com/jobs/child-adolescent" }
       ]} />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: jsonLdString({
-            '@context': 'https://schema.org',
-            '@type': 'FAQPage',
-            mainEntity: childAdolescentFaqs.map((faq) => ({
-              '@type': 'Question',
-              name: faq.question,
-              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
-            })),
-          }),
-        }}
-      />
+      {/* Honesty review 2026-08: inline FAQPage schema removed — the
+          CategoryFAQ component below is this page's single FAQPage emitter
+          (two FAQPage blocks on one page is the same defect audit C1 fixed
+          on metros). The visible accordion below stays. */}
       {jobs.length > 0 && (
         <script
           type="application/ld+json"
@@ -187,7 +179,7 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
         headlineSub="jobs, pediatric psych."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$150K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Specialized roles treating children, teens, and families in schools, clinics, and children's hospitals."
@@ -329,7 +321,7 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary + Benefits</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  Child & adolescent PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$125K–$180K'} annually. School-based roles offer academic calendars with summers off.
+                  {stats.avgSalary > 0 ? `Child & adolescent PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}School-based roles offer academic calendars with summers off.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
@@ -417,6 +409,11 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
       {/* By Location — pseoStats-gated internal links */}
 
       <CategoryLocationsExplore categorySlug="child-adolescent" categoryLabel="Child & Adolescent" />
+
+      {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
+          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
+          live DB average (stored in $K, the FAQ copy expects dollars). */}
+      <CategoryFAQ category="child-adolescent" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
 
 
       {/* ═══ FAQ ═══ */}

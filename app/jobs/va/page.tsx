@@ -7,6 +7,7 @@ import { Shield, Award, Clock, Building2, TrendingUp, Lightbulb, Bell, Graduatio
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -90,14 +91,17 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} VA PMHNP Jobs — Federal Benefits, EDRP & Pension ($120K-175K)`,
-    description: `Find ${stats.totalJobs} VA PMHNP jobs with federal pension, EDRP loan repayment up to $200K, FEHB coverage, and full practice authority nationwide. Updated daily.`,
+    // B3 (organic audit 2026-08): categoryTitleCount drops the number below
+    // the MIN_JOBS floor (no more literal "0 VA PMHNP Jobs" SERP titles) and
+    // categoryLandingRobotsMeta noindexes sub-threshold landings.
+    title: `${categoryTitleCount(stats.totalJobs)}VA PMHNP Jobs — Federal Benefits, EDRP & Pension`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}VA PMHNP jobs with federal pension, EDRP loan repayment up to $200K, FEHB coverage, and full practice authority nationwide. Updated daily.`,
     openGraph: {
-      title: `${stats.totalJobs} VA PMHNP Jobs - Veterans Affairs`,
+      title: `${categoryTitleCount(stats.totalJobs)}VA PMHNP Jobs - Veterans Affairs`,
       description: 'Browse VA psychiatric mental health nurse practitioner positions. Federal benefits, loan repayment, clinical autonomy.',
       type: 'website',
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} VA PMHNP Jobs`)}&subtitle=${encodeURIComponent('Federal benefits & EDRP loan repayment')}`,
+        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}VA PMHNP Jobs`)}&subtitle=${encodeURIComponent('Federal benefits & EDRP loan repayment')}`,
         width: 1200,
         height: 630,
         alt: 'VA PMHNP Jobs',
@@ -106,12 +110,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     alternates: {
       canonical: `${brand.baseUrl}/jobs/va`,
     },
-    ...(page > 1 && {
-      robots: {
-        index: false,
-        follow: true,
-      },
-    }),
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
@@ -178,7 +177,7 @@ export default async function VAJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, federal benefits."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$150K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Federal benefits, EDRP loan repayment up to $200K, pension, and full practice authority nationwide."

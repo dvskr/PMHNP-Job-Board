@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -40,7 +41,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `LGBTQ+ Affirming PMHNP Jobs | Gender-Affirming Care`, description: `Find LGBTQ+ affirming PMHNP positions. Gender-affirming care, inclusive mental health, and culturally competent psychiatric roles.`, alternates: { canonical: `${brand.baseUrl}/jobs/lgbtq` } };
+  return { title: `LGBTQ+ Affirming PMHNP Jobs | Gender-Affirming Care`, description: `Find LGBTQ+ affirming PMHNP positions. Gender-affirming care, inclusive mental health, and culturally competent psychiatric roles.`, alternates: { canonical: `${brand.baseUrl}/jobs/lgbtq` }, ...categoryLandingRobotsMeta(stats.totalJobs) };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }
@@ -71,7 +72,7 @@ export default async function LgbtqPage({ searchParams }: PageProps) {
         headlineSub="jobs, affirming care."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : '$150K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Gender-affirming and LGBTQ+-focused psychiatric positions with inclusive, culturally competent care."

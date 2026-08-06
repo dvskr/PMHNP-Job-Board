@@ -8,6 +8,7 @@ import { FileText, DollarSign, Scale, Calculator, Building2, Lightbulb, Bell, Br
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -77,26 +78,26 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} 1099 PMHNP Jobs — Independent Contractor Psych NP`,
-    description: `Find ${stats.totalJobs} 1099 PMHNP and independent contractor psychiatric nurse practitioner jobs paying $75-$150+/hr with schedule flexibility and tax advantages.`,
+    title: `${categoryTitleCount(stats.totalJobs)}1099 PMHNP Jobs — Independent Contractor Psych NP`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}1099 PMHNP and independent contractor psychiatric nurse practitioner jobs with schedule flexibility and tax advantages.`,
     keywords: ['1099 pmhnp jobs', '1099 pmhnp telehealth', 'independent contractor pmhnp', 'contract psychiatric nurse practitioner', '1099 psych NP', 'independent contractor psychiatric NP'],
     openGraph: {
-      title: `${stats.totalJobs} 1099 PMHNP Jobs - Independent Contractor`,
+      title: `${categoryTitleCount(stats.totalJobs)}1099 PMHNP Jobs - Independent Contractor`,
       description: 'Browse 1099 and independent contractor psychiatric mental health nurse practitioner positions.',
       type: 'website',
       url: `${brand.baseUrl}/jobs/1099`,
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} 1099 PMHNP Jobs`)}&subtitle=${encodeURIComponent('Independent contractor psychiatric NP positions')}`,
+        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}1099 PMHNP Jobs`)}&subtitle=${encodeURIComponent('Independent contractor psychiatric NP positions')}`,
         width: 1200, height: 630, alt: '1099 PMHNP Jobs',
       }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${stats.totalJobs} 1099 PMHNP Jobs`,
-      description: 'Independent contractor psychiatric NP positions paying $75-$150+/hr.',
+      title: `${categoryTitleCount(stats.totalJobs)}1099 PMHNP Jobs`,
+      description: 'Independent contractor psychiatric NP positions with schedule flexibility.',
     },
     alternates: { canonical: `${brand.baseUrl}/jobs/1099` },
-    ...(page > 1 && { robots: { index: false, follow: true } }),
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
@@ -116,15 +117,15 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
   const icFaqs = [
     {
       question: "What is a 1099 PMHNP position?",
-      answer: "A 1099 PMHNP works as an independent contractor rather than a W2 employee. You receive a 1099-NEC tax form instead of a W-2. You set your own schedule, pay your own taxes (including self-employment tax), and provide your own benefits. In exchange, you typically earn 20-40% higher gross pay than W2 positions."
+      answer: "A 1099 PMHNP works as an independent contractor rather than a W2 employee. You receive a 1099-NEC tax form instead of a W-2. You set your own schedule, pay your own taxes (including self-employment tax), and provide your own benefits. In exchange, gross contractor rates typically run higher than W2 pay because they exclude benefits and employer-paid taxes."
     },
     {
       question: "How much do 1099 PMHNPs earn compared to W2?",
-      answer: "1099 PMHNPs typically earn $75-$150+/hour gross, which is 20-40% higher than W2 rates. However, after accounting for self-employment tax (15.3%), health insurance ($500-$1,500/month), malpractice insurance ($1,500-$3,000/year), and retirement contributions, net take-home is often comparable to a W2 position paying 15-20% less."
+      answer: "Gross 1099 rates typically run above W2 rates because they exclude benefits and employer-paid taxes. However, after accounting for self-employment tax (15.3%), health insurance, malpractice insurance, and retirement contributions, net take-home is often closer to a comparable W2 position than the headline rate suggests."
     },
     {
       question: "What are the tax advantages of 1099 PMHNP work?",
-      answer: "1099 PMHNPs can deduct business expenses including home office, mileage, professional development, malpractice insurance, health insurance premiums, retirement plan contributions (SEP-IRA up to $66,000/year or Solo 401k), technology/equipment, and professional memberships. These deductions can significantly reduce taxable income."
+      answer: "1099 PMHNPs can deduct business expenses including home office, mileage, professional development, malpractice insurance, health insurance premiums, retirement plan contributions (SEP-IRA or Solo 401k, up to annual IRS limits), technology/equipment, and professional memberships. These deductions can significantly reduce taxable income."
     },
     {
       question: "Should new grad PMHNPs take 1099 positions?",
@@ -192,7 +193,7 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
         photoTagTitle="This week"
         photoTagBody="New 1099 postings across telehealth, group, and private practice."
         stats={[
-          { value: '$75–150', label: 'per hour' },
+          { value: 'Varies', label: 'hourly rate' },
           { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '—', label: 'avg salary' },
           { value: `${stats.totalJobs}+`, label: 'positions' },
         ]}
@@ -282,7 +283,7 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
               <div style={{ padding: '32px 28px' }}>
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Higher Gross Pay</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  Earn $75–$150+/hour as a 1099 PMHNP — 20-40% higher than W2 rates with significant tax deduction opportunities.
+                  Gross 1099 rates typically run above W2 equivalents, with significant tax deduction opportunities.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
@@ -297,7 +298,7 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
               <div style={{ padding: '24px 22px', flex: 1 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Tax Advantages</h3>
                 <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
-                  Deduct business expenses, contribute $66K/year to SEP-IRA, and write off home office and mileage.
+                  Deduct business expenses, contribute to a SEP-IRA up to annual IRS limits, and write off home office and mileage.
                 </p>
               </div>
             </div>
@@ -330,7 +331,7 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary Comparison</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  1099 PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$75–$150+/hr'} gross — 20-40% above W2 rates before accounting for self-employment tax.
+                  {stats.avgSalary > 0 ? `1099 PMHNP listings here average $${stats.avgSalary}k gross. ` : ''}Gross contractor rates typically run above W2 equivalents because they exclude benefits and employer-paid taxes.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
@@ -369,9 +370,9 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
             {[
               { step: '01', title: 'Form an LLC', text: 'Create an LLC or PLLC for liability protection and tax flexibility before signing your first contract.' },
-              { step: '02', title: 'Get Insurance', text: 'Secure individual malpractice insurance ($1.5-3K/year) and health coverage through the marketplace.' },
+              { step: '02', title: 'Get Insurance', text: 'Secure individual malpractice insurance and health coverage through the marketplace.' },
               { step: '03', title: 'Tax Setup', text: 'Get an EIN, open a business bank account, and register for quarterly estimated tax payments with the IRS.' },
-              { step: '04', title: 'Retirement Plan', text: 'Open a SEP-IRA (up to $66K/year) or Solo 401k to maximize your tax-advantaged retirement savings.' },
+              { step: '04', title: 'Retirement Plan', text: 'Open a SEP-IRA or Solo 401k (annual IRS limits apply) to maximize your tax-advantaged retirement savings.' },
             ].map(r => (
               <div key={r.step} className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
                 <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px', fontFamily: 'var(--font-mono)' }}>{r.step}</span>

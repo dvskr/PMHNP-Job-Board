@@ -7,12 +7,14 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import CategoryFAQ from '@/components/CategoryFAQ';
 
 /* Design Tokens */
 const clayCard: React.CSSProperties = {
@@ -77,26 +79,26 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} Community Health PMHNP Jobs — FQHC & Public Health NP Positions`,
-    description: `Find ${stats.totalJobs} community health PMHNP jobs. Psychiatric nurse practitioner positions at FQHCs, community mental health centers, and public health clinics with NHSC loan repayment eligibility and integrated care teams.`,
+    title: `${categoryTitleCount(stats.totalJobs)}Community Health PMHNP Jobs — FQHC & Public Health NP Positions`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}community health PMHNP jobs. Psychiatric nurse practitioner positions at FQHCs, community mental health centers, and public health clinics with NHSC loan repayment eligibility and integrated care teams.`,
     keywords: ['community health pmhnp jobs', 'FQHC psychiatric nurse practitioner', 'public health PMHNP', 'community mental health NP', 'underserved population psych NP'],
     openGraph: {
-      title: `${stats.totalJobs} Community Health PMHNP Jobs`,
+      title: `${categoryTitleCount(stats.totalJobs)}Community Health PMHNP Jobs`,
       description: 'Browse community health and FQHC psychiatric mental health nurse practitioner positions.',
       type: 'website',
       url: `${brand.baseUrl}/jobs/community-health`,
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Community Health PMHNP Jobs`)}&subtitle=${encodeURIComponent('FQHC, public health & community mental health roles')}`,
+        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Community Health PMHNP Jobs`)}&subtitle=${encodeURIComponent('FQHC, public health & community mental health roles')}`,
         width: 1200, height: 630, alt: 'Community Health PMHNP Jobs',
       }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${stats.totalJobs} Community Health PMHNP Jobs`,
+      title: `${categoryTitleCount(stats.totalJobs)}Community Health PMHNP Jobs`,
       description: 'FQHC and community mental health PMHNP positions with NHSC loan repayment eligibility.',
     },
     alternates: { canonical: `${brand.baseUrl}/jobs/community-health` },
-    ...(page > 1 && { robots: { index: false, follow: true } }),
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
@@ -120,11 +122,11 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
     },
     {
       question: "How much do community health PMHNPs earn?",
-      answer: "Community health PMHNPs earn $120,000–$170,000+ annually. Many positions at FQHCs include NHSC loan repayment up to $50,000, PSLF eligibility, generous PTO, and federal benefits that significantly boost total compensation beyond base salary."
+      answer: "Pay varies by setting and location; listings on this page show the advertised range whenever the employer discloses one. Many positions at FQHCs add NHSC loan repayment eligibility, PSLF eligibility, generous PTO, and federal benefits that boost total compensation beyond base salary."
     },
     {
       question: "Do community health positions qualify for loan repayment?",
-      answer: "Yes — many FQHC and public health positions qualify for National Health Service Corps (NHSC) loan repayment of up to $50,000 for two years of service. Positions at 501(c)(3) nonprofit employers also qualify for Public Service Loan Forgiveness (PSLF) after 120 qualifying payments."
+      answer: "Yes — many FQHC and public health positions qualify for National Health Service Corps (NHSC) loan repayment; award amounts and terms are set by HRSA each cycle. Positions at 501(c)(3) nonprofit employers also qualify for Public Service Loan Forgiveness (PSLF) after 120 qualifying payments."
     },
     {
       question: "What qualifications are needed for community health PMHNP roles?",
@@ -139,20 +141,10 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
         { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
         { name: "Community Health", url: "https://pmhnphiring.com/jobs/community-health" }
       ]} />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: jsonLdString({
-            '@context': 'https://schema.org',
-            '@type': 'FAQPage',
-            mainEntity: communityHealthFaqs.map((faq) => ({
-              '@type': 'Question',
-              name: faq.question,
-              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
-            })),
-          }),
-        }}
-      />
+      {/* Honesty review 2026-08: inline FAQPage schema removed — the
+          CategoryFAQ component below is this page's single FAQPage emitter
+          (two FAQPage blocks on one page is the same defect audit C1 fixed
+          on metros). The visible accordion below stays. */}
       {jobs.length > 0 && (
         <script
           type="application/ld+json"
@@ -187,7 +179,7 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
         headlineSub="jobs, FQHC & public health."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$145K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="FQHC and public health positions with loan repayment, integrated care teams, and meaningful impact on underserved communities."
@@ -318,7 +310,7 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_ch_heart.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Loan Repayment</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>NHSC loan repayment up to $50K. Many positions qualify for PSLF.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>NHSC loan repayment eligibility at many sites. Many positions qualify for PSLF.</p>
             </div>
 
             {/* ROW 3: Integrated Care (8) + Alert CTA (4) */}
@@ -327,7 +319,7 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary + Benefits</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  Community health PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$120K–$170K'} annually with NHSC loan repayment, generous PTO, and federal benefits.
+                  {stats.avgSalary > 0 ? `Community health PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Many roles add NHSC loan repayment eligibility, generous PTO, and federal benefits.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
@@ -415,6 +407,11 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
       {/* By Location — pseoStats-gated internal links */}
 
       <CategoryLocationsExplore categorySlug="community-health" categoryLabel="Community Health" />
+
+      {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
+          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
+          live DB average (stored in $K, the FAQ copy expects dollars). */}
+      <CategoryFAQ category="community-health" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
 
 
       {/* ═══ FAQ ═══ */}

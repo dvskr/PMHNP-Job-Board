@@ -30,11 +30,15 @@ const IBASE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public
 const UPLOAD_DATE = '2026-02-20T00:00:00Z';
 
 export const PAGE_VIDEO_SEO: Record<string, PageVideoSEO> = {
+    // Audit 2026-08 C6: titles/descriptions in this registry must stay
+    // number-free. The old copy claimed job/company counts and salary figures
+    // that were never true (e.g. "10,000+ jobs from 3,000+ companies") —
+    // hardcoded stats in a static file can only drift from reality.
     '/': {
         video: `${VBASE}/pmhnp-job-board-homepage-scroll.webm`,
         thumbnail: `${IBASE}/pmhnp-job-board-homepage.webp`,
         title: 'PMHNP Job Board Homepage Walkthrough',
-        description: 'Scroll through the PMHNP Hiring homepage — browse 10,000+ psychiatric nurse practitioner jobs from 3,000+ companies across all 50 states with salary transparency.',
+        description: 'Scroll through the PMHNP Hiring homepage and browse psychiatric nurse practitioner jobs with salary transparency from employers across all 50 states.',
         duration: 20,
         uploadDate: UPLOAD_DATE,
     },
@@ -42,7 +46,7 @@ export const PAGE_VIDEO_SEO: Record<string, PageVideoSEO> = {
         video: `${VBASE}/about-pmhnp-hiring-platform-scroll.webm`,
         thumbnail: `${IBASE}/about-pmhnp-hiring-platform.webp`,
         title: 'About PMHNP Hiring Platform',
-        description: 'Learn about PMHNP Hiring — our mission, data methodology, and how we aggregate psychiatric mental health nurse practitioner jobs from thousands of sources.',
+        description: 'Learn about PMHNP Hiring: our mission, data methodology, and how we aggregate psychiatric mental health nurse practitioner jobs from sources across the web.',
         duration: 20,
         uploadDate: UPLOAD_DATE,
     },
@@ -106,7 +110,7 @@ export const PAGE_VIDEO_SEO: Record<string, PageVideoSEO> = {
         video: `${VBASE}/pmhnp-salary-guide-2026-scroll.webm`,
         thumbnail: `${IBASE}/pmhnp-salary-guide-2026.webp`,
         title: '2026 PMHNP Salary Guide — State by State Comparison',
-        description: 'Comprehensive 2026 PMHNP salary guide showing national averages of $155,000+ with state-by-state comparisons, experience level breakdowns, and tips to maximize earnings.',
+        description: 'Comprehensive 2026 PMHNP salary guide with national and state-by-state comparisons, experience level breakdowns, and tips to maximize earnings.',
         duration: 28,
         uploadDate: UPLOAD_DATE,
     },
@@ -121,8 +125,8 @@ export const PAGE_VIDEO_SEO: Record<string, PageVideoSEO> = {
     '/jobs': {
         video: `${VBASE}/pmhnp-job-search-listings-scroll.webm`,
         thumbnail: `${IBASE}/pmhnp-job-search-listings.webp`,
-        title: 'PMHNP Job Search — Browse Thousands of Listings',
-        description: 'Search and filter thousands of PMHNP job listings by salary, location, job type, and more on the #1 psychiatric nurse practitioner job board.',
+        title: 'PMHNP Job Search: Browse Live Listings',
+        description: 'Search and filter PMHNP job listings by salary, location, job type, and more on the PMHNP Hiring psychiatric nurse practitioner job board.',
         duration: 35,
         uploadDate: UPLOAD_DATE,
     },
@@ -130,7 +134,7 @@ export const PAGE_VIDEO_SEO: Record<string, PageVideoSEO> = {
         video: `${VBASE}/remote-pmhnp-jobs-telehealth-scroll.webm`,
         thumbnail: `${IBASE}/remote-pmhnp-jobs-telehealth.webp`,
         title: 'Remote PMHNP Jobs — Work From Home Positions',
-        description: 'Browse remote and work-from-home PMHNP jobs with average salaries of $171,000+. Telehealth psychiatric nurse practitioner positions across all 50 states.',
+        description: 'Browse remote and work-from-home PMHNP jobs with advertised salaries. Telehealth psychiatric nurse practitioner positions across all 50 states.',
         duration: 28,
         uploadDate: UPLOAD_DATE,
     },
@@ -178,7 +182,7 @@ export const PAGE_VIDEO_SEO: Record<string, PageVideoSEO> = {
         video: `${VBASE}/post-pmhnp-job-listing-scroll.webm`,
         thumbnail: `${IBASE}/post-pmhnp-job-listing.webp`,
         title: 'Post a PMHNP Job Listing',
-        description: 'Post a psychiatric nurse practitioner job on PMHNP Hiring. Reach thousands of qualified PMHNPs with targeted job listings, salary transparency, and employer branding.',
+        description: 'Post a psychiatric nurse practitioner job on PMHNP Hiring. Reach qualified PMHNPs with targeted job listings, salary transparency, and employer branding.',
         duration: 19,
         uploadDate: UPLOAD_DATE,
     },

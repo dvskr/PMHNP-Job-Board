@@ -39,7 +39,6 @@ interface JobBatchRow {
     id: string;
     title: string;
     slug: string | null;
-    updatedAt: Date;
 }
 
 // GSC Fix (2026-07 audit, review finding): the sitemap must advertise the
@@ -77,7 +76,7 @@ export async function GET(
     const skip = batchIndex * BATCH_SIZE;
     const jobs: JobBatchRow[] = await prisma.job.findMany({
         where: activeJobWhere,
-        select: { id: true, title: true, slug: true, updatedAt: true },
+        select: { id: true, title: true, slug: true },
         orderBy: [
             { qualityScore: 'desc' },
             { createdAt: 'desc' },
@@ -86,17 +85,19 @@ export async function GET(
         take: BATCH_SIZE,
     });
 
+    // B6 (organic audit 2026-08): the lastmod element is deliberately
+    // OMITTED. Job updatedAt churns on every ingest touch, so lastmod here
+    // claimed the entire 1,100+ URL surface changed daily — pure noise that
+    // erodes Google's trust in lastmod site-wide. Omitting it is the honest
+    // state; do NOT reintroduce it from updatedAt (only a real content-change
+    // signal, e.g. a future job-level contentChangedAt column, qualifies).
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${jobs.map(j => {
-        const lastmod = j.updatedAt.toISOString();
-        return `  <url>
+${jobs.map(j => `  <url>
     <loc>${BASE_URL}/jobs/${jobSlug(j)}</loc>
-    <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
-  </url>`;
-    }).join('\n')}
+  </url>`).join('\n')}
 </urlset>`;
 
     return new NextResponse(xml, {

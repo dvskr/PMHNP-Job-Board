@@ -7,6 +7,7 @@ import { Home, Globe, TrendingUp, Building2, Bell, ArrowRight, Briefcase, Dollar
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { GLOBAL_EXCLUSIONS } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -120,15 +121,18 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} Remote PMHNP Jobs — Work From Home ($130K-200K)`,
+    // B3 (organic audit 2026-08): categoryTitleCount drops the number below
+    // the MIN_JOBS floor; categoryLandingRobotsMeta noindexes sub-threshold
+    // landings AND paginated variants.
+    title: `${categoryTitleCount(stats.totalJobs)}Remote PMHNP Jobs — Work From Home`,
     // SEO Fix #7: trim to ≤160 chars (Google SERP cap).
-    description: `Find ${stats.totalJobs} remote PMHNP jobs paying $130K-$200K+. Work from home psychiatric nurse practitioner positions — telehealth, flexible, no commute.`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}remote PMHNP jobs. Work from home psychiatric nurse practitioner positions — telehealth, flexible, no commute.`,
     openGraph: {
-      title: `${stats.totalJobs} Remote PMHNP Jobs - Work From Home`,
+      title: `${categoryTitleCount(stats.totalJobs)}Remote PMHNP Jobs - Work From Home`,
       description: 'Browse telehealth and remote psychiatric mental health nurse practitioner positions. Flexible schedules, competitive pay.',
       type: 'website',
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Remote PMHNP Jobs`)}&subtitle=${encodeURIComponent('Work from home psychiatric NP positions')}`,
+        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Remote PMHNP Jobs`)}&subtitle=${encodeURIComponent('Work from home psychiatric NP positions')}`,
         width: 1200,
         height: 630,
         alt: 'Remote PMHNP Jobs',
@@ -137,14 +141,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     alternates: {
       canonical: `${brand.baseUrl}/jobs/remote`,
     },
-    // Prevent Google from indexing paginated variants as separate pages
-    // Fixes "Duplicate without user-selected canonical" GSC issue
-    ...(page > 1 && {
-      robots: {
-        index: false,
-        follow: true,
-      },
-    }),
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
@@ -210,7 +207,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, work from anywhere."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'companies' },
         ]}
         description="Telehealth and remote positions with competitive pay, flexible schedules, and multi-state reach."
@@ -389,7 +386,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
             <div className="remote-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_telehealth.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>High Demand</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Telehealth NP roles grew 45% year-over-year — demand continues to accelerate.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Demand for telehealth NP roles continues to grow year over year.</p>
             </div>
             <div className="remote-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_shield_lock.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
@@ -408,7 +405,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary Parity</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  Remote PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K–$200K'} annually — on par with or above in-office equivalents.
+                  {stats.avgSalary > 0 ? `Remote PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Advertised ranges appear on each listing whenever the employer discloses them.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>

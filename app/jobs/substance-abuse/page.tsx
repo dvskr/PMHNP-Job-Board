@@ -13,6 +13,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import CategoryFAQ from '@/components/CategoryFAQ';
 
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
 /* Design Tokens */
@@ -65,7 +66,7 @@ async function getSubstanceAbuseStats() {
 const substanceFaqs = [
   { question: 'What is a Substance Abuse PMHNP?', answer: 'A PMHNP specializing in addiction treatment, including medication-assisted treatment (MAT), detox management, and dual-diagnosis care.' },
   { question: 'What is MAT?', answer: 'Medication-Assisted Treatment uses FDA-approved medications like buprenorphine and naltrexone alongside counseling to treat opioid and alcohol use disorders.' },
-  { question: 'What is the salary range?', answer: 'Substance abuse PMHNPs earn $130K-$180K, with MAT-certified providers commanding premium rates.' },
+  { question: 'What is the salary range?', answer: 'Pay varies by setting and location; MAT-experienced providers often command premium rates.' },
   { question: 'What certifications help?', answer: 'DEA registration, buprenorphine prescribing knowledge, and ASAM certification strengthen candidacy for addiction roles.' },
 ];
 
@@ -74,8 +75,8 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: `${stats.totalJobs} Substance Abuse PMHNP Jobs — Addiction & MAT Psych NP ($130K-180K)`,
-        description: `Find ${stats.totalJobs} substance abuse and addiction PMHNP jobs paying $130K-$180K+. MAT clinics, dual diagnosis, Suboxone prescriber, and rehab psychiatric nurse practitioner positions. High demand, rewarding work.`,
+        title: `${stats.totalJobs} Substance Abuse PMHNP Jobs — Addiction & MAT Psych NP`,
+        description: `Find ${stats.totalJobs} substance abuse and addiction PMHNP jobs. MAT clinics, dual diagnosis, Suboxone prescriber, and rehab psychiatric nurse practitioner positions. High demand, rewarding work.`,
         keywords: ['substance abuse pmhnp', 'addiction pmhnp jobs', 'MAT pmhnp', 'suboxone prescriber', 'dual diagnosis pmhnp', 'SUD nurse practitioner'],
         openGraph: {
             title: `${stats.totalJobs} Substance Abuse PMHNP Jobs — Addiction Treatment`,
@@ -127,7 +128,7 @@ export default async function SubstanceAbuseJobsPage({ searchParams }: PageProps
         headlineSub="jobs, addiction care."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Addiction treatment roles including MAT programs, detox centers, and dual-diagnosis facilities."
@@ -305,6 +306,11 @@ export default async function SubstanceAbuseJobsPage({ searchParams }: PageProps
 
       <CategoryLocationsExplore categorySlug="substance-abuse" categoryLabel="Substance Abuse" />
 
+      {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
+          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
+          live DB average (stored in $K, the FAQ copy expects dollars). */}
+      <CategoryFAQ category="substance-abuse" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
+
 
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
@@ -319,7 +325,7 @@ export default async function SubstanceAbuseJobsPage({ searchParams }: PageProps
               </div>
             ))}
           </div>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: substanceFaqs.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })) }) }} />
+          {/* Honesty review 2026-08: inline FAQPage schema removed; CategoryFAQ is this page's single FAQPage emitter (duplicate FAQPage blocks are the metro defect audit C1 fixed). */}
         </section>
       </div>
 

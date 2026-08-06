@@ -51,7 +51,9 @@ export const STAT_SOURCES = {
     blsGrowth2032: {
         value: '45',
         formatted: '45%',
-        source: 'BLS Occupational Outlook Handbook — Nurse Practitioners (2022–2032 projection)',
+        // No em/en dashes: this string interpolates into user-facing FAQ
+        // answers (homepage + blog), which follow the "X to Y" range style.
+        source: 'BLS Occupational Outlook Handbook, Nurse Practitioners (2022 to 2032 projection)',
         sourceUrl: 'https://www.bls.gov/ooh/healthcare/nurse-anesthetists-nurse-midwives-and-nurse-practitioners.htm',
         asOf: '2024',
     },

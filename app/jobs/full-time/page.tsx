@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -40,8 +41,8 @@ async function getStats() {
 }
 
 const faqs = [
-  { q: 'What benefits do full-time PMHNPs receive?', a: 'Full-time PMHNPs typically receive comprehensive health/dental/vision insurance, 401k matching, 3-6 weeks PTO, CME stipends ($2-5K/yr), malpractice coverage, and student loan repayment programs at qualifying employers.' },
-  { q: 'What is the average full-time PMHNP salary?', a: 'Full-time PMHNPs earn $130K-$180K base salary depending on location, setting, and experience. Many roles add RVU bonuses, quality incentives, and sign-on bonuses of $10-30K.' },
+  { q: 'What benefits do full-time PMHNPs receive?', a: 'Full-time PMHNPs typically receive comprehensive health/dental/vision insurance, 401k matching, 3-6 weeks PTO, CME stipends, malpractice coverage, and student loan repayment programs at qualifying employers.' },
+  { q: 'What is the average full-time PMHNP salary?', a: 'Full-time PMHNP pay varies by location, setting, and experience; listings show the advertised range whenever the employer discloses one. Many roles add RVU bonuses, quality incentives, and sign-on bonuses.' },
   { q: 'What schedule do full-time PMHNPs work?', a: 'Most outpatient full-time roles are Monday-Friday, 8am-5pm with no weekends. Inpatient roles often use 7-on/7-off schedules. Some positions offer 4x10-hour day options.' },
   { q: 'How does full-time compare to contract or PRN?', a: 'Full-time offers job security, benefits, PTO, and retirement contributions. Contract/PRN pay higher hourly rates but lack benefits and stability. Full-time is ideal for long-term career building.' },
   { q: 'What qualifications are needed?', a: 'Active PMHNP-BC certification, state APRN licensure, DEA registration, and typically 1+ years of clinical experience. New grads are welcomed at many full-time positions.' },
@@ -50,9 +51,10 @@ const faqs = [
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
   return {
-    title: `${stats.totalJobs} Full-Time PMHNP Jobs ($130K-180K)`,
-    description: `Find ${stats.totalJobs} full-time PMHNP jobs with benefits, PTO, and retirement. Permanent psychiatric NP positions paying $130K-180K+.`,
+    title: `${categoryTitleCount(stats.totalJobs)}Full-Time PMHNP Jobs`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}full-time PMHNP jobs with benefits, PTO, and retirement. Permanent psychiatric NP positions with advertised pay on disclosed listings.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/full-time` },
+    ...categoryLandingRobotsMeta(stats.totalJobs),
   };
 }
 
@@ -85,7 +87,7 @@ export default async function FullTimePage({ searchParams }: PageProps) {
         headlineSub="jobs, stability & benefits."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Permanent positions with full benefits, PTO, retirement, and long-term career stability."

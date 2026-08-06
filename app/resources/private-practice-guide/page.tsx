@@ -150,7 +150,7 @@ export default function PrivatePracticeGuidePage() {
       />
       {/* Article schema (audit 14 M-3): page is long-form editorial content
           with a named publisher and a hero image — qualifies for Article
-          rich results alongside the existing HowTo + FAQPage. */}
+          rich results alongside the existing FAQPage. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -168,23 +168,6 @@ export default function PrivatePracticeGuidePage() {
           }),
         }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: jsonLdString({
-            '@context': 'https://schema.org',
-            '@type': 'HowTo',
-            name: 'How to Start a PMHNP Private Practice',
-            description: 'Step-by-step guide to launching your own psychiatric nurse practitioner private practice.',
-            step: steps.map((s) => ({
-              '@type': 'HowToStep',
-              name: s.title,
-              text: s.content,
-              position: s.number,
-            })),
-          }),
-        }}
-      />
 
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white py-12 md:py-16">
@@ -197,23 +180,23 @@ export default function PrivatePracticeGuidePage() {
               How to Start a PMHNP Private Practice
             </h1>
             <p className="text-sm text-teal-200 text-center mt-2 mb-4">
-              Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | Step-by-step startup guide
+              Last Reviewed: {new Date(LAST_REVIEWED).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })} | Step-by-step startup guide
             </p>
             <p className="text-lg md:text-xl text-teal-100 mb-6">
               From LLC formation to full caseload — everything you need to launch your psychiatric NP practice
             </p>
             <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
               <div className="text-center">
-                <div className="text-3xl font-bold">$200-300K+</div>
-                <div className="text-sm text-teal-100">Annual Revenue Potential</div>
+                <div className="text-3xl font-bold">{steps.length} Steps</div>
+                <div className="text-sm text-teal-100">From License to Launch</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold">6-12 mo</div>
-                <div className="text-sm text-teal-100">Time to Full Caseload</div>
+                <div className="text-3xl font-bold">Lean Start</div>
+                <div className="text-sm text-teal-100">Telehealth-First Setup</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold">$5-20K</div>
-                <div className="text-sm text-teal-100">Lean Startup Cost</div>
+                <div className="text-3xl font-bold">You Decide</div>
+                <div className="text-sm text-teal-100">Caseload, Rates, Hours</div>
               </div>
             </div>
           </div>

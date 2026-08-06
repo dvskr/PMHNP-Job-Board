@@ -7,6 +7,7 @@ import { GraduationCap, TrendingUp, Building2, Bell, ArrowRight } from 'lucide-r
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -14,6 +15,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import CategoryFAQ from '@/components/CategoryFAQ';
 
 // Force dynamic rendering - don't try to statically generate during build
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
@@ -113,7 +115,7 @@ async function getNewGradStats() {
 const newGradFaqs = [
   { question: 'Can new grads get PMHNP jobs?', answer: 'Yes! Many employers actively recruit new PMHNP graduates, especially in underserved areas and community health settings.' },
   { question: 'What should new grads expect?', answer: 'Structured onboarding, clinical supervision, mentorship programs, and gradual caseload increase over 3-6 months.' },
-  { question: 'What is the starting salary?', answer: 'New grad PMHNPs typically start at $100K-$140K, with rapid increases after the first year of experience.' },
+  { question: 'What is the starting salary?', answer: 'Starting pay varies by setting and location; listings on this page show the advertised range whenever the employer discloses one. Compensation typically rises after the first year of experience.' },
   { question: 'Do I need experience to apply?', answer: 'Clinical rotation hours count as experience. Highlight any psychiatric nursing background and relevant certifications.' },
 ];
 
@@ -122,15 +124,15 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: `${stats.totalJobs} New Grad PMHNP Jobs — Entry-Level Psych NP ($120K-160K)`,
-        description: `Find ${stats.totalJobs} new grad PMHNP jobs starting at $120K+. Entry-level psychiatric nurse practitioner positions with mentorship, fellowships, and residency programs. No experience required — start your PMHNP career today.`,
+        title: `${categoryTitleCount(stats.totalJobs)}New Grad PMHNP Jobs — Entry-Level Psych NP`,
+        description: `Find ${categoryTitleCount(stats.totalJobs)}new grad PMHNP jobs. Entry-level psychiatric nurse practitioner positions with mentorship, fellowships, and residency programs. No experience required — start your PMHNP career today.`,
         keywords: ['new grad pmhnp', 'entry level pmhnp', 'pmhnp fellowship', 'new graduate psychiatric nurse practitioner', 'pmhnp residency'],
         openGraph: {
-            title: `${stats.totalJobs} New Grad PMHNP Jobs - Entry Level Positions`,
+            title: `${categoryTitleCount(stats.totalJobs)}New Grad PMHNP Jobs - Entry Level Positions`,
             description: 'Browse new graduate and entry-level psychiatric mental health nurse practitioner positions. Fellowships, residencies, mentorship programs.',
             type: 'website',
             images: [{
-                url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} New Grad PMHNP Jobs`)}&subtitle=${encodeURIComponent('Entry-level psychiatric NP positions')}`,
+                url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}New Grad PMHNP Jobs`)}&subtitle=${encodeURIComponent('Entry-level psychiatric NP positions')}`,
                 width: 1200,
                 height: 630,
                 alt: 'New Grad PMHNP Jobs',
@@ -140,12 +142,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
             canonical: `${brand.baseUrl}/jobs/new-grad`,
         },
         // Prevent Google from indexing paginated variants as separate pages
-        ...(page > 1 && {
-            robots: {
-                index: false,
-                follow: true,
-            },
-        }),
+        ...categoryLandingRobotsMeta(stats.totalJobs, page),
     };
 }
 
@@ -187,7 +184,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, launch your career."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$120K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Entry-level positions with structured mentorship, clinical supervision, fellowships, and clear paths to independent practice."
@@ -367,6 +364,11 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
       {/* By Location — pseoStats-gated internal links */}
       <CategoryLocationsExplore categorySlug="new-grad" categoryLabel="New Grad" />
 
+      {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
+          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
+          live DB average (stored in $K, the FAQ copy expects dollars). */}
+      <CategoryFAQ category="new-grad" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
+
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
         <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
@@ -380,7 +382,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
               </div>
             ))}
           </div>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: newGradFaqs.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })) }) }} />
+          {/* Honesty review 2026-08: inline FAQPage schema removed; CategoryFAQ is this page's single FAQPage emitter (duplicate FAQPage blocks are the metro defect audit C1 fixed). */}
         </section>
       </div>
 

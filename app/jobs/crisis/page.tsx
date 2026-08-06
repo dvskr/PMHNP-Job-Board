@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -41,7 +42,7 @@ async function getStats() {
 
 const crisisFaqs = [
   { question: 'What is a Crisis PMHNP role?', answer: 'Crisis PMHNPs provide acute psychiatric interventions in emergency departments, crisis stabilization units, and mobile crisis teams. You assess, de-escalate, and stabilize patients experiencing psychiatric emergencies.' },
-  { question: 'What does a Crisis PMHNP earn?', answer: 'Crisis PMHNPs earn $140K-200K+ annually due to the high-acuity nature of the work. Night/weekend differentials and on-call premiums can add 15-25% to base pay.' },
+  { question: 'What does a Crisis PMHNP earn?', answer: 'Crisis roles often advertise premium pay due to the high-acuity nature of the work. Night/weekend differentials and on-call premiums can add meaningfully to base pay.' },
   { question: 'What qualifications are needed?', answer: 'Active PMHNP-BC, state APRN licensure, DEA registration, and experience with acute psychiatric populations. Crisis intervention training (CIT) and de-escalation certifications are highly valued.' },
   { question: 'What settings do crisis PMHNPs work in?', answer: 'Emergency departments, psychiatric emergency services (PES), crisis stabilization units, mobile crisis teams, 988 crisis centers, and urgent behavioral health clinics.' },
   { question: 'What does a typical crisis shift look like?', answer: 'Crisis shifts are fast-paced: rapid psychiatric assessments, medication management for acute agitation, safety planning, involuntary hold evaluations, and coordinating dispositions with inpatient units.' },
@@ -50,9 +51,10 @@ const crisisFaqs = [
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
   return {
-    title: `${stats.totalJobs} Crisis PMHNP Jobs ($140K-200K)`,
-    description: `Find ${stats.totalJobs} crisis PMHNP jobs paying $140K-200K+. Emergency psychiatric care, crisis stabilization, and urgent behavioral health positions.`,
+    title: `${categoryTitleCount(stats.totalJobs)}Crisis PMHNP Jobs`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}crisis PMHNP jobs. Emergency psychiatric care, crisis stabilization, and urgent behavioral health positions.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/crisis` },
+    ...categoryLandingRobotsMeta(stats.totalJobs),
   };
 }
 
@@ -90,7 +92,7 @@ export default async function CrisisPage({ searchParams }: PageProps) {
         headlineSub="jobs, crisis intervention."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : '$160K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Emergency psychiatric care with crisis intervention, stabilization, and acute assessment roles."

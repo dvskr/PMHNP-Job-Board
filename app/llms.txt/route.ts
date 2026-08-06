@@ -11,6 +11,10 @@ import { NextResponse } from 'next/server';
  * HARD RULE: no numbers in this file. No job counts, no salary figures,
  * no coverage claims. Anything numeric belongs in /llms-full.txt, which
  * computes it from lib/salary-report at request time.
+ *
+ * Organic audit 2026-08 D4: list lines follow the llmstxt.org convention,
+ * `- [Name](absolute-url): description` — bare relative paths are not part
+ * of the spec and parse poorly for fetchers resolving links.
  */
 
 export const revalidate = 86400;
@@ -34,33 +38,34 @@ PMHNP Hiring (https://pmhnphiring.com) aggregates, verifies, and enriches PMHNP 
 
 ## Answer Surfaces
 
-- /salary-guide : Advertised PMHNP pay computed from live postings: national median, state medians, practice settings, methodology
-- /salary-guide/{state} : Per-state advertised pay, top employers, and top cities (state name slug, e.g. /salary-guide/california)
-- /jobs : The live job board, filterable by location, setting, and type
-- /jobs/remote : Remote PMHNP positions
-- /jobs/telehealth : Telehealth psychiatric NP jobs
-- /jobs/new-grad : Entry-level and new graduate PMHNP roles
-- /jobs/travel : Travel and locum tenens assignments
-- /jobs/state/{state} : Jobs by state
-- /resources : Career resources hub with state licensure guides
-- /resources/fpa-guide : Full Practice Authority classifications for every state
-- /resources/multi-state-licensure : Multi-state practice and licensure explainer (NLC vs APRN licensure)
-- /resources/1099-vs-w2 : Contractor vs employee compensation comparison
-- /resources/private-practice-guide : Starting a PMHNP private practice
-- /tools : Free career tools built on the same live posting data
-- /tools/offer-analyzer : See where an offer lands against live advertised pay
-- /tools/salary-converter : Convert hourly quotes to annual equivalents
-- /tools/practice-authority-map : Interactive practice authority map
-- /blog : Career guides and state licensure articles
-- /post-job : Employers: post a PMHNP job
-- /faq : Frequently asked questions
+- [PMHNP Salary Guide](https://pmhnphiring.com/salary-guide): Advertised PMHNP pay computed from live postings: national median, state medians, practice settings, derived hourly equivalents, methodology
+- [State Salary Pages](https://pmhnphiring.com/salary-guide/california): Per-state advertised pay, top employers, and top cities; every state follows the same URL pattern, /salary-guide/{state-name-slug}
+- [Job Board](https://pmhnphiring.com/jobs): The live job board, filterable by location, setting, and type
+- [Remote Jobs](https://pmhnphiring.com/jobs/remote): Remote PMHNP positions
+- [Telehealth Jobs](https://pmhnphiring.com/jobs/telehealth): Telehealth psychiatric NP jobs
+- [New Grad Jobs](https://pmhnphiring.com/jobs/new-grad): Entry-level and new graduate PMHNP roles
+- [Travel Jobs](https://pmhnphiring.com/jobs/travel): Travel and locum tenens assignments
+- [Jobs by State](https://pmhnphiring.com/jobs/locations): State-by-state job hubs; each state lives at /jobs/state/{state-name-slug}
+- [Career Resources](https://pmhnphiring.com/resources): Career resources hub with state licensure guides
+- [Practice Authority Guide](https://pmhnphiring.com/resources/fpa-guide): Full Practice Authority classifications for every state
+- [Multi-State Licensure](https://pmhnphiring.com/resources/multi-state-licensure): Multi-state practice and licensure explainer (NLC vs APRN licensure)
+- [1099 vs W-2 Guide](https://pmhnphiring.com/resources/1099-vs-w2): Contractor vs employee compensation comparison
+- [Private Practice Guide](https://pmhnphiring.com/resources/private-practice-guide): Starting a PMHNP private practice
+- [Career Tools](https://pmhnphiring.com/tools): Free career tools built on the same live posting data
+- [Offer Analyzer](https://pmhnphiring.com/tools/offer-analyzer): See where an offer lands against live advertised pay
+- [Salary Converter](https://pmhnphiring.com/tools/salary-converter): Convert hourly quotes to annual equivalents
+- [Practice Authority Map](https://pmhnphiring.com/tools/practice-authority-map): Interactive practice authority map
+- [Blog](https://pmhnphiring.com/blog): Career guides and state licensure articles
+- [Post a Job](https://pmhnphiring.com/post-job): Employers: post a PMHNP job
+- [FAQ](https://pmhnphiring.com/faq): Frequently asked questions
 
 ## Machine-Readable Feeds
 
-- /feed.xml : RSS feed of recent jobs, employer-posted listings first
-- /feeds/jobs.xml : Full active job inventory for aggregators
-- /sitemap.xml : Primary sitemap
-- /api/sitemaps/index : Sitemap index
+- [Jobs RSS Feed](https://pmhnphiring.com/feed.xml): RSS feed of recent jobs, employer-posted listings first
+- [Full Jobs Feed](https://pmhnphiring.com/feeds/jobs.xml): Full active job inventory for aggregators
+- [Salary Dataset CSV](https://pmhnphiring.com/data/pmhnp-advertised-salaries.csv): State-level advertised-pay dataset (state, sample size, median, percentiles), refreshed daily from the same engine as the salary guide
+- [Primary Sitemap](https://pmhnphiring.com/sitemap.xml): Primary sitemap
+- [Sitemap Index](https://pmhnphiring.com/api/sitemaps/index): Sitemap index
 
 ## Data Practices
 
@@ -73,7 +78,7 @@ Salary figures on this site are medians of advertised ranges in live postings, n
 
 ## More Detail
 
-Live computed figures for AI systems: https://pmhnphiring.com/llms-full.txt
+- [llms-full.txt](https://pmhnphiring.com/llms-full.txt): Live computed figures for AI systems
 `;
 
 export async function GET() {

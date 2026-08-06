@@ -7,12 +7,14 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import CategoryFAQ from '@/components/CategoryFAQ';
 
 // Force dynamic rendering - don't try to statically generate during build
 /* Design Tokens */
@@ -75,15 +77,15 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
     return {
         // SEO Fix #7: trim title to ≤60 chars and description to ≤160 chars.
-        title: `${stats.totalJobs} Telehealth PMHNP Jobs ($130K-200K)`,
-        description: `Find ${stats.totalJobs} telehealth PMHNP and telepsychiatry jobs paying $130K-$200K+. Work from home — flexible hours, no commute, video-visit roles. Updated daily.`,
+        title: `${categoryTitleCount(stats.totalJobs)}Telehealth PMHNP Jobs`,
+        description: `Find ${categoryTitleCount(stats.totalJobs)}telehealth PMHNP and telepsychiatry jobs. Work from home — flexible hours, no commute, video-visit roles. Updated daily.`,
         keywords: ['telehealth pmhnp', 'telepsychiatry jobs', 'virtual pmhnp', 'telemedicine psychiatric nurse practitioner', 'behavioral health NP telehealth', 'telepsychiatry nurse practitioner jobs', 'remote psych NP telehealth'],
         openGraph: {
-            title: `${stats.totalJobs} Telehealth PMHNP Jobs - Virtual Psychiatric Care`,
+            title: `${categoryTitleCount(stats.totalJobs)}Telehealth PMHNP Jobs - Virtual Psychiatric Care`,
             description: 'Browse telehealth and telepsychiatry psychiatric mental health nurse practitioner positions. Work from home, competitive pay.',
             type: 'website',
             images: [{
-                url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Telehealth PMHNP Jobs`)}&subtitle=${encodeURIComponent('Virtual psychiatric care positions')}`,
+                url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Telehealth PMHNP Jobs`)}&subtitle=${encodeURIComponent('Virtual psychiatric care positions')}`,
                 width: 1200,
                 height: 630,
                 alt: 'Telehealth PMHNP Jobs',
@@ -93,12 +95,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
             canonical: `${brand.baseUrl}/jobs/telehealth`,
         },
         // Prevent Google from indexing paginated variants as separate pages
-        ...(page > 1 && {
-            robots: {
-                index: false,
-                follow: true,
-            },
-        }),
+        ...categoryLandingRobotsMeta(stats.totalJobs, page),
     };
 }
 
@@ -164,7 +161,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, virtual care."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'companies' },
         ]}
         description="Virtual psychiatric care positions with flexible hours, no commute, and multi-state practice opportunities."
@@ -360,6 +357,11 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
 
       <CategoryLocationsExplore categorySlug="telehealth" categoryLabel="Telehealth" />
 
+      {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
+          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
+          live DB average (stored in $K, the FAQ copy expects dollars). */}
+      <CategoryFAQ category="telehealth" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
+
 
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
@@ -370,7 +372,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
             {[
               { q: 'Do I need special licensure for telehealth?', a: 'You need an active NP license in the state where your patient is located. PSYPACT and the Nurse Licensure Compact can streamline multi-state practice.' },
               { q: 'What technology do I need for telehealth?', a: 'A HIPAA-compliant video platform, reliable high-speed internet, dual monitors, a private workspace, and EPCS-enabled e-prescribing software.' },
-              { q: 'What is the salary range for telehealth PMHNPs?', a: 'Telehealth PMHNP salaries range from $130K to $200K+, depending on patient volume, state, and whether the role is W-2 or 1099 contract.' },
+              { q: 'What is the salary range for telehealth PMHNPs?', a: 'Telehealth PMHNP pay varies by patient volume, state, and whether the role is W-2 or 1099 contract; listings show the advertised range whenever the employer discloses one.' },
               { q: 'Can I prescribe controlled substances via telehealth?', a: 'Yes, with proper DEA registration and EPCS setup. The DEA now permits initial prescriptions via telehealth in many circumstances.' },
               { q: 'How many patients do telehealth PMHNPs see per day?', a: 'Typically 12-20 patients per day, with 30-minute follow-ups and 60-minute intakes. Some platforms allow flexible scheduling.' },
             ].map((faq, idx) => (
@@ -380,7 +382,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
               </div>
             ))}
           </div>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:'Do I need special licensure for telehealth?',a:'You need an active NP license in the state where your patient is located. PSYPACT and the Nurse Licensure Compact can streamline multi-state practice.'},{q:'What technology do I need for telehealth?',a:'A HIPAA-compliant video platform, reliable high-speed internet, dual monitors, a private workspace, and EPCS-enabled e-prescribing software.'},{q:'What is the salary range for telehealth PMHNPs?',a:'Telehealth PMHNP salaries range from $130K to $200K+, depending on patient volume, state, and whether the role is W-2 or 1099 contract.'},{q:'Can I prescribe controlled substances via telehealth?',a:'Yes, with proper DEA registration and EPCS setup. The DEA now permits initial prescriptions via telehealth in many circumstances.'},{q:'How many patients do telehealth PMHNPs see per day?',a:'Typically 12-20 patients per day, with 30-minute follow-ups and 60-minute intakes.'}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
+          {/* Honesty review 2026-08: inline FAQPage schema removed; CategoryFAQ is this page's single FAQPage emitter (duplicate FAQPage blocks are the metro defect audit C1 fixed). */}
         </section>
       </div>
 

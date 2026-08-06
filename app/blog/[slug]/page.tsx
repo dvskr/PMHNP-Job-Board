@@ -16,6 +16,7 @@ import {
     BLOG_CATEGORIES,
 } from '@/lib/blog';
 import { autoLinkCategories } from '@/lib/autoLink';
+import { STAT_SOURCES } from '@/lib/stats-sources';
 import { ArrowRight } from 'lucide-react';
 import EditorialTOC from '@/components/blog/EditorialTOC';
 import EditorialToolbar from '@/components/blog/EditorialToolbar';
@@ -47,7 +48,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const url = `https://pmhnphiring.com/blog/${slug}`;
 
     return {
-        title: post.title.match(/\(\d{4}\)\s*$/) ? post.title : `${post.title} (${new Date().getFullYear()})`,
+        // Organic audit 2026-08 A1: append the year ONLY when the title
+        // contains no 4-digit year anywhere. The previous check only
+        // suppressed the append for titles ENDING in "(YYYY)", so most
+        // titles that mention a year mid-title rendered a doubled year
+        // ("... 2026 Directory + How to Apply (2026)") in SERP titles.
+        title: /\b(19|20)\d{2}\b/.test(post.title) ? post.title : `${post.title} (${new Date().getFullYear()})`,
         // Description should describe the post, not echo the title (audit
         // 09 M-24). Generic-but-relevant fallback when meta_description
         // is absent — log so editorial can backfill the missing field.
@@ -333,7 +339,10 @@ export default async function BlogPostPage({ params }: Props) {
             },
             {
                 name: 'Is PMHNP a good career?',
-                text: 'Yes. PMHNPs are among the most in-demand healthcare providers in the US. Average salaries range from $140,000-$175,000, job growth is projected at 40%+ through 2031, and there are 10,000+ open positions nationwide. The mental health provider shortage ensures strong demand for years to come.',
+                // Audit A5: salary/growth figures interpolated from
+                // STAT_SOURCES so every surface quotes the same sourced
+                // numbers; the invented open-position count was dropped.
+                text: `Yes. PMHNPs are among the most in-demand healthcare providers in the US. The average salary is ${STAT_SOURCES.averageSalary.formatted} per the ${STAT_SOURCES.averageSalary.source}, and employment growth of ${STAT_SOURCES.blsGrowth2032.formatted} is projected by the ${STAT_SOURCES.blsGrowth2032.source}. With ${STAT_SOURCES.hrsaShortagePopulation.formatted} Americans living in designated mental health professional shortage areas (${STAT_SOURCES.hrsaShortagePopulation.source}), demand is expected to stay strong for years to come.`,
             },
         ],
         'new-grad-pmhnp-first-job': [
@@ -347,7 +356,9 @@ export default async function BlogPostPage({ params }: Props) {
             },
             {
                 name: 'How many jobs are available for new grad PMHNPs?',
-                text: 'There are hundreds of new grad-friendly PMHNP positions available at any given time. PMHNP Hiring lists new grad-specific roles that can be filtered at pmhnphiring.com/jobs/new-grad.',
+                // Audit A5: no invented count; availability changes daily
+                // and the live board is the source of truth.
+                text: 'The number changes daily as employers post and fill roles, and the national mental health provider shortage keeps new openings appearing across telehealth, community mental health, and hospital settings. PMHNP Hiring lists new grad-specific roles that can be filtered at pmhnphiring.com/jobs/new-grad.',
             },
         ],
         'pmhnp-vs-psychiatrist': [
@@ -357,7 +368,10 @@ export default async function BlogPostPage({ params }: Props) {
             },
             {
                 name: 'Do PMHNPs make as much as psychiatrists?',
-                text: 'No. Psychiatrists earn $250,000-$400,000+ annually while PMHNPs earn $140,000-$175,000 on average. However, PMHNPs require significantly less training time and student debt, often resulting in a better return on investment earlier in their career.',
+                // Audit A5: the psychiatrist salary range had no citable
+                // source, so the comparison is now number-free; the PMHNP
+                // figure comes from STAT_SOURCES.
+                text: `No. Psychiatrists generally earn substantially more, while PMHNPs earn an average of ${STAT_SOURCES.averageSalary.formatted} per the ${STAT_SOURCES.averageSalary.source}. However, PMHNPs require significantly less training time and student debt, often resulting in a better return on investment earlier in their career.`,
             },
             {
                 name: 'Should I become a PMHNP or psychiatrist?',
@@ -366,15 +380,21 @@ export default async function BlogPostPage({ params }: Props) {
         ],
     };
 
-    // Dynamic FAQ generation for state license posts
-    const stateSlugMatch = slug.match(/^how-to-get-your-pmhnp-license-in-(.+)-2026/);
+    // Dynamic FAQ generation for state license posts.
+    // Organic audit 2026-08 A4: live license posts use pmhnp-license-{state}
+    // slugs (the same pattern licenseSlugMatch matched above). The previous
+    // regex here expected legacy "how-to-get-your-..." slugs and matched
+    // ZERO live posts, so FAQ + HowTo schema never emitted for the cluster.
+    const stateSlugMatch = licenseSlugMatch;
     if (stateSlugMatch && !blogFaqData[slug]) {
         const stateNameRaw = stateSlugMatch[1].replace(/-/g, ' ');
         const stateName = stateNameRaw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         blogFaqData[slug] = [
             {
                 name: `How long does it take to get a PMHNP license in ${stateName}?`,
-                text: `The timeline to obtain your PMHNP license in ${stateName} typically takes 2-4 weeks after submitting a complete application, assuming you have already earned your MSN/DNP, passed the ANCC PMHNP-BC certification exam, and hold an active RN license. Processing times vary based on ${stateName}'s Board of Nursing workload.`,
+                // No hardcoded week counts: board processing times vary and
+                // we have no sourced figure to cite (audit A4 honesty pass).
+                text: `The timeline depends on ${stateName}'s Board of Nursing workload and on how complete your application is. You can apply once you have earned your MSN or DNP, passed the ANCC PMHNP-BC certification exam, and hold an active RN license; the board then verifies your education, certification, and background before issuing the APRN license.`,
             },
             {
                 name: `What are the requirements to become a PMHNP in ${stateName}?`,
@@ -382,7 +402,12 @@ export default async function BlogPostPage({ params }: Props) {
             },
             {
                 name: `What is the average PMHNP salary in ${stateName}?`,
-                text: `PMHNP salaries in ${stateName} vary by setting and experience. Refer to the salary section in our detailed ${stateName} licensing guide above for the latest data, including comparisons between inpatient, outpatient, and telehealth settings.`,
+                // Honesty review 2026-08: every published license post has a
+                // salary section (verified against prod content), but NONE
+                // contain the inpatient/outpatient/telehealth comparison the
+                // old answer promised; that fabricated content claim is gone.
+                // Point at the live salary guide too.
+                text: `PMHNP salaries in ${stateName} vary by setting and experience. Refer to the salary section in our ${stateName} licensing guide above, and see live advertised pay data computed from current postings at pmhnphiring.com/salary-guide.`,
             },
         ];
     }
@@ -391,16 +416,17 @@ export default async function BlogPostPage({ params }: Props) {
     const howToSchema = stateSlugMatch ? (() => {
         const stateNameRaw = stateSlugMatch[1].replace(/-/g, ' ');
         const sn = stateNameRaw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        // Audit A4 honesty pass: totalTime and estimatedCost were invented
+        // figures with no citable source — omitted rather than fabricated.
+        // The steps themselves are procedural and number-free.
         return {
             '@context': 'https://schema.org',
             '@type': 'HowTo',
             name: `How to Get Your PMHNP License in ${sn}`,
             description: `Step-by-step guide to obtaining your Psychiatric-Mental Health Nurse Practitioner license in ${sn}.`,
-            totalTime: 'P60D',
-            estimatedCost: { '@type': 'MonetaryAmount', currency: 'USD', value: '500-1500' },
             image: post.image_url || undefined,
             step: [
-                { '@type': 'HowToStep', position: 1, name: 'Complete MSN or DNP', text: `Earn a Master of Science in Nursing (MSN) or Doctor of Nursing Practice (DNP) degree with a Psychiatric-Mental Health Nurse Practitioner specialization from an CCNE or ACEN accredited program.` },
+                { '@type': 'HowToStep', position: 1, name: 'Complete MSN or DNP', text: `Earn a Master of Science in Nursing (MSN) or Doctor of Nursing Practice (DNP) degree with a Psychiatric-Mental Health Nurse Practitioner specialization from a CCNE or ACEN accredited program.` },
                 { '@type': 'HowToStep', position: 2, name: 'Pass the ANCC PMHNP-BC Exam', text: 'Pass the American Nurses Credentialing Center (ANCC) Psychiatric-Mental Health Nurse Practitioner Board Certification (PMHNP-BC) examination.' },
                 { '@type': 'HowToStep', position: 3, name: `Apply for ${sn} RN License`, text: `Obtain or verify your Registered Nurse (RN) license with the ${sn} Board of Nursing. If licensed in another state, apply for licensure by endorsement.` },
                 { '@type': 'HowToStep', position: 4, name: `Apply for ${sn} APRN License`, text: `Submit your Advanced Practice Registered Nurse (APRN) application to the ${sn} Board of Nursing, including proof of education, national certification, and any required fees.` },
@@ -417,7 +443,7 @@ export default async function BlogPostPage({ params }: Props) {
     //   2. blogFaqData[slug] hardcoded map — covers the 3 legacy posts
     //      shipped before the column existed.
     //   3. State-license dynamic generation populated into blogFaqData
-    //      above for /how-to-get-your-pmhnp-license-in-* slugs.
+    //      above for /pmhnp-license-{state} slugs.
     const faqQuestions = (post.faq_json && post.faq_json.length > 0)
         ? post.faq_json
         : blogFaqData[slug];
@@ -483,10 +509,14 @@ export default async function BlogPostPage({ params }: Props) {
                                 <label>Read Time</label>
                                 <strong>{readTime}</strong>
                             </div>
-                            {post.updated_at && (
+                            {/* Organic audit 2026-08 A3: "Last Reviewed" is an
+                                editorial claim, so it renders only when an
+                                editor actually set reviewed_at. updated_at
+                                moves on any DB write and is not a review. */}
+                            {post.reviewed_at && (
                                 <div>
                                     <label>Last Reviewed</label>
-                                    <strong>{formatDate(post.updated_at)}</strong>
+                                    <strong>{formatDate(post.reviewed_at)}</strong>
                                 </div>
                             )}
                             <div>
@@ -559,6 +589,30 @@ export default async function BlogPostPage({ params }: Props) {
                     {/* Share row */}
                     <EditorialShare title={post.title} url={currentUrl} />
 
+                    {/* Honesty review 2026-08: the FAQPage schema above must have
+                        visible Q&A on the page (Google FAQ policy). The A4 unlock
+                        expanded FAQ schema from 3 posts to the whole 50-post
+                        licensure cluster, so the SAME faqQuestions array now
+                        renders here 1:1 with the schema. */}
+                    {faqQuestions && faqQuestions.length > 0 && (
+                        <section aria-labelledby="post-faq-heading" style={{ margin: '32px 0 8px' }}>
+                            <h2 id="post-faq-heading" style={{ fontSize: '20px', fontWeight: 700, marginBottom: '14px' }}>
+                                Frequently Asked Questions
+                            </h2>
+                            <div style={{ display: 'grid', gap: '10px' }}>
+                                {faqQuestions.map((q) => (
+                                    <details key={q.name} style={{ border: '1px solid rgba(0,0,0,0.08)', borderRadius: '12px', overflow: 'hidden' }}>
+                                        <summary style={{ padding: '14px 18px', cursor: 'pointer', fontWeight: 600, fontSize: '15px', lineHeight: 1.4 }}>
+                                            {q.name}
+                                        </summary>
+                                        <div style={{ padding: '0 18px 14px', fontSize: '14px', lineHeight: 1.65 }}>
+                                            {q.text}
+                                        </div>
+                                    </details>
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
                     {/* SEO Fix C1: removed the "PMHNP-BC Reviewed" / "ANCC Certified"
                         badges and the "Clinical Editorial Team" byline because no
@@ -574,9 +628,11 @@ export default async function BlogPostPage({ params }: Props) {
                             <div className="ed-author-role">Published by</div>
                             <h4 className="ed-author-name">PMHNP Hiring</h4>
                             <p className="ed-author-bio">PMHNP Hiring is a job board for psychiatric mental health nurse practitioners, operated by Akari Labs LLC. This article is editorial commentary aggregated from public sources and is not medical advice.</p>
-                            <div className="ed-author-badges">
-                                <span className="ed-author-badge">Updated {new Date().getFullYear()}</span>
-                            </div>
+                            {/* Organic audit 2026-08 A3: the "Updated {currentYear}"
+                                badge stamped the render-time year on every post with
+                                no underlying content change — a fabricated freshness
+                                signal. Removed with no replacement; real freshness
+                                comes from reviewed_at when an editorial pass lands. */}
                         </div>
                         <Link href="/about" className="ed-author-link">
                             About Us <ArrowRight size={14} />

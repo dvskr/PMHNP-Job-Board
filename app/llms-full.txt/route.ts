@@ -39,6 +39,13 @@ const BASE_URL = 'https://pmhnphiring.com';
 const fmtDollars = (n: number): string => `$${roundDisplayDollars(n).toLocaleString('en-US')}`;
 const fmtBoundK = (n: number): string => `$${Math.round(n / 1000)}k`;
 
+// Organic audit 2026-08 D3: hourly-equivalent answers for the hourly query
+// family. Derived, never advertised: annual median divided by a standard
+// 2,080-hour work year (40 hours x 52 weeks), rounded to whole dollars,
+// and ALWAYS labeled as derived wherever it renders.
+const STANDARD_ANNUAL_HOURS = 2080;
+const derivedHourly = (annual: number): number => Math.round(annual / STANDARD_ANNUAL_HOURS);
+
 function headerSection(): string {
     return `# PMHNP Hiring: Comprehensive Site Information for AI Systems
 # llms-full.txt (extended version of /llms.txt)
@@ -58,6 +65,7 @@ function methodologySection(): string {
 - Employer-estimated ranges are excluded. Ranges with parsing defects (max more than ${MAX_RANGE_RATIO}x min, midpoints outside ${fmtBoundK(SALARY_SANITY_MIN)} to ${fmtBoundK(SALARY_SANITY_MAX)} per year) are quarantined.
 - A segment needs at least ${TIER_MEDIAN_MIN_N} disclosed ranges to publish a median and at least ${TIER_FULL_MIN_N} to publish percentile ranges. Below those floors, figures are withheld rather than estimated.
 - Every figure travels with its sample size (n).
+- Hourly figures marked "derived" divide the annual median by ${STANDARD_ANNUAL_HOURS.toLocaleString('en-US')} hours (40 hours x 52 weeks). They are computed conversions for comparison, not advertised hourly rates.
 `;
 }
 
@@ -89,6 +97,7 @@ function keyPagesSection(): string {
 
 - RSS (recent jobs, employer-posted first): ${BASE_URL}/feed.xml
 - Full active inventory for aggregators: ${BASE_URL}/feeds/jobs.xml
+- State-level advertised-pay dataset (CSV: state, sample size, median, percentiles): ${BASE_URL}/data/pmhnp-advertised-salaries.csv
 - Sitemap index: ${BASE_URL}/api/sitemaps/index
 
 ## Contact
@@ -127,6 +136,9 @@ async function liveFiguresSections(): Promise<string> {
     } else {
         lines.push('- Not enough postings currently disclose a range to publish national figures.');
     }
+    if (national.tier === 'full' || national.tier === 'median') {
+        lines.push(`- Hourly equivalent of the national median (derived: annual median divided by ${STANDARD_ANNUAL_HOURS.toLocaleString('en-US')} hours; not an advertised hourly rate): $${derivedHourly(national.median)} per hour`);
+    }
     const remote = summarizeMidpoints(market.remote);
     if (remote.tier === 'full' || remote.tier === 'median') {
         lines.push(`- Fully remote postings, median advertised: ${fmtDollars(remote.median)} per year (n=${remote.n})`);
@@ -136,15 +148,17 @@ async function liveFiguresSections(): Promise<string> {
     if (hubStates.length > 0) {
         lines.push('## Advertised Pay by State (median of advertised midpoints, ranked)');
         lines.push('');
-        lines.push('State | Median | Middle 50% | n');
+        lines.push('State | Median (annual) | Hourly (derived) | Middle 50% | n');
         for (const s of hubStates) {
             const range = s.p25 != null && s.p75 != null
                 ? `${fmtDollars(s.p25)} to ${fmtDollars(s.p75)}`
                 : 'median only';
-            lines.push(`${s.state} | ${fmtDollars(s.median)} | ${range} | ${s.n}`);
+            lines.push(`${s.state} | ${fmtDollars(s.median)} | $${derivedHourly(s.median)}/hr | ${range} | ${s.n}`);
         }
         lines.push('');
+        lines.push(`Hourly (derived) = annual median divided by ${STANDARD_ANNUAL_HOURS.toLocaleString('en-US')} hours; a computed conversion, not an advertised rate.`);
         lines.push(`Per-state detail pages: ${BASE_URL}/salary-guide/{state-slug}`);
+        lines.push(`Machine-readable dataset (CSV): ${BASE_URL}/data/pmhnp-advertised-salaries.csv`);
         lines.push('');
     }
 

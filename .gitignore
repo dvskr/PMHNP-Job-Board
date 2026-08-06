@@ -70,6 +70,11 @@ next-env.d.ts
 
 # data exports and sensitive files
 *.csv
+# Re-include the public salary-dataset ROUTE directory: its name ends in
+# .csv (Next.js route serving /data/pmhnp-advertised-salaries.csv), so the
+# *.csv pattern above silently excluded the route source from git and the
+# Dataset JSON-LD on /salary-guide would point at a 404 in every deploy.
+!/app/data/pmhnp-advertised-salaries.csv/
 /data/
 /tmp/
 /scripts/export-*.js

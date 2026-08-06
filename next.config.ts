@@ -233,6 +233,50 @@ const nextConfig: NextConfig = {
         destination: '/blog/pmhnp-job-outlook',
         permanent: true,
       },
+      // Organic audit 2026-08 (#2): remaining duplicate blog clusters were
+      // live at multiple self-canonical URLs, splitting ranking signals.
+      // Canonical picks are data-driven from the 12-month GSC Pages export:
+      // in each cluster the destination below is the URL with the strongest
+      // (or only) recorded search performance. The redirected rows must
+      // also be unpublished in Supabase so /blog and the sitemap stop
+      // advertising URLs that now 301 (handled by the operator).
+      //
+      // Private-practice salary: one title on three published slugs.
+      {
+        source: '/blog/pmhnp-private-practice-salary',
+        destination: '/blog/pmhnp-private-practice-salary-how-much-can-you-really-earn',
+        permanent: true,
+      },
+      {
+        source: '/blog/pmhnp-private-practice-salary-how-much-can-you-really-earn-2',
+        destination: '/blog/pmhnp-private-practice-salary-how-much-can-you-really-earn',
+        permanent: true,
+      },
+      // Residency: third copy of the directory post (the "-2" twin above
+      // already redirects to the same canonical).
+      {
+        source: '/blog/pmhnp-residency-programs',
+        destination: '/blog/pmhnp-residency-fellowship-programs-2026-directory-how-to-apply',
+        permanent: true,
+      },
+      // Job outlook: long-slug duplicate of the ranking short slug.
+      {
+        source: '/blog/pmhnp-job-outlook-2026-growth-rate-demand-future-predictions',
+        destination: '/blog/pmhnp-job-outlook',
+        permanent: true,
+      },
+      // Remote trio: three posts targeting the same "remote PMHNP jobs"
+      // intent; only the ultimate-guide URL shows GSC performance.
+      {
+        source: '/blog/remote-pmhnp-jobs-guide-2026',
+        destination: '/blog/ultimate-guide-remote-pmhnp-jobs-2026',
+        permanent: true,
+      },
+      {
+        source: '/blog/remote-pmhnp-jobs-in-2026-what-remote-really-means',
+        destination: '/blog/ultimate-guide-remote-pmhnp-jobs-2026',
+        permanent: true,
+      },
     ];
   },
 };

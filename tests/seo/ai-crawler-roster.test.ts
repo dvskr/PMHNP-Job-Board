@@ -75,7 +75,31 @@ describe('robots.txt crawler rosters', () => {
         for (const ua of ['ClaudeBot', 'Claude-User', 'Claude-SearchBot']) {
             const rule = ruleFor(ua);
             expect(rule, `${ua} must have a rule block`).toBeDefined();
-            expect(rule!.allow).toBe('/');
+            const allows = Array.isArray(rule!.allow) ? rule!.allow : [rule!.allow];
+            expect(allows).toContain('/');
+            // Organic audit 2026-08 D6: the sitemap children and OG images
+            // live under /api/, so the block needs the PUBLIC_ALLOW
+            // carve-outs or Anthropic's parser treats them as blocked.
+            expect(allows).toContain('/api/sitemaps');
+            expect(allows).toContain('/api/og');
+        }
+    });
+
+    it('the Anthropic rule disallows the token-bearing paths its policy comment promises', () => {
+        const rule = ruleFor('ClaudeBot');
+        expect(rule).toBeDefined();
+        const disallows = Array.isArray(rule!.disallow) ? rule!.disallow : [rule!.disallow];
+        for (const p of [
+            '/jobs/edit/',
+            '/post-job/checkout',
+            '/post-job/preview',
+            '/job-alerts/unsubscribe',
+            '/email-preferences',
+            '/unsubscribe',
+            '/reset-password',
+            '/forgot-password',
+        ]) {
+            expect(disallows, `ClaudeBot rule must disallow ${p}`).toContain(p);
         }
     });
 

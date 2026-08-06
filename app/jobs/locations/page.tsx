@@ -97,9 +97,11 @@ async function getLocationStats() {
   });
 
   // Valid US states + DC (whitelist to exclude non-US locations like British Columbia)
+  // Audit 2026-08 C10: District of Columbia was missing, so DC jobs never
+  // surfaced on this hub even though /jobs/state/district-of-columbia renders.
   const US_STATES = new Set([
     'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
-    'Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa',
+    'Delaware','District of Columbia','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa',
     'Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan',
     'Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire',
     'New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio',

@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -41,7 +42,7 @@ async function getStats() {
 
 const seniorFaqs = [
   { question: 'What qualifies as a Senior PMHNP role?', answer: 'Senior PMHNP roles include positions like Clinical Director, Program Director, Medical Director, Lead PMHNP, and Supervisor. These roles combine direct patient care with leadership responsibilities such as team oversight, program development, and quality improvement.' },
-  { question: 'What salary range can Senior PMHNPs expect?', answer: 'Senior PMHNPs typically earn $160K-$250K+ annually. Clinical Directors and Medical Directors at larger organizations can exceed $250K with bonuses, equity, and comprehensive benefits packages.' },
+  { question: 'What salary range can Senior PMHNPs expect?', answer: 'Senior and director-level roles typically advertise the highest PMHNP compensation, with bonuses, equity, and comprehensive benefits at larger organizations.' },
   { question: 'How many years of experience are needed for senior positions?', answer: 'Most senior PMHNP roles require 5-10+ years of clinical psychiatric experience. Director-level positions often require demonstrated leadership experience, program development skills, and expertise in a specific psychiatric subspecialty.' },
   { question: 'What additional certifications help for leadership roles?', answer: 'Beyond the PMHNP-BC, certifications in healthcare administration (FACHE), nursing leadership (CENP/NEA-BC), or subspecialty certifications strengthen candidacy. Many senior roles also value advanced training in evidence-based therapies and quality improvement methodologies.' },
 ];
@@ -50,12 +51,12 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const [stats, params] = await Promise.all([getStats(), searchParams]);
   const page = Math.max(1, parseInt(params.page || '1'));
   return {
-    title: `${stats.totalJobs} Senior PMHNP Jobs — Director & Leadership ($160K-250K+)`,
-    description: `Browse ${stats.totalJobs} senior PMHNP leadership positions. Clinical Director, Program Director, Medical Director, and Lead PMHNP roles paying $160K-$250K+.`,
+    title: `${categoryTitleCount(stats.totalJobs)}Senior PMHNP Jobs — Director & Leadership`,
+    description: `Browse ${categoryTitleCount(stats.totalJobs)}senior PMHNP leadership positions. Clinical Director, Program Director, Medical Director, and Lead PMHNP roles.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/senior` },
     keywords: ['senior PMHNP jobs', 'PMHNP director', 'PMHNP leadership', 'clinical director psychiatric', 'PMHNP supervisor'],
-    openGraph: { title: `Senior PMHNP Jobs — ${stats.totalJobs} Leadership Positions`, description: `Find ${stats.totalJobs} senior psychiatric NP roles.`, url: 'https://pmhnphiring.com/jobs/senior', type: 'website' },
-    ...(page > 1 && { robots: { index: false, follow: true } }),
+    openGraph: { title: `Senior PMHNP Jobs — ${categoryTitleCount(stats.totalJobs)}Leadership Positions`, description: `Find ${categoryTitleCount(stats.totalJobs)}senior psychiatric NP roles.`, url: 'https://pmhnphiring.com/jobs/senior', type: 'website' },
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
@@ -101,7 +102,7 @@ export default async function SeniorPage({ searchParams }: PageProps) {
         headlineSub="jobs, leadership roles."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : '$175K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Senior-level PMHNP positions with clinical leadership, program development, and executive compensation."
@@ -187,7 +188,7 @@ export default async function SeniorPage({ searchParams }: PageProps) {
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_senior_chart.webp" alt="Top compensation" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Top Compensation</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Senior roles offer $180K-$250K+ with bonuses.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Senior roles advertise premium compensation with bonuses.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_senior_blueprint.webp" alt="Program design" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />

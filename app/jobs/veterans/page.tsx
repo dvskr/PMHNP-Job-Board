@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -65,24 +66,25 @@ const veteransFaqs = [
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
   return {
-    title: `${stats.totalJobs} Veterans PMHNP Jobs — Trauma-Informed Care ($130K-180K)`,
-    description: `Find ${stats.totalJobs} PMHNP jobs serving veterans across VA, Vet Centers, Community Care Network civilian providers, and trauma practices. PTSD, MST, and TBI specialty roles.`,
+    title: `${categoryTitleCount(stats.totalJobs)}Veterans PMHNP Jobs — Trauma-Informed Care`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}PMHNP jobs serving veterans across VA, Vet Centers, Community Care Network civilian providers, and trauma practices. PTSD, MST, and TBI specialty roles.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/veterans` },
     openGraph: {
-      title: `${stats.totalJobs} Veterans PMHNP Jobs`,
+      title: `${categoryTitleCount(stats.totalJobs)}Veterans PMHNP Jobs`,
       description: 'Trauma-informed psychiatric NP roles serving veterans across VA, Vet Centers, and civilian providers.',
       type: 'website',
       url: `${brand.baseUrl}/jobs/veterans`,
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Veterans PMHNP Jobs`)}&subtitle=${encodeURIComponent('Trauma-informed care across VA, Vet Centers & CCN')}`,
+        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Veterans PMHNP Jobs`)}&subtitle=${encodeURIComponent('Trauma-informed care across VA, Vet Centers & CCN')}`,
         width: 1200, height: 630, alt: 'Veterans PMHNP Jobs',
       }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${stats.totalJobs} Veterans PMHNP Jobs`,
+      title: `${categoryTitleCount(stats.totalJobs)}Veterans PMHNP Jobs`,
       description: 'PMHNP roles serving veterans across VA, Vet Centers, CCN, and trauma practices.',
     },
+    ...categoryLandingRobotsMeta(stats.totalJobs),
   };
 }
 
@@ -120,7 +122,7 @@ export default async function VeteransPage({ searchParams }: PageProps) {
         headlineSub="jobs, veteran mental health."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : '$150K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Serve veterans with specialized psychiatric care for PTSD, TBI, MST, and combat-related conditions."

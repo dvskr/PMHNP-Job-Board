@@ -25,6 +25,7 @@ import RelatedBlogPosts, { getRelevantBlogSlugs } from '@/components/RelatedBlog
 import InternalLinks from '@/components/InternalLinks';
 import { CareerPulseCard, ApplicationTipsCard } from '@/components/jobs/SidebarVisualCards';
 import { prisma } from '@/lib/prisma';
+import { DEAD_LINK_MISS_THRESHOLD } from '@/lib/active-job-filter';
 import { getPostBySlug } from '@/lib/blog';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -92,12 +93,15 @@ const getJob = cache(async function getJob(id: string): Promise<JobResult> {
     });
     if (!jobWithRelation) return { status: 'gone' };
 
-    // Increment view count AND create view event for analytics funnel
+    // Increment view count AND create view event for analytics funnel.
+    // B6 (organic audit 2026-08): the increment is raw SQL, NOT
+    // prisma.job.update — Prisma's @updatedAt fired on every page view, so
+    // job.updatedAt behaved like a view counter instead of a content signal
+    // (fabricated freshness on the on-page "Last updated" line and in every
+    // updatedAt-driven lastmod). Raw SQL leaves updated_at untouched; the
+    // jobs table has no DB-side updated_at trigger.
     Promise.all([
-      prisma.job.update({
-        where: { id },
-        data: { viewCount: { increment: 1 } },
-      }),
+      prisma.$executeRaw`UPDATE jobs SET view_count = view_count + 1 WHERE id = ${id}`,
       prisma.jobViewEvent.create({
         data: { jobId: id },
       }),
@@ -508,6 +512,17 @@ export async function generateMetadata({ params }: JobPageProps) {
     ? `${job.title} — ${titleLocation || job.employer}`.slice(0, 65)
     : fullTitle;
 
+  // B5 (organic audit 2026-08): jobs whose source listing has been missing
+  // for DEAD_LINK_MISS_THRESHOLD consecutive health checks are excluded from
+  // the sitemaps (lib/active-job-filter.ts) but still served 200 +
+  // index,follow here — a standing soft-404 estate. Emit noindex,nofollow
+  // from the SAME imported constant so the page and the sitemap gate can
+  // never disagree. (lib/types Job predates the health columns, hence the
+  // narrow structural cast — the Prisma row always carries the field.)
+  const missingStreak =
+    (job as Job & { healthConsecutiveMissing?: number }).healthConsecutiveMissing ?? 0;
+  const isDeadLinkGated = missingStreak >= DEAD_LINK_MISS_THRESHOLD;
+
   return {
     title: titleWithLocation,
     description,
@@ -536,6 +551,9 @@ export async function generateMetadata({ params }: JobPageProps) {
     alternates: {
       canonical: canonicalUrl,
     },
+    ...(isDeadLinkGated && {
+      robots: { index: false, follow: false },
+    }),
   };
 }
 
@@ -1134,8 +1152,10 @@ export default async function JobPage({ params }: JobPageProps) {
                 <div className="pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.3)' }}>
                   <p className="text-xs font-semibold mb-3" style={{ color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Share this job</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* Audit 2026-08 C9: share the STORED canonical slug — recomputing
+                        slugify(title) can drift from job.slug and splinter shared URLs. */}
                     <ShareButtons
-                      url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
+                      url={`${BASE_URL}/jobs/${job.slug || slugify(job.title, job.id)}`}
                       title={job.title}
                       company={job.employer}
                     />
@@ -1206,8 +1226,9 @@ export default async function JobPage({ params }: JobPageProps) {
               <div className="lg:hidden rounded-2xl p-5 mb-4" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                 <p className="text-sm mb-3" style={{ color: 'var(--text-tertiary)' }}>Share this job:</p>
                 <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                  {/* Audit 2026-08 C9: stored canonical slug, same as above. */}
                   <ShareButtons
-                    url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
+                    url={`${BASE_URL}/jobs/${job.slug || slugify(job.title, job.id)}`}
                     title={job.title}
                     company={job.employer}
                   />

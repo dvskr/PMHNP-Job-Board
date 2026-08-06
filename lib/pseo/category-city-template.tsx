@@ -25,6 +25,7 @@ import { cache } from 'react';
 import { withTagFallback } from './category-tagger';
 import { categoryCanonicalTarget, CITY_SITEMAP_CATEGORIES } from './jobs-segments-edge';
 import { shouldRenderCategoryCity, MIN_JOBS_FOR_CATEGORY_CITY } from './render-gate';
+import { PSEO_STALENESS_HOURS } from './sitemap-thresholds';
 import { hasLicensePost } from './license-posts';
 import { JOB_LISTING_OMIT } from './job-listing-omit';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
@@ -781,7 +782,15 @@ const getCityStats = cache(async function getCityStats(config: CategoryConfig, c
       }
     });
 
-    if (stats && stats.totalJobs > 0) {
+    // B2 (organic audit 2026-08): trust the aggregated row ONLY while it is
+    // fresh. updatedAt is the aggregator's liveness stamp (bumped every run);
+    // when it is older than the shared staleness window the cron is broken
+    // and the stored count may be months old — the April-August incident
+    // served "16 Open" titles against 1 live job this way. Stale rows fall
+    // through to the live-count path below (defense in depth: the page can
+    // never lie about counts even if the cron dies again).
+    const freshnessCutoff = Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000;
+    if (stats && stats.totalJobs > 0 && stats.updatedAt.getTime() >= freshnessCutoff) {
       return {
         totalJobs: stats.totalJobs,
         rawAvgSalary: stats.rawAvgSalary,
@@ -791,7 +800,7 @@ const getCityStats = cache(async function getCityStats(config: CategoryConfig, c
         updatedAt: stats.updatedAt as Date | null,
       };
     }
-    
+
     // Fallback: live count when pseoStats cache is empty/stale
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where = config.buildWhere(city.state, city.name) as any;

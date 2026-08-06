@@ -7,12 +7,14 @@ import { Heart, DollarSign, TrendingUp, Building2, Bell, Briefcase, ArrowRight }
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import CategoryFAQ from '@/components/CategoryFAQ';
 
 // Force dynamic rendering
 /* Design Tokens */
@@ -86,20 +88,20 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: `${stats.totalJobs} Addiction PMHNP Jobs — Substance Use & MAT Psych NP Positions`,
-        description: `Find ${stats.totalJobs} addiction & substance use disorder PMHNP jobs. MAT programs, opioid treatment, detox, and recovery centers. Avg $${stats.avgSalary || 155}K+.`,
+        title: `${categoryTitleCount(stats.totalJobs)}Addiction PMHNP Jobs — Substance Use & MAT Psych NP Positions`,
+        description: `Find ${categoryTitleCount(stats.totalJobs)}addiction & substance use disorder PMHNP jobs. MAT programs, opioid treatment, detox, and recovery centers. Avg $${stats.avgSalary || 155}K+.`,
         keywords: ['addiction pmhnp jobs', 'substance use pmhnp', 'MAT pmhnp', 'suboxone prescriber jobs', 'addiction psychiatry NP'],
         openGraph: {
-            title: `${stats.totalJobs} Addiction PMHNP Jobs - Substance Use & MAT Positions`,
+            title: `${categoryTitleCount(stats.totalJobs)}Addiction PMHNP Jobs - Substance Use & MAT Positions`,
             description: 'Browse addiction and substance use disorder psychiatric nurse practitioner positions. MAT, detox, and recovery center roles.',
             type: 'website',
             images: [{
-                url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Addiction PMHNP Jobs`)}&subtitle=${encodeURIComponent('Substance use & MAT psych NP positions')}`,
+                url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Addiction PMHNP Jobs`)}&subtitle=${encodeURIComponent('Substance use & MAT psych NP positions')}`,
                 width: 1200, height: 630, alt: 'Addiction PMHNP Jobs',
             }],
         },
         alternates: { canonical: `${brand.baseUrl}/jobs/addiction` },
-        ...(page > 1 && { robots: { index: false, follow: true } }),
+        ...categoryLandingRobotsMeta(stats.totalJobs, page),
     };
 }
 
@@ -144,7 +146,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, SUD & MAT roles."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$155K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Substance use disorder and MAT positions with high demand, competitive pay, and life-changing patient impact."
@@ -261,7 +263,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_addiction_demand.webp" alt="Growing demand" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Growing Demand</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Opioid crisis driving 40%+ growth in addiction psychiatry positions nationwide.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>The opioid crisis keeps driving demand for addiction psychiatry providers nationwide.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_addiction_heart.webp" alt="Patient recovery" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
@@ -280,7 +282,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary + Benefits</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  Addiction PMHNPs earn ${stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K\u2013$180K'} annually with loan repayment programs and sign-on bonuses at many facilities.
+                  {stats.avgSalary > 0 ? `Addiction PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Loan repayment programs and sign-on bonuses are common at many facilities.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
@@ -369,6 +371,11 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
 
       <CategoryLocationsExplore categorySlug="addiction" categoryLabel="Addiction" />
 
+      {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
+          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
+          live DB average (stored in $K, the FAQ copy expects dollars). */}
+      <CategoryFAQ category="addiction" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
+
 
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
@@ -379,8 +386,8 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
             {[
               { q: "What does an addiction PMHNP do?", a: "An addiction PMHNP specializes in treating substance use disorders (SUD) and co-occurring mental health conditions. They prescribe medications like buprenorphine and naltrexone for medication-assisted treatment (MAT), manage detox protocols, provide therapy, and coordinate comprehensive recovery plans." },
               { q: "Do I need special certification for addiction PMHNP work?", a: "While not always required, the DEA X-waiver (now integrated into standard DEA registration) is essential for prescribing buprenorphine. ASAM certification or CARN (Certified Addictions Registered Nurse) credentials significantly strengthen your candidacy and are preferred by many employers." },
-              { q: "How much do addiction PMHNPs earn?", a: "Addiction PMHNPs typically earn $130K–$180K annually, with some positions in high-demand areas exceeding $200K. Many roles include loan repayment programs, sign-on bonuses, and relocation assistance due to the critical shortage of addiction medicine providers." },
-              { q: "Is addiction psychiatry a good PMHNP specialty?", a: "Yes — addiction psychiatry is one of the fastest-growing PMHNP specialties. The opioid crisis has driven 40%+ growth in positions, and there's a severe shortage of qualified providers. The work is deeply meaningful, with high job security and competitive compensation." },
+              { q: "How much do addiction PMHNPs earn?", a: "Pay varies by setting and location; listings on this page show the advertised range whenever the employer discloses one. Many roles include loan repayment programs, sign-on bonuses, and relocation assistance due to the critical shortage of addiction medicine providers." },
+              { q: "Is addiction psychiatry a good PMHNP specialty?", a: "Yes — addiction psychiatry is one of the fastest-growing PMHNP specialties. The opioid crisis has driven sustained growth in positions, and there's a severe shortage of qualified providers. The work is deeply meaningful, with high job security and competitive compensation." },
             ].map((faq, idx) => (
               <div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px 28px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>{faq.q}</h3>
@@ -388,7 +395,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
               </div>
             ))}
           </div>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:"What does an addiction PMHNP do?",a:"An addiction PMHNP specializes in treating substance use disorders (SUD) and co-occurring mental health conditions. They prescribe medications like buprenorphine and naltrexone for medication-assisted treatment (MAT), manage detox protocols, provide therapy, and coordinate comprehensive recovery plans."},{q:"Do I need special certification for addiction PMHNP work?",a:"While not always required, the DEA X-waiver (now integrated into standard DEA registration) is essential for prescribing buprenorphine. ASAM certification or CARN credentials significantly strengthen your candidacy and are preferred by many employers."},{q:"How much do addiction PMHNPs earn?",a:"Addiction PMHNPs typically earn $130K–$180K annually, with some positions in high-demand areas exceeding $200K. Many roles include loan repayment programs, sign-on bonuses, and relocation assistance."},{q:"Is addiction psychiatry a good PMHNP specialty?",a:"Yes — addiction psychiatry is one of the fastest-growing PMHNP specialties with 40%+ growth in positions. The work is deeply meaningful, with high job security and competitive compensation."}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
+          {/* Honesty review 2026-08: inline FAQPage schema removed; CategoryFAQ is this page's single FAQPage emitter (duplicate FAQPage blocks are the metro defect audit C1 fixed). */}
         </section>
       </div>
 

@@ -67,7 +67,7 @@ interface SettingStat {
  * tiered n-gating). Never aggregate means in SQL for display.
  */
 async function getStateData(stateName: string) {
-    const [rows, totalOpen] = await Promise.all([
+    const [rows, totalOpen, changeAgg] = await Promise.all([
         prisma.job.findMany({
             where: {
                 isPublished: true,
@@ -85,6 +85,15 @@ async function getStateData(stateName: string) {
             },
         }),
         prisma.job.count({ where: { isPublished: true, state: stateName } }),
+        // Real change signal for dateModified / the visible Updated line:
+        // the newest posting to enter this state's dataset, or the newest
+        // employer renewal. NEVER job.updatedAt (it churns daily on view
+        // counts) and never render time (organic audit 2026-08 D1: the old
+        // new Date().toISOString() here was a fabricated freshness signal).
+        prisma.job.aggregate({
+            where: { isPublished: true, state: stateName },
+            _max: { createdAt: true, lastRenewedAt: true },
+        }),
     ]);
 
     const overall = cleanSalaryRows(rows);
@@ -107,7 +116,13 @@ async function getStateData(stateName: string) {
     }
     bySetting.sort((a, b) => b.median - a.median);
 
-    return { summary, bySetting, totalOpen, quarantined: overall.quarantined };
+    const changeCandidates = [changeAgg._max.createdAt, changeAgg._max.lastRenewedAt]
+        .filter((d): d is Date => d != null);
+    const latestChangeAt = changeCandidates.length > 0
+        ? new Date(Math.max(...changeCandidates.map((d) => d.getTime())))
+        : null;
+
+    return { summary, bySetting, totalOpen, quarantined: overall.quarantined, latestChangeAt };
 }
 
 async function getTopEmployers(stateName: string) {
@@ -157,13 +172,40 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!stateName) return { title: 'State Not Found' };
 
     const code = STATE_CODES[stateName];
+    const year = new Date().getFullYear();
 
     // Empty-state defense lives in the page handler (notFound() when the
     // clean sample is below the 3-row floor). We deliberately do NOT
-    // duplicate that gate here: generateMetadata + the page handler run in
-    // parallel, so an extra count() here would double per-request DB load.
-    const title = `PMHNP Salary in ${stateName} (${code}): 2026 Pay & Jobs`;
-    const description = `Advertised PMHNP pay in ${stateName}: median and range from live postings, by practice setting, with top employers and open positions. Updated daily.`;
+    // duplicate that gate here.
+    //
+    // D1 (organic audit 2026-08): lead the SERP snippet with the LIVE state
+    // median from the tier-gated engine, mirroring the hub's pattern.
+    // getOfferMarketData is wrapped in React cache(), so this call and the
+    // page body's call share one DB scan per render — no extra load.
+    // market.states only contains states at the median tier or better
+    // (n >= 5), so a below-tier state degrades to the count-free title.
+    let medK: number | null = null;
+    try {
+        const market = await getOfferMarketData();
+        const midpoints = market.states[stateName];
+        if (midpoints) {
+            const s = summarizeMidpoints(midpoints);
+            if (s.tier === 'full' || s.tier === 'median') {
+                // Same rounding chain the visible hero uses (fmtK), so the
+                // title figure can never contradict the page.
+                medK = Math.round(roundDisplayDollars(s.median) / 1000);
+            }
+        }
+    } catch {
+        // DB-degraded: fall back to the count-free title. Never invent.
+    }
+
+    const title = medK != null
+        ? `PMHNP Salary in ${stateName}: $${medK}K Median (${year})`
+        : `PMHNP Salary in ${stateName} (${code}): ${year} Pay & Jobs`;
+    const description = medK != null
+        ? `The median advertised PMHNP salary in ${stateName} is $${medK}K per year, computed from live postings that disclose a range. See the full range, practice settings, top employers, and open jobs. Updated daily.`
+        : `Advertised PMHNP pay in ${stateName}: median and range from live postings, by practice setting, with top employers and open positions. Updated daily.`;
     const ogImage = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp';
 
     return {
@@ -171,16 +213,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         description,
         alternates: { canonical: `https://pmhnphiring.com/salary-guide/${slug}` },
         openGraph: {
-            title: `PMHNP Salary in ${stateName} (${code}): 2026 Data`,
+            title: medK != null
+                ? `PMHNP Salary in ${stateName}: $${medK}K Median Advertised Pay`
+                : `PMHNP Salary in ${stateName} (${code}): ${year} Data`,
             description: `Median advertised PMHNP pay in ${stateName} by practice setting, top employers, and open positions.`,
             type: 'website',
             url: `https://pmhnphiring.com/salary-guide/${slug}`,
             siteName: 'PMHNP Hiring',
-            images: [{ url: ogImage, width: 1280, height: 900, alt: `PMHNP Salary in ${stateName} 2026` }],
+            images: [{ url: ogImage, width: 1280, height: 900, alt: `PMHNP Salary in ${stateName} ${year}` }],
         },
         twitter: {
             card: 'summary_large_image',
-            title: `PMHNP Salary in ${stateName} (${code}) 2026`,
+            title: medK != null
+                ? `PMHNP Salary in ${stateName}: $${medK}K Median (${year})`
+                : `PMHNP Salary in ${stateName} (${code}) ${year}`,
             description,
             images: [ogImage],
         },
@@ -224,7 +270,7 @@ export default async function StateSalaryPage({ params }: PageProps) {
         getTopCities(stateName),
         getOfferMarketData(),
     ]);
-    const { summary, bySetting, totalOpen } = stateData;
+    const { summary, bySetting, totalOpen, latestChangeAt } = stateData;
 
     // Gate: below 3 clean salary rows the page has nothing honest to say
     // about pay. notFound() (mirrored by the sitemap's >= 3 filter) beats a
@@ -332,7 +378,15 @@ export default async function StateSalaryPage({ params }: PageProps) {
         description: `Advertised PMHNP pay in ${stateName} computed from live job postings: median, percentile range, practice settings, top employers, and open positions. Every figure ships with its sample size.`,
         // Same OG image generateMetadata advertises for this page.
         image: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp',
-        dateModified: new Date().toISOString(),
+        // datePublished: the day this page template first shipped
+        // (git 0dfc5b5, 2026-03-10) — a real date, not a freshness prop.
+        // dateModified: the most recent REAL change to this state's posting
+        // data (newest published job or employer renewal), never render
+        // time. Omitted when the aggregate is empty (organic audit
+        // 2026-08 D1: the old new Date().toISOString() stamp was a
+        // fabricated daily freshness signal on ~50 YMYL pages).
+        datePublished: '2026-03-10T00:00:00Z',
+        ...(latestChangeAt ? { dateModified: latestChangeAt.toISOString() } : {}),
         author: { '@type': 'Person', name: 'Sathish Kumar', jobTitle: 'Creator, PMHNP Hiring', url: 'https://pmhnphiring.com/about' },
         // logo.png, not logo.svg: public/ ships no SVG, and a 404ing
         // publisher logo invalidates the ImageObject for Google.
@@ -380,7 +434,10 @@ export default async function StateSalaryPage({ params }: PageProps) {
                             color: '#0D9488',
                         }}
                     >
-                        <MapPin size={14} /> {stateCode} Advertised Pay · Updated Daily
+                        <MapPin size={14} /> {stateCode} Advertised Pay
+                        {latestChangeAt
+                            ? ` · Updated ${latestChangeAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                            : ' · Refreshed Daily'}
                     </div>
 
                     <h1
@@ -749,6 +806,46 @@ export default async function StateSalaryPage({ params }: PageProps) {
                         </div>
                     </Link>
                 </div>
+
+                {/* Visible FAQ (organic audit 2026-08 D1): the faqItems that
+                    feed the FAQPage schema above now render on the page too,
+                    same details/summary pattern as the hub. Schema without
+                    visible content is a Google FAQ-policy violation; the
+                    answers here are the identical tier-gated figures. */}
+                {faqItems.length > 0 && (
+                    <div style={{ marginTop: '28px' }}>
+                        <h2
+                            style={{
+                                ...loraHeading,
+                                fontSize: '20px',
+                                marginBottom: '16px',
+                            }}
+                        >
+                            Frequently Asked Questions
+                        </h2>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {faqItems.map(({ q, a }) => (
+                                <details key={q} style={{ ...clayCard, padding: 0, overflow: 'hidden' }}>
+                                    <summary
+                                        style={{
+                                            padding: '16px 22px',
+                                            cursor: 'pointer',
+                                            fontSize: '14.5px',
+                                            fontWeight: 600,
+                                            color: '#1A2E35',
+                                            listStyle: 'none',
+                                        }}
+                                    >
+                                        {q}
+                                    </summary>
+                                    <div style={{ padding: '0 22px 16px', fontSize: '13.5px', color: '#5A4A42', lineHeight: 1.65 }}>
+                                        {a}
+                                    </div>
+                                </details>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </section>
 
             {/* CTA */}

@@ -7,12 +7,14 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import CategoryFAQ from '@/components/CategoryFAQ';
 
 // Force dynamic rendering
 /* Design Tokens */
@@ -71,20 +73,20 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: `${stats.totalJobs} Outpatient PMHNP Jobs — Clinic & Private Practice ($130K-190K)`,
-        description: `Find ${stats.totalJobs} outpatient PMHNP jobs paying $130K-$190K+. Clinic, private practice, and community mental health psychiatric nurse practitioner positions with M-F schedules. Apply today.`,
+        title: `${categoryTitleCount(stats.totalJobs)}Outpatient PMHNP Jobs — Clinic & Private Practice`,
+        description: `Find ${categoryTitleCount(stats.totalJobs)}outpatient PMHNP jobs. Clinic, private practice, and community mental health psychiatric nurse practitioner positions with M-F schedules. Apply today.`,
         keywords: ['outpatient pmhnp jobs', 'outpatient psychiatric nurse practitioner', 'pmhnp private practice', 'clinic pmhnp jobs', 'community mental health pmhnp'],
         openGraph: {
-            title: `${stats.totalJobs} Outpatient PMHNP Jobs — Clinic & Private Practice`,
+            title: `${categoryTitleCount(stats.totalJobs)}Outpatient PMHNP Jobs — Clinic & Private Practice`,
             description: 'Browse outpatient psychiatric nurse practitioner positions in clinics, private practices, and community mental health centers.',
             type: 'website',
             images: [{
-                url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Outpatient PMHNP Jobs`)}&subtitle=${encodeURIComponent('Clinic & private practice positions')}`,
+                url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Outpatient PMHNP Jobs`)}&subtitle=${encodeURIComponent('Clinic & private practice positions')}`,
                 width: 1200, height: 630, alt: 'Outpatient PMHNP Jobs',
             }],
         },
         alternates: { canonical: `${brand.baseUrl}/jobs/outpatient` },
-        ...(page > 1 && { robots: { index: false, follow: true } }),
+        ...categoryLandingRobotsMeta(stats.totalJobs, page),
     };
 }
 
@@ -125,7 +127,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, clinic & practice."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Clinic and private practice positions with M-F schedules and long-term patient relationships."
@@ -325,6 +327,11 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
 
       <CategoryLocationsExplore categorySlug="outpatient" categoryLabel="Outpatient" />
 
+      {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
+          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
+          live DB average (stored in $K, the FAQ copy expects dollars). */}
+      <CategoryFAQ category="outpatient" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
+
 
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
@@ -335,7 +342,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
             {[
               { q: 'What does a typical outpatient PMHNP schedule look like?', a: 'Most outpatient positions offer Monday-Friday, 8am-5pm schedules with no nights, weekends, or on-call. Some roles include a half-day administrative block for charting and follow-ups.' },
               { q: 'How many patients will I see per day?', a: 'Outpatient PMHNPs typically see 15-20 patients per day, with a mix of 30-minute follow-ups and 60-minute initial evaluations. Private practice caseloads may be lower.' },
-              { q: 'What is the salary range for outpatient PMHNPs?', a: 'Outpatient PMHNP salaries range from $130K to $190K+, depending on location, experience, and practice setting. Private practice roles may offer higher earning potential through patient volume.' },
+              { q: 'What is the salary range for outpatient PMHNPs?', a: 'Outpatient PMHNP pay varies by location, experience, and practice setting; listings show the advertised range whenever the employer discloses one. Private practice roles may offer higher earning potential through patient volume.' },
               { q: 'Do outpatient PMHNPs need to be credentialed with insurers?', a: 'In most group practices and clinics, the employer handles insurance credentialing. If you join a private practice, you may need to apply for your own panel memberships.' },
               { q: 'What EHR systems are common in outpatient settings?', a: 'Common outpatient EHRs include SimplePractice, Valant, TherapyNotes, and Epic Ambulatory. Most employers provide EHR training during onboarding.' },
             ].map((faq, idx) => (
@@ -345,7 +352,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
               </div>
             ))}
           </div>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:'What does a typical outpatient PMHNP schedule look like?',a:'Most outpatient positions offer Monday-Friday, 8am-5pm schedules with no nights, weekends, or on-call.'},{q:'How many patients will I see per day?',a:'Outpatient PMHNPs typically see 15-20 patients per day, with a mix of 30-minute follow-ups and 60-minute initial evaluations.'},{q:'What is the salary range for outpatient PMHNPs?',a:'Outpatient PMHNP salaries range from $130K to $190K+, depending on location, experience, and practice setting.'},{q:'Do outpatient PMHNPs need to be credentialed with insurers?',a:'In most group practices, the employer handles insurance credentialing. Private practice may require your own panel memberships.'},{q:'What EHR systems are common in outpatient settings?',a:'Common outpatient EHRs include SimplePractice, Valant, TherapyNotes, and Epic Ambulatory.'}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
+          {/* Honesty review 2026-08: inline FAQPage schema removed; CategoryFAQ is this page's single FAQPage emitter (duplicate FAQPage blocks are the metro defect audit C1 fixed). */}
         </section>
       </div>
 
