@@ -18,7 +18,11 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 import { getAllSettingSlugs, getAllStateSlugs } from '@/lib/pseo/setting-state-config';
-import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
+import {
+  MIN_JOBS_FOR_CATEGORY_CITY,
+  MIN_SITEMAP_POPULATION,
+  pseoFreshnessCutoff,
+} from '@/lib/pseo/sitemap-thresholds';
 import { CITY_SITEMAP_CATEGORIES as SITEMAP_CATEGORIES } from '@/lib/pseo/jobs-segments-edge';
 
 // SITEMAP_CATEGORIES is derived from the JOBS_TAXONOMY registry
@@ -53,13 +57,10 @@ const SITEMAP_CATEGORY_SET = new Set(SITEMAP_CATEGORIES);
 //     bucket. Must match the template's threshold.
 //   • City population ≥ MIN_SITEMAP_POPULATION (defense-in-depth)
 //   • pseoStats row must be fresh (≤ 36h since last aggregator run)
+// Job floor, population floor, and the staleness window all come from the
+// shared SSOT (lib/pseo/sitemap-thresholds.ts) — the same module the index
+// route reads, so the two can never drift (B7, organic audit 2026-08).
 const MIN_SITEMAP_JOBS = MIN_JOBS_FOR_CATEGORY_CITY;
-const MIN_SITEMAP_POPULATION = 10000;
-
-// 36h = 3x the 12h aggregate-pseo cron cadence. Allows a single missed run
-// without dropping URLs from the sitemap; catches sustained aggregator failure
-// before Google indexes pages whose underlying jobs already expired.
-const PSEO_STALENESS_HOURS = 36;
 
 interface SitemapEntry {
   url: string;
@@ -73,7 +74,7 @@ interface SitemapEntry {
 // never disagrees with the page-level noindex gate.
 async function getActiveCategoryCityUrls(): Promise<SitemapEntry[]> {
   const urls: SitemapEntry[] = [];
-  const freshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
+  const freshnessThreshold = pseoFreshnessCutoff();
   const validStateSlugs = new Set(getAllStateSlugs());
   const settingSlugs = new Set(getAllSettingSlugs());
 

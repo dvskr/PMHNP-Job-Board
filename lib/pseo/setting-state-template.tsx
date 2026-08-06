@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from './render-gate';
+import { pseoFreshnessCutoff } from './sitemap-thresholds';
 import JobCard from '@/components/JobCard';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryHero from '@/components/CategoryHero';
@@ -227,12 +228,12 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
   // each lookup is guarded so a pseoStats hiccup degrades to "no
   // cross-links", never a page 500.
   //
-  // SEO Fix #18: also gate on pseoStats freshness (36h, 3x the 12h aggregator
-  // cadence). If the aggregator silently fails, stale rows can advertise
-  // pages whose underlying jobs already expired — same root cause as the
-  // sitemap freshness gate.
-  const PSEO_STALENESS_HOURS = 36;
-  const pseoFreshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
+  // SEO Fix #18: also gate on pseoStats freshness. If the aggregator
+  // silently fails, stale rows can advertise pages whose underlying jobs
+  // already expired — same root cause as the sitemap freshness gate. Window
+  // comes from the shared SSOT (lib/pseo/sitemap-thresholds.ts) — this was
+  // a hand-copied 36 before (B7, organic audit 2026-08).
+  const pseoFreshnessThreshold = pseoFreshnessCutoff();
 
   // Other-settings for THIS state clearing the gate
   let otherSettingRows: Array<{ categorySlug: string }> = [];

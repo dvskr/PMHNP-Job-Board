@@ -2,9 +2,11 @@ import { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { getAllPublishedSlugs } from '@/lib/blog'
-import { getAllMetroSlugs } from '@/lib/metro-data'
+import { getAllMetroSlugs, getMetroCity, buildMetroJobsWhere } from '@/lib/metro-data'
 import { activeIndexableJobWhere } from '@/lib/active-job-filter'
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate'
+import { MIN_SITEMAP_POPULATION } from '@/lib/pseo/sitemap-thresholds'
+import { categoryLandingWhere } from '@/lib/pseo/category-landing-gate'
 import { PRIMARY_SITEMAP_CATEGORY_SLUGS } from '@/lib/pseo/jobs-segments-edge'
 import { CITIES } from '@/lib/pseo/city-data/cities'
 
@@ -31,7 +33,8 @@ const METRO_SLUG_SET = new Set<string>(METRO_SLUGS);
 const CITY_POPULATION_LOOKUP = new Map<string, number>(
   CITIES.map(c => [c.slug, c.population])
 );
-const MIN_SITEMAP_POPULATION = 10000;
+// MIN_SITEMAP_POPULATION comes from lib/pseo/sitemap-thresholds.ts (shared
+// with /api/sitemaps/index and /api/sitemaps/cities/[batch]).
 
 // All 50 US states + DC
 const US_STATES = [
@@ -132,17 +135,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // /jobs/new-grad — Google logs that as "Submitted URL redirected" in GSC
     // and burns crawl budget on a hop that yields no new content.
     { url: `${baseUrl}/jobs/new-grad`, lastModified: latestJobDate, changeFrequency: 'weekly', priority: 0.9 },
-    // Metro landing pages
-    ...METRO_SLUGS.map(slug => ({
-      url: `${baseUrl}/jobs/metro/${slug}`,
-      lastModified: latestJobDate,
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    })),
   ]
 
-  // Category landing pages
-  const categoryLandingPages: MetadataRoute.Sitemap = ALL_CATEGORY_SLUGS.map(slug => ({
+  // Metro landing pages — DB-gated in the try block (B4, organic audit
+  // 2026-08): only metros with live jobs are advertised, each carrying its
+  // own latest-job date instead of the sitewide latestJobDate (which claimed
+  // fabricated freshness for 0-job metros). This `let` default is the
+  // degraded-mode fallback used by the outer catch when the DB is unhealthy.
+  let metroPages: MetadataRoute.Sitemap = METRO_SLUGS.map(slug => ({
+    url: `${baseUrl}/jobs/metro/${slug}`,
+    lastModified: latestJobDate,
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }))
+
+  // Category landing pages — DB-gated in the try block (B3): below the
+  // MIN_JOBS SSOT a landing renders noindex,follow, so the sitemap must not
+  // advertise it. Same degraded-mode `let` fallback pattern as above.
+  let categoryLandingPages: MetadataRoute.Sitemap = ALL_CATEGORY_SLUGS.map(slug => ({
     url: `${baseUrl}/jobs/${slug}`,
     lastModified: latestJobDate,
     changeFrequency: 'daily',
@@ -213,6 +223,51 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // of ingestion-volume bumps. We still need an active-jobs count for the
     // per-section sanity floor below.
     const activeJobCount = await prisma.job.count({ where: ACTIVE_JOB_WHERE });
+
+    // B3 (organic audit 2026-08): gate category landings on the SAME live
+    // counts their pages read (categoryLandingWhere is the shared builder,
+    // so the sitemap and the page's noindex gate agree by construction).
+    // One batched $transaction round-trip — the 28 heterogeneous keyword
+    // where-clauses cannot be expressed as a single groupBy over a column,
+    // and the whole sitemap regenerates at most hourly (revalidate=3600).
+    const categoryLandingCounts = await prisma.$transaction(
+      ALL_CATEGORY_SLUGS.map((slug) =>
+        prisma.job.count({ where: categoryLandingWhere(slug) })
+      )
+    );
+    categoryLandingPages = ALL_CATEGORY_SLUGS
+      .filter((_, i) => categoryLandingCounts[i] >= MIN_JOBS_FOR_CATEGORY_CITY)
+      .map(slug => ({
+        url: `${baseUrl}/jobs/${slug}`,
+        lastModified: latestJobDate,
+        changeFrequency: 'daily' as const,
+        priority: 0.9,
+      }));
+
+    // B4: metro entries are gated on each metro's own live count (shared
+    // where-builder with the metro page, which noindexes at 0 jobs) and
+    // carry the metro's own latest-job date — omitted when unknown rather
+    // than stamped with the sitewide date.
+    const metroAggregates = await Promise.all(
+      METRO_SLUGS.map(async (slug) => {
+        const metro = getMetroCity(slug);
+        if (!metro) return { slug, count: 0, latest: null as Date | null };
+        const agg = await prisma.job.aggregate({
+          where: buildMetroJobsWhere(metro),
+          _count: { _all: true },
+          _max: { updatedAt: true },
+        });
+        return { slug, count: agg._count._all, latest: agg._max.updatedAt };
+      })
+    );
+    metroPages = metroAggregates
+      .filter(m => m.count > 0)
+      .map(m => ({
+        url: `${baseUrl}/jobs/metro/${m.slug}`,
+        ...(m.latest && { lastModified: m.latest }),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+      }));
 
     // GSC Fix: gate state and salary-guide-state URLs on actual job presence.
     // The page handlers now notFound() on empty states, but the sitemap also
@@ -364,6 +419,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const all = [
       ...staticPages,
+      ...metroPages,
       ...categoryLandingPages,
       ...landingPages,
       ...statePages,
@@ -398,6 +454,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     logger.error('Error generating sitemap, returning static pages only:', error)
     return [
       ...staticPages,
+      ...metroPages,
       ...categoryLandingPages,
       ...landingPages,
       ...statePages,

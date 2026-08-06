@@ -14,6 +14,11 @@ import { activeIndexableJobWhere } from '@/lib/active-job-filter';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 import { CITY_SITEMAP_CATEGORIES as SITEMAP_CATEGORIES } from '@/lib/pseo/jobs-segments-edge';
 import { getAllSettingSlugs, getAllStateSlugs } from '@/lib/pseo/setting-state-config';
+import {
+  MIN_JOBS_FOR_CATEGORY_CITY,
+  MIN_SITEMAP_POPULATION,
+  pseoFreshnessCutoff,
+} from '@/lib/pseo/sitemap-thresholds';
 
 // SITEMAP_CATEGORIES is derived from the JOBS_TAXONOMY registry
 // (lib/pseo/jobs-segments-edge.ts, inCitySitemaps flag) — shared with
@@ -29,11 +34,11 @@ const BATCH_SIZE = 10000;
 const JOB_BATCH_SIZE = 25000;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
-// Mirror of thresholds + staleness window in cities/[batch]/route.ts.
-// If you change either, change both — the two routes must agree exactly.
-const MIN_SITEMAP_JOBS = 3;
-const MIN_SITEMAP_POPULATION = 10000;
-const PSEO_STALENESS_HOURS = 36;
+// Thresholds + staleness window are imported from the shared SSOT
+// (lib/pseo/sitemap-thresholds.ts) — the same module cities/[batch]/route.ts
+// reads, so the index and batches can never disagree (B7, organic audit
+// 2026-08: this used to be a hand-copied "3 / 10000 / 36" trio).
+const MIN_SITEMAP_JOBS = MIN_JOBS_FOR_CATEGORY_CITY;
 
 export async function GET() {
   // SEO Fix #17: lastmod must reflect actual freshness, not "today". Using
@@ -59,7 +64,7 @@ export async function GET() {
   // Must match the pruning logic in cities/[batch]/route.ts exactly — both
   // routes now query pseoStats with identical thresholds so the index never
   // over- or under-reports batch count.
-  const freshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
+  const freshnessThreshold = pseoFreshnessCutoff();
   let totalUrls = 0;
   try {
     // Category × City: pseoStats.totalJobs ≥ MIN_SITEMAP_JOBS, fresh, valid
