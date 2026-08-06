@@ -275,7 +275,12 @@ export default function robots(): MetadataRoute.Robots {
       // vendor, same conservative parser, same explicit-Allow need.
       {
         userAgent: ['ClaudeBot', 'Claude-User', 'Claude-SearchBot'],
-        allow: '/',
+        // Organic audit 2026-08 D6: the bare '/api/' disallow below was
+        // robots-blocking Anthropic's crawlers from all three sitemap
+        // children (/api/sitemaps/*) and the OG images — mirror the
+        // PUBLIC_ALLOW carve-outs here. Longest-match wins, so these
+        // specific Allows beat the '/api/' Disallow.
+        allow: ['/', ...PUBLIC_ALLOW],
         disallow: [
           '/api/',
           '/admin',
@@ -289,6 +294,17 @@ export default function robots(): MetadataRoute.Robots {
           '/employer/settings',
           '/settings',
           '/my-applications',
+          // Token-bearing paths this block's policy comment always promised
+          // ("must never be crawled or trained on") but never listed —
+          // organic audit 2026-08 D6. Mirrors FULL_DISALLOW's token set.
+          '/jobs/edit/',
+          '/post-job/checkout',
+          '/post-job/preview',
+          '/job-alerts/unsubscribe',
+          '/email-preferences',
+          '/unsubscribe',
+          '/reset-password',
+          '/forgot-password',
         ],
       },
       // Catch-all rule (Googlebot, Bingbot, anyone unlisted). Implicit

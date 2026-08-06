@@ -17,6 +17,7 @@ import {
 } from '@/lib/salary-report/market-data';
 import { summarizeMidpoints, roundDisplayDollars } from '@/lib/salary-report/stats';
 import { getStatesByAuthority } from '@/lib/state-practice-authority';
+import { STAT_SOURCES } from '@/lib/stats-sources';
 
 // Enable ISR with daily revalidation
 export const revalidate = 86400;
@@ -113,12 +114,20 @@ const nicheLinks = [
 ];
 
 export default async function SalaryGuidePage() {
-  const [market, hubStates, settingMedians, totalPublished, remoteCount] = await Promise.all([
+  const [market, hubStates, settingMedians, totalPublished, remoteCount, changeAgg] = await Promise.all([
     getOfferMarketData(),
     getHubStateSummaries(),
     getNationalSettingMedians(),
     prisma.job.count({ where: { isPublished: true } }),
     prisma.job.count({ where: { isPublished: true, isRemote: true } }),
+    // Real change signal for dateModified: the newest posting to enter the
+    // dataset, or the newest employer renewal. NEVER job.updatedAt (it
+    // churns daily on view counts) and never render time (organic audit
+    // 2026-08: stamping now() is a fabricated freshness signal).
+    prisma.job.aggregate({
+      where: { isPublished: true },
+      _max: { createdAt: true, lastRenewedAt: true },
+    }),
   ]);
 
   // Total open jobs per state for the table's Jobs column (all published,
@@ -152,6 +161,19 @@ export default async function SalaryGuidePage() {
   const fmt = (n: number) => n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
   const fmtK = (n: number) => `$${Math.round(roundDisplayDollars(n) / 1000)}K`;
 
+  // D3 (organic audit 2026-08): hourly-equivalent answers. Derived, never
+  // advertised: annual median divided by a standard 2,080-hour work year
+  // (40 hours x 52 weeks), rounded to whole dollars. Always labeled as a
+  // derived conversion wherever it renders.
+  const STANDARD_ANNUAL_HOURS = 2080;
+  const derivedHourly = (annual: number) => Math.round(annual / STANDARD_ANNUAL_HOURS);
+
+  const changeCandidates = [changeAgg._max.createdAt, changeAgg._max.lastRenewedAt]
+    .filter((d): d is Date => d != null);
+  const latestChangeAt = changeCandidates.length > 0
+    ? new Date(Math.max(...changeCandidates.map((d) => d.getTime())))
+    : null;
+
   // FAQ content is built from the SAME live figures the page renders, so
   // the answers can never contradict the data. Distribution audit D3:
   // emitted as FAQPage JSON-LD below for AI answer engines (AEO), which
@@ -164,6 +186,12 @@ export default async function SalaryGuidePage() {
       a: nationalFull
         ? `Across ${nationalFull.n.toLocaleString()} live postings with disclosed ranges, the median advertised PMHNP salary is ${fmtK(nationalFull.median)} per year. The middle 50% of postings advertise between ${fmtK(nationalFull.p25)} and ${fmtK(nationalFull.p75)}. These are advertised figures from job postings, not self-reported earnings.`
         : 'We compute pay figures from live postings with disclosed ranges. Check the explorer above for the current numbers.',
+    },
+    {
+      q: 'What does the median PMHNP salary work out to per hour?',
+      a: nationalFull
+        ? `Divided over a standard ${STANDARD_ANNUAL_HOURS.toLocaleString()}-hour work year (40 hours for 52 weeks), the ${fmtK(nationalFull.median)} median advertised salary works out to about $${derivedHourly(nationalFull.median)} per hour. This is a derived figure (annual median divided by ${STANDARD_ANNUAL_HOURS.toLocaleString()}), not an advertised hourly rate: contract and locum roles quoted hourly usually price differently because they exclude benefits. Use the salary converter to run your own schedule.`
+        : 'Hourly equivalents are derived from the annual median whenever enough postings disclose a range. Use the salary converter to translate any hourly quote into an annual figure under your actual schedule.',
     },
     {
       q: 'Which states advertise the highest PMHNP pay?',
@@ -195,16 +223,47 @@ export default async function SalaryGuidePage() {
     "description": `Advertised PMHNP pay computed from live job postings: national median, state-by-state medians and ranges, and practice-setting breakdowns. Every figure ships with its sample size.`,
     "image": "https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp",
     "datePublished": "2026-01-01T00:00:00Z",
-    "dateModified": new Date().toISOString(),
+    // Real change signal only (newest posting or renewal in the dataset) —
+    // never render time. Omitted entirely if the aggregate is empty.
+    ...(latestChangeAt ? { "dateModified": latestChangeAt.toISOString() } : {}),
     "author": { "@type": "Person", "name": "Sathish Kumar", "jobTitle": "Creator, PMHNP Hiring", "url": "https://pmhnphiring.com/about" },
     "publisher": { "@type": "Organization", "name": "PMHNP Hiring", "url": "https://pmhnphiring.com", "logo": { "@type": "ImageObject", "url": "https://pmhnphiring.com/logo.png" } },
     "mainEntityOfPage": { "@type": "WebPage", "@id": "https://pmhnphiring.com/salary-guide" }
+  };
+
+  // Dataset schema (organic audit 2026-08 D2): makes the state-level salary
+  // data citable as a dataset, pointing at the public CSV serialized from
+  // the SAME tier-gated engine (app/data/pmhnp-advertised-salaries.csv).
+  // No dateModified stamping here beyond the real change signal above.
+  const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Advertised PMHNP Salaries by U.S. State",
+    "description": "State-level advertised pay for Psychiatric Mental Health Nurse Practitioners, computed from live job postings that disclose a salary range: median, 25th and 75th percentile advertised annual salary, and sample size per state. States below the minimum sample-size tiers are omitted rather than estimated. Figures are advertised pay from postings, not self-reported earnings.",
+    "url": `${BASE_URL}/salary-guide`,
+    "isAccessibleForFree": true,
+    "creator": { "@type": "Organization", "name": "PMHNP Hiring", "url": BASE_URL },
+    "variableMeasured": [
+      "state",
+      "sample_size_n",
+      "median_advertised_annual_usd",
+      "p25_advertised_annual_usd",
+      "p75_advertised_annual_usd",
+    ],
+    "temporalCoverage": String(currentYear),
+    ...(latestChangeAt ? { "dateModified": latestChangeAt.toISOString() } : {}),
+    "distribution": [{
+      "@type": "DataDownload",
+      "encodingFormat": "text/csv",
+      "contentUrl": `${BASE_URL}/data/pmhnp-advertised-salaries.csv`,
+    }],
   };
 
   return (
     <>
       <VideoJsonLd pathname="/salary-guide" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(articleSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetSchema) }} />
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://pmhnphiring.com" },
         { name: "Salary Guide", url: "https://pmhnphiring.com/salary-guide" }
@@ -281,7 +340,7 @@ export default async function SalaryGuidePage() {
                     { value: `${fmtK(nationalFull.p25)} to ${fmtK(nationalFull.p75)}`, label: 'Middle 50%', bg: '#E0E7FF', color: '#3730A3' },
                     { value: nationalFull.n.toLocaleString(), label: 'Postings Analyzed', bg: '#FEF3C7', color: '#92400E' },
                   ] : []),
-                  { value: '45%', label: 'NP Job Growth (BLS projection)', bg: '#FFE0D3', color: '#7C2D12' },
+                  { value: STAT_SOURCES.blsGrowth2032.formatted, label: 'NP Job Growth (BLS projection)', bg: '#FFE0D3', color: '#7C2D12' },
                 ].map(s => (
                   <div key={s.label} className="sal-stat-pill" style={{
                     display: 'flex', alignItems: 'center', gap: '10px',
@@ -326,6 +385,9 @@ export default async function SalaryGuidePage() {
                         {topStates.length >= 3 && (
                           <> The highest advertised medians right now: {topStates.map((s) => `${s.state} (${fmtK(s.median)})`).join(', ')}.</>
                         )}{' '}
+                        On a standard {STANDARD_ANNUAL_HOURS.toLocaleString()}-hour year that median works
+                        out to about <strong>${derivedHourly(nationalFull.median)} per hour</strong> (a
+                        derived conversion, not an advertised hourly rate).{' '}
                         These are advertised figures, not self-reported earnings, and they refresh daily.
                       </>
                     ) : (
@@ -604,10 +666,13 @@ export default async function SalaryGuidePage() {
           {/* Why Demand is High: public figures, attributed */}
           <div style={{ ...clayCard, padding: '22px 28px', background: '#F0FDFA', border: '1px solid #99F6E4' }}>
             <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#134E4A', margin: '0 0 10px' }}>Why Demand Stays High</h3>
+            {/* D5 (organic audit 2026-08): the BLS/HRSA mentions link to their
+                STAT_SOURCES.sourceUrl, and the numbers route through
+                STAT_SOURCES so the same figure lands site-wide. */}
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap', gap: '8px 24px', fontSize: '13px', color: '#5A4A42' }}>
-              <li>• Over <strong>120 million</strong> Americans live in mental health shortage areas (HRSA)</li>
-              <li>• <strong>45%</strong> projected NP job growth through 2032 (BLS)</li>
-              <li>• Psychiatric prescriber shortages persist in most states (HRSA)</li>
+              <li>• <strong>{STAT_SOURCES.hrsaShortagePopulation.formatted}</strong> Americans live in mental health shortage areas (<a href={STAT_SOURCES.hrsaShortagePopulation.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', fontWeight: 600 }}>HRSA</a>)</li>
+              <li>• <strong>{STAT_SOURCES.blsGrowth2032.formatted}</strong> projected NP job growth through 2032 (<a href={STAT_SOURCES.blsGrowth2032.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', fontWeight: 600 }}>BLS</a>)</li>
+              <li>• Psychiatric prescriber shortages persist in most states (<a href={STAT_SOURCES.hrsaShortagePopulation.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', fontWeight: 600 }}>HRSA</a>)</li>
             </ul>
           </div>
         </div>
@@ -682,7 +747,14 @@ export default async function SalaryGuidePage() {
           <div style={{ ...clayCard, padding: '24px 28px', marginBottom: '24px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>📋 Cite This Page</h3>
             <p style={{ fontSize: '13px', color: '#5A4A42', marginBottom: '14px' }}>Use the following citation when referencing data from this salary guide:</p>
-            <CopyCitation citation={`PMHNP Hiring. "2026 PMHNP Salary Guide: Psychiatric NP Pay by State." PMHNP Hiring, ${currentYear}, pmhnphiring.com/salary-guide.`} />
+            <CopyCitation citation={`PMHNP Hiring. "${currentYear} PMHNP Salary Guide: Psychiatric NP Pay by State." PMHNP Hiring, ${currentYear}, pmhnphiring.com/salary-guide.`} />
+            <p style={{ fontSize: '12px', color: '#5A4A42', marginTop: '12px', marginBottom: 0 }}>
+              Machine-readable dataset:{' '}
+              <a href="/data/pmhnp-advertised-salaries.csv" style={{ color: '#0D9488', fontWeight: 600 }}>
+                download the state-level salary data as CSV
+              </a>
+              . Same tier-gated engine as this page, refreshed daily.
+            </p>
             <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '10px' }}>
               Maintained by Sathish Kumar, creator of PMHNP Hiring. For media inquiries or custom data requests, contact press@pmhnphiring.com
             </p>
