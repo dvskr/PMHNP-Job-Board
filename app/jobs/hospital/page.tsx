@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -32,7 +33,7 @@ async function getStats() {
 
 const faqs = [
   { q: 'What does a hospital-based PMHNP do?', a: 'Hospital PMHNPs manage acute psychiatric emergencies, perform psychiatric evaluations in the ER, stabilize inpatients on psychiatric holds, and coordinate discharge planning with multidisciplinary teams.' },
-  { q: 'What salary do hospital PMHNPs earn?', a: 'Hospital PMHNPs earn $140K-$200K annually with shift differentials for nights/weekends, sign-on bonuses, and comprehensive benefits. Academic medical centers and urban hospitals often pay at the higher end.' },
+  { q: 'What salary do hospital PMHNPs earn?', a: 'Hospital PMHNP pay varies by location and experience, with shift differentials for nights/weekends, sign-on bonuses, and comprehensive benefits. Academic medical centers and urban hospitals often pay at the higher end.' },
   { q: 'What schedule do hospital PMHNPs work?', a: 'Most hospital roles use 7-on/7-off, 3x12-hour shifts, or rotating day/night schedules. Some partial hospitalization programs (PHP) offer traditional Monday-Friday hours.' },
   { q: 'What qualifications are required?', a: 'Active PMHNP-BC, state APRN licensure, DEA registration, BLS/ACLS certification, and typically 1+ years inpatient psychiatric experience. New grads may find opportunities in residency-style hospital programs.' },
   { q: 'Do hospital systems offer loan forgiveness?', a: 'Yes — many hospital systems qualify as 501(c)(3) nonprofits eligible for Public Service Loan Forgiveness (PSLF). After 120 qualifying payments, remaining federal student loan balance is forgiven.' },
@@ -40,7 +41,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `${stats.totalJobs} Hospital PMHNP Jobs ($140K-200K)`, description: `Find ${stats.totalJobs} hospital PMHNP jobs. Acute care, ER psych, and inpatient positions paying $140K-200K+ with PSLF eligibility.`, alternates: { canonical: `${brand.baseUrl}/jobs/hospital` } };
+  return { title: `${categoryTitleCount(stats.totalJobs)}Hospital PMHNP Jobs`, description: `Find ${categoryTitleCount(stats.totalJobs)}hospital PMHNP jobs. Acute care, ER psych, and inpatient positions with PSLF eligibility.`, alternates: { canonical: `${brand.baseUrl}/jobs/hospital` }, ...categoryLandingRobotsMeta(stats.totalJobs) };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }
@@ -71,7 +72,7 @@ export default async function HospitalPage({ searchParams }: PageProps) {
         headlineSub="jobs, acute care psych."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : '$155K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Acute psychiatric care in hospital settings with interdisciplinary teams and comprehensive benefits."

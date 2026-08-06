@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -32,7 +33,7 @@ async function getStats() {
 
 const faqs = [
   { q: 'How many hours do part-time PMHNPs work?', a: 'Part-time PMHNP roles typically involve 10-30 hours per week. Common schedules include 2-3 days per week, half-day clinics, or weekend-only coverage. PRN roles offer even more flexibility with no minimum hour commitments.' },
-  { q: 'What do part-time PMHNPs earn?', a: 'Part-time PMHNPs earn $60-$85+ per hour, translating to $60K-$110K annually depending on hours worked. PRN rates are often higher ($75-$100/hr) to compensate for lack of benefits.' },
+  { q: 'What do part-time PMHNPs earn?', a: 'Part-time and PRN pay varies by setting and shift; PRN hourly rates are often higher to compensate for the lack of benefits. Annual income depends on hours worked.' },
   { q: 'Do part-time PMHNPs get benefits?', a: 'Benefits vary. Positions at 20+ hours/week often include prorated health insurance, PTO, and CME allowances. PRN roles typically pay higher hourly rates but without benefits. Some employers offer 401(k) to all staff regardless of hours.' },
   { q: 'Can I combine part-time roles?', a: 'Yes — many PMHNPs stack 2-3 part-time positions across different settings (outpatient + telehealth, for example) to maximize income flexibility. Ensure non-compete clauses allow this and maintain separate malpractice coverage.' },
   { q: 'Is part-time good for new grads?', a: 'Part-time can work for new grads who want gradual clinical exposure, but most employers prefer candidates who can commit to consistent schedules. Starting with a full-time role that offers mentorship may build skills faster.' },
@@ -42,10 +43,10 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const [stats, params] = await Promise.all([getStats(), searchParams]);
   const page = Math.max(1, parseInt(params.page || '1'));
   return {
-    title: `${stats.totalJobs} Part-Time PMHNP Jobs ($60-85/hr)`,
-    description: `Find ${stats.totalJobs} part-time PMHNP jobs paying $60-85+/hr. Flexible schedules, PRN positions, and work-life balance.`,
+    title: `${categoryTitleCount(stats.totalJobs)}Part-Time PMHNP Jobs`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}part-time PMHNP jobs. Flexible schedules, PRN positions, and work-life balance.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/part-time` },
-    ...(page > 1 && { robots: { index: false, follow: true } }),
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
@@ -77,7 +78,7 @@ export default async function PartTimePage({ searchParams }: PageProps) {
         headlineSub="jobs, work on your terms."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$60/hr+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Flexible schedules, PRN options, and work-life balance for psychiatric nurse practitioners."

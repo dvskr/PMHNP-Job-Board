@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -32,7 +33,7 @@ async function getStats() {
 
 const faqs = [
   { q: 'What does a geriatric PMHNP do?', a: 'Geriatric PMHNPs specialize in treating psychiatric conditions in older adults: dementia-related behavioral symptoms, late-life depression, anxiety, delirium, and polypharmacy management in nursing homes, assisted living, and outpatient settings.' },
-  { q: 'What salary do geriatric PMHNPs earn?', a: 'Geriatric PMHNPs earn $130K-$175K annually. Nursing home circuit roles with multiple facility coverage often pay premium rates due to travel and autonomous practice requirements.' },
+  { q: 'What salary do geriatric PMHNPs earn?', a: 'Pay varies by setting and location; listings on this page show the advertised range whenever the employer discloses one. Nursing home circuit roles with multiple facility coverage often pay premium rates due to travel and autonomous practice requirements.' },
   { q: 'What qualifications are needed?', a: 'Active PMHNP-BC, state APRN licensure, DEA registration, and experience with geriatric populations. Knowledge of Medicare billing, capacity evaluations, and age-specific pharmacokinetics is highly valued.' },
   { q: 'What settings hire geriatric PMHNPs?', a: 'Skilled nursing facilities (SNFs), memory care units, assisted living communities, geriatric outpatient clinics, home health agencies, and hospital geropsychiatry units.' },
   { q: 'Why is demand for geriatric PMHNPs growing?', a: 'Over 10,000 Americans turn 65 daily. The aging population has increasing rates of dementia, depression, and anxiety — creating critical demand for specialized psychiatric providers in elder care.' },
@@ -40,7 +41,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `${stats.totalJobs} Geriatric PMHNP Jobs ($130K-175K)`, description: `Find ${stats.totalJobs} geriatric PMHNP jobs. Memory care, nursing home, and geropsychiatry positions paying $130K-175K+.`, alternates: { canonical: `${brand.baseUrl}/jobs/geriatric` } };
+  return { title: `${categoryTitleCount(stats.totalJobs)}Geriatric PMHNP Jobs`, description: `Find ${categoryTitleCount(stats.totalJobs)}geriatric PMHNP jobs. Memory care, nursing home, and geropsychiatry positions nationwide.`, alternates: { canonical: `${brand.baseUrl}/jobs/geriatric` }, ...categoryLandingRobotsMeta(stats.totalJobs) };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }
@@ -71,7 +72,7 @@ export default async function GeriatricPage({ searchParams }: PageProps) {
         headlineSub="jobs, elder care psych."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$150K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Specialized elder care psychiatry in nursing homes, memory care units, and geropsychiatry clinics."

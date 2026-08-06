@@ -82,132 +82,87 @@ export default async function Home() {
     ? `${Math.floor(totalJobs / 100) * 100}+`
     : totalJobs.toLocaleString();
 
+  // Homepage FAQ single source of truth (audit 2026-08 C3): the visible FAQ
+  // section AND the FAQPage JSON-LD both map over this exact array — schema
+  // without matching visible content is a structured-data policy violation.
+  // Every figure is either cited from STAT_SOURCES or written number-free;
+  // the old schema-only block carried invented stats (an unsourced remote
+  // share percentage and per-state opening counts) that had no source
+  // anywhere. tests/seo/faq-schema-parity.test.ts locks both properties.
+  const homepageFaqs: Array<{ q: string; a: string }> = [
+    {
+      q: 'What is a PMHNP?',
+      a: 'A PMHNP (Psychiatric Mental Health Nurse Practitioner) is an advanced practice registered nurse who specializes in mental health care. PMHNPs, also called psych NPs or behavioral health nurse practitioners, can diagnose and treat mental health conditions, prescribe medications, and provide psychotherapy. They hold a Master\'s or Doctoral degree in psychiatric nursing and are certified by the ANCC as PMHNP-BC.',
+    },
+    {
+      q: 'How much do PMHNPs make?',
+      a: `PMHNPs earn an average annual salary of ${STAT_SOURCES.averageSalary.formatted} based on the ${STAT_SOURCES.averageSalary.source} (${STAT_SOURCES.averageSalary.asOf}). Actual pay varies by state, practice setting, experience, and whether a role is W-2 or 1099. Listings on PMHNP Hiring show the advertised range whenever the employer discloses one.`,
+    },
+    {
+      q: 'What is the PMHNP job outlook?',
+      a: `The PMHNP job outlook is strong: ${STAT_SOURCES.blsGrowth2032.source} projects ${STAT_SOURCES.blsGrowth2032.formatted} employment growth for nurse practitioners through 2032, much faster than average. Roughly ${STAT_SOURCES.hrsaShortagePopulation.formatted} Americans live in mental-health Health Professional Shortage Areas (${STAT_SOURCES.hrsaShortagePopulation.source}, ${STAT_SOURCES.hrsaShortagePopulation.asOf}), so demand for psychiatric NPs continues to expand alongside telehealth access.`,
+    },
+    {
+      q: 'How long does it take to become a PMHNP?',
+      a: 'The typical path is a four-year BSN, licensure and experience as an RN, then a Master\'s or DNP program with a psychiatric mental health specialization, which adds two to four years depending on the degree and enrollment pace. Accelerated BSN-to-DNP programs can shorten the timeline. After graduation, you must pass the ANCC PMHNP-BC certification exam.',
+    },
+    {
+      q: 'Can PMHNPs prescribe medication?',
+      a: `Yes. PMHNPs can prescribe medications, including controlled substances, in all 50 states. In full practice authority states (${STAT_SOURCES.fullPracticeStates.formatted}, per the ${STAT_SOURCES.fullPracticeStates.source}), PMHNPs prescribe independently; in reduced or restricted practice states, a collaborative agreement with a physician may be required. PMHNPs commonly prescribe antidepressants, anxiolytics, antipsychotics, mood stabilizers, and stimulants.`,
+    },
+    {
+      q: 'What is the difference between a PMHNP and a psychiatrist?',
+      a: 'PMHNPs hold a graduate nursing degree with a psychiatric specialization, while psychiatrists complete medical school plus a multi-year residency. Both can diagnose mental health conditions and prescribe medications, and in full practice authority states PMHNPs practice independently. PMHNPs reach full practice sooner and with less educational debt, while psychiatrists train longer and generally earn more.',
+    },
+    {
+      q: 'What does a psychiatric nurse practitioner do on a typical workday?',
+      a: 'A typical PMHNP workday includes conducting psychiatric evaluations, diagnosing mental health conditions such as depression, anxiety, PTSD, bipolar disorder, and schizophrenia, prescribing and managing psychotropic medications, providing psychotherapy, collaborating with interdisciplinary teams, and documenting in EHR systems. Outpatient roles center on scheduled medication management visits, while inpatient roles involve rounding on hospitalized patients.',
+    },
+    {
+      q: 'Are there remote psych NP jobs?',
+      a: 'Yes. Remote and telehealth PMHNP roles are a large and growing part of the market, including video-based medication management, telepsychiatry, utilization review, and clinical documentation positions. Browse the remote jobs page on PMHNP Hiring for current openings with advertised salaries.',
+    },
+    {
+      q: 'Can PMHNPs own a private practice?',
+      a: 'Yes. PMHNPs can own a private practice in every state, though the level of independence varies. In full practice authority states, PMHNPs can practice and prescribe without physician oversight, while restricted states may require a collaborative agreement. Practice owners take on business operations, insurance credentialing, and overhead in exchange for schedule control and higher earning potential.',
+    },
+    {
+      q: 'Which states have the highest demand for psychiatric nurse practitioners?',
+      a: 'Demand for PMHNPs is strong nationwide, and populous states tend to post the most openings at any given time. Full practice authority states often see especially active hiring because fewer practice restrictions apply. For live job counts by state, browse the jobs by location page on PMHNP Hiring.',
+    },
+    {
+      q: 'What are the most in-demand PMHNP specializations?',
+      a: 'Frequently requested PMHNP specializations include addiction and substance use treatment, child and adolescent psychiatry, forensic and correctional psychiatry, geriatric psychiatry, crisis and emergency psychiatry, and telehealth-focused medication management. Specialized training, such as addiction medicine certification, can strengthen both candidacy and compensation.',
+    },
+    {
+      q: 'Are PMHNPs eligible for loan forgiveness or incentive programs?',
+      a: 'Yes. PMHNPs working in designated Health Professional Shortage Areas may qualify for National Health Service Corps loan repayment through HRSA. VA psychiatric NPs may qualify for the Education Debt Reduction Program (EDRP), and many states run their own loan forgiveness programs for mental health providers in community and rural settings. Check each program\'s current terms for award amounts and service commitments.',
+    },
+  ];
+
   return (
     <>
       {/* Structured data — outside content div to prevent hydration mismatch */}
       {/* Note: Organization schema is rendered site-wide in layout.tsx @graph.
           Removed standalone duplicate here to prevent conflicting signals in GSC. */}
       <VideoJsonLd pathname="/" />
-      {/* BreadcrumbList schema — homepage */}
+      {/* Single-item BreadcrumbList deliberately removed (audit 2026-08 C3):
+          a homepage-only breadcrumb carries no trail and no rich-result value. */}
+      {/* FAQPage schema mapped 1:1 from the SAME homepageFaqs array the
+          visible FAQ section at the bottom of the page renders. Do not add
+          schema-only questions here — Google's FAQ policy requires the
+          content to be visible on the page. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: jsonLdString({
             '@context': 'https://schema.org',
-            '@type': 'BreadcrumbList',
-            itemListElement: [
-              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://pmhnphiring.com' },
-            ],
-          }),
-        }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: jsonLdString({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: [
-              {
-                "@type": "Question",
-                name: "What is a PMHNP?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "A PMHNP (Psychiatric Mental Health Nurse Practitioner) is an advanced practice registered nurse (APRN) who specializes in mental health care. PMHNPs — also called Psych NPs or behavioral health nurse practitioners — can diagnose and treat mental health conditions, prescribe medications, and provide psychotherapy. They hold a Master's or Doctoral degree in psychiatric nursing and are certified by the ANCC as PMHNP-BC.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "How much do PMHNPs make?",
-                acceptedAnswer: {
-                  // SEO Fix C5/C6: salary range pulled from lib/stats-sources.ts so the
-                  // same number lands on homepage, blog FAQ, and About copy. Source +
-                  // asOf appended in plain prose for verifiable citation.
-                  "@type": "Answer",
-                  text: `PMHNPs earn an average annual salary of ${STAT_SOURCES.averageSalary.range} based on the ${STAT_SOURCES.averageSalary.source} (${STAT_SOURCES.averageSalary.asOf}). Salaries range from ~$120,000 for new graduates to $200,000+ for experienced PMHNPs in high-demand areas. Remote and telehealth positions typically pay $130,000–$200,000; private practice PMHNPs can earn $200,000+ depending on caseload and overhead.`,
-                },
-              },
-              {
-                "@type": "Question",
-                name: "What is the PMHNP job outlook?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: `The PMHNP job outlook is strong: ${STAT_SOURCES.blsGrowth2032.source} projects ${STAT_SOURCES.blsGrowth2032.formatted} employment growth for nurse practitioners through 2032 — much faster than average. Roughly ${STAT_SOURCES.hrsaShortagePopulation.formatted} Americans live in mental-health Health Professional Shortage Areas (${STAT_SOURCES.hrsaShortagePopulation.source}, ${STAT_SOURCES.hrsaShortagePopulation.asOf}), so demand for psychiatric NPs continues to expand alongside telehealth access.`,
-                },
-              },
-              {
-                "@type": "Question",
-                name: "How long does it take to become a PMHNP?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "Becoming a PMHNP typically takes 6-8 years total: 4 years for a BSN, 1-2 years of RN experience (recommended), and 2-3 years for a MSN or DNP with PMHNP specialization. Accelerated BSN-to-DNP programs can shorten this timeline. After graduation, you must pass the ANCC PMHNP-BC certification exam.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "Can PMHNPs prescribe medication?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "Yes, PMHNPs can prescribe medications including controlled substances in all 50 states. In states with full practice authority (34 states plus DC), PMHNPs prescribe independently. In reduced or restricted practice states, a collaborative agreement with a physician may be required. PMHNPs commonly prescribe antidepressants, anxiolytics, antipsychotics, mood stabilizers, and stimulants.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "What is the difference between a PMHNP and a psychiatrist?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: `PMHNPs hold a Master's or Doctoral degree in nursing with psychiatric specialization (2–4 years of graduate school), while psychiatrists complete medical school plus a 4-year residency. Both can diagnose mental health conditions and prescribe medications. In full practice authority states, PMHNPs practice independently. PMHNPs typically earn ${STAT_SOURCES.averageSalary.range} (${STAT_SOURCES.averageSalary.source}, ${STAT_SOURCES.averageSalary.asOf}) compared to psychiatrists at $250,000+, but PMHNPs reach full practice much faster with less educational debt.`,
-                },
-              },
-              {
-                "@type": "Question",
-                name: "What does a psychiatric nurse practitioner do on a typical workday?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "A typical PMHNP workday includes conducting psychiatric evaluations, diagnosing mental health conditions (depression, anxiety, PTSD, bipolar disorder, schizophrenia), prescribing and managing psychotropic medications, providing psychotherapy (CBT, motivational interviewing), collaborating with interdisciplinary teams, and documenting in EHR systems. Outpatient PMHNPs typically see 8-16 patients per day, while inpatient roles involve rounding on hospitalized patients.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "Are there remote psych NP jobs?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "Yes, remote PMHNP jobs are rapidly growing — approximately 62% of psychiatric NP positions now offer remote or telehealth options. Remote psych NP roles include telehealth patient care, medication management via video, utilization review, and clinical documentation. Salaries for remote PMHNPs range from $130,000 to $200,000+, with companies like Talkiatry, Cerebral, and Lyra Health actively hiring.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "Can PMHNPs own a private practice?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "Yes, PMHNPs can own a private practice in all 50 states, though the level of independence varies. In the 34 states with Full Practice Authority, PMHNPs can practice and prescribe without physician oversight. In restricted states, a collaborative agreement with a physician may be required. Private practice PMHNPs can earn $180,000-$300,000+ annually, though they must manage business operations, insurance credentialing, and overhead costs.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "Which states have the highest demand for psychiatric nurse practitioners?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "The states with the highest demand for PMHNPs in 2026 are California (2,500+ openings), Texas (2,240+), Florida (2,190+), New York (1,640+), and Tennessee (1,570+). Other high-demand states include Ohio, North Carolina, Georgia, Arizona, and Illinois. Full Practice Authority states generally have more job openings due to fewer practice restrictions.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "What are the most in-demand PMHNP specializations?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "The most in-demand PMHNP specializations include addiction/substance abuse (MAT certification, +15-20% salary premium), child and adolescent psychiatry (+10-15% premium), forensic psychiatry in correctional settings (+15-25% premium), geriatric psychiatry, crisis/emergency psychiatry, and telehealth-focused medication management. Dual certification (PMHNP + FNP) is also increasingly valuable.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "Are PMHNPs eligible for loan forgiveness or incentive programs?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "Yes, PMHNPs working in designated Health Professional Shortage Areas (HPSAs) may qualify for HRSA's National Health Service Corps (NHSC) loan repayment, which offers up to $50,000 for a 2-year commitment. VA psychiatric NPs may qualify for the Education Debt Reduction Program (EDRP). PMHNPs in community mental health centers and rural areas often have additional state-level loan forgiveness programs available.",
-                },
-              },
-            ],
+            '@type': 'FAQPage',
+            mainEntity: homepageFaqs.map((faq) => ({
+              '@type': 'Question',
+              name: faq.q,
+              acceptedAnswer: { '@type': 'Answer', text: faq.a },
+            })),
           }),
         }}
       />
@@ -240,6 +195,34 @@ export default async function Home() {
         <EmployerHowItWorks />
 
         <HomepageBlogSection />
+
+        {/* 7. FAQ — visible accordion; the FAQPage schema above maps 1:1
+            from this same homepageFaqs array (schema-visible parity). */}
+        <section aria-labelledby="homepage-faq-heading" style={{ maxWidth: '900px', margin: '0 auto', padding: '56px 20px 72px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+            Common Questions
+          </p>
+          <h2 id="homepage-faq-heading" className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>
+            PMHNP Careers and Jobs, Answered
+          </h2>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {homepageFaqs.map((faq, idx) => (
+              <details key={idx} className="home-faq" style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 12px rgba(0,0,0,0.04), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)', overflow: 'hidden' }}>
+                <summary style={{ padding: '18px 24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', listStyle: 'none', fontSize: '15px', fontWeight: 600, color: '#1A2E35', lineHeight: 1.4 }}>
+                  <span>{faq.q}</span>
+                  <span className="home-faq-chevron" style={{ flexShrink: 0, width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', background: '#F0FDFA', color: '#0D9488', fontSize: '17px', fontWeight: 700 }}>+</span>
+                </summary>
+                <div style={{ padding: '0 24px 18px', fontSize: '14px', color: '#5A4A42', lineHeight: 1.7 }}>{faq.a}</div>
+              </details>
+            ))}
+          </div>
+          <style>{`
+            .home-faq summary::-webkit-details-marker { display: none; }
+            .home-faq summary::marker { content: ''; }
+            .home-faq[open] .home-faq-chevron { transform: rotate(45deg); background: #0D9488; color: #fff; }
+            .home-faq-chevron { transition: transform 0.3s ease, background 0.3s ease, color 0.3s ease; }
+          `}</style>
+        </section>
       </div>
     </>
   );

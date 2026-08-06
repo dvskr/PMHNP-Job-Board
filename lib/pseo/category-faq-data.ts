@@ -61,7 +61,7 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
             question: 'What is the average salary for remote PMHNP jobs?',
             answer: avgSalary
                 ? `Remote PMHNP positions offer an average salary of approximately $${avgSalary.toLocaleString()} per year. Remote roles often offer competitive or higher compensation compared to in-person positions due to expanded patient reach and reduced overhead costs.`
-                : 'Remote PMHNP salaries typically range from $130,000 to $200,000+ per year, depending on experience, patient panel size, and whether the position is W-2 or 1099. Many telehealth companies also offer productivity bonuses.',
+                : 'Remote PMHNP pay varies with experience, patient panel size, and whether the position is W-2 or 1099; listings on this page show the advertised range whenever the employer discloses one. Many telehealth companies also offer productivity bonuses.',
         },
         {
             question: 'Do remote PMHNP jobs require multi-state licensure?',
@@ -85,7 +85,7 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
             question: 'What is the average telehealth PMHNP salary?',
             answer: avgSalary
                 ? `Telehealth PMHNP positions offer an average salary of approximately $${avgSalary.toLocaleString()} per year. Compensation varies based on patient volume, state licensure, and employment type (W-2 vs 1099).`
-                : 'Telehealth PMHNP salaries range from $120,000 to $200,000+ annually. Many telehealth companies offer productivity-based compensation where higher patient volumes lead to increased earnings.',
+                : 'Telehealth PMHNP pay varies by state, volume, and employment type; listings on this page show the advertised range whenever the employer discloses one. Many telehealth companies offer productivity-based compensation where higher patient volumes lead to increased earnings.',
         },
         {
             question: 'What qualifications do I need for telehealth PMHNP jobs?',
@@ -99,7 +99,7 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
         },
         {
             question: 'How much do travel PMHNP positions pay?',
-            answer: 'Travel PMHNP positions typically pay 20-40% more than permanent roles, with weekly rates ranging from $2,500 to $5,000+. Compensation often includes tax-free housing stipends, travel reimbursement, and per diem allowances in addition to base pay.',
+            answer: 'Travel PMHNP positions often advertise premium pay compared to permanent roles. Compensation often includes tax-free housing stipends, travel reimbursement, and per diem allowances in addition to base pay; each listing shows the advertised rate when the agency discloses it.',
         },
         {
             question: 'What benefits do travel PMHNP jobs include?',
@@ -121,11 +121,11 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
         },
         {
             question: 'What should new grad PMHNPs look for in their first job?',
-            answer: 'Key factors include: structured supervision and mentorship, manageable patient panel size (starting at 8-12 patients/day), access to collaborating physicians, continuing education support, malpractice insurance coverage, and clear pathways to independent practice. Avoid positions with unrealistic productivity expectations for new providers.',
+            answer: 'Key factors include: structured supervision and mentorship, a manageable starting patient panel that ramps up gradually, access to collaborating physicians, continuing education support, malpractice insurance coverage, and clear pathways to independent practice. Avoid positions with unrealistic productivity expectations for new providers.',
         },
         {
             question: 'Are there PMHNP fellowship or residency programs?',
-            answer: 'Yes, several healthcare systems offer PMHNP fellowship and residency programs lasting 6-12 months. These programs provide intensive clinical training, didactic education, and mentorship. While they may pay slightly less initially, they provide invaluable experience and often lead to permanent positions.',
+            answer: 'Yes, several healthcare systems offer PMHNP fellowship and residency programs, most lasting several months to a year. These programs provide intensive clinical training, didactic education, and mentorship. While they may pay slightly less initially, they provide invaluable experience and often lead to permanent positions.',
         },
     ],
     'per-diem': ({ totalJobs }) => [
@@ -135,7 +135,7 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
         },
         {
             question: 'How much do per diem PMHNPs earn?',
-            answer: 'Per diem PMHNPs typically earn $80-$150+ per hour, which is often higher than the hourly equivalent of full-time positions. Rates vary by location, setting, and demand. Some per diem positions also offer shift differentials for weekends, evenings, or holidays.',
+            answer: 'Per diem hourly rates are often higher than the hourly equivalent of full-time positions because they exclude benefits. Rates vary by location, setting, and demand, and listings show the advertised rate whenever the employer discloses one. Some per diem positions also offer shift differentials for weekends, evenings, or holidays.',
         },
         {
             question: 'What are the pros and cons of per diem PMHNP work?',
@@ -155,11 +155,11 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
             question: 'What is the average salary for inpatient PMHNPs?',
             answer: avgSalary
                 ? `Inpatient PMHNP positions offer an average salary of approximately $${avgSalary.toLocaleString()} per year. Hospital-based roles often include shift differentials, sign-on bonuses, and comprehensive benefits packages.`
-                : 'Inpatient PMHNP salaries typically range from $140,000 to $200,000+ per year. Hospital roles often include night/weekend shift differentials (10-20% extra), sign-on bonuses ($5K-$25K), and full benefits including retirement and tuition reimbursement.',
+                : 'Inpatient PMHNP pay varies by hospital and region; listings on this page show the advertised range whenever the employer discloses one. Hospital roles often include night/weekend shift differentials, sign-on bonuses, and full benefits including retirement and tuition reimbursement.',
         },
         {
             question: 'What does an inpatient PMHNP do daily?',
-            answer: 'Inpatient PMHNPs conduct psychiatric evaluations for new admissions, manage acute medication regimens, perform risk assessments, lead treatment team rounds, coordinate discharge planning, and provide crisis intervention. Typical caseloads range from 12-20 patients per shift depending on acuity.',
+            answer: 'Inpatient PMHNPs conduct psychiatric evaluations for new admissions, manage acute medication regimens, perform risk assessments, lead treatment team rounds, coordinate discharge planning, and provide crisis intervention. Caseloads vary with unit size and patient acuity.',
         },
         {
             question: 'Do I need experience for inpatient PMHNP positions?',
@@ -175,15 +175,15 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
             question: 'What is the average outpatient PMHNP salary?',
             answer: avgSalary
                 ? `Outpatient PMHNP positions offer an average salary of approximately $${avgSalary.toLocaleString()} per year. Private practice PMHNPs can earn significantly more through productivity-based compensation models.`
-                : 'Outpatient PMHNP salaries typically range from $130,000 to $190,000 for W-2 positions. Private practice owners can earn $200,000-$300,000+ depending on patient volume and insurance panel mix.',
+                : 'Outpatient PMHNP pay varies by region, experience, and practice model; listings on this page show the advertised range whenever the employer discloses one. Private practice owners can earn more depending on patient volume and insurance panel mix.',
         },
         {
             question: 'What does a typical outpatient PMHNP schedule look like?',
-            answer: 'Most outpatient positions offer Monday-Friday, 8am-5pm schedules with no nights, weekends, or on-call requirements. Typical caseloads are 12-20 patients per day for medication management, or 6-8 if integrating therapy. Many clinics offer 4-day work weeks.',
+            answer: 'Most outpatient positions offer Monday-Friday daytime schedules with no nights, weekends, or on-call requirements. Caseloads are higher for medication-management-focused roles and lower when therapy is integrated into visits. Many clinics offer compressed work weeks.',
         },
         {
             question: 'Can outpatient PMHNPs start their own private practice?',
-            answer: 'Yes — outpatient experience is ideal preparation for private practice. In full practice authority states, PMHNPs can open independent practices. Most PMHNPs gain 2-3 years of supervised experience first, then transition to private practice earning $200K+ with full schedule control.',
+            answer: 'Yes — outpatient experience is ideal preparation for private practice. In full practice authority states, PMHNPs can open independent practices. Most PMHNPs gain a few years of supervised experience first, then transition to private practice for greater earning potential and full schedule control.',
         },
     ],
     'substance-abuse': ({ totalJobs }) => [
@@ -201,7 +201,7 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
         },
         {
             question: 'Is there loan repayment for addiction PMHNP positions?',
-            answer: 'Yes — many substance abuse positions in underserved areas qualify for National Health Service Corps (NHSC) loan repayment up to $50,000 for 2 years of service. Positions at nonprofit employers also qualify for Public Service Loan Forgiveness (PSLF) after 10 years of qualifying payments.',
+            answer: 'Yes. Many substance abuse positions in underserved areas qualify for National Health Service Corps (NHSC) loan repayment; award amounts and terms are set by HRSA each cycle. Positions at nonprofit employers also qualify for Public Service Loan Forgiveness (PSLF) after 120 qualifying payments.',
         },
     ],
     'child-adolescent': ({ totalJobs }) => [
@@ -232,7 +232,7 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
             question: 'What is the average salary for behavioral health NPs?',
             answer: avgSalary
                 ? `Behavioral health NP positions offer an average salary of approximately $${avgSalary.toLocaleString()} per year. Salaries vary by setting, experience, and geographic location, with private practice and specialty roles earning significantly more.`
-                : 'Behavioral health NP salaries typically range from $130,000 to $200,000+ per year. Private practice owners and specialty providers (addiction, forensic, child/adolescent) can earn $200K-$300K+.',
+                : 'Behavioral health NP pay varies by setting, experience, and region; listings on this page show the advertised range whenever the employer discloses one. Private practice owners and specialty providers (addiction, forensic, child/adolescent) often sit at the higher end.',
         },
         {
             question: 'What settings do behavioral health NPs work in?',
@@ -251,8 +251,8 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
         {
             question: 'What is the average salary for community health PMHNPs?',
             answer: avgSalary
-                ? `Community health PMHNP positions offer an average salary of approximately $${avgSalary.toLocaleString()} per year. Many FQHC and public health roles also include NHSC loan repayment up to $50,000 and PSLF eligibility.`
-                : 'Community health PMHNP salaries typically range from $120,000 to $170,000 per year. Positions at FQHCs often include loan repayment programs, federal benefits, and generous PTO that significantly boost total compensation.',
+                ? `Community health PMHNP positions offer an average salary of approximately $${avgSalary.toLocaleString()} per year. Many FQHC and public health roles also include NHSC loan repayment eligibility and PSLF eligibility.`
+                : 'Community health PMHNP pay varies by site and region; listings on this page show the advertised range whenever the employer discloses one. Positions at FQHCs often include loan repayment programs, federal benefits, and generous PTO that boost total compensation.',
         },
         {
             question: 'What qualifications are needed for community health PMHNP roles?',
@@ -260,7 +260,7 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
         },
         {
             question: 'Do community health PMHNPs qualify for loan repayment?',
-            answer: 'Yes — many community health positions at FQHCs and nonprofit agencies qualify for National Health Service Corps (NHSC) loan repayment of up to $50,000 for two years of service. Positions at 501(c)(3) employers also qualify for Public Service Loan Forgiveness (PSLF) after 120 qualifying payments.',
+            answer: 'Yes. Many community health positions at FQHCs and nonprofit agencies qualify for National Health Service Corps (NHSC) loan repayment; award amounts and terms are set by HRSA each cycle. Positions at 501(c)(3) employers also qualify for Public Service Loan Forgiveness (PSLF) after 120 qualifying payments.',
         },
     ],
 };

@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -87,15 +88,15 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} Locum Tenens PMHNP Jobs — Agency Staffing ($85-150/hr)`,
-    description: `Find ${stats.totalJobs} locum tenens PMHNP jobs paying $85-$150+/hr. Multi-state assignments with housing stipends, malpractice coverage, and premium pay. Updated daily.`,
+    title: `${categoryTitleCount(stats.totalJobs)}Locum Tenens PMHNP Jobs — Agency Staffing`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}locum tenens PMHNP jobs. Multi-state assignments with housing stipends, malpractice coverage, and premium pay. Updated daily.`,
     keywords: ['locum tenens pmhnp', 'travel pmhnp jobs', 'locum psychiatric nurse practitioner', 'psych NP travel assignments', 'temporary pmhnp positions', 'locum tenens psych nurse practitioner'],
     openGraph: {
-      title: `${stats.totalJobs} Locum Tenens PMHNP Jobs - Travel Assignments`,
+      title: `${categoryTitleCount(stats.totalJobs)}Locum Tenens PMHNP Jobs - Travel Assignments`,
       description: 'Browse locum tenens and travel psychiatric mental health nurse practitioner positions. Premium pay, housing, and malpractice coverage.',
       type: 'website',
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Locum Tenens PMHNP Jobs`)}&subtitle=${encodeURIComponent('Travel psych NP assignments with premium pay')}`,
+        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Locum Tenens PMHNP Jobs`)}&subtitle=${encodeURIComponent('Travel psych NP assignments with premium pay')}`,
         width: 1200,
         height: 630,
         alt: 'Locum Tenens PMHNP Jobs',
@@ -104,9 +105,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     alternates: {
       canonical: `${brand.baseUrl}/jobs/locum-tenens`,
     },
-    ...(page > 1 && {
-      robots: { index: false, follow: true },
-    }),
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
@@ -134,11 +133,11 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
   const locumFaqs = [
     {
       question: "What is a locum tenens PMHNP?",
-      answer: "A locum tenens PMHNP is a psychiatric nurse practitioner who fills temporary staffing needs at healthcare facilities. Assignments typically last 2-13 weeks and include housing stipends, travel reimbursement, malpractice coverage, and premium hourly rates of $85-$150+."
+      answer: "A locum tenens PMHNP is a psychiatric nurse practitioner who fills temporary staffing needs at healthcare facilities. Assignments typically last 2-13 weeks and include housing stipends, travel reimbursement, malpractice coverage, and premium hourly rates."
     },
     {
       question: "How much do locum tenens psychiatric nurse practitioners earn?",
-      answer: "Locum tenens PMHNPs earn $85-$150+ per hour, translating to $150,000-$250,000+ annually. This is 20-50% higher than permanent positions. Additionally, locum PMHNPs receive tax-free housing stipends ($1,500-$3,500/month), travel reimbursement, and malpractice coverage."
+      answer: "Locum tenens roles typically advertise premium hourly rates compared to permanent positions. Additionally, locum PMHNPs receive tax-free housing stipends, travel reimbursement, and malpractice coverage."
     },
     {
       question: "Do locum tenens PMHNPs get benefits?",
@@ -214,7 +213,7 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, travel & flexibility."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$150K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'agencies' },
         ]}
         description="Travel assignments with premium hourly rates, housing stipends, and schedule flexibility."
@@ -285,7 +284,7 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
                 <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual equivalent</div>
-                <p style={{ fontSize: '11px', color: '#A09080', marginTop: '12px' }}>Based on $85–$150+/hr typical rates.</p>
+                <p style={{ fontSize: '11px', color: '#A09080', marginTop: '12px' }}>Rates vary by assignment and location.</p>
               </div>
             )}
           </div>
@@ -320,7 +319,7 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
               <div style={{ padding: '24px 22px', flex: 1 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Premium Rates</h3>
                 <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
-                  Earn $85–$150+/hr with overtime premiums and completion bonuses.
+                  Premium hourly rates with overtime premiums and completion bonuses.
                 </p>
               </div>
             </div>
@@ -334,7 +333,7 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_locum_rates.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Premium Rates</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Earn $100–$200+/hr with overtime premiums and completion bonuses.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Premium hourly rates plus overtime premiums and completion bonuses.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_locum_calendar.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
@@ -353,7 +352,7 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Compensation</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  Locum PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$150K–$250K'} annually equivalent with tax-free housing and malpractice coverage.
+                  {stats.avgSalary > 0 ? `Locum PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Assignments commonly include tax-free housing stipends and malpractice coverage.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>

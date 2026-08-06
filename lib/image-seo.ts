@@ -19,10 +19,14 @@ export interface PageImageSEO {
 const BASE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages';
 
 export const PAGE_IMAGE_SEO: Record<string, PageImageSEO> = {
+    // Audit 2026-08 C6: captions/alt in this registry must stay number-free.
+    // The old copy claimed job/company counts and salary figures that were
+    // never true (e.g. "10,000 plus jobs") — hardcoded stats in a static file
+    // can only drift from reality. Live counts belong to DB-derived props.
     '/': {
         image: `${BASE}/pmhnp-job-board-homepage.webp`,
-        alt: 'PMHNP Hiring job board homepage showing 10,000 plus psychiatric nurse practitioner jobs from 3,000 plus companies across 50 states',
-        caption: 'The #1 job board for psychiatric mental health nurse practitioners',
+        alt: 'PMHNP Hiring job board homepage showing psychiatric nurse practitioner job listings with salary transparency across all 50 states',
+        caption: 'The job board for psychiatric mental health nurse practitioners',
         title: 'PMHNP Hiring Homepage',
     },
     '/about': {
@@ -75,7 +79,7 @@ export const PAGE_IMAGE_SEO: Record<string, PageImageSEO> = {
     },
     '/salary-guide': {
         image: `${BASE}/pmhnp-salary-guide-2026.webp`,
-        alt: '2026 PMHNP Salary Guide showing national average of 155,000 dollars with state-by-state comparison and compensation data',
+        alt: '2026 PMHNP Salary Guide showing national and state-by-state psychiatric nurse practitioner compensation data',
         caption: '2026 PMHNP salary guide with state comparisons',
         title: '2026 PMHNP Salary Guide',
     },
@@ -87,13 +91,13 @@ export const PAGE_IMAGE_SEO: Record<string, PageImageSEO> = {
     },
     '/jobs': {
         image: `${BASE}/pmhnp-job-search-listings.webp`,
-        alt: 'PMHNP job search results page with salary filters, location search, and thousands of psychiatric nurse practitioner positions',
+        alt: 'PMHNP job search results page with salary filters, location search, and psychiatric nurse practitioner positions nationwide',
         caption: 'Browse PMHNP job listings with salary data',
         title: 'PMHNP Job Search',
     },
     '/jobs/remote': {
         image: `${BASE}/remote-pmhnp-jobs-telehealth.webp`,
-        alt: 'Remote PMHNP jobs page showing work from home psychiatric nurse practitioner positions with average salary of 171,000 dollars',
+        alt: 'Remote PMHNP jobs page showing work from home psychiatric nurse practitioner positions with salary transparency',
         caption: 'Remote and work-from-home PMHNP positions',
         title: 'Remote PMHNP Jobs',
     },

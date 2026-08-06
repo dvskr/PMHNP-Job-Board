@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { MapPin, DollarSign, Building2, Shield, TrendingUp, Users, Heart, Briefcase, ArrowRight, Bell } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
-import { getMetroCity, getAllMetroSlugs, type MetroCity } from '@/lib/metro-data';
+import { getMetroCity, getAllMetroSlugs, buildMetroJobsWhere, type MetroCity } from '@/lib/metro-data';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -32,18 +32,11 @@ export async function generateStaticParams() {
 }
 
 /** Fetch job stats for a metro area */
-async function getMetroStats(city: string, stateCode: string) {
-  const where = {
-    isPublished: true,
-    OR: [
-      { city: { contains: city, mode: 'insensitive' as const } },
-      // Also match metro-area adjacent searches
-      ...(city === 'New York' ? [{ city: { contains: 'Brooklyn', mode: 'insensitive' as const } }, { city: { contains: 'Queens', mode: 'insensitive' as const } }, { city: { contains: 'Bronx', mode: 'insensitive' as const } }] : []),
-      ...(city === 'Tampa' ? [{ city: { contains: 'St. Petersburg', mode: 'insensitive' as const } }, { city: { contains: 'Clearwater', mode: 'insensitive' as const } }] : []),
-      ...(city === 'Dallas' ? [{ city: { contains: 'Fort Worth', mode: 'insensitive' as const } }, { city: { contains: 'Plano', mode: 'insensitive' as const } }, { city: { contains: 'Arlington', mode: 'insensitive' as const } }] : []),
-    ],
-    stateCode: { equals: stateCode, mode: 'insensitive' as const },
-  };
+async function getMetroStats(metro: MetroCity) {
+  // Shared with the sitemap's metro gate (app/sitemap.ts) — see
+  // buildMetroJobsWhere. The sitemap only advertises metros whose live
+  // count via this exact clause is > 0, and this page noindexes at 0.
+  const where = buildMetroJobsWhere(metro);
 
   const [totalJobs, salaryData, topEmployers, recentJobs] = await Promise.all([
     prisma.job.count({ where }),
@@ -104,7 +97,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const metro = getMetroCity(slug);
   if (!metro) return { title: 'Not Found' };
 
-  const stats = await getMetroStats(metro.city, metro.stateCode);
+  const stats = await getMetroStats(metro);
 
   // Title trimmed to <60 chars for SERP display. Salary/licensure/employer
   // detail moved to the description; longer "Top Employers (YYYY)" suffix
@@ -141,6 +134,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://pmhnphiring.com/jobs/metro/${slug}`,
     },
+    // B4 (organic audit 2026-08): a 0-job metro renders its full editorial
+    // content at 200 (hub page, real internal-link value) but must not be
+    // indexed as an empty listings page. The sitemap stops advertising it
+    // via the same live count (app/sitemap.ts metro gate).
+    ...(stats.totalJobs === 0 && {
+      robots: { index: false, follow: true },
+    }),
   };
 }
 
@@ -150,7 +150,7 @@ export default async function MetroLandingPage({ params }: PageProps) {
   if (!metro) notFound();
 
   const [stats, stateStats] = await Promise.all([
-    getMetroStats(metro.city, metro.stateCode),
+    getMetroStats(metro),
     getStateStats(metro.stateCode),
   ]);
 
@@ -167,26 +167,10 @@ export default async function MetroLandingPage({ params }: PageProps) {
         { name: `${metro.city} PMHNP Jobs`, url: `https://pmhnphiring.com/jobs/metro/${slug}` },
       ]} />
 
-      {/* FAQ Schema */}
-      {metro.faqs.length > 0 && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: jsonLdString({
-              '@context': 'https://schema.org',
-              '@type': 'FAQPage',
-              mainEntity: metro.faqs.map(faq => ({
-                '@type': 'Question',
-                name: faq.question,
-                acceptedAnswer: {
-                  '@type': 'Answer',
-                  text: faq.answer,
-                },
-              })),
-            }),
-          }}
-        />
-      )}
+      {/* FAQPage schema intentionally NOT emitted here (audit 2026-08 C1):
+          the CategoryFAQ component at the bottom of this page already renders
+          the identical FAQPage block from the same metro.faqs array, so an
+          inline copy produced two byte-identical FAQPage nodes per metro. */}
       {/* ItemList schema */}
       {stats.recentJobs.length > 0 && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({

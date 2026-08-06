@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -41,7 +42,7 @@ async function getStats() {
 
 const contractFaqs = [
   { question: 'What is a Contract PMHNP role?', answer: 'Contract PMHNP positions are fixed-term assignments (3-12 months) with staffing agencies or health systems. They offer higher hourly rates, diverse clinical exposure, and geographic flexibility.' },
-  { question: 'How much more do contract PMHNPs earn?', answer: 'Contract PMHNPs typically earn 15-30% more than permanent roles, with hourly rates from $75-$120/hr. W-2 contracts may include benefits; 1099 roles offer maximum flexibility and tax advantages.' },
+  { question: 'How much more do contract PMHNPs earn?', answer: 'Contract roles often advertise premium rates compared to permanent positions because they exclude benefits. W-2 contracts may include benefits; 1099 roles offer maximum flexibility and tax advantages.' },
   { question: 'What qualifications are needed for contract work?', answer: 'Active PMHNP-BC certification, state APRN licensure, DEA registration, and typically 1-2 years of clinical experience. Multi-state licensure is a major advantage.' },
   { question: 'Do contract PMHNPs get benefits?', answer: 'W-2 contracts through staffing agencies often include health insurance, malpractice coverage, housing stipends, and travel reimbursement. 1099 contractors arrange their own benefits.' },
   { question: 'Can contract roles convert to permanent?', answer: 'Yes — many facilities use contract-to-perm arrangements. This lets both parties evaluate fit before committing to a permanent position, reducing hiring risk.' },
@@ -51,10 +52,10 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const [stats, params] = await Promise.all([getStats(), searchParams]);
   const page = Math.max(1, parseInt(params.page || '1'));
   return {
-    title: `${stats.totalJobs} Contract PMHNP Jobs ($130K-180K)`,
-    description: `Find ${stats.totalJobs} contract PMHNP jobs paying $130K-180K+. Browse psychiatric nurse practitioner contract positions with premium rates.`,
+    title: `${categoryTitleCount(stats.totalJobs)}Contract PMHNP Jobs`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}contract PMHNP jobs. Browse psychiatric nurse practitioner contract positions with premium rates.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/contract` },
-    ...(page > 1 && { robots: { index: false, follow: true } }),
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
@@ -92,7 +93,7 @@ export default async function ContractPage({ searchParams }: PageProps) {
         headlineSub="jobs, fixed-term roles."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Fixed-term assignments with premium rates, diverse settings, and geographic flexibility."
@@ -178,7 +179,7 @@ export default async function ContractPage({ searchParams }: PageProps) {
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_ct_rates.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Higher Rates</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Contract PMHNPs typically earn 15-30% more than permanent.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Contract roles often advertise premium rates over permanent positions.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_ct_settings.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />

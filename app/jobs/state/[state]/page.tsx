@@ -490,6 +490,21 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
     boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
   };
 
+  // FAQ single source of truth (audit 2026-08 C2): BOTH the visible accordion
+  // and the FAQPage JSON-LD below map over this exact array. The schema
+  // previously shipped separately-written truncated stubs whose answers
+  // diverged from the visible text — a Google FAQ-policy violation. Never
+  // fork a second answer set for the schema.
+  const stateFaqs = [
+    { q: `How many PMHNP jobs are in ${stateName}?`, a: `There are currently ${stats.totalJobs} psychiatric nurse practitioner positions available in ${stateName}${stats.avgSalary > 0 ? `, with an average salary of $${stats.avgSalary}K/year` : ''}. New positions are added daily.` },
+    { q: `What is the practice authority in ${stateName}?`, a: practiceAuthority ? practiceAuthority.details : `Practice authority in ${stateName} varies. Check state-specific NP practice regulations for the most current requirements.` },
+    // Honesty review 2026-08: the no-data fallback must stay number-free —
+    // the old "$130K to $200K+" range had no source. Never invent a range.
+    { q: `What is the average PMHNP salary in ${stateName}?`, a: stats.avgSalary > 0 ? `The average PMHNP salary in ${stateName} is $${stats.avgSalary}K/year. Salaries vary based on experience, setting, and whether the role is W-2 or 1099.` : `Not enough current ${stateName} postings disclose a salary range to publish an average. Salaries vary by setting and experience; listings on this page show the advertised range whenever the employer discloses one.` },
+    { q: `Which cities in ${stateName} have the most PMHNP jobs?`, a: citiesWithJobs.length > 0 ? `Top cities for PMHNP jobs in ${stateName} include ${citiesWithJobs.slice(0, 4).map(c => `${c.name} (${c.count} jobs)`).join(', ')}.` : `PMHNP positions in ${stateName} are distributed across multiple cities and include remote telehealth options.` },
+    { q: `Can I work remotely as a PMHNP in ${stateName}?`, a: `Yes, many telehealth and remote PMHNP positions allow you to practice from ${stateName}. You'll need an active NP license in the state where your patient resides.` },
+  ];
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FDFBF7' }}>
       <BreadcrumbSchema items={[
@@ -842,13 +857,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>PMHNP Jobs in {stateName}</h2>
           <div style={{ display: 'grid', gap: '12px' }}>
-            {[
-              { q: `How many PMHNP jobs are in ${stateName}?`, a: `There are currently ${stats.totalJobs} psychiatric nurse practitioner positions available in ${stateName}${stats.avgSalary > 0 ? `, with an average salary of $${stats.avgSalary}K/year` : ''}. New positions are added daily.` },
-              { q: `What is the practice authority in ${stateName}?`, a: practiceAuthority ? practiceAuthority.details : `Practice authority in ${stateName} varies. Check state-specific NP practice regulations for the most current requirements.` },
-              { q: `What is the average PMHNP salary in ${stateName}?`, a: stats.avgSalary > 0 ? `The average PMHNP salary in ${stateName} is $${stats.avgSalary}K/year. Salaries vary based on experience, setting, and whether the role is W-2 or 1099.` : `PMHNP salaries in ${stateName} typically range from $130K to $200K+ depending on setting and experience level.` },
-              { q: `Which cities in ${stateName} have the most PMHNP jobs?`, a: citiesWithJobs.length > 0 ? `Top cities for PMHNP jobs in ${stateName} include ${citiesWithJobs.slice(0, 4).map(c => `${c.name} (${c.count} jobs)`).join(', ')}.` : `PMHNP positions in ${stateName} are distributed across multiple cities and include remote telehealth options.` },
-              { q: `Can I work remotely as a PMHNP in ${stateName}?`, a: `Yes, many telehealth and remote PMHNP positions allow you to practice from ${stateName}. You'll need an active NP license in the state where your patient resides.` },
-            ].map((faq, idx) => (
+            {stateFaqs.map((faq, idx) => (
               <details key={idx} className="faq-accordion" style={{ ...clayCard, overflow: 'hidden' }}>
                 <summary style={{ padding: '20px 28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', listStyle: 'none', fontSize: '16px', fontWeight: 700, color: '#1A2E35', lineHeight: 1.4 }}>
                   <span>{faq.q}</span>
@@ -858,13 +867,9 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
               </details>
             ))}
           </div>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [
-            { q: `How many PMHNP jobs are in ${stateName}?`, a: `There are currently ${stats.totalJobs} positions available in ${stateName}.` },
-            { q: `What is the practice authority in ${stateName}?`, a: practiceAuthority?.details || `Practice authority varies by state.` },
-            { q: `What is the average PMHNP salary in ${stateName}?`, a: stats.avgSalary > 0 ? `$${stats.avgSalary}K/year` : `$130K-$200K+` },
-            { q: `Which cities in ${stateName} have the most PMHNP jobs?`, a: citiesWithJobs.slice(0, 4).map(c => c.name).join(', ') || 'Multiple cities' },
-            { q: `Can I work remotely as a PMHNP in ${stateName}?`, a: `Yes, many telehealth positions are available.` },
-          ].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
+          {/* Schema mapped 1:1 from the SAME stateFaqs array the accordion
+              above renders — schema-visible parity is a hard requirement. */}
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: stateFaqs.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
         </section>
       </div>
 

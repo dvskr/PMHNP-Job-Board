@@ -7,6 +7,7 @@ import { Building, Briefcase, DollarSign, Shield, TrendingUp, Building2, Bell, A
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -62,16 +63,16 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const [stats, params] = await Promise.all([getStats(), searchParams]);
   const page = parseInt(params.page || '1');
   return {
-    title: `${stats.totalJobs} Inpatient PMHNP Jobs — Hospital & Acute Care ($140K-200K)`,
-    description: `Find ${stats.totalJobs} inpatient PMHNP jobs paying $140K-$200K+. Hospital-based psychiatric nurse practitioner positions in acute care, crisis stabilization, and psychiatric units.`,
+    title: `${categoryTitleCount(stats.totalJobs)}Inpatient PMHNP Jobs — Hospital & Acute Care`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}inpatient PMHNP jobs. Hospital-based psychiatric nurse practitioner positions in acute care, crisis stabilization, and psychiatric units.`,
     openGraph: {
-      title: `${stats.totalJobs} Inpatient PMHNP Jobs — Hospital Psych NP`,
+      title: `${categoryTitleCount(stats.totalJobs)}Inpatient PMHNP Jobs — Hospital Psych NP`,
       description: 'Browse inpatient psychiatric mental health nurse practitioner positions.',
       type: 'website',
-      images: [{ url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Inpatient PMHNP Jobs`)}&subtitle=${encodeURIComponent('Hospital & acute care psychiatric NP positions')}`, width: 1200, height: 630, alt: 'Inpatient PMHNP Jobs' }],
+      images: [{ url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Inpatient PMHNP Jobs`)}&subtitle=${encodeURIComponent('Hospital & acute care psychiatric NP positions')}`, width: 1200, height: 630, alt: 'Inpatient PMHNP Jobs' }],
     },
     alternates: { canonical: `${brand.baseUrl}/jobs/inpatient` },
-    ...(page > 1 && { robots: { index: false, follow: true } }),
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
@@ -112,7 +113,7 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, hospital & acute care."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$140K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'hospitals' },
         ]}
         description="Hospital-based and acute care positions with structured schedules, competitive pay, and multidisciplinary team support."
@@ -219,7 +220,7 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
               <div style={{ padding: '24px 22px', flex: 1 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Higher Base Pay</h3>
                 <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
-                  Earn $140K–$200K+ with shift differentials, nights/weekends premiums, and sign-on bonuses.
+                  Shift differentials, nights/weekends premiums, and sign-on bonuses are common.
                 </p>
               </div>
             </div>
@@ -252,7 +253,7 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary + Benefits</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  Inpatient PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$140K–$200K'} annually with full benefits, malpractice coverage, and retirement plans.
+                  {stats.avgSalary > 0 ? `Inpatient PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Full benefits, malpractice coverage, and retirement plans are standard.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
@@ -293,7 +294,7 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
               { step: '01', title: 'Crisis Training', text: 'Get comfortable with de-escalation techniques, safety protocols, and managing psychiatric emergencies.' },
               { step: '02', title: 'Team Dynamics', text: 'Learn to collaborate with psychiatrists, social workers, nurses, and case managers in multidisciplinary rounds.' },
               { step: '03', title: 'Pharmacology', text: 'Stay current on acute psychopharmacology — inpatient settings require rapid titration and medication management.' },
-              { step: '04', title: 'Shift Negotiation', text: 'Negotiate shift differentials for nights, weekends, and holidays — they can add $15K–$30K to your base.' },
+              { step: '04', title: 'Shift Negotiation', text: 'Negotiate shift differentials for nights, weekends, and holidays; they can add meaningfully to your base.' },
             ].map(r => (
               <div key={r.step} className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
                 <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px', fontFamily: 'var(--font-mono)' }}>{r.step}</span>

@@ -153,24 +153,29 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
   // a semantic error per schema.org PostalAddress (those values belong in
   // addressLocality and addressRegion, which we already emit).
 
-  const physicalJobLocation = hasPhysicalLocation
-    ? {
-        '@type': 'Place',
-        address: stripUndefined({
-          '@type': 'PostalAddress',
-          addressLocality,
-          addressRegion,
-          addressCountry: 'US',
-        }),
-      }
-    : undefined;
+  // No-location fallback (audit 2026-08 C4): a JobPosting with NEITHER
+  // jobLocation NOR jobLocationType is hard-ineligible for Google Jobs.
+  // When city/state never parsed, fall back to a country-level Place —
+  // honest (this is a US-only board; the code already asserts US for every
+  // parsed address) and keeps the posting eligible, at worst with an
+  // "address incomplete" warning instead of outright ineligibility.
+  const physicalJobLocation = {
+    '@type': 'Place',
+    address: stripUndefined({
+      '@type': 'PostalAddress',
+      addressLocality,
+      addressRegion,
+      addressCountry: 'US',
+    }),
+  };
 
-  // Remote-only jobs: drop physical jobLocation entirely.
-  // Hybrid: physical jobLocation, no TELECOMMUTE (per Google policy above).
-  // Degraded hybrid (no parsable address): a JobPosting with NEITHER
-  // jobLocation NOR TELECOMMUTE is ineligible outright, so fall back to
-  // TELECOMMUTE — the only representable signal for a partly-remote role.
-  const treatAsRemote = isFullyRemote || (!!job.isHybrid && !hasPhysicalLocation);
+  // Remote-only jobs: drop physical jobLocation entirely, emit TELECOMMUTE.
+  // Hybrid and in-person: physical jobLocation, never TELECOMMUTE — Google's
+  // policy explicitly forbids TELECOMMUTE for hybrid/occasional-WFH roles.
+  // (The old degraded-hybrid branch emitted TELECOMMUTE when the address
+  // failed to parse; the country-level fallback above replaces that policy
+  // violation with a compliant location signal.)
+  const treatAsRemote = isFullyRemote;
   const jobLocation = treatAsRemote ? undefined : physicalJobLocation;
   const jobLocationType = treatAsRemote ? 'TELECOMMUTE' : undefined;
   // Country-level on purpose: the DB doesn't record whether job.state on a
@@ -211,7 +216,13 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
   // `value` — the old code emitted a maxValue-only pseudo-range when
   // minSalary was null, which matches neither shape.
   const isRange = minForSchema != null && maxForSchema != null && minForSchema !== maxForSchema;
-  const baseSalary = minForSchema != null || maxForSchema != null
+  // Honesty guard (audit 2026-08 C4): salaryIsEstimated marks values our own
+  // pipeline inferred rather than figures the employer advertised. baseSalary
+  // in JobPosting schema represents the actual offer, so publishing an
+  // estimate there fabricates an offer in Google Jobs — omit it instead.
+  // (lib/salary-report/stats.ts quarantines the same rows from salary stats
+  // for the same reason.)
+  const baseSalary = !job.salaryIsEstimated && (minForSchema != null || maxForSchema != null)
     ? {
         '@type': 'MonetaryAmount',
         currency: 'USD',

@@ -7,6 +7,7 @@ import { Shield, TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -77,27 +78,27 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} Correctional PMHNP Jobs — Forensic ($160K+)`,
+    title: `${categoryTitleCount(stats.totalJobs)}Correctional PMHNP Jobs — Forensic`,
     // SEO Fix #7: trim description to ≤160 chars.
-    description: `Find ${stats.totalJobs} correctional & forensic PMHNP jobs in prisons, jails, and detention facilities. 15-25% salary premiums + loan forgiveness eligibility.`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}correctional & forensic PMHNP jobs in prisons, jails, and detention facilities. Loan forgiveness eligibility and federal benefits at many facilities.`,
     keywords: ['correctional pmhnp jobs', 'forensic psychiatric nurse practitioner', 'prison pmhnp', 'corrections psych NP', 'forensic mental health NP jobs'],
     openGraph: {
-      title: `${stats.totalJobs} Correctional PMHNP Jobs`,
+      title: `${categoryTitleCount(stats.totalJobs)}Correctional PMHNP Jobs`,
       description: 'Browse correctional and forensic psychiatric mental health nurse practitioner positions.',
       type: 'website',
       url: `${brand.baseUrl}/jobs/correctional`,
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Correctional PMHNP Jobs`)}&subtitle=${encodeURIComponent('Forensic psychiatric NP positions — $160K+ with PSLF')}`,
+        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Correctional PMHNP Jobs`)}&subtitle=${encodeURIComponent('Forensic psychiatric NP positions with PSLF eligibility')}`,
         width: 1200, height: 630, alt: 'Correctional PMHNP Jobs',
       }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${stats.totalJobs} Correctional PMHNP Jobs`,
+      title: `${categoryTitleCount(stats.totalJobs)}Correctional PMHNP Jobs`,
       description: 'Forensic PMHNP positions in prisons, jails, and detention facilities.',
     },
     alternates: { canonical: `${brand.baseUrl}/jobs/correctional` },
-    ...(page > 1 && { robots: { index: false, follow: true } }),
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
@@ -121,7 +122,7 @@ export default async function CorrectionalJobsPage({ searchParams }: PageProps) 
     },
     {
       question: "How much do forensic psychiatric nurse practitioners earn?",
-      answer: "Forensic and correctional PMHNPs earn 15-25% more than standard psychiatric NP roles, with average salaries of $160,000-$200,000+. Federal Bureau of Prisons positions offer additional benefits including federal pension, health insurance, and student loan repayment programs."
+      answer: "Correctional and forensic settings often advertise premium pay relative to standard psychiatric NP roles. Federal Bureau of Prisons positions offer additional benefits including federal pension, health insurance, and student loan repayment programs."
     },
     {
       question: "Is correctional psychiatric nursing dangerous?",
@@ -188,7 +189,7 @@ export default async function CorrectionalJobsPage({ searchParams }: PageProps) 
         headlineSub="jobs, forensic psych."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$180K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Forensic psychiatric positions with premium pay, high autonomy, and federal loan forgiveness eligibility."
@@ -260,7 +261,7 @@ export default async function CorrectionalJobsPage({ searchParams }: PageProps) 
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
                 <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
-                <p style={{ fontSize: '11px', color: '#A09080', marginTop: '12px' }}>Includes 15-25% correctional premium.</p>
+                <p style={{ fontSize: '11px', color: '#A09080', marginTop: '12px' }}>Advertised pay often includes a correctional premium.</p>
               </div>
             )}
           </div>
@@ -295,7 +296,7 @@ export default async function CorrectionalJobsPage({ searchParams }: PageProps) 
               <div style={{ padding: '24px 22px', flex: 1 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Loan Repayment</h3>
                 <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
-                  NHSC loan repayment up to $50K. Many federal positions qualify for PSLF.
+                  NHSC loan repayment eligibility at qualifying sites. Many federal positions qualify for PSLF.
                 </p>
               </div>
             </div>
@@ -309,7 +310,7 @@ export default async function CorrectionalJobsPage({ searchParams }: PageProps) 
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_corr_loan.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Premium Pay</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Earn 15-25% more than standard PMHNP roles with federal benefits packages.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Correctional roles often advertise premium pay plus federal benefits packages.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_corr_security.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
@@ -328,7 +329,7 @@ export default async function CorrectionalJobsPage({ searchParams }: PageProps) 
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary + Benefits</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  Correctional PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$160K–$200K'} annually with federal pension, health insurance, and loan repayment.
+                  {stats.avgSalary > 0 ? `Correctional PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Federal roles add pension, health insurance, and loan repayment programs.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>

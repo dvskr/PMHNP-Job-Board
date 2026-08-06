@@ -7,12 +7,14 @@ import { Heart, DollarSign, TrendingUp, Building2, Bell, Briefcase, Brain, Arrow
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import CategoryFAQ from '@/components/CategoryFAQ';
 
 // ISR caching
 const clayCard = {
@@ -34,6 +36,7 @@ interface ProcessedEmployer {
 }
 
 const BH_FILTER = buildCategoryWhereClause('behavioral-health');
+
 
 async function getBehavioralHealthJobs(skip = 0, take = 20) {
     return prisma.job.findMany({
@@ -83,20 +86,22 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: `${stats.totalJobs} Behavioral Health PMHNP Jobs — Psych NP Positions`,
-        description: `Find ${stats.totalJobs} behavioral health nurse practitioner jobs. Positions across inpatient, outpatient, community mental health, telehealth, and residential settings. Average salary $${stats.avgSalary || 155}K+.`,
+        // B3 (organic audit 2026-08): count dropped from titles below the
+        // MIN_JOBS floor; sub-threshold landings render noindex,follow.
+        title: `${categoryTitleCount(stats.totalJobs)}Behavioral Health PMHNP Jobs — Psych NP Positions`,
+        description: `Find ${categoryTitleCount(stats.totalJobs)}behavioral health nurse practitioner jobs. Positions across inpatient, outpatient, community mental health, telehealth, and residential settings. Average salary $${stats.avgSalary || 155}K+.`,
         keywords: ['behavioral health NP jobs', 'behavioral health nurse practitioner', 'mental health NP jobs', 'psychiatric NP positions', 'PMHNP behavioral health'],
         openGraph: {
-            title: `${stats.totalJobs} Behavioral Health NP Jobs`,
+            title: `${categoryTitleCount(stats.totalJobs)}Behavioral Health NP Jobs`,
             description: 'Browse behavioral health and psychiatric nurse practitioner positions across all settings.',
             type: 'website',
             images: [{
-                url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Behavioral Health NP Jobs`)}&subtitle=${encodeURIComponent('Psychiatric & mental health positions')}`,
+                url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Behavioral Health NP Jobs`)}&subtitle=${encodeURIComponent('Psychiatric & mental health positions')}`,
                 width: 1200, height: 630, alt: 'Behavioral Health NP Jobs',
             }],
         },
         alternates: { canonical: `${brand.baseUrl}/jobs/behavioral-health` },
-        ...(page > 1 && { robots: { index: false, follow: true } }),
+        ...categoryLandingRobotsMeta(stats.totalJobs, page),
     };
 }
 
@@ -141,7 +146,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
         headlineSub="jobs, whole-person care."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$155K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Psychiatric and mental health positions across inpatient, outpatient, telehealth, and community settings."
@@ -277,7 +282,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Career Growth</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  BH PMHNPs earn ${stats.avgSalary > 0 ? `${stats.avgSalary}k` : '$130K–$170K'} annually with strong benefits and loan repayment in underserved areas.
+                  {stats.avgSalary > 0 ? `Behavioral health PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Strong benefits and loan repayment programs are common in underserved areas.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
@@ -365,6 +370,11 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
       {/* By Location — pseoStats-gated internal links */}
       <CategoryLocationsExplore categorySlug="behavioral-health" categoryLabel="Behavioral Health" />
 
+      {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
+          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
+          live DB average (stored in $K, the FAQ copy expects dollars). */}
+      <CategoryFAQ category="behavioral-health" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
+
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
         <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
@@ -374,7 +384,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
             {[
               { q: "What is behavioral health vs mental health?", a: "Behavioral health is a broader term encompassing mental health, substance use, and health behaviors. BH PMHNPs work in integrated settings alongside primary care, addressing the whole person rather than just psychiatric diagnoses in isolation." },
               { q: "What settings do BH PMHNPs work in?", a: "Behavioral health PMHNPs work in community mental health centers (CMHCs), federally qualified health centers (FQHCs), school-based clinics, primary care offices with integrated BH, corporate wellness, residential facilities, and telehealth platforms." },
-              { q: "How much do behavioral health PMHNPs earn?", a: "BH PMHNPs typically earn $130K–$170K annually. FQHC and CMHC positions often include loan repayment programs (NHSC up to $50K), sign-on bonuses, and excellent benefits packages." },
+              { q: "How much do behavioral health PMHNPs earn?", a: "Pay varies by setting and location; listings on this page show the advertised range whenever the employer discloses one. FQHC and CMHC positions often include NHSC loan repayment eligibility, sign-on bonuses, and excellent benefits packages." },
               { q: "What skills are important for BH PMHNPs?", a: "Key skills include collaborative care model experience, proficiency with screening tools (PHQ-9, GAD-7, AUDIT), cultural competency, EHR documentation, brief intervention techniques, and trauma-informed care approaches." },
             ].map((faq, idx) => (
               <div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px 28px' }}>
@@ -383,7 +393,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
               </div>
             ))}
           </div>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:"What is behavioral health vs mental health?",a:"Behavioral health is a broader term encompassing mental health, substance use, and health behaviors. BH PMHNPs work in integrated settings alongside primary care."},{q:"What settings do BH PMHNPs work in?",a:"CMHCs, FQHCs, school-based clinics, primary care offices with integrated BH, corporate wellness, residential facilities, and telehealth platforms."},{q:"How much do behavioral health PMHNPs earn?",a:"BH PMHNPs typically earn $130K–$170K annually. FQHC and CMHC positions often include loan repayment programs up to $50K."},{q:"What skills are important for BH PMHNPs?",a:"Collaborative care model experience, proficiency with screening tools (PHQ-9, GAD-7, AUDIT), cultural competency, EHR documentation, and trauma-informed care."}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
+          {/* Honesty review 2026-08: inline FAQPage schema removed; CategoryFAQ is this page's single FAQPage emitter (duplicate FAQPage blocks are the metro defect audit C1 fixed). */}
         </section>
       </div>
 

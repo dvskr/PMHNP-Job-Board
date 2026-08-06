@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -31,21 +32,21 @@ async function getStats() {
 }
 
 const faqs = [
-  { q: 'What defines a mid-career PMHNP role?', a: 'Mid-career PMHNP positions target providers with 3-10+ years of experience. These roles offer leadership opportunities, higher autonomy, specialty focus, and premium compensation — typically $140K-$190K+ annually.' },
+  { q: 'What defines a mid-career PMHNP role?', a: 'Mid-career PMHNP positions target providers with 3-10+ years of experience. These roles offer leadership opportunities, higher autonomy, specialty focus, and premium compensation.' },
   { q: 'What leadership roles are available?', a: 'Mid-career PMHNPs can advance to clinical supervisor, program director, lead clinician, chief NP, or clinical director positions. Many roles involve mentoring new graduates and overseeing treatment protocols.' },
   { q: 'How do I transition into a specialty?', a: 'With 3+ years of general psychiatric experience, you can specialize in forensic psychiatry, addiction medicine, child/adolescent, geriatric, or consultation-liaison psychiatry. Additional certifications and targeted clinical rotations accelerate the transition.' },
-  { q: 'Is precepting valuable for mid-career growth?', a: 'Yes — precepting students and supervising new grads strengthens your clinical leadership profile, often qualifies for adjunct faculty appointments, and many employers offer preceptor bonuses of $2,000-$5,000 annually.' },
-  { q: 'What salary growth can mid-career PMHNPs expect?', a: 'Mid-career PMHNPs earn 20-40% more than entry-level positions. Leadership roles, specialty expertise, and multi-state licensure can push compensation to $180K-$220K+ in high-demand markets.' },
+  { q: 'Is precepting valuable for mid-career growth?', a: 'Yes — precepting students and supervising new grads strengthens your clinical leadership profile, often qualifies for adjunct faculty appointments, and many employers offer preceptor bonuses.' },
+  { q: 'What salary growth can mid-career PMHNPs expect?', a: 'Mid-career PMHNPs generally out-earn entry-level positions. Leadership roles, specialty expertise, and multi-state licensure push compensation higher in high-demand markets.' },
 ];
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
   const [stats, params] = await Promise.all([getStats(), searchParams]);
   const page = Math.max(1, parseInt(params.page || '1'));
   return {
-    title: `${stats.totalJobs} Mid-Career PMHNP Jobs ($140K-190K)`,
-    description: `Find ${stats.totalJobs} mid-career PMHNP positions. Leadership, specialty, and supervisory roles paying $140K-190K+.`,
+    title: `${categoryTitleCount(stats.totalJobs)}Mid-Career PMHNP Jobs`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}mid-career PMHNP positions. Leadership, specialty, and supervisory roles for experienced psychiatric NPs.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/mid-career` },
-    ...(page > 1 && { robots: { index: false, follow: true } }),
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
@@ -77,7 +78,7 @@ export default async function MidCareerPage({ searchParams }: PageProps) {
         headlineSub="jobs, advance your career."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : '$160K+', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Mid-career PMHNP positions with leadership opportunities, specialized tracks, and premium compensation."
@@ -119,7 +120,7 @@ export default async function MidCareerPage({ searchParams }: PageProps) {
               <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Deepen expertise in forensic, addiction, or child psych niches.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}><Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_mc_leader.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} /><h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Leadership</h3><p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Supervisory and program director positions.</p></div>
-            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}><Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_mc_salary.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} /><h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Premium Salary</h3><p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Mid-career PMHNPs command $150K-$200K+ compensation.</p></div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}><Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_mc_salary.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} /><h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Premium Salary</h3><p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Mid-career PMHNPs command premium compensation for their experience.</p></div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}><Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_mc_niche.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} /><h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Specialization</h3><p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Deepen expertise in forensic, addiction, or child psych.</p></div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}><Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_mc_teach.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} /><h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Teaching</h3><p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Precept students and mentor new graduates.</p></div>
             <div className="cat-bento-hero-3" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>

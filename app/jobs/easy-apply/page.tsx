@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { siteAsset } from '@/lib/asset-url';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { GLOBAL_EXCLUSIONS, easyApplyClause } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -110,14 +111,17 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} Easy Apply PMHNP Jobs From Direct Employers`,
-    description: `Browse ${stats.totalJobs} easy apply PMHNP jobs and direct employer PMHNP jobs. Apply in one click, message the hiring team, no recruiter middlemen.`,
+    // B3 (organic audit 2026-08): categoryTitleCount drops the number below
+    // the MIN_JOBS floor; categoryLandingRobotsMeta noindexes sub-threshold
+    // landings AND paginated variants.
+    title: `${categoryTitleCount(stats.totalJobs)}Easy Apply PMHNP Jobs From Direct Employers`,
+    description: `Browse ${categoryTitleCount(stats.totalJobs)}easy apply PMHNP jobs and direct employer PMHNP jobs. Apply in one click, message the hiring team, no recruiter middlemen.`,
     openGraph: {
-      title: `${stats.totalJobs} Easy Apply PMHNP Jobs From Direct Employers`,
+      title: `${categoryTitleCount(stats.totalJobs)}Easy Apply PMHNP Jobs From Direct Employers`,
       description: 'Psychiatric nurse practitioner openings posted by the hiring employer. One-click apply, direct messaging, verified listings.',
       type: 'website',
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Easy Apply PMHNP Jobs`)}&subtitle=${encodeURIComponent('Direct employer openings, one-click apply')}`,
+        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Easy Apply PMHNP Jobs`)}&subtitle=${encodeURIComponent('Direct employer openings, one-click apply')}`,
         width: 1200,
         height: 630,
         alt: 'Easy Apply PMHNP Jobs',
@@ -126,13 +130,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     alternates: {
       canonical: `${brand.baseUrl}/jobs/easy-apply`,
     },
-    // Prevent Google from indexing paginated variants as separate pages
-    ...(page > 1 && {
-      robots: {
-        index: false,
-        follow: true,
-      },
-    }),
+    ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
 
