@@ -222,14 +222,23 @@ const STUDIO_CSS = `
 /* --rs-top is everything above the panes: the fixed nav (100), the dashboard
    main's pt-4 (16), this container's padding (14), and the single line toolbar
    with its margin (55). Form pane and rail share it so they end level. */
-.rs-scrollpane{max-height:calc(100vh - var(--rs-top));overflow-y:auto}
+/* position:relative makes this pane the containing block for any absolutely
+   positioned descendant, so the pane's own overflow-y:auto clips it. Without
+   it, an abs descendant resolves against the layout wrapper (app/layout.tsx,
+   position:relative) and escapes every studio clip, free to paint below the
+   footer. Safe for the sticky rail: that warning (bottom of this sheet) is
+   about OVERFLOW on rail ancestors, and this pane is the rail's sibling. */
+.rs-scrollpane{position:relative;max-height:calc(100vh - var(--rs-top));overflow-y:auto}
 .rs-form{padding-right:6px;display:flex;flex-direction:column;gap:16px}
 .rs-well{background:${PREVIEW_WELL};border-radius:14px;padding:16px}
 /* max-height must subtract the sticky offset itself, or the rail's box can end
-   below the viewport and spill past the footer. body is a nested scroll
-   container (globals.css sets overflow-x:hidden on it, which makes overflow-y
-   compute to auto), so any spill becomes a SECOND scrollable area and reads as
-   the page scrolling on past the end. */
+   below the viewport and spill past the footer. (Historical note: body used to
+   be a nested scroll container — globals.css set overflow-x:hidden on it, which
+   made overflow-y compute to auto — so any spill became an INVISIBLE second
+   scrollable area: wheel input chained into it and the footer floated
+   mid-viewport with studio canvas painting below it. globals.css now uses
+   overflow-x:clip on body, which keeps html the only page scroller and lets
+   this rail's position:sticky anchor to the viewport as designed.) */
 .rs-rail{position:sticky;top:calc(var(--rs-nav) + 16px);display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - var(--rs-nav) - 32px);overflow-y:auto;min-height:0}
 .rs-seg{display:none}
 .rs-lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}

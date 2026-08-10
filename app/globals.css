@@ -60,7 +60,20 @@ html {
 }
 
 body {
+  /* MUST be clip, never hidden. `overflow-x: hidden` forces body's overflow-y
+     to compute to `auto`, silently making body a SECOND, nested vertical
+     scroll container inside the html scroller (whose bar is hidden above).
+     Any element that overflows the layout wrapper then gives body invisible
+     scroll range: wheel input chains html→body, the footer floats mid-viewport
+     with content painting below it, ScrollIndicator (which reads
+     documentElement only) never notices, and position:sticky descendants
+     (e.g. the resume-studio rails) anchor to body instead of the viewport and
+     never stick. `clip` forbids horizontal overflow WITHOUT creating a scroll
+     container, so overflow-y stays `visible` and html remains the only page
+     scroller. The `hidden` line is only a fallback for engines without clip
+     support. Regression-locked by tests/regressions/nested-body-scroller.test.ts. */
   overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100vw;
   background-color: #F5F0EB !important;
 }
