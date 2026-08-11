@@ -258,7 +258,10 @@ describe('click tracker cannot open-redirect', () => {
   it('always redirects: a rate limit or DB failure never strands the reader', () => {
     expect(route).toMatch(/if \(limited\) return redirect;/);
     expect(route).toMatch(/catch \(err\) \{[\s\S]*?logger\.error/);
-    expect(route.trimEnd().endsWith('return redirect;\n}')).toBe(true);
+    // Normalize CRLF: git checks this file out with native line endings on
+    // Windows, so a raw '\n' match here fails on the developer machine while
+    // passing in CI. The invariant is the last statement, not its line ending.
+    expect(route.replace(/\r\n/g, '\n').trimEnd().endsWith('return redirect;\n}')).toBe(true);
   });
 });
 
