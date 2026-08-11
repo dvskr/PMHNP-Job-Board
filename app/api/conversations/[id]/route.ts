@@ -209,8 +209,8 @@ export async function POST(
         const conversation = await prisma.conversation.findUnique({
             where: { id },
             include: {
-                userA: { select: { id: true, email: true, firstName: true } },
-                userB: { select: { id: true, email: true, firstName: true } },
+                userA: { select: { id: true, email: true, firstName: true, emailSuppressed: true } },
+                userB: { select: { id: true, email: true, firstName: true, emailSuppressed: true } },
             },
         });
 
@@ -289,7 +289,12 @@ export async function POST(
         // Send email notification only if recipient has NO existing unread messages
         // in this conversation (prevents spam when sender sends multiple messages in a row)
         const senderName = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'A user';
-        if (recipientProfile.email) {
+        // emailSuppressed is honored here, not just on marketing paths. It is
+        // also what stops replies to the automated 'PMHNP Hiring Team' thread
+        // (lib/system-messages.ts) from mailing the system sender profile,
+        // which is a no-reply identity: that would bounce on our own sending
+        // domain and hurt deliverability for every other send.
+        if (recipientProfile.email && !recipientProfile.emailSuppressed) {
             const existingUnread = await prisma.employerMessage.count({
                 where: {
                     conversationId: id,
