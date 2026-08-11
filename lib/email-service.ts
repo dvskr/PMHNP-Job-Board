@@ -699,7 +699,7 @@ export async function sendExpiryWarningEmail(
     await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: `⏰ Your job posting expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''} — Renew Now`,
+      subject: `Your job posting expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}: renew to keep it live`,
       html,
     }, 'expiry_warning', { jobTitle, daysUntilExpiry }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
 
