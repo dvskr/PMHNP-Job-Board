@@ -241,6 +241,10 @@
       "schedule": "45 13 * * *"
     },
     {
+      "path": "/api/cron/employer-match-digest",
+      "schedule": "0 15 * * *"
+    },
+    {
       "path": "/api/cron/employer-report",
       "schedule": "0 14 1 * *"
     },
@@ -279,6 +283,14 @@
     {
       "path": "/api/cron/refresh-site-stats",
       "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/cron/system-messages",
+      "schedule": "15 15 * * *"
+    },
+    {
+      "path": "/api/cron/lifecycle-emails",
+      "schedule": "30 15 * * *"
     }
   ],
   "headers": [
