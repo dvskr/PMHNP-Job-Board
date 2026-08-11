@@ -91,7 +91,14 @@ export type EmailType =
   | 'auth_confirm'
   | 'recommendation_digest'
   | 'account_purge_warning'
-  | 'pd_outreach';
+  | 'pd_outreach'
+  | 'employer_match_digest'
+  | 'lifecycle'
+  // Email piggyback for the weekly in-platform system nudge
+  // (lib/system-messages.ts). Deliberately DISTINCT from 'employer_message':
+  // a human-to-human message notification must never count against the
+  // connect-feature frequency cap, and this automated nudge must.
+  | 'system_message_nudge';
 
 // Marketing email types — these use the marketing sender address
 const MARKETING_EMAIL_TYPES = new Set<EmailType>([
@@ -100,6 +107,9 @@ const MARKETING_EMAIL_TYPES = new Set<EmailType>([
   'candidate_alert',
   'recommendation_digest',
   'pd_outreach',
+  'employer_match_digest',
+  'lifecycle',
+  'system_message_nudge',
 ]);
 
 // ── HTML sanitization — prevents XSS in user-supplied content ──
@@ -208,6 +218,35 @@ export async function isEmailSuppressed(email: string): Promise<boolean> {
     prisma.userProfile.findUnique({ where: { email }, select: { emailSuppressed: true } }),
   ]);
   return !!(emailLead?.isSuppressed || userProfile?.emailSuppressed);
+}
+
+/**
+ * Opt-out check for MARKETING / LIFECYCLE mail. Strictly wider than
+ * isEmailSuppressed, and the one every non-transactional sender must use.
+ *
+ * isEmailSuppressed only reads the hard-suppression flags, which are set by
+ * bounce/complaint webhooks and by /api/one-click-unsubscribe. The visible
+ * "Unsubscribe" control on /email-preferences goes to /api/email/unsubscribe,
+ * which sets EmailLead.isSubscribed=false and leaves isSuppressed alone — so a
+ * user who unsubscribed by hand is invisible to isEmailSuppressed.
+ *
+ * The connect features (employer match digests, lifecycle emails, the system
+ * message nudge) mail people who never opted into a specific list, so an
+ * explicit unsubscribe is the ONLY consent signal they have. They gate on this.
+ */
+export async function isMarketingOptedOut(email: string): Promise<boolean> {
+  const [emailLead, userProfile] = await Promise.all([
+    prisma.emailLead.findUnique({
+      where: { email },
+      select: { isSuppressed: true, isSubscribed: true },
+    }),
+    prisma.userProfile.findUnique({ where: { email }, select: { emailSuppressed: true } }),
+  ]);
+  return !!(
+    emailLead?.isSuppressed ||
+    emailLead?.isSubscribed === false ||
+    userProfile?.emailSuppressed
+  );
 }
 
 interface EmailResult {
@@ -898,6 +937,30 @@ export function buildSalaryGuideHtml(pdfUrl: string, unsubscribeToken: string): 
 // 11. EMPLOYER MESSAGE NOTIFICATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * `options` exists for the automated system-message nudge
+ * (lib/system-messages.ts), which reuses this template but is NOT a human
+ * message:
+ *   - emailType: 'system_message_nudge' so it counts against the shared
+ *     connect-feature frequency cap. Human messages stay 'employer_message'
+ *     and must never be capped.
+ *   - intro: the default lead sentence claims a candidate reached out, which
+ *     would be a false statement about the sender when the platform is the one
+ *     writing.
+ *   - unsubscribeUrl: marketing-class mail needs List-Unsubscribe headers.
+ *   - subjectPrefix: '[TEST] ' for the admin test-send endpoints. The shared
+ *     connect-feature frequency cap counts EmailSend rows and excludes subjects
+ *     starting with '[TEST]', so without a prefix an operator testing this mail
+ *     against their own address would silently consume their own 7 day
+ *     allowance and mask the very traffic they are trying to observe.
+ */
+export interface EmployerMessageNotificationOptions {
+  emailType?: EmailType;
+  intro?: string;
+  unsubscribeUrl?: string;
+  subjectPrefix?: string;
+}
+
 export async function sendEmployerMessageNotification(
   recipientEmail: string,
   recipientFirstName: string | null,
@@ -905,7 +968,8 @@ export async function sendEmployerMessageNotification(
   senderCompany: string | null,
   subject: string,
   messageBody: string,
-  jobTitle: string | null
+  jobTitle: string | null,
+  options: EmployerMessageNotificationOptions = {}
 ): Promise<EmailResult> {
   try {
     const greeting = recipientFirstName ? `Hi ${escapeHtml(recipientFirstName)},` : 'Hi there,';
@@ -917,7 +981,7 @@ export async function sendEmployerMessageNotification(
     const html = emailShellV2(`
       ${headerBlockV2('New Message Received', '')}
       ${spacerV2(12)}
-      ${bodyTextV2(`${greeting} a candidate has reached out about a potential opportunity. Respond within 24 hours for the best results.`)}
+      ${bodyTextV2(options.intro ? `${greeting} ${escapeHtml(options.intro)}` : `${greeting} a candidate has reached out about a potential opportunity. Respond within 24 hours for the best results.`)}
       ${spacerV2(20)}
       <tr><td style="padding:0 40px;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
@@ -954,15 +1018,16 @@ export async function sendEmployerMessageNotification(
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2('sample'),
-      `${fromLine} sent you a message${jobTitle ? ` about "${escapeHtml(jobTitle)}"` : ''} \u2014 view it now!`
+      // House copy rule: no em/en dashes in anything a recipient reads.
+      `${fromLine} sent you a message${jobTitle ? ` about "${escapeHtml(jobTitle)}"` : ''}: view it now!`
     );
 
     await sendAndLog({
       from: EMAIL_FROM,
       to: recipientEmail,
-      subject: `📩 New message from ${fromLine}${jobTitle ? ` — ${jobTitle}` : ''}`,
+      subject: `${options.subjectPrefix ?? ''}📩 New message from ${fromLine}${jobTitle ? `: ${jobTitle}` : ''}`,
       html,
-    }, 'employer_message', { senderName, jobTitle });
+    }, options.emailType ?? 'employer_message', { senderName, jobTitle }, options.unsubscribeUrl);
 
     logger.info('Employer message notification sent', { recipientEmail, senderName });
     return { success: true };

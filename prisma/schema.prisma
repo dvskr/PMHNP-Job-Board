@@ -295,6 +295,7 @@ model EmployerJob {
   user                UserProfile?     @relation(fields: [userId], references: [supabaseId])
   profileViews        ProfileView[]
   savedCandidates     SavedCandidate[]
+  matchDigestEmails   MatchDigestEmail[]
 
   @@index([userId])
   @@index([editToken])
@@ -626,6 +627,7 @@ model UserProfile {
   savedByEmployers    SavedCandidate[]         @relation("SavedAsCandidate")
   savedCandidates     SavedCandidate[]         @relation("SavedByEmployer")
   candidateAlerts     EmployerCandidateAlert[]
+  lifecycleEmailSends LifecycleEmailSend[]
 
   @@index([supabaseId])
   @@index([email])
@@ -1797,4 +1799,71 @@ model ShortLinkClick {
   // campaign yet?" — without this index the lookup full-scans the table.
   @@index([recipientLeadId, createdAt])
   @@map("shortlink_clicks")
+}
+
+// ─── Employer Match Digest Emails ────────────────────────────────────
+// One row per match-digest email sent to an employer about one of their
+// live postings (cron: /api/cron/employer-match-digest). The row is the
+// cadence ledger AND the click-tracking anchor:
+//   - Created claim-first (BEFORE the send is handed to Resend), same
+//     discipline as JobAlert.lastSentAt in lib/job-alerts-service.ts, so
+//     a crash between claim and send can only mean a missed email, never
+//     a duplicate. Definitive send rejection deletes the claim row.
+//   - profileIds records which candidates were surfaced so future digests
+//     for the same posting never repeat them.
+//   - clickToken is an opaque random token; /api/track/email-click stamps
+//     clickedAt on first hit then 302s to an allowlisted relative path.
+//   - followUpSentAt: the one-and-only reminder (4+ days, unclicked, post
+//     still live). Claimed via updateMany-with-null-guard before sending.
+model MatchDigestEmail {
+  id             String      @id @default(cuid())
+  employerJobId  String      @map("employer_job_id")
+  /// UserProfile.supabaseId of every candidate surfaced in this digest.
+  profileIds     String[]    @default([]) @map("profile_ids")
+  /// Opaque random token for /api/track/email-click (never a cuid — must
+  /// be unguessable). Generated via crypto.randomBytes in the service.
+  clickToken     String      @unique @map("click_token")
+  sentAt         DateTime    @default(now()) @map("sent_at")
+  /// UTC calendar day of sentAt as 'YYYY-MM-DD'. Exists ONLY to carry the
+  /// @@unique below: the 7-day cooldown is a read-then-write check, which two
+  /// overlapping cron invocations can both pass, so without a DB-level guard
+  /// the claim-first discipline degrades to "usually once". This makes the
+  /// duplicate claim a P2002 the service skips on, exactly like the
+  /// LifecycleEmailSend unique pair does for the sibling feature.
+  sentDay        String      @map("sent_day")
+  clickedAt      DateTime?   @map("clicked_at")
+  followUpSentAt DateTime?   @map("follow_up_sent_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  employerJob    EmployerJob @relation(fields: [employerJobId], references: [id], onDelete: Cascade)
+
+  @@unique([employerJobId, sentDay])
+  @@index([employerJobId, sentAt(sort: Desc)])
+  // Follow-up scan: unclicked digests older than the follow-up window.
+  @@index([sentAt, clickedAt, followUpSentAt])
+  @@map("match_digest_emails")
+}
+
+// ─── Lifecycle Email Sends ───────────────────────────────────────────
+// One row per lifecycle email actually delivered to a user (registry:
+// lib/lifecycle-emails.ts, cron: /api/cron/lifecycle-emails). The
+// @@unique([userId, emailId]) pair IS the product rule "never repeat an
+// emailId per user" AND the claim row for the cron's claim-first send:
+// the row is created BEFORE the send is handed to Resend (a concurrent
+// run's duplicate create throws P2002 and skips), and deleted if the
+// send definitively fails, copying the concurrency discipline of
+// JobAlert.lastSentAt stamping in lib/job-alerts-service.ts.
+model LifecycleEmailSend {
+  id      String   @id @default(cuid())
+  userId  String   @map("user_id")
+  /// LifecycleEmailId from the code-defined registry (lib/lifecycle-emails.ts).
+  emailId String   @map("email_id")
+  sentAt  DateTime @default(now()) @map("sent_at")
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, emailId])
+  // Shared 7-day cap lookup: most recent lifecycle send per user.
+  @@index([userId, sentAt(sort: Desc)])
+  @@index([sentAt])
+  @@map("lifecycle_email_sends")
 }

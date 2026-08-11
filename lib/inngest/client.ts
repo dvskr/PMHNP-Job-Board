@@ -33,6 +33,19 @@ export interface FpRecoveryProbeEventData {
     originallyFlippedAt: string;
 }
 
+/**
+ * App id — MUST stay unique across every product that shares this Inngest
+ * account. The id IS the app identity: whichever deployment registers with a
+ * given id last wins, and Inngest silently rewrites that app's serve URL to
+ * point at it. When a sibling product inherited this id (via a copy of this
+ * file), it repointed the `pmhnp-job-board` app at its own domain, so every
+ * event this app sent was routed to that deployment instead. Nothing errored;
+ * recommendations, the digest, and instant fan-out just stopped running.
+ * Never copy this id into another codebase, and never adopt one from another.
+ * Locked by tests/regressions/inngest-app-id.test.ts.
+ */
+export const INNGEST_APP_ID = 'pmhnp-job-board';
+
 export const inngest = new Inngest({
-    id: 'pmhnp-job-board',
+    id: INNGEST_APP_ID,
 });
