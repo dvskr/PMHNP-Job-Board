@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 import { executeBroadcast } from '@/lib/broadcast-sender';
 
+import { SYSTEM_PROFILE_ROLE } from '@/lib/system-messages';
+
+/** Real people only: never the automated platform sender profile. */
+const MAILABLE_USER_PROFILES = { role: { not: SYSTEM_PROFILE_ROLE } } as const;
+
 /**
  * POST /api/admin/email/send
  * Create and execute an email broadcast.
@@ -70,7 +75,10 @@ export async function POST(req: Request) {
             case 'all':
             default: {
                 const [users, leads] = await Promise.all([
-                    prisma.userProfile.findMany({ select: { email: true, firstName: true } }),
+                    // Excludes the automated sender profile (role 'system',
+                    // lib/system-messages.ts): a platform identity, not a
+                    // person, and never a broadcast recipient.
+                    prisma.userProfile.findMany({ where: MAILABLE_USER_PROFILES, select: { email: true, firstName: true } }),
                     prisma.emailLead.findMany({ where: { isSubscribed: true }, select: { email: true } }),
                 ]);
                 const seen = new Set<string>();

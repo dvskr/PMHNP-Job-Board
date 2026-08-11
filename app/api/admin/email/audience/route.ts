@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 
+import { SYSTEM_PROFILE_ROLE } from '@/lib/system-messages';
+
+/** Real people only: never the automated platform sender profile. */
+const MAILABLE_USER_PROFILES = { role: { not: SYSTEM_PROFILE_ROLE } } as const;
+
 /**
  * GET /api/admin/email/audience?segment=all|job_seekers|employers|subscribers|newsletter
  * Returns the count and a sample of users matching the given segment.
@@ -62,7 +67,11 @@ export async function GET(req: Request) {
             default: {
                 // Union of all user profiles + email leads (deduplicated)
                 const [users, leads] = await Promise.all([
-                    prisma.userProfile.findMany({ select: { email: true, firstName: true } }),
+                    // MAILABLE_USER_PROFILES excludes the automated sender
+                    // profile (role 'system', lib/system-messages.ts). It is a
+                    // platform identity, not a person, and must never land in a
+                    // broadcast audience.
+                    prisma.userProfile.findMany({ where: MAILABLE_USER_PROFILES, select: { email: true, firstName: true } }),
                     prisma.emailLead.findMany({ where: { isSubscribed: true }, select: { email: true } }),
                 ]);
                 const seen = new Set<string>();
