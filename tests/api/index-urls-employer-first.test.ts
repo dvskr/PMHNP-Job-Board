@@ -20,9 +20,12 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
 
 const mockBatch = vi.fn();
-vi.mock('@/lib/search-indexing', () => ({
-  pingAllSearchEnginesBatch: mockBatch,
-}));
+// Spread the real module: the route also imports summarizeBingResults, and a
+// partial mock silently turns that into a 500 at runtime.
+vi.mock('@/lib/search-indexing', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/search-indexing')>();
+  return { ...actual, pingAllSearchEnginesBatch: mockBatch };
+});
 
 const mockCronAlert = vi.fn().mockResolvedValue(undefined);
 vi.mock('@/lib/discord-notifier', () => ({

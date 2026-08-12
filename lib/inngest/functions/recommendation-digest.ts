@@ -12,6 +12,24 @@
  *
  * Reuses `candidate_recommendations` so we never recompute — the daily recs
  * cron is the source of truth, this just emails what's already there.
+ *
+ * ── STEP-OUTPUT DISCIPLINE (2026-08-13) ──────────────────────────────────
+ * Inngest persists every step.run() return value as durable run state and
+ * caps its size. `list-eligible-candidates` used to return a full row per
+ * candidate (email, first name, unsubscribe token) at roughly 160 B each.
+ * That is comfortably under the cap today, but it is the same unbounded shape
+ * that broke recommendations.ts (see that file's docblock), it grows linearly
+ * with the candidate base, and it copies addresses plus unsubscribe tokens
+ * into durable third-party run state for no reason.
+ *
+ * So this function follows the same three rules, locked by
+ * tests/lib/inngest-step-output-size.test.ts:
+ *   1. Steps return ids, counts and compact scalars only.
+ *   2. Contact details are re-fetched inside the step that sends the mail —
+ *      which also means a suppression flip mid-run is honoured.
+ *   3. Outcome counts are folded from the returned step VALUES. Inngest
+ *      replays the function body on every request, so counters mutated
+ *      inside a step closure lose every increment from an earlier replay.
  */
 
 import { inngest } from '@/lib/inngest/client';
@@ -35,6 +53,18 @@ interface DigestJob {
 
 const DIGEST_TOP_N = 5;
 const FRESH_BATCH_WINDOW_DAYS = 7;
+
+/**
+ * Hard ceiling on per-candidate steps in one run, mirroring the cap in
+ * recommendations.ts. Each candidate costs one step and Inngest caps the steps
+ * a single run may take, so an uncapped roster turns "the candidate base grew"
+ * into "the weekly digest stopped running" with no warning: the same failure
+ * mode, one step-boundary over, that took the daily recommendations pipeline
+ * down. Ordered freshest-recommendations first so the cap, if it ever binds,
+ * mails the people whose picks are newest; the daily cron already rotates who
+ * that is, so nobody is permanently starved. A warning fires when it binds.
+ */
+const MAX_CANDIDATES_PER_RUN = 750;
 
 function tierBadgeHtml(tier: DigestJob['tier']): string {
     if (tier === 'easy_apply') {
@@ -123,6 +153,35 @@ interface CandidateForDigest {
     unsubscribe_token: string | null;
 }
 
+/**
+ * Compact per-candidate step result. One short string, never a row.
+ *
+ * `gone` covers a candidate whose profile was hidden, deleted or suppressed
+ * between the roster step and their own step.
+ */
+export type DigestOutcome = 'sent' | 'skipped_flag' | 'no_recs' | 'gone' | 'error';
+
+export interface DigestTotals {
+    sent: number;
+    skippedFlag: number;
+    noRecs: number;
+    gone: number;
+    errored: number;
+}
+
+/** Fold per-candidate outcomes into run totals. Pure; ignores unknown values. */
+export function foldDigestOutcomes(outcomes: ReadonlyArray<DigestOutcome>): DigestTotals {
+    const totals: DigestTotals = { sent: 0, skippedFlag: 0, noRecs: 0, gone: 0, errored: 0 };
+    for (const o of outcomes) {
+        if (o === 'sent') totals.sent += 1;
+        else if (o === 'skipped_flag') totals.skippedFlag += 1;
+        else if (o === 'no_recs') totals.noRecs += 1;
+        else if (o === 'gone') totals.gone += 1;
+        else if (o === 'error') totals.errored += 1;
+    }
+    return totals;
+}
+
 export const recommendationDigestWeekly = inngest.createFunction(
     {
         id: 'recommendation-digest-weekly',
@@ -144,12 +203,11 @@ export const recommendationDigestWeekly = inngest.createFunction(
         // and vice versa. The per-candidate flag check in the loop below is
         // the actual opt-in gate; this query just narrows to "has an email,
         // has recs, isn't suppressed."
-        const candidates = await step.run('list-eligible-candidates', async () => {
-            return prisma.$queryRawUnsafe<CandidateForDigest[]>(`
-                SELECT DISTINCT up.supabase_id,
-                       up.email,
-                       up.first_name,
-                       el.unsubscribe_token
+        // IDS ONLY — addresses and unsubscribe tokens are re-fetched inside
+        // each candidate's own step rather than parked in durable run state.
+        const candidateIds = await step.run('list-eligible-candidate-ids', async () => {
+            const rows = await prisma.$queryRawUnsafe<Array<{ supabase_id: string }>>(`
+                SELECT up.supabase_id
                 FROM user_profiles up
                 JOIN candidate_recommendations cr ON cr.supabase_id = up.supabase_id
                 JOIN email_leads el ON el.email = up.email
@@ -158,31 +216,59 @@ export const recommendationDigestWeekly = inngest.createFunction(
                   AND el.is_suppressed = false
                   AND up.deleted_at IS NULL
                   AND up.role = 'job_seeker'
-                  AND up.email IS NOT NULL;
+                  AND up.email IS NOT NULL
+                GROUP BY up.supabase_id
+                ORDER BY MAX(cr.created_at) DESC, up.supabase_id ASC
+                LIMIT ${MAX_CANDIDATES_PER_RUN};
             `);
+            if (rows.length >= MAX_CANDIDATES_PER_RUN) {
+                logger.warn('recommendation-digest: candidate roster truncated by per-run cap', {
+                    processing: rows.length,
+                    cap: MAX_CANDIDATES_PER_RUN,
+                });
+            }
+            return rows.map((r) => r.supabase_id);
         });
 
-        if (candidates.length === 0) {
+        if (candidateIds.length === 0) {
             logger.info('recommendation-digest: no eligible candidates');
             return { sent: 0 };
         }
 
-        let sent = 0;
-        let skippedFlag = 0;
-        let errored = 0;
+        const outcomes: DigestOutcome[] = [];
 
-        for (const cand of candidates) {
-            await step.run(`digest-${cand.supabase_id}`, async () => {
+        for (const supabaseId of candidateIds) {
+            const outcome = await step.run(`digest-${supabaseId}`, async (): Promise<DigestOutcome> => {
                 // Per-candidate flag check (admin can disable for individuals).
                 const enabled = await isAiFeatureEnabled(
                     'ai.candidate.recommendations_email',
-                    { type: 'candidate', id: cand.supabase_id },
+                    { type: 'candidate', id: supabaseId },
                 );
-                if (!enabled) { skippedFlag += 1; return; }
+                if (!enabled) return 'skipped_flag';
+
+                // Re-fetch contact details HERE. Re-running the eligibility
+                // joins means a profile hidden or an address suppressed since
+                // the roster step drops out instead of being mailed.
+                const contacts = await prisma.$queryRawUnsafe<CandidateForDigest[]>(
+                    `
+                    SELECT up.supabase_id, up.email, up.first_name, el.unsubscribe_token
+                    FROM user_profiles up
+                    JOIN email_leads el ON el.email = up.email
+                    WHERE up.supabase_id = $1
+                      AND el.is_suppressed = false
+                      AND up.deleted_at IS NULL
+                      AND up.role = 'job_seeker'
+                      AND up.email IS NOT NULL
+                    LIMIT 1;
+                    `,
+                    supabaseId,
+                );
+                const cand = contacts[0];
+                if (!cand) return 'gone';
 
                 // Pull this candidate's latest batch — top N tier-pinned slots.
                 const recs = await prisma.candidateRecommendation.findMany({
-                    where: { supabaseId: cand.supabase_id, dismissedAt: null },
+                    where: { supabaseId, dismissedAt: null },
                     orderBy: [{ createdAt: 'desc' }, { rank: 'asc' }],
                     take: DIGEST_TOP_N,
                     include: {
@@ -195,7 +281,7 @@ export const recommendationDigestWeekly = inngest.createFunction(
                         },
                     },
                 });
-                if (recs.length === 0) return;
+                if (recs.length === 0) return 'no_recs';
 
                 const jobs: DigestJob[] = recs.map((r) => ({
                     id: r.job.id,
@@ -234,16 +320,22 @@ export const recommendationDigestWeekly = inngest.createFunction(
                         { supabaseId: cand.supabase_id, recIds: recs.map((r) => r.id) },
                         unsubscribeUrl,
                     );
-                    sent += 1;
+                    return 'sent';
                 } catch (err) {
-                    errored += 1;
-                    logger.warn('recommendation-digest: send failed', { supabaseId: cand.supabase_id }, err);
+                    logger.warn('recommendation-digest: send failed', { supabaseId }, err);
+                    return 'error';
                 }
             });
+
+            outcomes.push(outcome);
         }
 
-        logger.info('recommendation-digest complete', { eligible: candidates.length, sent, skippedFlag, errored });
-        return { eligible: candidates.length, sent, skippedFlag, errored };
+        // Folded from the returned step values — counters mutated inside the
+        // step closures would lose every increment from an earlier replay.
+        const totals = foldDigestOutcomes(outcomes);
+
+        logger.info('recommendation-digest complete', { eligible: candidateIds.length, ...totals });
+        return { eligible: candidateIds.length, ...totals };
     },
 );
 

@@ -7,8 +7,8 @@
  *   - Employers: "Your <title> post has N new applications waiting" when a
  *     live post accumulated new applications in the last 7 days.
  *   - Candidates: "Jobs picked for you this week" built from fresh, untouched
- *     CandidateRecommendation rows, with a JobAlert-filter fallback for
- *     candidates who have an account + confirmed alert but no fresh recs.
+ *     CandidateRecommendation rows, and from nothing else. There is
+ *     deliberately no JobAlert fallback: see runCandidateSide.
  *
  * HARD SEND GATES (organizational rule: ship send-disabled):
  *   1. ENABLE_SYSTEM_MESSAGES env flag, default off. Real cron sends are
@@ -47,11 +47,6 @@ import {
 // the match-digest feature; reused here, never reimplemented.
 import { isUnderSharedLifecycleCap } from '@/lib/match-digest-service';
 import { isOutboundPaused } from '@/lib/outbound-kill-switch';
-import {
-    jobMatchesAlert,
-    type AlertMatchableJob,
-    type AlertMatchCriteria,
-} from '@/lib/job-alerts-service';
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -733,93 +728,7 @@ async function fetchFreshRecommendationTargets(since: Date): Promise<Map<string,
     return bySupabaseId;
 }
 
-const ALERT_JOB_SELECT = {
-    id: true,
-    title: true,
-    employer: true,
-    location: true,
-    city: true,
-    state: true,
-    stateCode: true,
-    mode: true,
-    jobType: true,
-    isRemote: true,
-    isHybrid: true,
-    normalizedMinSalary: true,
-    normalizedMaxSalary: true,
-    newGradFriendly: true,
-    minYearsExperience: true,
-} as const;
 
-/**
- * Fallback source: candidates with an account and a confirmed active JobAlert
- * whose filters match employer posts published in the last 7 days. Reuses the
- * shared jobMatchesAlert matcher so this never drifts from the email digest.
- */
-async function fetchAlertFallbackTargets(
-    coveredProfileIds: Set<string>,
-    since: Date,
-    now: Date,
-): Promise<CandidateTarget[]> {
-    const recentEmployerJobs = await prisma.job.findMany({
-        where: {
-            isPublished: true,
-            createdAt: { gt: since },
-            employerJobs: { isNot: null },
-            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-        },
-        select: ALERT_JOB_SELECT,
-    });
-    if (recentEmployerJobs.length === 0) return [];
-
-    const alerts = await prisma.jobAlert.findMany({
-        where: { isActive: true, confirmedAt: { not: null } },
-        select: {
-            email: true,
-            keyword: true,
-            location: true,
-            mode: true,
-            jobType: true,
-            minSalary: true,
-            maxSalary: true,
-            newGradFriendly: true,
-            minYearsExperience: true,
-        },
-    });
-    if (alerts.length === 0) return [];
-
-    // Keyed case-insensitively: JobAlert.email and UserProfile.email are
-    // entered by humans in two different forms, and Prisma's `in` is exact.
-    const alertsByEmail = new Map<string, AlertMatchCriteria[]>();
-    for (const alert of alerts) {
-        const key = alert.email.toLowerCase();
-        alertsByEmail.set(key, [...(alertsByEmail.get(key) ?? []), alert]);
-    }
-    const profiles = await prisma.userProfile.findMany({
-        where: {
-            email: { in: alerts.map((alert) => alert.email), mode: 'insensitive' },
-            role: 'job_seeker',
-            deletedAt: null,
-        },
-        select: { id: true, email: true },
-    });
-
-    const targets: CandidateTarget[] = [];
-    for (const profile of profiles) {
-        if (coveredProfileIds.has(profile.id)) continue;
-        const criteria = alertsByEmail.get(profile.email.toLowerCase()) ?? [];
-        const jobs: DigestJob[] = [];
-        for (const job of recentEmployerJobs) {
-            if (jobs.length >= MAX_JOBS_PER_CANDIDATE_MESSAGE) break;
-            const matchable: AlertMatchableJob = job;
-            if (criteria.some((alert) => jobMatchesAlert(matchable, alert))) {
-                jobs.push({ id: job.id, title: job.title, employer: job.employer });
-            }
-        }
-        if (jobs.length > 0) targets.push({ profileId: profile.id, jobs });
-    }
-    return targets;
-}
 
 async function runCandidateSide(
     systemProfileId: string,
@@ -843,8 +752,19 @@ async function runCandidateSide(
             if (jobs && jobs.length > 0) targets.push({ profileId: profile.id, jobs });
         }
     }
-    const covered = new Set(targets.map((target) => target.profileId));
-    targets.push(...(await fetchAlertFallbackTargets(covered, since, now)));
+    // NO ALERT FALLBACK. It was removed after the first live run, which showed
+    // exactly what it does: it requires a confirmed active JobAlert, so it
+    // targets precisely the people who already receive the job alert digest,
+    // and it hands every one of them the same recent employer posts the digest
+    // just sent. On 2026-08-12 that meant 206 candidates each got an identical
+    // one-job message under the subject "Jobs picked for you this week", which
+    // both duplicated the digest and overstated what had been personalized.
+    //
+    // This message now speaks only when there is something genuinely per
+    // candidate to say: fresh vector-matched recommendations. If the
+    // recommendations pipeline is not producing, the candidate side stays
+    // silent, which is the correct behaviour. A second channel repeating the
+    // first is how a sender teaches people to ignore both.
 
     const batch = targets.slice(0, MAX_RECIPIENTS_PER_SIDE);
     metrics.considered = batch.length;

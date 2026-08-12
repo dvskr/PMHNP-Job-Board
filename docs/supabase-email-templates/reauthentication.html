@@ -1,0 +1,100 @@
+<!--
+  Supabase > Authentication > Emails > Reauthentication
+  Subject heading: Your PMHNP Hiring confirmation code
+  Paste this whole file as the template body.
+
+  READ THIS BEFORE EDITING: THIS TEMPLATE IS DELIBERATELY DIFFERENT
+
+  Every other template in this folder centres on a button plus a copyable URL.
+  This one has no button and no URL, on purpose. Supabase's Reauthentication
+  email does not expose a ConfirmationURL variable. It carries a short code in
+  the Token variable, which the person types back into the page they are
+  already on. There is no link to render, so the Outlook invisible-button bug
+  cannot occur here. Adding a fake button, or pasting a ConfirmationURL
+  placeholder in, would render an empty string and hand the recipient a dead
+  control.
+
+  Variable names are written here WITHOUT their braces on purpose: Supabase
+  runs this whole file, comments included, through its template engine, so a
+  braced placeholder in a comment is still evaluated.
+
+  The one thing that carries over is the fill technique: the code panel uses
+  the bgcolor ATTRIBUTE on its <td>, not just a CSS background, so Word based
+  Outlook still paints it. Keep bgcolor if you restyle the panel.
+
+  This template is only sent if reauthentication is actually in use, which it
+  is not today. See README.md in this folder.
+-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F5F0EB;padding:24px 0;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background-color:#FFFFFF;border-radius:12px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;">
+
+        <tr>
+          <td align="center" bgcolor="#F6D5C3" style="background-color:#F6D5C3;padding:22px 24px;">
+            <div style="font-size:20px;font-weight:bold;color:#1F2937;">PMHNP Hiring</div>
+            <div style="font-size:11px;letter-spacing:1.5px;color:#5A4A42;padding-top:4px;">MENTAL HEALTH CAREERS</div>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:32px 32px 8px;">
+            <h1 style="margin:0 0 12px;font-size:22px;color:#1F2937;font-weight:bold;">Your confirmation code</h1>
+            <p style="margin:0;font-size:15px;line-height:22px;color:#374151;">
+              PMHNP Hiring asked you to confirm it is really you before finishing a sensitive change on your account.
+              Enter this code on the page that requested it.
+            </p>
+          </td>
+        </tr>
+
+        <!-- No button and no link by design: Supabase sends a code here, not a
+             URL. bgcolor on the td so Outlook still paints the panel. -->
+        <tr>
+          <td align="center" style="padding:24px 32px 8px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#FEF6E7" style="background-color:#FEF6E7;border-radius:8px;padding:16px 32px;">
+                  <div style="font-family:Consolas,'Courier New',monospace;font-size:30px;font-weight:bold;letter-spacing:6px;color:#0D6B62;">
+                    {{ .Token }}
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:8px 32px 4px;">
+            <p style="margin:0;font-size:13px;line-height:19px;color:#4B5563;">
+              Type the code exactly as shown. There is no link in this email, so there is nothing to click.
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:20px 32px 28px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="background-color:#FEF6E7;border-radius:8px;">
+              <tr>
+                <td style="padding:12px 14px;font-size:12.5px;line-height:18px;color:#5A4A42;">
+                  We will never ask you for this code by phone, chat, or reply email. If you did not start this
+                  change, do not share the code, and tell us at
+                  <a href="mailto:support@pmhnphiring.com" style="color:#0D6B62;">support@pmhnphiring.com</a>.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" bgcolor="#1F2937" style="background-color:#1F2937;padding:16px 24px;font-size:12px;color:#D1D5DB;">
+            &copy; 2026 PMHNP Hiring &middot;
+            <a href="https://pmhnphiring.com" style="color:#D1D5DB;">pmhnphiring.com</a> &middot;
+            <a href="mailto:support@pmhnphiring.com" style="color:#D1D5DB;">support@pmhnphiring.com</a>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

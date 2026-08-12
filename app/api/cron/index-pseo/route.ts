@@ -23,10 +23,11 @@ import { prisma } from '@/lib/prisma';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 import { PSEO_INDEXING_CATEGORIES } from '@/lib/pseo/jobs-segments-edge';
-import { pingBingBatch, pingIndexNow } from '@/lib/search-indexing';
+import { pingBingBatch, pingIndexNow, summarizeBingResults } from '@/lib/search-indexing';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
+import { logger } from '@/lib/logger';
 
 export const maxDuration = 300;
 
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
   if (authError) return authError;
 
   const startTime = Date.now();
-  console.log('[CRON:index-pseo] Starting pSEO URL indexing...');
+  logger.info('[CRON:index-pseo] Starting pSEO URL indexing');
 
   try {
     return await withCronTracking('index-pseo', async () => {
@@ -134,7 +135,7 @@ export async function GET(request: NextRequest) {
     const urlsToSubmit = newUrls.slice(0, SUBMIT_CAP);
     
     if (urlsToSubmit.length === 0) {
-      console.log('[CRON:index-pseo] All qualifying URLs already submitted within 7 days');
+      logger.info('[CRON:index-pseo] All qualifying URLs already submitted within the dedupe window');
       return {
         response: NextResponse.json({
           success: true,
@@ -154,7 +155,11 @@ export async function GET(request: NextRequest) {
 
     const urls = urlsToSubmit.map(su => su.url);
 
-    console.log(`[CRON:index-pseo] Submitting ${urls.length} pSEO URLs (${scoredUrls.length} total qualifying, ${newUrls.length} new)`);
+    logger.info('[CRON:index-pseo] Submitting pSEO URLs', {
+      submitting: urls.length,
+      totalQualifying: scoredUrls.length,
+      newToSubmit: newUrls.length,
+    });
 
     // 4. Submit to Bing (batch). Google is intentionally excluded — see the
     //    header comment; discovery happens via the city sitemaps.
@@ -163,11 +168,19 @@ export async function GET(request: NextRequest) {
     // 5. Submit to IndexNow (batch)
     const indexNowResults = await pingIndexNow(urls);
 
-    // 6. Track submitted URLs in DB so we don't re-submit
+    // 6. Track submitted URLs in DB so we don't re-submit.
+    //    URLs Bing never sent (daily quota ran out, or we stopped after a
+    //    rejected batch) must NOT be recorded as submitted: doing so would
+    //    bury them for the full 7-day dedupe window without a single attempt.
+    const bingSkippedUrls = new Set(
+      bingResults.filter(r => r.skipped).map(r => r.url)
+    );
+
     for (const su of urlsToSubmit) {
+      if (bingSkippedUrls.has(su.url)) continue;
       const match = su.url.match(/\/jobs\/([^/]+)\/city\/([^/]+)$/);
       if (!match) continue;
-      
+
       try {
         await prisma.pseoStats.upsert({
           where: {
@@ -197,8 +210,10 @@ export async function GET(request: NextRequest) {
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    const bingSuccess = bingResults.filter(r => r.success).length;
-    const bingFailed = bingResults.filter(r => !r.success).length;
+    // index-pseo runs 30 minutes after index-urls and shares the same per-domain
+    // Bing daily quota, so it is the run most likely to find the quota already
+    // spent. Report submitted / failed / skipped separately.
+    const bing = summarizeBingResults(bingResults);
     const indexNowSuccess = indexNowResults.filter(r => r.success).length;
     const indexNowFailed = indexNowResults.filter(r => !r.success).length;
 
@@ -207,22 +222,29 @@ export async function GET(request: NextRequest) {
       totalQualifying: scoredUrls.length,
       newToSubmit: newUrls.length,
       submitted: urls.length,
-      bing: { submitted: bingSuccess, failed: bingFailed },
+      bing: {
+        submitted: bing.submitted,
+        failed: bing.failed,
+        skipped: bing.skipped,
+        ...(bing.reason ? { reason: bing.reason } : {}),
+      },
       indexNow: { submitted: indexNowSuccess, failed: indexNowFailed },
       topUrls: urls.slice(0, 5), // Show first 5 for debugging
       duration: `${duration}s`,
       timestamp: new Date().toISOString(),
     };
 
-    console.log('[CRON:index-pseo] Complete:', JSON.stringify(summary));
+    logger.info('[CRON:index-pseo] Complete', summary);
     return {
       response: NextResponse.json(summary),
       metrics: {
         totalQualifying: scoredUrls.length,
         newToSubmit: newUrls.length,
         submitted: urls.length,
-        bingSubmitted: bingSuccess,
-        bingFailed,
+        bingSubmitted: bing.submitted,
+        bingFailed: bing.failed,
+        bingSkipped: bing.skipped,
+        ...(bing.reason ? { bingReason: bing.reason } : {}),
         indexNowSubmitted: indexNowSuccess,
         indexNowFailed,
       },
@@ -230,7 +252,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
       await sendCronFailureAlert('index-pseo', error);
-    console.error('[CRON:index-pseo] Error:', error);
+    logger.error('[CRON:index-pseo] Error', error);
     return NextResponse.json(
       {
         success: false,
