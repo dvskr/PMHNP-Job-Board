@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
+import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
 import {
   sendAndLog,
   isMarketingOptedOut,
@@ -33,10 +34,11 @@ interface PlannedSend {
  * GET /api/cron/lifecycle-emails
  *
  * Daily product/lifecycle email fan-out for both audiences. HARD RULES:
- *   - Real sends require ENABLE_LIFECYCLE_EMAILS=1 (default OFF — the
- *     operator tests via /api/admin/lifecycle-test first, then enables).
+ *   - Sends run by default. There is no enable flag: the only control is the
+ *     emergency brake OUTBOUND_MESSAGING_PAUSED=1 (lib/outbound-kill-switch),
+ *     which stops sending on the next invocation without a deploy.
  *   - ?dryRun=1 computes the exact would-send list without sending or
- *     writing claims, and works while the flag is off.
+ *     writing claims, and works whether or not sending is paused.
  *   - One email max per user per run; an emailId never repeats per user
  *     (LifecycleEmailSend @@unique); shared 7-day cap across all
  *     connect-feature email types; suppression respected.
@@ -49,15 +51,12 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const dryRun = url.searchParams.get('dryRun') === '1';
-  const sendingEnabled = process.env.ENABLE_LIFECYCLE_EMAILS === '1';
+  const sendingEnabled = !isOutboundPaused();
 
-  // Flag off + not a dry run: do nothing (and do no eligibility work) so the
-  // registered cron is inert until the operator explicitly enables sends.
+  // Paused + not a dry run: do nothing, and do no eligibility work either, so
+  // the brake costs nothing while it is engaged.
   if (!sendingEnabled && !dryRun) {
-    return NextResponse.json({
-      enabled: false,
-      message: 'ENABLE_LIFECYCLE_EMAILS is not set. Use ?dryRun=1 to preview eligibility without sending.',
-    });
+    return NextResponse.json({ enabled: false, message: OUTBOUND_PAUSED_MESSAGE });
   }
 
   try {

@@ -54,11 +54,14 @@ describe('service send gating', () => {
   const src = read('lib/match-digest-service.ts');
   const policy = read('lib/email/match-digest-policy.ts');
 
-  it('the env flag is ENABLE_EMPLOYER_MATCH_DIGESTS and defaults off', () => {
-    expect(policy).toMatch(/MATCH_DIGEST_ENV_FLAG = 'ENABLE_EMPLOYER_MATCH_DIGESTS'/);
-    // Strict equality to '1' means unset, '0', 'true' and anything else are
-    // all off. There is no other way to enable sending.
-    expect(src).toMatch(/process\.env\[MATCH_DIGEST_ENV_FLAG\] === '1'/);
+  it('sends by default, with the shared emergency brake as the only control', () => {
+    // The per-feature enable flag is gone by design: the owner asked for the
+    // features to run without any variable to remember. What remains is one
+    // brake shared by every automated sender, so a defect can be stopped
+    // without a deploy. Sending must NOT depend on any enable-style env var.
+    expect(src).toMatch(/isOutboundPaused\(\)/);
+    expect(src).not.toMatch(/ENABLE_EMPLOYER_MATCH_DIGESTS/);
+    expect(policy).not.toMatch(/MATCH_DIGEST_ENV_FLAG/);
     expect(src.match(/isMatchDigestSendingEnabled\(\)/g)?.length).toBeGreaterThan(0);
   });
 

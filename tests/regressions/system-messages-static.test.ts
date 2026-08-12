@@ -141,8 +141,8 @@ describe('employer privacy', () => {
 describe('employer email piggyback', () => {
     const src = read(LIB);
 
-    it('needs its own second flag on top of ENABLE_SYSTEM_MESSAGES', () => {
-        expect(src).toMatch(/process\.env\.ENABLE_SYSTEM_MESSAGE_EMAILS/);
+    it('stays opt-in even though in-platform messages send by default', () => {
+        expect(src).toMatch(/process\.env\.SYSTEM_MESSAGE_EMAILS/);
         expect(src).toMatch(
             /return isSystemMessagesEnabled\(\) && \(value === '1' \|\| value === 'true'\)/,
         );
