@@ -223,3 +223,21 @@ describe('house rules', () => {
         }
     });
 });
+
+describe('candidate side speaks only when it has something personal to say', () => {
+    const src = read(LIB);
+
+    // 2026-08-12, first live run: 206 candidates each received an identical
+    // one-job "Jobs picked for you this week" message, because the fallback
+    // required a confirmed JobAlert and then handed everyone the same recent
+    // employer posts the alert digest had already emailed them. Removed.
+    it('has no JobAlert fallback path', () => {
+        expect(src).not.toMatch(/fetchAlertFallbackTargets/);
+        expect(src).not.toMatch(/jobMatchesAlert/);
+    });
+
+    it('builds candidate messages from fresh recommendations only', () => {
+        expect(src).toMatch(/fetchFreshRecommendationTargets/);
+        expect(src).toMatch(/no JobAlert fallback|NO ALERT FALLBACK/i);
+    });
+});
