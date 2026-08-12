@@ -27,17 +27,19 @@ describe('cron route safety rails', () => {
   it('authenticates via verifyCronOrAdmin before any work', () => {
     expect(src).toMatch(/verifyCronOrAdmin\(req\)/);
     const authIdx = src.indexOf('verifyCronOrAdmin(req)');
-    // Anchor on the CODE reference, not the bare flag name: the route's doc
-    // comment names ENABLE_LIFECYCLE_EMAILS above the handler, so matching
-    // the bare string would compare against prose, not execution order.
-    expect(authIdx).toBeLessThan(src.indexOf('process.env.ENABLE_LIFECYCLE_EMAILS'));
+    // Anchor on the CODE reference so this compares execution order rather
+    // than prose in the doc comment above the handler.
+    expect(authIdx).toBeLessThan(src.indexOf('isOutboundPaused()'));
     // Nothing touches the DB or the mailer before the auth gate returns.
     expect(authIdx).toBeLessThan(src.indexOf('prisma.'));
     expect(authIdx).toBeLessThan(src.indexOf('sendAndLog('));
   });
 
-  it('real sends are gated on ENABLE_LIFECYCLE_EMAILS=1 (default off)', () => {
-    expect(src).toMatch(/process\.env\.ENABLE_LIFECYCLE_EMAILS === '1'/);
+  it('sends by default, stoppable only by the shared emergency brake', () => {
+    // No enable flag: the features run without anything being set. The brake
+    // exists so a defect can be stopped mid-rollout without a deploy.
+    expect(src).toMatch(/isOutboundPaused\(\)/);
+    expect(src).not.toMatch(/ENABLE_LIFECYCLE_EMAILS/);
     expect(src).toMatch(/if \(!sendingEnabled && !dryRun\)/);
   });
 

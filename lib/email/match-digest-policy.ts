@@ -8,9 +8,6 @@
  * "when is a send allowed" and "what may a card show".
  */
 
-/** Env flag gating ALL real match-digest sends. Default off. */
-export const MATCH_DIGEST_ENV_FLAG = 'ENABLE_EMPLOYER_MATCH_DIGESTS';
-
 /**
  * Cosine-similarity floor for a candidate to appear in a digest. The talent
  * search endpoint surfaces unthresholded vector hits because an employer is

@@ -9,7 +9,8 @@
  * the click tracker.
  *
  * HARD SEND GATES (organizational rule — every send path):
- *   - process.env.ENABLE_EMPLOYER_MATCH_DIGESTS === '1' (default OFF)
+ *   - sending runs by default; the shared brake OUTBOUND_MESSAGING_PAUSED=1
+ *     (lib/outbound-kill-switch) is the only way to stop it, no deploy needed
  *   - dryRun mode computes everything and sends/writes NOTHING
  *   - suppression + unsubscribe respected on every send
  *   - shared lifecycle cap: max 1 connect-feature email per recipient per
@@ -41,8 +42,8 @@ import {
   buildMatchDigestHtml,
   buildMatchDigestSubject,
 } from '@/lib/email/match-digest-template';
+import { isOutboundPaused } from '@/lib/outbound-kill-switch';
 import {
-  MATCH_DIGEST_ENV_FLAG,
   MIN_MATCH_SIMILARITY,
   MAX_CANDIDATES_PER_DIGEST,
   DIGEST_COOLDOWN_DAYS,
@@ -62,9 +63,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** Vector over-fetch before threshold + exclusion filtering. */
 const VECTOR_FETCH_K = 50;
 
-/** All real sends are gated on this. Default off. */
+/**
+ * Digests send by default. The only control is the shared emergency brake
+ * (lib/outbound-kill-switch), which pauses every automated send at once.
+ */
 export function isMatchDigestSendingEnabled(): boolean {
-  return process.env[MATCH_DIGEST_ENV_FLAG] === '1';
+  return !isOutboundPaused();
 }
 
 /** Opaque unguessable click token (base64url, 32 chars). */
@@ -389,7 +393,7 @@ export async function runMatchDigestCron(options: {
   const results = emptyResult(enabled, dryRun);
 
   if (!enabled && !dryRun) {
-    logger.info(`[MatchDigest] ${MATCH_DIGEST_ENV_FLAG} not set; skipping run (no compute, no sends)`);
+    logger.info('[MatchDigest] outbound messaging is paused; skipping run (no compute, no sends)');
     return results;
   }
 

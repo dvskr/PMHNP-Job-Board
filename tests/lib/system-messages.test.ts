@@ -55,13 +55,13 @@ const RECIPIENT_ID = 'recipient-profile-id';
 
 beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.ENABLE_SYSTEM_MESSAGES;
-    delete process.env.ENABLE_SYSTEM_MESSAGE_EMAILS;
+    delete process.env.OUTBOUND_MESSAGING_PAUSED;
+    delete process.env.SYSTEM_MESSAGE_EMAILS;
 });
 
 afterEach(() => {
-    delete process.env.ENABLE_SYSTEM_MESSAGES;
-    delete process.env.ENABLE_SYSTEM_MESSAGE_EMAILS;
+    delete process.env.OUTBOUND_MESSAGING_PAUSED;
+    delete process.env.SYSTEM_MESSAGE_EMAILS;
 });
 
 // ─── Copy builders ───────────────────────────────────────────────────────────
@@ -178,11 +178,13 @@ function expectNoWrites() {
 }
 
 describe('sendSystemMessage', () => {
-    it('refuses a real cron send while ENABLE_SYSTEM_MESSAGES is unset', async () => {
+    it('refuses a real cron send while outbound messaging is paused', async () => {
+        process.env.OUTBOUND_MESSAGING_PAUSED = '1';
         const result = await sendSystemMessage(baseParams());
         expect(result.status).toBe('disabled');
         expect(prismaMock.employerMessage.findFirst).not.toHaveBeenCalled();
         expectNoWrites();
+        delete process.env.OUTBOUND_MESSAGING_PAUSED;
     });
 
     it('previews without writing when dryRun is set, flag on or off', async () => {
@@ -190,8 +192,8 @@ describe('sendSystemMessage', () => {
         for (const flag of [undefined, '1']) {
             vi.clearAllMocks();
             prismaMock.employerMessage.findFirst.mockResolvedValue(null);
-            if (flag) process.env.ENABLE_SYSTEM_MESSAGES = flag;
-            else delete process.env.ENABLE_SYSTEM_MESSAGES;
+            if (flag) process.env.OUTBOUND_MESSAGING_PAUSED = flag;
+            else delete process.env.OUTBOUND_MESSAGING_PAUSED;
 
             const result = await sendSystemMessage(baseParams({ dryRun: true }));
             expect(result.status).toBe('dry_run');
@@ -200,7 +202,7 @@ describe('sendSystemMessage', () => {
     });
 
     it('honours the 7-day cap using the system profile own sent messages', async () => {
-        process.env.ENABLE_SYSTEM_MESSAGES = '1';
+        delete process.env.OUTBOUND_MESSAGING_PAUSED;
         prismaMock.employerMessage.findFirst.mockResolvedValue({ id: 'recent-message' });
 
         const result = await sendSystemMessage(baseParams());
@@ -216,7 +218,7 @@ describe('sendSystemMessage', () => {
     });
 
     it('sends through the existing conversation models once enabled and uncapped', async () => {
-        process.env.ENABLE_SYSTEM_MESSAGES = '1';
+        delete process.env.OUTBOUND_MESSAGING_PAUSED;
         prismaMock.employerMessage.findFirst.mockResolvedValue(null);
         prismaMock.conversation.findFirst.mockResolvedValue(null);
         prismaMock.conversation.create.mockResolvedValue({ id: 'conversation-1' });
@@ -245,7 +247,7 @@ describe('sendSystemMessage', () => {
     });
 
     it('reuses an existing system conversation instead of duplicating it', async () => {
-        process.env.ENABLE_SYSTEM_MESSAGES = '1';
+        delete process.env.OUTBOUND_MESSAGING_PAUSED;
         prismaMock.employerMessage.findFirst.mockResolvedValue(null);
         prismaMock.conversation.findFirst.mockResolvedValue({ id: 'conversation-existing' });
         prismaMock.employerMessage.create.mockResolvedValue({ id: 'message-2' });
@@ -276,19 +278,31 @@ describe('sendSystemMessage', () => {
 });
 
 describe('env gates', () => {
-    it('keeps system messages off by default', () => {
-        expect(isSystemMessagesEnabled()).toBe(false);
+    it('runs system messages by default, with no variable to set', () => {
+        delete process.env.OUTBOUND_MESSAGING_PAUSED;
+        expect(isSystemMessagesEnabled()).toBe(true);
     });
 
-    it('requires BOTH flags before any email piggyback', () => {
-        process.env.ENABLE_SYSTEM_MESSAGE_EMAILS = '1';
-        expect(isSystemMessageEmailEnabled()).toBe(false); // messages still off
+    it('stops on the emergency brake', () => {
+        process.env.OUTBOUND_MESSAGING_PAUSED = '1';
+        expect(isSystemMessagesEnabled()).toBe(false);
+        delete process.env.OUTBOUND_MESSAGING_PAUSED;
+    });
 
-        process.env.ENABLE_SYSTEM_MESSAGES = '1';
+    it('keeps the email piggyback opt-in, and the brake overrides it', () => {
+        // In-platform messages cost nothing if they misfire; this email spends
+        // sender reputation, so it stays a deliberate choice.
+        delete process.env.SYSTEM_MESSAGE_EMAILS;
+        expect(isSystemMessageEmailEnabled()).toBe(false);
+
+        process.env.SYSTEM_MESSAGE_EMAILS = '1';
         expect(isSystemMessageEmailEnabled()).toBe(true);
 
-        delete process.env.ENABLE_SYSTEM_MESSAGE_EMAILS;
+        process.env.OUTBOUND_MESSAGING_PAUSED = '1';
         expect(isSystemMessageEmailEnabled()).toBe(false);
+
+        delete process.env.OUTBOUND_MESSAGING_PAUSED;
+        delete process.env.SYSTEM_MESSAGE_EMAILS;
     });
 });
 

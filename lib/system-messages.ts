@@ -46,6 +46,7 @@ import {
 // 7 days across the match digest, lifecycle emails and this nudge). Owned by
 // the match-digest feature; reused here, never reimplemented.
 import { isUnderSharedLifecycleCap } from '@/lib/match-digest-service';
+import { isOutboundPaused } from '@/lib/outbound-kill-switch';
 import {
     jobMatchesAlert,
     type AlertMatchableJob,
@@ -107,20 +108,26 @@ const MAX_FRESH_RECOMMENDATION_ROWS = 5000;
 const MAX_TITLE_CHARS = 80;
 const MAX_DRY_RUN_PREVIEWS = 5;
 
-/** Env gate. Default OFF; the operator flips ENABLE_SYSTEM_MESSAGES=1. */
+/**
+ * In-platform messages send by default. The only control is the shared
+ * emergency brake (lib/outbound-kill-switch).
+ */
 export function isSystemMessagesEnabled(): boolean {
-    const value = process.env.ENABLE_SYSTEM_MESSAGES;
-    return value === '1' || value === 'true';
+    return !isOutboundPaused();
 }
 
 /**
- * SECOND, independent gate for the employer email piggyback. Also default OFF,
- * and it only matters once ENABLE_SYSTEM_MESSAGES is already on. This lets the
- * operator roll out in-platform messages first (zero deliverability risk) and
- * decide about email as a separate, later step.
+ * The employer email piggyback stays OPT-IN, and deliberately so. An
+ * in-platform message costs nothing if it misfires: it sits in a thread the
+ * recipient may never open. An email spends sender reputation on domains that
+ * were warmed over weeks, and this particular mail is the least essential of
+ * everything we send (it announces activity the recipient can already see on
+ * their dashboard). Turning it on is a decision about deliverability budget,
+ * not about whether the feature works, so it is not covered by "enable
+ * everything": set SYSTEM_MESSAGE_EMAILS=1 when you want it.
  */
 export function isSystemMessageEmailEnabled(): boolean {
-    const value = process.env.ENABLE_SYSTEM_MESSAGE_EMAILS;
+    const value = process.env.SYSTEM_MESSAGE_EMAILS;
     return isSystemMessagesEnabled() && (value === '1' || value === 'true');
 }
 

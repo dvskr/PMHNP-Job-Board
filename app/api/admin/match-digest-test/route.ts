@@ -27,7 +27,7 @@ const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com')
  *   Body: { employerJobId: string, dryRun?: boolean }
  *   Renders the REAL digest for that posting (same exclusions the cron
  *   applies) and sends it TO THE AUTHENTICATED ADMIN'S OWN EMAIL, marked
- *   [TEST], regardless of ENABLE_EMPLOYER_MATCH_DIGESTS. The recipient is
+ *   [TEST], even while outbound messaging is paused. The recipient is
  *   NEVER taken from the request body. No MatchDigestEmail row is written,
  *   so a test send does not consume the posting's cooldown or exclude the
  *   surfaced candidates from a future real digest. dryRun returns the

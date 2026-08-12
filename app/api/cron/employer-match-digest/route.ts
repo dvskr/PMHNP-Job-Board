@@ -14,7 +14,7 @@ export const maxDuration = 120; // matching + per-employer sends
  * every live employer posting and email the employer up to 5 privacy-safe
  * candidate cards, plus the single 4-day follow-up for unclicked digests.
  *
- * SEND-DISABLED BY DEFAULT: real sends require ENABLE_EMPLOYER_MATCH_DIGESTS=1.
+ * SENDS BY DEFAULT. Stoppable without a deploy via OUTBOUND_MESSAGING_PAUSED=1.
  * With the flag unset the run exits before any matching compute. Pass
  * ?dryRun=1 to compute the full plan (matches, recipients, follow-ups) with
  * zero writes and zero sends — this works with the flag off and is the
