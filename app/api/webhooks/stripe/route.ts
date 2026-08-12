@@ -202,7 +202,14 @@ export async function POST(request: NextRequest) {
               // Reset expiryWarningSentAt so the renewed posting (new, later
               // expiresAt) gets its own 5-day-out warning. Without this, a job
               // warned once is permanently excluded from the expiry-warnings cron.
-              data: { paymentStatus: 'paid', pricingTier: renewalTier, expiryWarningSentAt: null },
+              // expiryFinalNoticeSentAt is reset for the same reason: both stamps
+              // are per-expiry-cycle, and a renewal starts a new cycle.
+              data: {
+                paymentStatus: 'paid',
+                pricingTier: renewalTier,
+                expiryWarningSentAt: null,
+                expiryFinalNoticeSentAt: null,
+              },
             });
 
             // Audit #2: record a JobCharge for this renewal so invoices reflect

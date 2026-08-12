@@ -149,3 +149,8 @@ notebooklm-*.md
 
 # Claude Code harness state (per-session locks, etc.)
 .claude/
+
+# Local analysis exports and design scratch: never commit (public repo, and
+# GSC exports carry traffic metrics).
+GSC/
+studio mockup/

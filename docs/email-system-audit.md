@@ -105,6 +105,7 @@ Most active senders live in [`lib/email-service.ts`](../lib/email-service.ts). O
 | 4 | `sendJobAlerts` (in `job-alerts-service.ts`, not `email-service.ts`) | `job_alert` | marketing | seeker | **cron** `send-alerts` 13:30 UTC | yes (cached per email) | yes |
 | 5 | `sendRenewalConfirmationEmail` | `renewal_confirmation` | transactional | employer | Stripe webhook | via wrapper | n/a |
 | 6 | `sendExpiryWarningEmail` | `expiry_warning` | transactional | employer | **cron** `expiry-warnings` 22:00 UTC | via wrapper | partial (uses editToken — inconsistent) |
+| 6b | `sendExpiryFinalNoticeEmail` | `expiry_final_notice` | transactional | employer | **cron** `expiry-warnings` 22:00 UTC, on the expiry date | yes (`isEmailSuppressed` before the claim) | yes |
 | 7 | `sendDraftSavedEmail` | `draft_saved` | transactional | employer | `/api/job-draft` | via wrapper | n/a |
 | 8 | `sendEmployerMessageNotification` | `employer_message_notification` | transactional | employer | `/api/conversations/[id]` | via wrapper | n/a |
 | 9 | `sendCandidateInquiryNotification` | `candidate_inquiry_notification` | transactional | seeker | `/api/candidate/messages` | via wrapper | n/a |
@@ -142,6 +143,7 @@ From [`vercel.json`](../vercel.json):
 | ~~`/api/cron/profile-nudge`~~ | ~~`0 18 * * *` daily~~ | ~~`sendProfileIncompleteEmail`~~ | ~~`profile_nudge`~~ | **deleted 2026-04-30** |
 | `/api/cron/saved-job-reminder` | `0 13 * * 3,6` Wed & Sat | `sendSavedJobReminderEmail` | `saved_job_reminder` | `lastSavedJobReminderAt` 7-day window |
 | `/api/cron/expiry-warnings` | `0 22 * * *` daily | `sendExpiryWarningEmail` | `expiry_warning` | `EmployerJob.expiryWarningSentAt` |
+| `/api/cron/expiry-warnings` (second pass) | `0 22 * * *` daily | `sendExpiryFinalNoticeEmail` | `expiry_final_notice` | `EmployerJob.expiryFinalNoticeSentAt`, stamped claim-first. Selects by UTC calendar date of `expiresAt` plus a 6h lookahead, so a posting that expired earlier the same day still gets exactly one notice. `?dryRun=1` previews both passes and sends nothing. |
 | `/api/cron/employer-report` | `0 14 * * 1` Mon | `sendPerformanceReportEmail` | `performance_report` | weekly cadence is the dedup |
 | `/api/cron/daily-report` | `0 13 * * *` | (Discord webhook, no email) | — | — |
 | `/api/cron/health-anomaly-check` | `0 13 * * *` | (Discord/log only) | — | — |
@@ -257,7 +259,8 @@ model UserProfile {
 
 model EmployerJob {
   // ... other fields ...
-  expiryWarningSentAt DateTime?     // dedup for expiry_warning cron
+  expiryWarningSentAt DateTime?     // dedup for expiry_warning cron (5 days out)
+  expiryFinalNoticeSentAt DateTime? // dedup for expiry_final_notice (expiry date)
   notifyOnApplication Boolean   @default(true)
   notifyDigest        String    @default("instant")    // instant | daily | off
 }
