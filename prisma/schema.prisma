@@ -288,6 +288,13 @@ model EmployerJob {
   createdAt           DateTime         @default(now()) @map("created_at")
   updatedAt           DateTime         @updatedAt @map("updated_at")
   expiryWarningSentAt DateTime?        @map("expiry_warning_sent_at")
+  /// Dedupe stamp for the expiry-date FINAL notice (the second and last email
+  /// of the expiry sequence, sent by /api/cron/expiry-warnings on the expiry
+  /// date itself). Written claim-first: stamped BEFORE the send, so a crash
+  /// between claim and send can only mean a missed email, never a duplicate.
+  /// Reset to null by the Stripe renewal branch alongside expiryWarningSentAt
+  /// so a renewed posting gets its own full sequence on the new expiry date.
+  expiryFinalNoticeSentAt DateTime?    @map("expiry_final_notice_sent_at")
   notifyOnApplication Boolean          @default(true) @map("notify_on_application")
   notifyDigest        String           @default("instant") @map("notify_digest") // instant, daily, off
   userId              String?          @map("user_id")

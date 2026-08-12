@@ -12,6 +12,7 @@ import {
   sectionLabelV2, infoCardV2,
   V2, SANS as SANS_V2, SERIF as SERIF_V2,
 } from '@/lib/email-templates-v2';
+import { buildFinalNoticeCopy } from '@/lib/expiry-final-notice';
 import { renderJobCardHtml } from '@/lib/utils/render-job-card';
 import { buildListUnsubscribeHeaders } from '@/lib/email/list-unsubscribe';
 
@@ -73,6 +74,10 @@ export type EmailType =
   | 'renewal_confirmation'
   | 'refund_confirmation'
   | 'expiry_warning'
+  // Second and final email of the expiry sequence, sent ON the expiry date by
+  // the same cron. Distinct from 'expiry_warning' so the two are countable
+  // apart and a dedupe bug in one can never be read as the other.
+  | 'expiry_final_notice'
   | 'draft_saved'
   | 'employer_message'
   | 'candidate_inquiry'
@@ -630,6 +635,26 @@ export async function sendRenewalConfirmationEmail(
 // 6. EXPIRY WARNING EMAIL
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * The renew CTA target for every expiry email (5-day warning and expiry-date
+ * final notice both point here).
+ *
+ * This used to be /employer/dashboard/<token>, which is a redirect-only stub
+ * ("token access deprecated") that dumped the employer on a bare login screen
+ * with no listing, no renew button, and no context. Every renewal pitch died
+ * there. The link now carries the intent through login: sign in, land on the
+ * dashboard, renew modal already open for this listing.
+ *
+ * Without a jobId the CTA lands on the dashboard and the employer picks the
+ * listing manually.
+ */
+export function buildRenewCtaUrl(jobId?: string): string {
+  const renewTarget = jobId
+    ? `/employer/dashboard?renew=${encodeURIComponent(jobId)}`
+    : '/employer/dashboard';
+  return `${BASE_URL}/login?role=employer&redirectTo=${encodeURIComponent(renewTarget)}`;
+}
+
 export async function sendExpiryWarningEmail(
   email: string,
   jobTitle: string,
@@ -656,18 +681,11 @@ export async function sendExpiryWarningEmail(
       day: 'numeric'
     });
 
-    // CTA target. This used to be /employer/dashboard/<token>, which is a
-    // redirect-only stub ("token access deprecated") that dumped the employer
-    // on a bare login screen with no listing, no renew button, and no context.
-    // Every renewal pitch died there. Now the link carries the intent through
-    // login: sign in, land on the dashboard, renew modal already open for this
-    // listing. `dashboardToken` is retained in the signature because callers
-    // still pass it and it identifies the row for support.
+    // CTA target: the shared deep link (see buildRenewCtaUrl above).
+    // `dashboardToken` is retained in the signature because callers still pass
+    // it and it identifies the row for support.
     void dashboardToken;
-    const renewTarget = jobId
-      ? `/employer/dashboard?renew=${encodeURIComponent(jobId)}`
-      : '/employer/dashboard';
-    const dashboardUrl = `${BASE_URL}/login?role=employer&redirectTo=${encodeURIComponent(renewTarget)}`;
+    const dashboardUrl = buildRenewCtaUrl(jobId);
     const discountPct = Math.round((1 - config.renewalPrice / config.postingPrice) * 100);
 
     const html = emailShellV2(`
@@ -691,7 +709,7 @@ export async function sendExpiryWarningEmail(
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2(unsubscribeToken || 'sample'),
-      `Your listing expires in ${daysUntilExpiry} days — renew for $${config.renewalPrice} (save ${discountPct}%).`
+      `Your listing expires in ${daysUntilExpiry} days: renew for $${config.renewalPrice} (save ${discountPct}%).`
     );
 
     // Always pass a real unsubscribe token; mint one if the caller didn't.
@@ -710,6 +728,121 @@ export async function sendExpiryWarningEmail(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send expiry warning email',
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 6a. EXPIRY FINAL NOTICE EMAIL (sent ON the expiry date)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Live performance numbers for the posting being pitched. Never estimated. */
+export interface ExpiryFinalNoticeStats {
+  viewCount: number;
+  applyClickCount: number;
+  applicationCount: number;
+}
+
+export interface ExpiryFinalNoticeResult {
+  success: boolean;
+  error?: string;
+  /**
+   * True ONLY when the provider definitively rejected the message: it came
+   * back inside the response envelope, so nothing was sent. The cron reverts
+   * its claim only in that case. A thrown (ambiguous) failure leaves this
+   * undefined and the cron keeps the claim, because the request may already
+   * have reached Resend and a duplicate "your listing expired" email is worse
+   * than a missed one.
+   */
+  rejected?: boolean;
+}
+
+/**
+ * The second and final email of the expiry sequence, sent on the expiry date
+ * itself by /api/cron/expiry-warnings.
+ *
+ * The cron runs at a fixed 22:00 UTC while postings expire at any clock time,
+ * so this email has to be honest about an instant that may be ahead of the
+ * send OR already behind it. All of that branching lives in
+ * lib/expiry-final-notice.ts; this function only renders it.
+ */
+export async function sendExpiryFinalNoticeEmail(params: {
+  email: string;
+  jobTitle: string;
+  expiresAt: Date;
+  /** Real counters read off the Job row at send time. */
+  stats: ExpiryFinalNoticeStats;
+  /** Deep links the CTA straight to this listing's renew flow. */
+  jobId: string;
+  unsubscribeToken?: string | null;
+  /** Injectable clock: the cron passes its own run instant. */
+  now?: Date;
+}): Promise<ExpiryFinalNoticeResult> {
+  const { email, jobTitle, expiresAt, stats, jobId } = params;
+  try {
+    const now = params.now ?? new Date();
+    const copy = buildFinalNoticeCopy({
+      jobTitleHtml: escapeHtml(jobTitle),
+      expiresAt,
+      now,
+      renewalPrice: config.renewalPrice,
+      durationDays: config.durationDays,
+    });
+
+    const renewUrl = buildRenewCtaUrl(jobId);
+    const discountPct = Math.round((1 - config.renewalPrice / config.postingPrice) * 100);
+
+    const html = emailShellV2(`
+      ${headerBlockV2(copy.heading, '')}
+      ${spacerV2(12)}
+      ${bodyTextV2(copy.body)}
+      ${spacerV2(24)}
+      <tr><td class="content-pad" style="padding:0 40px;">${sectionLabelV2(copy.statsLabel)}</td></tr>
+      ${spacerV2(8)}
+      <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(stats.viewCount.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(stats.applyClickCount.toLocaleString(), 'Apply Clicks')}<td width="8"></td>${statBlockV2(stats.applicationCount.toLocaleString(), 'Applications')}</tr></table></td></tr>
+      ${spacerV2(20)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
+          <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Renew for $${config.renewalPrice} (Save ${discountPct}%)</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">${copy.renewLine} You also get a fresh ${config.limits.candidateUnlocksPerPosting} candidate unlocks and ${config.limits.inmailsPerPosting} InMails.</p>
+          <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">Candidates you have already unlocked stay accessible in your dashboard either way.</p>
+        </div>
+      </td></tr>
+      ${spacerV2(24)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2(copy.ctaLabel, renewUrl)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2(params.unsubscribeToken || 'sample'),
+      copy.preheader,
+    );
+
+    // Always pass a real unsubscribe token; mint one if the caller didn't.
+    const unsubToken = params.unsubscribeToken ?? await getOrCreateUnsubToken(email);
+    const sendResult = await sendAndLog({
+      from: EMAIL_FROM,
+      to: email,
+      subject: copy.subject,
+      html,
+    }, 'expiry_final_notice', { jobTitle, jobId, state: copy.state }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
+
+    // Resend reports API-level rejections in the envelope rather than throwing.
+    // Surfacing it (instead of counting it as sent) is what lets the cron give
+    // the claim back safely.
+    if (sendResult?.error) {
+      const message = sendResult.error.message || 'Provider rejected the message';
+      logger.error('Expiry final notice rejected by provider', sendResult.error, { email, jobId });
+      return { success: false, error: message, rejected: true };
+    }
+
+    logger.info('Expiry final notice email sent', { email, jobId, state: copy.state });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending expiry final notice email', error, { email, jobId });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send expiry final notice email',
     };
   }
 }

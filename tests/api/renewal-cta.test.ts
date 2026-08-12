@@ -18,14 +18,38 @@ import * as path from 'node:path';
 const read = (rel: string): string =>
   fs.readFileSync(path.resolve(__dirname, '../../', rel), 'utf8');
 
-/** Source of the sendExpiryWarningEmail function body. */
-function expiryEmailSource(): string {
+/** Source of a named export's body, up to the next top-level export. */
+function exportSource(decl: string): string {
   const src = read('lib/email-service.ts');
-  const start = src.indexOf('export async function sendExpiryWarningEmail');
+  const start = src.indexOf(decl);
   expect(start).toBeGreaterThan(-1);
   const next = src.indexOf('\nexport ', start + 10);
   return src.slice(start, next === -1 ? undefined : next);
 }
+
+/** Source of the sendExpiryWarningEmail function body. */
+function expiryEmailSource(): string {
+  return exportSource('export async function sendExpiryWarningEmail');
+}
+
+describe('the shared renew CTA builder', () => {
+  // The deep link now lives in one place because BOTH expiry emails (the
+  // 5-day warning and the expiry-date final notice) point at it.
+  const builder = exportSource('export function buildRenewCtaUrl');
+
+  it('sends the employer somewhere that can actually renew', () => {
+    expect(builder).toMatch(/\/employer\/dashboard/);
+    expect(builder).toMatch(/redirectTo=/);
+  });
+
+  it('deep links the specific listing so the renew modal can open itself', () => {
+    expect(builder).toMatch(/renew=\$\{encodeURIComponent\(jobId\)\}/);
+  });
+
+  it('does NOT link to the token dashboard, which is a redirect-only stub', () => {
+    expect(builder).not.toMatch(/\/employer\/dashboard\/\$\{/);
+  });
+});
 
 describe('expiry warning email CTA', () => {
   const body = expiryEmailSource();
@@ -34,18 +58,28 @@ describe('expiry warning email CTA', () => {
     expect(body).not.toMatch(/\/employer\/dashboard\/\$\{\s*dashboardToken\s*\}/);
   });
 
-  it('sends the employer somewhere that can actually renew', () => {
-    // Either straight to the dashboard, or through login carrying the intent.
-    expect(body).toMatch(/\/employer\/dashboard|redirectTo=/);
-  });
-
-  it('deep links the specific listing so the renew modal can open itself', () => {
-    expect(body).toMatch(/renew=\$\{encodeURIComponent\(jobId\)\}/);
+  it('uses the shared deep-link builder rather than rebuilding the URL', () => {
+    expect(body).toMatch(/buildRenewCtaUrl\(jobId\)/);
   });
 
   it('still shows the value earned (views and applies) next to the ask', () => {
     expect(body).toMatch(/viewCount/);
     expect(body).toMatch(/applyClickCount/);
+    expect(body).toMatch(/config\.renewalPrice/);
+  });
+});
+
+describe('expiry final notice CTA', () => {
+  const body = exportSource('export async function sendExpiryFinalNoticeEmail');
+
+  it('reuses the same deep-link builder as the 5-day warning', () => {
+    expect(body).toMatch(/buildRenewCtaUrl\(jobId\)/);
+  });
+
+  it('shows the posting\'s real numbers next to the ask', () => {
+    expect(body).toMatch(/stats\.viewCount/);
+    expect(body).toMatch(/stats\.applyClickCount/);
+    expect(body).toMatch(/stats\.applicationCount/);
     expect(body).toMatch(/config\.renewalPrice/);
   });
 });
@@ -87,5 +121,9 @@ describe('the cron that sends it', () => {
   it('only targets employer-posted listings and dedupes on expiryWarningSentAt', () => {
     expect(cron).toMatch(/sourceType:\s*['"]employer['"]/);
     expect(cron).toMatch(/expiryWarningSentAt/);
+  });
+
+  it('dedupes the expiry-date final notice on its own stamp', () => {
+    expect(cron).toMatch(/expiryFinalNoticeSentAt/);
   });
 });
