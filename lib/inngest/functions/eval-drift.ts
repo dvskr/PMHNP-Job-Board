@@ -13,6 +13,14 @@
  *
  * Cost: at full registry coverage (~10 suites × 100 cases × ~$0.001 each)
  * = ~$1/day. Bounded.
+ *
+ * STEP-OUTPUT DISCIPLINE (2026-08-13): `runGolden()` resolves to a full
+ * SuiteResult, which carries `cases[]` — one entry per golden case with a
+ * free-text `reason` string. Returning that straight out of a step parks a
+ * whole row collection in durable Inngest run state, the shape that broke
+ * recommendations.ts (see that file's docblock). Nothing downstream reads
+ * `cases`, so the step projects to the seven scalars the persist and drift
+ * checks actually use. Locked by tests/lib/inngest-step-output-size.test.ts.
  */
 
 import { inngest } from '@/lib/inngest/client';
@@ -44,26 +52,39 @@ export const evalDriftDaily = inngest.createFunction(
         for (const task of tasks) {
             const entry = EVAL_REGISTRY[task]!;
             const runGolden = entry.runGolden!;
-            const result = await step.run(`run-golden-${task}`, async () => runGolden());
+            // Scalars only across the boundary — `cases[]` is dropped here,
+            // inside the step, rather than persisted as run state.
+            const summary = await step.run(`run-golden-${task}`, async () => {
+                const r = await runGolden();
+                return {
+                    promptVersion: r.promptVersion,
+                    meanScore: r.meanScore,
+                    passed: r.passed,
+                    totalCases: r.totalCases,
+                    costUsd: r.totalCostUsd,
+                    p95LatencyMs: r.p95LatencyMs,
+                    holdsBaseline: r.holdsBaseline,
+                };
+            });
             results.push({
                 task,
-                meanScore: result.meanScore,
-                passed: result.passed,
-                total: result.totalCases,
-                cost: result.totalCostUsd,
+                meanScore: summary.meanScore,
+                passed: summary.passed,
+                total: summary.totalCases,
+                cost: summary.costUsd,
             });
 
             await step.run(`persist-${task}`, async () => {
                 await prisma.aiEvalSnapshot.create({
                     data: {
                         task,
-                        promptVersion: result.promptVersion,
-                        meanScore: result.meanScore,
-                        passed: result.passed,
-                        totalCases: result.totalCases,
-                        costUsd: result.totalCostUsd,
-                        p95LatencyMs: result.p95LatencyMs,
-                        holdsBaseline: result.holdsBaseline,
+                        promptVersion: summary.promptVersion,
+                        meanScore: summary.meanScore,
+                        passed: summary.passed,
+                        totalCases: summary.totalCases,
+                        costUsd: summary.costUsd,
+                        p95LatencyMs: summary.p95LatencyMs,
+                        holdsBaseline: summary.holdsBaseline,
                     },
                 });
             });

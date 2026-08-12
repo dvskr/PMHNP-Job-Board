@@ -16,6 +16,16 @@ import robotsHandler from '@/app/robots';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 import { getAllMetroSlugs } from '@/lib/metro-data';
 
+// app/sitemap.ts calls getAllPublishedSlugs(), which opens a real Supabase
+// connection. Unmocked, that is a live network call from a unit test: it hangs
+// until the socket gives up, which blows the default 5s test timeout and made
+// this file fail for reasons that have nothing to do with the sitemap budget.
+// This suite asserts URL budget and canonical shape, not the blog section, so
+// an empty deterministic result is all it needs.
+vi.mock('@/lib/blog', () => ({
+    getAllPublishedSlugs: vi.fn(async () => [] as { slug: string; updated_at: string }[]),
+}));
+
 // Build a synthetic catalog that's representative of production scale.
 function jobsFixture(count: number) {
     return Array.from({ length: count }, (_, i) => ({

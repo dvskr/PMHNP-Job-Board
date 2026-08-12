@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { pingAllSearchEnginesBatch } from '@/lib/search-indexing';
+import { pingAllSearchEnginesBatch, summarizeBingResults } from '@/lib/search-indexing';
 import { slugify } from '@/lib/utils';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
+import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes — submits 200+ URLs to search engines
 
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     if (authError) return authError;
 
     const startTime = Date.now();
-    console.log('[CRON:index-urls] Starting daily search engine indexing');
+    logger.info('[CRON:index-urls] Starting daily search engine indexing');
 
     try {
         return await withCronTracking('index-urls', async () => {
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
             });
 
             if (recentJobs.length === 0) {
-                console.log('[CRON:index-urls] No new/updated jobs to index');
+                logger.info('[CRON:index-urls] No new/updated jobs to index');
                 return {
                     response: NextResponse.json({
                         success: true,
@@ -78,15 +79,20 @@ export async function GET(request: NextRequest) {
                 return `${BASE_URL}/jobs/${slug}`;
             });
 
-            console.log(`[CRON:index-urls] Submitting ${urls.length} URLs to search engines (${employerJobs.length} employer-posted, prioritized)`);
+            logger.info('[CRON:index-urls] Submitting URLs to search engines', {
+                urlCount: urls.length,
+                employerJobCount: employerJobs.length,
+            });
 
             // Submit to all engines (Google, Bing, IndexNow)
             const results = await pingAllSearchEnginesBatch(urls);
 
             const googleSuccess = results.google.filter((r) => r.success).length;
             const googleFailed = results.google.filter((r) => !r.success).length;
-            const bingSuccess = results.bing.filter((r) => r.success).length;
-            const bingFailed = results.bing.filter((r) => !r.success).length;
+            // Bing splits three ways: submitted, rejected, and never-sent.
+            // Lumping the last two together is what made the daily-quota cap
+            // read as "500 failures" every run with no reason attached.
+            const bing = summarizeBingResults(results.bing);
             const indexNowSuccess = results.indexNow.filter((r) => r.success).length;
             const indexNowFailed = results.indexNow.filter((r) => !r.success).length;
             const indexNowFirstError = results.indexNow.find((r) => !r.success)?.error;
@@ -108,7 +114,12 @@ export async function GET(request: NextRequest) {
                 jobCount: urls.length,
                 employerJobCount: employerJobs.length,
                 google: { submitted: googleSuccess, failed: googleFailed },
-                bing: { submitted: bingSuccess, failed: bingFailed },
+                bing: {
+                    submitted: bing.submitted,
+                    failed: bing.failed,
+                    skipped: bing.skipped,
+                    ...(bing.reason ? { reason: bing.reason } : {}),
+                },
                 indexNow: {
                     submitted: indexNowSuccess,
                     failed: indexNowFailed,
@@ -118,7 +129,7 @@ export async function GET(request: NextRequest) {
                 timestamp: new Date().toISOString(),
             };
 
-            console.log('[CRON:index-urls] Complete:', JSON.stringify(summary));
+            logger.info('[CRON:index-urls] Complete', summary);
 
             return {
                 response: NextResponse.json(summary),
@@ -127,8 +138,10 @@ export async function GET(request: NextRequest) {
                     employerJobCount: employerJobs.length,
                     googleSubmitted: googleSuccess,
                     googleFailed,
-                    bingSubmitted: bingSuccess,
-                    bingFailed,
+                    bingSubmitted: bing.submitted,
+                    bingFailed: bing.failed,
+                    bingSkipped: bing.skipped,
+                    ...(bing.reason ? { bingReason: bing.reason } : {}),
                     indexNowSubmitted: indexNowSuccess,
                     indexNowFailed,
                     ...(indexNowFirstError ? { indexNowFirstError } : {}),
@@ -137,7 +150,7 @@ export async function GET(request: NextRequest) {
         });
     } catch (error) {
         await sendCronFailureAlert('index-urls', error);
-        console.error('[CRON:index-urls] Error:', error);
+        logger.error('[CRON:index-urls] Error', error);
 
         return NextResponse.json(
             {

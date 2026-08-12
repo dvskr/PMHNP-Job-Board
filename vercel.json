@@ -182,7 +182,7 @@
     },
     {
       "path": "/api/cron/cleanup-rejected-jobs",
-      "schedule": "45 4 * * *"
+      "schedule": "45 1,3,5,7 * * *"
     },
     {
       "path": "/api/cron/aggregate-pseo",

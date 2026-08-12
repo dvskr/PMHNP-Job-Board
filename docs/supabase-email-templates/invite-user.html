@@ -1,0 +1,115 @@
+<!--
+  Supabase > Authentication > Emails > Invite user
+  Subject heading: You have been invited to PMHNP Hiring
+  Paste this whole file as the template body.
+
+  This template only fires when someone is invited from the Supabase dashboard
+  or through the admin invite API. The app itself does not send invites today.
+  See README.md in this folder before turning an invite flow on.
+
+  WHY IT IS SHAPED LIKE THIS
+  Outlook on Windows renders mail through Word, which ignores CSS backgrounds
+  on <a> elements. A link styled as a button therefore keeps its padding and
+  its white text but loses its fill, so the recipient sees a blank gap where
+  the button should be. That is what an employer reported: "Says click below,
+  but there is nothing there."
+
+  Three defences, in order of reliability:
+    1. bgcolor on the <td>. An HTML attribute, not CSS, so Word honours it.
+    2. A VML rounded rectangle inside an mso conditional, which is the only
+       way Outlook draws rounded corners. Other clients never see it.
+    3. The raw URL printed as visible text underneath. If every button
+       technique fails, the recipient can still copy a link. This is the one
+       that actually guarantees the email works.
+
+  Do not replace the table with a bare styled <a>. That is the bug.
+  Do not delete the visible URL block. See README.md in this folder.
+-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F5F0EB;padding:24px 0;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background-color:#FFFFFF;border-radius:12px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;">
+
+        <tr>
+          <td align="center" bgcolor="#F6D5C3" style="background-color:#F6D5C3;padding:22px 24px;">
+            <div style="font-size:20px;font-weight:bold;color:#1F2937;">PMHNP Hiring</div>
+            <div style="font-size:11px;letter-spacing:1.5px;color:#5A4A42;padding-top:4px;">MENTAL HEALTH CAREERS</div>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:32px 32px 8px;">
+            <h1 style="margin:0 0 12px;font-size:22px;color:#1F2937;font-weight:bold;">You have been invited</h1>
+            <p style="margin:0;font-size:15px;line-height:22px;color:#374151;">
+              {{ .Email }} was invited to PMHNP Hiring, the job board for psychiatric mental health nurse
+              practitioners. Use the button below to accept the invitation and open your account.
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:24px 32px 8px;">
+            <!--[if mso]>
+            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"
+                         href="{{ .ConfirmationURL }}" style="height:46px;v-text-anchor:middle;width:260px;"
+                         arcsize="20%" stroke="f" fillcolor="#0D6B62">
+              <w:anchorlock/>
+              <center style="color:#FFFFFF;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">
+                Accept the invitation
+              </center>
+            </v:roundrect>
+            <![endif]-->
+            <!--[if !mso]><!-- -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#0D6B62" style="background-color:#0D6B62;border-radius:8px;">
+                  <a href="{{ .ConfirmationURL }}"
+                     style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;color:#FFFFFF;text-decoration:none;border-radius:8px;">
+                    Accept the invitation
+                  </a>
+                </td>
+              </tr>
+            </table>
+            <!--<![endif]-->
+          </td>
+        </tr>
+
+        <!-- The guarantee: a link that survives any rendering engine. -->
+        <tr>
+          <td style="padding:8px 32px 4px;">
+            <p style="margin:0 0 6px;font-size:13px;line-height:19px;color:#4B5563;">
+              If the button does not appear or does not work, copy and paste this link into your browser:
+            </p>
+            <p style="margin:0;font-size:13px;line-height:19px;word-break:break-all;">
+              <a href="{{ .ConfirmationURL }}" style="color:#0D6B62;">{{ .ConfirmationURL }}</a>
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:20px 32px 28px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="background-color:#FEF6E7;border-radius:8px;">
+              <tr>
+                <td style="padding:12px 14px;font-size:12.5px;line-height:18px;color:#5A4A42;">
+                  This link signs in whoever opens it, so please do not forward this email. If you were not expecting
+                  an invitation from PMHNP Hiring, you can safely ignore it, or tell us at
+                  <a href="mailto:support@pmhnphiring.com" style="color:#0D6B62;">support@pmhnphiring.com</a>.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" bgcolor="#1F2937" style="background-color:#1F2937;padding:16px 24px;font-size:12px;color:#D1D5DB;">
+            &copy; 2026 PMHNP Hiring &middot;
+            <a href="https://pmhnphiring.com" style="color:#D1D5DB;">pmhnphiring.com</a> &middot;
+            <a href="mailto:support@pmhnphiring.com" style="color:#D1D5DB;">support@pmhnphiring.com</a>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
