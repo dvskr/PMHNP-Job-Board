@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
       const searchParams = request.nextUrl.searchParams;
       const sourceParam = searchParams.get('source');
       const chunkParam = searchParams.get('chunk');
-      const endpointParam = searchParams.get('endpoint');
 
       let sources: JobSource[];
       if (sourceParam) {
@@ -54,12 +53,11 @@ export async function GET(request: NextRequest) {
         sources = ALL_SOURCES;
       }
 
-      const ingestOptions: { chunk?: number; fantasticEndpoint?: '24h' | '7d' | '6m' } = {};
+      const ingestOptions: { chunk?: number } = {};
       if (chunkParam !== null) ingestOptions.chunk = parseInt(chunkParam, 10);
-      if (endpointParam === '24h' || endpointParam === '6m' || endpointParam === '7d') ingestOptions.fantasticEndpoint = endpointParam;
       const ingestOption = Object.keys(ingestOptions).length > 0 ? ingestOptions : undefined;
 
-      console.log(`[CRON] Sources to process: ${sources.join(', ')}${ingestOption?.chunk !== undefined ? ` (chunk ${ingestOption.chunk})` : ''}${ingestOption?.fantasticEndpoint ? ` (endpoint ${ingestOption.fantasticEndpoint})` : ''}`);
+      console.log(`[CRON] Sources to process: ${sources.join(', ')}${ingestOption?.chunk !== undefined ? ` (chunk ${ingestOption.chunk})` : ''}`);
 
       console.log('\n[CRON] Step 1: Starting job ingestion...');
       const ingestionResults = await ingestJobs(sources, ingestOption);
@@ -125,9 +123,10 @@ export async function GET(request: NextRequest) {
             errors: r.errors,
             duration: r.duration,
           })),
-          // Per-source API quota usage (only sources with a quota — currently
-          // fantastic-jobs-db / RapidAPI Ultra). Lets the monthly 20k cap be
-          // queried from cron_runs.metrics without external dashboards.
+          // Per-source API quota usage (only sources with a quota — none
+          // currently; fantastic-jobs-db was the last and was decommissioned
+          // 2026-08-19). Kept so cron_runs.metrics stays queryable when a
+          // quota'd source returns.
           apiCallsBySource: Object.fromEntries(
             ingestionResults
               .filter((r) => typeof r.apiCallsUsed === 'number')

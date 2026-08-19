@@ -18,7 +18,6 @@ import { adzunaAggregator } from './adzuna';
 import { greenhouseAggregator } from './greenhouse';
 import { leverAggregator } from './lever';
 import { workdayAggregator } from './workday';
-import { fantasticJobsDbAggregator } from './fantastic-jobs-db';
 import { smartRecruitersAggregator } from './smartrecruiters';
 import { usaJobsAggregator } from './usajobs';
 import { ashbyAggregator } from './ashby';
@@ -35,12 +34,17 @@ import { healthCareerCenterAggregator } from './healthcareercenter';
 // jobs/month for $49 = ~$3-5/job — not worth keeping. Adapter and
 // scripts removed; resurrect from git history if we revisit.
 
+// fantastic-jobs-db decommissioned 2026-08-19: the source produced no
+// published jobs for 52 straight days. Crons, adapter, and search-term
+// list removed; already-ingested rows keep sourceProvider
+// 'fantastic-jobs-db' and age out through the normal lifecycle.
+// Resurrect from git history if we revisit.
+
 export const aggregators: Record<JobSource, Aggregator> = {
     adzuna: adzunaAggregator,
     greenhouse: greenhouseAggregator,
     lever: leverAggregator,
     workday: workdayAggregator,
-    'fantastic-jobs-db': fantasticJobsDbAggregator,
     smartrecruiters: smartRecruitersAggregator,
     usajobs: usaJobsAggregator,
     ashby: ashbyAggregator,

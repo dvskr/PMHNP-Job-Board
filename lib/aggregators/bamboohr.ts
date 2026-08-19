@@ -1,17 +1,27 @@
 /**
- * BambooHR adapter — public careers/list JSON endpoint.
+ * BambooHR adapter — public careers/list JSON endpoint + detail JSON.
  *
  * Endpoint: GET https://{slug}.bamboohr.com/careers/list
  * Response: { meta: { totalCount }, result: [{ id, jobOpeningName, ... }] }
  *
  * Public, unauthenticated. No pagination — endpoint returns the
- * complete list in one response. Detail fetch uses
- * https://{slug}.bamboohr.com/careers/{id} which returns HTML; we
- * derive the description from a small list of JSON-embedded fields
- * that the list endpoint already exposes (employmentStatusLabel,
- * departmentLabel, locationCity, locationState, jobOpeningName, etc.).
- * Detail-page scraping is intentionally skipped — the list payload
- * has enough for the normalizer's completeness gate.
+ * complete list in one response.
+ *
+ * 2026-08-19 fix: this adapter previously skipped detail fetching on
+ * the assumption that the list payload "has enough for the normalizer's
+ * completeness gate". It does not — the list rows carry NO description
+ * (live probe across all 25 boards: zero rows with descriptionHtml), so
+ * every title-relevant candidate entered the pipeline with a ~5-line
+ * synthetic blob and died at the orchestrator's soft completeness floor
+ * (source_stats: normalizer_low_completeness 10-13/day, i.e. every
+ * non-duplicate candidate). The public JSON detail endpoint
+ *   GET https://{slug}.bamboohr.com/careers/{id}/detail
+ * returns { result: { jobOpening: { description, datePosted,
+ * compensation, location, ... } } } with the full HTML description
+ * (5-10 KB). We now fetch it for title-relevant candidates only
+ * (~12/run across all tenants), and also surface `datePosted` and
+ * `compensation` so freshness gating and salary extraction see the
+ * truth. Failed detail fetches degrade to the old synthetic blob.
  *
  * Tenants in lib/aggregators/tenants/bamboohr.ts.
  */
@@ -36,6 +46,8 @@ interface BambooHrJob {
     datePosted?: string;
     isRemote?: boolean | string;
     descriptionHtml?: string;
+    /** Free-text pay string from the detail endpoint (e.g. "$110,000-$130,000 per year"). */
+    compensation?: string | null;
 }
 
 interface BambooHrResponse {
@@ -43,8 +55,18 @@ interface BambooHrResponse {
     result?: BambooHrJob[];
 }
 
+/** Shape of result.jobOpening in the careers/{id}/detail response. */
+interface BambooHrJobDetail {
+    description?: string;
+    compensation?: string | null;
+    datePosted?: string;
+    location?: { city?: string; state?: string };
+    employmentStatusLabel?: string;
+}
+
 const TIME_BUDGET_MS = 180_000; // under orchestrator MAX_INGESTION_MS (240s) so the insert loop has headroom
 const TENANT_GAP_MS = 300;
+const DETAIL_FETCH_GAP_MS = 200;
 const BATCH_SIZE = 5;
 
 function sleep(ms: number): Promise<void> {
@@ -84,6 +106,8 @@ function buildDescription(job: BambooHrJob, employerName: string): string {
     lines.push(`Employer: ${employerName}`);
     if (job.departmentLabel) lines.push(`Department: ${job.departmentLabel}`);
     if (job.employmentStatusLabel) lines.push(`Employment: ${job.employmentStatusLabel}`);
+    // Free-text pay line so the normalizer's salary extraction can read it.
+    if (job.compensation) lines.push(`Compensation: ${job.compensation}`);
     const loc = buildLocation(job);
     if (loc) lines.push(`Location: ${loc}`);
     if (job.descriptionHtml) {
@@ -91,6 +115,30 @@ function buildDescription(job: BambooHrJob, employerName: string): string {
         lines.push(htmlToReadableText(job.descriptionHtml));
     }
     return lines.join('\n');
+}
+
+/**
+ * Fetch the full job detail JSON. Returns null on any failure — the
+ * caller then falls back to the synthetic list-field description
+ * (pre-fix behavior), which the completeness gate will judge honestly.
+ */
+async function fetchJobDetail(slug: string, id: string): Promise<BambooHrJobDetail | null> {
+    const url = `https://${slug}.bamboohr.com/careers/${id}/detail`;
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!res.ok) {
+            console.warn(`[BambooHR] ${slug}/${id}: detail HTTP ${res.status}`);
+            return null;
+        }
+        const data = (await res.json()) as { result?: { jobOpening?: BambooHrJobDetail } };
+        return data.result?.jobOpening ?? null;
+    } catch (err) {
+        console.warn(`[BambooHR] ${slug}/${id}: detail fetch failed -`, err instanceof Error ? err.message : err);
+        return null;
+    }
 }
 
 async function fetchTenantJobs(tenant: { slug: string; name: string }): Promise<RawJobData[]> {
@@ -111,21 +159,38 @@ async function fetchTenantJobs(tenant: { slug: string; name: string }): Promise<
 
         for (const j of jobs) {
             if (!isRelevantJob(j.jobOpeningName ?? '', '')) continue;
+
+            // Detail fetch for relevant candidates only (~12/run across
+            // all tenants). Merged immutably — list fields win where both
+            // exist, detail fills the gaps (description, datePosted,
+            // compensation, city/state).
+            const detail = await fetchJobDetail(tenant.slug, j.id);
+            const merged: BambooHrJob = {
+                ...j,
+                descriptionHtml: j.descriptionHtml ?? detail?.description,
+                datePosted: j.datePosted ?? detail?.datePosted,
+                compensation: j.compensation ?? detail?.compensation,
+                locationCity: j.locationCity ?? detail?.location?.city,
+                locationState: j.locationState ?? detail?.location?.state,
+                employmentStatusLabel: j.employmentStatusLabel ?? detail?.employmentStatusLabel,
+            };
+
             const applyLink = `https://${tenant.slug}.bamboohr.com/careers/${j.id}`;
             out.push({
                 externalId: `bamboohr-${tenant.slug}-${j.id}`,
-                title: j.jobOpeningName,
+                title: merged.jobOpeningName,
                 company: tenant.name,
                 employer: tenant.name,
-                location: buildLocation(j),
-                description: buildDescription(j, tenant.name),
+                location: buildLocation(merged),
+                description: buildDescription(merged, tenant.name),
                 applyLink,
-                postedDate: j.datePosted,
-                postedAt: j.datePosted,
-                jobType: mapEmploymentStatus(j.employmentStatusLabel) ?? undefined,
+                postedDate: merged.datePosted,
+                postedAt: merged.datePosted,
+                jobType: mapEmploymentStatus(merged.employmentStatusLabel) ?? undefined,
                 sourceProvider: 'bamboohr',
                 sourceSite: 'bamboohr',
             } as RawJobData);
+            await sleep(DETAIL_FETCH_GAP_MS);
         }
         console.log(`[BambooHR] ${tenant.name}: ${out.length} PMHNP-relevant of ${jobs.length} total`);
     } catch (err) {

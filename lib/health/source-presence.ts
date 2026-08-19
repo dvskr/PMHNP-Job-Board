@@ -311,7 +311,7 @@ const RUNS_PER_DAY: Readonly<Record<string, number>> = {
     ashby: 2,            // was 3 — runs at 11:40 and 00:40
     workday: 3,          // 5 chunks × 3 cycles, but presence math uses cycles
     greenhouse: 3,       // 4 chunks × 3 cycles, presence math uses cycles
-    'fantastic-jobs-db': 2,
+    'fantastic-jobs-db': 2, // decommissioned 2026-08-19 — not scheduled in vercel.json
     smartrecruiters: 3,
     icims: 3,            // not currently scheduled in vercel.json
     jazzhr: 2,           // was 3 — runs at 11:55 and 00:48

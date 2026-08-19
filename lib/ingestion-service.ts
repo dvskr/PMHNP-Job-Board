@@ -1,9 +1,9 @@
 import { randomUUID } from 'crypto';
 import { prisma } from './prisma';
 import { GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
-import { getLastRunDiagnostics as getFantasticJobsDiag } from './aggregators/fantastic-jobs-db';
 import { normalizeJobWithReason } from './job-normalizer';
 import { checkDuplicate, buildJobIdentityKey, buildApplyUrlPathKey } from './deduplicator';
+import { formatDisplaySalary } from './salary-display';
 import { getOrCreateCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
 import { classifyRelevance } from './utils/job-filter';
@@ -78,9 +78,10 @@ export interface IngestionResult {
   errorsByKind: Record<string, number>;
   /**
    * External API request count consumed by this run, for sources that
-   * surface a quota (currently only fantastic-jobs-db on RapidAPI's
-   * 20k/mo Ultra plan). Persisted to cron_runs.metrics so weekly /
-   * monthly usage is queryable without leaving the codebase.
+   * surface a quota (none currently — fantastic-jobs-db, the last such
+   * source, was decommissioned 2026-08-19). Persisted to
+   * cron_runs.metrics so weekly / monthly usage is queryable without
+   * leaving the codebase when a quota'd source returns.
    */
   apiCallsUsed?: number;
 }
@@ -208,16 +209,15 @@ function mergeLlmIntoNormalized(job: any, llm: LLMExtractResult): any {
  */
 async function fetchFromSource(
   source: JobSource,
-  options?: { chunk?: number; fantasticEndpoint?: '24h' | '7d' | '6m' },
+  options?: { chunk?: number },
 ): Promise<Array<Record<string, unknown>>> {
   const aggregator = aggregators[source];
   if (!aggregator) {
     console.warn(`[Ingestion] Unknown source: ${source}`);
     return [];
   }
-  const fetchOpts: { chunk?: number; endpoint?: '24h' | '7d' | '6m' } = {};
+  const fetchOpts: { chunk?: number } = {};
   if (options?.chunk !== undefined) fetchOpts.chunk = options.chunk;
-  if (options?.fantasticEndpoint !== undefined) fetchOpts.endpoint = options.fantasticEndpoint;
   return (await aggregator.fetch(fetchOpts)) as unknown as Array<Record<string, unknown>>;
 }
 
@@ -250,7 +250,7 @@ function collectExternalIds(rawJobs: Array<Record<string, unknown>>): string[] {
 /**
  * Ingest jobs from a single source
  */
-async function ingestFromSource(source: JobSource, options?: { chunk?: number; fantasticEndpoint?: '24h' | '7d' | '6m' }): Promise<IngestionResult> {
+async function ingestFromSource(source: JobSource, options?: { chunk?: number }): Promise<IngestionResult> {
   const startTime = Date.now();
   let fetched = 0;
   let added = 0;
@@ -265,8 +265,8 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
   // Sub-bucketed counts of per-job exceptions. Sums to `errors`.
   const errorsByKind: Record<string, number> = {};
   // External API request count, only set for sources with a quota
-  // (currently fantastic-jobs-db / RapidAPI Ultra plan).
-  let apiCallsUsed: number | undefined;
+  // (none currently — see IngestionResult.apiCallsUsed).
+  const apiCallsUsed: number | undefined = undefined;
 
   try {
     console.log(`\n[${source.toUpperCase()}] Starting ingestion...`);
@@ -274,9 +274,6 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
     // Fetch raw jobs from source
     const rawJobs = await fetchFromSource(source, options);
     fetched = rawJobs.length;
-    if (source === 'fantastic-jobs-db') {
-      apiCallsUsed = getFantasticJobsDiag().apiCallsUsed;
-    }
 
     console.log(`[${source.toUpperCase()}] Fetched ${fetched} jobs`);
 
@@ -293,27 +290,6 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number; f
     }> = [];
 
     if (fetched === 0) {
-      // Surface diagnostics to Discord so we can debug without scraping
-      // Vercel function logs. Only fantastic-jobs-db exposes a per-run
-      // diagnostic accessor today.
-      if (source === 'fantastic-jobs-db') {
-        try {
-          const diag = getFantasticJobsDiag();
-          const { sendDiscordMessage } = await import('./discord-notifier');
-          // Lean diag: HTTP status + abort reason in the description.
-          // Full status counts / first body sample are persisted in the
-          // function logs and source_stats — not needed in the channel.
-          const summary = `HTTP ${diag.firstResponseStatus ?? '—'} · quota left: ${diag.rateLimitRemaining ?? '?'}`
-            + (diag.abortReasons.length > 0 ? ` · aborts: ${diag.abortReasons.join(', ').slice(0, 200)}` : '');
-          await sendDiscordMessage('', [{
-            title: `⚠️ ${source}: 0 rows fetched`,
-            description: summary,
-            color: 0xFFAA00,
-          }]);
-        } catch (e) {
-          console.error('[Ingest] Failed to push fantastic-jobs diag to Discord', e);
-        }
-      }
       return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds, rejectedByReason: countRejectionsByReason(rejectedJobs), errorsByKind, apiCallsUsed };
     }
 
@@ -958,6 +934,62 @@ function countRejectionsByReason(
   return counts;
 }
 
+/** The salary columns buildRenewalEnrichmentDelta treats as one group. */
+interface ExistingSalaryFields {
+  minSalary: number | null;
+  maxSalary: number | null;
+  salaryPeriod: string | null;
+  salaryRange: string | null;
+  displaySalary: string | null;
+  normalizedMinSalary: number | null;
+  normalizedMaxSalary: number | null;
+}
+
+/**
+ * Salary is an all-or-nothing GROUP: the old per-field fillIfNull could
+ * fill raw minSalary/maxSalary from a renewal next to a pre-existing
+ * displaySalary carrying different numbers, making the detail header and
+ * the search card contradict each other for the same job. Fresh salary is
+ * taken only when the existing row has NO salary data at all, and then the
+ * whole consistent group is written: raw pair + period + range + normalized
+ * pair + displaySalary recomputed from the fresh normalized pair, so the
+ * stored string can never disagree with the stored numbers.
+ */
+function buildAtomicSalaryDelta(
+  existing: ExistingSalaryFields,
+  fresh: Record<string, unknown>,
+): Record<string, unknown> | null {
+  const existingHasSalary =
+    existing.minSalary != null ||
+    existing.maxSalary != null ||
+    existing.normalizedMinSalary != null ||
+    existing.normalizedMaxSalary != null ||
+    existing.displaySalary != null;
+  if (existingHasSalary) return null;
+
+  const num = (v: unknown): number | null => (typeof v === 'number' ? v : null);
+  const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
+  const group = {
+    minSalary: num(fresh.minSalary),
+    maxSalary: num(fresh.maxSalary),
+    salaryPeriod: str(fresh.salaryPeriod),
+    salaryRange: str(fresh.salaryRange),
+    normalizedMinSalary: num(fresh.normalizedMinSalary),
+    normalizedMaxSalary: num(fresh.normalizedMaxSalary),
+  };
+  const freshHasSalary = Object.values(group).some((v) => v != null);
+  if (!freshHasSalary) return null;
+
+  return {
+    ...group,
+    displaySalary: formatDisplaySalary(
+      group.normalizedMinSalary,
+      group.normalizedMaxSalary,
+      group.salaryPeriod,
+    ),
+  };
+}
+
 /**
  * Compute a Prisma update delta of fields the fresh source data would
  * IMPROVE on the existing row. Renewal-time enrichment lets repeat
@@ -967,7 +999,8 @@ function countRejectionsByReason(
  * up rather than waiting for the LLM enrichment cron).
  *
  * Conservative — never replaces a non-null with another non-null value
- * except for description (where longer wins) and benefits (set union).
+ * except for description (where longer wins), benefits (set union), and
+ * the salary group (all-or-nothing: see buildAtomicSalaryDelta).
  * Lifecycle fields (originalPostedAt, expiresAt) and identity/audit
  * fields (title, employer, applyLink, externalId, isPublished, counters)
  * are deliberately out of scope.
@@ -1003,18 +1036,14 @@ export function buildRenewalEnrichmentDelta(
     if (typeof fresh.descriptionSummary === 'string') delta.descriptionSummary = fresh.descriptionSummary;
   }
 
+  const salaryDelta = buildAtomicSalaryDelta(existing, fresh);
+  if (salaryDelta) Object.assign(delta, salaryDelta);
+
   const fillIfNull = (key: keyof typeof existing, freshKey: string = key as string) => {
     if (existing[key] == null && fresh[freshKey] != null && fresh[freshKey] !== '') {
       delta[key] = fresh[freshKey];
     }
   };
-  fillIfNull('minSalary');
-  fillIfNull('maxSalary');
-  fillIfNull('salaryPeriod');
-  fillIfNull('salaryRange');
-  fillIfNull('displaySalary');
-  fillIfNull('normalizedMinSalary');
-  fillIfNull('normalizedMaxSalary');
   fillIfNull('city');
   fillIfNull('state');
   fillIfNull('stateCode');
@@ -1043,7 +1072,7 @@ export function buildRenewalEnrichmentDelta(
  */
 export async function ingestJobs(
   sources: JobSource[] = ALL_SOURCES,
-  options?: { chunk?: number; fantasticEndpoint?: '24h' | '7d' | '6m' }
+  options?: { chunk?: number }
 ): Promise<IngestionResult[]> {
   const overallStartTime = Date.now();
   const timestamp = new Date().toISOString();
@@ -1109,12 +1138,8 @@ export async function ingestJobs(
   // Process each source sequentially
   for (const source of sources) {
     const useChunk = source === 'workday' || source === 'greenhouse';
-    const isFantastic = source === 'fantastic-jobs-db';
     let sourceOptions: typeof options = undefined;
     if (useChunk) sourceOptions = { chunk: options?.chunk };
-    if (isFantastic && options?.fantasticEndpoint) {
-      sourceOptions = { ...(sourceOptions ?? {}), fantasticEndpoint: options.fantasticEndpoint };
-    }
     const result = await ingestFromSource(source, sourceOptions);
     results.push(result);
   }

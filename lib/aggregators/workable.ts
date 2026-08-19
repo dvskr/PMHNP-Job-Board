@@ -2,14 +2,27 @@
  * Workable adapter — public v2 board API.
  *
  * Endpoint:
- *   POST https://apply.workable.com/api/v2/accounts/{slug}/jobs?limit=100&offset=0
- *   body: {"query":"","department":[],"location":[],"remote":[]}
+ *   POST https://apply.workable.com/api/v2/accounts/{slug}/jobs
+ *   body: {"query":"{keywords}","department":[],"location":[],"remote":[],"token":"{cursor}"}
  *
- * Response: { total: number, results: WorkableJob[] }
+ * Response: { total: number, results: WorkableJob[], nextPage?: string }
+ *
+ * 2026-08-19 pagination fix. Workable changed the board API contract:
+ *   - `limit`/`offset` query params are now IGNORED. Every response
+ *     carries at most 10 rows regardless of `limit`, and `offset`
+ *     never advances the window (verified live 2026-08-19: offset
+ *     0 / 10 / 100 all return the identical first page).
+ *   - Paging works ONLY through the `nextPage` cursor, echoed back as
+ *     `token` in the POST body of the following request.
+ * The old limit/offset loop silently saw just the 10 newest postings
+ * per tenant (greenlife: 10 of 971), which starved the source —
+ * source_stats recorded fetched=0 on most days. The adapter now seeds
+ * the relevance-ranked `query` field with the shared PMHNP keyword set
+ * and walks the cursor until a page carries zero relevant titles.
  *
  * Public, unauthenticated. Each `result` has only metadata — full
  * description requires a second call to
- *   POST https://apply.workable.com/api/v2/accounts/{slug}/jobs/{shortcode}
+ *   GET https://apply.workable.com/api/v2/accounts/{slug}/jobs/{shortcode}
  * which returns the full job-detail blob. We fetch detail only for
  * postings that pass the title-only relevance pre-filter.
  *
@@ -21,6 +34,9 @@ import { WORKABLE_TENANTS } from './tenants/workable';
 import type { Aggregator, RawJobData } from './types';
 import { checkJobHealth, type HealthDecision } from '@/lib/health/check-job-health';
 import { htmlToReadableText } from '@/lib/sanitize';
+// Workable's `query` field is a relevance-ranked full-text search, so the
+// same PMHNP keyword set DocCafe and HCC use works here too.
+import { DOCCAFE_SEARCH_QUERIES as SEARCH_QUERIES } from './search-terms/doccafe';
 
 interface WorkableLocation {
     country?: string;
@@ -49,14 +65,19 @@ interface WorkableJob {
 interface WorkableListResponse {
     total?: number;
     results?: WorkableJob[];
+    /** Opaque cursor for the next page — echo back as `token` in the next POST body. */
+    nextPage?: string;
 }
 
 const TIME_BUDGET_MS = 180_000; // under orchestrator MAX_INGESTION_MS (240s) so the insert loop has headroom
 const TENANT_GAP_MS = 400;
 const DETAIL_FETCH_GAP_MS = 200;
+const PAGE_GAP_MS = 250;
 const BATCH_SIZE = 3;
-const PAGE_SIZE = 100;
-const MAX_PAGES = 5;
+// Server caps every page at 10 rows, so 5 pages = 50 relevance-ranked
+// results per query per tenant. The zero-relevant-page early stop below
+// usually exits far sooner.
+const MAX_PAGES_PER_QUERY = 5;
 
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -105,75 +126,104 @@ async function fetchDetail(slug: string, shortcode: string): Promise<WorkableJob
     }
 }
 
+/**
+ * Fetch one relevance-ranked list page. `token` is the `nextPage` cursor
+ * from the previous response (omitted for page 0). Returns null on a
+ * non-OK response so callers can stop probing the tenant.
+ */
+async function fetchListPage(
+    slug: string,
+    query: string,
+    token: string | undefined,
+): Promise<WorkableListResponse | null> {
+    const url = `https://apply.workable.com/api/v2/accounts/${slug}/jobs`;
+    const body: Record<string, unknown> = { query, department: [], location: [], remote: [] };
+    if (token) body.token = token;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            signal: controller.signal,
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+            console.warn(`[Workable] ${slug}: list HTTP ${res.status} (query "${query}")`);
+            return null;
+        }
+        return (await res.json()) as WorkableListResponse;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
 async function fetchTenantJobs(tenant: { slug: string; name: string }): Promise<RawJobData[]> {
     const out: RawJobData[] = [];
     const seen = new Set<string>();
     try {
-        for (let page = 0; page < MAX_PAGES; page++) {
-            const offset = page * PAGE_SIZE;
-            const url = `https://apply.workable.com/api/v2/accounts/${tenant.slug}/jobs?limit=${PAGE_SIZE}&offset=${offset}`;
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 10_000);
-            const res = await fetch(url, {
-                method: 'POST',
-                signal: controller.signal,
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify({ query: '', department: [], location: [], remote: [] }),
-            });
-            clearTimeout(timeout);
+        queryLoop: for (const query of SEARCH_QUERIES) {
+            let token: string | undefined;
+            for (let page = 0; page < MAX_PAGES_PER_QUERY; page++) {
+                const data = await fetchListPage(tenant.slug, query, token);
+                if (!data) break queryLoop; // HTTP error — board gone or blocked; stop probing this tenant
+                const results = data.results ?? [];
+                if (results.length === 0) break;
 
-            if (!res.ok) {
-                console.warn(`[Workable] ${tenant.name} (${tenant.slug}): HTTP ${res.status}`);
-                break;
-            }
-            const data = (await res.json()) as WorkableListResponse;
-            const results = data.results ?? [];
-            if (results.length === 0) break;
+                // Keyword queries are relevance-ranked: once a page carries
+                // zero PMHNP-relevant titles, deeper pages won't either.
+                // Relevance is judged on ALL rows (not just unseen ones) so
+                // a page full of already-seen relevant jobs from an earlier
+                // query doesn't end the walk prematurely.
+                const relevant = results.filter((j) => isRelevantJob(j.title ?? '', ''));
+                if (relevant.length === 0) break;
 
-            for (const j of results) {
-                if (seen.has(j.shortcode)) continue;
-                seen.add(j.shortcode);
-                if (!isRelevantJob(j.title ?? '', '')) continue;
+                for (const j of relevant) {
+                    if (seen.has(j.shortcode)) continue;
+                    seen.add(j.shortcode);
 
-                const detail = await fetchDetail(tenant.slug, j.shortcode);
-                const description = htmlToReadableText(
-                    [detail?.description, detail?.requirements, detail?.benefits]
-                        .filter(Boolean)
-                        .join('\n\n')
-                );
+                    const detail = await fetchDetail(tenant.slug, j.shortcode);
+                    const description = htmlToReadableText(
+                        [detail?.description, detail?.requirements, detail?.benefits]
+                            .filter(Boolean)
+                            .join('\n\n')
+                    );
 
-                // H6 fix: drop jobs whose description fetch silently failed.
-                // Pushing an empty-description job lets a tenant outage poison
-                // the ingest with thin records that still pass the title-only
-                // quality gate. The next ingest cycle will retry.
-                if (!description) {
-                    console.warn(`[Workable] empty description for ${tenant.slug}/${j.shortcode} — dropping job`);
+                    // H6 fix: drop jobs whose description fetch silently failed.
+                    // Pushing an empty-description job lets a tenant outage poison
+                    // the ingest with thin records that still pass the title-only
+                    // quality gate. The next ingest cycle will retry.
+                    if (!description) {
+                        console.warn(`[Workable] empty description for ${tenant.slug}/${j.shortcode} — dropping job`);
+                        await sleep(DETAIL_FETCH_GAP_MS);
+                        continue;
+                    }
+
+                    const applyLink = `https://apply.workable.com/${tenant.slug}/j/${j.shortcode}/`;
+
+                    out.push({
+                        externalId: `workable-${tenant.slug}-${j.shortcode}`,
+                        title: j.title,
+                        company: tenant.name,
+                        employer: tenant.name,
+                        location: buildLocation(j),
+                        description,
+                        applyLink,
+                        postedDate: j.published,
+                        postedAt: j.published,
+                        jobType: detail?.employmentType,
+                        sourceProvider: 'workable',
+                        sourceSite: 'workable',
+                        isRemote: mapWorkplace(j) === 'Remote' || undefined,
+                    } as RawJobData);
+
                     await sleep(DETAIL_FETCH_GAP_MS);
-                    continue;
                 }
 
-                const applyLink = `https://apply.workable.com/${tenant.slug}/j/${j.shortcode}/`;
-
-                out.push({
-                    externalId: `workable-${tenant.slug}-${j.shortcode}`,
-                    title: j.title,
-                    company: tenant.name,
-                    employer: tenant.name,
-                    location: buildLocation(j),
-                    description,
-                    applyLink,
-                    postedDate: j.published,
-                    postedAt: j.published,
-                    jobType: detail?.employmentType,
-                    sourceProvider: 'workable',
-                    sourceSite: 'workable',
-                    isRemote: mapWorkplace(j) === 'Remote' || undefined,
-                } as RawJobData);
-
-                await sleep(DETAIL_FETCH_GAP_MS);
+                token = data.nextPage;
+                if (!token) break;
+                await sleep(PAGE_GAP_MS);
             }
-
-            if (results.length < PAGE_SIZE) break;
         }
         console.log(`[Workable] ${tenant.name}: ${out.length} PMHNP-relevant jobs`);
     } catch (err) {

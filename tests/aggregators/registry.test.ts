@@ -13,7 +13,6 @@ describe('aggregator registry', () => {
         'greenhouse',
         'lever',
         'workday',
-        'fantastic-jobs-db',
         'smartrecruiters',
         'usajobs',
         'ashby',
