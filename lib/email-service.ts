@@ -106,6 +106,13 @@ export type EmailType =
   | 'system_message_nudge';
 
 // Marketing email types — these use the marketing sender address
+/**
+ * Domains used exclusively for debugging fixtures. Mail to these always
+ * hard-bounces (nothing receives for them), so sendAndLog refuses them
+ * outright. Add any future fixture domain here BEFORE creating accounts on it.
+ */
+const FIXTURE_RECIPIENT_DOMAINS = new Set(['acmepsych-fixtures.org', 'acmepsych.org', 'example.com', 'example.org']);
+
 const MARKETING_EMAIL_TYPES = new Set<EmailType>([
   'welcome_alert', 'job_alert', 'salary_guide', 'broadcast',
   'performance_report', 'saved_job_reminder',
@@ -167,6 +174,20 @@ export async function sendAndLog(
   metadata?: Record<string, unknown>,
   unsubscribeUrl?: string
 ) {
+  // Test-fixture addresses never leave the building. Debugging probes create
+  // throwaway accounts on fictional domains; on 2026-08-12 eleven of them
+  // slipped into a lifecycle audience and produced eleven hard bounces on the
+  // marketing sender domain. Bounce rate is the fastest way to burn sender
+  // reputation, so this is enforced at the choke point every email passes
+  // through, not in each audience query.
+  const recipientDomain = params.to.split('@')[1]?.toLowerCase() ?? '';
+  if (FIXTURE_RECIPIENT_DOMAINS.has(recipientDomain)) {
+    logger.warn('sendAndLog: refusing to mail a test-fixture domain', {
+      to: params.to,
+      emailType,
+    });
+    return { data: null, error: { name: 'fixture_domain', message: `refused: ${recipientDomain} is a test-fixture domain` } };
+  }
   const isMarketing = MARKETING_EMAIL_TYPES.has(emailType);
   // PD outreach gets a personal from-name. Everything else marketing
   // (job alerts, broadcasts, candidate alerts) stays on the generic

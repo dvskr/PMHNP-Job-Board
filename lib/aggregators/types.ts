@@ -25,7 +25,6 @@ export type JobSource =
     | 'greenhouse'
     | 'lever'
     | 'workday'
-    | 'fantastic-jobs-db'
     | 'smartrecruiters'
     | 'usajobs'
     | 'ashby'
@@ -58,8 +57,6 @@ export interface RawJobData {
 
 export interface FetchOptions {
     chunk?: number;
-    /** fantastic-jobs-db endpoint selector. */
-    endpoint?: '24h' | '7d' | '6m';
 }
 
 export interface Aggregator {

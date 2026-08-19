@@ -21,6 +21,16 @@
  * Volume: PMHNP keyword filter returns ~5-9 pages × 25 results = ~125-225
  * candidates per cron run. After dedup against direct ATS sources, net
  * new is ~30-80/month.
+ *
+ * 2026-08-19 STATUS: Naylor put the whole board behind a human-verification
+ * interstitial (`<title>One moment...</title>` checkbox page, served with
+ * HTTP 200 on every path including /jobs/rss; no server-side cookie is
+ * issued — the checkbox JS earns it client-side). Same situation as the
+ * AANP gate above: no compliant plain-HTTP way through. The adapter now
+ * detects the interstitial and aborts the run with one clear log line
+ * instead of burning the time budget re-requesting every keyword variant.
+ * Restoring volume needs an operator decision (headless browser tier or
+ * retiring the source).
  */
 
 import { isRelevantJob } from '@/lib/utils/job-filter';
@@ -48,6 +58,16 @@ const BROWSER_HEADERS: HeadersInit = {
 
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Detect the Naylor human-verification interstitial (see header). It is
+ * a small standalone page (~6 KB) titled "One moment..." whose markup is
+ * built from `hcheck-*` CSS classes. Real search-result pages are far
+ * larger and contain neither marker.
+ */
+export function isVerificationInterstitial(html: string): boolean {
+    return html.length < 20_000 && (/<title>\s*One moment/i.test(html) || html.includes('hcheck-box'));
 }
 
 /** Extract unique `/jobs/{numeric-id}` ids from a search-result HTML page. */
@@ -170,6 +190,16 @@ export async function fetchHealthCareerCenterJobs(): Promise<RawJobData[]> {
                 if (status !== 200) {
                     console.warn(`[HCC] HTTP ${status} for "${q}" page ${page}`);
                     break;
+                }
+                if (isVerificationInterstitial(body)) {
+                    // Every path serves the same wall — abort the whole run
+                    // rather than re-request each keyword variant.
+                    console.warn(
+                        '[HCC] Human-verification interstitial detected (HTTP 200 "One moment..."). ' +
+                        'Board is blocking non-browser clients; aborting run. ' +
+                        'Needs operator decision: headless browser or source retirement.'
+                    );
+                    break queryLoop;
                 }
                 const ids = extractJobIds(body).filter((id) => !seen.has(id));
                 console.log(`[HCC] "${q}" page ${page}: ${ids.length} new job ids`);

@@ -19,6 +19,13 @@ import * as path from 'node:path';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
 
+// Heavy module graphs (cron routes, prisma, search indexing) can push the
+// FIRST dynamic import past the 5s default under full-suite parallelism, and
+// these assertions are pure. Budget covers module loading only; every await
+// in the tests themselves is mocked. Same treatment as
+// tests/api/index-cron-bing-metrics.test.ts.
+vi.setConfig({ testTimeout: 30_000 });
+
 const mockBatch = vi.fn();
 // Spread the real module: the route also imports summarizeBingResults, and a
 // partial mock silently turns that into a 500 at runtime.

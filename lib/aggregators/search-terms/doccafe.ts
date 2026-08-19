@@ -6,8 +6,9 @@
  * ~30 items per call, so several targeted keyword variants are needed
  * to maximize PMHNP coverage.
  *
- * Health eCareer Center (healthcareercenter.ts) reuses this same list —
- * both boards respond to the identical PMHNP keyword set.
+ * Health eCareer Center (healthcareercenter.ts) and Workable
+ * (workable.ts, since the 2026-08-19 cursor-pagination fix) reuse this
+ * same list — all three respond to the identical PMHNP keyword set.
  *
  * Edit this file to add or remove a search term. Adapter unchanged.
  */
