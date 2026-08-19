@@ -70,7 +70,11 @@ describe('sendNewCandidateAlertEmail — E3 suppression + List-Unsubscribe', () 
     vi.mocked(prisma.emailSend.create).mockResolvedValue({} as never);
 
     const { sendNewCandidateAlertEmail } = await import('@/lib/email-service');
-    const result = await sendNewCandidateAlertEmail('employer@example.com', 'Acme Clinic', CANDIDATES);
+    // Not example.com: sendAndLog refuses FIXTURE_RECIPIENT_DOMAINS outright
+    // (test-fixture bounce protection), and example.com is on that list. The
+    // reserved .example TLD is the house pattern for recipients that must
+    // reach the send path (see expiry-final-notice-email.test.ts).
+    const result = await sendNewCandidateAlertEmail('employer@examplepsych.example', 'Acme Clinic', CANDIDATES);
 
     expect(result.success).toBe(true);
     expect(resendSendMock).toHaveBeenCalledOnce();
