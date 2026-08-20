@@ -33,7 +33,6 @@ describe('ingest adapter fetch budgets stay under the orchestrator window', () =
   for (const f of [
     'lib/aggregators/adzuna.ts',
     'lib/aggregators/usajobs.ts',
-    'lib/aggregators/healthcareercenter.ts',
     'lib/aggregators/bamboohr.ts',
     'lib/aggregators/ashby.ts',
     'lib/aggregators/jazzhr.ts',

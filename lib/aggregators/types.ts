@@ -31,8 +31,7 @@ export type JobSource =
     | 'bamboohr'
     | 'jazzhr'
     | 'workable'
-    | 'doccafe'
-    | 'healthcareercenter';
+    | 'doccafe';
 
 /**
  * Canonical raw-job shape produced by adapters and consumed by the

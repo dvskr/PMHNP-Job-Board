@@ -20,7 +20,6 @@ describe('aggregator registry', () => {
         'jazzhr',
         'workable',
         'doccafe',
-        'healthcareercenter',
     ];
 
     it('registry contains every JobSource', () => {

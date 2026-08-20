@@ -25,7 +25,6 @@ import { bambooHrAggregator } from './bamboohr';
 import { jazzHrAggregator } from './jazzhr';
 import { workableAggregator } from './workable';
 import { docCafeAggregator } from './doccafe';
-import { healthCareerCenterAggregator } from './healthcareercenter';
 
 // ats-jobs-db decommissioned 2026-05-06: live-fetch analysis showed
 // only 3/171 (2%) of returned jobs were PMHNP-relevant, and 90% were
@@ -34,6 +33,11 @@ import { healthCareerCenterAggregator } from './healthcareercenter';
 // jobs/month for $49 = ~$3-5/job — not worth keeping. Adapter and
 // scripts removed; resurrect from git history if we revisit.
 
+// healthcareercenter decommissioned 2026-08-20: the Naylor board moved behind
+// a human-verification interstitial (confirmed live 2026-08-19: every path,
+// including /jobs/rss, serves a checkbox page over plain HTTP). No compliant
+// fetch path exists and the operator chose retirement over headless scraping.
+// Existing rows keep sourceProvider 'healthcareercenter' and age out normally.
 // fantastic-jobs-db decommissioned 2026-08-19: the source produced no
 // published jobs for 52 straight days. Crons, adapter, and search-term
 // list removed; already-ingested rows keep sourceProvider
@@ -52,5 +56,4 @@ export const aggregators: Record<JobSource, Aggregator> = {
     jazzhr: jazzHrAggregator,
     workable: workableAggregator,
     doccafe: docCafeAggregator,
-    healthcareercenter: healthCareerCenterAggregator,
 };
