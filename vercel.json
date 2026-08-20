@@ -73,10 +73,6 @@
       "schedule": "5 12 * * *"
     },
     {
-      "path": "/api/cron/ingest?source=healthcareercenter",
-      "schedule": "10 12 * * *"
-    },
-    {
       "path": "/api/cron/ingest-wave-summary",
       "schedule": "50 12 * * *"
     },
@@ -151,10 +147,6 @@
     {
       "path": "/api/cron/ingest?source=doccafe",
       "schedule": "53 0 * * *"
-    },
-    {
-      "path": "/api/cron/ingest?source=healthcareercenter",
-      "schedule": "54 0 * * *"
     },
     {
       "path": "/api/cron/ingest-wave-summary",

@@ -318,7 +318,7 @@ const RUNS_PER_DAY: Readonly<Record<string, number>> = {
     bamboohr: 2,         // was missing (defaulted to 1) — runs 2×/day
     workable: 2,         // was missing — runs 2×/day
     doccafe: 2,          // was missing — runs 2×/day
-    healthcareercenter: 2, // was missing — runs 2×/day
+    healthcareercenter: 2, // decommissioned 2026-08-20 — not scheduled in vercel.json
     'ats-jobs-db': 3,    // not currently scheduled in vercel.json
 };
 
