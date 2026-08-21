@@ -115,7 +115,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     // the MIN_JOBS floor; categoryLandingRobotsMeta noindexes sub-threshold
     // landings AND paginated variants.
     title: `${categoryTitleCount(stats.totalJobs)}Easy Apply PMHNP Jobs From Direct Employers`,
-    description: `Browse ${categoryTitleCount(stats.totalJobs)}easy apply PMHNP jobs and direct employer PMHNP jobs. Apply in one click, message the hiring team, no recruiter middlemen.`,
+    description: `Browse ${categoryTitleCount(stats.totalJobs)}easy apply PMHNP jobs and direct employer PMHNP jobs. Apply in one click, direct to the hiring team.`,
     openGraph: {
       title: `${categoryTitleCount(stats.totalJobs)}Easy Apply PMHNP Jobs From Direct Employers`,
       description: 'Psychiatric nurse practitioner openings posted by the hiring employer. One-click apply, direct messaging, verified listings.',

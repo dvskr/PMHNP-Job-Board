@@ -31,10 +31,12 @@ export interface StatSource {
     sourceUrl: string;
     /** Date the source data was published or last refreshed. */
     asOf: string;
+    /** Projection window for forward-looking stats, e.g. "2024 to 2034". */
+    projectionWindow?: string;
 }
 
 /** When the stats in this file were last verified against their sources. */
-export const STATS_LAST_REVIEWED = '2026-05-08';
+export const STATS_LAST_REVIEWED = '2026-08-19';
 
 export const STAT_SOURCES = {
     /** Average annual PMHNP salary, US-wide. */
@@ -47,15 +49,17 @@ export const STAT_SOURCES = {
         asOf: '2024-05',
     },
 
-    /** BLS-projected employment growth for nurse practitioners through 2032. */
-    blsGrowth2032: {
-        value: '45',
-        formatted: '45%',
+    /** BLS-projected employment growth for nurse practitioners specifically
+     *  (the combined nurse anesthetist / midwife / NP group figure is lower). */
+    blsGrowthProjection: {
+        value: '40',
+        formatted: '40%',
         // No em/en dashes: this string interpolates into user-facing FAQ
         // answers (homepage + blog), which follow the "X to Y" range style.
-        source: 'BLS Occupational Outlook Handbook, Nurse Practitioners (2022 to 2032 projection)',
+        source: 'BLS Occupational Outlook Handbook, Nurse Practitioners (2024 to 2034 projection)',
         sourceUrl: 'https://www.bls.gov/ooh/healthcare/nurse-anesthetists-nurse-midwives-and-nurse-practitioners.htm',
-        asOf: '2024',
+        asOf: '2026',
+        projectionWindow: '2024 to 2034',
     },
 
     /** Population of Americans living in mental-health Health Professional Shortage Areas. */

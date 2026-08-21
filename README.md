@@ -1,6 +1,6 @@
 # 🏥 PMHNP Job Board
 
-> **The #1 Job Board for Psychiatric Mental Health Nurse Practitioners**  
+> **The Dedicated Job Board for Psychiatric Mental Health Nurse Practitioners**  
 > A comprehensive, production-ready platform connecting PMHNPs with their dream roles through intelligent multi-source job aggregation, strict relevance filtering, and modern web technologies.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
@@ -343,9 +343,7 @@ pmhnp-job-board/
 │   ├── BottomNav.tsx             # Mobile bottom navigation bar
 │   ├── JobCard.tsx               # Job listing card (grid/list modes)
 │   ├── FeaturedJobs.tsx          # Homepage featured jobs carousel
-│   ├── StatsCounter.tsx          # Animated stats counters
 │   ├── EmployerMarquee.tsx       # Scrolling employer logos
-│   ├── WhyUs.tsx                 # "Why Choose Us" section
 │   ├── Comparison.tsx            # Platform comparison cards
 │   ├── Testimonial.tsx           # User testimonial section
 │   ├── BrowseByState.tsx         # State browsing grid
@@ -486,10 +484,8 @@ pmhnp-job-board/
 | Component | File | Description |
 |-----------|------|-------------|
 | `HomepageHero` | `HomepageHero.tsx` (20KB) | Animated hero with gradient text, search bar, quick filter chips, email capture form. Uses Framer Motion for staggered animations. |
-| `StatsSection` → `StatsCounter` | `StatsSection.tsx` + `StatsCounter.tsx` | Server-fetched stats (total jobs, companies, new today, states) displayed with animated counters |
 | `EmployerMarqueeSection` → `EmployerMarquee` | Two files | Horizontally scrolling employer logos fetched from DB |
 | `FeaturedJobsSection` → `FeaturedJobs` | Two files | 6 latest high-quality jobs (max 2 per employer, within 3 days) rendered in a card grid |
-| `WhyUs` | `WhyUs.tsx` | Three USP cards (Shield, Zap, DollarSign icons) |
 | `Testimonial` | `Testimonial.tsx` | User testimonial quote card |
 | `BrowseByStateSection` → `BrowseByState` | Two files | State cards grid with live job counts |
 | `Comparison` | `Comparison.tsx` | Side-by-side comparison vs Indeed, LinkedIn, ZipRecruiter |

@@ -49,8 +49,8 @@ async function getEmployerStats() {
 }
 
 const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: true | false | 'partial'; linkedin: true | false | 'partial'; note?: string }[] = [
-  { feature: '100% Psychiatric NP Audience', us: true, indeed: false, linkedin: false },
-  { feature: 'No Unqualified Applicants', us: true, indeed: false, linkedin: false },
+  { feature: 'PMHNP-Dedicated Audience', us: true, indeed: false, linkedin: false },
+  { feature: 'PMHNP-Focused Applicant Pool', us: true, indeed: false, linkedin: false },
   { feature: `First Post Free (No Card)`, us: true, indeed: false, linkedin: false },
   { feature: `Flat $${config.postingPrice}/Post — No Bidding`, us: true, indeed: false, linkedin: false, note: 'Indeed is pay-per-click' },
   { feature: `${config.durationDays}-Day Listing Duration`, us: true, indeed: false, linkedin: false, note: 'Others: 30 days' },
@@ -81,7 +81,7 @@ export default async function ForEmployersPage() {
                 fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08,
                 color: '#1A2E35', margin: '0 0 20px',
               }}>
-                The #1 Job Board Built<br />
+                The Job Board Built<br />
                 <span style={{ color: '#0D9488' }}>Exclusively</span>{' '}
                 for PMHNPs
               </h1>
@@ -90,7 +90,7 @@ export default async function ForEmployersPage() {
                 fontSize: '16.5px', color: '#3D2E26', lineHeight: 1.75,
                 margin: '0 0 36px', maxWidth: '460px', fontWeight: 400,
               }}>
-                Reach thousands of psychiatric nurse practitioners actively searching for their next role. Every candidate is a qualified PMHNP — zero noise, maximum relevance.
+                Reach thousands of psychiatric nurse practitioners actively searching for their next role. An audience built entirely around psychiatric NPs: zero generic noise, maximum relevance.
               </p>
 
               {/* CTA Buttons */}

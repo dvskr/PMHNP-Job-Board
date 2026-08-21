@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import Image from 'next/image';
 import { formatSalary, slugify, getJobFreshness, getExpiryStatus, expandInlineBullets, splitAtSectionMarkers } from '@/lib/utils';
+import { jobSalaryText } from '@/lib/salary-display';
 import { sanitizeHtmlContent } from '@/lib/sanitize';
 import { isOptimizableImageSrc } from '@/lib/image-src';
 import { MapPin, Briefcase, Monitor, BadgeCheck, ArrowRight, Search } from 'lucide-react';
@@ -24,6 +25,7 @@ import SalaryComparisonWidget from '@/components/SalaryComparisonWidget';
 import RelatedBlogPosts, { getRelevantBlogSlugs } from '@/components/RelatedBlogPosts';
 import InternalLinks from '@/components/InternalLinks';
 import { CareerPulseCard, ApplicationTipsCard } from '@/components/jobs/SidebarVisualCards';
+import { getSiteStats } from '@/lib/site-stats';
 import { prisma } from '@/lib/prisma';
 import { DEAD_LINK_MISS_THRESHOLD } from '@/lib/active-job-filter';
 import { getPostBySlug } from '@/lib/blog';
@@ -432,21 +434,10 @@ export async function generateMetadata({ params }: JobPageProps) {
     s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   const description = stripHtmlForMeta(job.descriptionSummary || job.description).slice(0, 158);
 
-  // Format salary for OG image - DON'T include if $0k or empty
-  const formatOGSalary = (): string | null => {
-    // Get salary values, defaulting to 0 if null/undefined
-    const min = Number(job.normalizedMinSalary) || Number(job.minSalary) || 0;
-    const max = Number(job.normalizedMaxSalary) || Number(job.maxSalary) || 0;
-
-    // Must have REAL non-zero values (at least 1000 to be valid)
-    if (min >= 1000 && max >= 1000) {
-      return `$${Math.round(min / 1000)}k-$${Math.round(max / 1000)}k`;
-    }
-    if (min >= 1000) return `$${Math.round(min / 1000)}k+`;
-    if (max >= 1000) return `Up to $${Math.round(max / 1000)}k`;
-
-    return null; // Return null, NOT empty string
-  };
+  // OG-image salary uses the same single source of truth as the card and
+  // detail header (jobSalaryText) so a share preview can never advertise a
+  // different range than the page it links to.
+  const formatOGSalary = (): string | null => jobSalaryText(job);
 
   // Format location for OG image
   const formatOGLocation = () => {
@@ -729,6 +720,7 @@ export default async function JobPage({ params }: JobPageProps) {
     stateAvgSalary,
     relevantBlogPosts,
     internalLinkBuckets,
+    siteStats,
   ] = await Promise.all([
     getRelatedJobs({
       currentJobId: job.id,
@@ -749,10 +741,17 @@ export default async function JobPage({ params }: JobPageProps) {
       state: job.state,
       newGradFriendly: job.newGradFriendly,
     }),
+    // Cached SiteStat row read (single cheap query) — feeds the Career Pulse
+    // "Active openings" pebble the same total every other surface shows.
+    getSiteStats(),
   ]);
   const employerUserId = (job as unknown as Record<string, unknown>).employerUserId as string | null | undefined;
 
-  const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
+  // Header shows the same string as the search card (jobSalaryText); the
+  // raw-field formatSalary is only a last resort for rows that predate the
+  // normalized/display pipeline. Reading raw fields first made the header
+  // contradict the card whenever raw and normalized values drifted apart.
+  const salary = jobSalaryText(job) || formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
   const freshness = getJobFreshness(job.createdAt);
   const expiryStatus = getExpiryStatus(job.expiresAt);
 
@@ -1185,7 +1184,7 @@ export default async function JobPage({ params }: JobPageProps) {
               </div>
 
               <div className="hidden lg:block mt-4">
-                <CareerPulseCard />
+                <CareerPulseCard jobCount={siteStats.totalJobs > 0 ? siteStats.totalJobs : null} />
               </div>
 
               {/* Career Resources — separate card */}

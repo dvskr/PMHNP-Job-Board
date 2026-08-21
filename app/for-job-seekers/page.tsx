@@ -7,6 +7,8 @@ import VideoJsonLd from '@/components/VideoJsonLd';
 import HomepageHero from '@/components/HomepageHero';
 import FeaturedJobsSection from '@/components/FeaturedJobsSection';
 import { prisma } from '@/lib/prisma';
+import { publicJobsWhere } from '@/lib/filters';
+import { roundedCountDisplay } from '@/lib/format-count';
 import {
   ArrowRight, Search, Users, Briefcase, MapPin,
   Check, X, Star,
@@ -39,14 +41,16 @@ const clayCard: React.CSSProperties = {
 async function getStats() {
   try {
     const [totalJobs, remoteJobs, stateCount, totalCompanies] = await Promise.all([
-      prisma.job.count({ where: { isPublished: true } }),
-      prisma.job.count({ where: { isPublished: true, isRemote: true } }),
-      prisma.job.groupBy({ by: ['state'], where: { isPublished: true, state: { not: null } } }).then(r => r.length),
-      prisma.job.groupBy({ by: ['employer'], where: { isPublished: true } }).then(r => r.length),
+      prisma.job.count({ where: publicJobsWhere() }),
+      prisma.job.count({ where: { ...publicJobsWhere(), isRemote: true } }),
+      prisma.job.groupBy({ by: ['state'], where: { ...publicJobsWhere(), state: { not: null } } }).then(r => r.length),
+      prisma.job.groupBy({ by: ['employer'], where: publicJobsWhere() }).then(r => r.length),
     ]);
     return { totalJobs, remoteJobs, stateCount, totalCompanies };
   } catch {
-    return { totalJobs: 9000, remoteJobs: 2000, stateCount: 50, totalCompanies: 4000 };
+    // Zeros on DB failure so the caller falls back to numbers-free copy
+    // instead of fabricated totals (same pattern as app/signup/page.tsx).
+    return { totalJobs: 0, remoteJobs: 0, stateCount: 0, totalCompanies: 0 };
   }
 }
 
@@ -60,15 +64,14 @@ const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: t
   { feature: 'State-by-State Salary Data', us: true, indeed: 'partial', linkedin: false },
   { feature: 'Save & Track Applications', us: true, indeed: true, linkedin: true },
   { feature: 'AI Resume Parser', us: true, indeed: false, linkedin: false },
-  { feature: 'Zero Spam or Recruiter Noise', us: true, indeed: false, linkedin: false },
+  { feature: 'PMHNP-Only Listings, No Generic Spam', us: true, indeed: false, linkedin: false },
 ];
 
 export default async function ForJobSeekersPage() {
   const stats = await getStats();
-  const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : `${n}`;
-  const jobCountDisplay = stats.totalJobs > 1000
-    ? `${Math.floor(stats.totalJobs / 100) * 100}+`
-    : stats.totalJobs.toLocaleString();
+  // Zero total means the DB was unreachable: hide the count and let the hero
+  // subtitle read "New open positions across all 50 states" instead of "0".
+  const jobCountDisplay = stats.totalJobs > 0 ? roundedCountDisplay(stats.totalJobs) : 'New';
 
   return (
     <>

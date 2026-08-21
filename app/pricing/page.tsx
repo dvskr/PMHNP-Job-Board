@@ -41,8 +41,8 @@ const clayIconWrap = (gradient: string): React.CSSProperties => ({
 
 /* ═══ Comparison Data — same as employer page ═══ */
 const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: true | false | 'partial'; linkedin: true | false | 'partial'; note?: string }[] = [
-    { feature: '100% Psychiatric NP Audience', us: true, indeed: false, linkedin: false },
-    { feature: 'No Unqualified Applicants', us: true, indeed: false, linkedin: false },
+    { feature: 'PMHNP-Dedicated Audience', us: true, indeed: false, linkedin: false },
+    { feature: 'PMHNP-Focused Applicant Pool', us: true, indeed: false, linkedin: false },
     { feature: `First Post Free (No Card)`, us: true, indeed: false, linkedin: false },
     { feature: `Flat $${config.postingPrice}/Post — No Bidding`, us: true, indeed: false, linkedin: false, note: 'Indeed is pay-per-click' },
     { feature: `${config.durationDays}-Day Listing Duration`, us: true, indeed: false, linkedin: false, note: 'Others: 30 days' },

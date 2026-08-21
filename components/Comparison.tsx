@@ -13,7 +13,7 @@ interface Platform {
 
 const featureLabels = [
     'PMHNP-Specific',
-    'Zero Irrelevant Roles',
+    'PMHNP-Only Roles',
     'Salary Transparency',
     'Free Job Alerts',
     'Employer Direct',
@@ -25,7 +25,7 @@ const platforms: Platform[] = [
         highlighted: true,
         features: {
             'PMHNP-Specific': 'yes',
-            'Zero Irrelevant Roles': 'yes',
+            'PMHNP-Only Roles': 'yes',
             'Salary Transparency': 'yes',
             'Free Job Alerts': 'yes',
             'Employer Direct': 'yes',
@@ -35,7 +35,7 @@ const platforms: Platform[] = [
         name: 'Indeed',
         features: {
             'PMHNP-Specific': 'no',
-            'Zero Irrelevant Roles': 'no',
+            'PMHNP-Only Roles': 'no',
             'Salary Transparency': 'partial',
             'Free Job Alerts': 'yes',
             'Employer Direct': 'no',
@@ -45,7 +45,7 @@ const platforms: Platform[] = [
         name: 'LinkedIn',
         features: {
             'PMHNP-Specific': 'no',
-            'Zero Irrelevant Roles': 'no',
+            'PMHNP-Only Roles': 'no',
             'Salary Transparency': 'no',
             'Free Job Alerts': 'yes',
             'Employer Direct': 'partial',
@@ -55,7 +55,7 @@ const platforms: Platform[] = [
         name: 'ZipRecruiter',
         features: {
             'PMHNP-Specific': 'no',
-            'Zero Irrelevant Roles': 'no',
+            'PMHNP-Only Roles': 'no',
             'Salary Transparency': 'partial',
             'Free Job Alerts': 'yes',
             'Employer Direct': 'no',

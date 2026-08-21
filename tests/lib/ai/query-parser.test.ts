@@ -72,7 +72,102 @@ describe('parseSemanticQuery', () => {
         });
     });
 
+    describe('salary-floor extraction', () => {
+        it.each([
+            ['telepsych over $140k', 140000],
+            ['$140k+ PMHNP roles', 140000],
+            ['at least $140,000 outpatient', 140000],
+            ['psych 140k minimum', 140000],
+            ['inpatient salary over 140k', 140000],
+            ['making $200k telepsych', 200000],
+        ])('extracts an annual floor from "%s"', (q, expected) => {
+            const r = parseSemanticQuery(q);
+            expect(r.minSalary).toBe(expected);
+            expect(r.cleaned).not.toMatch(/\d/);
+        });
+
+        it('does not invent a floor when no salary amount is mentioned', () => {
+            expect(parseSemanticQuery('no salary mentioned here').minSalary).toBeUndefined();
+        });
+
+        it('does not treat a sign-on bonus amount as a salary floor', () => {
+            expect(parseSemanticQuery('PMHNP with $140k sign-on bonus').minSalary).toBeUndefined();
+            expect(parseSemanticQuery('salary $140k sign-on bonus').minSalary).toBeUndefined();
+        });
+
+        it('does not treat a signing bonus amount as a salary floor', () => {
+            expect(parseSemanticQuery('over $140k signing bonus').minSalary).toBeUndefined();
+            expect(parseSemanticQuery('over $45k signing bonus').minSalary).toBeUndefined();
+        });
+
+        it('ignores hourly rates (annual amounts only)', () => {
+            expect(parseSemanticQuery('over $95/hr telepsych').minSalary).toBeUndefined();
+            expect(parseSemanticQuery('paying $85 per hour').minSalary).toBeUndefined();
+        });
+
+        it('ignores a bare amount with no salary cue nearby', () => {
+            expect(parseSemanticQuery('PMHNP 140k').minSalary).toBeUndefined();
+        });
+
+        it('ignores "k" amounts too small to be annual salaries', () => {
+            expect(parseSemanticQuery('over 30k').minSalary).toBeUndefined();
+        });
+
+        it('does not read "401k" as a $401,000 floor', () => {
+            expect(parseSemanticQuery('salary 401k match benefits').minSalary).toBeUndefined();
+        });
+
+        it('a 401k mention does not block a real floor later in the query', () => {
+            expect(parseSemanticQuery('jobs with 401k + PTO, $150k+').minSalary).toBe(150000);
+        });
+
+        it('strips a salary range wholesale and floors at the low end', () => {
+            const r = parseSemanticQuery('telepsych salary $120k-$140k');
+            expect(r.minSalary).toBe(120000);
+            // No "-$140k" residue may leak into the embedded query.
+            expect(r.cleaned).not.toMatch(/140/);
+        });
+    });
+
+    describe('new-grad extraction', () => {
+        it.each([
+            'new grad PMHNP',
+            'new-grad openings',
+            'new graduate psychiatric NP',
+            'newly graduated PMHNP',
+            'entry level PMHNP',
+            'entry-level telepsych',
+        ])('flags "%s" as new grad and strips the token', (q) => {
+            const r = parseSemanticQuery(q);
+            expect(r.newGrad).toBe(true);
+            expect(r.cleaned.toLowerCase()).not.toMatch(/new[- ]grad|newly graduated|entry[- ]level/);
+        });
+
+        it('does NOT flag "new to telehealth" as new grad', () => {
+            const r = parseSemanticQuery('PMHNP new to telehealth');
+            expect(r.newGrad).toBeUndefined();
+            expect(r.cleaned.toLowerCase()).toContain('telehealth');
+        });
+
+        it('keeps working alongside a state name that begins with New', () => {
+            const r = parseSemanticQuery('new grad PMHNP in New Jersey');
+            expect(r.state).toBe('NJ');
+            expect(r.newGrad).toBe(true);
+        });
+    });
+
     describe('combined extraction', () => {
+        it('extracts every constraint from the audit query', () => {
+            const r = parseSemanticQuery('remote new grad PMHNP licensed in Texas salary over $140k');
+            expect(r.state).toBe('TX');
+            expect(r.remoteOnly).toBe(true);
+            expect(r.newGrad).toBe(true);
+            expect(r.minSalary).toBe(140000);
+            // Cleaned query keeps only the semantic intent.
+            expect(r.cleaned.toLowerCase()).not.toMatch(/texas|remote|grad|salary|over|140/);
+            expect(r.cleaned.toLowerCase()).toContain('pmhnp');
+        });
+
         it('pulls state + remote out of a complex query', () => {
             const r = parseSemanticQuery('remote child psychiatry in California');
             expect(r.state).toBe('CA');

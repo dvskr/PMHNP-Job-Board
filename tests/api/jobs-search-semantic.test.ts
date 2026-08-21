@@ -143,6 +143,70 @@ describe('GET /api/jobs/search/semantic — defensive branches', () => {
     });
 });
 
+describe('GET /api/jobs/search/semantic — parsed hard constraints', () => {
+    it('enforces salary + new-grad + state + remote on both legs and echoes parsedConstraints', async () => {
+        isEnabledMock.mockResolvedValue(true);
+        embedMock.mockResolvedValue({ embedding: [0.1, 0.2] });
+        semanticJobSearchMock.mockResolvedValue([{ jobId: 'job-1', similarity: 0.9 }]);
+        jobFindManyMock
+            .mockResolvedValueOnce([{ id: 'job-1' }])
+            .mockResolvedValueOnce([jobRow('job-1', 'New Grad PMHNP', 'TX')]);
+
+        const q = encodeURIComponent('remote new grad PMHNP licensed in Texas salary over $140k');
+        const res = await GET(makeRequest(`q=${q}`));
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.parsedConstraints).toEqual({
+            state: 'TX',
+            remoteOnly: true,
+            minSalary: 140000,
+            newGrad: true,
+        });
+
+        // Vector leg receives the constraints as options.
+        expect(semanticJobSearchMock).toHaveBeenCalledWith(
+            [0.1, 0.2],
+            expect.objectContaining({
+                states: ['TX'],
+                remoteOnly: true,
+                minSalary: 140000,
+                newGradOnly: true,
+            }),
+        );
+
+        // Keyword leg carries the same hard filters in its where clause.
+        const keywordWhere = jobFindManyMock.mock.calls[0][0].where;
+        expect(keywordWhere.stateCode).toBe('TX');
+        expect(keywordWhere.isRemote).toBe(true);
+        expect(keywordWhere.AND).toEqual(expect.arrayContaining([
+            {
+                OR: [
+                    { normalizedMinSalary: { gte: 140000 } },
+                    { normalizedMaxSalary: { gte: 140000 } },
+                ],
+            },
+        ]));
+    });
+
+    it('returns parsedConstraints on an empty result so the UI can explain zero hits', async () => {
+        isEnabledMock.mockResolvedValue(true);
+        embedMock.mockResolvedValue({ embedding: [0.1] });
+        semanticJobSearchMock.mockResolvedValue([]);
+        jobFindManyMock.mockResolvedValueOnce([]);
+
+        const res = await GET(makeRequest(`q=${encodeURIComponent('remote PMHNP salary over $900k')}`));
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.jobs).toEqual([]);
+        expect(body.parsedConstraints).toEqual({
+            state: null,
+            remoteOnly: true,
+            minSalary: 900000,
+            newGrad: false,
+        });
+    });
+});
+
 describe('GET /api/jobs/search/semantic — chaos / keyword fallback (Sprint 1.1.7)', () => {
     it('returns degraded=true + mode=keyword + keyword hits when the gateway throws AiGatewayError', async () => {
         isEnabledMock.mockResolvedValue(true);

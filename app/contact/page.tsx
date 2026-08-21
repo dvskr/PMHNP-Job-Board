@@ -13,7 +13,7 @@ import ContactFAQ from './ContactFAQ';
 // rendered for the toggle UX) consume this list — they cannot diverge.
 const FAQ_ITEMS = [
     { q: 'Is PMHNP Hiring free for job seekers?', a: 'Yes! Browsing jobs, setting up alerts, and applying are completely free. We never charge job seekers.' },
-    { q: 'How often are jobs updated?', a: 'Our pipeline runs twice daily, pulling from 3,000+ companies across major job boards and direct career pages.' },
+    { q: 'How often are jobs updated?', a: 'Our pipeline runs twice daily, pulling from major job boards and direct employer career pages.' },
     { q: 'How do I post a job as an employer?', a: 'Create a free employer account and post your job listing. Featured listings are available for enhanced visibility.' },
     { q: 'Can I get daily job alerts?', a: 'Absolutely! Sign up for free and set your preferences (location, job type, salary range). We\'ll email you matching jobs daily.' },
     { q: 'How do I delete my account?', a: 'Go to Settings > Account and click "Delete Account", or email us at support@pmhnphiring.com and we\'ll handle it within 24 hours.' },
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     alternates: { canonical: `${brand.baseUrl}/contact` },
     openGraph: {
         title: 'Contact PMHNP Hiring',
-        description: 'Get in touch with the team behind the #1 PMHNP job board — support, employer, and partnership inquiries.',
+        description: 'Get in touch with the team behind the PMHNP-only job board for support, employer, and partnership inquiries.',
         type: 'website',
         url: `${brand.baseUrl}/contact`,
         siteName: 'PMHNP Hiring',

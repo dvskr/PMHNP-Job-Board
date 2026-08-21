@@ -186,7 +186,7 @@ describe('A5: blog FAQ answers do not hardcode stats', () => {
 
     it('sourced figures interpolate from STAT_SOURCES', () => {
         expect(faqRegion).toContain('STAT_SOURCES.averageSalary');
-        expect(faqRegion).toContain('STAT_SOURCES.blsGrowth2032');
+        expect(faqRegion).toContain('STAT_SOURCES.blsGrowthProjection');
         expect(blogPage).toContain("import { STAT_SOURCES } from '@/lib/stats-sources'");
     });
 
@@ -199,8 +199,8 @@ describe('A5: blog FAQ answers do not hardcode stats', () => {
         const interpolated = [
             STAT_SOURCES.averageSalary.formatted,
             STAT_SOURCES.averageSalary.source,
-            STAT_SOURCES.blsGrowth2032.formatted,
-            STAT_SOURCES.blsGrowth2032.source,
+            STAT_SOURCES.blsGrowthProjection.formatted,
+            STAT_SOURCES.blsGrowthProjection.source,
             STAT_SOURCES.hrsaShortagePopulation.formatted,
             STAT_SOURCES.hrsaShortagePopulation.source,
         ];

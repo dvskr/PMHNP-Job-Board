@@ -115,11 +115,38 @@ describe('JobPosting structured data — script-breakout escaping (stored XSS gu
 });
 
 describe('JobPosting structured data — location semantics', () => {
-  it('remote-only: omits physical jobLocation, sets TELECOMMUTE + applicantLocationRequirements', () => {
+  it('remote-only: omits physical jobLocation, sets TELECOMMUTE + nationwide applicantLocationRequirements by default', () => {
     const schema = renderSchema({ isRemote: true, isHybrid: false });
     expect(schema.jobLocation).toBeUndefined();
     expect(schema.jobLocationType).toBe('TELECOMMUTE');
     expect(schema.applicantLocationRequirements?.['@type']).toBe('Country');
+  });
+
+  it('remote job whose description restricts eligibility to named states emits a State array instead of Country:US', () => {
+    const schema = renderSchema({
+      isRemote: true, isHybrid: false,
+      description: 'Telehealth role. Candidates must be licensed in Texas and Florida.',
+    });
+    expect(schema.applicantLocationRequirements).toEqual([
+      { '@type': 'State', name: 'Texas' },
+      { '@type': 'State', name: 'Florida' },
+    ]);
+  });
+
+  it('employer-side reach claims ("we are licensed in 42 states") keep the nationwide Country:US signal', () => {
+    const schema = renderSchema({
+      isRemote: true, isHybrid: false,
+      description: 'We are licensed in 42 states and growing fast.',
+    });
+    expect(schema.applicantLocationRequirements).toEqual({ '@type': 'Country', name: 'US' });
+  });
+
+  it('non-remote jobs never emit applicantLocationRequirements even when the description names license states', () => {
+    const schema = renderSchema({
+      isRemote: false, isHybrid: false,
+      description: 'Must be licensed in Texas.',
+    });
+    expect(schema.applicantLocationRequirements).toBeUndefined();
   });
 
   it('hybrid: physical jobLocation ONLY — Google forbids TELECOMMUTE for non-100%-remote roles', () => {
@@ -173,6 +200,26 @@ describe('JobPosting structured data — employmentType honesty', () => {
     expect(renderSchema({ jobType: null }).employmentType).toBeUndefined();
     expect(renderSchema({ jobType: 'Gibberish' }).employmentType).toBeUndefined();
   });
+
+  it('titles advertising BOTH schedules emit the FULL_TIME + PART_TIME array regardless of the single stored jobType', () => {
+    expect(
+      renderSchema({ title: 'PMHNP (Full-Time or Part-Time)', jobType: 'Full-Time' }).employmentType
+    ).toEqual(['FULL_TIME', 'PART_TIME']);
+    // Spacing/hyphen variants of the same combo.
+    expect(
+      renderSchema({ title: 'Psychiatric NP, Full Time / Part Time, Telehealth', jobType: 'Part-Time' }).employmentType
+    ).toEqual(['FULL_TIME', 'PART_TIME']);
+    // Combo detection even when the stored jobType never mapped.
+    expect(
+      renderSchema({ title: 'PMHNP Fulltime or Part-time', jobType: null }).employmentType
+    ).toEqual(['FULL_TIME', 'PART_TIME']);
+  });
+
+  it('a single schedule in the title keeps the single-value shape', () => {
+    expect(
+      renderSchema({ title: 'PMHNP (Full-Time)', jobType: 'Full-Time' }).employmentType
+    ).toBe('FULL_TIME');
+  });
 });
 
 describe('JobPosting structured data — experience requirements', () => {
@@ -200,7 +247,7 @@ describe('JobPosting structured data — directApply and salary honesty', () => 
     expect(renderSchema({ applyOnPlatform: null }).directApply).toBeUndefined();
   });
 
-  it('emits salary in its native unit — hourly postings report HOUR with raw values, not annualized', () => {
+  it('hourly postings report HOUR with values derived from the normalized pair (/2080), matching the displayed string', () => {
     const schema = renderSchema({
       salaryPeriod: 'hourly',
       minSalary: 85,
@@ -211,6 +258,34 @@ describe('JobPosting structured data — directApply and salary honesty', () => 
     expect(schema.baseSalary?.value?.unitText).toBe('HOUR');
     expect(schema.baseSalary?.value?.minValue).toBe(85);
     expect(schema.baseSalary?.value?.maxValue).toBe(110);
+  });
+
+  it('schema mirrors the DISPLAYED numbers when raw and normalized values drift apart (the card/header/schema divergence bug)', () => {
+    // Raw pair contradicts the normalized pair — every visible surface
+    // derives from normalized, so the schema must too.
+    const hourly = renderSchema({
+      salaryPeriod: 'hourly',
+      minSalary: 90,
+      maxSalary: 120,
+      normalizedMinSalary: 176800,
+      normalizedMaxSalary: 228800,
+    });
+    expect(hourly.baseSalary?.value?.unitText).toBe('HOUR');
+    expect(hourly.baseSalary?.value?.minValue).toBe(85);
+    expect(hourly.baseSalary?.value?.maxValue).toBe(110);
+
+    // Annual raw pair stored in thousands (125 = $125k) next to a correct
+    // normalized pair: schema publishes the normalized numbers.
+    const annual = renderSchema({
+      salaryPeriod: 'annual',
+      minSalary: 125,
+      maxSalary: 175,
+      normalizedMinSalary: 125000,
+      normalizedMaxSalary: 175000,
+    });
+    expect(annual.baseSalary?.value?.unitText).toBe('YEAR');
+    expect(annual.baseSalary?.value?.minValue).toBe(125000);
+    expect(annual.baseSalary?.value?.maxValue).toBe(175000);
   });
 
   it('annual postings report YEAR with normalized values', () => {
@@ -233,7 +308,7 @@ describe('JobPosting structured data — directApply and salary honesty', () => 
     expect(schema.baseSalary?.value?.maxValue).toBe(2500);
   });
 
-  it('non-annual posting with ONLY normalized (annualized) values falls back to YEAR — never an annual number under an hourly unit', () => {
+  it('hourly posting with ONLY normalized (annualized) values converts back to HOUR (/2080) — mirroring the displayed string, never an annual number under an hourly unit', () => {
     const schema = renderSchema({
       salaryPeriod: 'hourly',
       minSalary: null,
@@ -241,9 +316,9 @@ describe('JobPosting structured data — directApply and salary honesty', () => 
       normalizedMinSalary: 176800,
       normalizedMaxSalary: 228800,
     });
-    expect(schema.baseSalary?.value?.unitText).toBe('YEAR');
-    expect(schema.baseSalary?.value?.minValue).toBe(176800);
-    expect(schema.baseSalary?.value?.maxValue).toBe(228800);
+    expect(schema.baseSalary?.value?.unitText).toBe('HOUR');
+    expect(schema.baseSalary?.value?.minValue).toBe(85);
+    expect(schema.baseSalary?.value?.maxValue).toBe(110);
   });
 
   it('omits baseSalary entirely when no salary is disclosed (no empty containers)', () => {

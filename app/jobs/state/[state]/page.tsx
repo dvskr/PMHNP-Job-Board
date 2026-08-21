@@ -5,7 +5,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, TrendingUp, Building2, Bell, Navigation, Shield, MapPinned, DollarSign, Users, ArrowRight } from 'lucide-react';
 import CategoryHero from '@/components/CategoryHero';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { publicJobsWhere } from '@/lib/filters';
 import { JOB_LISTING_OMIT } from '@/lib/pseo/job-listing-omit';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import JobCard from '@/components/JobCard';
@@ -166,17 +168,28 @@ function parseStateParam(stateParam: string): { name: string; code: string } | n
 }
 
 /**
+ * Shared predicate for every state-scoped query on this page. Built on
+ * publicJobsWhere() (isPublished + the global non-PMHNP exclusions) so the
+ * hero badge, metadata count, and the listing below all agree with the
+ * filtered /jobs results the CTAs link to. The state OR sits beside the
+ * base's AND array, so neither clause overwrites the other.
+ */
+function stateScopedWhere(stateName: string, stateCode: string): Prisma.JobWhereInput {
+  return {
+    ...publicJobsWhere(),
+    OR: [
+      { state: stateName },
+      { stateCode: stateCode },
+    ],
+  };
+}
+
+/**
  * Fetch jobs for a specific state
  */
 async function getStateJobs(stateName: string, stateCode: string, skip = 0, take = 10) {
   return prisma.job.findMany({
-    where: {
-      isPublished: true,
-      OR: [
-        { state: stateName },
-        { stateCode: stateCode },
-      ],
-    },
+    where: stateScopedWhere(stateName, stateCode),
     omit: JOB_LISTING_OMIT, // Perf1: cards don't use the full description body
     orderBy: BEST_SORT_ORDER_BY,
     skip,
@@ -190,23 +203,13 @@ async function getStateJobs(stateName: string, stateCode: string, skip = 0, take
 async function getStateStats(stateName: string, stateCode: string) {
   // Total jobs
   const totalJobs = await prisma.job.count({
-    where: {
-      isPublished: true,
-      OR: [
-        { state: stateName },
-        { stateCode: stateCode },
-      ],
-    },
+    where: stateScopedWhere(stateName, stateCode),
   });
 
   // Average salary
   const salaryData = await prisma.job.aggregate({
     where: {
-      isPublished: true,
-      OR: [
-        { state: stateName },
-        { stateCode: stateCode },
-      ],
+      ...stateScopedWhere(stateName, stateCode),
       normalizedMinSalary: { not: null },
       normalizedMaxSalary: { not: null },
     },
@@ -223,13 +226,7 @@ async function getStateStats(stateName: string, stateCode: string) {
   // Top employers
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
-    where: {
-      isPublished: true,
-      OR: [
-        { state: stateName },
-        { stateCode: stateCode },
-      ],
-    },
+    where: stateScopedWhere(stateName, stateCode),
     _count: {
       employer: true,
     },
@@ -249,13 +246,7 @@ async function getStateStats(stateName: string, stateCode: string) {
 
   // Unique employer count (for hero stat — not limited to top 5)
   const uniqueEmployerCount = await prisma.job.findMany({
-    where: {
-      isPublished: true,
-      OR: [
-        { state: stateName },
-        { stateCode: stateCode },
-      ],
-    },
+    where: stateScopedWhere(stateName, stateCode),
     distinct: ['employer'],
     select: { employer: true },
   });
@@ -280,13 +271,7 @@ async function getNearbyStatesWithJobs(stateName: string): Promise<{ name: strin
     neighbors.slice(0, 6).map(async (neighborState) => {
       const code = STATE_CODES[neighborState];
       const count = await prisma.job.count({
-        where: {
-          isPublished: true,
-          OR: [
-            { state: neighborState },
-            { stateCode: code },
-          ],
-        },
+        where: stateScopedWhere(neighborState, code),
       });
       return {
         name: neighborState,
@@ -310,12 +295,8 @@ async function getCitiesWithJobs(stateName: string, stateCode: string): Promise<
   const cityData = await prisma.job.groupBy({
     by: ['city'],
     where: {
-      isPublished: true,
+      ...stateScopedWhere(stateName, stateCode),
       city: { not: null },
-      OR: [
-        { state: stateName },
-        { stateCode: stateCode },
-      ],
     },
     _count: {
       city: true,

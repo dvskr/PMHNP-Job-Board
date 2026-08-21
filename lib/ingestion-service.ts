@@ -987,6 +987,11 @@ function buildAtomicSalaryDelta(
       group.normalizedMaxSalary,
       group.salaryPeriod,
     ),
+    // The honesty flag travels with the values it describes — without it, an
+    // LLM-estimated fresh salary would land with the row's stale
+    // salaryIsEstimated=false and be published as a real offer in JSON-LD.
+    salaryIsEstimated: fresh.salaryIsEstimated === true,
+    salaryConfidence: num(fresh.salaryConfidence),
   };
 }
 

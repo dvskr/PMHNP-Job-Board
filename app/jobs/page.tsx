@@ -3,6 +3,7 @@ import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
+import { roundedCountDisplay } from '@/lib/format-count';
 import { buildJobsOrderBy, type JobSort } from '@/lib/utils/job-sort';
 import { slugify } from '@/lib/utils';
 import JobsPageClient from './JobsPageClient';
@@ -41,9 +42,7 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
   // Get total job count
   const whereClause = buildWhereClause(filters);
   const totalJobs = await prisma.job.count({ where: whereClause });
-  const jobCountDisplay = totalJobs > 1000
-    ? `${(Math.floor(totalJobs / 100) * 100).toLocaleString()}+`
-    : totalJobs.toLocaleString();
+  const jobCountDisplay = roundedCountDisplay(totalJobs);
 
   // Build dynamic title and description based on filters
   let title = `Browse ${jobCountDisplay} PMHNP & Psychiatric NP Jobs Near Me`;

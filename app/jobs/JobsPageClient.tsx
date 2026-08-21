@@ -25,6 +25,28 @@ interface JobsContentProps {
   initialTotalPages: number;
 }
 
+// Hard constraints the semantic endpoint parsed out of the free-text query,
+// echoed back by /api/jobs/search/semantic so the banner can show the user
+// exactly which requirements were enforced as filters.
+interface AiParsedConstraints {
+  state: string | null;
+  remoteOnly: boolean;
+  minSalary: number | null;
+  newGrad: boolean;
+}
+
+function aiConstraintChipLabels(constraints: AiParsedConstraints | null): string[] {
+  if (!constraints) return [];
+  const labels: string[] = [];
+  if (constraints.remoteOnly) labels.push('Remote');
+  // License-state eligibility is not structured data, so the state chip is
+  // explicitly a location filter, not a licensure match.
+  if (constraints.state) labels.push(`${constraints.state} (location)`);
+  if (constraints.newGrad) labels.push('New grad friendly');
+  if (constraints.minSalary) labels.push(`$${Math.round(constraints.minSalary / 1000)}k+ salary`);
+  return labels;
+}
+
 function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages }: JobsContentProps) {
   const searchParams = useSearchParams();
 
@@ -73,6 +95,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   const [aiLoading, setAiLoading] = useState(false);
   const [aiDegraded, setAiDegraded] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiConstraints, setAiConstraints] = useState<AiParsedConstraints | null>(null);
 
   const clearAiSearch = useCallback(() => {
     setAiResults(null);
@@ -80,6 +103,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     setAiSubmittedQuery('');
     setAiError(null);
     setAiDegraded(false);
+    setAiConstraints(null);
   }, []);
 
   const fetchJobs = useCallback(async (filters: FilterState, page: number = 1, sort: string = 'best') => {
@@ -146,14 +170,20 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     let status: number | null = null;
     let jobs: AiHit[] | null = null;
     let degraded = false;
+    let constraints: AiParsedConstraints | null = null;
     try {
       const params = new URLSearchParams({ q, k: '24' });
       const res = await fetch(`/api/jobs/search/semantic?${params.toString()}`);
       status = res.status;
       if (res.ok) {
-        const data = (await res.json()) as { jobs: AiHit[]; degraded: boolean };
+        const data = (await res.json()) as {
+          jobs: AiHit[];
+          degraded: boolean;
+          parsedConstraints?: AiParsedConstraints;
+        };
         jobs = data.jobs;
         degraded = !!data.degraded;
+        constraints = data.parsedConstraints ?? null;
       }
     } catch {
       status = null; // network failure
@@ -161,10 +191,24 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
 
     const outcome = resolveAiSearchMode(status, jobs, q);
 
+    // Zero hits while hard constraints were enforced is an ANSWER, not a
+    // failure: keyword fallback would silently drop the salary / state /
+    // new-grad filters and surface jobs that violate what the user asked
+    // for. Keep the AI panel and explain instead.
+    const hasHardConstraints = aiConstraintChipLabels(constraints).length > 0;
+    if (outcome.mode === 'keyword-fallback' && outcome.reason === 'no-results' && hasHardConstraints) {
+      setAiResults([]);
+      setAiConstraints(constraints);
+      setAiDegraded(degraded);
+      setAiLoading(false);
+      return;
+    }
+
     if (outcome.mode === 'keyword-fallback') {
       // Push the query into keyword search; clearing aiResults/aiError hides the
       // AI panel so the normal keyword job list takes over (no stranded query).
       setAiResults(null);
+      setAiConstraints(null);
       setAiDegraded(false);
       setAiError(null);
       setAiLoading(false);
@@ -175,6 +219,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     }
 
     setAiResults(outcome.jobs as AiHit[]);
+    setAiConstraints(constraints);
     setAiDegraded(degraded);
     setAiLoading(false);
   }, [aiQuery, currentFilters, fetchJobs, sortOption]);
@@ -227,6 +272,9 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     const qs = params.toString();
     return qs ? `/jobs?${qs}` : '/jobs';
   };
+
+  // Chips for every hard constraint the semantic parser understood.
+  const aiChips = aiConstraintChipLabels(aiConstraints);
 
   // Count active filters (including search)
   const activeFilterCount =
@@ -536,7 +584,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                 boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flexWrap: 'wrap' }}>
                   {/* Clay pebble around the icon — same recipe as the
                       hero/sidebar pebbles elsewhere in the design system. */}
                   <span style={{
@@ -554,11 +602,34 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                     {!aiLoading && aiError && <span style={{ color: '#B91C1C' }}>{aiError}</span>}
                     {!aiLoading && !aiError && aiResults !== null && (
                       <>
-                        Showing <strong>relevant matches</strong> for <strong>&ldquo;{aiSubmittedQuery}&rdquo;</strong>
-                        {aiDegraded && <span style={{ color: '#92400e', marginLeft: 6 }}>(degraded — keyword fallback)</span>}
+                        {aiResults.length > 0
+                          ? <>Showing <strong>relevant matches</strong> for <strong>&ldquo;{aiSubmittedQuery}&rdquo;</strong></>
+                          : <>No exact matches for <strong>&ldquo;{aiSubmittedQuery}&rdquo;</strong></>}
+                        {aiDegraded && <span style={{ color: '#92400e', marginLeft: 6 }}>(degraded, keyword fallback)</span>}
                       </>
                     )}
                   </p>
+                  {/* Non-interactive chips: every hard constraint the parser
+                      understood and enforced as a filter. Same teal pebble
+                      recipe as the icon badge above. */}
+                  {!aiLoading && !aiError && aiResults !== null && aiChips.length > 0 && (
+                    <span style={{ display: 'inline-flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {aiChips.map((label) => (
+                        <span
+                          key={label}
+                          style={{
+                            fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap',
+                            padding: '3px 10px', borderRadius: '999px',
+                            backgroundColor: '#CCFBF1', color: '#0F766E',
+                            border: '1px solid rgba(255,255,255,0.6)',
+                            boxShadow: 'inset 1px 1px 2px rgba(255,255,255,0.7), 1px 1px 3px rgba(0,0,0,0.05)',
+                          }}
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    </span>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -681,12 +752,17 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               </div>
             )}
 
-            {/* AI No-Results State */}
+            {/* AI No-Results State — when the parser enforced hard constraints,
+                name them so the user knows which requirement to loosen. */}
             {!aiLoading && !aiError && aiResults !== null && aiResults.length === 0 && (
               <div style={{ textAlign: 'center', padding: '64px 20px' }}>
-                <p style={{ fontSize: '18px', color: 'var(--text-secondary)', fontWeight: 600 }}>No semantic matches</p>
+                <p style={{ fontSize: '18px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  {aiChips.length > 0 ? 'No jobs met every requirement' : 'No semantic matches'}
+                </p>
                 <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
-                  Try a broader query, or clear AI matches to browse normally.
+                  {aiChips.length > 0
+                    ? `We understood: ${aiChips.join(', ')}. No open job met all of them. Try removing one term, like the salary floor or the state, and search again.`
+                    : 'Try a broader query, or clear AI matches to browse normally.'}
                 </p>
               </div>
             )}

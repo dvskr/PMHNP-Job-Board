@@ -16,22 +16,38 @@ export const revalidate = 86400;
 
 const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
 
-export const metadata: Metadata = {
-  title: 'PMHNP Resources & Career Guides — 85+ Free Articles',
-  description: 'Free PMHNP career resources: 50-state licensure guides, salary calculator, negotiation tips, private practice startup, 1099 vs W2 comparison, and 85+ expert articles.',
-  keywords: [
-    'pmhnp resources', 'psychiatric nurse practitioner career', 'pmhnp salary guide',
-    'pmhnp licensure by state', 'pmhnp private practice', 'pmhnp career guide',
-    'pmhnp interview tips', 'pmhnp job search',
-  ],
-  openGraph: {
-    title: 'PMHNP Resources & Career Guides — 85+ Free Articles',
-    description: 'Free career resources for psychiatric nurse practitioners. Salary data, licensure guides, and expert articles.',
-    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp', width: 1280, height: 900, alt: 'PMHNP career resources and guides' }],
-  },
-  twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp'] },
-  alternates: { canonical: `${brand.baseUrl}/resources` },
-};
+// Metadata counts articles from the same table the page body renders,
+// rounded down to the nearest 5 so the "N+" claim stays true as the
+// library grows. Below one rounding step the copy goes number-free.
+function articleCountLabel(count: number): string | null {
+  const rounded = Math.floor(count / 5) * 5;
+  return rounded >= 5 ? `${rounded}+` : null;
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const articleCount = await prisma.blogPost.count({ where: { status: 'published' } });
+  const label = articleCountLabel(articleCount);
+  const title = label
+    ? `PMHNP Resources & Career Guides: ${label} Free Articles`
+    : 'PMHNP Resources & Career Guides';
+  const articlePhrase = label ? `${label} expert articles` : 'expert articles';
+  return {
+    title,
+    description: `Free PMHNP career resources: 50-state licensure guides, salary calculator, negotiation tips, private practice startup, 1099 vs W2 comparison, and ${articlePhrase}.`,
+    keywords: [
+      'pmhnp resources', 'psychiatric nurse practitioner career', 'pmhnp salary guide',
+      'pmhnp licensure by state', 'pmhnp private practice', 'pmhnp career guide',
+      'pmhnp interview tips', 'pmhnp job search',
+    ],
+    openGraph: {
+      title,
+      description: 'Free career resources for psychiatric nurse practitioners. Salary data, licensure guides, and expert articles.',
+      images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp', width: 1280, height: 900, alt: 'PMHNP career resources and guides' }],
+    },
+    twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp'] },
+    alternates: { canonical: `${brand.baseUrl}/resources` },
+  };
+}
 
 /* ─── Clay styles ─── */
 const clayCard: React.CSSProperties = {

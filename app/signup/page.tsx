@@ -59,7 +59,7 @@ export default async function SignUpPage({
           title: 'Live platform numbers',
         }
       : {
-          quote: 'Your first job post is free, and every listing reaches a 100% psychiatric-NP audience.',
+          quote: 'Your first job post is free, and every listing reaches a dedicated psychiatric-NP audience.',
           name: 'PMHNP Hiring',
           title: 'Built for hiring PMHNPs',
         }
