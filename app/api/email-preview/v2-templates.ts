@@ -100,7 +100,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     fn: () => emailShellV2(`
       ${headerBlockV2('Welcome to PMHNP Hiring', '')}
       ${spacerV2(20)}
-      ${bodyText('You have unlocked a new way to find your perfect role. Search curated positions, get matched by AI, and connect directly with hiring managers \u2014 no recruiters, no middlemen.')}
+      ${bodyText('You have unlocked a new way to find your perfect role. Search curated positions, get matched by AI, and connect directly with hiring teams.')}
       ${spacerV2(36)}
       ${sectionHead('Here is how to get started')}
       ${spacerV2(20)}
@@ -108,7 +108,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${spacerV2(16)}
       ${step('step-ai-alerts.png', 'Turn on AI alerts', 'Get notified the exact minute a perfectly matched role lands on the board.')}
       ${spacerV2(16)}
-      ${step('step-connect.png', 'Connect directly', 'Connect to hiring managers directly, no recruiters involved.')}
+      ${step('step-connect.png', 'Connect directly', 'Message hiring teams directly through the platform.')}
       ${spacerV2(32)}
       ${centeredCta('Explore Your Dashboard', `${BASE_URL}/dashboard`)}
       ${spacerV2(16)}

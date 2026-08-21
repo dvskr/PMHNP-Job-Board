@@ -32,7 +32,7 @@ const FEATURED_POSTS = [
     {
         category: 'Salary Guide',
         title: 'PMHNP Salary Guide 2026: State-by-State Analysis',
-        description: 'Data from 8,500+ job postings reveals top-paying states, specialty premiums, and negotiation strategies that can add $15K–$25K to your offer.',
+        description: 'We analyzed thousands of job postings to find the top-paying states, specialty premiums, and negotiation strategies that strengthen your offer.',
         href: '/blog/pmhnp-salary-guide-2026',
     },
     {
@@ -43,14 +43,14 @@ const FEATURED_POSTS = [
     },
     {
         category: 'Job Market',
-        title: 'PMHNP Job Outlook: 45% Growth Through 2032',
+        title: 'PMHNP Job Outlook: Why Demand Keeps Climbing',
         description: '123 million Americans live in mental health shortage areas. Here\'s what that means for your career trajectory and earning potential.',
         href: '/blog/pmhnp-job-outlook',
     },
     {
         category: 'Remote Work',
         title: 'The Ultimate Guide to Remote PMHNP Jobs',
-        description: '62% of psych NP positions now offer telehealth. Find out which companies pay $130K–$200K for remote psychiatric care.',
+        description: 'Telehealth keeps reshaping how psych NPs practice. Find out which companies are hiring for remote psychiatric care and what they pay.',
         href: '/blog/ultimate-guide-remote-pmhnp-jobs-2026',
     },
     {

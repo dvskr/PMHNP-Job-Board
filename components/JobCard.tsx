@@ -39,22 +39,9 @@ function stripHtml(html: string | null | undefined): string {
   return decoded.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-// Helper to build a salary string when displaySalary is missing
-function buildSalaryDisplay(job: Job): string | null {
-  if (job.displaySalary) return job.displaySalary;
-  const min = job.normalizedMinSalary;
-  const max = job.normalizedMaxSalary;
-  if (!min && !max) return job.salaryRange || null;
-  const fmt = (n: number) => {
-    if (n >= 1000) return `$${(n / 1000).toFixed(0)}K`;
-    return `$${n.toLocaleString()}`;
-  };
-  const period = job.salaryPeriod === 'hourly' ? '/hr' : '/yr';
-  if (min && max && min !== max) return `${fmt(min)} - ${fmt(max)}${period}`;
-  if (min) return `${fmt(min)}${period}`;
-  if (max) return `${fmt(max)}${period}`;
-  return null;
-}
+// Salary string comes from the shared jobSalaryText helper so the card,
+// detail header, OG image, and JSON-LD can never disagree on the range.
+import { jobSalaryText } from '@/lib/salary-display';
 
 // Render-time experience-label override so residency/fellowship/
 // training-program jobs always show "New grad welcome" — even when
@@ -162,7 +149,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
 
   // Clean summary for display
   const cleanSummary = stripHtml(job.descriptionSummary);
-  const salaryDisplay = buildSalaryDisplay(job);
+  const salaryDisplay = jobSalaryText(job);
 
   // Truncate long locations: take first part before semicolons, cap at 35 chars
   const shortLocation = (() => {
@@ -222,7 +209,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     if (job.employer) metaParts.push(job.employer);
     if (displayMode) metaParts.push(displayMode);
     if (job.location) metaParts.push(job.location);
-    if (salaryDisplay) metaParts.push(salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`);
+    if (salaryDisplay) metaParts.push(salaryDisplay);
     metaParts.push(freshness);
 
     return (
@@ -331,7 +318,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               {featuredChip}
               {salaryDisplay && (
                 <Badge variant="salary" size="sm">
-                  {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
+                  {salaryDisplay}
                 </Badge>
               )}
               {job.jobType && <Badge variant="outline" size="sm">{job.jobType}</Badge>}
@@ -639,7 +626,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           {featuredChip}
           {salaryDisplay && (
             <Badge variant="salary" size="sm">
-              {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
+              {salaryDisplay}
             </Badge>
           )}
           {job.jobType && <Badge variant="outline" size="sm">{job.jobType}</Badge>}

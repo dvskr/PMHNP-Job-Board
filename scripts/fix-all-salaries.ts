@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
-import { processSalary, extractSalaryFromDescription } from '../lib/salary-utils';
+import { processSalary, extractSalaryFromDescription, type RawSalaryInput } from '../lib/salary-utils';
 
 dotenv.config();
 
@@ -100,12 +100,13 @@ async function fixAllSalaries() {
       }
 
       // PRIORITY 3: Extract from description if still no salary
+      let descriptionSalary: RawSalaryInput | null = null;
       if (!processed?.isValid && job.description) {
         const extracted = extractSalaryFromDescription(job.description);
         if (extracted) {
           processed = processSalary(extracted);
           if (processed.isValid) {
-            // const source = 'description'; // Tracking where fix came from (currently unused)
+            descriptionSalary = extracted;
             stats.extractedFromDescription++;
             console.log(`📝 Extracted: ${job.title} → ${processed.displaySalary}`);
           }
@@ -121,6 +122,16 @@ async function fixAllSalaries() {
             normalizedMaxSalary: processed.normalizedMax,
             displaySalary: processed.displaySalary,
             salaryPeriod: processed.salaryType,
+            // Description-extracted rows must also write the RAW pair (and
+            // the matched raw text): normalized+display without
+            // minSalary/maxSalary guaranteed a header-vs-card mismatch.
+            ...(descriptionSalary
+              ? {
+                  minSalary: descriptionSalary.min ?? null,
+                  maxSalary: descriptionSalary.max ?? null,
+                  ...(descriptionSalary.raw ? { salaryRange: descriptionSalary.raw } : {}),
+                }
+              : {}),
           },
         });
       } else if (!job.normalizedMinSalary && !job.normalizedMaxSalary) {

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { ATS_HOST_SUBSTRINGS, classifyJob, HEALTH_DEAD_THRESHOLD } from '@/lib/ai/job-classifier'
+import { jobSalaryText } from '@/lib/salary-display'
 
 /**
  * Embeddable jobs widget for the Program Directors campaign.
@@ -161,19 +162,6 @@ function displayModeOf(job: WidgetJob): string {
   return job.isRemote ? 'Remote' : job.isHybrid ? 'Hybrid' : job.mode || 'In-Person'
 }
 
-function buildSalaryDisplay(job: WidgetJob): string | null {
-  if (job.displaySalary) return job.displaySalary
-  const min = job.normalizedMinSalary
-  const max = job.normalizedMaxSalary
-  if (!min && !max) return job.salaryRange
-  const fmt = (n: number) => (n >= 1000 ? `$${(n / 1000).toFixed(0)}K` : `$${n.toLocaleString()}`)
-  const period = job.salaryPeriod === 'hourly' ? '/hr' : '/yr'
-  if (min && max && min !== max) return `${fmt(min)} - ${fmt(max)}${period}`
-  if (min) return `${fmt(min)}${period}`
-  if (max) return `${fmt(max)}${period}`
-  return null
-}
-
 function postedLabel(job: WidgetJob): string {
   const posted = job.originalPostedAt ?? job.createdAt
   return `Posted ${posted.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
@@ -212,12 +200,7 @@ function selectJobs(
 }
 
 function renderJobCard(job: RenderedJob, program: string | undefined): string {
-  const salary = buildSalaryDisplay(job)
-  const salaryText = salary
-    ? salary.startsWith('$')
-      ? salary
-      : `$${salary}`
-    : null
+  const salaryText = jobSalaryText(job)
   const loc = shortLocationOf(job)
   const mode = displayModeOf(job)
   const featuredBorder = job.isFeatured

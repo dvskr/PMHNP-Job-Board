@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
                   letterSpacing: '-0.02em',
                   maxWidth: 900,
                 }}>
-                  The #1 PMHNP Job Board
+                  The PMHNP-Only Job Board
                 </div>
                 <div style={{
                   display: 'flex',
@@ -267,7 +267,7 @@ export async function GET(request: NextRequest) {
                   color: '#64748b',
                   marginLeft: 16,
                 }}>
-                  The #1 PMHNP Job Board
+                  The PMHNP-Only Job Board
                 </div>
               </div>
             </div>

@@ -103,7 +103,7 @@ describe('homepage FAQ is honest, visible, and single-sourced', () => {
 
   it('cited figures route through STAT_SOURCES', () => {
     expect(src).toMatch(/STAT_SOURCES\.averageSalary/);
-    expect(src).toMatch(/STAT_SOURCES\.blsGrowth2032/);
+    expect(src).toMatch(/STAT_SOURCES\.blsGrowthProjection/);
     expect(src).toMatch(/STAT_SOURCES\.fullPracticeStates/);
   });
 });

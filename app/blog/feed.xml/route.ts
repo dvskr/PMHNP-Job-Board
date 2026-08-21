@@ -51,7 +51,7 @@ ${post.image_url ? `      <enclosure url="${escape(post.image_url)}" type="image
   <channel>
     <title>PMHNP Hiring — Career Blog &amp; Industry Insights</title>
     <link>${BASE_URL}/blog</link>
-    <description>PMHNP career guides, salary trends, licensure changes, and industry analysis from the #1 psychiatric nurse practitioner job board.</description>
+    <description>PMHNP career guides, salary trends, licensure changes, and industry analysis from the dedicated psychiatric nurse practitioner job board.</description>
     <language>en-us</language>
     <lastBuildDate>${lastBuildDate}</lastBuildDate>
     <atom:link href="${BASE_URL}/blog/feed.xml" rel="self" type="application/rss+xml"/>

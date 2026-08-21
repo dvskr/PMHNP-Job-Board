@@ -26,6 +26,7 @@ import { logger } from '@/lib/logger';
 import { embed, AiGatewayError } from '@/lib/ai/gateway';
 import { semanticJobSearch, reciprocalRankFusion } from '@/lib/ai/vector-search';
 import { parseSemanticQuery } from '@/lib/ai/query-parser';
+import { salaryAtLeastClause, newGradWhereClause } from '@/lib/filters';
 import { isAiFeatureEnabled } from '@/lib/ai/feature-flags';
 import { getExperimentArm, trackExperimentEvent } from '@/lib/ai/experiments';
 import { createClient } from '@/lib/supabase/server';
@@ -136,8 +137,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const parsedQuery = parseSemanticQuery(q);
     const state = stateOverride ?? parsedQuery.state;
     const remoteOnly = remoteOverride ?? parsedQuery.remoteOnly ?? false;
-    // Embed the cleaned query (with state / "remote" tokens stripped).
+    const minSalary = parsedQuery.minSalary;
+    const newGrad = parsedQuery.newGrad ?? false;
+    // Embed the cleaned query (with the extracted constraint tokens stripped).
     const semanticQuery = parsedQuery.cleaned || q;
+
+    // Echoed to the client so the UI can render a chip for every constraint
+    // that was actually enforced — including on zero-result responses, where
+    // the chips explain WHY nothing matched.
+    const parsedConstraints = {
+        state: state ?? null,
+        remoteOnly,
+        minSalary: minSalary ?? null,
+        newGrad,
+    };
 
     let vectorHits: Array<{ jobId: string; similarity: number }> = [];
     let degraded = false;
@@ -150,6 +163,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
                 k: 50,
                 states: state ? [state] : undefined,
                 remoteOnly,
+                minSalary,
+                newGradOnly: newGrad,
             });
         } catch (err) {
             if (err instanceof AiGatewayError) {
@@ -180,9 +195,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             { population:  { contains: tok, mode: 'insensitive' as const } },
         ]);
 
-    // Keyword side also honors the parsed state + remote constraints so the
-    // RRF fusion stays consistent — neither side can leak rows that violate
-    // the hard filter.
+    // Keyword side also honors the parsed state + remote + salary + new-grad
+    // constraints so the RRF fusion stays consistent. Salary + new-grad reuse
+    // the shared lib/filters.ts clauses so this route and the browse filters
+    // agree. The vector leg's new-grad SQL is deliberately looser (NULL
+    // min_years qualifies, no title exclusions), so the hydration query below
+    // re-applies newGradWhereClause() as the canonical backstop — a vector-only
+    // row that violates it fails hydration and is dropped.
+    const hardConstraints = [
+        ...(typeof minSalary === 'number' ? [salaryAtLeastClause(minSalary)] : []),
+        ...(newGrad ? [newGradWhereClause()] : []),
+    ];
     const keywordHits = await prisma.job.findMany({
         where: {
             isPublished: true,
@@ -191,6 +214,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             // returns 2-letter codes — filter against `stateCode` instead.
             ...(state ? { stateCode: state } : {}),
             ...(remoteOnly ? { isRemote: true } : {}),
+            ...(hardConstraints.length > 0 ? { AND: hardConstraints } : {}),
             OR: tokenOr,
         },
         select: { id: true },
@@ -236,14 +260,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     if (fused.length === 0) {
-        return NextResponse.json({ jobs: [], degraded, mode, arm });
+        return NextResponse.json({ jobs: [], degraded, mode, arm, parsedConstraints });
     }
 
     // ── 4. Hydrate full job rows for the UI ─────────────────────────────
     // Select every column JobCard reads from `Job` so we can hand the rows
     // straight to the existing component without prop-by-prop spreading.
     const jobs = await prisma.job.findMany({
-        where: { id: { in: fused.map((h) => h.jobId) } },
+        // newGradWhereClause here backstops the vector leg's looser SQL
+        // predicate — see the hard-constraints comment above.
+        where: {
+            id: { in: fused.map((h) => h.jobId) },
+            ...(newGrad ? newGradWhereClause() : {}),
+        },
         select: {
             id: true, title: true, slug: true, employer: true, location: true,
             jobType: true, mode: true, experienceLevel: true,
@@ -285,5 +314,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         mode,
         arm,
         query: q,
+        parsedConstraints,
     });
 }

@@ -342,7 +342,7 @@ export default async function BlogPostPage({ params }: Props) {
                 // Audit A5: salary/growth figures interpolated from
                 // STAT_SOURCES so every surface quotes the same sourced
                 // numbers; the invented open-position count was dropped.
-                text: `Yes. PMHNPs are among the most in-demand healthcare providers in the US. The average salary is ${STAT_SOURCES.averageSalary.formatted} per the ${STAT_SOURCES.averageSalary.source}, and employment growth of ${STAT_SOURCES.blsGrowth2032.formatted} is projected by the ${STAT_SOURCES.blsGrowth2032.source}. With ${STAT_SOURCES.hrsaShortagePopulation.formatted} Americans living in designated mental health professional shortage areas (${STAT_SOURCES.hrsaShortagePopulation.source}), demand is expected to stay strong for years to come.`,
+                text: `Yes. PMHNPs are among the most in-demand healthcare providers in the US. The average salary is ${STAT_SOURCES.averageSalary.formatted} per the ${STAT_SOURCES.averageSalary.source}, and employment growth of ${STAT_SOURCES.blsGrowthProjection.formatted} is projected by the ${STAT_SOURCES.blsGrowthProjection.source}. With ${STAT_SOURCES.hrsaShortagePopulation.formatted} Americans living in designated mental health professional shortage areas (${STAT_SOURCES.hrsaShortagePopulation.source}), demand is expected to stay strong for years to come.`,
             },
         ],
         'new-grad-pmhnp-first-job': [

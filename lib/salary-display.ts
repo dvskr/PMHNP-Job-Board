@@ -51,6 +51,37 @@ export function formatDisplaySalary(
 }
 
 /**
+ * The minimal field subset jobSalaryText needs — structural, so Prisma
+ * rows, API payloads, and the lib/types.ts Job interface all satisfy it.
+ */
+export interface JobSalaryTextFields {
+  displaySalary: string | null;
+  normalizedMinSalary: number | null;
+  normalizedMaxSalary: number | null;
+  salaryRange: string | null;
+  salaryPeriod: string | null;
+}
+
+/**
+ * The ONE salary string every surface shows for a job (card, detail
+ * header, OG image). Precedence: stored displaySalary, then the
+ * normalized pair formatted exactly as the write path formats it
+ * (formatDisplaySalary, so the fallback is byte-identical to what
+ * displaySalary would have been), then the raw salaryRange text.
+ * Some stored displaySalary values were written without a leading "$"
+ * (lib/salary-utils.ts processSalary), so the prefix is normalized here
+ * instead of at each render site.
+ */
+export function jobSalaryText(job: JobSalaryTextFields): string | null {
+  const text =
+    job.displaySalary ||
+    formatDisplaySalary(job.normalizedMinSalary, job.normalizedMaxSalary, job.salaryPeriod) ||
+    job.salaryRange;
+  if (!text) return null;
+  return text.startsWith('$') ? text : `$${text}`;
+}
+
+/**
  * Format salary for display with optional estimate indicator
  */
 export function formatSalaryWithEstimate(

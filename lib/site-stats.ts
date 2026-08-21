@@ -11,6 +11,7 @@
  * before the cron's first run), and to fixed defaults if the DB is unreachable.
  */
 import { prisma } from '@/lib/prisma';
+import { publicJobsWhere } from '@/lib/filters';
 
 export interface SiteStats {
     totalJobs: number;
@@ -34,12 +35,16 @@ export interface ExtendedSiteStats extends SiteStats {
 /** Used only when the DB is unreachable — keeps the homepage rendering. */
 const FALLBACK: SiteStats = { totalJobs: 200, totalCompanies: 500, totalSubscribers: 0 };
 
-/** Compute the live numbers. Expensive — call from the cron, not page renders. */
+/** Compute the live numbers. Expensive — call from the cron, not page renders.
+ *  Jobs (and the distinct-employer set) are counted with publicJobsWhere(),
+ *  the same predicate /jobs results use, so the advertised totals never
+ *  exceed what a visitor can actually browse. */
 export async function computeSiteStats(): Promise<SiteStats> {
+    const jobsWhere = publicJobsWhere();
     const [totalJobs, distinctEmployers, totalSubscribers] = await Promise.all([
-        prisma.job.count({ where: { isPublished: true } }),
+        prisma.job.count({ where: jobsWhere }),
         prisma.job.findMany({
-            where: { isPublished: true },
+            where: jobsWhere,
             distinct: ['employer'],
             select: { employer: true },
         }),

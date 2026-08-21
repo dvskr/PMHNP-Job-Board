@@ -2,6 +2,7 @@ import { jsonLdString } from '@/lib/seo/json-ld';
 import { Metadata } from 'next';
 
 import { getSiteStats, getExtendedSiteStats } from '@/lib/site-stats';
+import { roundedCountDisplay } from '@/lib/format-count';
 import { brand } from '@/config/brand';
 import { STAT_SOURCES } from '@/lib/stats-sources';
 import EmployerTrustSection from '@/components/EmployerTrustSection';
@@ -41,9 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
     getTotalJobCount(),
     getUniqueEmployerCount(),
   ]);
-  const jobCountDisplay = totalJobs > 1000
-    ? `${(Math.floor(totalJobs / 100) * 100).toLocaleString()}+`
-    : totalJobs.toLocaleString();
+  const jobCountDisplay = roundedCountDisplay(totalJobs);
 
   return {
     // SEO Fix #7: trim title to ≤60 chars (Google SERP cap). Previous title
@@ -78,9 +77,9 @@ export default async function Home() {
     getExtendedSiteStats(),
   ]);
   const totalJobs = stats.totalJobs;
-  const jobCountDisplay = totalJobs > 1000
-    ? `${Math.floor(totalJobs / 100) * 100}+`
-    : totalJobs.toLocaleString();
+  // Same formatter as generateMetadata, so the hero body and the <title>
+  // can never disagree on how the rounded count renders.
+  const jobCountDisplay = roundedCountDisplay(totalJobs);
 
   // Homepage FAQ single source of truth (audit 2026-08 C3): the visible FAQ
   // section AND the FAQPage JSON-LD both map over this exact array — schema
@@ -100,7 +99,7 @@ export default async function Home() {
     },
     {
       q: 'What is the PMHNP job outlook?',
-      a: `The PMHNP job outlook is strong: ${STAT_SOURCES.blsGrowth2032.source} projects ${STAT_SOURCES.blsGrowth2032.formatted} employment growth for nurse practitioners through 2032, much faster than average. Roughly ${STAT_SOURCES.hrsaShortagePopulation.formatted} Americans live in mental-health Health Professional Shortage Areas (${STAT_SOURCES.hrsaShortagePopulation.source}, ${STAT_SOURCES.hrsaShortagePopulation.asOf}), so demand for psychiatric NPs continues to expand alongside telehealth access.`,
+      a: `The PMHNP job outlook is strong: ${STAT_SOURCES.blsGrowthProjection.source} projects ${STAT_SOURCES.blsGrowthProjection.formatted} employment growth for nurse practitioners from ${STAT_SOURCES.blsGrowthProjection.projectionWindow}, much faster than average. Roughly ${STAT_SOURCES.hrsaShortagePopulation.formatted} Americans live in mental-health Health Professional Shortage Areas (${STAT_SOURCES.hrsaShortagePopulation.source}, ${STAT_SOURCES.hrsaShortagePopulation.asOf}), so demand for psychiatric NPs continues to expand alongside telehealth access.`,
     },
     {
       q: 'How long does it take to become a PMHNP?',

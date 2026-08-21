@@ -90,7 +90,7 @@ export const metadata: Metadata = {
     url: brand.baseUrl,
     siteName: brand.name,
     title: `${brand.name} - Find ${brand.niche.long} Positions`,
-    description: `The #1 job board for ${brand.niche.short}s. Browse remote and in-person ${brand.niche.descriptor} jobs across all 50 states.`,
+    description: `The dedicated job board for ${brand.niche.short}s. Browse remote and in-person ${brand.niche.descriptor} jobs across all 50 states.`,
     images: [
       {
         url: '/api/og?v=2',
@@ -207,7 +207,7 @@ export default async function RootLayout({
                   "url": brand.baseUrl,
                   "logo": `${brand.baseUrl}/logo.png`,
                   "image": `${brand.baseUrl}/pmhnp_logo.png`,
-                  "description": `The #1 job board for ${brand.niche.long}s`,
+                  "description": `The dedicated job board for ${brand.niche.long}s`,
                   "foundingDate": brand.legal.foundingYear,
                   // Per attribution rules: do NOT emit a `founder` Person on
                   // the public Organization schema. The legal LLC member is

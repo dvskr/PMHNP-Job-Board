@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Wifi, TrendingUp, Globe, Video, Plane, GraduationCap, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { publicJobsWhere } from '@/lib/filters';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryHero from '@/components/CategoryHero';
 import StateImage from '@/components/StateImage';
@@ -47,11 +48,14 @@ interface ProcessedCity {
  * Fetch job counts by state
  */
 async function getLocationStats() {
+  // Every count is scoped with publicJobsWhere() — the same predicate the
+  // /jobs results and state pages use — so each badge on this hub matches
+  // the filtered listing a click lands on.
   // Job counts by state
   const stateData = await prisma.job.groupBy({
     by: ['state', 'stateCode'],
     where: {
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { not: null },
     },
     _count: {
@@ -67,7 +71,7 @@ async function getLocationStats() {
   // Remote jobs count
   const remoteCount = await prisma.job.count({
     where: {
-      isPublished: true,
+      ...publicJobsWhere(),
       isRemote: true,
     },
   });
@@ -76,7 +80,7 @@ async function getLocationStats() {
   const topCities = await prisma.job.groupBy({
     by: ['city', 'state', 'stateCode'],
     where: {
-      isPublished: true,
+      ...publicJobsWhere(),
       city: { not: null },
       state: { not: null },
     },
@@ -93,7 +97,7 @@ async function getLocationStats() {
 
   // Total jobs
   const totalJobs = await prisma.job.count({
-    where: { isPublished: true },
+    where: publicJobsWhere(),
   });
 
   // Valid US states + DC (whitelist to exclude non-US locations like British Columbia)

@@ -9,7 +9,7 @@ export const revalidate = 3600; // ISR: revalidate every hour
 export const metadata: Metadata = {
   title: 'PMHNP Employers — Companies Hiring Psychiatric Nurse Practitioners',
   description:
-    'Browse companies actively hiring PMHNPs. See open positions, salary data, and apply directly. Updated daily with 3,000+ employers across all 50 states.',
+    'Browse employers actively hiring psychiatric nurse practitioners across all 50 states. Updated daily.',
   openGraph: {
     title: 'Companies Hiring PMHNPs — PMHNP Hiring',
     description: 'Explore employers with open psychiatric nurse practitioner positions.',
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Companies Hiring PMHNPs',
-    description: 'Browse 3,000+ employers actively hiring psychiatric nurse practitioners.',
+    description: 'Browse employers actively hiring psychiatric nurse practitioners across all 50 states. Updated daily.',
     images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp'],
   },
   alternates: {

@@ -726,17 +726,25 @@ export function specialtyClause(specialty: string): Prisma.JobWhereInput {
   };
 }
 
-export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
-  const where: Prisma.JobWhereInput = {
+/**
+ * Canonical "what visitors can see on /jobs" predicate: isPublished + NOT
+ * each GLOBAL_EXCLUSIONS. This is the exact base buildWhereClause starts
+ * from, so any surface that displays a site-wide job count must count with
+ * this — a bare `{ isPublished: true }` count is systematically larger than
+ * the filtered results users click through to.
+ */
+export function publicJobsWhere(): Prisma.JobWhereInput {
+  return {
     isPublished: true,
+    AND: GLOBAL_EXCLUSIONS.map((exclusion): Prisma.JobWhereInput => ({ NOT: exclusion })),
   };
+}
 
-  const andConditions: Prisma.JobWhereInput[] = [];
-
-  // Apply global exclusions (removes non-PMHNP jobs from all queries)
-  GLOBAL_EXCLUSIONS.forEach(exclusion => {
-    andConditions.push({ NOT: exclusion });
-  });
+export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
+  // Base predicate shared with publicJobsWhere() so listing results and
+  // site-wide counts can never drift apart.
+  const where = publicJobsWhere();
+  const andConditions = where.AND as Prisma.JobWhereInput[];
 
   // Search — split into terms and require ALL terms to match (AND)
   if (filters.search && filters.search.trim()) {
@@ -893,10 +901,6 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     andConditions.push({
       employer: { equals: filters.employer, mode: 'insensitive' },
     });
-  }
-
-  if (andConditions.length > 0) {
-    where.AND = andConditions;
   }
 
   return where;

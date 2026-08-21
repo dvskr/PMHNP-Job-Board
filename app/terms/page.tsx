@@ -7,7 +7,7 @@ import { FileText } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
-  description: 'Read the Terms of Service for PMHNP Hiring, operated by Akari Labs LLC. Understand your rights, responsibilities, pricing, refunds, and platform policies for the #1 PMHNP job board.',
+  description: 'Read the Terms of Service for PMHNP Hiring, operated by Akari Labs LLC. Understand your rights, responsibilities, pricing, refunds, and platform policies for the PMHNP-only job board.',
   openGraph: {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-terms-of-service.webp', width: 1280, height: 900, alt: 'PMHNP Hiring terms of service page with user rights, employer responsibilities, and platform policies' }],
   },

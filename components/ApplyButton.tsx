@@ -437,7 +437,7 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
           <div className="space-y-2 mb-4">
             {[
               { icon: '👀', text: 'Get noticed by employers hiring PMHNPs' },
-              { icon: '💬', text: 'Receive direct messages from recruiters' },
+              { icon: '💬', text: 'Receive direct messages from employers' },
               { icon: '📋', text: 'Track all your applications in one place' },
             ].map((item) => (
               <div key={item.text} className="flex items-center gap-2.5">

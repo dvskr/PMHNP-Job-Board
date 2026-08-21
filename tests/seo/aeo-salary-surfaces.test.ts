@@ -118,10 +118,10 @@ describe('D2 — Dataset JSON-LD on /salary-guide', () => {
     });
 
     it('links the BLS and HRSA mentions to their STAT_SOURCES.sourceUrl values (D5)', () => {
-        expect(hub).toMatch(/STAT_SOURCES\.blsGrowth2032\.sourceUrl/);
+        expect(hub).toMatch(/STAT_SOURCES\.blsGrowthProjection\.sourceUrl/);
         expect(hub).toMatch(/STAT_SOURCES\.hrsaShortagePopulation\.sourceUrl/);
         // The figures route through STAT_SOURCES too — no re-hardcoded stat.
-        expect(hub).toMatch(/STAT_SOURCES\.blsGrowth2032\.formatted/);
+        expect(hub).toMatch(/STAT_SOURCES\.blsGrowthProjection\.formatted/);
         expect(hub).toMatch(/STAT_SOURCES\.hrsaShortagePopulation\.formatted/);
     });
 });

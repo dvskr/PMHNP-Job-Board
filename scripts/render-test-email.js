@@ -122,7 +122,7 @@ const html = emailShellV2(`
     ${headerBlockV2('Welcome to PMHNP Hiring', '')}
     <tr><td style="padding:0 40px;"><img src="${IMG}/welcome-email-hero.png" alt="" width="520" style="width:100%;max-width:520px;height:auto;display:block;border-radius:12px;margin:0 auto;" /></td></tr>
     ${spacerV2(28)}
-    <tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">You have unlocked a new way to find your perfect role. Search curated positions, get matched by AI, and connect directly with hiring managers \u2014 no recruiters, no middlemen.</p></td></tr>
+    <tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">You have unlocked a new way to find your perfect role. Search curated positions, get matched by AI, and connect directly with hiring teams.</p></td></tr>
     ${spacerV2(36)}
     <tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF};font-size:26px;font-weight:700;color:${V2.textHeading};text-align:center;">Here is how to get started</p></td></tr>
     ${spacerV2(20)}
@@ -130,7 +130,7 @@ const html = emailShellV2(`
     ${spacerV2(16)}
     ${stepBlock('step-ai-alerts.png', 'Turn on AI alerts', 'Get notified the exact minute a perfectly matched role lands on the board.')}
     ${spacerV2(16)}
-    ${stepBlock('step-connect.png', 'Connect directly', 'Connect to hiring managers directly, no recruiters involved.')}
+    ${stepBlock('step-connect.png', 'Connect directly', 'Message hiring teams directly through the platform.')}
     ${spacerV2(32)}
     <tr><td class="content-pad" style="padding:0 40px;text-align:center;">${primaryButtonV2('Explore Your Dashboard', `${BASE_URL}/dashboard`)}</td></tr>
     ${spacerV2(16)}

@@ -52,7 +52,7 @@ const stagger = {
 const STEPS = [
     { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-profile.webp', title: 'Build Your Profile', desc: 'Upload your resume once — add license states, credentials, years of experience, and salary range. Re-use it on every application.' },
     { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-match.webp', title: 'Search & Get Matched', desc: 'Semantic AI search understands phrases like "new grad outpatient telehealth." A weekly digest emails fresh roles matched to your experience level, location, and pay.' },
-    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-connect.webp', title: 'Apply or Message Directly', desc: 'One-click Easy Apply on employer-posted roles, or message the hiring manager in-app. No recruiters, no portals, no copy-pasting.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-connect.webp', title: 'Apply or Message Directly', desc: 'One-click Easy Apply on employer-posted roles, or message the hiring manager in-app. Straight to the hiring team: no portals, no copy-pasting.' },
     { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-practice.webp', title: 'Start Practicing', desc: 'Save jobs, track applications, and follow up with employers — all in one dashboard. Then accept your offer and start your next clinical role.' },
 ];
 

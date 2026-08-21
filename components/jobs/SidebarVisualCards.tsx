@@ -3,6 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { NATIONAL_AVG_PMHNP_SALARY_K } from '@/lib/salary-stats';
+import { STAT_SOURCES } from '@/lib/stats-sources';
+import { roundedCountDisplay } from '@/lib/format-count';
 
 /* ──────────────────────────────────────────────
  *  SidebarVisualCards
@@ -107,7 +109,7 @@ function getTips(props: {
 /* ──────────────────────────────────────────────
  *  A) Career Pulse Card
  * ────────────────────────────────────────────── */
-export function CareerPulseCard() {
+export function CareerPulseCard({ jobCount }: { jobCount: number | null }) {
   return (
     <div style={{
       backgroundColor: '#F7FBF8',
@@ -136,9 +138,11 @@ export function CareerPulseCard() {
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <StatPebble emoji="📈" value="43%" label="Projected growth 2024-2034" color="#D5F5F1" />
+          <StatPebble emoji="📈" value={STAT_SOURCES.blsGrowthProjection.formatted} label={`Projected growth ${STAT_SOURCES.blsGrowthProjection.projectionWindow}`} color="#D5F5F1" />
           <StatPebble emoji="💰" value={`$${NATIONAL_AVG_PMHNP_SALARY_K}K`} label="Median annual salary" color="#FDE68A" />
-          <StatPebble emoji="🏥" value="2,400+" label="Active openings nationwide" color="#BFDBFE" />
+          {jobCount !== null && (
+            <StatPebble emoji="🏥" value={roundedCountDisplay(jobCount)} label="Active openings nationwide" color="#BFDBFE" />
+          )}
         </div>
 
         <Link href="/salary-guide" style={{

@@ -41,6 +41,10 @@ export interface SemanticJobSearchOptions {
     remoteOnly?: boolean;
     /** Optional minimum quality score. */
     minQualityScore?: number;
+    /** Optional annual salary floor (USD) — either normalized bound may clear it. */
+    minSalary?: number;
+    /** Optional new-grad filter (new-grad friendly, 0-year minimum, or unstated). */
+    newGradOnly?: boolean;
 }
 
 /**
@@ -143,6 +147,21 @@ export async function semanticJobSearch(
         const clamped = Math.max(0, Math.min(100, Math.floor(raw)));
         return `AND j.quality_score >= ${clamped}`;
     })();
+    const salaryFilter = (() => {
+        // Same clamp discipline as minQualityScore — a NaN would interpolate
+        // as literal text and break the query. A job qualifies when EITHER
+        // normalized bound clears the floor, mirroring lib/filters.ts
+        // salaryAtLeastClause so the vector and keyword legs agree.
+        const raw = options.minSalary;
+        if (typeof raw !== 'number' || !Number.isFinite(raw)) return '';
+        const clamped = Math.max(0, Math.min(2_000_000, Math.floor(raw)));
+        return `AND (j.normalized_min_salary >= ${clamped} OR j.normalized_max_salary >= ${clamped})`;
+    })();
+    // NULL min_years qualifies — an unstated requirement must not hard-hide
+    // a job from a new-grad search.
+    const newGradFilter = options.newGradOnly
+        ? `AND (j.new_grad_friendly = true OR j.min_years_experience = 0 OR j.min_years_experience IS NULL)`
+        : '';
 
     // We deliberately re-bind the vector via $queryRawUnsafe so the literal
     // works through Prisma's param marshaling. SQL injection isn't a risk
@@ -157,6 +176,8 @@ export async function semanticJobSearch(
           ${stateFilter}
           ${remoteFilter}
           ${qualityFilter}
+          ${salaryFilter}
+          ${newGradFilter}
         ORDER BY je.embedding <=> '${vec}'::vector
         LIMIT ${Math.max(1, Math.min(200, k))};
     `;

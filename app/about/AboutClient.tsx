@@ -41,7 +41,7 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
           <div className="ab-eyebrow"><span className="pulse" /> Dedicated Infrastructure · Est. 2026</div>
           <div className="ab-hero-head">
             <h1>We&apos;re shaping the <em>future</em><br />of <span className="clay-underline">PMHNP</span> careers.</h1>
-            <p className="ab-hero-sub" style={{ textAlign: 'center' }}>The only job platform built exclusively for Psychiatric Mental Health Nurse Practitioners. No generic noise — just roles that match your scope.</p>
+            <p className="ab-hero-sub" style={{ textAlign: 'center' }}>A job platform built exclusively for Psychiatric Mental Health Nurse Practitioners. No generic noise, just roles that match your scope.</p>
             <div className="ab-hero-cta">
               <Link href="/jobs" className="ab-btn ab-btn-primary">Browse open roles <ArrowRight size={16} /></Link>
               <Link href="/resources" className="ab-btn ab-btn-ghost">All Resources</Link>
@@ -91,7 +91,7 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
             <div className="ab-feat-list">
               <div className="ab-feat"><div className="ab-feat-ico"><CheckCircle size={22} /></div><div><h4>100% Specialized Filters</h4><p>Search by psychiatric setting — Inpatient, Outpatient, Telehealth, Correctional, Addiction, Geriatric — instead of typical nursing tags.</p></div></div>
               <div className="ab-feat"><div className="ab-feat-ico coral"><DollarSign size={22} /></div><div><h4>Unmatched Salary Transparency</h4><p>We pierce the veil on compensation, comparing state benchmarks with thousands of real-time listings so you can negotiate fairly.</p></div></div>
-              <div className="ab-feat"><div className="ab-feat-ico" style={{ color: '#6F63C0' }}><CalendarDays size={22} /></div><div><h4>Licensure-aware Alerts</h4><p>Your compact and state licensure drive the feed — you only ever see roles you can actually accept.</p></div></div>
+              <div className="ab-feat"><div className="ab-feat-ico" style={{ color: '#6F63C0' }}><CalendarDays size={22} /></div><div><h4>Licensure-aware Alerts</h4><p>Search and alerts filter by state and work mode, so your feed stays focused on roles that fit where you practice.</p></div></div>
             </div>
             <Link href="/signup" className="ab-btn ab-btn-primary" style={{ marginTop: 36 }}>Create a free profile <ArrowRight size={16} /></Link>
           </div>
@@ -122,9 +122,9 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
           <div>
             <span className="ab-kicker coral"><ArrowRight size={12} /> For Employers</span>
             <h2 style={{ marginTop: 20 }}>Zero-waste <em>candidate sourcing.</em></h2>
-            <p style={{ marginTop: 22, color: 'var(--ink-soft)', fontSize: 18, maxWidth: 540 }}>Skip generic aggregators where most applicants are unqualified. Post directly to a board where every visitor is a practicing or about-to-practice PMHNP.</p>
+            <p style={{ marginTop: 22, color: 'var(--ink-soft)', fontSize: 18, maxWidth: 540 }}>Skip generic aggregators where most applicants come from outside the specialty. Post directly to a board with an audience of practicing and about-to-practice PMHNPs.</p>
             <div className="ab-feat-list">
-              <div className="ab-feat"><div className="ab-feat-ico coral"><Target size={22} /></div><div><h4>High-Intent Audience</h4><p>The talent on PMHNP Hiring is actively surveying psychiatric scopes — not casually browsing — leading to vastly higher conversion rates.</p></div></div>
+              <div className="ab-feat"><div className="ab-feat-ico coral"><Target size={22} /></div><div><h4>High-Intent Audience</h4><p>The talent on PMHNP Hiring is actively surveying psychiatric scopes, not casually browsing, so your post reaches people who can actually take the role.</p></div></div>
               <div className="ab-feat"><div className="ab-feat-ico" style={{ color: '#6F63C0' }}><BarChart3 size={22} /></div><div><h4>Analytics & Placements</h4><p>Secure featured placements and monitor actionable apply-funnel analytics directly from your verified employer dashboard.</p></div></div>
               <div className="ab-feat"><div className="ab-feat-ico"><Layers size={22} /></div><div><h4>Calibrated Matching</h4><p>Our taxonomy maps exact subspecialties — SMI, C/L, substance use, perinatal — so you spend less time filtering and more time hiring.</p></div></div>
             </div>

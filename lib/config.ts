@@ -8,7 +8,8 @@
  * `freePostsPerEmail` is the source of truth for the gate + the dynamic quota
  * counters. Marketing copy is hand-written for the current single-free-post
  * model ("your first post is free"); if this number ever changes, revisit the
- * employer-facing copy (pricing / for-employers / faq / terms / emails).
+ * employer-facing copy (pricing / for-employers / faq / terms / emails /
+ * post-job layout metadata).
  *
  * Every employer_jobs row has pricing_tier='pro' after the 2026-04-30 migration
  * (see prisma/migrations/20260430_normalize_pricing_tier_to_pro/). The schema

@@ -4,13 +4,24 @@
  * Phase 1 sprint where they get wired to a real flow.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
     buildJobEmbeddingText,
     buildCandidateEmbeddingText,
     reciprocalRankFusion,
+    semanticJobSearch,
     __testing,
 } from '@/lib/ai/vector-search';
+
+// semanticJobSearch builds its SQL as a string — capture it via a prisma
+// mock so the filter clauses can be asserted without a database.
+const queryRawUnsafeMock = vi.fn();
+vi.mock('@/lib/prisma', () => ({
+    prisma: {
+        $queryRawUnsafe: (...args: unknown[]) => queryRawUnsafeMock(...args),
+        $executeRawUnsafe: vi.fn(),
+    },
+}));
 
 describe('lib/ai/vector-search', () => {
     describe('buildJobEmbeddingText', () => {
@@ -75,6 +86,50 @@ describe('lib/ai/vector-search', () => {
             const a = reciprocalRankFusion([[{ id: 1 }, { id: 2 }], [{ id: 2 }, { id: 1 }]]);
             const b = reciprocalRankFusion([[{ id: 1 }, { id: 2 }], [{ id: 2 }, { id: 1 }]]);
             expect(a).toEqual(b);
+        });
+    });
+
+    describe('semanticJobSearch — hard-filter SQL', () => {
+        beforeEach(() => {
+            queryRawUnsafeMock.mockReset();
+            queryRawUnsafeMock.mockResolvedValue([]);
+        });
+
+        const lastSql = (): string => queryRawUnsafeMock.mock.calls[0][0] as string;
+
+        it('adds a salary-floor clause over both normalized bounds', async () => {
+            await semanticJobSearch([0.1], { minSalary: 140000 });
+            expect(lastSql()).toContain(
+                '(j.normalized_min_salary >= 140000 OR j.normalized_max_salary >= 140000)',
+            );
+        });
+
+        it('floors a fractional salary and clamps an oversized one', async () => {
+            await semanticJobSearch([0.1], { minSalary: 140000.9 });
+            expect(lastSql()).toContain('>= 140000');
+
+            queryRawUnsafeMock.mockClear();
+            queryRawUnsafeMock.mockResolvedValue([]);
+            await semanticJobSearch([0.1], { minSalary: 99_999_999 });
+            expect(lastSql()).toContain('>= 2000000');
+        });
+
+        it('drops a non-finite salary instead of interpolating NaN', async () => {
+            await semanticJobSearch([0.1], { minSalary: Number.NaN });
+            expect(lastSql()).not.toContain('NaN');
+            expect(lastSql()).not.toContain('normalized_min_salary');
+        });
+
+        it('adds the new-grad clause (NULL min-years qualifies) only when newGradOnly is set', async () => {
+            await semanticJobSearch([0.1], { newGradOnly: true });
+            expect(lastSql()).toContain(
+                '(j.new_grad_friendly = true OR j.min_years_experience = 0 OR j.min_years_experience IS NULL)',
+            );
+
+            queryRawUnsafeMock.mockClear();
+            queryRawUnsafeMock.mockResolvedValue([]);
+            await semanticJobSearch([0.1], {});
+            expect(lastSql()).not.toContain('new_grad_friendly');
         });
     });
 

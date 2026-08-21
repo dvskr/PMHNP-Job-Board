@@ -22,8 +22,11 @@ const quickFilters = [
     { label: 'Telehealth', query: 'Telehealth', icon: Monitor },
     { label: 'Full-Time', query: 'Full-Time', icon: Clock },
     { label: 'Part-Time', query: 'Part-Time', icon: Clock3 },
-    { label: 'New Grad', query: 'New Grad Friendly', icon: GraduationCap },
-];
+    // Direct href: the canonical /jobs/new-grad landing counts with
+    // newGradWhereClause; a free-text "New Grad Friendly" search matches a
+    // different (smaller) set, so its count disagreed with the badge.
+    { label: 'New Grad', href: '/jobs/new-grad', icon: GraduationCap },
+] as const;
 
 const container = {
     hidden: {},
@@ -127,7 +130,7 @@ export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTr
                         marginBottom: '16px',
                     }}
                 >
-                    The #1 PMHNP Job Board
+                    The PMHNP-Only Job Board
                 </m.p>
 
                 {/* ── Headline ── */}
@@ -259,7 +262,7 @@ export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTr
                         return (
                             <Link
                                 key={filter.label}
-                                href={`/jobs?q=${encodeURIComponent(filter.query)}`}
+                                href={'href' in filter ? filter.href : `/jobs?q=${encodeURIComponent(filter.query)}`}
                                 className="hero-filter-badge"
                                 style={{
                                     // SEO Fix M13: padding 8px 18px → 12px 20px

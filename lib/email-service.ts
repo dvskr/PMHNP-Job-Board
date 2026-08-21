@@ -424,7 +424,7 @@ export async function sendSignupWelcomeEmail(
       html = emailShellV2(`
             ${headerBlockV2('Welcome to PMHNP Hiring', '')}
             ${spacerV2(20)}
-            <tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;text-align:center;">You have unlocked a new way to find your perfect role. Search curated positions, get matched by AI, and connect directly with hiring managers \u2014 no recruiters, no middlemen.</p></td></tr>
+            <tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;text-align:center;">You have unlocked a new way to find your perfect role. Search curated positions, get matched by AI, and connect directly with hiring teams.</p></td></tr>
             ${spacerV2(36)}
             <tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF_V2};font-size:26px;font-weight:700;color:${V2.textHeading};text-align:center;">Here is how to get started</p></td></tr>
             ${spacerV2(20)}
@@ -432,7 +432,7 @@ export async function sendSignupWelcomeEmail(
             ${spacerV2(16)}
             ${stepBlock('step-ai-alerts-160.png', 'Turn on AI alerts', 'Get notified the exact minute a perfectly matched role lands on the board.')}
             ${spacerV2(16)}
-            ${stepBlock('step-connect-160.png', 'Connect directly', 'Connect to hiring managers directly, no recruiters involved.')}
+            ${stepBlock('step-connect-160.png', 'Connect directly', 'Message hiring teams directly through the platform.')}
             ${spacerV2(32)}
             <tr><td class="content-pad" style="padding:0 40px;text-align:center;">${primaryButtonV2('Explore Your Dashboard', `${BASE_URL}/dashboard`)}</td></tr>
             ${spacerV2(16)}

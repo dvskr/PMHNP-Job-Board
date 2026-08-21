@@ -1,5 +1,7 @@
 import { Job } from '@/lib/types';
 import { slugify, canonicalSalaryPeriod, formatSalary, type SalaryPeriodKey } from '@/lib/utils';
+import { jobSalaryText } from '@/lib/salary-display';
+import { extractEligibleStates } from '@/lib/eligible-states';
 import { jsonLdString } from '@/lib/seo/json-ld';
 
 function mapJobType(jobType: string | null): string | undefined {
@@ -77,7 +79,7 @@ function fallbackDescription(job: Job): string {
     : location
       ? `This position is located in ${location}.`
       : null;
-  const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
+  const salary = jobSalaryText(job) || formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
   return [
     `<p>${job.employer} is hiring a ${job.title}.</p>`,
     setting ? `<p>${setting}</p>` : null,
@@ -178,38 +180,50 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
   const treatAsRemote = isFullyRemote;
   const jobLocation = treatAsRemote ? undefined : physicalJobLocation;
   const jobLocationType = treatAsRemote ? 'TELECOMMUTE' : undefined;
-  // Country-level on purpose: the DB doesn't record whether job.state on a
-  // remote posting means a licensure restriction or just the employer's HQ,
-  // so a state-level requirement would wrongly shrink reach for nationwide
-  // roles. Revisit only if a licensure-restriction signal is ever stored.
+  // Remote reach: nationwide (Country:US) by default, narrowed to a state
+  // list ONLY when the description carries a candidate-facing restriction
+  // ("must be licensed in Texas and Florida", "open only to residents of
+  // ..."). Country:US on such a job advertises it to candidates who cannot
+  // take it. extractEligibleStates is deliberately conservative (precision
+  // over recall): employer-side phrasing like "we are licensed in 42
+  // states" and lists long enough to be effectively nationwide both keep
+  // the country-level signal. job.state alone is NOT a restriction — it may
+  // just be the employer's HQ.
+  const eligibleStates = treatAsRemote ? extractEligibleStates(job.description || '') : [];
   const applicantLocationRequirements = treatAsRemote
-    ? { '@type': 'Country', name: 'US' }
+    ? eligibleStates.length > 0
+      ? eligibleStates.map((name) => ({ '@type': 'State', name }))
+      : { '@type': 'Country', name: 'US' }
     : undefined;
 
-  // SEO Fix #3: emit salary in its NATIVE unit. Previously we always pushed
-  // normalizedMin/Max (annualized) with unitText: 'YEAR' even when the source
-  // posting was hourly, producing UI ($175/hr) ≠ schema ($364k/yr) mismatches.
-  // For non-annual periods, prefer the raw minSalary/maxSalary (original unit).
+  // Salary invariant (rev 2026-08): the schema numbers always mirror the
+  // string the card/header display (jobSalaryText). Displayed strings are
+  // derived from the NORMALIZED pair (displaySalary is written from it via
+  // formatDisplaySalary), so when that pair exists the schema derives its
+  // values from the same pair, converted back to the native unit exactly as
+  // formatDisplaySalary converts: hourly = Math.round(normalized / 2080),
+  // every other period stays annualized under YEAR. Raw minSalary/maxSalary
+  // in their native unit are used ONLY when the normalized pair was never
+  // stored. Emitting raw values first paired the schema with numbers no
+  // visible surface showed whenever raw and normalized drifted apart.
   // The canonical period key is shared with formatSalary in lib/utils.ts so
   // UI and schema can never branch differently on the same DB value.
   const periodKey = canonicalSalaryPeriod(job.salaryPeriod);
-  // A non-annual posting whose raw min/max were never stored only has the
-  // ANNUALIZED normalized pair. Falling back to those under an hourly/weekly
-  // unitText would pair an annual number with a sub-annual unit (e.g.
-  // "$176,800/hr"), so in that case emit the normalized values as YEAR.
-  const hasNativeValues = job.minSalary != null || job.maxSalary != null;
-  const useNativeUnit = periodKey !== 'annual' && hasNativeValues;
-  const unitText = useNativeUnit ? SCHEMA_UNIT_TEXT[periodKey] : 'YEAR';
-  const minForSchema = useNativeUnit
-    ? job.minSalary
-    : (job.normalizedMinSalary != null ? job.normalizedMinSalary : job.minSalary);
-  const maxForSchema = useNativeUnit
-    ? job.maxSalary
-    : (job.normalizedMaxSalary != null ? job.normalizedMaxSalary : job.maxSalary);
+  const hasNormalized = job.normalizedMinSalary != null || job.normalizedMaxSalary != null;
+  // Same divisor formatDisplaySalary uses (40 hrs x 52 weeks).
+  const HOURS_PER_YEAR = 2080;
+  const fromNormalized = (v: number | null): number | null =>
+    v == null ? null : periodKey === 'hourly' ? Math.round(v / HOURS_PER_YEAR) : v;
+  const unitText: 'HOUR' | 'DAY' | 'WEEK' | 'MONTH' | 'YEAR' = hasNormalized
+    ? (periodKey === 'hourly' ? 'HOUR' : 'YEAR')
+    : (periodKey !== 'annual' ? SCHEMA_UNIT_TEXT[periodKey] : 'YEAR');
+  const minForSchema = hasNormalized ? fromNormalized(job.normalizedMinSalary) : job.minSalary;
+  const maxForSchema = hasNormalized ? fromNormalized(job.normalizedMaxSalary) : job.maxSalary;
 
-  // Biweekly → weekly is the only period pair needing arithmetic (÷2, exact).
+  // Biweekly → weekly is the only period pair needing arithmetic (÷2,
+  // exact); it can only occur on the raw-value fallback path.
   const toSchemaUnit = (v: number | null | undefined): number | undefined =>
-    v == null ? undefined : useNativeUnit && periodKey === 'biweekly' ? v / 2 : v;
+    v == null ? undefined : !hasNormalized && periodKey === 'biweekly' ? v / 2 : v;
 
   // Google's documented QuantitativeValue shapes are a single `value` or a
   // `minValue`+`maxValue` range. With only one bound (or min === max) emit
@@ -268,6 +282,16 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
           })
         : undefined;
 
+  // Google accepts an ARRAY of employmentType values. Titles like
+  // "PMHNP (Full-Time or Part-Time)" advertise both schedules while the
+  // single-valued jobType column can only store one of them, so the combo
+  // is detected from the title at render time and both values are emitted.
+  const titleOffersBothSchedules =
+    /full[- ]?time/i.test(job.title) && /part[- ]?time/i.test(job.title);
+  const employmentType = titleOffersBothSchedules
+    ? ['FULL_TIME', 'PART_TIME']
+    : mapJobType(job.jobType);
+
   const structuredData = stripUndefined({
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
@@ -276,7 +300,7 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
     url: canonicalUrl,
     datePosted: datePosted.toISOString(),
     validThrough: validThrough.toISOString(),
-    employmentType: mapJobType(job.jobType),
+    employmentType,
     hiringOrganization: stripUndefined({
       '@type': 'Organization',
       name: job.employer,

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   // with "FAQ | PMHNP Jobs | PMHNP Hiring" (the brand-confusing form
   // audit 09 M-18 flagged — "PMHNP Jobs" is not the brand name).
   title: { absolute: 'PMHNP Hiring FAQ — Job Search, Posting & Alerts' },
-  description: 'Frequently asked questions about PMHNP Hiring. Learn how to search jobs, post positions, set up alerts, and make the most of the #1 PMHNP job board.',
+  description: 'Frequently asked questions about PMHNP Hiring. Learn how to search jobs, post positions, set up alerts, and make the most of the PMHNP-only job board.',
   openGraph: {
     title: 'PMHNP Hiring FAQ',
     description: 'Common questions about searching, posting, and managing PMHNP jobs.',

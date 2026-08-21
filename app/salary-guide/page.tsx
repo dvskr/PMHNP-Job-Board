@@ -340,7 +340,7 @@ export default async function SalaryGuidePage() {
                     { value: `${fmtK(nationalFull.p25)} to ${fmtK(nationalFull.p75)}`, label: 'Middle 50%', bg: '#E0E7FF', color: '#3730A3' },
                     { value: nationalFull.n.toLocaleString(), label: 'Postings Analyzed', bg: '#FEF3C7', color: '#92400E' },
                   ] : []),
-                  { value: STAT_SOURCES.blsGrowth2032.formatted, label: 'NP Job Growth (BLS projection)', bg: '#FFE0D3', color: '#7C2D12' },
+                  { value: STAT_SOURCES.blsGrowthProjection.formatted, label: 'NP Job Growth (BLS projection)', bg: '#FFE0D3', color: '#7C2D12' },
                 ].map(s => (
                   <div key={s.label} className="sal-stat-pill" style={{
                     display: 'flex', alignItems: 'center', gap: '10px',
@@ -671,7 +671,7 @@ export default async function SalaryGuidePage() {
                 STAT_SOURCES so the same figure lands site-wide. */}
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap', gap: '8px 24px', fontSize: '13px', color: '#5A4A42' }}>
               <li>• <strong>{STAT_SOURCES.hrsaShortagePopulation.formatted}</strong> Americans live in mental health shortage areas (<a href={STAT_SOURCES.hrsaShortagePopulation.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', fontWeight: 600 }}>HRSA</a>)</li>
-              <li>• <strong>{STAT_SOURCES.blsGrowth2032.formatted}</strong> projected NP job growth through 2032 (<a href={STAT_SOURCES.blsGrowth2032.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', fontWeight: 600 }}>BLS</a>)</li>
+              <li>• <strong>{STAT_SOURCES.blsGrowthProjection.formatted}</strong> projected NP job growth from {STAT_SOURCES.blsGrowthProjection.projectionWindow} (<a href={STAT_SOURCES.blsGrowthProjection.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', fontWeight: 600 }}>BLS</a>)</li>
               <li>• Psychiatric prescriber shortages persist in most states (<a href={STAT_SOURCES.hrsaShortagePopulation.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', fontWeight: 600 }}>HRSA</a>)</li>
             </ul>
           </div>

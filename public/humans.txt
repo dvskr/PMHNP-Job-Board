@@ -9,7 +9,7 @@ Location: United States
 
 Site: PMHNP Hiring
 URL: https://pmhnphiring.com
-Description: The #1 job board for Psychiatric Mental Health Nurse Practitioners
+Description: The dedicated job board for Psychiatric Mental Health Nurse Practitioners
 Standards: HTML5, CSS3, JavaScript ES2024
 Components: Next.js 15, React 19, TypeScript, Prisma, PostgreSQL
 Platform: Vercel

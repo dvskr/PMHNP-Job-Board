@@ -74,7 +74,7 @@ export const V2 = {
 // - Footer: simple ©, pmhnphiring.com, hello@
 
 export function emailShellV2(content: string, footerContent: string = '', preheaderText: string = ''): string {
-  const preheader = preheaderText || 'PMHNP Hiring — The #1 job board for Psychiatric Mental Health Nurse Practitioners';
+  const preheader = preheaderText || 'PMHNP Hiring: The dedicated job board for Psychiatric Mental Health Nurse Practitioners';
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
