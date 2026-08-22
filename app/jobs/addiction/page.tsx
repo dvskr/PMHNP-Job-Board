@@ -96,7 +96,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
             description: 'Browse addiction and substance use disorder psychiatric nurse practitioner positions. MAT, detox, and recovery center roles.',
             type: 'website',
             images: [{
-                url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Addiction PMHNP Jobs`)}&subtitle=${encodeURIComponent('Substance use & MAT psych NP positions')}`,
+                url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Addiction PMHNP Jobs`)}&subtitle=${encodeURIComponent('Substance use & MAT psych NP positions')}`,
                 width: 1200, height: 630, alt: 'Addiction PMHNP Jobs',
             }],
         },

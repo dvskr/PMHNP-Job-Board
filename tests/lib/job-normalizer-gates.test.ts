@@ -17,6 +17,8 @@ import {
     extractSalary,
     computeCompleteness,
     detectJobType,
+    detectAllJobTypes,
+    collectJobTypes,
 } from '@/lib/job-normalizer';
 
 const goodDesc = 'We are seeking a Psychiatric Nurse Practitioner to join our outpatient clinic full time.';
@@ -128,6 +130,106 @@ describe('detectJobType — extended patterns', () => {
             expect(detectJobType(text)).toBe(expected);
         });
     }
+});
+
+describe('detectAllJobTypes / collectJobTypes — multi-schedule collection', () => {
+    it('collects every schedule the text names, in detector priority order', () => {
+        expect(detectAllJobTypes('PMHNP (Full-Time or Part-Time)')).toEqual(['Part-Time', 'Full-Time']);
+    });
+
+    it('a single schedule collapses to a one-element array', () => {
+        expect(collectJobTypes('Full-Time', 'Full time outpatient role')).toEqual(['Full-Time']);
+    });
+
+    it('the primary jobType leads even when the text detects it in a later slot', () => {
+        // detectJobType alone would put Part-Time first (priority order); the
+        // stored primary must stay in front.
+        expect(collectJobTypes('Full-Time', 'PMHNP (Full-Time or Part-Time)')).toEqual(['Full-Time', 'Part-Time']);
+    });
+
+    it('a canonical primary the text never mentions still leads the array', () => {
+        expect(collectJobTypes('Contract', 'Part-time weekend PMHNP')).toEqual(['Contract', 'Part-Time']);
+    });
+
+    it('no primary and no text signal yields []', () => {
+        expect(collectJobTypes(null, 'Psychiatric Nurse Practitioner')).toEqual([]);
+    });
+});
+
+describe('normalizeJobWithReason — structured arrays (eligibleStateCodes + jobTypes)', () => {
+    it('fully-remote job with a licensure restriction stores 2-letter codes in description order', () => {
+        const result = normalizeJobWithReason(
+            rawJob({
+                location: 'Remote',
+                description:
+                    'Fully remote telehealth role for a Psychiatric Nurse Practitioner. Candidates must be licensed in Texas and Florida.',
+            }),
+            'lever',
+        );
+        expect(result.job).not.toBeNull();
+        expect(result.job!.isRemote).toBe(true);
+        expect(result.job!.eligibleStateCodes).toEqual(['TX', 'FL']);
+    });
+
+    it('fully-remote job with no restriction phrase stores [] (nationwide)', () => {
+        const result = normalizeJobWithReason(
+            rawJob({
+                location: 'Remote',
+                description: 'Fully remote telehealth role for a Psychiatric Nurse Practitioner nationwide.',
+            }),
+            'lever',
+        );
+        expect(result.job).not.toBeNull();
+        expect(result.job!.isRemote).toBe(true);
+        expect(result.job!.eligibleStateCodes).toEqual([]);
+    });
+
+    it('non-remote job stores [] even when the description names license states', () => {
+        const result = normalizeJobWithReason(
+            rawJob({
+                description:
+                    'Outpatient clinic role in Boston for a psychiatric nurse practitioner. Candidates must be licensed in Texas.',
+            }),
+            'lever',
+        );
+        expect(result.job).not.toBeNull();
+        expect(result.job!.isRemote).toBe(false);
+        expect(result.job!.eligibleStateCodes).toEqual([]);
+    });
+
+    it('jobTypes carries every schedule the TITLE names, canonical primary first', () => {
+        const result = normalizeJobWithReason(
+            rawJob({
+                jobType: 'FULL_TIME',
+                title: 'Psychiatric Nurse Practitioner, Full-Time or Part-Time',
+            }),
+            'workday',
+        );
+        expect(result.job).not.toBeNull();
+        expect(result.job!.jobType).toBe('Full-Time');
+        expect(result.job!.jobTypes).toEqual(['Full-Time', 'Part-Time']);
+    });
+
+    it('description boilerplate never pollutes jobTypes (PRN meds, insurance contracting)', () => {
+        const result = normalizeJobWithReason(
+            rawJob({
+                jobType: 'FULL_TIME',
+                description:
+                    'Psychiatric Nurse Practitioner managing scheduled and PRN medications as needed. We are contracted with all major insurance panels.',
+            }),
+            'workday',
+        );
+        expect(result.job).not.toBeNull();
+        expect(result.job!.jobTypes).toEqual(['Full-Time']);
+    });
+
+    it('single-schedule job yields jobTypes = [jobType]', () => {
+        // goodDesc says "full time" — one schedule only.
+        const result = normalizeJobWithReason(rawJob(), 'lever');
+        expect(result.job).not.toBeNull();
+        expect(result.job!.jobType).toBe('Full-Time');
+        expect(result.job!.jobTypes).toEqual(['Full-Time']);
+    });
 });
 
 describe('normalizeJobWithReason — sub-bucketed rejection reasons', () => {

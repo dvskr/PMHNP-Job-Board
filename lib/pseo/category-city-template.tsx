@@ -961,6 +961,8 @@ export async function buildCategoryCityMetadata(
     jobs: String(stats.totalJobs),
     ...(salaryDisplay && { salary: salaryDisplay }),
     ...(city.mentalHealthShortage && { shortage: 'true' }),
+    // Cache buster: bump when the OG template design changes so scrapers refetch.
+    v: '3',
   });
 
   return {

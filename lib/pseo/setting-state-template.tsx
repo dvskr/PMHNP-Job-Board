@@ -156,7 +156,7 @@ export async function buildSettingStateMetadata(
       description: `Browse ${config.label.toLowerCase()} psychiatric nurse practitioner positions in ${stateName}. ${config.heroSubtitle}.`,
       type: 'website',
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} ${config.label} PMHNP Jobs in ${stateName}`)}&subtitle=${encodeURIComponent(config.heroSubtitle)}`,
+        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} ${config.label} PMHNP Jobs in ${stateName}`)}&subtitle=${encodeURIComponent(config.heroSubtitle)}&v=3`,
         width: 1200,
         height: 630,
         alt: `${config.label} PMHNP Jobs in ${stateName}`,

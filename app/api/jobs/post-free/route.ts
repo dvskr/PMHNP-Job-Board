@@ -15,6 +15,8 @@ import { formatDisplaySalary } from '@/lib/salary-display';
 import { computeQualityScore } from '@/lib/utils/quality-score';
 import { inngest } from '@/lib/inngest/client';
 import { parseLocation } from '@/lib/location-parser';
+import { extractEligibleStates } from '@/lib/eligible-states';
+import { STATE_NAME_TO_CODE } from '@/lib/us-states';
 import { summarizeForMeta } from '@/lib/description-cleaner';
 import { buildQuotaKeys, describeQuotaKey, rawDomainFromEmail, FREE_EMAIL_DOMAINS } from '@/lib/employer-quota';
 import { normalizeExperienceFromInput } from '@/lib/experience-label';
@@ -267,6 +269,15 @@ export async function POST(request: NextRequest) {
     // Parse location into structured fields
     const parsedLoc = parseLocation(sanitized.location);
 
+    // Fully-remote posts: extract any candidate-facing state restriction
+    // from the description (same rule as the ingest normalizer) so the
+    // eligibility-aware search never reads a restricted post as nationwide.
+    const eligibleStateCodes = parsedLoc.isRemote && !parsedLoc.isHybrid
+      ? extractEligibleStates(sanitized.description)
+          .map((name) => STATE_NAME_TO_CODE[name])
+          .filter((code): code is string => !!code)
+      : [];
+
     // Audit #6 + #7: gate-check + writes wrapped in a single Serializable
     // transaction. Postgres aborts the second transaction if two requests
     // race past the count check. Atomicity also fixes the orphan-row risk
@@ -315,6 +326,11 @@ export async function POST(request: NextRequest) {
             employer: lockedCompanyName || sanitized.employer,
             location: sanitized.location,
             jobType: sanitized.jobType || null,
+            // Employer form offers a single schedule; mirror it into the
+            // multi-schedule array so JSON-LD / Role Snapshot readers see
+            // one consistent source.
+            jobTypes: sanitized.jobType ? [sanitized.jobType] : [],
+            eligibleStateCodes,
             mode: sanitized.mode || null,
             description: sanitized.description,
             descriptionSummary: summarizeForMeta(sanitized.description),

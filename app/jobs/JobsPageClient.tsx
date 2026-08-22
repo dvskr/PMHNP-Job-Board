@@ -39,9 +39,16 @@ function aiConstraintChipLabels(constraints: AiParsedConstraints | null): string
   if (!constraints) return [];
   const labels: string[] = [];
   if (constraints.remoteOnly) labels.push('Remote');
-  // License-state eligibility is not structured data, so the state chip is
-  // explicitly a location filter, not a licensure match.
-  if (constraints.state) labels.push(`${constraints.state} (location)`);
+  // remote + state means the eligibility-aware filter ran (in-state,
+  // nationwide-remote, or the state is in the job's restriction list), so
+  // the chip says "eligible". State alone stays a plain location filter.
+  if (constraints.state) {
+    labels.push(
+      constraints.remoteOnly
+        ? `${constraints.state} eligible`
+        : `${constraints.state} (location)`,
+    );
+  }
   if (constraints.newGrad) labels.push('New grad friendly');
   if (constraints.minSalary) labels.push(`$${Math.round(constraints.minSalary / 1000)}k+ salary`);
   return labels;

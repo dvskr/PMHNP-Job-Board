@@ -3,6 +3,43 @@ import { NextRequest } from 'next/server';
 
 export const runtime = 'edge';
 
+// ─── Shared OG visual system ────────────────────────────────────────────────
+// Mirrored in app/api/og/route.tsx: warm cream ground, deep teal accent,
+// near-black ink, pill chips, thin domain bottom bar. Satori constraints:
+// flexbox only, explicit dims. Amber is reserved for the shortage badge.
+const INK = '#1A2E35';
+const CREAM = '#F7F5F0';
+const TEAL = '#0D9488';
+const TEAL_DARK = '#0F766E';
+const TEAL_TINT = 'rgba(13, 148, 136, 0.10)';
+const TEAL_EDGE = 'rgba(13, 148, 136, 0.35)';
+const SURFACE = '#FFFFFF';
+const BORDER = '#E4DED2';
+const AMBER_TEXT = '#92400E';
+const AMBER_TINT = '#FBEED7';
+const AMBER_EDGE = '#EAD9B0';
+
+function chip(label: string, accent = false) {
+  return (
+    <div
+      key={label}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '12px 26px',
+        borderRadius: 999,
+        backgroundColor: accent ? TEAL_TINT : SURFACE,
+        border: `1px solid ${accent ? TEAL_EDGE : BORDER}`,
+        color: accent ? TEAL_DARK : INK,
+        fontSize: 24,
+        fontWeight: 600,
+      }}
+    >
+      {label}
+    </div>
+  );
+}
+
 /**
  * Dynamic OG image for pSEO city pages.
  * URL: /api/og/city?category=Remote&city=New+York,+NY&jobs=142&salary=$120K-$165K
@@ -10,6 +47,8 @@ export const runtime = 'edge';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
+  // Query-param contract (unchanged): category, city, jobs, salary, shortage.
+  // `v` is a cache buster only.
   const category = searchParams.get('category') || 'PMHNP';
   const city = searchParams.get('city') || 'United States';
   const jobs = searchParams.get('jobs') || '0';
@@ -31,6 +70,10 @@ export async function GET(request: NextRequest) {
   // Truncate long city names
   const displayCity = city.length > 28 ? city.slice(0, 26) + '…' : city;
 
+  const headlineLine1 = `${category} PMHNP Jobs`;
+  const headlineLine2 = `in ${displayCity}`;
+  const headlineSize = Math.max(headlineLine1.length, headlineLine2.length) > 26 ? 50 : 60;
+
   return new ImageResponse(
     (
       <div
@@ -39,224 +82,108 @@ export async function GET(request: NextRequest) {
           height: '630px',
           display: 'flex',
           flexDirection: 'column',
-          position: 'relative',
-          overflow: 'hidden',
+          backgroundColor: CREAM,
+          color: INK,
           fontFamily: 'sans-serif',
-          // Warm Diorama: cream/clay gradient
-          background: 'linear-gradient(145deg, #FFF8F0 0%, #F5E6D3 40%, #FBEFE4 100%)',
-          color: '#1F2947',
         }}
       >
-        {/* Top accent bar */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '6px',
-            display: 'flex',
-            background: 'linear-gradient(90deg, #5EBCB0, #0D9488, #DB7558)',
-          }}
-        />
+        {/* Top accent rule */}
+        <div style={{ display: 'flex', width: '100%', height: 8, backgroundColor: TEAL }} />
 
-        {/* Subtle clay dot texture */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0, left: 0, right: 0, bottom: 0,
-            display: 'flex',
-            backgroundImage: 'radial-gradient(rgba(31,41,71,0.04) 1.5px, transparent 1.5px)',
-            backgroundSize: '32px 32px',
-          }}
-        />
-
-        {/* Decorative claymorphic circles */}
-        <div style={{
-          position: 'absolute', top: -60, right: -60,
-          width: 280, height: 280, borderRadius: '50%',
-          display: 'flex',
-          background: 'linear-gradient(145deg, rgba(94,188,176,0.12), rgba(94,188,176,0.04))',
-          boxShadow: 'inset 4px 4px 12px rgba(255,255,255,0.6), inset -4px -4px 12px rgba(0,0,0,0.03)',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: -40, left: -40,
-          width: 200, height: 200, borderRadius: '50%',
-          display: 'flex',
-          background: 'linear-gradient(145deg, rgba(219,117,88,0.08), rgba(219,117,88,0.02))',
-        }} />
-
-        {/* Content */}
-        <div style={{
-          display: 'flex', flexDirection: 'column',
-          width: '100%', height: '100%',
-          padding: '48px 56px',
-          position: 'relative',
-        }}>
-
-          {/* Header row */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            width: '100%',
-            marginBottom: 24,
-          }}>
-            {logoSrc ? (
-              <img src={logoSrc} alt="PMHNP Hiring" width={180} height={60} style={{ objectFit: 'contain' }} />
-            ) : (
-              <div style={{ display: 'flex', fontSize: 26, fontWeight: 800, color: '#0D9488' }}>
-                PMHNP Hiring
-              </div>
-            )}
-            {/* Category badge */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 24px',
-              borderRadius: '999px',
-              background: 'linear-gradient(145deg, #FFFFFF, #F1E1CE)',
-              border: '1px solid rgba(255,255,255,0.8)',
-              boxShadow: '4px 4px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.6)',
-              fontSize: 16,
-              fontWeight: 800,
-              color: '#0D9488',
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase' as const,
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-              </svg>
+        <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, padding: '52px 64px 44px' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', fontSize: 22, fontWeight: 700, letterSpacing: '0.24em', color: TEAL }}>
+              PMHNP HIRING
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '10px 22px',
+                borderRadius: 999,
+                backgroundColor: TEAL_TINT,
+                border: `1px solid ${TEAL_EDGE}`,
+                color: TEAL_DARK,
+                fontSize: 19,
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase' as const,
+              }}
+            >
               {category} Jobs
             </div>
           </div>
 
-          {/* Main headline */}
-          <div style={{
-            display: 'flex', flexDirection: 'column',
-            flexGrow: 1, justifyContent: 'center',
-          }}>
-            <div style={{
-              display: 'flex',
-              fontSize: displayCity.length > 20 ? 52 : 62,
-              fontWeight: 800,
-              color: '#1F2947',
-              lineHeight: 1.05,
-              letterSpacing: '-0.03em',
-            }}>
-              {category} PMHNP Jobs
-            </div>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              marginTop: 8,
-            }}>
-              <div style={{
+          {/* Headline: category line in ink, city line in teal */}
+          <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center' }}>
+            <div
+              style={{
                 display: 'flex',
-                fontSize: displayCity.length > 20 ? 44 : 52,
+                fontSize: headlineSize,
                 fontWeight: 800,
-                color: '#0D9488',
-                lineHeight: 1.1,
+                color: INK,
+                lineHeight: 1.08,
                 letterSpacing: '-0.02em',
-              }}>
-                in {displayCity}
-              </div>
+              }}
+            >
+              {headlineLine1}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                fontSize: headlineSize,
+                fontWeight: 800,
+                color: TEAL,
+                lineHeight: 1.12,
+                letterSpacing: '-0.02em',
+                marginTop: 6,
+              }}
+            >
+              {headlineLine2}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: 36 }}>
+              {chip(`${jobs} open positions`, true)}
+              {salary && chip(`Salary: ${salary}`)}
               {shortage && (
-                <div style={{
-                  display: 'flex',
-                  padding: '6px 14px',
-                  borderRadius: '8px',
-                  background: '#FEF3C7',
-                  border: '1px solid #FCD34D',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: '#92400E',
-                }}>
-                  ⚕ Shortage Area
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '12px 26px',
+                    borderRadius: 999,
+                    backgroundColor: AMBER_TINT,
+                    border: `1px solid ${AMBER_EDGE}`,
+                    color: AMBER_TEXT,
+                    fontSize: 24,
+                    fontWeight: 600,
+                  }}
+                >
+                  Mental health shortage area
                 </div>
               )}
             </div>
           </div>
 
-          {/* Stats footer */}
-          <div style={{
-            display: 'flex',
-            gap: '24px',
-            paddingTop: 28,
-            borderTop: '2px solid rgba(31,41,71,0.08)',
-          }}>
-            {/* Jobs count */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '16px',
-              padding: '14px 28px',
-              borderRadius: '18px',
-              background: 'linear-gradient(145deg, #FFFFFF, #F5EDE2)',
-              border: '1px solid rgba(255,255,255,0.5)',
-              boxShadow: '4px 4px 12px rgba(0,0,0,0.05), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.6)',
-            }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 44, height: 44, borderRadius: 14,
-                background: 'linear-gradient(145deg, #5EBCB0, #0D9488)',
-                color: '#fff',
-              }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                </svg>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: 30, fontWeight: 900, color: '#1F2947', lineHeight: 1 }}>{jobs}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#8A9BA6', letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>
-                  Open Positions
-                </div>
-              </div>
+          {/* Bottom bar */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              width: '100%',
+              borderTop: `1px solid ${BORDER}`,
+              paddingTop: 26,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {logoSrc ? (
+                <img src={logoSrc} alt="PMHNP Hiring" width={150} height={50} style={{ objectFit: 'contain' }} />
+              ) : (
+                <div style={{ display: 'flex', fontSize: 24, fontWeight: 800, color: INK }}>PMHNP Hiring</div>
+              )}
             </div>
-
-            {/* Salary range */}
-            {salary && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '16px',
-                padding: '14px 28px',
-                borderRadius: '18px',
-                background: 'linear-gradient(145deg, #FFFFFF, #F5EDE2)',
-                border: '1px solid rgba(255,255,255,0.5)',
-                boxShadow: '4px 4px 12px rgba(0,0,0,0.05), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.6)',
-              }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  width: 44, height: 44, borderRadius: 14,
-                  background: 'linear-gradient(145deg, #DB7558, #C56B4E)',
-                  color: '#fff',
-                }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" x2="12" y1="2" y2="22" />
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ fontSize: 26, fontWeight: 900, color: '#1F2947', lineHeight: 1 }}>{salary}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#8A9BA6', letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>
-                    Salary Range
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Domain pill */}
-            <div style={{
-              display: 'flex', alignItems: 'center',
-              marginLeft: 'auto',
-              padding: '14px 24px',
-              borderRadius: '14px',
-              background: 'linear-gradient(145deg, #0D9488, #0F766E)',
-              color: '#fff',
-              fontSize: 17,
-              fontWeight: 800,
-              letterSpacing: '0.05em',
-              boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
-            }}>
+            <div style={{ display: 'flex', fontSize: 22, fontWeight: 700, color: TEAL }}>
               pmhnphiring.com
             </div>
           </div>

@@ -87,7 +87,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       type: 'website',
       url: `${brand.baseUrl}/jobs/1099`,
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}1099 PMHNP Jobs`)}&subtitle=${encodeURIComponent('Independent contractor psychiatric NP positions')}`,
+        url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}1099 PMHNP Jobs`)}&subtitle=${encodeURIComponent('Independent contractor psychiatric NP positions')}`,
         width: 1200, height: 630, alt: '1099 PMHNP Jobs',
       }],
     },

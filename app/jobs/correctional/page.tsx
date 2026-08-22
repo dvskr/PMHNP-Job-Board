@@ -88,7 +88,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       type: 'website',
       url: `${brand.baseUrl}/jobs/correctional`,
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Correctional PMHNP Jobs`)}&subtitle=${encodeURIComponent('Forensic psychiatric NP positions with PSLF eligibility')}`,
+        url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Correctional PMHNP Jobs`)}&subtitle=${encodeURIComponent('Forensic psychiatric NP positions with PSLF eligibility')}`,
         width: 1200, height: 630, alt: 'Correctional PMHNP Jobs',
       }],
     },

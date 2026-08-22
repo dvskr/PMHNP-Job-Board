@@ -120,6 +120,31 @@ describe('lib/ai/vector-search', () => {
             expect(lastSql()).not.toContain('normalized_min_salary');
         });
 
+        it('remote + state combine into the eligibility clause (in-state OR nationwide OR listed)', async () => {
+            await semanticJobSearch([0.1], { states: ['TX'], remoteOnly: true });
+            const sql = lastSql();
+            expect(sql).toContain('j.is_remote = true');
+            // The nationwide (empty-list) branch is hybrid-gated: writers only
+            // populate eligibility for fully-remote rows.
+            expect(sql).toContain(
+                `(j.state_code = ANY($1::text[]) OR (NOT j.is_hybrid AND j.eligible_state_codes = '{}') OR j.eligible_state_codes && $1::text[])`,
+            );
+            // States still travel as the positional array parameter.
+            expect(queryRawUnsafeMock.mock.calls[0][1]).toEqual(['TX']);
+        });
+
+        it('state WITHOUT remote keeps the plain state_code location match', async () => {
+            await semanticJobSearch([0.1], { states: ['TX'] });
+            expect(lastSql()).toContain('j.state_code = ANY($1::text[])');
+            expect(lastSql()).not.toContain('eligible_state_codes');
+        });
+
+        it('remote WITHOUT state keeps the plain is_remote filter', async () => {
+            await semanticJobSearch([0.1], { remoteOnly: true });
+            expect(lastSql()).toContain('j.is_remote = true');
+            expect(lastSql()).not.toContain('eligible_state_codes');
+        });
+
         it('adds the new-grad clause (NULL min-years qualifies) only when newGradOnly is set', async () => {
             await semanticJobSearch([0.1], { newGradOnly: true });
             expect(lastSql()).toContain(

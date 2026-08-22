@@ -81,7 +81,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
             description: 'Browse outpatient psychiatric nurse practitioner positions in clinics, private practices, and community mental health centers.',
             type: 'website',
             images: [{
-                url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Outpatient PMHNP Jobs`)}&subtitle=${encodeURIComponent('Clinic & private practice positions')}`,
+                url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Outpatient PMHNP Jobs`)}&subtitle=${encodeURIComponent('Clinic & private practice positions')}`,
                 width: 1200, height: 630, alt: 'Outpatient PMHNP Jobs',
             }],
         },

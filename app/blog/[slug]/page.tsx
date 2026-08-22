@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         return { title: 'Article Not Found' };
     }
 
-    const ogImage = post.image_url || 'https://pmhnphiring.com/api/og';
+    const ogImage = post.image_url || 'https://pmhnphiring.com/api/og?v=3';
     const url = `https://pmhnphiring.com/blog/${slug}`;
 
     return {
@@ -290,7 +290,7 @@ export default async function BlogPostPage({ params }: Props) {
             '@type': 'WebPage',
             '@id': currentUrl,
         },
-        image: post.image_url || 'https://pmhnphiring.com/api/og',
+        image: post.image_url || 'https://pmhnphiring.com/api/og?v=3',
         keywords: post.target_keyword || undefined,
         articleSection: categoryLabel,
         url: currentUrl,
@@ -312,7 +312,7 @@ export default async function BlogPostPage({ params }: Props) {
         '@type': 'VideoObject',
         name: post.title,
         description: post.meta_description || post.title,
-        thumbnailUrl: post.image_url || 'https://pmhnphiring.com/api/og',
+        thumbnailUrl: post.image_url || 'https://pmhnphiring.com/api/og?v=3',
         uploadDate: post.publish_date || post.created_at,
         contentUrl: post.video_url,
         publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },

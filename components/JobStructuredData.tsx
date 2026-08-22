@@ -2,6 +2,7 @@ import { Job } from '@/lib/types';
 import { slugify, canonicalSalaryPeriod, formatSalary, type SalaryPeriodKey } from '@/lib/utils';
 import { jobSalaryText } from '@/lib/salary-display';
 import { extractEligibleStates } from '@/lib/eligible-states';
+import { STATE_CODE_TO_NAME } from '@/lib/us-states';
 import { jsonLdString } from '@/lib/seo/json-ld';
 
 function mapJobType(jobType: string | null): string | undefined {
@@ -42,8 +43,21 @@ function mapSalaryUnitText(period: string | null): 'HOUR' | 'DAY' | 'WEEK' | 'MO
   return SCHEMA_UNIT_TEXT[canonicalSalaryPeriod(period)];
 }
 
+// Mirrors MAX_ELIGIBLE_STATES in lib/eligible-states.ts: a stored list this
+// long is effectively nationwide, so the Country:US signal is more honest.
+const MAX_ELIGIBLE_STATES = 40;
+
 interface JobStructuredDataProps {
-  job: Job;
+  // The two structured arrays are optional (string[] | undefined) so callers
+  // whose Job shape predates the columns still compile. They're accepted
+  // both on the job object and as top-level props — the detail page fetches
+  // them beside its lib/types Job shape and passes them separately.
+  job: Job & {
+    eligibleStateCodes?: string[];
+    jobTypes?: string[];
+  };
+  eligibleStateCodes?: string[];
+  jobTypes?: string[];
 }
 
 /**
@@ -105,7 +119,11 @@ function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
   return result;
 }
 
-export default function JobStructuredData({ job }: JobStructuredDataProps) {
+export default function JobStructuredData({ job, eligibleStateCodes, jobTypes }: JobStructuredDataProps) {
+  // Top-level props win over job fields; both fall back to [] for rows
+  // (or callers) that predate the columns.
+  const storedEligibleCodes = eligibleStateCodes ?? job.eligibleStateCodes ?? [];
+  const storedJobTypes = jobTypes ?? job.jobTypes ?? [];
   // Use originalPostedAt (real source date) with createdAt fallback for SEO accuracy
   const rawDate = job.originalPostedAt || job.createdAt;
   const datePosted = rawDate instanceof Date ? rawDate : new Date(rawDate as string);
@@ -181,15 +199,24 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
   const jobLocation = treatAsRemote ? undefined : physicalJobLocation;
   const jobLocationType = treatAsRemote ? 'TELECOMMUTE' : undefined;
   // Remote reach: nationwide (Country:US) by default, narrowed to a state
-  // list ONLY when the description carries a candidate-facing restriction
-  // ("must be licensed in Texas and Florida", "open only to residents of
-  // ..."). Country:US on such a job advertises it to candidates who cannot
-  // take it. extractEligibleStates is deliberately conservative (precision
-  // over recall): employer-side phrasing like "we are licensed in 42
-  // states" and lists long enough to be effectively nationwide both keep
-  // the country-level signal. job.state alone is NOT a restriction — it may
-  // just be the employer's HQ.
-  const eligibleStates = treatAsRemote ? extractEligibleStates(job.description || '') : [];
+  // list ONLY when the job carries a candidate-facing restriction. The
+  // stored eligibleStateCodes column (populated at ingest / backfill) wins
+  // when present; rows the backfill hasn't touched fall back to render-time
+  // description extraction ("must be licensed in Texas and Florida", "open
+  // only to residents of ..."). Country:US on a restricted job advertises
+  // it to candidates who cannot take it. extractEligibleStates is
+  // deliberately conservative (precision over recall): employer-side
+  // phrasing like "we are licensed in 42 states" and lists long enough to
+  // be effectively nationwide both keep the country-level signal.
+  // job.state alone is NOT a restriction — it may just be the employer's HQ.
+  const storedEligibleNames = storedEligibleCodes
+    .map((code) => STATE_CODE_TO_NAME[code])
+    .filter((name): name is string => !!name);
+  const eligibleStates = treatAsRemote
+    ? storedEligibleNames.length > 0 && storedEligibleNames.length <= MAX_ELIGIBLE_STATES
+      ? storedEligibleNames
+      : extractEligibleStates(job.description || '')
+    : [];
   const applicantLocationRequirements = treatAsRemote
     ? eligibleStates.length > 0
       ? eligibleStates.map((name) => ({ '@type': 'State', name }))
@@ -282,15 +309,27 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
           })
         : undefined;
 
-  // Google accepts an ARRAY of employmentType values. Titles like
-  // "PMHNP (Full-Time or Part-Time)" advertise both schedules while the
-  // single-valued jobType column can only store one of them, so the combo
-  // is detected from the title at render time and both values are emitted.
+  // Google accepts an ARRAY of employmentType values. The stored jobTypes
+  // column (every schedule the posting offers, primary first) wins when it
+  // carries 2+ entries; each maps through the same canonical table and the
+  // result is deduped (Per Diem and PRN both map to PER_DIEM). Rows the
+  // backfill hasn't touched fall back to render-time title-combo detection:
+  // titles like "PMHNP (Full-Time or Part-Time)" advertise both schedules
+  // while the single-valued jobType column can only store one of them.
+  const storedEmploymentTypes = storedJobTypes.length >= 2
+    ? [...new Set(
+        storedJobTypes
+          .map((t) => mapJobType(t))
+          .filter((t): t is string => t !== undefined),
+      )]
+    : [];
   const titleOffersBothSchedules =
     /full[- ]?time/i.test(job.title) && /part[- ]?time/i.test(job.title);
-  const employmentType = titleOffersBothSchedules
-    ? ['FULL_TIME', 'PART_TIME']
-    : mapJobType(job.jobType);
+  const employmentType = storedEmploymentTypes.length >= 2
+    ? storedEmploymentTypes
+    : titleOffersBothSchedules
+      ? ['FULL_TIME', 'PART_TIME']
+      : mapJobType(job.jobType);
 
   const structuredData = stripUndefined({
     '@context': 'https://schema.org',

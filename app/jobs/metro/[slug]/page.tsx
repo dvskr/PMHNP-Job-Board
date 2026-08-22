@@ -126,7 +126,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       type: 'website',
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`PMHNP Jobs in ${metro.city}`)}&subtitle=${encodeURIComponent(`${metro.practiceAuthority} Practice Authority • ${metro.avgCostOfLiving} cost of living`)}`,
+        url: `/api/og?type=page&v=3&title=${encodeURIComponent(`PMHNP Jobs in ${metro.city}`)}&subtitle=${encodeURIComponent(`${metro.practiceAuthority} Practice Authority • ${metro.avgCostOfLiving} cost of living`)}`,
         width: 1200, height: 630,
         alt: `PMHNP Jobs in ${metro.city}, ${metro.stateCode}`,
       }],

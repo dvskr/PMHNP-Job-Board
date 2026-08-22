@@ -96,7 +96,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       description: 'Browse locum tenens and travel psychiatric mental health nurse practitioner positions. Premium pay, housing, and malpractice coverage.',
       type: 'website',
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Locum Tenens PMHNP Jobs`)}&subtitle=${encodeURIComponent('Travel psych NP assignments with premium pay')}`,
+        url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Locum Tenens PMHNP Jobs`)}&subtitle=${encodeURIComponent('Travel psych NP assignments with premium pay')}`,
         width: 1200,
         height: 630,
         alt: 'Locum Tenens PMHNP Jobs',

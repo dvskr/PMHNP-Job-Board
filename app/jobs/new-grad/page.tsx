@@ -132,7 +132,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
             description: 'Browse new graduate and entry-level psychiatric mental health nurse practitioner positions. Fellowships, residencies, mentorship programs.',
             type: 'website',
             images: [{
-                url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}New Grad PMHNP Jobs`)}&subtitle=${encodeURIComponent('Entry-level psychiatric NP positions')}`,
+                url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}New Grad PMHNP Jobs`)}&subtitle=${encodeURIComponent('Entry-level psychiatric NP positions')}`,
                 width: 1200,
                 height: 630,
                 alt: 'New Grad PMHNP Jobs',

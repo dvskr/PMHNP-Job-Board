@@ -88,7 +88,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       type: 'website',
       url: `${brand.baseUrl}/jobs/child-adolescent`,
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Child & Adolescent PMHNP Jobs`)}&subtitle=${encodeURIComponent('Pediatric psychiatric NP positions in schools, hospitals & clinics')}`,
+        url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Child & Adolescent PMHNP Jobs`)}&subtitle=${encodeURIComponent('Pediatric psychiatric NP positions in schools, hospitals & clinics')}`,
         width: 1200, height: 630, alt: 'Child & Adolescent PMHNP Jobs',
       }],
     },
