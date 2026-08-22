@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { isOwnSupabaseStorageUrl } from '@/lib/supabase/origins';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -21,23 +22,6 @@ function sanitizeText(text: string): string {
         .replace(/javascript:/gi, '')     // strip javascript: protocol
         .replace(/on\w+\s*=/gi, '')       // strip inline event handlers
         .trim();
-}
-
-/** Only allow resume URLs from our own Supabase storage */
-function isValidResumeUrl(url: string): boolean {
-    try {
-        const parsed = new URL(url);
-        const allowedHosts = [
-            process.env.NEXT_PUBLIC_SUPABASE_URL
-                ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
-                : '',
-            'supabase.co',
-        ].filter(Boolean);
-
-        return allowedHosts.some(host => parsed.hostname.endsWith(host as string));
-    } catch {
-        return false;
-    }
 }
 
 // ── Handler ──────────────────────────────────────────────────────────────────
@@ -86,7 +70,7 @@ export async function POST(request: NextRequest) {
         // Validate resume URL (must be from our Supabase storage)
         let validResumeUrl: string | null = null;
         if (resumeUrl && typeof resumeUrl === 'string') {
-            if (!isValidResumeUrl(resumeUrl)) {
+            if (!isOwnSupabaseStorageUrl(resumeUrl)) {
                 return NextResponse.json(
                     { error: 'Invalid resume URL. Please upload your resume through the platform.' },
                     { status: 400 }
@@ -98,7 +82,7 @@ export async function POST(request: NextRequest) {
         // Validate cover letter URL (if uploaded as PDF)
         let validCoverLetterUrl: string | null = null;
         if (coverLetterUrl && typeof coverLetterUrl === 'string') {
-            if (!isValidResumeUrl(coverLetterUrl)) {
+            if (!isOwnSupabaseStorageUrl(coverLetterUrl)) {
                 return NextResponse.json(
                     { error: 'Invalid cover letter URL. Please upload your cover letter through the platform.' },
                     { status: 400 }

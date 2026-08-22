@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import { CUSTOM_SUPABASE_HOSTS } from "./lib/supabase/origins";
 
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
@@ -73,6 +74,13 @@ const nextConfig: NextConfig = {
         hostname: '*.supabase.co',
         pathname: '/storage/**',
       },
+      // A Supabase Custom Domain is a plain host with no wildcard to match,
+      // so it only appears here once the env points at one. Empty otherwise.
+      ...CUSTOM_SUPABASE_HOSTS.map((hostname) => ({
+        protocol: 'https' as const,
+        hostname,
+        pathname: '/storage/**',
+      })),
     ],
   },
 

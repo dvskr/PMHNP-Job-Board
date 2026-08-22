@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { SUPABASE_CSP_SOURCES } from '@/lib/supabase/origins';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { isKnownCitySlug } from '@/lib/pseo/city-data/city-slugs-edge';
 import { resolveStateSlug } from '@/lib/pseo/setting-state-config';
@@ -708,11 +709,11 @@ export async function middleware(request: NextRequest) {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "style-src-attr 'unsafe-inline'",
-        "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://www.google-analytics.com https://www.googletagmanager.com",
+        `img-src 'self' data: blob: ${SUPABASE_CSP_SOURCES} https://lh3.googleusercontent.com https://www.google-analytics.com https://www.googletagmanager.com`,
         "font-src 'self' https://fonts.gstatic.com",
-        "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://api.resend.com https://*.upstash.io https://api.stripe.com",
+        `connect-src 'self' ${SUPABASE_CSP_SOURCES} https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://api.resend.com https://*.upstash.io https://api.stripe.com`,
         "frame-src 'self' https://js.stripe.com https://www.youtube.com",
-        "media-src 'self' https://*.supabase.co",
+        `media-src 'self' ${SUPABASE_CSP_SOURCES}`,
         "worker-src 'self' blob:",
         "manifest-src 'self'",
         "object-src 'none'",
