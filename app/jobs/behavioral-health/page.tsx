@@ -96,7 +96,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
             description: 'Browse behavioral health and psychiatric nurse practitioner positions across all settings.',
             type: 'website',
             images: [{
-                url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Behavioral Health NP Jobs`)}&subtitle=${encodeURIComponent('Psychiatric & mental health positions')}`,
+                url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Behavioral Health NP Jobs`)}&subtitle=${encodeURIComponent('Psychiatric & mental health positions')}`,
                 width: 1200, height: 630, alt: 'Behavioral Health NP Jobs',
             }],
         },

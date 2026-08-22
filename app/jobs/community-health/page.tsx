@@ -88,7 +88,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       type: 'website',
       url: `${brand.baseUrl}/jobs/community-health`,
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Community Health PMHNP Jobs`)}&subtitle=${encodeURIComponent('FQHC, public health & community mental health roles')}`,
+        url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Community Health PMHNP Jobs`)}&subtitle=${encodeURIComponent('FQHC, public health & community mental health roles')}`,
         width: 1200, height: 630, alt: 'Community Health PMHNP Jobs',
       }],
     },

@@ -101,7 +101,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       description: 'Browse VA psychiatric mental health nurse practitioner positions. Federal benefits, loan repayment, clinical autonomy.',
       type: 'website',
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}VA PMHNP Jobs`)}&subtitle=${encodeURIComponent('Federal benefits & EDRP loan repayment')}`,
+        url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}VA PMHNP Jobs`)}&subtitle=${encodeURIComponent('Federal benefits & EDRP loan repayment')}`,
         width: 1200,
         height: 630,
         alt: 'VA PMHNP Jobs',

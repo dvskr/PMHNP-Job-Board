@@ -83,7 +83,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
             description: 'Browse addiction and substance abuse psychiatric nurse practitioner positions. MAT clinics, rehab, dual diagnosis roles.',
             type: 'website',
             images: [{
-                url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Substance Abuse PMHNP Jobs`)}&subtitle=${encodeURIComponent('Addiction & MAT psychiatric NP positions')}`,
+                url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${stats.totalJobs} Substance Abuse PMHNP Jobs`)}&subtitle=${encodeURIComponent('Addiction & MAT psychiatric NP positions')}`,
                 width: 1200, height: 630, alt: 'Substance Abuse PMHNP Jobs',
             }],
         },

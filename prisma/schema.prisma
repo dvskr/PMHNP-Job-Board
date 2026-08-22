@@ -51,6 +51,16 @@ model Job {
   country                  String?                   @default("US")
   isRemote                 Boolean                   @default(false) @map("is_remote")
   isHybrid                 Boolean                   @default(false) @map("is_hybrid")
+  // ─── Structured eligibility + schedules (2026-08 audit follow-up) ───
+  // States a remote role is restricted to; empty = nationwide. Populated at
+  // ingest from the description via lib/eligible-states.ts (and backfilled);
+  // drives JSON-LD applicantLocationRequirements and the eligibility-aware
+  // state filter in semantic search.
+  eligibleStateCodes       String[]                  @default([]) @map("eligible_state_codes")
+  // Every schedule the posting offers ("Full-Time", "Part-Time", ...).
+  // jobType stays the single primary facet value; this powers the JSON-LD
+  // employmentType array and the Role Snapshot.
+  jobTypes                 String[]                  @default([]) @map("job_types")
   normalizedMinSalary      Int?                      @map("normalized_min_salary")
   normalizedMaxSalary      Int?                      @map("normalized_max_salary")
   salaryIsEstimated        Boolean                   @default(false) @map("salary_is_estimated")

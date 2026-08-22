@@ -6,9 +6,16 @@ import { formatDisplaySalary } from './salary-display';
 import { cleanDescription } from './description-cleaner';
 import { findCanonicalName } from './company-normalizer';
 import { classifyJobTags } from './pseo/category-tagger';
+import { extractEligibleStates } from './eligible-states';
+import { STATE_NAME_TO_CODE } from './us-states';
 
+// lib/types.ts Job doesn't carry the two structured-array columns yet, so
+// they're added here — the ingest create spreads this object into
+// prisma.job.create, which persists both.
 type NormalizedJob = Omit<Job, 'id' | 'createdAt' | 'updatedAt' | 'viewCount' | 'applyClickCount'> & {
   originalPostedAt?: Date | null;
+  eligibleStateCodes: string[];
+  jobTypes: string[];
 };
 
 /*
@@ -184,45 +191,77 @@ export function extractSalary(text: string): { min: number | null; max: number |
   return { min: null, max: null, period: null };
 }
 
+// Order matters: more specific signals first. detectJobType returns the
+// FIRST match (the single primary facet); detectAllJobTypes returns every
+// match in the same priority order so multi-schedule postings keep all
+// their schedules in the jobTypes array.
+const JOB_TYPE_DETECTORS: ReadonlyArray<{ type: string; matches: (lowerText: string) => boolean }> = [
+  {
+    type: 'Locum Tenens',
+    matches: (lowerText) =>
+      lowerText.includes('locum tenens') || lowerText.includes('locums') || /\blocum\b/.test(lowerText),
+  },
+  {
+    type: 'Per Diem',
+    matches: (lowerText) =>
+      lowerText.includes('per diem') || lowerText.includes('per-diem') || /\bprn\b/.test(lowerText),
+  },
+  {
+    type: 'Contract',
+    matches: (lowerText) =>
+      lowerText.includes('1099') ||
+      lowerText.includes('independent contractor') ||
+      lowerText.includes('contract') ||
+      lowerText.includes('contractor') ||
+      /\bffs\b/.test(lowerText) ||                            // fee-for-service
+      /\bfee[\s-]for[\s-]service\b/.test(lowerText),
+  },
+  {
+    type: 'Part-Time',
+    matches: (lowerText) =>
+      lowerText.includes('part-time') ||
+      lowerText.includes('part time') ||
+      /\bpart[-\s]?time\b/.test(lowerText) ||
+      /\bp\/?t\b/.test(lowerText),                             // P/T abbreviation
+  },
+  {
+    type: 'Full-Time',
+    matches: (lowerText) =>
+      lowerText.includes('full-time') ||
+      lowerText.includes('full time') ||
+      lowerText.includes('permanent') ||
+      /\bw[\s-]?2\b/.test(lowerText) ||                         // W-2 employment
+      /\bf\/?t\b/.test(lowerText),                              // F/T abbreviation
+  },
+];
+
 export function detectJobType(text: string): string | null {
   const lowerText = text.toLowerCase();
-
-  // Order matters: more specific signals first.
-  if (lowerText.includes('locum tenens') || lowerText.includes('locums') || /\blocum\b/.test(lowerText)) {
-    return 'Locum Tenens';
+  for (const detector of JOB_TYPE_DETECTORS) {
+    if (detector.matches(lowerText)) return detector.type;
   }
-  if (lowerText.includes('per diem') || lowerText.includes('per-diem') || /\bprn\b/.test(lowerText)) {
-    return 'Per Diem';
-  }
-  if (
-    lowerText.includes('1099') ||
-    lowerText.includes('independent contractor') ||
-    lowerText.includes('contract') ||
-    lowerText.includes('contractor') ||
-    /\bffs\b/.test(lowerText) ||                            // fee-for-service
-    /\bfee[\s-]for[\s-]service\b/.test(lowerText)
-  ) {
-    return 'Contract';
-  }
-  if (
-    lowerText.includes('part-time') ||
-    lowerText.includes('part time') ||
-    /\bpart[-\s]?time\b/.test(lowerText) ||
-    /\bp\/?t\b/.test(lowerText)                              // P/T abbreviation
-  ) {
-    return 'Part-Time';
-  }
-  if (
-    lowerText.includes('full-time') ||
-    lowerText.includes('full time') ||
-    lowerText.includes('permanent') ||
-    /\bw[\s-]?2\b/.test(lowerText) ||                         // W-2 employment
-    /\bf\/?t\b/.test(lowerText)                               // F/T abbreviation
-  ) {
-    return 'Full-Time';
-  }
-
   return null;
+}
+
+/** Every canonical job type the text signals, in detector priority order. */
+export function detectAllJobTypes(text: string): string[] {
+  const lowerText = text.toLowerCase();
+  return JOB_TYPE_DETECTORS.filter((d) => d.matches(lowerText)).map((d) => d.type);
+}
+
+/**
+ * The full jobTypes array for a posting: the primary jobType first, then
+ * every other canonical type the text signals. [] when there's no primary
+ * and nothing detects. Both callers (the ingest normalizer and
+ * scripts/backfill-structured-fields.ts) pass the TITLE only — description
+ * text triggers false schedule matches ("PRN medications" is not a
+ * Per Diem schedule; "contracted with insurance" is not a Contract role) —
+ * and the shared rule keeps re-runs idempotent against fresh ingests.
+ */
+export function collectJobTypes(primaryJobType: string | null, text: string): string[] {
+  const detected = detectAllJobTypes(text);
+  if (!primaryJobType) return detected;
+  return [primaryJobType, ...detected.filter((t) => t !== primaryJobType)];
 }
 
 /**
@@ -876,6 +915,13 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
       rawJob.jobType ? String(rawJob.jobType) : null,
     );
     const jobType = canonicalRaw ?? detectJobType(fullText);
+    // Every schedule the posting offers, primary first. jobType stays the
+    // single primary facet. Secondary types come from the TITLE only —
+    // description text routinely says "PRN medications" or "contracted
+    // with insurance panels", which the bare substring detectors would
+    // misread as Per Diem / Contract schedules. Title-only matches the
+    // backfill script so re-runs can never fight fresh ingests.
+    const jobTypes = collectJobTypes(jobType, title);
     const mode = detectMode(fullText);
     const experienceLevel = detectExperienceLevel(title, fullText);
 
@@ -916,6 +962,15 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     if (!isRemote && /\b(remote|work\s+from\s+home|100%\s*remote)\b/i.test(title)) {
       isRemote = true;
     }
+
+    // States a fully-remote role restricts eligibility to; empty means
+    // nationwide (or not fully remote). Extraction returns full names —
+    // store the 2-letter codes.
+    const eligibleStateCodes = isRemote && !isHybrid
+      ? extractEligibleStates(fullDescription)
+          .map((name) => STATE_NAME_TO_CODE[name])
+          .filter((code): code is string => !!code)
+      : [];
 
     // Generate display salary
     const displaySalary = formatDisplaySalary(
@@ -975,6 +1030,7 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
         employer: canonicalizeEmployerName(employer),
         location,
         jobType,
+        jobTypes,
         mode,
         experienceLevel,
         // Phase 0 (runbook §2). Aggregated ingest leaves these null;
@@ -1003,6 +1059,7 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
         country: parsedLocationData.country,
         isRemote: isRemote,
         isHybrid: isHybrid,
+        eligibleStateCodes,
         applyLink,
         applyOnPlatform: false,
         isFeatured: false,

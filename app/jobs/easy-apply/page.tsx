@@ -121,7 +121,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       description: 'Psychiatric nurse practitioner openings posted by the hiring employer. One-click apply, direct messaging, verified listings.',
       type: 'website',
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Easy Apply PMHNP Jobs`)}&subtitle=${encodeURIComponent('Direct employer openings, one-click apply')}`,
+        url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Easy Apply PMHNP Jobs`)}&subtitle=${encodeURIComponent('Direct employer openings, one-click apply')}`,
         width: 1200,
         height: 630,
         alt: 'Easy Apply PMHNP Jobs',

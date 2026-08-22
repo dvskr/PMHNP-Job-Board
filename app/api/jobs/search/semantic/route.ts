@@ -202,9 +202,29 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // min_years qualifies, no title exclusions), so the hydration query below
     // re-applies newGradWhereClause() as the canonical backstop — a vector-only
     // row that violates it fails hydration and is dropped.
+    //
+    // state + remote TOGETHER means license ELIGIBILITY, not location: the
+    // remote job must sit in the state, be open nationwide (empty
+    // eligibleStateCodes), or list the state in its restriction set. This
+    // mirrors the vector leg's SQL in lib/ai/vector-search.ts. State WITHOUT
+    // remote keeps the plain location match on stateCode.
     const hardConstraints = [
         ...(typeof minSalary === 'number' ? [salaryAtLeastClause(minSalary)] : []),
         ...(newGrad ? [newGradWhereClause()] : []),
+        ...(state && remoteOnly
+            ? [{
+                isRemote: true,
+                OR: [
+                    { stateCode: state },
+                    // The nationwide (empty-list) branch is gated on NOT
+                    // hybrid: the writers only populate eligibility for
+                    // fully-remote rows, so an empty list on a hybrid row
+                    // means "never extracted", not "open everywhere".
+                    { isHybrid: false, eligibleStateCodes: { isEmpty: true } },
+                    { eligibleStateCodes: { has: state } },
+                ],
+            }]
+            : []),
     ];
     const keywordHits = await prisma.job.findMany({
         where: {
@@ -212,8 +232,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             archivedAt: null,
             // `state` column stores full names ("California"); the parser
             // returns 2-letter codes — filter against `stateCode` instead.
-            ...(state ? { stateCode: state } : {}),
-            ...(remoteOnly ? { isRemote: true } : {}),
+            // The eligibility-aware remote+state combo lives in
+            // hardConstraints above; only the single-constraint forms
+            // apply here.
+            ...(state && !remoteOnly ? { stateCode: state } : {}),
+            ...(remoteOnly && !state ? { isRemote: true } : {}),
             ...(hardConstraints.length > 0 ? { AND: hardConstraints } : {}),
             OR: tokenOr,
         },

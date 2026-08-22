@@ -175,9 +175,12 @@ describe('GET /api/jobs/search/semantic — parsed hard constraints', () => {
         );
 
         // Keyword leg carries the same hard filters in its where clause.
+        // remote + state means ELIGIBILITY: the plain stateCode/isRemote pair
+        // is replaced by the eligibility OR (in-state, nationwide-remote, or
+        // the state is in the job's restriction list).
         const keywordWhere = jobFindManyMock.mock.calls[0][0].where;
-        expect(keywordWhere.stateCode).toBe('TX');
-        expect(keywordWhere.isRemote).toBe(true);
+        expect(keywordWhere.stateCode).toBeUndefined();
+        expect(keywordWhere.isRemote).toBeUndefined();
         expect(keywordWhere.AND).toEqual(expect.arrayContaining([
             {
                 OR: [
@@ -185,7 +188,38 @@ describe('GET /api/jobs/search/semantic — parsed hard constraints', () => {
                     { normalizedMaxSalary: { gte: 140000 } },
                 ],
             },
+            {
+                isRemote: true,
+                OR: [
+                    { stateCode: 'TX' },
+                    { isHybrid: false, eligibleStateCodes: { isEmpty: true } },
+                    { eligibleStateCodes: { has: 'TX' } },
+                ],
+            },
         ]));
+    });
+
+    it('state WITHOUT remote keeps the plain stateCode location filter (no eligibility OR)', async () => {
+        isEnabledMock.mockResolvedValue(true);
+        embedMock.mockResolvedValue({ embedding: [0.1] });
+        semanticJobSearchMock.mockResolvedValue([]);
+        jobFindManyMock
+            .mockResolvedValueOnce([{ id: 'job-1' }])
+            .mockResolvedValueOnce([jobRow('job-1', 'PMHNP Outpatient', 'TX')]);
+
+        const res = await GET(makeRequest(`q=${encodeURIComponent('PMHNP outpatient')}&state=TX`));
+        expect(res.status).toBe(200);
+
+        const keywordWhere = jobFindManyMock.mock.calls[0][0].where;
+        expect(keywordWhere.stateCode).toBe('TX');
+        expect(keywordWhere.isRemote).toBeUndefined();
+        expect(JSON.stringify(keywordWhere.AND ?? [])).not.toContain('eligibleStateCodes');
+
+        // Vector leg receives the state as a location filter only.
+        expect(semanticJobSearchMock).toHaveBeenCalledWith(
+            [0.1],
+            expect.objectContaining({ states: ['TX'], remoteOnly: false }),
+        );
     });
 
     it('returns parsedConstraints on an empty result so the UI can explain zero hits', async () => {

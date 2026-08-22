@@ -132,7 +132,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       description: 'Browse telehealth and remote psychiatric mental health nurse practitioner positions. Flexible schedules, competitive pay.',
       type: 'website',
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Remote PMHNP Jobs`)}&subtitle=${encodeURIComponent('Work from home psychiatric NP positions')}`,
+        url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Remote PMHNP Jobs`)}&subtitle=${encodeURIComponent('Work from home psychiatric NP positions')}`,
         width: 1200,
         height: 630,
         alt: 'Remote PMHNP Jobs',

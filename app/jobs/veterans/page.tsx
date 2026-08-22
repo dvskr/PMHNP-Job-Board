@@ -75,7 +75,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: 'website',
       url: `${brand.baseUrl}/jobs/veterans`,
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Veterans PMHNP Jobs`)}&subtitle=${encodeURIComponent('Trauma-informed care across VA, Vet Centers & CCN')}`,
+        url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Veterans PMHNP Jobs`)}&subtitle=${encodeURIComponent('Trauma-informed care across VA, Vet Centers & CCN')}`,
         width: 1200, height: 630, alt: 'Veterans PMHNP Jobs',
       }],
     },

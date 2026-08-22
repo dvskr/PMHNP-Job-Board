@@ -35,7 +35,12 @@ export interface CandidateSearchHit {
 export interface SemanticJobSearchOptions {
     /** Top-K to return. Defaults to 25. */
     k?: number;
-    /** Optional state filter (e.g. ['CA', 'TX']). */
+    /**
+     * Optional state filter (e.g. ['CA', 'TX']). Alone: location match on
+     * state_code. Combined with remoteOnly: eligibility match — the remote
+     * job must sit in the state, be open nationwide (empty
+     * eligible_state_codes), or list the state in its restriction set.
+     */
     states?: readonly string[];
     /** Optional remote-only filter. */
     remoteOnly?: boolean;
@@ -133,10 +138,21 @@ export async function semanticJobSearch(
     // holds full names like "California". Caller passes 2-letter codes.
     // Param numbering: vec + k are interpolated as literals, so the states
     // array (when present) is the only positional parameter and uses $1.
-    const stateFilter = options.states && options.states.length > 0
-        ? `AND j.state_code = ANY($1::text[])`
-        : '';
-    const remoteFilter = options.remoteOnly ? `AND j.is_remote = true` : '';
+    //
+    // remote + state TOGETHER means license ELIGIBILITY, not location: a
+    // remote job qualifies when it sits in the state, is open nationwide
+    // (empty eligible_state_codes), or lists the state in its restriction
+    // set. Plain state-code equality both excluded nationwide-remote jobs
+    // and surfaced remote jobs restricted to other states.
+    const hasStates = !!(options.states && options.states.length > 0);
+    const locationFilter = hasStates && options.remoteOnly
+        ? `AND j.is_remote = true
+          AND (j.state_code = ANY($1::text[]) OR (NOT j.is_hybrid AND j.eligible_state_codes = '{}') OR j.eligible_state_codes && $1::text[])`
+        : hasStates
+            ? `AND j.state_code = ANY($1::text[])`
+            : options.remoteOnly
+                ? `AND j.is_remote = true`
+                : '';
     const qualityFilter = (() => {
         // Guard against NaN / Infinity / negative values reaching the SQL
         // string. `Math.floor(NaN)` is `NaN`, which would interpolate as
@@ -173,8 +189,7 @@ export async function semanticJobSearch(
         JOIN jobs j ON j.id = je.job_id
         WHERE j.is_published = true
           AND j.archived_at IS NULL
-          ${stateFilter}
-          ${remoteFilter}
+          ${locationFilter}
           ${qualityFilter}
           ${salaryFilter}
           ${newGradFilter}
@@ -182,7 +197,7 @@ export async function semanticJobSearch(
         LIMIT ${Math.max(1, Math.min(200, k))};
     `;
 
-    const rows = options.states && options.states.length > 0
+    const rows = hasStates
         ? await prisma.$queryRawUnsafe<JobSearchRow[]>(sql, options.states)
         : await prisma.$queryRawUnsafe<JobSearchRow[]>(sql);
 

@@ -358,7 +358,7 @@ export async function generateMetadata({ params, searchParams }: StatePageProps)
         description,
         type: 'website',
         images: [{
-          url: `/api/og?type=page&title=${encodeURIComponent(`PMHNP Jobs in ${stateName}`)}&subtitle=${encodeURIComponent(`${stats.totalJobs} psychiatric NP positions in ${stateCode}`)}`,
+          url: `/api/og?type=page&v=3&title=${encodeURIComponent(`PMHNP Jobs in ${stateName}`)}&subtitle=${encodeURIComponent(`${stats.totalJobs} psychiatric NP positions in ${stateCode}`)}`,
           width: 1200,
           height: 630,
           alt: `PMHNP Jobs in ${stateName}`,

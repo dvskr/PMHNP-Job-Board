@@ -25,6 +25,7 @@ import SalaryComparisonWidget from '@/components/SalaryComparisonWidget';
 import RelatedBlogPosts, { getRelevantBlogSlugs } from '@/components/RelatedBlogPosts';
 import InternalLinks from '@/components/InternalLinks';
 import { CareerPulseCard, ApplicationTipsCard } from '@/components/jobs/SidebarVisualCards';
+import RoleSnapshot from '@/components/jobs/RoleSnapshot';
 import { getSiteStats } from '@/lib/site-stats';
 import { prisma } from '@/lib/prisma';
 import { DEAD_LINK_MISS_THRESHOLD } from '@/lib/active-job-filter';
@@ -455,6 +456,8 @@ export async function generateMetadata({ params }: JobPageProps) {
 
   // Build dynamic OG image URL
   const ogImageUrl = new URL('/api/og', BASE_URL);
+  // v bump busts scraper caches when the OG design changes (see api/og tests).
+  ogImageUrl.searchParams.set('v', '3');
   ogImageUrl.searchParams.set('title', job.title);
   ogImageUrl.searchParams.set('company', job.employer);
 
@@ -747,6 +750,16 @@ export default async function JobPage({ params }: JobPageProps) {
   ]);
   const employerUserId = (job as unknown as Record<string, unknown>).employerUserId as string | null | undefined;
 
+  // lib/types Job predates the eligibility/schedule/setting columns — same
+  // narrow structural cast idiom as healthConsecutiveMissing above. The full
+  // Prisma row (fetched via `include`, no scalar `select`) always carries them.
+  const snapshotJob = job as Job & {
+    eligibleStateCodes?: string[];
+    jobTypes?: string[];
+    setting?: string | null;
+    population?: string | null;
+  };
+
   // Header shows the same string as the search card (jobSalaryText); the
   // raw-field formatSalary is only a last resort for rows that predate the
   // normalized/display pipeline. Reading raw fields first made the header
@@ -799,6 +812,8 @@ export default async function JobPage({ params }: JobPageProps) {
     <>
       <JobStructuredData
         job={job}
+        eligibleStateCodes={snapshotJob.eligibleStateCodes}
+        jobTypes={snapshotJob.jobTypes}
       />
       {/* BreadcrumbList schema comes from <Breadcrumbs> below — it mirrors
           the visible trail (including the City crumb) exactly. A second
@@ -971,6 +986,12 @@ export default async function JobPage({ params }: JobPageProps) {
               </div>
             </div>
 
+            {/* Role Snapshot — hard eligibility facts (license states, new
+                grad, schedule, salary basis) above the prose. Plain div, not
+                AnimatedContainer: it sits above the fold and the facts must
+                not wait for hydration (same CWV reasoning as the hero card). */}
+            <RoleSnapshot job={snapshotJob} />
+
             {/* Description Section */}
             <AnimatedContainer animation="fade-in-up" delay={200}>
               <div style={{ backgroundColor: '#FFFFFF', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)', padding: '24px 28px', marginBottom: '20px', overflow: 'hidden' }}>
@@ -1121,10 +1142,18 @@ export default async function JobPage({ params }: JobPageProps) {
             </div>
           </div>
 
-          {/* Sidebar - Desktop / Below content on mobile */}
+          {/* Sidebar - Desktop / Below content on mobile.
+              The RAIL is the sticky unit (with its own scroll when taller
+              than the viewport) instead of pinning just the apply card —
+              a pinned first card made the sibling cards slide underneath
+              it while scrolling, which read as broken layering. */}
           <AnimatedContainer animation="slide-in-right" delay={300}>
-            <div className="mt-6 lg:mt-0" style={{ position: 'relative', zIndex: 1 }}>
-              <div className="hidden lg:block lg:sticky lg:top-24" style={{ backgroundColor: '#FFFFFF', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '8px 8px 20px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)', padding: '24px' }}>
+            {/* `relative` must be a CLASS, not an inline style: inline
+                position would override lg:sticky and disable the rail pin.
+                The negative-margin + padding pair keeps the scrollport from
+                shearing the cards' neumorphic shadows at its edges. */}
+            <div className="relative mt-6 lg:mt-0 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-width:thin] lg:-mx-7 lg:px-7 lg:pb-7" style={{ zIndex: 1 }}>
+              <div className="hidden lg:block" style={{ backgroundColor: '#FFFFFF', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '8px 8px 20px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)', padding: '24px' }}>
                 {/* Expiry Notice - Desktop */}
                 {!expiryStatus.isExpired && expiryStatus.text && (
                   <div className={`flex items-center gap-2 mb-4 pb-3 ${expiryStatus.isUrgent ? 'text-orange-500' : ''}`} style={{ borderBottom: '1px solid var(--border-color)', color: expiryStatus.isUrgent ? undefined : 'var(--text-tertiary)' }}>

@@ -133,6 +133,31 @@ describe('JobPosting structured data — location semantics', () => {
     ]);
   });
 
+  it('stored eligibleStateCodes win over description extraction (backfilled rows must not depend on render-time parsing)', () => {
+    const schema = renderSchema({
+      isRemote: true, isHybrid: false,
+      eligibleStateCodes: ['CA', 'NY'],
+      // Extraction would say Texas + Florida — the stored column is canonical.
+      description: 'Telehealth role. Candidates must be licensed in Texas and Florida.',
+    });
+    expect(schema.applicantLocationRequirements).toEqual([
+      { '@type': 'State', name: 'California' },
+      { '@type': 'State', name: 'New York' },
+    ]);
+  });
+
+  it('empty stored eligibleStateCodes falls back to description extraction (rows the backfill has not touched)', () => {
+    const schema = renderSchema({
+      isRemote: true, isHybrid: false,
+      eligibleStateCodes: [],
+      description: 'Telehealth role. Candidates must be licensed in Texas and Florida.',
+    });
+    expect(schema.applicantLocationRequirements).toEqual([
+      { '@type': 'State', name: 'Texas' },
+      { '@type': 'State', name: 'Florida' },
+    ]);
+  });
+
   it('employer-side reach claims ("we are licensed in 42 states") keep the nationwide Country:US signal', () => {
     const schema = renderSchema({
       isRemote: true, isHybrid: false,
@@ -219,6 +244,28 @@ describe('JobPosting structured data — employmentType honesty', () => {
     expect(
       renderSchema({ title: 'PMHNP (Full-Time)', jobType: 'Full-Time' }).employmentType
     ).toBe('FULL_TIME');
+  });
+
+  it('stored jobTypes with 2+ schedules emits the array even when the title names only one', () => {
+    expect(
+      renderSchema({
+        title: 'PMHNP Outpatient',
+        jobType: 'Full-Time',
+        jobTypes: ['Full-Time', 'Part-Time'],
+      }).employmentType
+    ).toEqual(['FULL_TIME', 'PART_TIME']);
+  });
+
+  it('single-entry stored jobTypes keeps the single-value shape', () => {
+    expect(
+      renderSchema({ title: 'PMHNP Outpatient', jobType: 'Full-Time', jobTypes: ['Full-Time'] }).employmentType
+    ).toBe('FULL_TIME');
+  });
+
+  it('stored jobTypes that dedupe to one schema value (Per Diem + PRN) fall back to the single-value shape', () => {
+    expect(
+      renderSchema({ title: 'PMHNP Coverage', jobType: 'Per Diem', jobTypes: ['Per Diem', 'PRN'] }).employmentType
+    ).toBe('PER_DIEM');
   });
 });
 

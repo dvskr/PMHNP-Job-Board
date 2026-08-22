@@ -69,7 +69,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       title: `${categoryTitleCount(stats.totalJobs)}Inpatient PMHNP Jobs — Hospital Psych NP`,
       description: 'Browse inpatient psychiatric mental health nurse practitioner positions.',
       type: 'website',
-      images: [{ url: `/api/og?type=page&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Inpatient PMHNP Jobs`)}&subtitle=${encodeURIComponent('Hospital & acute care psychiatric NP positions')}`, width: 1200, height: 630, alt: 'Inpatient PMHNP Jobs' }],
+      images: [{ url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Inpatient PMHNP Jobs`)}&subtitle=${encodeURIComponent('Hospital & acute care psychiatric NP positions')}`, width: 1200, height: 630, alt: 'Inpatient PMHNP Jobs' }],
     },
     alternates: { canonical: `${brand.baseUrl}/jobs/inpatient` },
     ...categoryLandingRobotsMeta(stats.totalJobs, page),
