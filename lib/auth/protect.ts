@@ -27,7 +27,7 @@ export interface UserProfile {
 /**
  * Require authentication - redirects to /login if not authenticated
  */
-export async function requireAuth(): Promise<{ user: AuthUser; profile: UserProfile | null }> {
+export async function requireAuth(): Promise<{ user: AuthUser; profile: UserProfile }> {
   const supabase = await createClient()
 
   const { data: { user }, error } = await supabase.auth.getUser()
@@ -39,10 +39,19 @@ export async function requireAuth(): Promise<{ user: AuthUser; profile: UserProf
   // Single source of truth for auto-create. See lib/auth/ensure-profile.ts —
   // this is the path that runs first for SSR-protected pages, so the role
   // selection it makes determines whether new employer signups land in
-  // /employer/dashboard or get stranded in /onboarding/professional.
+  // /employer/dashboard or get stranded in /onboarding/professional. It is
+  // also where a soft-deleted account is restored on re-login.
   const profile = await ensureProfileFromAuth<UserProfile>(prisma, user, {
     logSource: 'requireAuth',
   })
+
+  if (!profile) {
+    // Null means the session cannot be turned into a usable profile: no email
+    // on the auth user, or an account whose 30-day restore window lapsed and
+    // is queued for hard deletion. Letting either through handed a protected
+    // page a half-populated session, so bounce instead of rendering.
+    redirect('/login?error=account_unavailable')
+  }
 
   return {
     user: { id: user.id, email: user.email! },
@@ -92,6 +101,18 @@ export async function getCurrentUser(): Promise<{ user: AuthUser; profile: UserP
   const profile = await prisma.userProfile.findUnique({
     where: { supabaseId: user.id }
   })
+
+  // A soft-deleted account reads as signed out here. Two reasons, both load-
+  // bearing: public surfaces must not treat an account we have been asked to
+  // erase as a live identity, and /login redirects anyone getCurrentUser
+  // recognises straight back to the dashboard — which, for an account
+  // requireAuth refuses, is a redirect loop. Restoring is deliberately NOT
+  // done here: this runs on public pages and must stay read-only. The restore
+  // happens when the user reaches an authenticated path
+  // (lib/auth/ensure-profile.ts) or re-logs in.
+  if (profile?.deletedAt) {
+    return null
+  }
 
   return {
     user: { id: user.id, email: user.email! },

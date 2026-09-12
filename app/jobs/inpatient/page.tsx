@@ -35,25 +35,30 @@ interface ProcessedEmployer {
   count: number;
 }
 
-const WHERE_CLAUSE = buildCategoryWhereClause('inpatient', { isRemote: { not: true } });
+/**
+ * Built per request, never hoisted to a module constant: the clause pins a
+ * concrete expiry instant, and a module constant would freeze it at cold start
+ * so postings that expired during the instance's life would keep showing.
+ */
+const categoryWhere = () => buildCategoryWhereClause('inpatient', { isRemote: { not: true } });
 
 async function getJobs(skip: number = 0, take: number = 20) {
   return prisma.job.findMany({
-    where: WHERE_CLAUSE,
+    where: categoryWhere(),
     orderBy: BEST_SORT_ORDER_BY,
     skip, take,
   });
 }
 
 async function getStats() {
-  const totalJobs = await prisma.job.count({ where: WHERE_CLAUSE });
+  const totalJobs = await prisma.job.count({ where: categoryWhere() });
   const salaryData = await prisma.job.aggregate({
-    where: { ...WHERE_CLAUSE, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+    where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
     _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
   });
   const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
   const topEmployers = await prisma.job.groupBy({
-    by: ['employer'], where: WHERE_CLAUSE,
+    by: ['employer'], where: categoryWhere(),
     _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8,
   });
   return { totalJobs, avgSalary, topEmployers: topEmployers.map((e: EmployerGroupResult) => ({ name: e.employer, count: e._count.employer })) };

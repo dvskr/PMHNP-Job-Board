@@ -41,6 +41,14 @@ export async function DELETE(request: NextRequest) {
         }
 
         const purgeAt = new Date(Date.now() + PURGE_GRACE_DAYS * 24 * 60 * 60 * 1000);
+        // emailSuppressed is what silences job alerts during the grace window:
+        // isEmailSuppressed (lib/email-service.ts) ORs it with the EmailLead
+        // flag, and the alert cron gates on that. Job alerts are deliberately
+        // left is_active alone here rather than switched off — a restore has
+        // no way to tell an alert we disabled from one the user disabled, so
+        // flipping it would silently strip alerts from every restored account.
+        // The rows themselves are deleted at purge time, where the profile
+        // flag stops existing (app/api/cron/purge-soft-deleted/route.ts).
         const updated = await prisma.userProfile.update({
             where: { supabaseId: user.id },
             data: {

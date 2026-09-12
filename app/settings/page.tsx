@@ -398,18 +398,29 @@ function SettingsPageInner() {
           preferredJobType: profile.preferredJobType,
           desiredSalaryMin: profile.desiredSalaryMin,
           desiredSalaryMax: profile.desiredSalaryMax,
+          // The Per Hour / Per Year toggle only ever touched local state, so
+          // an hourly expectation was saved without its rate type and every
+          // reader fell back to yearly: a 65 to 95 hourly range was shown to
+          // employers as an annual salary.
+          desiredSalaryType: profile.desiredSalaryType,
           linkedinUrl: profile.linkedinUrl,
           availableDate,
           openToOffers: profile.openToOffers,
           profileVisible: profile.profileVisible,
         }),
       })
-      if (!res.ok) throw new Error('Failed to update profile')
+      if (!res.ok) {
+        // Surface what the server actually refused (a locked company name
+        // answers 409 with its own message). A generic "try again" told the
+        // user to repeat a save that could never succeed.
+        const detail = await res.json().catch(() => null)
+        throw new Error(detail?.error || 'Failed to update profile. Please try again.')
+      }
       const updated = await res.json()
       setProfile(updated)
       showMsg('success', 'Profile updated!')
-    } catch {
-      showMsg('error', 'Failed to update profile. Please try again.')
+    } catch (err) {
+      showMsg('error', err instanceof Error ? err.message : 'Failed to update profile. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -786,7 +797,11 @@ function SettingsPageInner() {
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Email cannot be changed</p>
               </div>
 
-              {/* Company (only for employers) */}
+              {/* Company (only for employers).
+                  Read-only: the name is captured once at signup, anchors every
+                  posting this account publishes, and feeds the employer quota
+                  identity. The server refuses a change with a 409 anyway; this
+                  keeps the form from offering an edit that cannot be saved. */}
               {profile.role === 'employer' && (
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={labelStyle}>Company</label>
@@ -795,11 +810,20 @@ function SettingsPageInner() {
                     <input
                       type="text"
                       value={profile.company || ''}
-                      onChange={(e) => updateProfile({ company: e.target.value })}
+                      readOnly
+                      aria-readonly="true"
                       placeholder="Your company name"
-                      style={{ ...inputStyle, paddingLeft: '36px' }}
+                      style={{
+                        ...inputStyle,
+                        paddingLeft: '36px',
+                        opacity: 0.6,
+                        cursor: 'not-allowed',
+                      }}
                     />
                   </div>
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Set at signup and used on every job you publish. Contact support to change it.
+                  </p>
                 </div>
               )}
             </div>

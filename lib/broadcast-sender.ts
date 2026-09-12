@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
-import { sendBroadcastEmail, buildBroadcastHtml, isEmailSuppressed } from '@/lib/email-service';
+import { sendBroadcastEmail, buildBroadcastHtml, isMarketingOptedOut } from '@/lib/email-service';
 import { logger } from '@/lib/logger';
+import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
 
 // ── Rate limiting config (Resend Pro: 10/sec) ──────────────────
 const BATCH_SIZE = 10;
@@ -57,6 +58,14 @@ export interface BroadcastProgress {
  * Processes all pending recipients for the given broadcast.
  */
 export async function executeBroadcast(broadcastId: string): Promise<BroadcastProgress> {
+    // Emergency brake. Throwing rather than returning a quiet zero-send result:
+    // a broadcast that silently mails nobody and reports "sent" is exactly the
+    // failure the brake exists to make visible. The admin route checks first so
+    // the operator sees the reason instead of a 500.
+    if (isOutboundPaused()) {
+        throw new Error(OUTBOUND_PAUSED_MESSAGE);
+    }
+
     const broadcast = await prisma.emailBroadcast.findUnique({
         where: { id: broadcastId },
     });
@@ -87,14 +96,19 @@ export async function executeBroadcast(broadcastId: string): Promise<BroadcastPr
         const batch = recipients.slice(i, i + BATCH_SIZE);
 
         for (const recipient of batch) {
-            // Honor the suppression list (bounced / complained / unsubscribed /
+            // Honor the opt-out list (bounced / complained / unsubscribed /
             // soft-deleted). Sending to these addresses harms deliverability and
             // breaks CAN-SPAM/GDPR opt-out guarantees. Mark as skipped, not
             // failed, so it doesn't inflate the failure rate or flip final status.
-            if (await isEmailSuppressed(recipient.email)) {
+            //
+            // isMarketingOptedOut, not isEmailSuppressed: the unsubscribe link
+            // in this very broadcast's footer sets EmailLead.isSubscribed=false
+            // and leaves the hard suppression flags alone, so the narrower
+            // check mailed people who had already unsubscribed from a broadcast.
+            if (await isMarketingOptedOut(recipient.email)) {
                 await prisma.emailBroadcastRecipient.update({
                     where: { id: recipient.id },
-                    data: { status: 'skipped', error: 'suppressed' },
+                    data: { status: 'skipped', error: 'opted_out' },
                 });
                 skipped++;
                 continue;
@@ -174,7 +188,7 @@ export async function executeBroadcast(broadcastId: string): Promise<BroadcastPr
         },
     });
 
-    logger.info(`[Broadcast] Complete: ${sent} sent, ${failed} failed, ${skipped} suppressed`, { broadcastId });
+    logger.info(`[Broadcast] Complete: ${sent} sent, ${failed} failed, ${skipped} opted out`, { broadcastId });
 
     return {
         broadcastId,

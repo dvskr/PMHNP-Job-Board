@@ -73,6 +73,7 @@ export default function MyApplicationsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [withdrawing, setWithdrawing] = useState<string | null>(null);
+    const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
     useEffect(() => {
         fetch('/api/applications')
@@ -85,25 +86,33 @@ export default function MyApplicationsPage() {
             .finally(() => setLoading(false));
     }, []);
 
-    const handleWithdraw = async (applicationId: string, jobId: string) => {
+    // DELETE /api/applications/withdraw is keyed on the APPLICATION id. This
+    // used to post { jobId }, which the route answers 400 for, and the failure
+    // was swallowed: the only erasure path a candidate has was a permanent
+    // no-op that just stopped its own spinner.
+    const handleWithdraw = async (applicationId: string) => {
         if (!confirm('Are you sure you want to withdraw this application? Your personal data will be removed.')) return;
         setWithdrawing(applicationId);
+        setWithdrawError(null);
         try {
             const res = await fetch('/api/applications/withdraw', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ jobId }),
+                body: JSON.stringify({ applicationId }),
             });
-            if (res.ok) {
-                setApplications(prev =>
-                    prev.map(a => a.id === applicationId
-                        ? { ...a, status: 'withdrawn', withdrawnAt: new Date().toISOString() }
-                        : a
-                    )
-                );
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                setWithdrawError(data?.error || 'Could not withdraw this application. Please try again.');
+                return;
             }
+            setApplications(prev =>
+                prev.map(a => a.id === applicationId
+                    ? { ...a, status: 'withdrawn', withdrawnAt: new Date().toISOString() }
+                    : a
+                )
+            );
         } catch {
-            // Silently fail
+            setWithdrawError('Could not reach the server. Please check your connection and try again.');
         } finally {
             setWithdrawing(null);
         }
@@ -224,6 +233,18 @@ export default function MyApplicationsPage() {
                 {/* ═══ Content ═══ */}
                 {!loading && !error && applications.length > 0 && (
                     <>
+                    {/* ─── Withdraw failure ─── */}
+                    {withdrawError && (
+                        <div role="alert" style={{
+                            ...cardBase, padding: '12px 16px', marginBottom: '12px',
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            background: '#FEF2F2', border: '1px solid #FECACA',
+                        }}>
+                            <AlertCircle size={16} style={{ color: '#DC2626', flexShrink: 0 }} />
+                            <span style={{ fontSize: '13px', color: '#991B1B' }}>{withdrawError}</span>
+                        </div>
+                    )}
+
                     {/* ─── Status Pipeline ─── */}
                     <div style={{ ...cardBase, padding: '16px 20px', marginBottom: '16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', position: 'relative' }}>
@@ -369,7 +390,7 @@ export default function MyApplicationsPage() {
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 {!isWithdrawn && (
                                                     <button
-                                                        onClick={() => handleWithdraw(app.id, app.job.id)}
+                                                        onClick={() => handleWithdraw(app.id)}
                                                         disabled={withdrawing === app.id}
                                                         className="app-action-btn"
                                                         title="Withdraw application"

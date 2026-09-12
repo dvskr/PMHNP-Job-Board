@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText, normalizeContentWhitespace } from '@/lib/sanitize';
+import { sanitizeJobPosting, sanitizeUrl, sanitizeText, normalizeContentWhitespace } from '@/lib/sanitize';
 import { summarizeForMeta } from '@/lib/description-cleaner';
 import { parseLocation } from '@/lib/location-parser';
 import { NextRequest, NextResponse } from 'next/server';
@@ -9,6 +9,11 @@ import { isEditTokenWindowOpen, EDIT_TOKEN_CLOSED_MESSAGE } from '@/lib/auth/edi
 import { inngest } from '@/lib/inngest/client';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { slugify } from '@/lib/utils';
+import { normalizeSalary } from '@/lib/salary-normalizer';
+import { formatDisplaySalary } from '@/lib/salary-display';
+import { collectJobTypes } from '@/lib/job-normalizer';
+import { extractEligibleStates } from '@/lib/eligible-states';
+import { STATE_NAME_TO_CODE } from '@/lib/us-states';
 
 interface ScreeningQuestionInput {
   text: string;
@@ -30,7 +35,15 @@ interface UpdateJobData {
   maxSalary?: number | null;
   salaryPeriod?: string | null;
   companyWebsite?: string | null;
-  contactEmail?: string;
+  // contactEmail is deliberately NOT here. It is the ownership key for legacy
+  // `userId: null` EmployerJob rows — ~20 employer routes resolve access with
+  // `{ userId: null, contactEmail: user.email }` — so letting a bearer token
+  // rewrite it turns a forwarded edit link into an account-takeover primitive:
+  // repoint the address, sign up under it, inherit the posting's applicants.
+  // It was also the free-post quota key that docs/pricing-audit.md flagged.
+  // Contact-email changes belong on the authenticated /api/employer/settings
+  // path, where the current owner proves they hold the old address.
+
   // New editable fields — mirror the post-job inputs
   applyOnPlatform?: boolean;
   benefits?: string[];
@@ -52,7 +65,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const body: UpdateRequestBody = await request.json();
-    const { token, jobData: rawJobData } = body;
+    const { token, jobData: rawBodyJobData } = body;
+
+    // Drop the identity field at the door rather than further down: an older
+    // client (or a hand-rolled request) still sends contactEmail, and nothing
+    // on a bearer-token path may rewrite the column that grants ownership of
+    // legacy postings. See UpdateJobData.
+    const { contactEmail: _rejectedContactEmail, ...rawJobData } =
+      (rawBodyJobData ?? {}) as UpdateJobData & { contactEmail?: unknown };
 
     // Sanitize job data. Description is whitespace-normalized first so Quill-
     // emitted &nbsp; / U+00A0 between words doesn't make the body line-break
@@ -67,7 +87,6 @@ export async function POST(request: NextRequest) {
       location: sanitizeJobPosting({ ...normalizedRawJobData, employer: '' } as any).location,
       description: sanitizeJobPosting({ ...normalizedRawJobData, employer: '' } as any).description,
       applyLink: rawJobData.applyLink ? sanitizeUrl(rawJobData.applyLink) : null,
-      contactEmail: rawJobData.contactEmail ? sanitizeEmail(rawJobData.contactEmail) : undefined,
       companyWebsite: rawJobData.companyWebsite ? sanitizeUrl(rawJobData.companyWebsite) : undefined,
     };
 
@@ -116,6 +135,55 @@ export async function POST(request: NextRequest) {
     // been edited at least once, so this was the rule rather than the edge.
     const parsedLoc = parseLocation(jobData.location);
 
+    // Every public salary surface reads a DERIVED column, never the raw pair:
+    // lib/salary-display.ts prefers the stored displaySalary, then the
+    // normalized pair, and only then minSalary/maxSalary, and the salary
+    // filters query normalizedMin/MaxSalary. This route wrote the raw pair
+    // alone, so an employer correcting their pay range saw a success toast
+    // while the detail header, the OG image, the cards and the filters all
+    // kept serving the figure from post time. Mirror create-checkout:242-263
+    // so both write paths derive the same columns from the same helpers.
+    const parseSalary = (value: number | null | undefined): number | null => {
+      if (value === null || value === undefined) return null;
+      const num = Number(value);
+      return Number.isFinite(num) && num > 0 ? Math.round(num) : null;
+    };
+    const rawMinSalary = parseSalary(jobData.minSalary);
+    const rawMaxSalary = parseSalary(jobData.maxSalary);
+    // A transposed range (min above max) renders as a negative band and sorts
+    // wrong in the salary filters. Swap rather than reject: the employer's
+    // intent is unambiguous and a hard 400 loses the rest of the edit.
+    const [minSalary, maxSalary] =
+      rawMinSalary !== null && rawMaxSalary !== null && rawMinSalary > rawMaxSalary
+        ? [rawMaxSalary, rawMinSalary]
+        : [rawMinSalary, rawMaxSalary];
+    const salaryPeriod = jobData.salaryPeriod || (minSalary || maxSalary ? 'year' : null);
+
+    const normalizedSalary = normalizeSalary({
+      minSalary,
+      maxSalary,
+      salaryPeriod,
+      title: jobData.title,
+    });
+    const displaySalary = formatDisplaySalary(
+      normalizedSalary.normalizedMinSalary,
+      normalizedSalary.normalizedMaxSalary,
+      salaryPeriod
+    );
+
+    // The structured arrays JSON-LD (components/JobStructuredData.tsx) and the
+    // Role Snapshot prefer over the scalar columns. Re-derived on every edit
+    // with the same rules as the ingest path and
+    // scripts/backfill-structured-fields.ts, so a posting that switches from
+    // remote to on-site drops its stale state-eligibility list instead of
+    // advertising licences it no longer needs.
+    const jobTypes = collectJobTypes(jobData.jobType || null, jobData.title);
+    const eligibleStateCodes = parsedLoc.isRemote && !parsedLoc.isHybrid
+      ? extractEligibleStates(jobData.description)
+          .map((name) => STATE_NAME_TO_CODE[name])
+          .filter((code): code is string => !!code)
+      : [];
+
     // Snapshot material fields before writing so we can tell whether the edit
     // actually changed what search engines see (title, description, location,
     // salary) and only re-ping when it did.
@@ -148,9 +216,16 @@ export async function POST(request: NextRequest) {
         descriptionSummary: summarizeForMeta(jobData.description),
         applyLink: applyOnPlatform ? null : jobData.applyLink,
         applyOnPlatform,
-        minSalary: jobData.minSalary ? Math.round(jobData.minSalary) : null,
-        maxSalary: jobData.maxSalary ? Math.round(jobData.maxSalary) : null,
-        salaryPeriod: jobData.salaryPeriod || null,
+        minSalary,
+        maxSalary,
+        salaryPeriod,
+        normalizedMinSalary: normalizedSalary.normalizedMinSalary,
+        normalizedMaxSalary: normalizedSalary.normalizedMaxSalary,
+        salaryIsEstimated: normalizedSalary.salaryIsEstimated,
+        salaryConfidence: normalizedSalary.salaryConfidence,
+        displaySalary,
+        jobTypes,
+        eligibleStateCodes,
         benefits: Array.isArray(rawJobData.benefits) ? rawJobData.benefits : undefined,
         setting: rawJobData.setting !== undefined ? (rawJobData.setting || null) : undefined,
         population: rawJobData.population !== undefined ? (rawJobData.population || null) : undefined,
@@ -189,16 +264,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update employer-level fields (contact email, website, logo)
+    // Update employer-level fields (website, logo). contactEmail is NOT
+    // writable here: it is the ownership key for legacy `userId: null` rows.
     if (
-      jobData.contactEmail
-      || jobData.companyWebsite
+      jobData.companyWebsite
       || rawJobData.companyLogoUrl !== undefined
     ) {
       await prisma.employerJob.update({
         where: { id: employerJob.id },
         data: {
-          contactEmail: jobData.contactEmail || employerJob.contactEmail,
           companyWebsite: jobData.companyWebsite || employerJob.companyWebsite,
           ...(rawJobData.companyLogoUrl !== undefined
             ? { companyLogoUrl: rawJobData.companyLogoUrl ? sanitizeUrl(rawJobData.companyLogoUrl) : null }

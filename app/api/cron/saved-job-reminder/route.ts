@@ -4,12 +4,19 @@ import { sendSavedJobReminderEmail } from '@/lib/email-service'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
+import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
 
 export const maxDuration = 120 // 2 minutes — saved job reminder emails
 
 export async function GET(request: NextRequest) {
     const authError = await verifyCronOrAdmin(request);
     if (authError) return authError;
+
+    // Emergency brake, checked before the eligibility scan so the pause costs
+    // nothing while it is engaged.
+    if (isOutboundPaused()) {
+        return NextResponse.json({ enabled: false, message: OUTBOUND_PAUSED_MESSAGE });
+    }
 
     try {
         return await withCronTracking('saved-job-reminder', async () => {
@@ -68,12 +75,15 @@ export async function GET(request: NextRequest) {
                     if (profile.lastSavedJobReminderAt > sixDaysAgo) continue
                 }
 
-                // Check preference opt-out and email suppression
+                // Check preference opt-out and email suppression.
+                // isSubscribed is the flag the visible Unsubscribe control on
+                // /email-preferences writes; reading only isSuppressed here
+                // meant a hand unsubscribe kept getting these reminders.
                 const emailLead = await prisma.emailLead.findUnique({
                     where: { email: profile.email },
-                    select: { preferences: true, isSuppressed: true },
+                    select: { preferences: true, isSuppressed: true, isSubscribed: true },
                 })
-                if (emailLead?.isSuppressed) continue
+                if (emailLead?.isSuppressed || emailLead?.isSubscribed === false) continue
                 const prefs = (emailLead?.preferences as Record<string, unknown>) ?? {}
                 if (prefs.savedJobReminder === false) continue
 
@@ -116,11 +126,18 @@ export async function GET(request: NextRequest) {
 
                 if (validJobs.length === 0) continue
 
-                await sendSavedJobReminderEmail(
+                // A refused send returns success:false instead of throwing.
+                // Stamping the dedup marker on it would buy the recipient six
+                // days of silence for mail they never got.
+                const sendResult = await sendSavedJobReminderEmail(
                     profile.email,
                     profile.firstName,
                     validJobs
                 )
+                if (!sendResult.success) {
+                    errors.push(`User ${userId}: ${sendResult.error ?? 'send refused'}`)
+                    continue
+                }
                 sentCount++
 
                 // Mark as reminded (dedup)

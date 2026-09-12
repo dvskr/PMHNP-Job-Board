@@ -8,11 +8,19 @@
  * The ping is production-gated and fire-and-forget, and must never fire for
  * cosmetic edits (unchanged material fields) or unpublished listings.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
+
+// Warm the route's module graph in a hook with its own timeout. The tests below
+// each `await import(...)` it, and whichever ran first paid the whole transform
+// cost inside a 5s test budget; that timed-out call then resolved during the
+// next test and polluted its mock call list.
+beforeAll(async () => {
+  await import('@/app/api/jobs/update/route');
+}, 120_000);
 
 const mockPing = vi.fn().mockResolvedValue([]);
 vi.mock('@/lib/search-indexing', () => ({

@@ -48,8 +48,6 @@ async function getEmployerStats() {
   }
 }
 
-const guaranteeLine = `Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`;
-
 const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: true | false | 'partial'; linkedin: true | false | 'partial'; note?: string }[] = [
   { feature: 'PMHNP-Dedicated Audience', us: true, indeed: false, linkedin: false },
   { feature: 'PMHNP-Focused Applicant Pool', us: true, indeed: false, linkedin: false },
@@ -114,15 +112,6 @@ export default async function ForEmployersPage() {
                   View Pricing
                 </Link>
               </div>
-
-              {config.firstPostGuarantee && (
-                <p style={{
-                  fontSize: '14px', color: '#3D2E26', lineHeight: 1.65,
-                  margin: '18px 0 0', maxWidth: '460px', fontWeight: 600,
-                }}>
-                  {guaranteeLine}
-                </p>
-              )}
             </div>
 
             {/* Right — Illustration */}
@@ -400,11 +389,6 @@ export default async function ForEmployersPage() {
                 <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: '0 0 20px' }}>
                   First post ${config.firstPostPrice}, all features included. Then ${config.postingPrice} per post.
                 </p>
-                {config.firstPostGuarantee && (
-                  <p style={{ fontSize: '12px', color: '#0D9488', lineHeight: 1.6, margin: '-12px 0 20px', fontWeight: 600 }}>
-                    {guaranteeLine}
-                  </p>
-                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <Link href="/post-job" className="emp-cta-primary" style={{
                     padding: '12px 24px', borderRadius: '12px', fontWeight: 700, fontSize: '14px',

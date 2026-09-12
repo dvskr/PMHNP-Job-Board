@@ -9,7 +9,10 @@ import dynamic from 'next/dynamic';
 import { config } from '@/lib/config';
 import { trackViewPostJobPage } from '@/lib/analytics';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import ScreeningQuestionsBuilder from '@/components/ScreeningQuestionsBuilder';
+import ScreeningQuestionsBuilder, {
+  POST_JOB_SCREENING_SCOPE,
+  clearScreeningQuestions,
+} from '@/components/ScreeningQuestionsBuilder';
 import { Building2, MapPin, FileText, DollarSign, ChevronRight, ChevronLeft, Check, Loader2, Trash2, Upload } from 'lucide-react';
 import { EXPERIENCE_BUCKETS, deriveExperienceLabel } from '@/lib/experience-label';
 import JdStarterPanel from '@/components/post-job/JdStarterPanel';
@@ -709,6 +712,10 @@ function PostJobContent() {
   const performClearDraft = async () => {
     setConfirm(null);
     localStorage.removeItem('jobFormData');
+    // Screening questions live in their own key, so clearing the draft used to
+    // leave the previous role's questions (and its auto-rejecting knockout
+    // rules) attached to whatever was posted next.
+    clearScreeningQuestions(POST_JOB_SCREENING_SCOPE);
     // Also wipe the server-side draft so it doesn't re-hydrate on next
     // visit. Best-effort — local clear is the user-facing source of
     // truth and a failed DELETE still leaves the page in a sane state.
@@ -804,14 +811,9 @@ function PostJobContent() {
           <h2 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 8px' }}>
             Your first job post is half price
           </h2>
-          <p style={{ fontSize: '14px', color: '#6B7F8A', margin: config.firstPostGuarantee ? '0 0 12px' : '0 0 28px', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '14px', color: '#6B7F8A', margin: '0 0 28px', lineHeight: 1.5 }}>
             {`Create an employer account and post for $${config.firstPostPrice} instead of $${config.postingPrice}. Takes about 5 minutes, and the listing runs ${config.durationDays} days.`}
           </p>
-          {config.firstPostGuarantee && (
-            <p style={{ fontSize: '13px', color: '#0F766E', margin: '0 0 28px', lineHeight: 1.5, fontWeight: 600 }}>
-              {`If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`}
-            </p>
-          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <a href="/signup?role=employer&redirectTo=/post-job" style={{
               ...clayBtn, justifyContent: 'center',
@@ -1369,7 +1371,7 @@ function PostJobContent() {
                         <strong>Great choice!</strong> You&apos;ll receive email notifications for each new application and manage all applicants from your dashboard.
                       </InfoBox>
                       <div style={{ marginTop: '16px' }}>
-                        <ScreeningQuestionsBuilder />
+                        <ScreeningQuestionsBuilder scope={POST_JOB_SCREENING_SCOPE} />
                       </div>
                     </>
                   )}

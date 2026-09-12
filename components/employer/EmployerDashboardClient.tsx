@@ -116,20 +116,8 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
     useEffect(() => { setMounted(true); }, []);
 
-    // Renewal emails link here as ?renew=<jobId> (through login when needed),
-    // so the listing the employer clicked opens its renew modal immediately
-    // rather than making them hunt for it in the list. Runs once: the guard
-    // ref keeps a later re-render from reopening a modal the user dismissed.
     const renewIntentRef = useRef<string | null>(null);
     const renewJobId = searchParams.get('renew');
-    useEffect(() => {
-        if (!renewJobId || renewIntentRef.current === renewJobId) return;
-        const target = localJobs.find((j) => j.id === renewJobId);
-        if (!target) return; // not this employer's listing, or not loaded yet
-        renewIntentRef.current = renewJobId;
-        setSelectedJob(target);
-        setShowRenewModal(true);
-    }, [renewJobId, localJobs]);
 
     // Fetch the employer's saved draft. GET /api/job-draft returns
     // { success, draft: { id, formData, email, savedAt, expiresAt } | null }
@@ -210,14 +198,49 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
         return expiry.isUrgent;
     };
 
+    // A refund or a chargeback pulls the posting and strips its featured
+    // entitlements. The renewal webhook re-publishes and re-features whatever
+    // it is handed, so a renewal here would buy that revocation back;
+    // /api/create-renewal-checkout answers 409 for both. Don't offer a button
+    // that cannot succeed and must not succeed.
+    const isPaymentReversed = (job: Job): boolean =>
+        job.paymentStatus === 'refunded' || job.paymentStatus === 'disputed';
+
     const shouldShowRenew = (job: Job): boolean => {
+        if (isPaymentReversed(job)) return false;
         return isExpired(job) || isExpiringSoon(job);
     };
 
     const handleRenewClick = (job: Job) => {
+        // Belt and braces: the button is already gated on shouldShowRenew, but
+        // this is the one path that spends money, so it re-checks.
+        if (!shouldShowRenew(job)) return;
         setSelectedJob(job);
         setShowRenewModal(true);
     };
+
+    // Renewal emails link here as ?renew=<jobId> (through login when needed),
+    // so the listing the employer clicked opens its renew modal immediately
+    // rather than making them hunt for it in the list. Runs once: the guard
+    // ref keeps a later re-render from reopening a modal the user dismissed.
+    //
+    // The intent only opens a modal for a listing that actually needs renewing.
+    // The renewal-success page and the renewal confirmation email both lead
+    // back here, and a listing renewed seconds ago used to greet the employer
+    // with a pre-opened checkout for the same posting: one click from paying
+    // twice for runway they already own.
+    useEffect(() => {
+        if (!renewJobId || renewIntentRef.current === renewJobId) return;
+        const target = localJobs.find((j) => j.id === renewJobId);
+        if (!target) return; // not this employer's listing, or not loaded yet
+        renewIntentRef.current = renewJobId;
+        if (!shouldShowRenew(target)) return; // already renewed, or not renewable
+        setSelectedJob(target);
+        setShowRenewModal(true);
+        // shouldShowRenew is a render-local helper over the same job data the
+        // deps already cover; adding it would re-run this on every render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [renewJobId, localJobs]);
 
     // Click handler on the Pause/Unpause button. For "pause" (published -> not),
     // open the reason modal first; for "unpause" (not -> published), call the
@@ -315,11 +338,13 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 throw new Error(result.error || 'Failed to create checkout');
             }
 
-            if (result.url) {
-                window.location.href = result.url;
-            } else if (result.success && result.free) {
-                window.location.reload();
+            if (!result.url) {
+                // Every renewal is paid, so a 200 without a Stripe URL is a
+                // contract break, not a free path; surface it instead of
+                // leaving the button spinning forever.
+                throw new Error('Checkout did not return a payment link');
             }
+            window.location.href = result.url;
         } catch (err) {
             console.error('Renewal checkout error:', err);
             alert(err instanceof Error ? err.message : 'Failed to start renewal process');

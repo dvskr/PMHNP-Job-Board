@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { mintResumeReadUrl, extractRequestContext } from '@/lib/resume-storage';
+import { mintDocReadUrl } from '@/lib/document-storage';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
@@ -111,31 +112,40 @@ export async function GET(req: NextRequest) {
         orderBy: { appliedAt: 'desc' },
     });
 
-    // Format response with signed resume URLs. Each URL is minted via
+    // Format response with signed document URLs. Each URL is minted via
     // the centralized helper so the access is audit-logged
     // (audience='employer'); admin role isn't checked here because this
     // endpoint is employer-scoped — the upstream auth gate filters out
     // non-employer roles before this point.
+    //
+    // The cover-letter PDF goes through the same minting as the resume. It used
+    // to be handed to the client as the bare storage path it is stored as,
+    // which is not a URL: the employer's "Cover Letter PDF" link was dead for
+    // every application that had one, in a private bucket that would refuse an
+    // unsigned read anyway.
     const reqCtx = extractRequestContext(req);
     const formatted = await Promise.all(applicants.map(async (app) => {
-        const signedResumeUrl = app.resumeUrl
-            ? await mintResumeReadUrl(app.resumeUrl, {
-                  actorId: user.id,
-                  ownerId: app.user?.supabaseId ?? 'unknown',
-                  audience: 'employer',
-                  action: 'view',
-                  ip: reqCtx.ip,
-                  userAgent: reqCtx.userAgent,
-                  reason: `applicants list — application ${app.id}`,
-              })
-            : null;
+        const docCtx = (kind: string) => ({
+            actorId: user.id,
+            ownerId: app.user?.supabaseId ?? 'unknown',
+            audience: 'employer' as const,
+            action: 'view',
+            ip: reqCtx.ip,
+            userAgent: reqCtx.userAgent,
+            reason: `applicants list ${kind} — application ${app.id}`,
+        });
+
+        const [signedResumeUrl, signedCoverLetterUrl] = await Promise.all([
+            app.resumeUrl ? mintResumeReadUrl(app.resumeUrl, docCtx('resume')) : null,
+            app.coverLetterUrl ? mintDocReadUrl(app.coverLetterUrl, 'cover_letter', docCtx('cover letter')) : null,
+        ]);
 
         return {
             id: app.id,
             status: app.status,
             notes: app.notes,
             coverLetter: app.coverLetter || null,
-            coverLetterUrl: app.coverLetterUrl || null,
+            coverLetterUrl: signedCoverLetterUrl,
             resumeUrl: signedResumeUrl,
             appliedAt: app.appliedAt.toISOString(),
             statusUpdatedAt: app.statusUpdatedAt?.toISOString() || null,

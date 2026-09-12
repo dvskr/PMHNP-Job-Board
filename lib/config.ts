@@ -45,30 +45,6 @@ export const config = {
   /** Every post runs 60 days. The old 30-day free-post split is retired. */
   durationDays: 60,
 
-  // ─── First-post guarantee ───
-  // A half-price first post still asks a cold employer to trust an unproven
-  // board, so the first post carries an applicant-count refund guarantee.
-  // Toggle OFF to withdraw the offer: copy and the terms clause both read
-  // this flag, so flipping it removes the promise everywhere at once.
-  firstPostGuarantee: true,
-  guaranteeMinApplicants: 3,
-  guaranteeWindowDays: 30,
-  /**
-   * How long a claim stays open AFTER the guarantee window closes.
-   *
-   * The applicant count cannot be assessed until the window has run its full
-   * length, so a claim deadline measured from purchase would be unreadable:
-   * the employer would be asked to claim before the fact it turns on is
-   * known. The claim period therefore starts the day the window ends.
-   *
-   * Every surface that explains the guarantee states the same procedure:
-   * claim within `guaranteeClaimDays` days of the `guaranteeWindowDays`
-   * window closing. Those surfaces are /pricing, /faq, /terms and the
-   * employer emails in lib/email-service.ts. Changing this number means
-   * revisiting all of them.
-   */
-  guaranteeClaimDays: 14,
-
   // All posts are featured (no differentiation)
   isFeatured: true,
 

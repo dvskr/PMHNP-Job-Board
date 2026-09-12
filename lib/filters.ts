@@ -536,19 +536,54 @@ export const GLOBAL_EXCLUSIONS: Prisma.JobWhereInput[] = [
 ];
 
 /**
+ * "Not past its expiry" — the half of publicJobsWhere that the middleware
+ * job-410 gate enforces on the detail page. Shared so a listing surface can
+ * never gain the exclusions but miss the expiry (or the reverse).
+ */
+export function notExpiredClause(now: Date): Prisma.JobWhereInput {
+  return { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] };
+}
+
+/**
+ * Default expiry instant for the category/landing predicates, truncated to the
+ * start of the current minute.
+ *
+ * A /jobs/<category> page and app/sitemap.ts's gate for that same slug build
+ * their clause in two separate calls, and the whole point of sharing the
+ * builder is that the sitemap advertises exactly what the page counts. A raw
+ * `new Date()` makes those two clauses differ by a few milliseconds, so that
+ * invariant stops being checkable (and Postgres sees a fresh literal on every
+ * render). Minute granularity is orders of magnitude finer than the twice-daily
+ * cleanup-expired cron this clause front-runs.
+ */
+export function listingExpiryHorizon(): Date {
+  const MINUTE_MS = 60 * 1000;
+  return new Date(Math.floor(Date.now() / MINUTE_MS) * MINUTE_MS);
+}
+
+/**
  * Build a Prisma WHERE clause for a category page.
- * Applies: CATEGORY_FILTERS + CATEGORY_EXCLUSIONS + GLOBAL_EXCLUSIONS
+ * Applies: expiry + CATEGORY_FILTERS + CATEGORY_EXCLUSIONS + GLOBAL_EXCLUSIONS
  * This guarantees the same count the main /jobs?category=slug page shows.
+ *
+ * The expiry clause is not optional: without it a category landing kept a card
+ * for a posting whose detail URL already answers 410 Gone, and interpolated the
+ * inflated count into its own SERP title, for as long as cleanup-expired took
+ * to flip isPublished (it runs twice a day). buildWhereClause / publicJobsWhere
+ * have gated on it since 50c38fa; this is the same gate for the landing pages.
  *
  * @param slug  Category slug (e.g. '1099', 'addiction')
  * @param extra Additional Prisma conditions merged at the top level
  *              (e.g. { isRemote: { not: true } } for inpatient)
+ * @param now   Expiry instant. Callers that must agree byte-for-byte (the page
+ *              and the sitemap gate) and tests can pin it.
  */
 export function buildCategoryWhereClause(
   slug: string,
   extra: Prisma.JobWhereInput = {},
+  now: Date = listingExpiryHorizon(),
 ): Prisma.JobWhereInput {
-  const andConditions: Prisma.JobWhereInput[] = [];
+  const andConditions: Prisma.JobWhereInput[] = [notExpiredClause(now)];
 
   // Category filter (OR conditions from registry, plus any structured
   // extras for this slug — CATEGORY_EXTRA_OR is module-scoped and shared
@@ -621,6 +656,49 @@ export function workModeClause(mode: WorkMode): Prisma.JobWhereInput {
     case 'hybrid': return { isHybrid: true };
     case 'onsite': return { isRemote: false, isHybrid: false };
   }
+}
+
+/**
+ * Free-text location box clause ("City or 'Remote'" in the homepage hero,
+ * "City, state, or 'Remote'" in the /jobs sidebar).
+ *
+ * The box has to answer every shape it advertises or it silently returns zero
+ * results for most of them. Three shapes are accepted:
+ *   - "Remote"     → the work-mode flag. It is not a place, and routing it
+ *                    through the state/city columns matched nothing.
+ *   - "Austin, TX" → city AND state together, the form people actually type
+ *                    and the form our own city-page CTAs emit.
+ *   - "Texas" / "TX" / "Austin" → state name, state code, or city.
+ *
+ * City is matched with `equals`, never `contains`: a contains match is what
+ * inflated Kansas counts via "Kansas City, MO" and similar cross-state name
+ * collisions, which is why city matching was dropped from this branch in the
+ * first place. Returns null when the input is blank (no filter).
+ */
+export function locationClause(location: string): Prisma.JobWhereInput | null {
+  const trimmed = location.trim();
+  if (!trimmed) return null;
+
+  if (/^remote$/i.test(trimmed)) return workModeClause('remote');
+
+  const [cityPart, statePart] = trimmed.split(',').map((part) => part.trim());
+  if (cityPart && statePart) {
+    return {
+      city: { equals: cityPart, mode: 'insensitive' },
+      OR: [
+        { state: { equals: statePart, mode: 'insensitive' } },
+        { stateCode: { equals: statePart, mode: 'insensitive' } },
+      ],
+    };
+  }
+
+  return {
+    OR: [
+      { state: { equals: trimmed, mode: 'insensitive' } },
+      { stateCode: { equals: trimmed, mode: 'insensitive' } },
+      { city: { equals: trimmed, mode: 'insensitive' } },
+    ],
+  };
 }
 
 /**
@@ -747,7 +825,7 @@ export function publicJobsWhere(now: Date = new Date()): Prisma.JobWhereInput {
   return {
     isPublished: true,
     AND: [
-      { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+      notExpiredClause(now),
       ...GLOBAL_EXCLUSIONS.map((exclusion): Prisma.JobWhereInput => ({ NOT: exclusion })),
     ],
   };
@@ -831,17 +909,11 @@ export function buildWhereClause(filters: FilterState, now: Date = new Date()): 
     }
   }
 
-  // Location. Mirrors /jobs/state/[s] composition: state name OR
-  // state code. Previously this also did `city contains <location>`,
-  // which inflated Kansas counts via "Kansas City, MO" and similar
-  // cross-state name collisions.
+  // Location — shape handling (remote / "City, ST" / bare city or state) lives
+  // in locationClause so the box answers everything its placeholder promises.
   if (filters.location) {
-    andConditions.push({
-      OR: [
-        { state: { equals: filters.location, mode: 'insensitive' } },
-        { stateCode: { equals: filters.location, mode: 'insensitive' } },
-      ],
-    });
+    const location = locationClause(filters.location);
+    if (location) andConditions.push(location);
   }
 
   // Precise city + state match (from metro/city page CTAs)

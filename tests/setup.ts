@@ -25,8 +25,13 @@ vi.mock('@/lib/prisma', () => {
             },
             emailLead: {
                 findUnique: vi.fn(),
+                findMany: vi.fn(),
                 create: vi.fn(),
                 update: vi.fn(),
+                updateMany: vi.fn(),
+                // Account erasure deletes the rows that keep mailing an erased
+                // address; without these the purge cron throws inside the mock.
+                deleteMany: vi.fn(),
             },
             jobAlert: {
                 findMany: vi.fn(),
@@ -34,6 +39,7 @@ vi.mock('@/lib/prisma', () => {
                 update: vi.fn(),
                 updateMany: vi.fn(),
                 delete: vi.fn(),
+                deleteMany: vi.fn(),
             },
             employerJob: {
                 findFirst: vi.fn(),

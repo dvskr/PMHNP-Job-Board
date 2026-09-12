@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { config } from '@/lib/config';
 
 interface RenewalData {
   jobTitle: string;
@@ -104,7 +105,7 @@ function RenewalSuccessContent() {
     );
   }
 
-  const daysExtended = 60;
+  const daysExtended = config.durationDays;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 via-white to-teal-50 flex items-center justify-center p-4">
@@ -143,8 +144,13 @@ function RenewalSuccessContent() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          {/* Straight to the dashboard, never the /employer/dashboard/<token>
+              route: that route exists only to carry renew intent through login,
+              so it reopened the renew modal for the posting just paid for and
+              put a second charge one click away. The token is not a credential,
+              so nothing is lost by dropping it. */}
           <Link
-            href={`/employer/dashboard/${renewalData.dashboardToken}`}
+            href="/employer/dashboard"
             className="bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition shadow-md hover:shadow-lg"
           >
             Go to Dashboard

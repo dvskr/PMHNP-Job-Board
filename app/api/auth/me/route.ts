@@ -30,8 +30,19 @@ export async function GET() {
         resumeUrl: true,
         profileVisible: true,
         lastSeenAt: true,
+        deletedAt: true,
       },
     });
+
+    // A soft-deleted account is not a live identity: reporting it here would
+    // put an erased user back into analytics and let the apply/message widgets
+    // that read this endpoint act as that user, while the purge cron counts
+    // down to hard deletion. Matches getCurrentUser (lib/auth/protect.ts).
+    // The restore is not done here: re-login or any authenticated path clears
+    // deleted_at first (lib/auth/ensure-profile.ts).
+    if (profile?.deletedAt) {
+      return NextResponse.json({ id: null }, { status: 200 });
+    }
 
     // Bump last_seen_at if stale. Fire-and-forget so the user-facing
     // response isn't slowed down by the write.

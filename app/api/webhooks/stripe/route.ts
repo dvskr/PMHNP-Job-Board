@@ -159,6 +159,27 @@ export async function POST(request: NextRequest) {
           //   - Otherwise extends from now (late renewers don't bank dead time)
           //   - Hard cap so 6 paid renewals can't push a posting 2 years out
           const renewalTier = (tier || 'pro') as PricingTier;
+
+          // Defence in depth behind the same check in create-renewal-checkout.
+          // A posting revoked by a chargeback must not come back: republishing
+          // it here would undo the revocation, and this handler runs on a
+          // Stripe callback rather than a request we gated. A session that
+          // predates the checkout guard, or a replay, lands here too.
+          const revokedCheck = await prisma.employerJob.findFirst({
+            where: { jobId },
+            select: { paymentStatus: true },
+          });
+          if (revokedCheck?.paymentStatus === 'disputed' || revokedCheck?.paymentStatus === 'refunded') {
+            logger.error('Renewal webhook: refusing to relist a revoked posting', null, {
+              jobId,
+              sessionId: session.id,
+              paymentStatus: revokedCheck.paymentStatus,
+            });
+            // 200 so Stripe stops retrying: the payment is real, the relist is
+            // the thing we refuse. Refunding it is an operator decision.
+            return NextResponse.json({ received: true, skipped: 'revoked posting' });
+          }
+
           const existingJob = await prisma.job.findUnique({
             where: { id: jobId },
             select: { expiresAt: true, createdAt: true },

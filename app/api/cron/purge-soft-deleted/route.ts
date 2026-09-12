@@ -112,6 +112,26 @@ export async function GET(request: NextRequest) {
                     logger.error('purge-soft-deleted: failed to anonymize email_sends', emailErr, { userId: u.id });
                 }
 
+                // Step 3b: the rows that keep mailing this address. JobAlert
+                // and EmailLead key on the email string, with no FK to the
+                // profile, so the cascade in step 4 cannot reach them. The
+                // only thing muting the address during the grace window was
+                // user_profiles.email_suppressed, which step 4 then deletes:
+                // afterwards email_leads.is_suppressed is still false and the
+                // confirmed alert (holding the raw address and a live
+                // unsubscribe token) resumes sending to someone we told the
+                // data was erased. JobAlert first: its email column is a
+                // required relation to EmailLead, so the parent cannot go
+                // first. No try/catch here on purpose — a failure must abort
+                // this user's purge so the profile (and its suppression flag)
+                // outlives its mailing rows and the next run retries.
+                await prisma.jobAlert.deleteMany({
+                    where: { email: { equals: u.email, mode: 'insensitive' } },
+                });
+                await prisma.emailLead.deleteMany({
+                    where: { email: { equals: u.email, mode: 'insensitive' } },
+                });
+
                 // Step 4: drop the profile row. Cascade-delete via Prisma. If
                 // FK constraints aren't all configured for cascade, individual
                 // relations will need their own pruning step in a follow-up

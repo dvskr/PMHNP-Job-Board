@@ -7,23 +7,13 @@ import { config } from '@/lib/config';
  *
  * These are employer-facing sales copy, so they follow the same rules as every
  * other pricing surface: the offer is read from lib/config.ts rather than typed
- * into the prose, and the refund promise appears only while
- * config.firstPostGuarantee is on. The pre-2026-09 versions offered a free
- * featured post, which checkout no longer honours.
- *
- * These are short marketing instances of the guarantee, so they carry the
- * sentence without the long-form definition of "applicant"; that definition
- * lives in the terms and on the surfaces that explain the guarantee at length.
+ * into the prose. The pre-2026-09 versions offered a free featured post, which
+ * checkout no longer honours.
  */
 
 /** The paid-first offer, one sentence, always interpolated. */
 const offerLine =
   `Your first post is $${config.firstPostPrice}, ${config.firstPostDiscountPercent()}% off the standard $${config.postingPrice}, and every post runs ${config.durationDays} days.`;
-
-/** Empty when the guarantee is withdrawn, so no template promises a refund. */
-const guaranteeParagraph = config.firstPostGuarantee
-  ? `\n\nIf it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`
-  : '';
 
 /** Template keys, exported so the API route validates against this list. */
 export const OUTREACH_TEMPLATE_NAMES = ['initial', 'followUp', 'firstPostOffer'] as const;
@@ -39,7 +29,7 @@ I noticed {{companyName}} is hiring psychiatric nurse practitioners. I'm reachin
 
 Our audience is practitioners actively looking for their next role, so a listing here reaches people who are already qualified for it.
 
-${offerLine}${guaranteeParagraph}
+${offerLine}
 
 Would you be interested in posting your open positions? I'm happy to walk you through your first listing.
 
@@ -56,7 +46,7 @@ P.S. You can check out our site at pmhnphiring.com`
 
 Just following up on my previous email about posting your PMHNP positions on our job board.
 
-${offerLine}${guaranteeParagraph}
+${offerLine}
 
 Happy to answer any questions or set up a quick call.
 
@@ -70,7 +60,7 @@ Best,
 
 I'd like to get {{companyName}} in front of our audience of psychiatric nurse practitioners.
 
-${offerLine} Every listing gets the same featured placement, candidate unlocks, and analytics.${guaranteeParagraph}
+${offerLine} Every listing gets the same featured placement, candidate unlocks, and analytics.
 
 Reply with your job details and I'll help you get it live, or post directly at pmhnphiring.com/post-job
 

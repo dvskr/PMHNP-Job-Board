@@ -209,8 +209,31 @@ describe('canSendInMail', () => {
 
         const arg = vi.mocked(prisma.conversation.count).mock.calls[0][0]!;
         expect(arg.where).toMatchObject({
-            jobId: posting.job.id,
             createdAt: { gte: posting.createdAt },
+        });
+        expect(arg.where!.AND).toContainEqual({
+            OR: [{ jobId: posting.job.id }, { jobId: null }],
+        });
+    });
+
+    // The bypass this closes: /api/employer/messages used to write
+    // conversations with jobId = null when the caller omitted jobId, and a
+    // per-posting count keyed on jobId never saw them, so `used` stayed at 0
+    // no matter how many InMails went out.
+    it('counts unattributed conversations against the posting that was live', async () => {
+        const posting = makePosting();
+        vi.mocked(prisma.employerJob.findMany).mockResolvedValue([posting] as never);
+        vi.mocked(prisma.conversation.count).mockResolvedValueOnce(0 as never);
+
+        await canSendInMail(PROFILE_ID, EMPLOYER_ID, 'pro');
+
+        const where = vi.mocked(prisma.conversation.count).mock.calls[0][0]!.where!;
+        const jobClause = (where.AND as { OR?: { jobId: string | null }[] }[])
+            .find(clause => Array.isArray(clause.OR) && clause.OR.some(o => 'jobId' in o));
+        expect(jobClause?.OR).toEqual([{ jobId: posting.job.id }, { jobId: null }]);
+        // The sender filter must still be its own clause, not overwritten by it.
+        expect(where.AND).toContainEqual({
+            OR: [{ participantA: PROFILE_ID }, { participantB: PROFILE_ID }],
         });
     });
 });

@@ -6,9 +6,38 @@ import { Plus, X, GripVertical, Lightbulb } from 'lucide-react';
 // ═══════════════════════════════════════════════════════════════
 // Screening Questions Builder — Used on the post-job form
 // Stores questions in localStorage alongside the rest of the form data
+//
+// Storage layout. One shared browser key held the questions for every surface
+// at once, so opening a live job's edit page (which hydrates that key with that
+// job's questions) left them sitting there for the next new posting to submit.
+// Knockout rules auto-reject applicants, so the wrong job's rules silently
+// rejected the wrong candidates.
+//
+// Every surface is now scoped and no surface reads the shared key:
+//
+//   jobScreeningQuestions:post-job    the new-posting flow (form, preview,
+//                                     checkout), one draft at a time
+//   jobScreeningQuestions:edit:<tok>  one live job's edit page, keyed by its
+//                                     own edit token
+//
+// The unscoped key is retired. It is deleted on mount so questions cached
+// there before this change cannot resurface on an unrelated posting.
 // ═══════════════════════════════════════════════════════════════
 
-interface ScreeningQuestion {
+const SCREENING_KEY_PREFIX = 'jobScreeningQuestions';
+
+/** The retired shared key, deleted wherever the builder runs. */
+const RETIRED_SHARED_KEY = SCREENING_KEY_PREFIX;
+
+/** Storage scope for the new-posting flow (form, preview, checkout). */
+export const POST_JOB_SCREENING_SCOPE = 'post-job';
+
+/** Storage scope for one live job's edit page. */
+export const editScreeningScope = (token: string): string => `edit:${token}`;
+
+const scopedScreeningKey = (scope: string): string => `${SCREENING_KEY_PREFIX}:${scope}`;
+
+export interface ScreeningQuestion {
   id: string;
   text: string;
   type: 'boolean' | 'text' | 'select' | 'number';
@@ -29,29 +58,91 @@ const PRESET_QUESTIONS: { text: string; type: ScreeningQuestion['type']; knockou
   { text: 'Do you have telehealth/telepsychiatry experience?', type: 'boolean' },
 ];
 
-export default function ScreeningQuestionsBuilder() {
+function parseQuestions(raw: string | null): ScreeningQuestion[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as ScreeningQuestion[]) : [];
+  } catch {
+    // Corrupt JSON in a browser key is not recoverable and not worth blocking
+    // the form over: start the builder empty and let the user re-add.
+    return [];
+  }
+}
+
+/** Questions a scoped surface owns. Never falls back to the shared key. */
+export function readScreeningQuestions(scope: string): ScreeningQuestion[] {
+  try {
+    return parseQuestions(localStorage.getItem(scopedScreeningKey(scope)));
+  } catch {
+    // localStorage throws outright in some privacy modes. No questions is the
+    // safe answer: submitting someone else's is the failure that matters.
+    return [];
+  }
+}
+
+/**
+ * Seed a scope's questions, e.g. the edit page hydrating a live job's saved
+ * rules before the builder mounts.
+ */
+export function writeScreeningQuestions(scope: string, questions: unknown[]): void {
+  try {
+    localStorage.setItem(scopedScreeningKey(scope), JSON.stringify(questions));
+  } catch {
+    // Storage unavailable. The builder still works from component state.
+  }
+}
+
+/** Drop a scope's questions, e.g. after posting or on clear. */
+export function clearScreeningQuestions(scope: string): void {
+  try {
+    localStorage.removeItem(scopedScreeningKey(scope));
+  } catch {
+    // Nothing to clear if storage is unavailable.
+  }
+}
+
+interface ScreeningQuestionsBuilderProps {
+  /**
+   * Storage scope, required: POST_JOB_SCREENING_SCOPE for the new-posting
+   * flow, editScreeningScope(token) for one live job. There is deliberately no
+   * default, because the shared key every surface used to fall back to is the
+   * bug this prop exists to prevent.
+   */
+  scope: string;
+}
+
+export default function ScreeningQuestionsBuilder({ scope }: ScreeningQuestionsBuilderProps) {
   const [questions, setQuestions] = useState<ScreeningQuestion[]>([]);
   const [showPresets, setShowPresets] = useState(false);
   const [customText, setCustomText] = useState('');
   const [customType, setCustomType] = useState<ScreeningQuestion['type']>('boolean');
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount, and evict the retired shared key so a
+  // browser that cached another job's questions there before this change
+  // cannot hand them to whatever posting is open now.
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('jobScreeningQuestions');
-      if (stored) {
-        setQuestions(JSON.parse(stored));
-      }
+      localStorage.removeItem(RETIRED_SHARED_KEY);
+      setQuestions(parseQuestions(localStorage.getItem(scopedScreeningKey(scope))));
     } catch {
-      // ignore
+      // Storage unavailable — the builder still works, it just starts empty.
     }
-  }, []);
+  }, [scope]);
 
-  // Save to localStorage when questions change
+  // Save to localStorage when questions change, under this scope only.
   const saveQuestions = useCallback((qs: ScreeningQuestion[]) => {
     setQuestions(qs);
-    localStorage.setItem('jobScreeningQuestions', JSON.stringify(qs));
-  }, []);
+    const serialized = JSON.stringify(qs);
+    try {
+      localStorage.setItem(scopedScreeningKey(scope), serialized);
+    } catch {
+      // Storage unavailable (private mode, quota). The rest of the post-job
+      // draft is cached the same way and fails the same way, so match it:
+      // the questions live in component state for this page and are simply
+      // not carried to checkout.
+    }
+  }, [scope]);
 
   const addPreset = (preset: typeof PRESET_QUESTIONS[0]) => {
     if (questions.length >= 5) return;

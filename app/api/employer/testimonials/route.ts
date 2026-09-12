@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createClient } from '@/lib/supabase/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
+import { requireEmployerApi } from '@/lib/auth/require-employer-api';
 
 /**
  * POST /api/employer/testimonials
@@ -21,20 +21,22 @@ import { logger } from '@/lib/logger';
  *     employerJobId?: string           // optional — tie back to a specific posting
  *   }
  *
- * Auth: required. Tied to the submitter's Supabase user id and their most
- * recent employer profile so admins can review who said what before featuring.
+ * Auth: employer or admin role required. Tied to the submitter's Supabase user
+ * id and their most recent employer profile so admins can review who said what
+ * before featuring.
  */
 export async function POST(request: NextRequest) {
   const rateLimitResult = await rateLimit(request, 'testimonial', RATE_LIMITS.feedback);
   if (rateLimitResult) return rateLimitResult;
 
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
+    // Authentication alone let any signed-in job seeker file an "employer
+    // testimonial" that landed in the admin feature queue under their own
+    // account. The row is a claim about being a customer, so it needs the
+    // employer role gate every other employer surface uses.
+    const auth = await requireEmployerApi();
+    if (auth.error) return auth.error;
+    const { user, profile } = auth;
 
     const body = await request.json();
     const {
@@ -93,8 +95,10 @@ export async function POST(request: NextRequest) {
       : 'initial';
 
     // Resolve employer name from the most recent EmployerJob — falls back to
-    // user metadata if they haven't posted yet (rare, but possible if they
-    // signed up and went straight to a feedback prompt).
+    // the profile company if they haven't posted yet (rare, but possible if
+    // they signed up and went straight to a feedback prompt). Never falls back
+    // to the account email: employerName is the string an admin features
+    // publicly, so an email here is one careless approval from being published.
     const recentJob = await prisma.employerJob.findFirst({
       where: {
         OR: [
@@ -107,9 +111,7 @@ export async function POST(request: NextRequest) {
     });
 
     const employerName = recentJob?.employerName
-      || (user.user_metadata?.company as string | undefined)
-      || (user.user_metadata?.full_name as string | undefined)
-      || user.email
+      || profile.company
       || 'Anonymous employer';
 
     // If employerJobId was passed, verify ownership before storing it.

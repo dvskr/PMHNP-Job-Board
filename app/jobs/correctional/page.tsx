@@ -34,11 +34,16 @@ interface ProcessedEmployer {
   count: number;
 }
 
-const CORRECTIONAL_FILTER = buildCategoryWhereClause('correctional');
+/**
+ * Built per request, never hoisted to a module constant: the clause pins a
+ * concrete expiry instant, and a module constant would freeze it at cold start
+ * so postings that expired during the instance's life would keep showing.
+ */
+const categoryWhere = () => buildCategoryWhereClause('correctional');
 
 async function getCorrectionalJobs(skip: number = 0, take: number = 20) {
   return prisma.job.findMany({
-    where: CORRECTIONAL_FILTER,
+    where: categoryWhere(),
     orderBy: BEST_SORT_ORDER_BY,
     skip,
     take,
@@ -46,10 +51,10 @@ async function getCorrectionalJobs(skip: number = 0, take: number = 20) {
 }
 
 async function getCorrectionalStats() {
-  const totalJobs = await prisma.job.count({ where: CORRECTIONAL_FILTER });
+  const totalJobs = await prisma.job.count({ where: categoryWhere() });
 
   const salaryData = await prisma.job.aggregate({
-    where: { ...CORRECTIONAL_FILTER, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+    where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
     _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
   });
 
@@ -59,7 +64,7 @@ async function getCorrectionalStats() {
 
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
-    where: CORRECTIONAL_FILTER,
+    where: categoryWhere(),
     _count: { employer: true },
     orderBy: { _count: { employer: 'desc' } },
     take: 8,

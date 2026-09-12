@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ChevronLeft, Loader2, Lock } from 'lucide-react';
 import { config, type PostPriceKind } from '@/lib/config';
 import { trackBeginCheckout } from '@/lib/analytics';
+import { POST_JOB_SCREENING_SCOPE, readScreeningQuestions } from '@/components/ScreeningQuestionsBuilder';
 
 interface ScreeningQuestion {
   text: string;
@@ -126,10 +127,10 @@ export default function CheckoutPage() {
 
     try {
       const parsedData: JobFormData = JSON.parse(storedData);
-      try {
-        const storedQuestions = localStorage.getItem('jobScreeningQuestions');
-        if (storedQuestions) parsedData.screeningQuestions = JSON.parse(storedQuestions);
-      } catch { /* ignore */ }
+      // Scoped to this flow: the retired shared key was also written by the
+      // job edit page, and its questions carry knockout rules that auto-reject
+      // applicants, so a stale one must never ride along with a new posting.
+      parsedData.screeningQuestions = readScreeningQuestions(POST_JOB_SCREENING_SCOPE);
       setJobData(parsedData);
     } catch (err) {
       console.error('Error parsing job data:', err);
@@ -310,11 +311,6 @@ export default function CheckoutPage() {
                 ? `Your half price first post is used. This listing is $${config.postingPrice} for ${config.durationDays} days.`
                 : `Job listing: $${priceDollars} for ${config.durationDays} days.`}
           </p>
-          {quotaContext === 'first-post' && config.firstPostGuarantee && (
-            <p style={{ fontSize: '12px', color: '#0F766E', margin: '6px 0 0', lineHeight: 1.5 }}>
-              {`If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`}
-            </p>
-          )}
         </div>
 
         {/* Job Summary Card */}

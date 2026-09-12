@@ -74,10 +74,9 @@ describe('preview page is honest at the money moment', () => {
     expect(src).toMatch(/Continue to Payment: \$\{priceDollars\}/);
   });
 
-  it('the guarantee promise is gated on the config toggle, never hardcoded', () => {
-    expect(src).toContain('config.firstPostGuarantee');
-    expect(src).toContain('config.guaranteeMinApplicants');
-    expect(src).toContain('config.guaranteeWindowDays');
+  it('makes no refund promise at the money moment', () => {
+    expect(src).not.toMatch(/refund/i);
+    expect(src).not.toContain('firstPostGuarantee');
   });
 
   it('the sign-in prompt keeps its fix path; the consumer-email refusal is gone', () => {

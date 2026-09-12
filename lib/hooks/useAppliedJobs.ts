@@ -13,6 +13,10 @@ interface AppliedJobsMap {
 interface UseAppliedJobsReturn {
   appliedJobs: string[];
   isApplied: (jobId: string) => boolean;
+  /** True once the client has read localStorage; false during SSR and the first render. */
+  isHydrated: boolean;
+  /** True for rows the candidate actually submitted in-platform (never prunable). */
+  isSubmitted: (jobId: string) => boolean;
   markApplied: (jobId: string, sourceUrl?: string) => void;
   removeApplied: (jobId: string) => void;
   clearAll: () => void;
@@ -52,8 +56,30 @@ let migrated = false;
 let inflight: Promise<void> | null = null;
 const subscribers = new Set<() => void>();
 
+/**
+ * Job ids whose server row is a real in-platform submission (apply-direct
+ * writes sourceUrl='platform' + consentGiven). Those rows carry the cover
+ * letter, resume pointer and consent record the employer reads, so the
+ * history-pruning actions must leave them alone: DELETE /api/applications
+ * answers 409 for them, and clearing a local view must not try to erase a
+ * submitted application at all.
+ */
+const submittedIds = new Set<string>();
+
 function notify() {
   for (const cb of subscribers) cb();
+}
+
+/**
+ * Seed the module cache from localStorage. Deliberately NOT called during
+ * render: the server has no localStorage, so a render-phase read made the
+ * first client render disagree with the SSR markup and React threw the whole
+ * subtree away (hydration error #418/#425, visible badge flash on /jobs).
+ * Callers run it from an effect or an event handler only.
+ */
+function ensureCache(): AppliedJobsMap {
+  if (cachedMap === null) cachedMap = getStoredAppliedJobs();
+  return cachedMap;
 }
 
 function applyMap(next: AppliedJobsMap, persistLocal = true) {
@@ -93,10 +119,19 @@ async function syncFromServer(force = false): Promise<void> {
       }
       if (!res.ok) return;
       // GET /api/applications returns a flat array of JobApplication rows.
-      const rows = (await res.json()) as Array<{ jobId: string; appliedAt: string }>;
+      const rows = (await res.json()) as Array<{
+        jobId: string;
+        appliedAt: string;
+        sourceUrl?: string | null;
+        consentGiven?: boolean;
+      }>;
       const serverMap: AppliedJobsMap = Object.fromEntries(
         rows.map((r) => [r.jobId, r.appliedAt]),
       );
+      submittedIds.clear();
+      for (const r of rows) {
+        if (r.sourceUrl === 'platform' || r.consentGiven === true) submittedIds.add(r.jobId);
+      }
       isAuth = true;
 
       if (!migrated) {
@@ -131,15 +166,13 @@ async function syncFromServer(force = false): Promise<void> {
 }
 
 /**
- * Hook return contract is unchanged. Auth-aware + request-deduped at the
- * module level so N components mounting on the same page share one fetch.
+ * Auth-aware + request-deduped at the module level so N components mounting
+ * on the same page share one fetch. Nothing here touches localStorage during
+ * render, so the first client render always matches the server's.
  */
 export default function useAppliedJobs(): UseAppliedJobsReturn {
-  if (cachedMap === null && typeof window !== 'undefined') {
-    cachedMap = getStoredAppliedJobs();
-  }
-
   const [, bump] = useState(0);
+  const [isHydrated, setIsHydrated] = useState(false);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -148,6 +181,12 @@ export default function useAppliedJobs(): UseAppliedJobsReturn {
       if (isMountedRef.current) bump((n) => n + 1);
     };
     subscribers.add(onChange);
+
+    // Read localStorage only now that we are past hydration. Flipping
+    // isHydrated re-renders this instance, swapping the SSR-matching
+    // "nothing applied" first paint for the stored state.
+    ensureCache();
+    setIsHydrated(true);
 
     syncFromServer();
 
@@ -183,8 +222,12 @@ export default function useAppliedJobs(): UseAppliedJobsReturn {
     return jobId in (cachedMap ?? {});
   }, []);
 
+  const isSubmitted = useCallback((jobId: string): boolean => {
+    return submittedIds.has(jobId);
+  }, []);
+
   const markApplied = useCallback((jobId: string, sourceUrl?: string): void => {
-    const current = cachedMap ?? {};
+    const current = ensureCache();
     if (jobId in current) return;
     applyMap({ ...current, [jobId]: new Date().toISOString() });
     if (isAuth) {
@@ -198,8 +241,12 @@ export default function useAppliedJobs(): UseAppliedJobsReturn {
   }, []);
 
   const removeApplied = useCallback((jobId: string): void => {
-    const current = cachedMap ?? {};
+    const current = ensureCache();
     if (!(jobId in current)) return;
+    // A submitted application is not history the candidate can prune: the
+    // server refuses the delete (409), so dropping it locally would only
+    // hide the row until the next sync restored it.
+    if (submittedIds.has(jobId)) return;
     const next = { ...current };
     delete next[jobId];
     applyMap(next);
@@ -214,8 +261,15 @@ export default function useAppliedJobs(): UseAppliedJobsReturn {
   }, []);
 
   const clearAll = useCallback((): void => {
-    const ids = Object.keys(cachedMap ?? {});
-    applyMap({});
+    const current = ensureCache();
+    // Submitted applications survive "clear history" on both sides: they stay
+    // in the map and no DELETE is issued for them.
+    const ids = Object.keys(current).filter((id) => !submittedIds.has(id));
+    const kept: AppliedJobsMap = {};
+    for (const id of Object.keys(current)) {
+      if (submittedIds.has(id)) kept[id] = current[id];
+    }
+    applyMap(kept);
     if (isAuth && ids.length > 0) {
       Promise.allSettled(
         ids.map((jobId) =>
@@ -239,6 +293,8 @@ export default function useAppliedJobs(): UseAppliedJobsReturn {
   return {
     appliedJobs,
     isApplied,
+    isHydrated,
+    isSubmitted,
     markApplied,
     removeApplied,
     clearAll,

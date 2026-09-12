@@ -35,11 +35,16 @@ interface ProcessedEmployer {
   count: number;
 }
 
-const COMMUNITY_HEALTH_FILTER = buildCategoryWhereClause('community-health');
+/**
+ * Built per request, never hoisted to a module constant: the clause pins a
+ * concrete expiry instant, and a module constant would freeze it at cold start
+ * so postings that expired during the instance's life would keep showing.
+ */
+const categoryWhere = () => buildCategoryWhereClause('community-health');
 
 async function getCommunityHealthJobs(skip: number = 0, take: number = 20) {
   return prisma.job.findMany({
-    where: COMMUNITY_HEALTH_FILTER,
+    where: categoryWhere(),
     orderBy: BEST_SORT_ORDER_BY,
     skip,
     take,
@@ -47,10 +52,10 @@ async function getCommunityHealthJobs(skip: number = 0, take: number = 20) {
 }
 
 async function getCommunityHealthStats() {
-  const totalJobs = await prisma.job.count({ where: COMMUNITY_HEALTH_FILTER });
+  const totalJobs = await prisma.job.count({ where: categoryWhere() });
 
   const salaryData = await prisma.job.aggregate({
-    where: { ...COMMUNITY_HEALTH_FILTER, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+    where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
     _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
   });
 
@@ -60,7 +65,7 @@ async function getCommunityHealthStats() {
 
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
-    where: COMMUNITY_HEALTH_FILTER,
+    where: categoryWhere(),
     _count: { employer: true },
     orderBy: { _count: { employer: 'desc' } },
     take: 8,

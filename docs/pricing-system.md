@@ -18,9 +18,6 @@ This document describes the live state. Every number below is read from `lib/con
 | Renewal | $249 | `renewalPrice` |
 | Discounted posts per employer, lifetime | 1 | `discountedPostsPerEmployer` |
 | Listing duration, every post | 60 days | `durationDays` |
-| First post guarantee | on | `firstPostGuarantee` |
-| Guarantee applicant threshold | 3 | `guaranteeMinApplicants` |
-| Guarantee window | 30 days | `guaranteeWindowDays` |
 | Featured badge | always on | `isFeatured` |
 | Candidate unlocks per posting | 25 | `limits.candidateUnlocksPerPosting` |
 | InMails per posting | 25 | `limits.inmailsPerPosting` |
@@ -126,7 +123,7 @@ Stripe redirect, /success?session_id=...
   └─ GET /api/verify-checkout-session confirms payment_status='paid' before the page says so
 ```
 
-The price kind is decided server side inside the checkout route. The preview endpoint exists so the UI can show the right number and the right guarantee copy before the employer commits; it is not the authority.
+The price kind is decided server side inside the checkout route. The preview endpoint exists so the UI can show the right number before the employer commits; it is not the authority.
 
 ### 4b. Renewal
 
@@ -156,22 +153,13 @@ Nothing about expiry changed except that there is now one duration. A posting pa
 
 ---
 
-## 5. The first post guarantee
+## 5. No refund guarantee
 
-`config.firstPostGuarantee` is a kill switch, not a comment. When it is on, the promise reads:
+There is no applicant guarantee and no refund promise on any post, first or otherwise. The 2026-09 launch briefly carried a "3 applicants in 30 days or a full refund" clause on the first post; it was withdrawn before any claim was made and the config keys (`firstPostGuarantee`, `guaranteeMinApplicants`, `guaranteeWindowDays`, `guaranteeClaimDays`) are gone. The static regression suite asserts that no pricing surface, email, checkout line item, or terms clause says "refund it in full", so the promise cannot creep back through copy alone.
 
-> Your first post is half price at $149. If it does not bring you at least 3 applicants in 30 days, we refund it in full.
+Refunds remain a manual, discretionary support action: terms section 8 says fees are generally non-refundable and the operator decides case by case. A refund issued from the Stripe dashboard fires `charge.refunded`, which the webhook already handles: the ledger row is marked refunded, `EmployerJob.paymentStatus` flips to `'refunded'`, and a full refund unpublishes the posting.
 
-Rules for anyone touching this copy:
-
-1. **Interpolate, never type the numbers.** `config.firstPostPrice`, `config.guaranteeMinApplicants`, `config.guaranteeWindowDays`. A hardcoded 149 in the copy is a lie waiting for the next price change.
-2. **Gate every instance on `config.firstPostGuarantee`.** Flipping the flag to `false` must remove the promise from every surface at once: pricing, for-employers, the post-job funnel, checkout, confirmation email, terms. If one surface still promises a refund after the flag is off, the flag did not work.
-3. **The clause in terms is copy too.** It is gated the same way.
-4. **No dashes.** Colons, commas, periods, or "X to Y". This applies to every user-facing string in the repo, not just the guarantee.
-
-The guarantee attaches to the discounted first post only. A standard post at `postingPrice` carries no applicant promise, and neither does a renewal.
-
-Fulfilment is manual today. An employer who qualifies contacts support and the refund is issued from the Stripe dashboard, which fires `charge.refunded`, which the webhook already handles: the ledger row is marked refunded, `EmployerJob.paymentStatus` flips to `'refunded'`, and a full refund unpublishes the posting.
+Rules for anyone touching pricing copy still apply: interpolate every number from `lib/config.ts`, and no dashes (colons, commas, periods, or "X to Y").
 
 ---
 
@@ -251,7 +239,7 @@ Three standing rules:
 | File | Covers |
 |---|---|
 | [tests/lib/pricing-config.test.ts](../tests/lib/pricing-config.test.ts) | `priceFor` and `priceInCentsFor` for all three kinds, dollars and cents agreeing, the discount percent, price ordering, `discountedPostsPerEmployer` |
-| [tests/regressions/paid-first-pricing-static.test.ts](../tests/regressions/paid-first-pricing-static.test.ts) | the retired config keys are gone, `post-free` is a 410 stub, no surface advertises a free post, guarantee copy is flag-gated, no dashes on the three highest-traffic pricing pages |
+| [tests/regressions/paid-first-pricing-static.test.ts](../tests/regressions/paid-first-pricing-static.test.ts) | the retired config keys are gone, `post-free` is a 410 stub, no surface advertises a free post or promises a refund, no dashes on the three highest-traffic pricing pages |
 | [tests/lib/tier-limits.test.ts](../tests/lib/tier-limits.test.ts) | unlock and InMail entitlement gates |
 | [tests/api/employer-quota.test.ts](../tests/api/employer-quota.test.ts) | quota key derivation and overlap |
 
@@ -271,11 +259,7 @@ Webhook behaviour is still covered end to end rather than in unit tests, via the
 4. No Stripe dashboard work is required: checkout uses inline `price_data`, not a Price catalog.
 5. Sessions already open at the old price complete at the old price. That is correct and expected.
 
-### 10b. Turning the guarantee off
-
-Set `config.firstPostGuarantee = false`. Then verify the promise is gone from pricing, for-employers, the post-job funnel, checkout, the confirmation email, and terms. The static regression test asserts the copy is gated; it does not assert the flag's value, so it stays green either way.
-
-### 10c. What to watch
+### 10b. What to watch
 
 | Signal | Meaning |
 |---|---|
@@ -284,10 +268,9 @@ Set `config.firstPostGuarantee = false`. Then verify the promise is gone from pr
 | 5xx rate on `/api/webhooks/stripe` | should sit at zero given idempotency |
 | 410 rate on `/api/jobs/post-free` | a stale client still pointing at the retired route |
 | Ratio of `priceKind='first'` to `'standard'` checkouts | how much of the volume is new employers against returning ones |
-| Guarantee claims against first posts sold | whether the applicant threshold is set where it should be |
 | `processed_stripe_events` table size | grows without bound, plan a cleanup |
 
-### 10d. Stripe checklist
+### 10c. Stripe checklist
 
 - Webhook endpoint registered for the production origin
 - `STRIPE_WEBHOOK_SECRET` in the deployment matches the dashboard signing secret
@@ -306,7 +289,6 @@ Set `config.firstPostGuarantee = false`. Then verify the promise is gone from pr
 | Stripe Tax and a purchase-order path | a buyer who cannot pay by card asks |
 | Per-organization verification | the discount is being farmed across registered shell domains |
 | Email-change endpoint | one is built. It must call `evaluateEmailChange`, which is written and tested. |
-| Automated guarantee fulfilment | manual refunds stop being manageable |
 
 ---
 

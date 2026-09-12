@@ -105,16 +105,53 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
         }
 
+        // A supplied jobId is ownership-checked on EVERY path, not just new
+        // outreach. It is written onto the conversation and its title is echoed
+        // into the notification email, so an unowned id let an employer put
+        // someone else's posting in front of a candidate.
+        let ownedJobId: string | null = null;
+        if (jobId) {
+            const owned = await prisma.job.findFirst({
+                where: {
+                    id: jobId,
+                    employerJobs: {
+                        OR: [
+                            { userId: user.id },
+                            { userId: null, contactEmail: user.email! },
+                        ],
+                    },
+                },
+                select: { id: true },
+            });
+            if (!owned) {
+                return NextResponse.json({ error: 'You can only message candidates about your own job postings' }, { status: 403 });
+            }
+            ownedJobId = owned.id;
+        }
+
         // Check if a conversation already exists — replies are always free
-        // (no featured job gate, no InMail credit check)
+        // (no featured job gate, no InMail credit check). When the caller names
+        // a posting, the lookup is scoped to it: a second conversation with the
+        // same candidate about a DIFFERENT posting is new outreach and has to
+        // be paid for, which an unscoped lookup let through for free.
+        const participantPair = [
+            { participantA: senderProfile.id, participantB: recipient.id },
+            { participantA: recipient.id, participantB: senderProfile.id },
+        ];
         const existingConversation = await prisma.conversation.findFirst({
             where: {
-                OR: [
-                    { participantA: senderProfile.id, participantB: recipient.id },
-                    { participantA: recipient.id, participantB: senderProfile.id },
-                ],
+                OR: ownedJobId
+                    ? participantPair.map(pair => ({ ...pair, jobId: ownedJobId }))
+                    : participantPair,
             },
         });
+
+        // Every conversation is attributed to a posting. InMail credits are
+        // counted per posting, so a conversation with no jobId was counted
+        // against nothing: omitting jobId bought unlimited free outreach.
+        let conversationJobId: string | null = existingConversation
+            ? existingConversation.jobId ?? ownedJobId
+            : ownedJobId;
 
         if (!existingConversation) {
             // NEW outreach — requires an ACTIVE featured job posting + InMail
@@ -123,19 +160,13 @@ export async function POST(req: NextRequest) {
             // pricing FAQ ("To unlock new candidates or send new InMails,
             // you'll need an active posting"). Checking isFeatured alone left
             // outreach open after a full refund, chargeback, or expiry.
-            if (jobId) {
+            if (ownedJobId) {
                 const job = await prisma.job.findFirst({
                     where: {
-                        id: jobId,
+                        id: ownedJobId,
                         isFeatured: true,
                         isPublished: true,
                         expiresAt: { gt: new Date() },
-                        employerJobs: {
-                            OR: [
-                                { userId: user.id },
-                                { userId: null, contactEmail: user.email! },
-                            ],
-                        },
                     },
                     select: { id: true },
                 });
@@ -155,11 +186,21 @@ export async function POST(req: NextRequest) {
                             expiresAt: { gt: new Date() },
                         },
                     },
-                    select: { id: true },
+                    orderBy: { createdAt: 'desc' },
+                    select: { job: { select: { id: true } } },
                 });
-                if (!featuredJob) {
+                if (!featuredJob?.job) {
                     return NextResponse.json({ error: 'Messaging is available for active featured job postings only' }, { status: 403 });
                 }
+                // Charge the posting this outreach implicitly rides on, rather
+                // than leaving the conversation unattributed and uncounted.
+                conversationJobId = featuredJob.job.id;
+            }
+
+            // Refuse rather than fall through uncharged: an outreach we cannot
+            // attribute to a posting is an outreach no credit pool can limit.
+            if (!conversationJobId) {
+                return NextResponse.json({ error: 'Messaging is available for active featured job postings only' }, { status: 403 });
             }
 
             // Check InMail credits for new outreach
@@ -176,11 +217,11 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Look up job title if jobId provided
+        // Look up the title of the posting this message is attributed to
         let jobTitle: string | null = null;
-        if (jobId) {
+        if (conversationJobId) {
             const job = await prisma.job.findUnique({
-                where: { id: jobId },
+                where: { id: conversationJobId },
                 select: { title: true },
             });
             jobTitle = job?.title || null;
@@ -188,21 +229,14 @@ export async function POST(req: NextRequest) {
 
         // Find or create a Conversation for this sender-recipient pair
         // Try both orderings since participantA/B are interchangeable
-        let conversation = await prisma.conversation.findFirst({
-            where: {
-                OR: [
-                    { participantA: senderProfile.id, participantB: recipient.id, jobId: jobId || null },
-                    { participantA: recipient.id, participantB: senderProfile.id, jobId: jobId || null },
-                ],
-            },
-        });
+        let conversation = existingConversation;
 
         if (!conversation) {
             conversation = await prisma.conversation.create({
                 data: {
                     participantA: senderProfile.id,
                     participantB: recipient.id,
-                    jobId: jobId || null,
+                    jobId: conversationJobId,
                     subject,
                 },
             });
@@ -216,7 +250,7 @@ export async function POST(req: NextRequest) {
                 conversationId: conversation.id,
                 subject,
                 body: messageBody,
-                ...(jobId && { jobId }),
+                ...(conversationJobId && { jobId: conversationJobId }),
             },
         });
 

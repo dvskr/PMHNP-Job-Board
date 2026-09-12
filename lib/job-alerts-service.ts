@@ -517,6 +517,13 @@ export async function sendJobAlerts(options: SendJobAlertsOptions = {}): Promise
     // own lastSentAt stamp and silently skipped alerts on many days.
     const alerts = await prisma.jobAlert.findMany({
       where: {
+        // Digest opt-out. EmailLead.isSubscribed=false is what the visible
+        // Unsubscribe control writes (/api/email/unsubscribe), and the
+        // /email-preferences toggle that writes it is labelled "Weekly Job
+        // Alerts": these digests. isEmailSuppressed further down reads only the
+        // hard-suppression flags, so without this predicate a hand unsubscribe
+        // kept receiving the exact mail it turned off.
+        emailLead: { isSubscribed: true },
         AND: [
           buildAlertEligibilityWhere(now),
           ...(options.frequency ? [{ frequency: options.frequency }] : []),
@@ -548,6 +555,10 @@ export async function sendJobAlerts(options: SendJobAlertsOptions = {}): Promise
 
       const settled = await Promise.allSettled(batch.map(async (alert) => {
         // ── Suppression check ──
+        // Hard suppression only: bounce, complaint, soft-deleted profile.
+        // Hand unsubscribes (EmailLead.isSubscribed=false) are filtered
+        // upstream in the alert query, which reads the same flag the
+        // "Weekly Job Alerts" toggle on /email-preferences writes.
         // Cache per-email since many alerts can share an address.
         if (suppressedEmails.has(alert.email)) return null
         const suppressed = await isEmailSuppressed(alert.email)

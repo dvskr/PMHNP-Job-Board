@@ -15,6 +15,7 @@ import {
 import { buildFinalNoticeCopy } from '@/lib/expiry-final-notice';
 import { renderJobCardHtml } from '@/lib/utils/render-job-card';
 import { buildListUnsubscribeHeaders } from '@/lib/email/list-unsubscribe';
+import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -124,6 +125,24 @@ const MARKETING_EMAIL_TYPES = new Set<EmailType>([
   'system_message_nudge',
 ]);
 
+/**
+ * The named exemption from the marketing gates in sendAndLog.
+ *
+ * These go out on the marketing sender, but the person asked for this exact
+ * email seconds ago: the confirmation of an alert they just created, the guide
+ * they just requested. Refusing them because of an old unsubscribe, or because
+ * an operator paused the automated senders, reads as a broken site rather than
+ * as respected consent. Their routes still refuse hard-suppressed (bounced /
+ * complained) addresses before calling in.
+ *
+ * Nothing automated belongs in here: an entry means "no opt-out check, no
+ * emergency brake".
+ */
+const USER_REQUESTED_EMAIL_TYPES = new Set<EmailType>([
+  'welcome_alert',
+  'salary_guide',
+]);
+
 // ── HTML sanitization — prevents XSS in user-supplied content ──
 export function escapeHtml(str: string): string {
   return str
@@ -161,13 +180,20 @@ function htmlToPlainText(html: string): string {
 // ── Email send wrapper — logs every email to EmailSend table ──
 //
 // Every send across the platform should go through this wrapper so we get:
-//   • NOTE: this wrapper does NOT check suppression. Callers that send marketing/
-//     bulk mail MUST gate with isEmailSuppressed(to) themselves before calling it
-//     (job-alerts and candidate-alerts already do). Transactional mail is exempt.
+//   • The marketing opt-out gate and the emergency brake, applied to every
+//     emailType in MARKETING_EMAIL_TYPES. Transactional mail is exempt by
+//     construction (it is not in that set), and the two user-requested
+//     marketing types are exempt by name (USER_REQUESTED_EMAIL_TYPES).
+//     A caller can still gate earlier to save work, but it cannot forget to.
 //   • Sender-domain selection (transactional vs marketing, based on emailType)
 //   • List-Unsubscribe header injection (Gmail/Yahoo bulk-sender rule)
-//   • EmailSend row in the DB for analytics + webhook status updates
+//   • EmailSend row in the DB for analytics + webhook status updates, stamped
+//     status 'failed' when the provider refused, so no later read mistakes a
+//     refusal for a delivery
 //   • Plain-text fallback computed from HTML
+//
+// Returns Resend's { data, error } envelope. It only THROWS on a transport
+// fault; a refusal (by this wrapper or by Resend) comes back as `error`.
 export async function sendAndLog(
   params: { from: string; to: string; subject: string; html: string },
   emailType: EmailType,
@@ -189,6 +215,36 @@ export async function sendAndLog(
     return { data: null, error: { name: 'fixture_domain', message: `refused: ${recipientDomain} is a test-fixture domain` } };
   }
   const isMarketing = MARKETING_EMAIL_TYPES.has(emailType);
+
+  // The one gate every non-transactional sender passes through. Suppression
+  // used to be each caller's job, and the callers that forgot (the monthly
+  // employer report, admin broadcasts) kept mailing people who had used the
+  // unsubscribe link in the footer of that very email. Same for the emergency
+  // brake: it is only a brake if it sits where the mail actually leaves.
+  if (isMarketing && !USER_REQUESTED_EMAIL_TYPES.has(emailType)) {
+    if (isOutboundPaused()) {
+      logger.warn('sendAndLog: automated sending is paused, refusing', {
+        to: params.to,
+        emailType,
+      });
+      return { data: null, error: { name: 'outbound_paused', message: OUTBOUND_PAUSED_MESSAGE } };
+    }
+    // isMarketingOptedOut, not isEmailSuppressed: the visible Unsubscribe
+    // control writes EmailLead.isSubscribed=false and leaves the hard
+    // suppression flags alone, so the narrower check reads a hand unsubscribe
+    // as consent.
+    if (await isMarketingOptedOut(params.to)) {
+      logger.info('sendAndLog: recipient opted out of marketing mail, refusing', {
+        to: params.to,
+        emailType,
+      });
+      return {
+        data: null,
+        error: { name: 'marketing_opted_out', message: 'refused: recipient has opted out of marketing email' },
+      };
+    }
+  }
+
   // PD outreach gets a personal from-name. Everything else marketing
   // (job alerts, broadcasts, candidate alerts) stays on the generic
   // brand address so subscribers don't see "Sathish" in their inbox
@@ -220,6 +276,20 @@ export async function sendAndLog(
 
   const result = await resend.emails.send(sendParams);
 
+  // Resend answers an API-level rejection (unroutable address, blocked domain,
+  // quota, provider 5xx) with an `error` in the envelope instead of throwing.
+  // The row used to be written as 'sent' either way, which made every "have we
+  // already mailed this person" read a lie: dedupe queries suppressed the real
+  // send, and the account-purge cron stamped its warned-marker on mail that
+  // never left.
+  const providerError = result?.error ?? null;
+  if (providerError) {
+    logger.error('Resend rejected the send', providerError, { emailType, to: params.to });
+  }
+  const logMetadata: Record<string, unknown> | undefined = providerError
+    ? { ...(metadata ?? {}), providerError: { name: providerError.name, message: providerError.message } }
+    : metadata;
+
   // Non-blocking log — don't let logging failure break email sending
   try {
     await prisma.emailSend.create({
@@ -228,7 +298,8 @@ export async function sendAndLog(
         to: params.to,
         subject: params.subject,
         emailType,
-        metadata: metadata ? (metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
+        status: providerError ? 'failed' : 'sent',
+        metadata: logMetadata ? (logMetadata as Prisma.InputJsonValue) : Prisma.JsonNull,
       },
     });
   } catch (e) {
@@ -278,6 +349,23 @@ export async function isMarketingOptedOut(email: string): Promise<boolean> {
 interface EmailResult {
   success: boolean;
   error?: string;
+}
+
+/** The { data, error } envelope sendAndLog hands back. */
+type SendEnvelope = Awaited<ReturnType<typeof sendAndLog>>;
+
+/**
+ * Turns a refused send into the EmailResult its caller expects.
+ *
+ * sendAndLog never throws for a refusal, so `await sendAndLog(...)` followed by
+ * `return { success: true }` reported success for mail that was rejected,
+ * suppressed or paused. Every sender below reads the envelope through this,
+ * because callers make real decisions on the answer: purge-inactive-users
+ * stamps the marker that lets an account be deleted, broadcast-sender decides
+ * whether to retry, and dedupe gates decide whether to ever try again.
+ */
+function providerRejected(error: NonNullable<SendEnvelope['error']>): EmailResult {
+  return { success: false, error: error.message || 'Email provider rejected the message' };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -358,7 +446,7 @@ export async function sendWelcomeEmail(
       `Your PMHNP job alert is active: ${criteriaSummary}.`
     );
 
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: alert?.location
@@ -366,6 +454,7 @@ export async function sendWelcomeEmail(
         : 'Your PMHNP job alert is active',
       html,
     }, 'welcome_alert', undefined, `${BASE_URL}/unsubscribe?token=${unsubscribeToken}`);
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Welcome email sent', { email });
     return { success: true };
@@ -401,7 +490,6 @@ export async function sendSignupWelcomeEmail(
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;text-align:center;">
           <p style="margin:0 0 4px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Welcome offer</p>
           <p style="margin:0;font-family:${SANS_V2};font-size:15px;color:${V2.textPrimary};line-height:1.5;">Your first job post is <strong>half price at $${config.firstPostPrice}</strong>, ${config.firstPostDiscountPercent()}% off the standard $${config.postingPrice}. Every post after it is $${config.postingPrice}.</p>
-          ${config.firstPostGuarantee ? `<p style="margin:8px 0 0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};line-height:1.5;">If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.</p>` : ''}
         </div>
       </td></tr>
       ${spacerV2(28)}
@@ -446,7 +534,7 @@ export async function sendSignupWelcomeEmail(
     }
 
     const unsubToken = await getOrCreateUnsubToken(email);
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: isEmployer
@@ -454,6 +542,7 @@ export async function sendSignupWelcomeEmail(
         : `Welcome to PMHNP Hiring, ${firstName || 'there'}!`,
       html,
     }, 'welcome_signup', { role }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Signup welcome email sent', { email, role });
     return { success: true };
@@ -487,8 +576,9 @@ export async function sendConfirmationEmail(
   // stays so historical callers and any future split keep working.
   durationDays: number = config.durationDays,
   invoice?: InvoiceLinks,
-  // Which price this post was charged at. Only 'first' earns the guarantee
-  // block, so an unspecified caller never promises a refund it cannot honour.
+  // Which price this post was charged at. Kept on the signature so the
+  // webhook can keep passing it and any future first-post-only copy has a
+  // hook; nothing in the email currently branches on it.
   priceKind?: PostPriceKind,
 ): Promise<EmailResult> {
   try {
@@ -527,18 +617,6 @@ export async function sendConfirmationEmail(
         </div>
       </td></tr>`;
 
-    const guaranteeBlock = (config.firstPostGuarantee && priceKind === 'first')
-      ? `
-        ${spacerV2(16)}
-        <tr><td class="content-pad" style="padding:0 40px;">
-          <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
-            <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Your first-post guarantee</p>
-            <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full. Reply to this email and we will take care of it.</p>
-            <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};line-height:1.5;">An applicant means a candidate who submits an application through the site, or who clicks through to your own application page when your posting links out. Your dashboard shows both counts, so you can check the number yourself.</p>
-          </div>
-        </td></tr>`
-      : '';
-
     const invoiceBlock = (invoice?.invoicePdfUrl || invoice?.hostedInvoiceUrl)
       ? `
         ${spacerV2(16)}
@@ -563,7 +641,7 @@ export async function sendConfirmationEmail(
           <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">${featuresLine}</p>
           <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">Candidates you unlock stay in your dashboard forever, even after this posting expires.</p>
         </div>
-      </td></tr>${guaranteeBlock}${invoiceBlock}
+      </td></tr>${invoiceBlock}
       ${spacerV2(28)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('View Your Listing', `${BASE_URL}/jobs/${jobSlug}`)}
@@ -577,12 +655,13 @@ export async function sendConfirmationEmail(
     );
 
     const unsubToken = await getOrCreateUnsubToken(employerEmail);
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: employerEmail,
       subject: `✅ Your PMHNP job post is live: "${jobTitle}"`,
       html,
     }, 'job_confirmation', { jobId }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Confirmation email sent', { email: employerEmail, jobId });
     return { success: true };
@@ -650,12 +729,13 @@ export async function sendRenewalConfirmationEmail(
       'Your job listing has been renewed.'
     );
 
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: `✅ Job Renewed: "${jobTitle}" is live again`,
       html,
     }, 'renewal_confirmation', { jobTitle }, `${BASE_URL}/unsubscribe?token=${unsubscribeToken}`);
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Renewal confirmation email sent', { email, jobTitle });
     return { success: true };
@@ -751,12 +831,13 @@ export async function sendExpiryWarningEmail(
 
     // Always pass a real unsubscribe token; mint one if the caller didn't.
     const unsubToken = unsubscribeToken ?? await getOrCreateUnsubToken(email);
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: `Your job posting expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}: renew to keep it live`,
       html,
     }, 'expiry_warning', { jobTitle, daysUntilExpiry }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Expiry warning email sent', { email });
     return { success: true };
@@ -921,7 +1002,7 @@ export async function sendRefundConfirmationEmail(
     );
 
     const unsubToken = unsubscribeToken ?? await getOrCreateUnsubToken(email);
-    await sendAndLog(
+    const sendResult = await sendAndLog(
       {
         from: EMAIL_FROM,
         to: email,
@@ -932,6 +1013,7 @@ export async function sendRefundConfirmationEmail(
       { jobTitle, amountCents, isPartial },
       `${BASE_URL}/unsubscribe?token=${unsubToken}`,
     );
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Refund confirmation email sent', { email, jobTitle, amountCents, isPartial });
     return { success: true };
@@ -969,12 +1051,13 @@ export async function sendDraftSavedEmail(
       'Your job posting draft has been saved.'
     );
 
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: '📝 Continue your PMHNP job posting',
       html,
     }, 'draft_saved');
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Draft saved email sent', { email });
     return { success: true };
@@ -1192,12 +1275,13 @@ export async function sendEmployerMessageNotification(
       `${fromLine} sent you a message${jobTitle ? ` about "${escapeHtml(jobTitle)}"` : ''}: view it now!`
     );
 
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: recipientEmail,
       subject: `${options.subjectPrefix ?? ''}📩 New message from ${fromLine}${jobTitle ? `: ${jobTitle}` : ''}`,
       html,
     }, options.emailType ?? 'employer_message', { senderName, jobTitle }, options.unsubscribeUrl);
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Employer message notification sent', { recipientEmail, senderName });
     return { success: true };
@@ -1271,12 +1355,13 @@ export async function sendCandidateInquiryNotification(
       `${escapeHtml(candidateName)} has a question about your "${escapeHtml(jobTitle || 'job')}" posting \u2014 reply now!`
     );
 
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: recipientEmail,
       subject: `💬 ${candidateName} has a question about your "${jobTitle || 'job posting'}"`,
       html,
     }, 'candidate_inquiry', { candidateName, jobTitle });
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Candidate inquiry notification sent', { recipientEmail, candidateName });
     return { success: true };
@@ -1334,12 +1419,13 @@ export async function sendNewCandidateAlertEmail(
       `A new candidate matching your criteria just joined.`
     );
 
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: recipientEmail,
       subject: `🔔 ${candidates.length} new candidate${candidates.length !== 1 ? 's' : ''} match your criteria`,
       html,
     }, 'candidate_alert', { candidateCount: candidates.length }, unsubscribeUrl);
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('New candidate alert sent', { recipientEmail, count: candidates.length });
     return { success: true };
@@ -1379,12 +1465,13 @@ export async function sendBroadcastEmail(
 ): Promise<EmailResult> {
   try {
     const unsubToken = await getOrCreateUnsubToken(to);
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to,
       subject,
       html: htmlBody,
     }, 'broadcast', undefined, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
+    if (sendResult?.error) return providerRejected(sendResult.error);
     return { success: true };
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Failed to send broadcast';
@@ -1437,12 +1524,13 @@ export async function sendNewApplicationEmail(params: NewApplicationEmailParams)
       `New application received for your job posting.`
     );
 
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: employerEmail,
       subject: `📋 New application for "${jobTitle}" — ${candidateName}`,
       html,
     }, 'application_notification', { jobTitle, candidateName });
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('New application notification sent', { employerEmail, jobTitle, candidateName });
     return { success: true };
@@ -1496,12 +1584,13 @@ export async function sendApplicationConfirmationEmail(params: ApplicationConfir
       `Your application has been submitted successfully.`
     );
 
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: candidateEmail,
       subject: `✅ Application received — ${jobTitle} at ${employerName}`,
       html,
     }, 'application_confirmation', { jobTitle, employerName });
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Application confirmation sent to candidate', { candidateEmail, jobTitle });
     return { success: true };
@@ -1566,12 +1655,13 @@ export async function sendStatusUpdateEmail(params: StatusUpdateEmailParams): Pr
       `Update on your application \u2014 moved to ${statusInfo.label.toLowerCase()} stage.`
     );
 
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: candidateEmail,
       subject: `${statusInfo.emoji} Application update — ${jobTitle} at ${employerName}`,
       html,
     }, 'status_update', { jobTitle, newStatus });
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Status update email sent', { candidateEmail, jobTitle, newStatus });
     return { success: true };
@@ -1647,12 +1737,13 @@ export async function sendPerformanceReportEmail(
       `Your ${periodLabel.toLowerCase()} report: ${totalViews} views, ${totalClicks} clicks, ${totalApps} applications`
     );
 
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: `📊 ${periodLabel} Report: ${totalViews} views, ${totalApps} applications — ${employerName}`,
       html,
     }, 'performance_report', { employerName, totalViews, totalApps }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Performance report sent', { email, employerName, periodLabel });
     return { success: true };
@@ -1735,12 +1826,13 @@ export async function sendSavedJobReminderEmail(
       jobs.length === 1 ? `The job you saved is still open.` : `${jobs.length} saved jobs are still open.`
     );
 
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: `💾 ${jobs.length} job${jobs.length !== 1 ? 's' : ''} you saved ${jobs.length !== 1 ? 'are' : 'is'} still open`,
       html,
     }, 'saved_job_reminder', { jobCount: jobs.length }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Saved job reminder sent', { email, jobCount: jobs.length });
     return { success: true };
@@ -1783,12 +1875,16 @@ export async function sendInactivityPurgeWarningEmail(
       `Your inactive PMHNP Hiring account will be deleted in ${graceDays} days unless you sign in.`
     );
 
-    await sendAndLog({
+    const sendResult = await sendAndLog({
       from: EMAIL_FROM_TRANSACTIONAL,
       to: email,
       subject: `Action needed: your PMHNP Hiring account will be deleted in ${graceDays} days`,
       html,
     }, 'account_purge_warning', { graceDays }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
+    // The purge cron stamps its warning marker on this result, and that marker
+    // is the only gate into soft-delete. A refused send must never read as a
+    // warning the account holder received.
+    if (sendResult?.error) return providerRejected(sendResult.error);
 
     logger.info('Inactivity purge warning sent', { email, graceDays });
     return { success: true };

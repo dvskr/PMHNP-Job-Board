@@ -32,8 +32,9 @@ import { getPathFromUrl } from '@/lib/supabase-storage';
 export type DocType =
     | 'resume'
     | 'message_attachment'
-    /** Reserved — not yet wired. */
+    /** Per-application PDF uploaded from the apply form. Shares the resumes bucket. */
     | 'cover_letter'
+    /** Reserved — not yet wired. */
     | 'transcript';
 
 interface DocTypeConfig {
@@ -46,7 +47,10 @@ interface DocTypeConfig {
 const DOC_TYPE_CONFIG: Record<DocType, DocTypeConfig> = {
     resume:             { bucket: 'resumes',             defaultTtlSeconds: 15 * 60 },
     message_attachment: { bucket: 'message-attachments', defaultTtlSeconds: 15 * 60 },
-    cover_letter:       { bucket: 'cover-letters',       defaultTtlSeconds: 15 * 60 },
+    // Cover letters are written by uploadResume(), which targets the
+    // 'resumes' bucket. Naming a 'cover-letters' bucket here that nothing
+    // writes to would make every signed URL 404 the moment one is minted.
+    cover_letter:       { bucket: 'resumes',             defaultTtlSeconds: 15 * 60 },
     transcript:         { bucket: 'transcripts',         defaultTtlSeconds: 15 * 60 },
 };
 

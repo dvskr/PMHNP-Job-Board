@@ -54,7 +54,17 @@ describe('JobPosting honesty guards', () => {
   it('estimated salaries never publish as baseSalary offers', () => {
     // Audit C4: salaryIsEstimated rows are pipeline inferences, not employer
     // offers. The guard must gate the entire baseSalary build.
-    expect(src).toMatch(/const baseSalary = !job\.salaryIsEstimated &&/);
+    // Whitespace-tolerant on purpose: this pins the guard, not its line breaks.
+    expect(src).toMatch(/const baseSalary = !job\.salaryIsEstimated\s*&&/);
+  });
+
+  it('a salary the page only shows as raw text is not republished as an offer', () => {
+    // When the normalized pair is missing, the visible figure comes from the
+    // free-text salaryRange string, whose pay period the schema cannot know.
+    // Emitting baseSalary there is how the page came to show a range while the
+    // JSON-LD declared the top of it as an hourly rate.
+    expect(src).toMatch(/displayedFromRawText/);
+    expect(src).toMatch(/const baseSalary = [\s\S]{0,120}!displayedFromRawText/);
   });
 
   it('validThrough fallback is anchored to datePosted, never to render time', () => {

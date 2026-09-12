@@ -112,6 +112,10 @@ export async function platformRevenueJobsWithSimilarity(
         JOIN jobs j ON j.id = je.job_id
         WHERE j.is_published = true
           AND j.archived_at IS NULL
+          -- Mirrors publicJobsWhere's expiry guard: cleanup-expired only flips
+          -- is_published twice a day, and in between an expired job's detail
+          -- URL already answers 410, so surfacing it here is a dead end.
+          AND (j.expires_at IS NULL OR j.expires_at > now())
           AND (
               j.source_type = 'employer'
               OR j.apply_on_platform = true
@@ -189,6 +193,10 @@ export async function semanticJobSearch(
         JOIN jobs j ON j.id = je.job_id
         WHERE j.is_published = true
           AND j.archived_at IS NULL
+          -- Expiry guard, mirroring publicJobsWhere. Without it the top-K was
+          -- spent on postings whose detail URL already answers 410; the route's
+          -- hydration query drops them, so they were pure wasted slots.
+          AND (j.expires_at IS NULL OR j.expires_at > now())
           ${locationFilter}
           ${qualityFilter}
           ${salaryFilter}

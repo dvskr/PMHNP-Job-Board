@@ -159,7 +159,9 @@ export default function InPlatformApplyForm({
         try {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('type', 'resume'); // reuse resume bucket for cover letters too
+            // Must NOT be 'resume': that branch of /api/upload repoints the
+            // candidate's profile resume at whatever it receives.
+            formData.append('type', 'cover_letter');
 
             const res = await fetch('/api/upload', {
                 method: 'POST',

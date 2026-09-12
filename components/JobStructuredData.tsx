@@ -1,6 +1,6 @@
 import { Job } from '@/lib/types';
 import { slugify, canonicalSalaryPeriod, formatSalary, type SalaryPeriodKey } from '@/lib/utils';
-import { jobSalaryText } from '@/lib/salary-display';
+import { jobSalaryText, resolveJobSalary } from '@/lib/salary-display';
 import { extractEligibleStates } from '@/lib/eligible-states';
 import { STATE_CODE_TO_NAME } from '@/lib/us-states';
 import { jsonLdString } from '@/lib/seo/json-ld';
@@ -39,10 +39,6 @@ const SCHEMA_UNIT_TEXT: Record<SalaryPeriodKey, 'HOUR' | 'DAY' | 'WEEK' | 'MONTH
   monthly: 'MONTH',
   annual: 'YEAR',
 };
-function mapSalaryUnitText(period: string | null): 'HOUR' | 'DAY' | 'WEEK' | 'MONTH' | 'YEAR' {
-  return SCHEMA_UNIT_TEXT[canonicalSalaryPeriod(period)];
-}
-
 // Mirrors MAX_ELIGIBLE_STATES in lib/eligible-states.ts: a stored list this
 // long is effectively nationwide, so the Country:US signal is more honest.
 const MAX_ELIGIBLE_STATES = 40;
@@ -231,8 +227,11 @@ export default function JobStructuredData({ job, eligibleStateCodes, jobTypes }:
   // formatDisplaySalary converts: hourly = Math.round(normalized / 2080),
   // every other period stays annualized under YEAR. Raw minSalary/maxSalary
   // in their native unit are used ONLY when the normalized pair was never
-  // stored. Emitting raw values first paired the schema with numbers no
-  // visible surface showed whenever raw and normalized drifted apart.
+  // stored — which is also the branch jobSalaryText displays via formatSalary,
+  // so the two stay in step. Emitting raw values first paired the schema with
+  // numbers no visible surface showed whenever raw and normalized drifted
+  // apart. The two guards below cover the cases where even the raw pair
+  // cannot be trusted to mirror the page.
   // The canonical period key is shared with formatSalary in lib/utils.ts so
   // UI and schema can never branch differently on the same DB value.
   const periodKey = canonicalSalaryPeriod(job.salaryPeriod);
@@ -257,13 +256,33 @@ export default function JobStructuredData({ job, eligibleStateCodes, jobTypes }:
   // `value` — the old code emitted a maxValue-only pseudo-range when
   // minSalary was null, which matches neither shape.
   const isRange = minForSchema != null && maxForSchema != null && minForSchema !== maxForSchema;
+
+  // Mirror guard: the string the reader sees is the contract. When
+  // resolveJobSalary falls all the way through to the free-text salaryRange
+  // column there is no parsed pair behind that string, so anything we publish
+  // here is a number no surface shows — omission is the only honest answer.
+  // (Google treats structured data that contradicts the visible page as a
+  // markup violation, and the mismatch is invisible in our own UI.)
+  const displayedFromRawText = resolveJobSalary(job).source === 'salaryRange';
+
+  // A raw pair tagged 'hourly' whose magnitude is annual-sized means the
+  // normalizer never ran on the row: publishing it advertises a five-figure
+  // hourly wage in Google Jobs. No PMHNP role bills four figures an hour, so
+  // treat anything above this as a unit mismatch and omit rather than lie.
+  const MAX_PLAUSIBLE_HOURLY = 1000;
+  const implausibleHourlyRate =
+    unitText === 'HOUR' && (maxForSchema ?? minForSchema ?? 0) > MAX_PLAUSIBLE_HOURLY;
+
   // Honesty guard (audit 2026-08 C4): salaryIsEstimated marks values our own
   // pipeline inferred rather than figures the employer advertised. baseSalary
   // in JobPosting schema represents the actual offer, so publishing an
   // estimate there fabricates an offer in Google Jobs — omit it instead.
   // (lib/salary-report/stats.ts quarantines the same rows from salary stats
   // for the same reason.)
-  const baseSalary = !job.salaryIsEstimated && (minForSchema != null || maxForSchema != null)
+  const baseSalary = !job.salaryIsEstimated
+    && !displayedFromRawText
+    && !implausibleHourlyRate
+    && (minForSchema != null || maxForSchema != null)
     ? {
         '@type': 'MonetaryAmount',
         currency: 'USD',

@@ -6,10 +6,11 @@ import { MapPin, Briefcase, Monitor, ExternalLink, ChevronLeft, ChevronRight, Lo
 import { formatSalary } from '@/lib/utils';
 import { sanitizeHtmlContent } from '@/lib/sanitize';
 import { config, type PostPriceKind } from '@/lib/config';
-import { trackFreePostLimitHit } from '@/lib/analytics';
+import { trackDiscountSpent } from '@/lib/analytics';
 import JobCard from '@/components/JobCard';
 import type { Job } from '@/lib/types';
 import { deriveExperienceLabel } from '@/lib/experience-label';
+import { POST_JOB_SCREENING_SCOPE, readScreeningQuestions } from '@/components/ScreeningQuestionsBuilder';
 
 interface JobFormData {
   title: string;
@@ -84,10 +85,10 @@ export default function PreviewPage() {
     if (!stored) { router.push('/post-job'); return; }
     try {
       const data = JSON.parse(stored) as JobFormData;
-      try {
-        const storedQuestions = localStorage.getItem('jobScreeningQuestions');
-        if (storedQuestions) data.screeningQuestions = JSON.parse(storedQuestions);
-      } catch { /* ignore */ }
+      // Scoped to this flow: the retired shared key was also written by the
+      // job edit page, and its questions carry knockout rules that auto-reject
+      // applicants, so a stale one must never ride along with a new posting.
+      data.screeningQuestions = readScreeningQuestions(POST_JOB_SCREENING_SCOPE);
       setFormData(data);
     } catch (error) {
       console.error('Error parsing form data:', error);
@@ -129,10 +130,9 @@ export default function PreviewPage() {
     if (!formData) return;
     setIsLoading(true);
     if (isStandardPost) {
-      // Event name predates the paid-first model: it now marks the moment an
-      // employer's one discounted post is already spent, which is the same
-      // point in the P7 funnel it always measured.
-      trackFreePostLimitHit(
+      // Same point in the P7 funnel the old free-post-limit event measured:
+      // the employer's one discounted post is already spent.
+      trackDiscountSpent(
         contactDomain || 'unknown',
         config.discountedPostsPerEmployer - (postPrice?.remaining ?? 0),
         config.discountedPostsPerEmployer
@@ -490,11 +490,6 @@ export default function PreviewPage() {
             <div>
               <p style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>{packageHeadline}</p>
               <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>{packageDetails}</p>
-              {isFirstPost && config.firstPostGuarantee && (
-                <p style={{ fontSize: '11px', color: '#0D9488', margin: '4px 0 0', fontWeight: 600, lineHeight: 1.5 }}>
-                  {`Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`}
-                </p>
-              )}
             </div>
           </div>
         </div>

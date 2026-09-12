@@ -55,6 +55,12 @@ export default function LoginContent() {
   useEffect(() => {
     const roleParam = searchParams.get('role');
     if (roleParam === 'employer') setRole('employer');
+    // requireAuth sends an account here when its session can no longer be
+    // turned into a usable profile (the restore window lapsed). Without this
+    // the bounce looks like a random logout.
+    if (searchParams.get('error') === 'account_unavailable') {
+      setError('This account is no longer available. Its restore window has closed. Create a new account to continue.');
+    }
   }, [searchParams]);
 
   const handleResendConfirmation = async () => {
@@ -105,15 +111,28 @@ export default function LoginContent() {
       }
 
       if (data.user) {
-        // If this account was soft-deleted, logging back in within the 30-day
-        // grace window restores it — exactly what the delete-account flow
-        // promises. The endpoint is a no-op (400) for accounts that aren't
-        // deleted, so this is safe to call on every login. Same-origin fetch
-        // passes the Origin-based CSRF check automatically. Never block login
-        // on this probe.
+        // If this account was soft-deleted, logging back in within the grace
+        // window restores it — exactly what the delete-account flow promises.
+        // The endpoint is a no-op (400) for accounts that aren't deleted, so
+        // this is safe to call on every login. Same-origin fetch passes the
+        // Origin-based CSRF check automatically.
+        //
+        // A failure here is NOT read as "the account is fine": that is how a
+        // rate-limited or dropped probe used to leave an account marked
+        // deleted, and on course for the purge cron, while its owner carried
+        // on using it. Transient failures are covered server-side (the first
+        // authenticated request restores via lib/auth/ensure-profile.ts); the
+        // one case the server cannot fix is a lapsed restore window, and that
+        // one has to be said out loud instead of dropping the user into a
+        // dashboard that will bounce them.
         try {
-          await fetch('/api/auth/restore-account', { method: 'POST' });
-        } catch { /* non-blocking */ }
+          const restore = await fetch('/api/auth/restore-account', { method: 'POST' });
+          if (restore.status === 410) {
+            await supabase.auth.signOut();
+            setError('This account was deleted and its restore window has closed. Please create a new account to continue.');
+            return;
+          }
+        } catch { /* transient: the server-side restore still runs */ }
         router.refresh();
         // Honor a post-login return target (?redirectTo= or the ?next= that
         // /onboarding/professional and other gated pages send). Validated to a

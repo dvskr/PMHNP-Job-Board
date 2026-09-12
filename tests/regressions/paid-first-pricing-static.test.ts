@@ -6,14 +6,13 @@
  * and there is one 60-day duration. The risk with a change of that shape is
  * not that it fails to ship, it is that a corner of it survives: one page
  * still promising a free post, one route still creating a job without
- * payment, one guarantee sentence that keeps promising a refund after the
- * flag is switched off. Each test below reads the real source and pins one
- * of those corners shut.
+ * payment, one sentence still promising the refund guarantee that was
+ * withdrawn. Each test below reads the real source and pins one of those
+ * corners shut.
  */
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { config } from '@/lib/config';
 
 const ROOT = process.cwd();
 
@@ -187,77 +186,48 @@ describe('no surface still advertises a free first post', () => {
   });
 });
 
-describe('guarantee copy is gated on the config flag, not hardcoded', () => {
-  const SURFACES = ['app/pricing/page.tsx', 'app/for-employers/page.tsx'];
-
-  /** `config.firstPostGuarantee` used as a condition rather than merely mentioned. */
-  const GATE = /config\.firstPostGuarantee\s*(?:&&|\?)|if\s*\(\s*!?config\.firstPostGuarantee\s*\)/g;
-  /** The prescribed wording. Distinctive enough not to collide with a refund FAQ. */
-  const PROMISE = /refund it in full/i;
-
-  const countMatches = (src: string, pattern: RegExp): number => src.match(pattern)?.length ?? 0;
-
+describe('the withdrawn refund guarantee stays withdrawn', () => {
   /**
-   * How many places the page puts the guarantee in front of a reader.
-   *
-   * The copy is normally hoisted into one constant and referenced from each
-   * surface, so counting the wording alone would report one site however many
-   * times it is rendered. When a constant holds it, its references are the
-   * render sites; otherwise the inline occurrences are.
+   * The promise was withdrawn in 2026-09 and the config keys behind it were
+   * deleted, so any surviving copy would be a refund the operator has not
+   * agreed to honour. lib/ is swept as well as app/ and components/ because
+   * the email templates and outreach copy live there.
    */
-  function guaranteeRenderSites(src: string): number {
-    const declaration = src.match(
-      /const\s+([A-Za-z_$][\w$]*)\s*=\s*[`'"][^`'"]*refund it in full/i,
-    );
-    if (!declaration) return countMatches(src, new RegExp(PROMISE.source, 'gi'));
-    const references = countMatches(src, new RegExp(`\\b${declaration[1]}\\b`, 'g'));
-    return Math.max(0, references - 1); // minus the declaration itself
-  }
+  const SWEEP = [...USER_FACING_FILES, ...sourceFilesUnder('lib')];
+  const LEFTOVERS = [
+    /refund it in full/i,
+    /firstPostGuarantee/,
+    /guaranteeMinApplicants/,
+    /guaranteeWindowDays/,
+    /guaranteeClaimDays/,
+    /applicant guarantee/i,
+    /first-post guarantee/i,
+  ];
 
-  it.each(SURFACES)('%s renders the guarantee only behind the flag', (rel) => {
-    const src = read(rel);
+  it.each(LEFTOVERS.map((pattern) => [String(pattern), pattern] as const))(
+    'no user-facing or library source matches %s',
+    (_label, pattern) => {
+      const hits = SWEEP.filter((rel) => pattern.test(blankComments(read(rel))));
+      expect(offenders(hits, 'still carries the withdrawn guarantee')).toBe('');
+    },
+  );
 
-    if (!config.firstPostGuarantee) {
-      // Flag off means the promise is gone from every surface, which is the
-      // entire point of it being a flag.
-      expect(offenders(PROMISE.test(src) ? [rel] : [],
-        'still promises a refund while config.firstPostGuarantee is off')).toBe('');
-      return;
-    }
-
-    expect(offenders(PROMISE.test(src) ? [] : [rel],
-      'is missing the first-post guarantee copy')).toBe('');
-
-    // Every place the promise is rendered needs a gate of its own. Counting
-    // both sides catches the copy being dropped into a fourth spot without
-    // one; it cannot tell which gate guards which site.
-    const sites = guaranteeRenderSites(src);
-    const gates = countMatches(src, GATE);
-    expect(offenders(gates >= 1 ? [] : [rel],
-      'states the guarantee unconditionally instead of gating on config.firstPostGuarantee')).toBe('');
-    expect(offenders(
-      gates >= sites ? [] : [`${rel} (${sites} render sites, ${gates} gates)`],
-      'renders the guarantee in more places than it gates',
-    )).toBe('');
+  it('terms no longer carve the guarantee out of the refund policy', () => {
+    const src = read('app/terms/page.tsx');
+    expect(src).toContain('Job posting and renewal fees are generally non-refundable');
+    expect(src).not.toMatch(/Except as provided by/);
   });
 
-  it.each(SURFACES)('%s interpolates the guarantee numbers from config', (rel) => {
-    const src = read(rel);
-    if (!config.firstPostGuarantee) return;
-
-    for (const key of ['firstPostPrice', 'guaranteeMinApplicants', 'guaranteeWindowDays']) {
-      expect(offenders(src.includes(`config.${key}`) ? [] : [rel],
-        `does not read config.${key}`)).toBe('');
-    }
-  });
-
-  it.each(SURFACES)('%s hardcodes none of the guarantee numbers', (rel) => {
-    const body = blankComments(read(rel));
-    const literals = [/\$149\b/, /\$299\b/, /\$249\b/, /\b3 applicants\b/]
-      .filter((pattern) => pattern.test(body))
-      .map((pattern) => `${rel} contains the literal ${String(pattern)}`);
-    expect(offenders(literals, 'hardcodes a price or threshold that lives in config')).toBe('');
-  });
+  it.each(['app/pricing/page.tsx', 'app/for-employers/page.tsx'])(
+    '%s hardcodes none of the prices',
+    (rel) => {
+      const body = blankComments(read(rel));
+      const literals = [/\$149\b/, /\$299\b/, /\$249\b/]
+        .filter((pattern) => pattern.test(body))
+        .map((pattern) => `${rel} contains the literal ${String(pattern)}`);
+      expect(offenders(literals, 'hardcodes a price that lives in config')).toBe('');
+    },
+  );
 });
 
 describe('no em dash or en dash in the pricing-funnel copy', () => {

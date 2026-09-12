@@ -28,6 +28,7 @@ import { renderJobCardHtml } from '@/lib/utils/render-job-card'
 import { buildJobFreshnessOr, htmlToPlainText } from '@/lib/job-alerts-service'
 import { oneClickUnsubscribeUrl } from '@/lib/email/list-unsubscribe'
 import { interpretResendBatch, type BatchOutcome, type ResendBatchResponse } from '@/lib/email/batch-send-result'
+import { isOutboundPaused } from '@/lib/outbound-kill-switch'
 import {
   emailShellV2, headerBlockV2, bodyTextV2, spacerV2,
   primaryButtonV2, closeContentV2, SANS as SANS_V2, V2,
@@ -206,9 +207,27 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Audience: newsletter opt-in, not suppressed at the lead level...
+      // This route calls resend.batch.send directly rather than going through
+      // sendAndLog, so it does not inherit the kill switch that chokepoint
+      // enforces. A brake that stops every sender except the one doing the
+      // largest bulk send is not a brake.
+      if (isOutboundPaused()) {
+        logger.warn('[Newsletter] OUTBOUND_MESSAGING_PAUSED is set; not sending')
+        return {
+          response: NextResponse.json({ success: true, sent: 0, reason: 'outbound paused' }),
+          metrics: { sent: 0, audience: 0, jobs: jobs.length },
+        }
+      }
+
+      // Audience: newsletter opt-in, still subscribed, not suppressed at the
+      // lead level...
+      //
+      // isSubscribed is the human unsubscribe (someone clicked the link in a
+      // previous email); isSuppressed is the machine one (bounce, complaint).
+      // They are separate columns and honouring only the second is how a
+      // person who unsubscribed keeps hearing from us.
       const leads = await prisma.emailLead.findMany({
-        where: { newsletterOptIn: true, isSuppressed: false },
+        where: { newsletterOptIn: true, isSuppressed: false, isSubscribed: true },
         select: { email: true, unsubscribeToken: true },
       })
       // ...and not suppressed at the profile level either (bounce/complaint

@@ -745,6 +745,19 @@ test.describe('job detail', () => {
     assertClean(c, 'list -> detail');
   });
 
+  test('an unknown job slug answers 404 or 410, never a 200 soft-404', async ({ page }) => {
+    // app/jobs/[slug]/loading.tsx used to open a Suspense boundary, so Next
+    // committed a 200 and streamed the shell before the page's notFound()
+    // could throw. The visitor saw "Page Not Found" under HTTP 200, and Google
+    // indexed the URL as a live page. The status is the assertion here: the
+    // body was always right, which is exactly why this went unnoticed.
+    const c = attachErrorCollectors(page);
+    const res = await page.goto(`/jobs/unknown-role-${Date.now()}-abc123`, { waitUntil: 'domcontentloaded' });
+    expect([404, 410], `unknown slug answered HTTP ${res?.status()}`).toContain(res?.status());
+    await expect(page.locator('h1')).toHaveText(/not found|no longer available|removed/i);
+    assertClean(c, 'unknown job slug');
+  });
+
   test('employer-posted job: breadcrumbs, Role Snapshot, Easy Apply, salary parity, JSON-LD', async ({ page, request }) => {
     test.skip(!employerJob, 'no employer-posted job renders a detail page in this environment');
     const c = attachErrorCollectors(page);

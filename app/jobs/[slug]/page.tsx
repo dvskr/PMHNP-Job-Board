@@ -28,6 +28,7 @@ import { CareerPulseCard, ApplicationTipsCard } from '@/components/jobs/SidebarV
 import RoleSnapshot from '@/components/jobs/RoleSnapshot';
 import { getSiteStats } from '@/lib/site-stats';
 import { prisma } from '@/lib/prisma';
+import { publicJobsWhere } from '@/lib/filters';
 import { DEAD_LINK_MISS_THRESHOLD } from '@/lib/active-job-filter';
 import { getPostBySlug } from '@/lib/blog';
 import Link from 'next/link';
@@ -157,7 +158,12 @@ export async function getInternalLinkBuckets(params: {
   newGradFriendly?: boolean;
 }) {
   const { currentJobId, employer, city, state, newGradFriendly } = params;
-  const baseWhere = { id: { not: currentJobId }, isPublished: true } as const;
+  // Every internal link must point at a job the visitor can actually open.
+  // publicJobsWhere is the same predicate /jobs filters by (published, not
+  // past expiry, not a GLOBAL_EXCLUSIONS off-specialty row); a bare
+  // `isPublished: true` surfaced expired and off-specialty siblings as live
+  // cards that dead-end on the 410/404 the detail route answers.
+  const baseWhere = { ...publicJobsWhere(), id: { not: currentJobId } };
   const baseOrder = { createdAt: 'desc' as const };
 
   const [moreFromEmployer, moreInCity, moreNewGrad] = await Promise.all([
@@ -201,7 +207,9 @@ async function getRelatedJobs({
   // detail render. Parallelizing fetches up to `limit` candidates per
   // bucket (slightly more bytes) but cuts wall-clock latency by ~3x on
   // a typical render. Dedup happens in-memory below in priority order.
-  const baseWhere = { id: { not: currentJobId }, isPublished: true } as const;
+  // Same public predicate as getInternalLinkBuckets: a "Similar job" card is
+  // an internal link, and linking an expired or excluded row is a dead end.
+  const baseWhere = { ...publicJobsWhere(), id: { not: currentJobId } };
   const baseOrder = { createdAt: 'desc' as const };
 
   const [sameEmployerJobs, sameCityJobs, sameStateJobs, sameModeJobs] = await Promise.all([
@@ -286,8 +294,10 @@ async function getCompanyInfo(companyId: string | null, employerName: string, jo
 
   // No Company record — synthesize one from the EmployerJob fields.
   if (employerJobRow && (employerJobRow.companyLogoUrl || employerJobRow.companyDescription)) {
+    // Counts the visitor can click through to, not every published row:
+    // the same publicJobsWhere predicate the listing pages use.
     const jobCount = await prisma.job.count({
-      where: { employer: employerName, isPublished: true },
+      where: { ...publicJobsWhere(), employer: employerName },
     });
     return {
       id: 'employer-' + (jobId ?? 'unknown'),
@@ -308,10 +318,12 @@ async function getCompanyInfo(companyId: string | null, employerName: string, jo
  * Get count of other jobs from the same employer
  */
 async function getEmployerJobCount(employerName: string, currentJobId: string) {
+  // "N more jobs at this employer" is a promise about openings the visitor
+  // can still open, so it counts under the public predicate.
   const count = await prisma.job.count({
     where: {
+      ...publicJobsWhere(),
       employer: { equals: employerName, mode: 'insensitive' },
-      isPublished: true,
       id: { not: currentJobId },
     },
   });
@@ -324,9 +336,13 @@ async function getEmployerJobCount(employerName: string, currentJobId: string) {
 async function getStateSalaryAverage(stateName: string | null, stateCode: string | null) {
   if (!stateName && !stateCode) return 0;
 
+  // publicJobsWhere nests its own clauses under AND, so this top-level OR
+  // (state name vs state code) does not collide with it. The average has to
+  // come from the same population the state page lists, or the widget quotes
+  // a market rate built partly on expired and off-specialty rows.
   const salaryData = await prisma.job.aggregate({
     where: {
-      isPublished: true,
+      ...publicJobsWhere(),
       OR: [
         ...(stateName ? [{ state: stateName }] : []),
         ...(stateCode ? [{ stateCode: stateCode }] : []),
@@ -822,7 +838,10 @@ export default async function JobPage({ params }: JobPageProps) {
           BreadcrumbList. */}
       <JobViewTracker job={{ id: job.id, title: job.title, employer: job.employer, jobType: job.jobType || undefined, stateCode: job.stateCode || undefined, sourceProvider: job.sourceProvider || undefined, normalizedMinSalary: job.normalizedMinSalary }} />
       <div style={{ backgroundColor: '#F5F0EB', minHeight: '100vh', paddingTop: '1px', paddingBottom: '40px' }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
+      {/* Bottom padding clears the fixed furniture stacked on the bottom edge:
+          below md that is BottomNav (80px) plus the sticky Apply bar riding
+          above it, from md to lg only the Apply bar, and from lg neither. */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-40 md:pb-24 lg:pb-8">
         {/* Breadcrumbs */}
         <Breadcrumbs items={breadcrumbItems} />
         <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-8">
@@ -1311,7 +1330,13 @@ export default async function JobPage({ params }: JobPageProps) {
       {/* maxHeight + scroll: ApplyButton's taller states (auth wall, post-
           apply success panel) render inside this fixed bar; uncapped they
           occlude most of a small viewport. */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid rgba(0,0,0,0.06)', maxHeight: '70vh', overflowY: 'auto' }}>
+      {/* Bottom offset: BottomNav (components/BottomNav.tsx) is `md:hidden
+          fixed bottom-0 z-50`, so below 768px both bars own the same edge and
+          this one (z-60) buried the whole nav. 80px is the nav's rendered
+          height (8px pad + 64px item + 8px pad); env(safe-area-inset-bottom)
+          matches the nav's own pb-safe on notched iPhones. From md up the nav
+          is gone and the bar sits flush again. */}
+      <div className="lg:hidden fixed bottom-[calc(80px_+_env(safe-area-inset-bottom))] md:bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid rgba(0,0,0,0.06)', maxHeight: '70vh', overflowY: 'auto' }}>
         <div className="px-4 py-2 pb-safe">
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
             <div style={{ flex: 1, minWidth: 0 }}>

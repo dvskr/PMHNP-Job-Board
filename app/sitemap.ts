@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger'
 import { getAllPublishedSlugs } from '@/lib/blog'
 import { getAllMetroSlugs, getMetroCity, buildMetroJobsWhere } from '@/lib/metro-data'
 import { activeIndexableJobWhere } from '@/lib/active-job-filter'
+import { GLOBAL_EXCLUSIONS, publicJobsWhere } from '@/lib/filters'
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate'
 import { MIN_SITEMAP_POPULATION } from '@/lib/pseo/sitemap-thresholds'
 import { categoryLandingWhere } from '@/lib/pseo/category-landing-gate'
@@ -87,6 +88,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // UNBUFFERED (no expiryBufferDays): these aggregates drive the city/company
   // section gates, which must agree with the page-level render gates.
   const ACTIVE_JOB_WHERE = activeIndexableJobWhere();
+
+  // The /jobs/state/* and /jobs/city/* pages count with publicJobsWhere and
+  // notFound() when that count is 0 (state) or under MIN_JOBS_FOR_CATEGORY_CITY
+  // (city). ACTIVE_JOB_WHERE alone omits the global non-PMHNP exclusions, so a
+  // place carried over the floor by MD-only Psychiatrist rows was advertised
+  // here and then 404'd on crawl. ACTIVE_JOB_WHERE keeps its expiry in a
+  // top-level OR and holds no AND key, so the two merge cleanly.
+  const NOT_EXCLUDED = GLOBAL_EXCLUSIONS.map(e => ({ NOT: e }));
 
   // GSC Fix (P1.4): use the actual latest job date, or "now" as a safe live
   // fallback. Previously hard-coded "2026-03-01" — a stale stamp made every
@@ -253,7 +262,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const metro = getMetroCity(slug);
         if (!metro) return { slug, count: 0, latest: null as Date | null };
         const agg = await prisma.job.aggregate({
-          where: buildMetroJobsWhere(metro),
+          // Merged with publicJobsWhere exactly as the metro page does
+          // (app/jobs/metro/[slug]/page.tsx getMetroStats) — the gate is only
+          // honest if the sitemap and the page count the same rows.
+          where: { ...buildMetroJobsWhere(metro), ...publicJobsWhere() },
           _count: { _all: true },
           _max: { updatedAt: true },
         });
@@ -277,7 +289,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // US_STATES slugs (e.g. "Wyoming" → "wyoming", "New York" → "new-york").
     const stateJobCounts = await prisma.job.groupBy({
       by: ['state'],
-      where: { ...ACTIVE_JOB_WHERE, state: { not: null } },
+      where: { ...ACTIVE_JOB_WHERE, state: { not: null }, AND: NOT_EXCLUDED },
       _count: { state: true },
       _max: { updatedAt: true },
     });
@@ -341,7 +353,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // out anyway by the downstream MIN_JOBS_FOR_CATEGORY_CITY guard.
     const topCities = await prisma.job.groupBy({
       by: ['city', 'state'],
-      where: { ...ACTIVE_JOB_WHERE, city: { not: null }, state: { not: null } },
+      where: {
+        ...ACTIVE_JOB_WHERE,
+        city: { not: null },
+        state: { not: null },
+        AND: NOT_EXCLUDED,
+      },
       _count: { city: true },
       _max: { updatedAt: true },
       orderBy: { _count: { city: 'desc' } },

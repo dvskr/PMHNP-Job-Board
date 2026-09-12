@@ -36,11 +36,16 @@ interface ProcessedEmployer {
     count: number;
 }
 
-const ADDICTION_FILTER = buildCategoryWhereClause('addiction');
+/**
+ * Built per request, never hoisted to a module constant: the clause pins a
+ * concrete expiry instant, and a module constant would freeze it at cold start
+ * so postings that expired during the instance's life would keep showing.
+ */
+const categoryWhere = () => buildCategoryWhereClause('addiction');
 
 async function getAddictionJobs(skip = 0, take = 20) {
     return prisma.job.findMany({
-        where: ADDICTION_FILTER,
+        where: categoryWhere(),
         orderBy: BEST_SORT_ORDER_BY,
         skip,
         take,
@@ -49,12 +54,12 @@ async function getAddictionJobs(skip = 0, take = 20) {
 
 async function getAddictionStats() {
     const totalJobs = await prisma.job.count({
-        where: ADDICTION_FILTER,
+        where: categoryWhere(),
     });
 
     const salaryData = await prisma.job.aggregate({
         where: {
-            ...ADDICTION_FILTER,
+            ...categoryWhere(),
             normalizedMinSalary: { not: null },
             normalizedMaxSalary: { not: null },
         },
@@ -67,7 +72,7 @@ async function getAddictionStats() {
 
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
-        where: ADDICTION_FILTER,
+        where: categoryWhere(),
         _count: { employer: true },
         orderBy: { _count: { employer: 'desc' } },
         take: 8,

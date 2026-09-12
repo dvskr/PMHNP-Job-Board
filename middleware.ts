@@ -412,6 +412,59 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     const pathname = url.pathname;
 
+    // ── IndexNow Key Verification ─────────────────────────────────────
+    // IndexNow requires the key to be readable at /{key}.txt on the bare
+    // domain. This used to be served by app/[indexnow]/route.ts, but a
+    // top-level `[param]` segment outranks `[...catchall]`, so that Route
+    // Handler swallowed EVERY unknown single-segment URL and answered
+    // notFound() — which inside a Route Handler is a bodyless 404 that can
+    // never render app/not-found.tsx. Serving the key from the edge keeps
+    // the verification file live without a dynamic page segment shadowing
+    // the branded 404. Must stay above the case-fold below: a key with
+    // uppercase characters would otherwise be redirected away from itself.
+    const indexNowKey = process.env.INDEXNOW_API_KEY || process.env.INDEXNOW_KEY;
+    if (indexNowKey && (pathname === `/${indexNowKey}.txt` || pathname === `/${indexNowKey}`)) {
+        return new NextResponse(indexNowKey, {
+            headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'X-Robots-Tag': 'noindex, nofollow',
+                'Cache-Control': 'public, max-age=86400',
+            },
+        });
+    }
+
+    // ── Canonical URL Shape: trailing slash + case ────────────────────
+    // These two 301s run BEFORE every 410 gate below, and that ordering is
+    // the fix, not an accident. All the gates match raw path segments
+    // against lowercase, unslashed allowlists (JOBS_TOP_SEGMENTS,
+    // URL_TO_STATE, CITY_ELIGIBLE_TAXONOMIES), so when the case-fold sat
+    // after them, /jobs/Remote and /jobs/Remote/city/austin-tx were buried
+    // under a permanent 410 instead of being redirected to the canonical
+    // form that resolves perfectly well. One early 301 hands every gate a
+    // path it can actually recognise.
+
+    // Trailing slash: /jobs/remote/ and /jobs/remote are the same page but
+    // different URLs to Google ("Duplicate, Google chose different canonical
+    // than user" in GSC). Enforce no-trailing-slash for all non-root paths.
+    //
+    // The target is built from a plain URL rather than the NextURL clone on
+    // purpose: NextURL records `trailingSlash: true` when it parses the
+    // incoming path and re-appends the slash when it formats href, so
+    // assigning `url.pathname` here redirected the request straight back to
+    // itself: an infinite 301 loop, not a canonicalization.
+    if (pathname !== '/' && pathname.endsWith('/')) {
+        const target = new URL(request.url);
+        target.pathname = pathname.replace(/\/+$/, '');
+        return NextResponse.redirect(target, 301);
+    }
+
+    // Case: /jobs/Remote and /jobs/remote are likewise distinct URLs.
+    // Excludes /_next/* so client-side navigation data fetches are untouched.
+    if (/[A-Z]/.test(pathname) && !pathname.startsWith('/_next')) {
+        url.pathname = pathname.toLowerCase();
+        return NextResponse.redirect(url, 301);
+    }
+
     // ── 410 Gone for Deleted/Expired Job URLs ─────────────────────────
     // GSC Fix: Returns HTTP 410 for job detail pages where the job no longer
     // exists or is unpublished. This tells Google to permanently de-index
@@ -729,24 +782,9 @@ export async function middleware(request: NextRequest) {
 
     const cspHeader = cspDirectives.join('; ');
 
-    // ── Trailing Slash Stripping ─────────────────────────────────────
-    // Fixes "Duplicate, Google chose different canonical than user" GSC issue.
-    // /jobs/remote/ and /jobs/remote are the same page but different URLs.
-    // Enforce no-trailing-slash for all non-root paths.
-
-    if (pathname !== '/' && pathname.endsWith('/')) {
-        url.pathname = pathname.slice(0, -1);
-        return NextResponse.redirect(url, 301);
-    }
-
-    // ── URL Case Normalization ────────────────────────────────────────
-    // GSC Fix: /jobs/Remote and /jobs/remote are different URLs to Google.
-    // 301 redirect any path containing uppercase letters to its lowercase
-    // equivalent. Excludes _next/ paths and API routes with tokens.
-    if (/[A-Z]/.test(pathname) && !pathname.startsWith('/_next')) {
-        url.pathname = pathname.toLowerCase();
-        return NextResponse.redirect(url, 301);
-    }
+    // NOTE: trailing-slash stripping and case normalization used to live
+    // here. They now run at the very top of middleware() so the 410 gates
+    // above see a canonical path — see "Canonical URL Shape" there.
 
     // ── Page=1 Stripping ─────────────────────────────────────────────
     // GSC Fix: /jobs/remote?page=1 is a duplicate of /jobs/remote.

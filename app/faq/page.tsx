@@ -63,22 +63,11 @@ export default function FAQPage() {
 
   const renewalDiscountPercent = Math.round((1 - config.renewalPrice / config.postingPrice) * 100);
 
-  // The claim procedure, worded identically on /pricing, /faq and /terms. The
-  // applicant count can only be settled once the window has run its full
-  // length, so the claim period opens when the window closes, not at purchase.
-  const guaranteeClaimLine = `Claims open when the ${config.guaranteeWindowDays}-day window closes and stay open for ${config.guaranteeClaimDays} days after that: email support@pmhnphiring.com and we return the full first-post fee to your original payment method.`;
-
   const employerFaqs = [
     {
       question: "How much does it cost to post a job?",
       answer: `Your first job post is half price: $${config.firstPostPrice} instead of $${config.postingPrice}, once per employer. Every post after that costs $${config.postingPrice} flat. Renewals are discounted at $${config.renewalPrice} (${renewalDiscountPercent}% off).`
     },
-    ...(config.firstPostGuarantee
-      ? [{
-          question: "Is there a guarantee on the first post?",
-          answer: `Yes. Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full. An applicant means a candidate who submits an application through the Site, or who clicks through to your own application page when your listing links out to it. Both figures already appear in your employer dashboard, so you can check the count yourself. ${guaranteeClaimLine} Routine edits to the posting, such as salary, requirements, or description, never affect the guarantee, and any days you pause or archive the posting do not count toward the ${config.guaranteeWindowDays}-day window.`
-        }]
-      : []),
     {
       question: "What features are included?",
       answer: `Every job post gets the same features: Featured badge, top placement in search results, company logo, full analytics with salary benchmarks, ${config.limits.candidateUnlocksPerPosting} candidate profile views, ${config.limits.inmailsPerPosting} InMails, up to 5 screening questions, and apply-on-platform. The half-price first post is identical to a standard post in every way except the price.`
@@ -97,7 +86,7 @@ export default function FAQPage() {
     },
     {
       question: "Can I edit my job posting?",
-      answer: `Yes! Open your employer dashboard (link is in your confirmation email) and click Edit on any posting. You can update salary, requirements, description, or any other details: changes go live immediately.${config.firstPostGuarantee ? ' Routine edits like these never affect the first-post guarantee. Only replacing the posting with a different role, meaning a different job title, hiring employer, or location, ends it.' : ''}`
+      answer: `Yes! Open your employer dashboard (link is in your confirmation email) and click Edit on any posting. You can update salary, requirements, description, or any other details: changes go live immediately.`
     },
     {
       question: "How do I access my employer dashboard?",
@@ -105,7 +94,7 @@ export default function FAQPage() {
     },
     {
       question: "Do you offer refunds?",
-      answer: `${config.firstPostGuarantee ? `First posts carry the applicant guarantee described above: at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, or we refund the full first-post fee. Claims open when that window closes and stay open for ${config.guaranteeClaimDays} days after it. ` : ''}For anything else, contact us at support@pmhnphiring.com within 7 days of posting if you're unsatisfied and we'll work with you. We want you to have a great experience and will do our best to resolve any issues.`
+      answer: "Contact us at support@pmhnphiring.com within 7 days of posting if you're unsatisfied and we'll work with you. We want you to have a great experience and will do our best to resolve any issues."
     },
   ];
 

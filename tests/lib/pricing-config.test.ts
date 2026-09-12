@@ -93,17 +93,10 @@ describe('duration', () => {
   });
 });
 
-describe('the first-post guarantee', () => {
-  it('carries a whole-number applicant threshold and window', () => {
-    expect(Number.isInteger(config.guaranteeMinApplicants)).toBe(true);
-    expect(config.guaranteeMinApplicants).toBeGreaterThan(0);
-    expect(Number.isInteger(config.guaranteeWindowDays)).toBe(true);
-    expect(config.guaranteeWindowDays).toBeGreaterThan(0);
-  });
-
-  it('resolves within the life of the post it is promised on', () => {
-    // A window longer than the listing would let the posting expire before
-    // the employer could tell whether the promise was met.
-    expect(config.guaranteeWindowDays).toBeLessThanOrEqual(config.durationDays);
+describe('no refund guarantee lives in config', () => {
+  it('exposes none of the retired guarantee keys', () => {
+    for (const key of ['firstPostGuarantee', 'guaranteeMinApplicants', 'guaranteeWindowDays', 'guaranteeClaimDays']) {
+      expect(config).not.toHaveProperty(key);
+    }
   });
 });

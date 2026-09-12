@@ -35,11 +35,16 @@ interface ProcessedEmployer {
   count: number;
 }
 
-const CHILD_ADOLESCENT_FILTER = buildCategoryWhereClause('child-adolescent');
+/**
+ * Built per request, never hoisted to a module constant: the clause pins a
+ * concrete expiry instant, and a module constant would freeze it at cold start
+ * so postings that expired during the instance's life would keep showing.
+ */
+const categoryWhere = () => buildCategoryWhereClause('child-adolescent');
 
 async function getChildAdolescentJobs(skip: number = 0, take: number = 20) {
   return prisma.job.findMany({
-    where: CHILD_ADOLESCENT_FILTER,
+    where: categoryWhere(),
     orderBy: BEST_SORT_ORDER_BY,
     skip,
     take,
@@ -47,10 +52,10 @@ async function getChildAdolescentJobs(skip: number = 0, take: number = 20) {
 }
 
 async function getChildAdolescentStats() {
-  const totalJobs = await prisma.job.count({ where: CHILD_ADOLESCENT_FILTER });
+  const totalJobs = await prisma.job.count({ where: categoryWhere() });
 
   const salaryData = await prisma.job.aggregate({
-    where: { ...CHILD_ADOLESCENT_FILTER, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+    where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
     _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
   });
 
@@ -60,7 +65,7 @@ async function getChildAdolescentStats() {
 
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
-    where: CHILD_ADOLESCENT_FILTER,
+    where: categoryWhere(),
     _count: { employer: true },
     orderBy: { _count: { employer: 'desc' } },
     take: 8,

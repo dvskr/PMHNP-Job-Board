@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { syncToBeehiiv } from '@/lib/beehiiv'
 import { sendSignupWelcomeEmail } from '@/lib/email-service'
 import { safeInternalPath } from '@/lib/auth/safe-redirect'
-import { readSignupMetadata } from '@/lib/auth/ensure-profile'
+import { readSignupMetadata, restoreIfWithinGrace } from '@/lib/auth/ensure-profile'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -46,6 +46,30 @@ export async function GET(request: Request) {
     const type = requestUrl.searchParams.get('type')
     if (type === 'recovery') {
       return NextResponse.redirect(`${origin}/reset-password`)
+    }
+
+    // Soft-delete gate, resolved before this handler acts on the session.
+    // Google is a login path too, and the only restore that existed was a
+    // fire-and-forget fetch on the password form: an OAuth user who had
+    // deleted their account signed back in, got a full session, and was still
+    // hard-deleted by the purge cron 30 days later. Restoring here fixes the
+    // hole for previews of the same shape. An error resolving the state fails
+    // closed: we do not hand out a session we could not check.
+    let softDelete: 'active' | 'restored' | 'purge_pending' | 'unknown' = 'active'
+    try {
+      const current = await prisma.userProfile.findUnique({
+        where: { supabaseId: data.user.id },
+        select: { id: true, deletedAt: true, purgeAt: true },
+      })
+      if (current) softDelete = await restoreIfWithinGrace(prisma, current, 'auth/callback')
+    } catch (gateErr) {
+      console.error('Auth callback: soft-delete gate failed', gateErr)
+      softDelete = 'unknown'
+    }
+    if (softDelete === 'purge_pending' || softDelete === 'unknown') {
+      await supabase.auth.signOut()
+      const reason = softDelete === 'purge_pending' ? 'account_unavailable' : 'auth_callback_failed'
+      return NextResponse.redirect(`${origin}/login?error=${reason}`)
     }
 
     // Check if profile exists, create if not
@@ -176,8 +200,12 @@ export async function GET(request: Request) {
     // Send welcome email (dedup: only if not already sent)
     if (data.user.email) {
       try {
+        // A row exists for refused sends too, now that sendAndLog stamps
+        // status='failed' instead of claiming success. Deduping on mere row
+        // existence would let one Resend rejection cost the user their welcome
+        // email permanently, so only a delivered send counts as already sent.
         const alreadySent = await prisma.emailSend.findFirst({
-          where: { to: data.user.email, emailType: 'welcome_signup' },
+          where: { to: data.user.email, emailType: 'welcome_signup', status: { not: 'failed' } },
         })
         if (!alreadySent) {
           const profile = await prisma.userProfile.findUnique({

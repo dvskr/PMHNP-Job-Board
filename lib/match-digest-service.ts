@@ -102,6 +102,9 @@ export async function isUnderSharedLifecycleCap(
       emailType: { in: [...CONNECT_LIFECYCLE_EMAIL_TYPES] },
       createdAt: { gte: since },
       NOT: { subject: { startsWith: '[TEST]' } },
+      // A row the provider refused is not mail the recipient received, so it
+      // must not spend their allowance. sendAndLog stamps those 'failed'.
+      status: { not: 'failed' },
     },
   });
   return recent === 0;

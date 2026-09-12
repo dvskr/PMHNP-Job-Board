@@ -39,27 +39,32 @@ interface ProcessedEmployer {
 }
 
 /**
- * Fetch telehealth jobs with pagination
+ * Built per request, never hoisted to a module constant: the clause now carries
+ * a concrete expiry instant, and a module-level constant would freeze it for the
+ * whole lifetime of the serverless instance, letting a posting that expired
+ * since cold start keep its card here while its detail URL answers 410.
  */
-const TH_FILTER = buildCategoryWhereClause('telehealth');
+function thFilter() {
+    return buildCategoryWhereClause('telehealth');
+}
 
 async function getTelehealthJobs(skip: number = 0, take: number = 10) {
     return prisma.job.findMany({
-        where: TH_FILTER,
+        where: thFilter(),
         orderBy: BEST_SORT_ORDER_BY,
         skip, take,
     });
 }
 
 async function getTelehealthStats() {
-    const totalJobs = await prisma.job.count({ where: TH_FILTER });
+    const totalJobs = await prisma.job.count({ where: thFilter() });
     const salaryData = await prisma.job.aggregate({
-        where: { ...TH_FILTER, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+        where: { ...thFilter(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
         _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
     });
     const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
     const topEmployers = await prisma.job.groupBy({
-        by: ['employer'], where: TH_FILTER,
+        by: ['employer'], where: thFilter(),
         _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8,
     });
     return {
