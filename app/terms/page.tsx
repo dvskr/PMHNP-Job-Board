@@ -4,10 +4,11 @@ import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import Image from 'next/image';
 import { FileText } from 'lucide-react';
+import { config } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
-  description: 'Read the Terms of Service for PMHNP Hiring, operated by Akari Labs LLC. Understand your rights, responsibilities, pricing, refunds, and platform policies for the PMHNP-only job board.',
+  description: 'Read the Terms of Service for PMHNP Hiring, operated by Akari Labs LLC. Understand your rights, responsibilities, pricing, the first-post refund guarantee, and platform policies for the PMHNP-only job board.',
   openGraph: {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-terms-of-service.webp', width: 1280, height: 900, alt: 'PMHNP Hiring terms of service page with user rights, employer responsibilities, and platform policies' }],
   },
@@ -44,7 +45,7 @@ export default function TermsPage() {
               <h1 style={{ fontSize: 'clamp(2rem, 5vw, 2.75rem)', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 12px 0', lineHeight: 1.15 }}>
                 Terms of <span style={{ color: '#0284C7' }}>Service</span>
               </h1>
-              <p style={{ fontSize: '15px', color: '#6B7F8A', margin: 0, lineHeight: 1.6 }}>Last updated: May 1, 2026</p>
+              <p style={{ fontSize: '15px', color: '#6B7F8A', margin: 0, lineHeight: 1.6 }}>Last updated: September 12, 2026</p>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/clay_hero_terms.webp" alt="Terms of Service" width={140} sizes="140px" height={140} style={{ objectFit: 'contain', filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.12))' }} priority />
@@ -76,7 +77,7 @@ export default function TermsPage() {
 
           <h2 style={h2Style}>4. Eligibility & Accounts</h2>
           <p style={pStyle}>You must be at least 18 years old and able to form a legally binding contract to use the Service. By creating an account, you represent that you meet these requirements.</p>
-          <p style={pStyle}>Employer accounts must be created using a legitimate company email address. Free email providers (such as Gmail, Yahoo, Outlook, iCloud) are not accepted for employer registrations to help us verify employer identity. Job seekers may use any valid email.</p>
+          <p style={pStyle}>Employer accounts may be created with any valid email address, including consumer email providers such as Gmail, Yahoo, Outlook, and iCloud. Where an employer registers with a company email domain, that domain forms part of the employer identity we use to determine entitlement to the discounted first-posting rate described in Section 7. Job seekers may use any valid email.</p>
           <p style={pStyle}>You are responsible for maintaining the confidentiality of your account credentials, dashboard tokens, and edit tokens. You must immediately notify us of any unauthorized use of your account. We are not liable for losses arising from your failure to safeguard your credentials.</p>
 
           <h2 style={h2Style}>5. User Responsibilities</h2>
@@ -111,16 +112,17 @@ export default function TermsPage() {
             <li style={liStyle}>We may suspend or terminate employer accounts that repeatedly violate these Terms</li>
           </ul>
           <p style={{ ...pStyle, fontWeight: 600, color: '#1A2E35' }}>Listing duration & renewals:</p>
-          <p style={pStyle}>All job postings — free or paid — are active for 60 days from the date of publication. After 60 days, postings expire automatically. Employers may renew paid postings through the employer dashboard. Renewals add 60 days to the current expiration date; renewing early does not forfeit any remaining time on the existing posting.</p>
+          <p style={pStyle}>All job postings are active for {config.durationDays} days from the date of publication. After {config.durationDays} days, postings expire automatically. Employers may renew postings through the employer dashboard. Renewals add {config.durationDays} days to the current expiration date; renewing early does not forfeit any remaining time on the existing posting.</p>
 
-          <h2 style={h2Style}>7. Pricing, Free Postings & Payments</h2>
+          <h2 style={h2Style}>7. Pricing & Payments</h2>
           <p style={{ ...pStyle, fontWeight: 600, color: '#1A2E35' }}>Pricing schedule (current as of the &quot;Last updated&quot; date above):</p>
           <ul style={ulStyle}>
-            <li style={liStyle}>Each verified employer email domain is allowed one free job posting (the first), lifetime, with no credit card required</li>
-            <li style={liStyle}>Additional postings (after the free quota is exhausted) are $199 USD each, one-time</li>
-            <li style={liStyle}>Renewals of paid postings are $179 USD, one-time, and add 60 days to the existing expiration</li>
-            <li style={liStyle}>All postings — free, paid, or renewed — receive the same features: 60-day duration, Featured badge, top placement in search results, 25 candidate profile unlocks, 25 InMails, and full analytics</li>
-            <li style={liStyle}>Free postings cannot be renewed at the discounted rate. Once a free posting expires, the employer may post a new listing at the standard $199 rate</li>
+            <li style={liStyle}>The first job posting purchased by an employer identity is charged at the discounted first-posting rate of ${config.firstPostPrice} USD, one-time. This rate is available once, lifetime, per employer identity</li>
+            <li style={liStyle}>For this purpose, an employer identity comprises the employer account and, where the employer registers with a company email domain or is associated with an organization on the Service, that domain and organization. Where any of these matches an identity that has already used the discounted rate, the standard rate applies</li>
+            <li style={liStyle}>Every subsequent posting is ${config.postingPrice} USD each, one-time</li>
+            <li style={liStyle}>Renewals are ${config.renewalPrice} USD, one-time, and add {config.durationDays} days to the existing expiration</li>
+            <li style={liStyle}>All postings, whether charged at the first-posting rate, the standard rate, or renewed, receive the same features: {config.durationDays}-day duration, Featured badge, top placement in search results, {config.limits.candidateUnlocksPerPosting} candidate profile unlocks, {config.limits.inmailsPerPosting} InMails, and full analytics</li>
+            <li style={liStyle}>Payment is required before any posting is published. The Service does not offer an unpaid posting tier. Postings published without charge under a prior version of these Terms remain subject to the terms in force when they were created</li>
           </ul>
           <p style={pStyle}>Current pricing is also published at <Link href="/pricing" style={{ color: '#0D9488', textDecoration: 'none' }}>pmhnphiring.com/pricing</Link> and is incorporated into this Agreement by reference. We may change pricing at any time, and changes will be effective for postings created after the change date. Postings already paid for under prior pricing are not affected.</p>
           <p style={{ ...pStyle, fontWeight: 600, color: '#1A2E35' }}>Payment terms:</p>
@@ -128,24 +130,31 @@ export default function TermsPage() {
             <li style={liStyle}>Job posting and renewal fees are due at the time of purchase</li>
             <li style={liStyle}>All payments are processed by Stripe, our third-party payment processor. Your card statement will show &quot;PMHNPHIRING&quot; as the merchant</li>
             <li style={liStyle}>All amounts are stated in US Dollars (USD) and are exclusive of any taxes that may apply in your jurisdiction</li>
-            <li style={liStyle}>Payment must be completed before a paid posting goes live</li>
+            <li style={liStyle}>Payment must be completed before a posting goes live</li>
             <li style={liStyle}>You authorize us, through Stripe, to charge the payment method you provide</li>
             <li style={liStyle}>Invoices for paid postings and renewals are available from your employer dashboard</li>
           </ul>
 
           <h2 style={h2Style}>8. Refund Policy</h2>
+          {config.firstPostGuarantee && (
+            <>
+              <p style={{ ...pStyle, fontWeight: 600, color: '#1A2E35' }}>First-posting applicant guarantee:</p>
+              <p style={pStyle}>Where an employer&apos;s first posting is purchased at the discounted first-posting rate of ${config.firstPostPrice} USD and that posting receives fewer than {config.guaranteeMinApplicants} applicants through the Service within {config.guaranteeWindowDays} days of publication, Akari Labs LLC will refund the full first-posting fee of ${config.firstPostPrice} USD on request. Requests must be submitted to <a href="mailto:support@pmhnphiring.com" style={{ color: '#0D9488', textDecoration: 'none' }}>support@pmhnphiring.com</a> and identify the posting. The guarantee applies once per employer identity, to the first posting only, and does not extend to standard-rate postings or renewals. It does not apply where the posting was removed for violation of these Terms, or where the employer archived, unpublished, or materially altered the posting during the {config.guaranteeWindowDays}-day period. We may withdraw this guarantee for postings created after the date of withdrawal; postings already purchased under it are not affected.</p>
+              <p style={{ ...pStyle, fontWeight: 600, color: '#1A2E35' }}>All other refunds:</p>
+            </>
+          )}
           <ul style={ulStyle}>
-            <li style={liStyle}>Job posting and renewal fees are generally non-refundable</li>
+            <li style={liStyle}>{config.firstPostGuarantee ? 'Except as provided by the first-posting applicant guarantee, job posting and renewal fees are non-refundable' : 'Job posting and renewal fees are generally non-refundable'}</li>
             <li style={liStyle}>Refund requests may be considered within 7 days of purchase on a case-by-case basis</li>
             <li style={liStyle}>To request a refund, email <a href="mailto:support@pmhnphiring.com" style={{ color: '#0D9488', textDecoration: 'none' }}>support@pmhnphiring.com</a> with your order details and the reason for the request</li>
-            <li style={liStyle}>We reserve the right to grant or deny refund requests at our sole discretion</li>
+            <li style={liStyle}>{config.firstPostGuarantee ? 'Outside the first-posting applicant guarantee, we reserve the right to grant or deny refund requests at our sole discretion' : 'We reserve the right to grant or deny refund requests at our sole discretion'}</li>
             <li style={liStyle}>If we remove a posting for violation of these Terms, no refund will be issued</li>
-            <li style={liStyle}>Free postings have no associated payment and are therefore not refundable</li>
+            <li style={liStyle}>Postings published without charge under a prior version of these Terms have no associated payment and are therefore not refundable</li>
             <li style={liStyle}>Refunds, if granted, will be issued to the original payment method through Stripe and may take 5-10 business days to appear on your statement</li>
           </ul>
 
           <h2 style={h2Style}>9. Candidate Data, Unlocks & Privacy</h2>
-          <p style={pStyle}>When an employer with an active paid or free posting uses an unlock to view a candidate&apos;s full profile, that candidate&apos;s information (including name, email, resume, and other contact details) becomes accessible to the employer&apos;s account. This access is retained indefinitely, even after the underlying posting expires.</p>
+          <p style={pStyle}>When an employer with an active posting uses an unlock to view a candidate&apos;s full profile, that candidate&apos;s information (including name, email, resume, and other contact details) becomes accessible to the employer&apos;s account. This access is retained indefinitely, even after the underlying posting expires.</p>
           <p style={pStyle}>Employers receiving candidate data agree to:</p>
           <ul style={ulStyle}>
             <li style={liStyle}>Use candidate information only to evaluate the candidate for the role they applied to or are being recruited for</li>

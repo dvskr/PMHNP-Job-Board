@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendConfirmationEmail, sendRenewalConfirmationEmail, sendRefundConfirmationEmail, getOrCreateUnsubToken } from '@/lib/email-service';
-import { config, PricingTier } from '@/lib/config';
+import { config, PricingTier, PostPriceKind } from '@/lib/config';
 import { renewalExpiresAt } from '@/lib/expires-at';
 import { logger } from '@/lib/logger';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
@@ -130,6 +130,15 @@ export async function POST(request: NextRequest) {
       const type = session.metadata?.type;
       const tier = session.metadata?.tier;
 
+      // What create-checkout charged. Only ever a LAST RESORT amount for the
+      // ledger: `session.amount_total` is authoritative and always present on
+      // a completed session. It exists because the fallback used to be the
+      // standard price unconditionally, which would have booked a half-price
+      // first post at full price the one time Stripe left the field out.
+      // Unknown or absent metadata (older sessions) falls back to 'standard'.
+      const priceKind: PostPriceKind =
+        session.metadata?.priceKind === 'first' ? 'first' : 'standard';
+
       if (!jobId) {
         logger.error('No job ID in session metadata', null, { sessionId: session.id });
         // 400 is intentional — bad payload won't get better on retry.
@@ -213,7 +222,8 @@ export async function POST(request: NextRequest) {
             });
 
             // Audit #2: record a JobCharge for this renewal so invoices reflect
-            // the actual amount paid ($179 renewal vs $199 new post).
+            // the actual amount paid, which is the renewal price rather than
+            // whatever the original post cost.
             // Audit #28: also persist payment_intent so the refund webhook can
             // match `charge.refunded` events back to this JobCharge row.
             const renewalInvoiceData = await fetchInvoiceData(stripe, session);
@@ -223,7 +233,7 @@ export async function POST(request: NextRequest) {
                   employerJobId: employerJob.id,
                   stripeSessionId: session.id,
                   stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
-                  amountCents: session.amount_total ?? config.stripeRenewalPriceInCents,
+                  amountCents: session.amount_total ?? config.priceInCentsFor('renewal'),
                   currency: session.currency ?? 'usd',
                   type: 'renewal',
                   ...renewalInvoiceData,
@@ -283,7 +293,7 @@ export async function POST(request: NextRequest) {
           trackServerPurchase({
             clientId: jobId,
             sessionId: session.id,
-            amountCents: session.amount_total ?? config.stripeRenewalPriceInCents,
+            amountCents: session.amount_total ?? config.priceInCentsFor('renewal'),
             currency: session.currency ?? 'usd',
             type: 'renewal',
             tier: renewalTier,
@@ -387,7 +397,7 @@ export async function POST(request: NextRequest) {
                   employerJobId: employerJob.id,
                   stripeSessionId: session.id,
                   stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
-                  amountCents: session.amount_total ?? config.stripePriceInCents,
+                  amountCents: session.amount_total ?? config.priceInCentsFor(priceKind),
                   currency: session.currency ?? 'usd',
                   type: 'new',
                   ...newPostInvoiceData,
@@ -449,13 +459,13 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          logger.info('Job published', { jobId });
+          logger.info('Job published', { jobId, priceKind });
 
           // P7: server-side purchase event (fire-and-forget)
           trackServerPurchase({
             clientId: jobId,
             sessionId: session.id,
-            amountCents: session.amount_total ?? config.stripePriceInCents,
+            amountCents: session.amount_total ?? config.priceInCentsFor(priceKind),
             currency: session.currency ?? 'usd',
             type: 'new',
             tier: session.metadata?.pricing,

@@ -1,522 +1,324 @@
-# PMHNP Pricing System — Architecture & Operations
+# PMHNP Pricing System: Architecture and Operations
 
-**Last verified:** 2026-05-01 (free-post quota updated 2 → 1 on 2026-07-03 to match commit ffd274c)
+**Model:** paid-first, single tier, transactional
+**Last rewritten:** 2026-09 (paid-first migration)
 **Source of truth:** [lib/config.ts](../lib/config.ts) + [prisma/schema.prisma](../prisma/schema.prisma)
-**Companion doc:** [pricing-audit.md](./pricing-audit.md) (historical change log + open items)
+**Companion doc:** [pricing-audit.md](./pricing-audit.md), the historical change log. Everything in it dated before 2026-09 describes the retired free-first model; see the supersession notice at the top of that file.
 
-This document describes the live state of the pricing system after the 2026-04-30 / 2026-05-01 audit work. It's the ground-truth reference; the audit doc is the changelog of how we got here.
+This document describes the live state. Every number below is read from `lib/config.ts` at runtime; the values quoted here are the current config values, not a second source of truth. If a number here disagrees with `lib/config.ts`, the config is right and this doc is stale.
 
 ---
 
-## 1. Pricing model
+## 1. The model
 
-**Single tier. One product. Transactional.**
-
-| Item | Value | Source |
+| Item | Value | Config key |
 |---|---|---|
-| Free posts per email domain (lifetime) | 1 | `config.freePostsPerEmail` |
-| Paid post price | $199 | `config.postingPrice` |
-| Renewal price | $179 (10% off) | `config.renewalPrice` |
-| Listing duration (paid) | 60 days | `config.durationDays` |
-| Listing duration (free post) | 30 days | `config.freeDurationDays` |
-| Featured badge | Always on | `config.isFeatured` |
-| Candidate unlocks per posting | 25 | `config.limits.candidateUnlocksPerPosting` |
-| InMails per posting | 25 | `config.limits.inmailsPerPosting` |
+| First post per employer identity | $149 | `firstPostPrice` |
+| Every post after the first | $299 | `postingPrice` |
+| Renewal | $249 | `renewalPrice` |
+| Discounted posts per employer, lifetime | 1 | `discountedPostsPerEmployer` |
+| Listing duration, every post | 60 days | `durationDays` |
+| First post guarantee | on | `firstPostGuarantee` |
+| Guarantee applicant threshold | 3 | `guaranteeMinApplicants` |
+| Guarantee window | 30 days | `guaranteeWindowDays` |
+| Featured badge | always on | `isFeatured` |
+| Candidate unlocks per posting | 25 | `limits.candidateUnlocksPerPosting` |
+| InMails per posting | 25 | `limits.inmailsPerPosting` |
 
-**Not in scope today** (deferred — see §11): subscriptions, bulk packs, boost SKU, tax, PO/invoice, per-org verification.
+Three helpers derive everything else, and they are the only sanctioned way to pick a price:
+
+```ts
+config.priceFor('first' | 'standard' | 'renewal')        // dollars
+config.priceInCentsFor('first' | 'standard' | 'renewal') // Stripe cents
+config.firstPostDiscountPercent()                        // 50, for copy
+```
+
+`PostPriceKind` is the exported union. Anything that charges money takes a `PostPriceKind` and asks the helper; no route computes a price from a raw field.
+
+**Every post is paid.** There is no unpaid posting path. There is no duration split: the retired free post ran for a shorter window, and that split is gone along with it.
+
+**Every post gets the same features.** The discount changes the price of the first post and nothing else. A $149 post and a $299 post are the same product for the same 60 days with the same unlocks, InMails, featured badge, and placement.
 
 ---
 
-## 2. End-to-end flows
+## 2. What changed and why (2026-09)
 
-### 2a. Free post (first post per domain, lifetime)
+| Before | After |
+|---|---|
+| First post per employer identity was free | First post is half price at $149 |
+| Posts after the first cost less | Posts after the first cost $299 |
+| Renewal priced off the old standard | Renewal is $249 |
+| Free posts ran a shorter window, paid posts ran 60 days | Every post runs 60 days |
+| A quota-key collision refused the post | A quota-key collision only removes the discount |
+| Consumer email domains could not post at all | Consumer email domains can post and can earn the discount |
+| `POST /api/jobs/post-free` created a live job | That route returns 410 Gone |
+| `GET /api/employer/free-quota-status` | `GET /api/employer/post-price` |
+| `config.freePostsPerEmail`, `config.freeDurationDays` | `config.discountedPostsPerEmployer`, `config.durationDays` |
 
-```
-Employer signs up → /post-job → /post-job/preview → POST /api/jobs/post-free
-  ├─ Auth required (must be role='employer')
-  ├─ FREE_EMAIL_DOMAINS check on signup email (gmail/yahoo/etc → 400)
-  ├─ Quota check (Serializable txn): COUNT WHERE quotaDomain=<signupDomain> AND paymentStatus='free'
-  │    ├─ <1 → continue
-  │    └─ ≥1 → 403 with requiresPayment=true → frontend redirects to /post-job/checkout
-  ├─ Duplicate-active-job check (same title+location)
-  ├─ Atomic transaction (Serializable):
-  │    ├─ Job.create (isPublished=true, expiresAt=now+30d — `config.freeDurationDays`)
-  │    ├─ Job.update (slug)
-  │    └─ EmployerJob.create (quotaDomain=<signupDomain>, paymentStatus='free', userId)
-  ├─ sendConfirmationEmail (with feature breakdown)
-  ├─ Cleanup JobDrafts
-  ├─ pingAllSearchEngines (production only, fire-and-forget)
-  └─ 200 → frontend redirects to /success?free=true
-```
+**Why.** The free tier was not a funnel into the paid product, it was the product: the overwhelming majority of listings never reached a checkout, so the board carried the cost of hosting, indexing, alerting, and supporting posts that produced no revenue and no signal about what an employer would actually pay. A free first post also attracted the posts least worth carrying, because the employers with real hiring budget were never the ones deterred by the price.
 
-### 2b. Paid post (after free quota)
+Half price does the job the free post was supposed to do. It still lowers the bar for an employer who has never used the board, it still gives them a reason to try one listing before committing, and it puts every employer on a paid footing from the first transaction, which is the only way the board learns what its listings are worth.
 
-```
-Frontend → /post-job/checkout → POST /api/create-checkout
-  ├─ Lazy Stripe client (503 if STRIPE_SECRET_KEY missing)
-  ├─ Validate + sanitize fields
-  ├─ Duplicate-active-job check
-  ├─ Atomic transaction:
-  │    ├─ Job.create (isPublished=false ← will flip on webhook)
-  │    ├─ Job.update (slug)
-  │    └─ EmployerJob.create (paymentStatus='pending', pricingTier='pro')
-  ├─ Stripe Checkout Session created (metadata: jobId, pricing='pro', dashboardToken)
-  ├─ trackBeginCheckout client-side analytics (P7)
-  └─ 200 → frontend redirects to Stripe-hosted checkout
+**Why a collision no longer refuses.** The quota keys existed to protect a giveaway. Under a paid model, refusing a paying employer because a colleague at the same domain posted last quarter is straightforwardly wrong: it turns a returning customer away at the till. So the machinery survives unchanged and its verdict is reinterpreted. A collision now means "you have already had the discount, this one is $299".
 
-  [user pays on Stripe]
+**Why consumer domains are allowed.** Same reasoning. Gmail and the rest were blocked because a consumer mailbox is a cheap way to mint fresh identities against a free giveaway. Nothing is being given away now, and a solo practitioner hiring their first PMHNP is a real customer. They simply get no `dom:` key, so their discount is gated on their account alone.
 
-Stripe → POST /api/webhooks/stripe (checkout.session.completed)
-  ├─ Verify signature
-  ├─ Idempotency: INSERT processed_stripe_events; UNIQUE violation → 200 with deduped=true
-  ├─ Branch on metadata.type:
-  │    └─ default (new post):
-  │         ├─ Job.update (isPublished=true, isVerifiedEmployer=true)
-  │         ├─ EmployerJob.update (paymentStatus='paid', pricingTier='pro')
-  │         ├─ JobCharge.create (amountCents from session, type='new')  ← invoice ledger
-  │         ├─ sendConfirmationEmail
-  │         ├─ Cleanup JobDrafts
-  │         ├─ pingAllSearchEngines
-  │         └─ trackServerPurchase (GA4 Measurement Protocol — P7)
-  └─ 200
+---
 
-Stripe redirect → /success?session_id=cs_...
-  ├─ GET /api/verify-checkout-session?session_id=...
-  │    ├─ Stripe.checkout.sessions.retrieve
-  │    ├─ Reject if payment_status != 'paid' (402)
-  │    ├─ Reject if metadata.type='renewal' (wrong endpoint, 400)
-  │    ├─ Lookup EmployerJob by jobId
-  │    │    ├─ Found + paid → 200 with jobTitle, jobSlug, dashboardToken
-  │    │    └─ Not found → 202 (webhook hasn't processed yet — frontend retries every 2s for ~12s)
-  │    └─
-  └─ Renders "Payment Successful!" only after server-side verification confirms paid
-```
+## 3. Which price applies
 
-### 2c. Renewal ($179)
+The quota machinery in [lib/employer-quota.ts](../lib/employer-quota.ts) is unchanged. It still builds the same session-proven keys, in the same order, from the same inputs:
+
+| Key | Derived from | Purpose |
+|---|---|---|
+| `acct:<supabase user id>` | the session | survives an account email change |
+| `dom:<signup email domain>` | the session, consumer providers excluded | one discount per company |
+| `org:<normalized company name>` | the account's write-once profile company | catches a new account on a new domain |
+
+Nothing in that list comes from the posting form. That constraint is load-bearing and is explained at length in the module header: a form-derived key is attacker controlled, so one poster could burn a rival's discount.
+
+The gate reads: build the poster's keys, look for a prior discounted post claiming any of them, and
+
+- **no match** and the employer has taken fewer than `discountedPostsPerEmployer` discounts: charge `priceFor('first')`
+- **any match**: charge `priceFor('standard')`
+
+A match never refuses the post. `describeQuotaKey` still exists and still names the matching signal, but the sentence it feeds is now an explanation of the price, not a refusal.
+
+Three notes on the edges:
+
+- **Consumer mailboxes** produce no `dom:` key, because `domainFromEmail` filters them. Their discount is gated on `acct:` and, if the profile carries a usable company name, `org:`. `FREE_EMAIL_DOMAINS` is still exported and still used for that derivation. It no longer gates the right to post.
+- **Generic company names** produce no `org:` key. That is deliberate and it fails open: refusing a real clinic the discount costs more than occasionally granting a second one.
+- **Legacy rows** predating the key array still carry only `quotaDomain`. The lookup ORs the two together so those rows keep counting.
+
+---
+
+## 4. Flows
+
+### 4a. New post
 
 ```
-Employer dashboard / edit-token page → renewal modal
-  ├─ If paymentStatus='free' → modal shows "This free post can't be renewed" + CTA to /post-job
-  └─ If paymentStatus='paid' → modal shows $179 renewal CTA → handleRenewCheckout
+Employer signs up, /post-job, /post-job/preview
+  ├─ GET /api/employer/post-price decides which price to show BEFORE submit
+  └─ POST /api/create-checkout
+       ├─ auth required, role must be employer
+       ├─ re-derives the price kind server side (the client's answer is advisory)
+       ├─ duplicate-active-job check
+       ├─ atomic transaction (Serializable):
+       │    ├─ Job.create (isPublished=false, flips on the webhook)
+       │    ├─ Job.update (slug)
+       │    └─ EmployerJob.create (paymentStatus='pending', quota anchors written once)
+       ├─ Stripe Checkout Session at priceInCentsFor(kind)
+       └─ 200, redirect to Stripe
 
-POST /api/create-renewal-checkout
-  ├─ Lazy Stripe client
-  ├─ Verify editToken matches the EmployerJob row
-  ├─ Block if paymentStatus='pending' (409 — must complete original checkout first)
-  ├─ Block if paymentStatus='free' (409 — defense-in-depth; UI already prevents this)
-  ├─ Stripe Checkout Session (metadata: jobId, type='renewal', tier='pro')
-  └─ 200 → redirect to Stripe
+  [payment]
 
-Stripe → webhook (type='renewal' branch)
-  ├─ Idempotency check (same as above)
-  ├─ Calculate new expiry from MAX(existingExpiresAt, now) + 60d
-  │    └─ Audit #22: early renewers don't lose remaining days
+Stripe, POST /api/webhooks/stripe (checkout.session.completed)
+  ├─ signature verified
+  ├─ idempotency: insert processed_stripe_events, unique violation returns 200 deduped
+  ├─ Job.update (isPublished=true, isVerifiedEmployer=true, expiresAt=now+durationDays)
+  ├─ EmployerJob.update (paymentStatus='paid')
+  ├─ JobCharge.create (amountCents read from the session, type='new')
+  ├─ sendConfirmationEmail
+  ├─ draft cleanup, search-engine ping, embedding refresh, alert fan-out
+  └─ server-side purchase event
+
+Stripe redirect, /success?session_id=...
+  └─ GET /api/verify-checkout-session confirms payment_status='paid' before the page says so
+```
+
+The price kind is decided server side inside the checkout route. The preview endpoint exists so the UI can show the right number and the right guarantee copy before the employer commits; it is not the authority.
+
+### 4b. Renewal
+
+```
+Dashboard or edit-token page, renewal modal at priceFor('renewal')
+  └─ POST /api/create-renewal-checkout
+       ├─ editToken must match the EmployerJob row
+       ├─ 409 if paymentStatus='pending' (finish the original checkout first)
+       └─ Stripe Checkout Session, metadata type='renewal'
+
+Stripe, webhook renewal branch
+  ├─ new expiry = MAX(existing expiresAt, now) + durationDays
   ├─ Job.update (expiresAt, isPublished=true, isFeatured=true)
-  ├─ Lookup EmployerJob — return 500 loudly if missing (audit #8)
-  ├─ EmployerJob.update (paymentStatus='paid', pricingTier='pro')
-  ├─ JobCharge.create (amountCents=17900, type='renewal') — invoice ledger
-  ├─ sendRenewalConfirmationEmail (with $179 receipt + fresh credits messaging)
-  ├─ pingAllSearchEngines
-  └─ trackServerPurchase (P7, value=179)
-
-Stripe redirect → /employer/renewal-success
-  └─ GET /api/verify-renewal-session
-       └─ Renders "Featured placement re-activated" + dashboard CTA
+  ├─ EmployerJob.update (paymentStatus='paid')
+  ├─ JobCharge.create (type='renewal')
+  ├─ sendRenewalConfirmationEmail
+  └─ /employer/renewal-success, verified server side
 ```
 
-### 2d. Expiry (no money flow, but visible UX)
+Renewing early does not forfeit the days already paid for: the extension is measured from whichever is later, the current expiry or now.
 
-```
-Cron → sendExpiryWarningEmail (~7 days before expiresAt)
-  └─ Email shows: $179 renewal CTA + "renewing early doesn't lose days" + "candidates you've unlocked stay accessible"
+Historical rows with `paymentStatus='free'` still exist and still cannot be renewed. They predate the paid-first model, they were never charged, and there is no amount to discount from. Those employers post fresh at the price their quota keys resolve to.
 
-Posting reaches expiresAt:
-  ├─ Job.expiresAt is in the past
-  ├─ Job stays in DB but excluded from `getEmployerActivePostings` queries
-  ├─ Employer can no longer:
-  │    ├─ Unlock NEW candidates (canUnlockCandidate denies)
-  │    └─ Start NEW conversations (canSendInMail denies)
-  ├─ Employer CAN still:
-  │    ├─ See contact info / resume / LinkedIn for previously-unlocked candidates (hasFullAccess via existingView)
-  │    ├─ See Layer 2 metadata (certs, license, salary range) on previously-unlocked candidates
-  │    └─ Reply to existing conversations (free, unbounded)
-  └─ Renewal flow available at $179 (locked to paid posts only — free posts must repost)
-```
+### 4c. Expiry
+
+Nothing about expiry changed except that there is now one duration. A posting past `expiresAt` stops counting as an active posting: no new candidate unlocks, no new conversations. Contact details for candidates already unlocked stay visible for good, and replies inside existing conversations stay free.
 
 ---
 
-## 3. Architecture map
+## 5. The first post guarantee
 
-### 3a. Source-of-truth files
+`config.firstPostGuarantee` is a kill switch, not a comment. When it is on, the promise reads:
 
-| Concern | File |
-|---|---|
-| Pricing values + helper functions | [lib/config.ts](../lib/config.ts) |
-| Quota / unlock / InMail gates | [lib/tier-limits.ts](../lib/tier-limits.ts) |
-| Email-change policy (helper, not yet wired) | [lib/auth/email-change-policy.ts](../lib/auth/email-change-policy.ts) |
-| Email templates | [lib/email-service.ts](../lib/email-service.ts) (uses [lib/email-templates-v2.ts](../lib/email-templates-v2.ts)) |
-| Client-side analytics events | [lib/analytics.ts](../lib/analytics.ts) |
-| Server-side purchase events | [lib/analytics-server.ts](../lib/analytics-server.ts) |
+> Your first post is half price at $149. If it does not bring you at least 3 applicants in 30 days, we refund it in full.
 
-### 3b. API routes (pricing-related)
+Rules for anyone touching this copy:
 
-| Route | Method | Purpose |
+1. **Interpolate, never type the numbers.** `config.firstPostPrice`, `config.guaranteeMinApplicants`, `config.guaranteeWindowDays`. A hardcoded 149 in the copy is a lie waiting for the next price change.
+2. **Gate every instance on `config.firstPostGuarantee`.** Flipping the flag to `false` must remove the promise from every surface at once: pricing, for-employers, the post-job funnel, checkout, confirmation email, terms. If one surface still promises a refund after the flag is off, the flag did not work.
+3. **The clause in terms is copy too.** It is gated the same way.
+4. **No dashes.** Colons, commas, periods, or "X to Y". This applies to every user-facing string in the repo, not just the guarantee.
+
+The guarantee attaches to the discounted first post only. A standard post at `postingPrice` carries no applicant promise, and neither does a renewal.
+
+Fulfilment is manual today. An employer who qualifies contacts support and the refund is issued from the Stripe dashboard, which fires `charge.refunded`, which the webhook already handles: the ledger row is marked refunded, `EmployerJob.paymentStatus` flips to `'refunded'`, and a full refund unpublishes the posting.
+
+---
+
+## 6. API surface
+
+| Route | Method | Status |
 |---|---|---|
-| `/api/jobs/post-free` | POST | Free post creation; gate-checked + atomic; sets quotaDomain |
-| `/api/create-checkout` | POST | Paid post → Stripe Checkout |
-| `/api/create-renewal-checkout` | POST | Renewal → Stripe Checkout (blocks free/pending) |
-| `/api/verify-checkout-session` | GET | Server-side Stripe verification for `/success` page |
-| `/api/verify-renewal-session` | GET | Server-side verification for `/employer/renewal-success` |
-| `/api/webhooks/stripe` | POST | Stripe → publish job, write JobCharge, send emails, fire purchase event |
-| `/api/employer/invoice` | GET | PDF invoice from JobCharge ledger (audit #2) |
-| `/api/employer/usage` | GET | Per-posting credit usage for dashboard |
-| `/api/jobs/update` | POST/DELETE | Job edit / unpublish (no longer blocks contactEmail edit — quotaDomain anchor handles it) |
+| `/api/employer/post-price` | GET | **renamed** from `/api/employer/free-quota-status` |
+| `/api/jobs/post-free` | POST | **retired**, returns 410 Gone |
+| `/api/create-checkout` | POST | every new post goes through here |
+| `/api/create-renewal-checkout` | POST | renewal |
+| `/api/verify-checkout-session` | GET | server-side verification for `/success` |
+| `/api/verify-renewal-session` | GET | server-side verification for `/employer/renewal-success` |
+| `/api/webhooks/stripe` | POST | publishes the job, writes the ledger, sends mail, fires the purchase event |
+| `/api/employer/invoice` | GET | PDF from the `JobCharge` ledger |
+| `/api/employer/usage` | GET | per-posting credit usage |
 
-### 3c. UI surfaces (pricing-related)
+### 6a. `GET /api/employer/post-price`
 
-| Surface | Reads from |
-|---|---|
-| [/pricing](../app/pricing/page.tsx) | `config.*` for all numbers + 9 FAQs |
-| [/post-job](../app/post-job/page.tsx) | `config.*` for feature pills |
-| [/post-job/preview](../app/post-job/preview/page.tsx) | `config.*` |
-| [/post-job/checkout](../app/post-job/checkout/page.tsx) | `config.*` for order summary |
-| [/for-employers](../app/for-employers/page.tsx) | `config.*` for comparison table |
-| [/faq](../app/faq/page.tsx) | `config.*` for employer FAQs |
-| [/employer/dashboard](../app/employer/dashboard/page.tsx) | Reads `paymentStatus` to branch the renewal modal |
-| [/employer/renewal-success](../app/employer/renewal-success/page.tsx) | Hardcoded 60d (matches `config.durationDays`) |
-| [/jobs/edit/[token]](../app/jobs/edit/%5Btoken%5D/page.tsx) | `config.*` + branches renewal modal on `paymentStatus` |
-| [/success](../app/success/page.tsx) | Calls `/api/verify-checkout-session`; retries up to 6× on webhook lag |
+The response shape is fixed:
 
----
-
-## 4. Database schema (pricing-related fields)
-
-### 4a. EmployerJob
-
-```prisma
-model EmployerJob {
-  id              String    @id @default(uuid())
-  contactEmail    String    // Form-submitted contact (mutable; no quota implication)
-  jobId           String    @unique
-  editToken       String    @unique
-  dashboardToken  String    @unique @default(cuid())
-  paymentStatus   String    // 'free' | 'pending' | 'paid' | (legacy: 'free_renewed', 'free_upgraded')
-  pricingTier     String    @default("pro")  // collapsed to single value 2026-04-30
-  userId          String?   // Supabase auth id; nullable on account deletion
-  quotaDomain     String?   // ★ Immutable freebie quota anchor — set ONLY at row creation
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  ...
-  @@index([userId])
-  @@index([editToken])
-  @@index([contactEmail])
-  @@index([dashboardToken])
-  @@index([quotaDomain, paymentStatus])  // freebie quota count
+```ts
+{
+  eligible: boolean,                       // may this employer post at all
+  isFirstPost: boolean,                    // does the half-price discount apply
+  priceKind: 'first' | 'standard',         // renewal never comes from this endpoint
+  priceDollars: number,                    // config.priceFor(priceKind)
+  remaining: number,                       // discounts left, 0 or 1
+  reason?: string                          // why eligible is false
 }
 ```
 
-**Key invariant:** `quotaDomain` is written exactly once (by `/api/jobs/post-free` at creation). No update path may write it. The free-post quota count reads only this field.
+`eligible` answers "may this employer post", which for a signed-in employer account is essentially always yes. It is false only for the structural cases: not signed in, or not an employer account. A consumer email domain is **not** a reason for `eligible: false` any more.
 
-### 4b. ProcessedStripeEvent (idempotency)
+`isFirstPost` answers the separate question "does the discount apply". Do not conflate the two: the old endpoint's `willBeFree` carried both meanings at once, which is exactly why callers had to be rewritten rather than renamed.
 
-```prisma
-model ProcessedStripeEvent {
-  id          String   @id @default(uuid())
-  eventId     String   @unique  // ← idempotency key (Stripe event.id)
-  eventType   String
-  processedAt DateTime @default(now())
-}
-```
+### 6b. `POST /api/jobs/post-free`
 
-Webhook inserts BEFORE processing; on UNIQUE violation, returns 200 + `deduped=true`.
-
-### 4c. JobCharge (per-charge invoice ledger)
-
-```prisma
-model JobCharge {
-  id              String   @id @default(uuid())
-  employerJobId   String
-  stripeSessionId String   @unique
-  amountCents     Int
-  currency        String   @default("usd")
-  type            String   // 'new' | 'renewal'
-  createdAt       DateTime @default(now())
-}
-```
-
-One row per Stripe checkout. Invoices generated from this ledger so amount matches what Stripe billed (was previously broken — always showed $199).
-
-### 4d. Other relevant fields
-
-- `Job.expiresAt DateTime?` — drives "active posting" definition
-- `Job.isFeatured Boolean @default(false)` — set true at creation for all posts
-- `Job.isPublished Boolean @default(false)` — flipped to true after payment confirms
+Returns 410 Gone with a body explaining that all posts now go through checkout. The handler creates nothing, reads nothing, and holds no quota logic. The file is kept rather than deleted so that a stale client, a bookmarked script, or an old draft in someone's browser gets an explanation instead of a 404.
 
 ---
 
-## 5. Feature inventory
+## 7. Data model
 
-### 5a. Employer features (what they get)
+Unchanged by this migration. The fields that matter to pricing:
 
-| Feature | When they have it |
+| Field | Meaning now |
 |---|---|
-| Post a job (free) | First post per domain, lifetime |
-| Post a job (paid, $199) | Always available |
-| 60-day listing | Paid posts (the free post gets 30 days) |
-| Featured badge + top placement | Every post |
-| 25 candidate unlocks | Per active posting |
-| 25 InMails (new conversations) | Per active posting |
-| Reply to existing conversations | Always free |
-| View previously-unlocked candidates' contact info | Lifetime (audit #21) |
-| Renew posting at $179 (10% off) | Paid posts only; free posts must repost |
-| Edit posting | Anytime (contactEmail freely editable now) |
-| Analytics (per-job + time-series) | Active posting required (audit #M2 gate) |
-| CSV analytics export | Admin-only |
-| Invoice PDF | Per JobCharge — accurate to actual amount paid |
+| `EmployerJob.paymentStatus` | `'pending'`, `'paid'`, `'refunded'`. `'free'` and the legacy `'free_renewed'` / `'free_upgraded'` values still exist on historical rows; no new row is written with them. |
+| `EmployerJob.pricingTier` | always `'pro'`. Vestigial, read paths ignore the value. |
+| `EmployerJob.quotaKeys` | the key array from `buildQuotaKeys`, written once at row creation. Now the discount anchor. |
+| `EmployerJob.quotaDomain` | legacy single-domain anchor, still written and still counted so pre-`quotaKeys` rows keep claiming their discount. |
+| `Job.expiresAt` | drives the active-posting definition. Set to now plus `durationDays` on payment. |
+| `JobCharge` | one row per Stripe checkout, the invoice source of truth. Carries the refund fields. |
+| `ProcessedStripeEvent` | webhook idempotency log, keyed on the Stripe event id. |
 
-### 5b. System features (what we built)
+The discount count reads discounted posts, not free ones. Historical rows with `paymentStatus='free'` are the retired model's output; whether they consume the new discount is a product decision recorded wherever the gate query lives, not something to infer from the schema.
 
-| Feature | Implementation |
+---
+
+## 8. Copy rules
+
+Every employer-facing surface reads its numbers from config. The list, so nothing gets missed on the next price change:
+
+`/pricing`, `/for-employers`, `/faq`, `/post-job` and its layout metadata, `/post-job/preview`, `/post-job/checkout`, `/success`, `/employer/dashboard`, `/employer/renewal-success`, `/jobs/edit/[token]`, `/terms`, the signup surfaces, and the transactional email templates in `lib/email-service.ts`.
+
+Three standing rules:
+
+1. **No hardcoded prices or durations.** Interpolate `config.*`. Page metadata that cannot interpolate at build time still imports the config and builds the string.
+2. **No dashes in user-facing copy.** Colons, commas, periods, or "X to Y".
+3. **Nothing that reads as a free offer.** No "first post free", no "no credit card required". Those phrases are pinned shut by a static regression test.
+
+---
+
+## 9. Test coverage
+
+| File | Covers |
 |---|---|
-| Webhook idempotency | `ProcessedStripeEvent` + INSERT-then-process |
-| Per-charge invoice ledger | `JobCharge` writes on every webhook payment |
-| Server-side purchase tracking | GA4 Measurement Protocol (`lib/analytics-server.ts`) |
-| Client-side funnel events | `view_post_job_page`, `begin_checkout`, `submit_free_post`, `free_post_limit_hit` |
-| Atomic post creation | `prisma.$transaction({ isolationLevel: 'Serializable' })` |
-| Lazy Stripe client | All 5 routes — graceful 503 if keys missing |
-| Stripe session verification | `/api/verify-checkout-session` + `/api/verify-renewal-session` |
-| Quota anchor | Immutable `EmployerJob.quotaDomain` field |
+| [tests/lib/pricing-config.test.ts](../tests/lib/pricing-config.test.ts) | `priceFor` and `priceInCentsFor` for all three kinds, dollars and cents agreeing, the discount percent, price ordering, `discountedPostsPerEmployer` |
+| [tests/regressions/paid-first-pricing-static.test.ts](../tests/regressions/paid-first-pricing-static.test.ts) | the retired config keys are gone, `post-free` is a 410 stub, no surface advertises a free post, guarantee copy is flag-gated, no dashes on the three highest-traffic pricing pages |
+| [tests/lib/tier-limits.test.ts](../tests/lib/tier-limits.test.ts) | unlock and InMail entitlement gates |
+| [tests/api/employer-quota.test.ts](../tests/api/employer-quota.test.ts) | quota key derivation and overlap |
+
+The pricing-config test is the one that catches the specific mistake this config invites: dollars and Stripe cents are two independent literals, so an edit that updates `postingPrice` and forgets `stripePriceInCents` would charge a number no page displays.
+
+Webhook behaviour is still covered end to end rather than in unit tests, via the Stripe CLI listener against a local checkout. Run that before any webhook refactor.
 
 ---
 
-## 6. Gates & entitlements
+## 10. Operations
 
-There are **three distinct gates** in the system, each answering a different question:
+### 10a. Changing a price
 
-### 6a. `isAdmin` — admin-only fields
+1. Edit both the dollar value and the cents value in `lib/config.ts`.
+2. Run `npx vitest run tests/lib/pricing-config.test.ts`. It fails if the two disagree.
+3. Grep for the number as a literal across `app/`, `components/`, and `lib/`. There should be no hits.
+4. No Stripe dashboard work is required: checkout uses inline `price_data`, not a Price catalog.
+5. Sessions already open at the old price complete at the old price. That is correct and expected.
 
-```ts
-const isAdmin = profile.role === 'admin'
-```
+### 10b. Turning the guarantee off
 
-Gates: candidate `bio`, `preferredJobType`, full last name, CSV export of analytics. Used in candidate-list, candidate-detail, saved-candidates, candidates-search, analytics-csv.
+Set `config.firstPostGuarantee = false`. Then verify the promise is gone from pricing, for-employers, the post-job funnel, checkout, the confirmation email, and terms. The static regression test asserts the copy is gated; it does not assert the flag's value, so it stays green either way.
 
-### 6b. `hasActivePosting` — list-level metadata visibility
+### 10c. What to watch
 
-```ts
-const hasActivePosting = isAdmin
-  ? true
-  : (await getEmployerActivePostings(user.id)).length > 0
-```
-
-Gates: Layer 2 fields (certifications, license states, salary range, hasResume, availableDate) on **list** endpoints (browse + saved + search). The "shopping" experience requires an active posting.
-
-### 6c. `hasFullAccess` — per-candidate detail visibility
-
-```ts
-const hasFullAccess =
-  isAdmin || !!existingView || await hasActiveFeaturedPost(user.id)
-```
-
-Gates: contact email, resume signed URL, LinkedIn URL, AND Layer 2 metadata on the **detail** endpoint. Lifetime once unlocked — previously-unlocked candidates retain access even after posting expires (audit #21).
-
-### 6d. Quota gates (consumption)
-
-| Gate | Function | Limit |
-|---|---|---|
-| Unlock new candidate | `canUnlockCandidate(userId, tier)` | 25 per active posting |
-| Start new conversation (InMail) | `canSendInMail(senderId, employerId, tier)` | 25 per active posting |
-| Free post creation | inline count in `/api/jobs/post-free` | 1 per `quotaDomain`, lifetime |
-
----
-
-## 7. Closed loopholes
-
-| # | Loophole | Closed by |
-|---|---|---|
-| #1 | `/success` page didn't verify Stripe — fake URL = fake success message | Server-side `verify-checkout-session` route + retry on webhook lag |
-| #2 | Invoice always showed $199 (even for $179 renewals) | `JobCharge` ledger; invoice reads actual amount from charge row |
-| #3 | Webhook had no idempotency — Stripe retries = duplicate emails + state writes | `ProcessedStripeEvent` table + INSERT-then-process |
-| #6 | Free-post gate had race condition (parallel submissions both passed) | Serializable transaction + re-check inside |
-| #7 | Job + slug + EmployerJob inserts not atomic — partial failure = orphan rows | All wrapped in `prisma.$transaction` |
-| #8 | Renewal webhook silently half-completed when EmployerJob missing | Returns 500 loudly with logging |
-| #11 | Renewal flow accepted free / pending posts → snuck past free quota | 409 block; UI also branches via popup (#24) |
-| #12 | Hardcoded prices in 7+ surfaces would lie if config changed | All config-driven via `config.*` references |
-| #13 | `canUnlockCandidate` counted views from expired postings against current cap | Filter to active postings + legacy null only |
-| #15 | Dead upgrade routes + page lingering from old tier model | All deleted |
-| #17 | `PricingTier = 'starter' \| 'growth' \| 'premium'` was a fiction | Narrowed to `'pro'`; DB rows migrated |
-| #21 | Layer 4 strip — already-unlocked candidates lost metadata after expiry | All unlock-only fields gate on `hasFullAccess`, not `tier` |
-| #22 | Early renewals lost the days remaining on the original posting | Webhook now extends from MAX(existingExpiresAt, now) |
-| #23 | Editable `contactEmail` shifted the freebie count | Quota anchored on immutable `quotaDomain`, not contactEmail |
-| #24 | Free-post renewal showed silent 409 with no UX explanation | Branched modal with friendly popup + CTA to repost |
-| #26 | Form-submitted `contactEmail` was the freebie count anchor — rotation = infinite freebies | Quota anchored on signup-derived `quotaDomain` (immutable per-row) |
-
----
-
-## 8. Known open loopholes (deferred — not closed)
-
-| # | Loophole | Why deferred | Mitigation in place |
-|---|---|---|---|
-| **Shell domains** | Buy 25 cheap domains @ $12 each, sign up with each, get 25 freebies | Domain registration is free-form; no public registry distinguishes "real company" from "registered yesterday" | Free email providers (gmail/yahoo/etc) blocked. Per-org verification (audit-doc deferred item) is the real fix |
-| **#25 Admin hard-delete** | `/api/admin/jobs/[id]` cascade-deletes EmployerJob → freebie count drops | Internal-only attack vector; admins are trusted; audit logs mitigate | Audit #25 tracks soft-delete remediation |
-| **#27 Email-domain change** | Authenticated user changes their email domain → future freebies attribute to new domain | No user-facing email-change endpoint exists today | `evaluateEmailChange` helper landed at [lib/auth/email-change-policy.ts](../lib/auth/email-change-policy.ts); enforces same-domain rule when invoked. Whoever adds the email-change endpoint MUST call this helper |
-
-### Loopholes considered and confirmed NOT loopholes
-
-| Scenario | Why it's safe |
+| Signal | Meaning |
 |---|---|
-| Account self-deletion + soft-delete | `EmployerJob.userId` becomes null on delete, but `quotaDomain` and `contactEmail` persist. Count unaffected. |
-| Unpublish own job (`DELETE /api/jobs/update`) | Sets `isPublished=false`. Row stays. Count unaffected. |
-| Edit job content (title/description/salary) | Doesn't touch `quotaDomain`, `paymentStatus`, or `userId`. |
-| Edit `contactEmail` after posting | Per audit #26, count anchored on `quotaDomain` not `contactEmail`. Edits are now allowed and have no quota effect. |
-| Attempt to mutate `paymentStatus` directly | No customer-facing path writes this field. Webhook (paid) and `post-free` (free) are the only writers. |
+| `processed_stripe_events` count against the Stripe dashboard event count | a large gap means dropped webhooks |
+| `job_charges.amount_cents` outside the three configured amounts | a coupon or a manual override, worth a look |
+| 5xx rate on `/api/webhooks/stripe` | should sit at zero given idempotency |
+| 410 rate on `/api/jobs/post-free` | a stale client still pointing at the retired route |
+| Ratio of `priceKind='first'` to `'standard'` checkouts | how much of the volume is new employers against returning ones |
+| Guarantee claims against first posts sold | whether the applicant threshold is set where it should be |
+| `processed_stripe_events` table size | grows without bound, plan a cleanup |
+
+### 10d. Stripe checklist
+
+- Webhook endpoint registered for the production origin
+- `STRIPE_WEBHOOK_SECRET` in the deployment matches the dashboard signing secret
+- Event filter includes `checkout.session.completed` and `charge.refunded`
+- Public details, branding, and customer emails configured in the dashboard
 
 ---
 
-## 9. Operational runbook
+## 11. Deferred
 
-### 9a. Production migrations applied (2026-04-30 / 2026-05-01)
-
-| Migration | What it did |
+| Item | Revisit when |
 |---|---|
-| `20260430_normalize_pricing_tier_to_pro` | Backfilled all `pricing_tier` legacy values → 'pro'; changed column default |
-| `20260430_add_processed_stripe_events` | Added idempotency table |
-| `20260430_add_job_charges` | Added per-charge invoice ledger |
-| `20260501_add_quota_domain` | Added immutable freebie quota anchor field; backfilled from contact_email |
+| Stripe Price catalog instead of inline `price_data` | enabling Stripe Tax, adding a currency, or running a price experiment |
+| Self-serve bulk packs | there is repeat multi-post demand to serve. Spec is in the audit doc. |
+| Boost or spotlight upsell | there is an upsell path worth building above the base post |
+| Stripe Tax and a purchase-order path | a buyer who cannot pay by card asks |
+| Per-organization verification | the discount is being farmed across registered shell domains |
+| Email-change endpoint | one is built. It must call `evaluateEmailChange`, which is written and tested. |
+| Automated guarantee fulfilment | manual refunds stop being manageable |
 
-All applied via `npx prisma migrate deploy` against production Supabase.
+---
 
-### 9b. Production Stripe checklist (do once)
+## Glossary
 
-- [ ] Verify webhook endpoint at `https://pmhnphiring.com/api/webhooks/stripe` is registered
-- [ ] Verify `STRIPE_WEBHOOK_SECRET` in Vercel matches Dashboard signing secret
-- [ ] Verify event filter includes `checkout.session.completed`
-- [ ] Verify Stripe Dashboard → Settings → Public details: business name, statement descriptor, support email/URL
-- [ ] Verify Stripe Dashboard → Settings → Branding: logo + brand color
-- [ ] Verify Stripe Dashboard → Settings → Customer emails: "Successful payments" ON, "Failed payments" ON
-- [ ] (Optional but recommended) Set `GA_MEASUREMENT_ID` + `GA_API_SECRET` env vars in production for server-side `purchase` events
-
-### 9c. Things to monitor
-
-| Signal | What it means |
+| Term | Meaning here |
 |---|---|
-| `processed_stripe_events` count vs Stripe Dashboard event count | Big divergence = webhook drops |
-| `job_charges` rows where `amount_cents ∉ {19900, 17900}` | Coupon used or manual price override — sanity check |
-| 5xx error rate on `/api/webhooks/stripe` | Should be ~0 with idempotency |
-| Free-post 403 rate (`free_post_limit_hit` analytics event) | Demand signal for paid conversion |
-| Renewal rate 30/60/90 days post-renewal-price change | Watch for behavior shift after $159→$179 |
-| `processed_stripe_events` table size after 12+ months | Will grow unbounded; plan partition or quarterly cleanup |
-
-### 9d. Operational rules cheat-sheet
-
-- Renew price = $179. Discount % computed: `Math.round((1 - renewal/posting) * 100) = 10%`.
-- Free quota counted on `EmployerJob.quotaDomain`, immutable, set at posting time from signup email's domain.
-- Renewal extends from `MAX(existingExpiresAt, now)` — early renewers don't lose days.
-- Free posts cannot be renewed. They must be reposted at $199.
-- Pending posts (abandoned checkouts) cannot be renewed.
-- Webhook idempotency keyed on `event.id`. Stripe retries are safe.
-- Server-side `purchase` event fires from webhook (the only authoritative payment-completion signal).
-
----
-
-## 10. Test coverage
-
-### 10a. Unit tests (Vitest)
-
-[tests/lib/tier-limits.test.ts](../tests/lib/tier-limits.test.ts) — 17/17 passing
-
-- `getEmployerTier` — fallback returns 'pro'
-- `getEmployerActivePostings` — query shape correct
-- `getEmployerActivePosting` — newest-first selection
-- `canUnlockCandidate` — denied with no postings; allowed with capacity; cap enforcement; legacy redistribution; audit #13 historical-views fix
-- `canSendInMail` — denied with no postings; per-job count; reply exemption (no count call for replies)
-- `getUsageSummary` — limits scale across multiple postings
-
-### 10b. Coverage gaps (deferred per audit #20)
-
-- No tests for `/api/jobs/post-free` (free quota gate, atomic transaction)
-- No tests for `/api/create-checkout` or `/api/create-renewal-checkout`
-- No tests for webhook idempotency / event handling
-- No tests for `JobCharge` ledger writes
-- No tests for `evaluateEmailChange` policy
-
-These are tracked in audit #20 as foundational follow-up work.
-
----
-
-## 11. Future-state items (intentionally deferred)
-
-| ID | Item | When to revisit |
-|---|---|---|
-| #14 | Stripe Product / Price catalog (proper Price IDs) | When adding Stripe Tax or international currency |
-| P1 | Test $249 instead of $199 | After 4–6 weeks of P7 baseline data |
-| P2 | Self-serve bulk packs (5-pack at $849, 10-pack at $1,499) | Highest revenue-per-dev-day on the roadmap; 5.5 dev-days estimated. Spec in pricing-audit.md §P2. |
-| P4 | Boost / Spotlight upsell SKU at $49 | Adds upsell vector beyond base $199 |
-| P5 | Stripe Tax + PO/invoice path for enterprise | Blocker for hospital systems / large staffing firms |
-| P6 | Annual prepay deal | Manual via Stripe Invoicing today; productize at 5+ deals |
-| Per-org verification | NPI lookup / DNS TXT / manual review | Closes shell-domain attack; needed at scale |
-| Email-change endpoint | UI + endpoint that calls `evaluateEmailChange` | When user demand surfaces; helper is ready |
-| Audit #20 | Webhook + checkout integration tests | Before next major refactor |
-| Audit #25 | Soft-delete for admin job-delete | When you want to harden internal-only loopholes |
-
----
-
-## 12. Quick-reference flow diagrams
-
-### Post a job
-```
-Free?                                      Paid?
-  ↓                                          ↓
-authenticated employer                  authenticated employer
-  ↓                                          ↓
-quota check (per quotaDomain)           Stripe Checkout
-  ↓ ok                                       ↓ pay
-atomic txn (Job + slug + EmployerJob)   webhook fires
-  ↓                                          ↓
-isPublished=true immediately            JobCharge insert
-  ↓                                       Job.isPublished=true
-sendConfirmationEmail                     EmployerJob.paymentStatus='paid'
-  ↓                                          ↓
-/success?free=true                      sendConfirmationEmail
-                                            ↓
-                                        /success?session_id=...
-                                            ↓
-                                        verify-checkout-session
-                                            ↓
-                                        "Payment Successful!"
-```
-
-### Renew a job
-```
-employer dashboard "Renew" button
-  ↓
-Free post?  → popup: "can't renew, post new" → /post-job
-Paid post?  → modal: "Renew $179" → /api/create-renewal-checkout
-                                         ↓
-                                       Stripe Checkout
-                                         ↓ pay
-                                       webhook (type='renewal')
-                                         ↓
-                                       expiresAt = MAX(existing, now) + 60d
-                                         ↓
-                                       JobCharge type='renewal' amount=17900
-                                         ↓
-                                       sendRenewalConfirmationEmail
-                                         ↓
-                                       /employer/renewal-success
-```
-
----
-
-## Appendix: glossary
-
-| Term | Meaning in this codebase |
-|---|---|
-| **Active posting** | `Job.isPublished=true AND (expiresAt IS NULL OR expiresAt > now)` AND linked via EmployerJob to a userId |
-| **quotaDomain** | Immutable per-row snapshot of the signup email's domain at posting time. The freebie quota's anchor. |
-| **hasFullAccess** | Per-candidate gate: `isAdmin OR existingView OR hasActiveFeaturedPost(employerId)`. Lifetime once granted. |
-| **hasActivePosting** | Employer-level gate: at least one currently-active posting exists. State, not plan. |
-| **`paymentStatus`** | `'free'` / `'pending'` / `'paid'` / (legacy: `'free_renewed'`, `'free_upgraded'`). Drives invoice eligibility, renewal eligibility, and freebie quota filter. |
-| **`pricingTier`** | Always `'pro'` for new rows; legacy values exist on old rows but read paths now ignore the value. Vestigial. |
-| **JobCharge** | One row per Stripe checkout (new or renewal). Source of truth for invoices. |
-| **ProcessedStripeEvent** | Idempotency log. Insert-then-process; UNIQUE violation = already-handled. |
+| **First post** | The one discounted post an employer identity gets, ever. `priceKind='first'`. |
+| **Standard post** | Every post after the discount is spent. `priceKind='standard'`. |
+| **Employer identity** | The set of quota keys built from the session: account id, signup domain, locked company name. Not the form. |
+| **Quota key collision** | A prior discounted post claimed one of this poster's keys. Removes the discount. Never refuses the post. |
+| **Active posting** | `isPublished=true` and (`expiresAt` is null or in the future), linked to a user through `EmployerJob`. |
+| **`hasFullAccess`** | Per-candidate gate: admin, or a previous unlock, or an active featured post. Lifetime once granted. |
+| **`JobCharge`** | One row per Stripe checkout. The invoice ledger, including refunds. |
+| **`ProcessedStripeEvent`** | Webhook idempotency log. Insert then process; a unique violation means already handled. |

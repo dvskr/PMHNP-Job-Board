@@ -16,9 +16,14 @@ const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 describe('post-job wall carries the offer and a return path', () => {
   const src = read('app/post-job/page.tsx');
 
-  it('headline leads with the free first post, not just the login demand', () => {
-    expect(src).toContain('Your first job post is free');
+  it('headline leads with the half-price first post, not just the login demand', () => {
+    expect(src).toContain('Your first job post is half price');
     expect(src).not.toContain('You must be logged in as an employer to post jobs.');
+  });
+
+  it('consumer email domains are no longer refused at the contact-email field', () => {
+    expect(src).not.toContain('FREE_EMAIL_DOMAINS');
+    expect(src).not.toContain('Please use your company email');
   });
 
   it('signup CTA returns the user to /post-job after signup', () => {
@@ -57,24 +62,28 @@ describe('signup return path is validated, never an open redirect', () => {
 describe('preview page is honest at the money moment', () => {
   const src = read('app/post-job/preview/page.tsx');
 
-  it('paid posts skip the doomed free call and label the CTA with the price', () => {
-    expect(src).toContain('goesToCheckout');
-    expect(src).toContain('Continue to Payment');
-    expect(src).toContain('has used its free post');
+  it('the free-publish fork is gone: every post is handed to checkout', () => {
+    expect(src).not.toContain('/api/jobs/post-free');
+    expect(src).not.toContain('/success?free=true');
+    expect(src).toContain("router.push('/post-job/checkout')");
   });
 
-  it('errors surface the server message field, not just the terse error code', () => {
-    expect(src).toContain('result.message || result.error');
+  it('reads the price endpoint and labels the CTA with the real price', () => {
+    expect(src).toContain('/api/employer/post-price');
+    expect(src).toContain('isFirstPost');
+    expect(src).toMatch(/Continue to Payment: \$\{priceDollars\}/);
   });
 
-  it('known quota reasons get an up-front card with a fix path', () => {
-    expect(src).toContain("quotaStatus.reason === 'free-email-provider'");
-    expect(src).toContain("quotaStatus.reason === 'unauthenticated'");
+  it('the guarantee promise is gated on the config toggle, never hardcoded', () => {
+    expect(src).toContain('config.firstPostGuarantee');
+    expect(src).toContain('config.guaranteeMinApplicants');
+    expect(src).toContain('config.guaranteeWindowDays');
+  });
+
+  it('the sign-in prompt keeps its fix path; the consumer-email refusal is gone', () => {
+    expect(src).toContain("postPrice.reason === 'unauthenticated'");
     expect(src).toContain('/login?next=/post-job/preview');
-  });
-
-  it('success redirect carries the jobId for the P7 conversion event', () => {
-    expect(src).toMatch(/\/success\?free=true&jobId=/);
+    expect(src).not.toContain('free-email-provider');
   });
 });
 
@@ -86,8 +95,10 @@ describe('checkout page', () => {
     expect(src).toMatch(/hasExternalApply\s*\?/);
   });
 
-  it('explains why the post is paid (free-post context line)', () => {
-    expect(src).toContain('Your free post is used');
+  it('explains which price this listing carries', () => {
+    expect(src).toContain('Half price first post');
+    expect(src).toContain('Your half price first post is used');
+    expect(src).not.toContain('FREE_POST_AVAILABLE');
   });
 
   it('uses the clay design tokens, not default Tailwind grays', () => {
@@ -116,8 +127,9 @@ describe('for-employers page honesty', () => {
     expect(src).toMatch(/stats\.totalJobs > 0 &&/);
   });
 
-  it('listing-duration card discloses the 30-day free window', () => {
-    expect(src).toContain('free first post runs {config.freeDurationDays} days');
+  it('listing-duration card states the single duration every post now runs', () => {
+    expect(src).toContain('Every post runs {config.durationDays} days');
+    expect(src).not.toContain('freeDurationDays');
   });
 });
 

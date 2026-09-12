@@ -18,19 +18,14 @@ import 'react-quill-new/dist/quill.snow.css';
 
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
-const FREE_EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'mail.com', 'protonmail.com', 'ymail.com', 'live.com', 'msn.com', 'googlemail.com'];
-
 const jobPostingSchema = z.object({
   title: z.string().min(10, 'Job title must be at least 10 characters'),
   companyName: z.string().min(1, 'Company name is required'),
   companyWebsite: z.string().url('Must be a valid URL').optional().or(z.literal('')),
-  contactEmail: z.string().email('Must be a valid email address').refine(
-    (email) => {
-      const domain = email.toLowerCase().split('@')[1];
-      return !FREE_EMAIL_DOMAINS.includes(domain);
-    },
-    { message: 'Please use your company email (not Gmail, Yahoo, etc.)' }
-  ),
+  // Consumer email domains are accepted: the company-email rule existed to
+  // protect the retired free post, and a solo practitioner paying full price
+  // has no reason to be turned away.
+  contactEmail: z.string().email('Must be a valid email address'),
   location: z.string().min(1, 'Location is required'),
   mode: z.enum(['Remote', 'Hybrid', 'In-Person']),
   jobType: z.enum(['Full-Time', 'Part-Time', 'Contract', 'Per Diem']),
@@ -807,11 +802,16 @@ function PostJobContent() {
             <Building2 size={24} color="#fff" />
           </div>
           <h2 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 8px' }}>
-            Your first job post is free
+            Your first job post is half price
           </h2>
-          <p style={{ fontSize: '14px', color: '#6B7F8A', margin: '0 0 28px', lineHeight: 1.5 }}>
-            Create a free employer account to post — no card required, takes about 5 minutes. ${config.postingPrice} per post after your first.
+          <p style={{ fontSize: '14px', color: '#6B7F8A', margin: config.firstPostGuarantee ? '0 0 12px' : '0 0 28px', lineHeight: 1.5 }}>
+            {`Create an employer account and post for $${config.firstPostPrice} instead of $${config.postingPrice}. Takes about 5 minutes, and the listing runs ${config.durationDays} days.`}
           </p>
+          {config.firstPostGuarantee && (
+            <p style={{ fontSize: '13px', color: '#0F766E', margin: '0 0 28px', lineHeight: 1.5, fontWeight: 600 }}>
+              {`If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`}
+            </p>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <a href="/signup?role=employer&redirectTo=/post-job" style={{
               ...clayBtn, justifyContent: 'center',
@@ -982,7 +982,7 @@ function PostJobContent() {
                 <div>
                   <Label required htmlFor="contactEmail">Contact Email</Label>
                   <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '-4px 0 8px' }}>
-                    Use your company email (not Gmail/Yahoo) to verify your identity
+                    Where applicant notifications and your receipt are sent
                   </p>
                   <input type="email" id="contactEmail" placeholder="hiring@yourcompany.com"
                     {...register('contactEmail')}
@@ -1377,7 +1377,7 @@ function PostJobContent() {
 
                 {/* Full-package feature card — moved here from the retired
                     Step 5 ('Plan'). There is no plan to pick: every post
-                    gets the same package, first post free, then paid. */}
+                    gets the same package, the first one at half price. */}
                 <div style={{
                   ...cardBase, padding: '20px',
                   background: '#F0FDFA', border: '1px solid #99F6E4',
@@ -1392,12 +1392,12 @@ function PostJobContent() {
                       <Check size={18} color="#fff" />
                     </div>
                     <div>
-                      <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Full Package — Every Post</h3>
-                      <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>First post free, then ${config.postingPrice}/post</p>
+                      <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Full Package on Every Post</h3>
+                      <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>First post ${config.firstPostPrice}, then ${config.postingPrice} per post</p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {[`${config.durationDays}-day paid · ${config.freeDurationDays}-day free`, 'Featured badge', 'Top placement', 'Email alerts', `${config.limits.candidateUnlocksPerPosting} candidate unlocks`, `${config.limits.inmailsPerPosting} InMails`, 'Analytics'].map(f => (
+                    {[`${config.durationDays}-day listing`, 'Featured badge', 'Top placement', 'Email alerts', `${config.limits.candidateUnlocksPerPosting} candidate unlocks`, `${config.limits.inmailsPerPosting} InMails`, 'Analytics'].map(f => (
                       <span key={f} style={{
                         fontSize: '11px', fontWeight: 500, padding: '4px 10px',
                         borderRadius: '10px', background: '#CCFBF1', color: '#0D9488',

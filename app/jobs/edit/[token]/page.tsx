@@ -1125,7 +1125,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
         </div>
       )}
 
-      {/* Renewal Modal — free posts can't be renewed at the discounted rate */}
+      {/* Renewal Modal — legacy free posts predate paid-first posting and
+          carry no renewal discount */}
       {showRenewModal && job && employerJob?.paymentStatus === 'free' && (
         <div style={{
           position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1139,14 +1140,14 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
               fontSize: '18px', fontWeight: 700,
               fontFamily: 'var(--font-lora), Georgia, serif',
               color: '#1A2E35', margin: '0 0 4px',
-            }}>This free post can&apos;t be renewed</h3>
+            }}>This legacy free post can&apos;t be renewed</h3>
             <p style={{ fontSize: '13px', color: '#8A9BA6', margin: '0 0 16px' }}>{job.title}</p>
 
             <p style={{ fontSize: '14px', color: '#1A2E35', lineHeight: 1.6, margin: '0 0 8px' }}>
-              Renewals at the discounted ${config.renewalPrice} rate are available for paid postings only.
+              This posting was published under the earlier free-post offer, and renewals at the discounted ${config.renewalPrice} rate apply to paid postings only.
             </p>
             <p style={{ fontSize: '13px', color: '#6B7F8A', lineHeight: 1.6, margin: '0 0 20px' }}>
-              You can post this role again as a fresh listing for ${config.postingPrice} — same {config.durationDays}-day duration and a new bucket of {config.limits.candidateUnlocksPerPosting} unlocks &amp; {config.limits.inmailsPerPosting} InMails.
+              You can post this role again as a fresh listing for ${config.postingPrice}: same {config.durationDays}-day duration and a new bucket of {config.limits.candidateUnlocksPerPosting} unlocks &amp; {config.limits.inmailsPerPosting} InMails.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1156,7 +1157,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 border: 'none', padding: '12px 16px', fontWeight: 700,
                 boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
               }}>
-                Post a New Job — ${config.postingPrice}
+                Post a New Job: ${config.postingPrice}
               </a>
               <button
                 onClick={() => setShowRenewModal(false)}

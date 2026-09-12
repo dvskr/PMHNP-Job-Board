@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Mail, TrendingUp, Loader2, Zap } from 'lucide-react';
 import Link from 'next/link';
+import { config, type PostPriceKind } from '@/lib/config';
 
 interface UsageData {
     tier: string;
@@ -13,11 +14,13 @@ interface UsageData {
     };
 }
 
-interface QuotaStatus {
+interface PostPriceStatus {
     eligible: boolean;
-    willBeFree?: boolean;
-    remaining?: number;
-    limit?: number;
+    isFirstPost: boolean;
+    priceKind: PostPriceKind;
+    priceDollars: number;
+    remaining: number;
+    reason?: string;
 }
 
 /* ═══ Clay Design Tokens ═══ */
@@ -36,15 +39,15 @@ const clayIconWrap: React.CSSProperties = {
 
 export default function UsageWidget() {
     const [data, setData] = useState<UsageData | null>(null);
-    const [quota, setQuota] = useState<QuotaStatus | null>(null);
+    const [quota, setQuota] = useState<PostPriceStatus | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Fetch in parallel — usage drives the meters, quota drives the
-        // Free-vs-Pro plan label and the "X free posts left" line.
+        // Fetch in parallel — usage drives the meters, post-price drives the
+        // "first post discount still available" line under the plan label.
         Promise.allSettled([
             fetch('/api/employer/usage').then(r => r.ok ? r.json() : null),
-            fetch('/api/employer/free-quota-status').then(r => r.ok ? r.json() : null),
+            fetch('/api/employer/post-price').then(r => r.ok ? r.json() : null),
         ]).then(([usageResult, quotaResult]) => {
             if (usageResult.status === 'fulfilled') setData(usageResult.value);
             if (quotaResult.status === 'fulfilled') setQuota(quotaResult.value);
@@ -79,13 +82,12 @@ export default function UsageWidget() {
 
     const t = tierGradients[tier] || tierGradients.pro;
 
-    // Show "Free trial" as the plan label when the employer still has free
-    // posts available (and is otherwise eligible). Once they pay or burn
-    // their free quota, it flips to the proper tier label ("Pro").
-    const onFreeTrial = quota?.eligible === true && (quota.remaining ?? 0) > 0;
-    const planLabel = onFreeTrial ? 'Free trial' : tierLabel;
-    const planSublabel = onFreeTrial && typeof quota?.remaining === 'number' && typeof quota?.limit === 'number'
-        ? `${quota.remaining} of ${quota.limit} free posts left`
+    // Every employer is on the same plan; the only variable is whether their
+    // once-ever half-price first post is still unspent.
+    const hasFirstPostDiscount = quota?.eligible === true && (quota.remaining ?? 0) > 0;
+    const planLabel = tierLabel;
+    const planSublabel = hasFirstPostDiscount
+        ? `${config.firstPostDiscountPercent()}% off your first post`
         : null;
 
     return (
@@ -95,7 +97,7 @@ export default function UsageWidget() {
             gap: '10px',
             marginBottom: '24px',
         }}>
-            {/* ─── Tier Badge — single-line label, tier + optional free counter ─── */}
+            {/* ─── Tier Badge — single-line label, tier + optional discount note ─── */}
             <CompactCard
                 icon={<Zap size={14} color="#fff" />}
                 iconBg={t.gradient}

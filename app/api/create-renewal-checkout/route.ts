@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { config, PricingTier } from '@/lib/config';
 import { sendRenewalConfirmationEmail } from '@/lib/email-service';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { renewalRunwayDays } from '@/lib/expires-at';
 
 // Lazy Stripe client — see app/api/create-checkout/route.ts for rationale.
 function getStripe(): Stripe | null {
@@ -56,6 +57,9 @@ export async function POST(request: NextRequest) {
             title: true,
             employer: true,
             location: true,
+            // Needed for the 365-day renewal cap check below.
+            createdAt: true,
+            expiresAt: true,
           },
         },
       },
@@ -69,9 +73,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Audit #11: don't allow renewing a posting that was never paid in the first
-    // place. 'pending' = checkout abandoned. 'free' = the free quota path; renewing
-    // a free post via the renewal flow would let it sneak past the 2-free quota.
-    // Both should re-enter the appropriate flow rather than buying a $179 renewal.
+    // place. 'pending' = checkout abandoned. 'free' = a legacy row from the
+    // retired free-post model; a renewal would relist it without it ever having
+    // been paid for. Both re-enter checkout instead of buying a renewal.
     if (employerJob.paymentStatus === 'pending') {
       return NextResponse.json(
         { error: 'This job posting was never completed. Please complete the original checkout instead of renewing.' },
@@ -80,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
     if (employerJob.paymentStatus === 'free') {
       return NextResponse.json(
-        { error: 'Free posts cannot be renewed at the discounted rate. Post a new job at the regular price instead.' },
+        { error: 'This posting was never paid for, so it cannot be renewed at the discounted rate. Please post a new listing instead.' },
         { status: 409 }
       );
     }
@@ -95,9 +99,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Single-tier: all renewals cost $179 (10% off $199)
-    const price = config.stripeRenewalPriceInCents;
+    // Single-tier: every renewal is the renewal price, whatever the original
+    // post was charged at.
+    const price = config.priceInCentsFor('renewal');
+    const renewalSavingPercent = Math.round(
+      (1 - config.renewalPrice / config.postingPrice) * 100,
+    );
     const tier: PricingTier = 'pro'; // Single-tier model
+
+    // Renewal expiry is capped at 365 days from the ORIGINAL post date. Once a
+    // posting reaches that cap there is no live time left to sell: the webhook
+    // would take the payment and set an expiry at (or before) today, and the
+    // twice-daily cleanup would unpublish the listing within hours. Refuse the
+    // charge here rather than let the employer discover it after paying.
+    const runwayDays = renewalRunwayDays({
+      currentExpiry: employerJob.job?.expiresAt ?? null,
+      originalCreatedAt: employerJob.job?.createdAt ?? employerJob.createdAt,
+      durationDays: config.getDurationDays(tier),
+    });
+    if (runwayDays < 1) {
+      return NextResponse.json(
+        {
+          error:
+            'This posting has reached the maximum listing period of one year. Please create a new posting instead of renewing.',
+        },
+        { status: 409 }
+      );
+    }
 
     // Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
@@ -107,8 +135,8 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `Job Renewal - ${employerJob.job.title}`,
-              description: `Renew for ${config.durationDays} days (Save 10%) - ${employerJob.job.employer}`,
+              name: `Job Renewal: ${employerJob.job.title}`,
+              description: `Renew for ${config.durationDays} days, ${renewalSavingPercent}% off the standard post price. ${employerJob.job.employer}`,
             },
             unit_amount: price,
           },
@@ -129,7 +157,7 @@ export async function POST(request: NextRequest) {
       invoice_creation: {
         enabled: true,
         invoice_data: {
-          description: `Job Renewal: ${employerJob.job.title} — ${employerJob.job.employer}`,
+          description: `Job Renewal: ${employerJob.job.title}, ${employerJob.job.employer}`,
           metadata: {
             jobId,
             employerJobId: employerJob.id,

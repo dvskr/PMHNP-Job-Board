@@ -222,7 +222,7 @@ export default function EmployerHowItWorks() {
                             e.currentTarget.style.boxShadow = '0 4px 20px rgba(200,90,120,0.3)';
                         }}
                     >
-                        Post a Job — First Post Free <ArrowUpRight size={15} />
+                        Post a Job: First Post ${config.firstPostPrice} <ArrowUpRight size={15} />
                     </Link>
                 </m.div>
             </m.div>

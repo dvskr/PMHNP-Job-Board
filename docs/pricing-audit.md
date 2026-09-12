@@ -1,8 +1,32 @@
 # Pricing Audit — PMHNP Job Board
 
+> ## HISTORICAL DOCUMENT (as of 2026-09)
+>
+> **This audit trail describes the retired free-first pricing model.** The board moved to
+> paid-first in 2026-09: every post is paid, the first post per employer identity is half
+> price, and there is a single 60-day duration. For the live state read
+> [pricing-system.md](./pricing-system.md), which is the ground truth. This file is kept
+> intact as the record of how the earlier model was built and hardened; nothing below is
+> deleted, and the closed findings in it are still closed.
+>
+> **What the 2026-09 migration superseded.** Read every item below with this in mind:
+>
+> | Section | Status after 2026-09 |
+> |---|---|
+> | The "Pricing model" line in the front matter | Superseded. Prices, quota rule, and duration split all changed. |
+> | #6, #23, #26 (free-post quota gate and its loopholes) | The machinery survives, the verdict changed: a quota-key collision now removes the half-price discount instead of refusing the post. The keys, `buildQuotaKeys`, and the anti-poisoning design are unchanged and still load-bearing. |
+> | #11, #24 (renewal blocked for free posts) | Still true for the historical `paymentStatus='free'` rows. No new free rows are created, so the case is closed by attrition. |
+> | #25 (admin hard-delete drops the freebie count) | Now affects the discount count rather than a free giveaway. Lower stakes, same guard. |
+> | #27 (email-domain change shifts the quota) | Same reinterpretation: it can shift a discount, not a free post. `evaluateEmailChange` is still the helper to call. |
+> | #30 (hybrid duration, free posts on a shorter clock) | Reverted. One duration, `config.durationDays`, for every post and every renewal. |
+> | #12, P3 (price centralization and the renewal discount) | Still binding as a rule. The specific figures quoted are historical. |
+> | P1 (test a higher price) | Answered by the paid-first migration itself. |
+> | "Known open loopholes": shell domains, consumer mailboxes | Reframed. Consumer mailboxes may now post and may earn the discount; shell-domain farming costs the attacker $149 per identity rather than nothing, which is most of the fix. |
+> | Everything else (#1 to #22, #28, M1 to M4) | Unaffected. Webhook idempotency, the charge ledger, session verification, transaction atomicity, refund handling, and the tier cleanup all still describe live behavior. |
+
 **Date:** 2026-04-30
 **Scope:** End-to-end review of pricing structure (config, Stripe integration, checkout, webhook, entitlements, UI, env, tests)
-**Pricing model:** Single-tier — first 2 free posts per email domain, $199/post, $159 renewal (20% off), 60-day duration, 25 candidate unlocks + 25 InMails per posting. Source of truth: [lib/config.ts](../lib/config.ts).
+**Pricing model (historical, retired 2026-09):** Single-tier — first 2 free posts per email domain, $199/post, $159 renewal (20% off), 60-day duration, 25 candidate unlocks + 25 InMails per posting. Source of truth: [lib/config.ts](../lib/config.ts).
 
 Status legend: `[ ]` open · `[x]` done · `[~]` in progress · `[-]` won't fix
 
@@ -242,7 +266,9 @@ The rule stays the same: **2 free posts per email domain, lifetime, shared acros
 **Still pending:** there is no user-facing email-change endpoint today; nothing currently calls `evaluateEmailChange`. **When email-change UI is added, the new endpoint MUST call this helper.** Reference comment in [lib/auth/email-change-policy.ts](../lib/auth/email-change-policy.ts) flags the requirement. Also applicable to: any admin override that changes a user's email; any Supabase Auth email-change webhook handler we add.
 **Tests landed (2026-05-01):** [tests/lib/email-change-policy.test.ts](../tests/lib/email-change-policy.test.ts) — 9 tests covering same-domain pass-through (no DB call), case-insensitive comparison, invalid email rejection, zero-freebie domain change allowed, blocked when freebies exist (with locked-domain in response), correct query filter shape. The helper is fully tested and ready to plug in whenever the email-change endpoint is built.
 
-### [x] 30. Hybrid duration: free posts shortened to 30 days; paid stays 60 — **DONE 2026-05-01**
+### [x] 30. Hybrid duration: free posts shortened to 30 days; paid stays 60 — **DONE 2026-05-01 / REVERTED 2026-09**
+> **Superseded by the paid-first migration.** There is no free post and no duration split any more: every post and every renewal runs `config.durationDays`. `config.freeDurationDays` is removed. Kept for the reasoning trail.
+
 **Files:** [lib/config.ts](../lib/config.ts), [app/api/jobs/post-free/route.ts](../app/api/jobs/post-free/route.ts), [lib/email-service.ts](../lib/email-service.ts), pricing/FAQ/post-job marketing copy.
 **Concern raised:** A domain getting 2 free posts × 60 days each = 120 days of value per domain, lifetime. That's generous to the point that "why would they ever pay?" becomes a real question for niche-board economics. The flip-side concern: dropping all posts to 30 days kneecaps the "60-day listing" marketing pitch that differentiates the platform from Indeed/LinkedIn (both 30 days).
 **Fix (2026-05-01):** Hybrid split — free posts run **30 days** (trial-feel), paid posts run **60 days** (the headline-value pitch). Renewals are paid-only and run 60 days. The paid 60-day differentiator vs competitors stays intact in marketing copy.
@@ -377,7 +403,9 @@ Take the max of `now` and existing `expiresAt` before adding 60. Late renewers s
 
 These are not broken — they're decisions where the current pricing model leaves money on the table or under-serves a buyer segment. Ship audit fixes #1, #2, #3, #5, #12, #21 *before* running any of these so that experiments produce clean data.
 
-### [ ] P1. Test $249 instead of $199 (price elasticity)
+### [-] P1. Test $249 instead of $199 (price elasticity) — **ANSWERED 2026-09**
+> **Superseded.** The paid-first migration reset the whole price ladder rather than running the A/B. Current values live in `lib/config.ts`; see [pricing-system.md](./pricing-system.md) §1.
+
 **Files:** [lib/config.ts:19, 21](../lib/config.ts) — `postingPrice`, `stripePriceInCents`
 **Problem / opportunity:** PMHNP is an acute-shortage role; agency placement fees run $8–15k. A 60-day exclusive niche listing at $199 is well below market relative to the value delivered. Likely room to charge $249–$399 without losing volume — *especially* given the 60-day duration is double the industry standard.
 **Effort:** ~1 day — feature flag + Stripe price update + analytics hook to track conversion.

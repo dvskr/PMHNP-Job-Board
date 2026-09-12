@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import { createId } from '@paralleldrive/cuid2';
-import { config, PricingTier } from '@/lib/config';
+import { config, PricingTier, PostPriceKind } from '@/lib/config';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import {
@@ -113,40 +113,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
     }
 
-    // FREE-ELIGIBILITY GUARD. The free-vs-paid decision used to live only in
-    // the preview page's client-side routing, so any false "paid" verdict
-    // (stale quota fetch, drifted preview predicate, direct navigation to
-    // /post-job/checkout) charged a customer for the post they were entitled
-    // to free — silently, with no server check anywhere before the Stripe
-    // session. Refuse to charge when the SAME predicate the free gate uses
-    // says this poster still has a free post. Fails open on lookup errors:
-    // wrongly blocking a genuine paid post costs more than the rare double
-    // check, and /api/jobs/post-free re-validates everything anyway.
+    // FIRST-POST DISCOUNT GATE. Every post is paid now, so this decides the
+    // PRICE and nothing else: a collision removes the half-price entry, it can
+    // never refuse the post. That distinction is the whole safety story here.
+    // The old free gate could be turned into a denial-of-service if its keys
+    // were poisonable; this one can at worst cost someone a discount, and the
+    // keys are still session-proven so even that is not reachable from the
+    // form (see lib/employer-quota.ts).
+    //
+    // Same predicate as the retired free gate, with two deliberate changes:
+    //   - It is no longer skipped for consumer signup domains. A solo
+    //     practitioner on a consumer mailbox pays like anyone else and earns
+    //     the same discount, gated per-account by the acct: key.
+    //   - 'pending' rows are excluded. Those are abandoned checkouts, never
+    //     live postings, so an employer who backs out of Stripe and returns
+    //     must not find their discount already spent.
+    //
+    // Fails toward the DISCOUNT on lookup errors. Overcharging someone for the
+    // half-price post they were promised is the failure this route exists to
+    // avoid; the reverse costs one discount on a rare DB hiccup.
+    let isFirstPost = true;
     try {
       const signupDomain = domainFromEmail(signupEmail);
-      if (signupDomain) {
-        const priorFree = await prisma.employerJob.count({
-          where: {
-            paymentStatus: 'free',
-            OR: [
-              { quotaKeys: { hasSome: buildQuotaKeys({ userId, signupEmail, lockedCompanyName }) } },
-              { quotaDomain: signupDomain },
-            ],
-          },
-        });
-        if (priorFree < config.freePostsPerEmail) {
-          return NextResponse.json(
-            {
-              error: 'Your first post is free. This listing does not need payment.',
-              code: 'FREE_POST_AVAILABLE',
-            },
-            { status: 409 }
-          );
-        }
-      }
-    } catch (guardErr) {
-      logger.warn('Free-eligibility guard lookup failed in create-checkout; proceeding to paid flow', {
-        error: guardErr,
+      const priorPosts = await prisma.employerJob.count({
+        where: {
+          paymentStatus: { not: 'pending' },
+          OR: [
+            { quotaKeys: { hasSome: buildQuotaKeys({ userId, signupEmail, lockedCompanyName }) } },
+            // Legacy rows predating quotaKeys carry only this column.
+            ...(signupDomain ? [{ quotaDomain: signupDomain }] : []),
+          ],
+        },
+      });
+      isFirstPost = priorPosts < config.discountedPostsPerEmployer;
+    } catch (priceErr) {
+      logger.warn('First-post lookup failed in create-checkout; charging the discounted price', {
+        error: priceErr,
       });
     }
 
@@ -186,9 +188,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Single-tier: all paid posts are 'pro' internally, $199
+    // Single-tier: all posts are 'pro' internally. Only the price varies.
     const pricing: PricingTier = 'pro';
-    const price = config.stripePriceInCents;
+    const priceKind: PostPriceKind = isFirstPost ? 'first' : 'standard';
+    const price = config.priceInCentsFor(priceKind);
+
+    // Guarantee copy rides the first post only, and disappears everywhere the
+    // moment config.firstPostGuarantee is turned off.
+    const guaranteeNote =
+      isFirstPost && config.firstPostGuarantee
+        ? ` If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`
+        : '';
 
     // Salary parsing + normalization
     const parsedMinSalary = (() => {
@@ -319,16 +329,16 @@ export async function POST(request: NextRequest) {
           paymentStatus: 'pending',
           pricingTier: pricing,
           userId,
-          // Anchors — paid posts don't consume free quota (every count query
-          // filters paymentStatus='free'), but identity is still recorded for
-          // ownership reporting. BOTH fields derive from the SESSION, exactly
-          // like post-free. quotaDomain previously snapshotted the form-typed
-          // contact email here, which meant the same column carried two
-          // different identity semantics depending on writer — and since
-          // quotaDomain is a live OR-arm in all three quota predicates, any
-          // future widening past paymentStatus='free' would have let a
-          // form-typed rival domain start consuming that rival's free post.
-          // Nothing form-typed may ever reach an identity column.
+          // Discount anchors. This row is what makes the NEXT post standard
+          // price once the webhook lifts it out of 'pending', so both columns
+          // must be written here and never rewritten by an update path.
+          // BOTH derive from the SESSION. quotaDomain previously snapshotted
+          // the form-typed contact email, which meant the same column carried
+          // two different identity semantics depending on writer, and since
+          // quotaDomain is a live OR-arm in the discount predicate a
+          // form-typed rival domain would have been able to spend that
+          // rival's discount. Nothing form-typed may ever reach an identity
+          // column.
           quotaDomain: domainFromEmail(signupEmail),
           quotaKeys: buildQuotaKeys({ userId, signupEmail, lockedCompanyName }),
         },
@@ -364,7 +374,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    logger.info('Job created for paid checkout', { jobId: job.id, userId });
+    logger.info('Job created for paid checkout', { jobId: job.id, userId, priceKind });
 
     // Create Stripe Checkout session with job ID and dashboard token in metadata
     const session = await stripe.checkout.sessions.create({
@@ -374,8 +384,14 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `Job Post: ${sanitized.title}`,
-              description: `${sanitized.employer} - ${sanitized.location}`,
+              // The name has to say WHICH price is being charged: it is the
+              // line the buyer reads on the Stripe page and on the receipt,
+              // and "Job Post" alone left a $149 and a $299 charge looking
+              // identical in their records.
+              name: isFirstPost
+                ? `First Job Post, ${config.firstPostDiscountPercent()}% off: ${sanitized.title}`
+                : `Job Post: ${sanitized.title}`,
+              description: `${sanitized.employer}, ${sanitized.location}. Runs ${config.durationDays} days.${guaranteeNote}`,
             },
             unit_amount: price,
           },
@@ -399,10 +415,11 @@ export async function POST(request: NextRequest) {
       invoice_creation: {
         enabled: true,
         invoice_data: {
-          description: `Job Post: ${sanitized.title} — ${sanitized.employer} (${sanitized.location})`,
+          description: `Job Post: ${sanitized.title}, ${sanitized.employer} (${sanitized.location}).${guaranteeNote}`,
           metadata: {
             jobId: job.id,
             employerJobId: employerJob.id,
+            priceKind,
           },
           rendering_options: { amount_tax_display: 'exclude_tax' },
         },
@@ -412,6 +429,10 @@ export async function POST(request: NextRequest) {
       metadata: {
         jobId: job.id,
         pricing,
+        // Which price this session was created at. The webhook reads it as the
+        // fallback amount when Stripe omits amount_total, so the JobCharge
+        // ledger cannot record a first post at the standard price.
+        priceKind,
         dashboardToken: employerJob.dashboardToken,
       },
     });

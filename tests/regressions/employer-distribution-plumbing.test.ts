@@ -7,9 +7,10 @@
  * A1: both Stripe webhook publish branches must fire embedding.refresh.job
  *     (paid posts previously NEVER got embeddings — invisible to AI search
  *     and recommendations).
- * A4: all three employer publish paths emit job/employer.published and the
+ * A4: every employer publish path emits job/employer.published and the
  *     Inngest handler honors the cadence rule (instant send replaces the
- *     daily digest, stamped via lastSentAt).
+ *     daily digest, stamped via lastSentAt). Since the free-post path was
+ *     retired those paths are the two Stripe webhook branches.
  * A5: the recommendation dead-man cron exists and alerts through the shared
  *     Discord helper.
  * A7: the weekly newsletter is double-gated (env flag + unregistered cron).
@@ -59,12 +60,16 @@ describe('Stripe webhook fires distribution events (A1 + A4)', () => {
   });
 });
 
-describe('post-free emits the instant fan-out event (A4)', () => {
+describe('the retired free-post route cannot publish anything (A4)', () => {
+  // It used to be the third publish path. Now every post is paid, so the only
+  // way a job goes live is the Stripe webhook: this route must not quietly
+  // grow a publish path again behind the events nobody is checking.
   const src = read('app/api/jobs/post-free/route.ts');
 
-  it('fires job/employer.published alongside the embedding refresh', () => {
-    expect(src).toMatch(/name: 'job\/employer\.published'/);
-    expect(src).toMatch(/name: 'embedding\.refresh\.job'/);
+  it('answers 410 and creates no job', () => {
+    expect(src).toMatch(/status: 410/);
+    expect(src).not.toMatch(/prisma\./);
+    expect(src).not.toMatch(/isPublished/);
   });
 });
 

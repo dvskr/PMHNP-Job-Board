@@ -4,6 +4,7 @@ import AuthLayout from '@/components/auth/AuthLayout'
 import { getCurrentUser } from '@/lib/auth/protect'
 import { safeInternalPath } from '@/lib/auth/safe-redirect'
 import { prisma } from '@/lib/prisma'
+import { config } from '@/lib/config'
 import { Suspense } from 'react'
 
 export const metadata = {
@@ -59,7 +60,7 @@ export default async function SignUpPage({
           title: 'Live platform numbers',
         }
       : {
-          quote: 'Your first job post is free, and every listing reaches a dedicated psychiatric-NP audience.',
+          quote: `Your first job post is half price at $${config.firstPostPrice}, and every listing reaches a dedicated psychiatric-NP audience.`,
           name: 'PMHNP Hiring',
           title: 'Built for hiring PMHNPs',
         }

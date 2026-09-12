@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { expiresFromNow, renewalExpiresAt } from '@/lib/expires-at';
+import { expiresFromNow, renewalExpiresAt, renewalRunwayDays } from '@/lib/expires-at';
 
 describe('expiresFromNow', () => {
   it('adds N×24 hours of UTC milliseconds — TZ-independent', () => {
@@ -11,7 +11,7 @@ describe('expiresFromNow', () => {
     expect(result.toISOString()).toBe('2026-03-27T00:00:00.000Z');
   });
 
-  it('crosses US DST boundary (Mar 8, 2026) without drift — the NYPCC bug', () => {
+  it('crosses US DST boundary (Mar 8, 2026) without drift — the prod drift bug', () => {
     // The original bug: posted Jan 26, expired Mar 29 (62 days, off by 2 from
     // the intended 60). Caused by setDate() running in server-local TZ across
     // the DST transition. UTC math returns exactly 60 days regardless.
@@ -20,7 +20,7 @@ describe('expiresFromNow', () => {
     expect(result.toISOString()).toBe('2026-03-27T12:00:00.000Z');
   });
 
-  it('30-day free-post duration is stable across timezones', () => {
+  it('an arbitrary shorter duration is stable across timezones', () => {
     const from = new Date('2026-04-30T18:00:00.000Z');
     const result = expiresFromNow(30, from);
     expect(result.toISOString()).toBe('2026-05-30T18:00:00.000Z');
@@ -74,14 +74,70 @@ describe('renewalExpiresAt', () => {
     expect(result.toISOString()).toBe('2027-01-01T00:00:00.000Z');
   });
 
-  it('respects custom maxFromOriginalDays cap', () => {
+  it('never moves the expiry backwards when the cap is already behind it', () => {
     const currentExpiry = new Date('2026-06-01T00:00:00.000Z');
     const now = new Date('2026-05-01T00:00:00.000Z');
-    // 90-day cap from Jan 1 = Apr 1, but currentExpiry is already past that
-    // so the cap kicks in and returns the cap value.
+    // 90-day cap from Jan 1 = Apr 1, which is BEHIND both `now` and the live
+    // expiry. This case previously returned the cap, so a completed $179
+    // renewal cut the listing two months short and set an expiry already in the
+    // past; cleanup-expired then unpublished it within hours. A renewal may add
+    // nothing, but it must never take time away.
+    const result = renewalExpiresAt({
+      currentExpiry, originalCreatedAt, durationDays: 60, now, maxFromOriginalDays: 90,
+    });
+    expect(result.toISOString()).toBe(currentExpiry.toISOString());
+    expect(result.getTime()).toBeGreaterThan(now.getTime());
+  });
+
+  it('still applies the cap when it lands ahead of the current expiry', () => {
+    const currentExpiry = new Date('2026-03-01T00:00:00.000Z');
+    const now = new Date('2026-02-01T00:00:00.000Z');
+    // 90-day cap from Jan 1 = Apr 1. Extending 60 days from Mar 1 would reach
+    // Apr 30, so the cap still trims it to Apr 1.
     const result = renewalExpiresAt({
       currentExpiry, originalCreatedAt, durationDays: 60, now, maxFromOriginalDays: 90,
     });
     expect(result.toISOString()).toBe('2026-04-01T00:00:00.000Z');
+  });
+});
+
+describe('renewalRunwayDays', () => {
+  const originalCreatedAt = new Date('2026-01-01T00:00:00.000Z');
+
+  it('reports zero once the posting has passed the cap', () => {
+    // The checkout uses this to refuse the charge instead of selling nothing.
+    expect(
+      renewalRunwayDays({
+        currentExpiry: new Date('2026-06-01T00:00:00.000Z'),
+        originalCreatedAt,
+        durationDays: 60,
+        now: new Date('2026-05-01T00:00:00.000Z'),
+        maxFromOriginalDays: 90,
+      }),
+    ).toBe(0);
+  });
+
+  it('reports the full duration when the cap is far away', () => {
+    expect(
+      renewalRunwayDays({
+        currentExpiry: new Date('2026-02-01T00:00:00.000Z'),
+        originalCreatedAt,
+        durationDays: 60,
+        now: new Date('2026-01-15T00:00:00.000Z'),
+      }),
+    ).toBe(60);
+  });
+
+  it('reports the partial runway the cap still allows', () => {
+    // Cap Apr 1; extending 60 days from Mar 1 would reach Apr 30, so 31 remain.
+    expect(
+      renewalRunwayDays({
+        currentExpiry: new Date('2026-03-01T00:00:00.000Z'),
+        originalCreatedAt,
+        durationDays: 60,
+        now: new Date('2026-02-01T00:00:00.000Z'),
+        maxFromOriginalDays: 90,
+      }),
+    ).toBe(31);
   });
 });

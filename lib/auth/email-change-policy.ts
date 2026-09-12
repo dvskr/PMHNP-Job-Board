@@ -1,14 +1,15 @@
 /**
  * Email-change policy.
  *
- * The free-post quota is per-domain (audit #26 final): each company domain
- * gets its first post free, lifetime, shared across all employees. The quota
+ * The first-post discount is per-domain (audit #26 final): each company domain
+ * gets one half-price post, lifetime, shared across all employees. The quota
  * anchor is `EmployerJob.quotaDomain` — an immutable snapshot of the signup
- * email's domain, set at posting time.
+ * email's domain, set at posting time. (Before 2026-09 the same machinery
+ * gated a free first post; only the reward changed, not the rule.)
  *
  * If we let a user freely change their account email's *domain*, they can
- * use the freebie on @acme.com, change their account to @example.com, and
- * claim another free post under the new domain. To prevent that, this helper
+ * use the discount on @acme.com, change their account to @example.com, and
+ * claim it again under the new domain. To prevent that, this helper
  * enforces:
  *
  *   - Local-part changes (bob@acme.com → bob.smith@acme.com) → allowed
