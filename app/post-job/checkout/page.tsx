@@ -86,6 +86,9 @@ export default function CheckoutPage() {
   const [quotaContext, setQuotaContext] = useState<
     'first-post' | 'standard' | null
   >(null);
+  // Signed out. /api/create-checkout is session-gated, so pressing Pay would
+  // fail on the far side of a click the employer had every reason to trust.
+  const [needsLogin, setNeedsLogin] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,8 +102,11 @@ export default function CheckoutPage() {
         if (cancelled) return;
         if (data.eligible === true) {
           setQuotaContext(data.isFirstPost ? 'first-post' : 'standard');
+        } else if (data.reason === 'unauthenticated') {
+          setNeedsLogin(true);
         }
-        // unauthenticated / not-employer / server-error → stay null (neutral)
+        // not-employer, or a non-ok response we never parsed → stay null, which
+        // renders neutral copy at the standard price and asserts nothing.
       } catch {
         /* leave null — neutral copy, never a false claim */
       }
@@ -267,6 +273,29 @@ export default function CheckoutPage() {
           <p style={{ fontSize: '14px', color: '#8A9BA6', margin: 0 }}>Review your listing before payment</p>
         </div>
 
+        {/* Sign-in prompt, surfaced before the Pay click rather than after it.
+            The draft stays in localStorage, so logging in returns here intact. */}
+        {needsLogin && (
+          <div style={{
+            ...cardBase, padding: '16px 20px', marginBottom: '16px',
+            background: '#FFFBEB', border: '1px solid #FDE68A',
+          }}>
+            <p style={{ fontSize: '14px', fontWeight: 700, color: '#92400E', margin: '0 0 4px' }}>
+              You need to be logged in to pay for this post.
+            </p>
+            <p style={{ fontSize: '13px', color: '#92400E', margin: '0 0 12px', lineHeight: 1.5 }}>
+              Your draft is saved on this device, so you can log in and come straight back to this page.
+            </p>
+            <Link href="/login?next=/post-job/checkout" style={{
+              ...clayBtn, padding: '10px 20px', fontSize: '13px', textDecoration: 'none',
+              background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+              boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
+            }}>
+              Log in to continue
+            </Link>
+          </div>
+        )}
+
         {/* Price context — why this listing costs what it costs. Only asserts
             a state the price endpoint actually confirmed; unknown states get
             neutral copy instead of a false discount claim. */}
@@ -395,14 +424,14 @@ export default function CheckoutPage() {
         {/* Payment Button */}
         <button
           onClick={handlePayment}
-          disabled={loading}
+          disabled={loading || needsLogin}
           className="checkout-btn-primary"
           style={{
             ...clayBtn, width: '100%', justifyContent: 'center',
             background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
             boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
-            opacity: loading ? 0.6 : 1,
-            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading || needsLogin ? 0.6 : 1,
+            cursor: loading || needsLogin ? 'not-allowed' : 'pointer',
           }}
         >
           {loading ? (
@@ -440,7 +469,7 @@ export default function CheckoutPage() {
       </div>
 
       <style>{`
-        .checkout-btn-primary:hover { transform: translateY(-1px); box-shadow: 6px 6px 16px rgba(13,148,136,0.3), inset 1px 1px 2px rgba(255,255,255,0.15) !important; }
+        .checkout-btn-primary:not(:disabled):hover { transform: translateY(-1px); box-shadow: 6px 6px 16px rgba(13,148,136,0.3), inset 1px 1px 2px rgba(255,255,255,0.15) !important; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>

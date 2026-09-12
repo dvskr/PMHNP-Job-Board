@@ -15,7 +15,7 @@ import { attachErrorCollectors, assertClean, type Collected } from './_helpers';
  *   1. Access control: a job seeker / anonymous visitor must not reach the
  *      employer applicant + talent surfaces or their APIs.
  *   2. Setup: make sure Test Corp has one active platform-apply posting
- *      (posted for free through /api/jobs/post-free when missing) and that
+ *      (the suite skips when none exists: there is no unpaid create path) and that
  *      the shared seeker has applied to it in-platform (resume upload,
  *      consent, submit).
  *   3. /employer/applicants: rows vs empty state, status change, notes,
@@ -138,35 +138,12 @@ async function ensureEmployerJob(empPage: Page): Promise<EmployerJob> {
       return employerJob;
     }
   }
-  const title = `${E2E_JOB_TITLE_PREFIX} ${RUN_TAG}-${Date.now().toString(36)}`;
-  const posted = await apiFetch<{ success?: boolean; jobId?: string; error?: string }>(empPage, '/api/jobs/post-free', {
-    method: 'POST',
-    body: {
-      title,
-      employer: 'Test Corp',
-      location: 'Austin, TX',
-      mode: 'Hybrid',
-      jobType: 'Full-time',
-      description: '<p>E2E fixture posting used by the employer talent bug-hunt suite. Outpatient psychiatric mental health nurse practitioner role covering medication management, intake evaluations and collaborative care with a supervising psychiatrist. Safe to delete. This description exists only so the in-platform apply flow has a published employer-owned job to apply to.</p>',
-      applyOnPlatform: true,
-      // example.com is on the mail fixture blocklist, so no confirmation or
-      // applicant-notification email ever leaves the building for this post.
-      contactEmail: 'e2e-testcorp-contact@example.com',
-      minSalary: 140000,
-      maxSalary: 180000,
-      salaryPeriod: 'year',
-      benefits: ['Health insurance'],
-    },
-  });
-  expect(posted.status, `POST /api/jobs/post-free -> ${posted.status} ${posted.text.slice(0, 300)}`).toBe(200);
-  const jobId = posted.json?.jobId as string;
-  const job = await apiFetch<{ id: string; slug: string | null; title: string }>(empPage, `/api/jobs/${jobId}`);
-  expect(job.status, `GET /api/jobs/${jobId} after posting -> ${job.status}`).toBe(200);
-  const usage2 = await apiFetch<{ postings?: UsagePosting[] }>(empPage, '/api/employer/usage');
-  const posting = (usage2.json?.postings || []).find((p) => p.jobId === jobId);
-  expect(posting, 'new free posting should show up in /api/employer/usage postings').toBeTruthy();
-  employerJob = { id: jobId, slug: job.json!.slug!, title: job.json!.title, postingId: posting!.id };
-  return employerJob;
+  // Every post now goes through Stripe checkout, so this suite can no longer
+  // seed its own posting: the retired unpaid route answers 410. Skip rather
+  // than fabricate a fixture. To run this slice, seed one Test Corp
+  // platform-apply posting through checkout first (Stripe test mode).
+  test.skip(true, `no active platform-apply posting for ${E2E_JOB_TITLE_PREFIX} and no unpaid create path exists; seed one via checkout`);
+  throw new Error('unreachable: test.skip aborts the test');
 }
 
 let seekerApplied = false;

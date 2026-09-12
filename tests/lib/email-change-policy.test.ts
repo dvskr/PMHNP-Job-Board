@@ -53,7 +53,7 @@ describe('evaluateEmailChange', () => {
 
         const result = await evaluateEmailChange(USER_ID, 'bob@acme.com', 'bob@example.com');
         expect(result.allowed).toBe(false);
-        expect(result.reason).toMatch(/free posts have been used/i);
+        expect(result.reason).toMatch(/first-post discount has been used/i);
         expect(result.lockedDomain).toBe('acme.com');
     });
 

@@ -511,18 +511,32 @@ export default function PreviewPage() {
           }}>
             <ChevronLeft size={16} /> Back to Edit
           </button>
-          <button onClick={handleContinue} disabled={isLoading} className="preview-btn-primary" style={{
-            ...clayBtn, flex: 1, justifyContent: 'center',
-            background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
-            boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
-            opacity: isLoading ? 0.6 : 1,
-          }}>
-            {isLoading ? (
-              <><Loader2 size={16} className="animate-spin" /> Processing...</>
-            ) : (
-              <>Continue to Payment: ${priceDollars} <ChevronRight size={16} /></>
-            )}
-          </button>
+          {/* A signed-out visitor has no checkout to go to: /post-job/checkout
+              would hand them to a session-gated /api/create-checkout and dead
+              end there. Send them to login instead, and say so on the button
+              rather than quoting a price they cannot yet pay. */}
+          {needsLogin ? (
+            <a href="/login?next=/post-job/preview" className="preview-btn-primary" style={{
+              ...clayBtn, flex: 1, justifyContent: 'center', textDecoration: 'none',
+              background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+              boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
+            }}>
+              Log in to continue <ChevronRight size={16} />
+            </a>
+          ) : (
+            <button onClick={handleContinue} disabled={isLoading} className="preview-btn-primary" style={{
+              ...clayBtn, flex: 1, justifyContent: 'center',
+              background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+              boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
+              opacity: isLoading ? 0.6 : 1,
+            }}>
+              {isLoading ? (
+                <><Loader2 size={16} className="animate-spin" /> Processing...</>
+              ) : (
+                <>Continue to Payment: ${priceDollars} <ChevronRight size={16} /></>
+              )}
+            </button>
+          )}
         </div>
       </div>
 

@@ -275,6 +275,14 @@ model EmployerJob {
   dashboardToken      String           @unique @default(cuid()) @map("dashboard_token")
   paymentStatus       String           @map("payment_status")
   pricingTier         String           @default("pro") @map("pricing_tier")
+  /// The Checkout session this row is waiting on, written by
+  /// /api/create-checkout right after the session is created. Pending rows are
+  /// excluded from the first-post discount count, so without this the same
+  /// identity could hold several payable discounted sessions open at once (the
+  /// Back button, or two tabs). The discount gate expires the sessions it
+  /// finds here before counting. Null on rows created before this column and
+  /// on renewal charges, which are tracked on JobCharge instead.
+  stripeSessionId     String?          @map("stripe_session_id")
   // Immutable snapshot of the signup email's domain at posting time.
   // Used as the canonical anchor for the free-post quota count so that:
   //   - Editing contactEmail can't shift the count

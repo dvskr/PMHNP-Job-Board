@@ -185,7 +185,34 @@ export async function GET(request: NextRequest) {
     // persist them at the time). Fall back to the local PDF generator so old
     // paid posts still get an invoice instead of 404'ing.
     const tier = (employerJob.pricingTier || 'pro') as PricingTier;
-    const amount = charge?.amountCents ?? config.getStripePriceInCents(tier);
+
+    // The invoice must print what Stripe actually captured. Now that the first
+    // post per employer identity is charged less than a standard one, a config
+    // lookup is no longer a safe stand-in for a missing ledger row: it would
+    // print the standard price on a post that was billed the discounted one.
+    // Order of truth:
+    //   1. JobCharge.amountCents, the amount the webhook recorded.
+    //   2. The Checkout session on the row, asked live, for a paid post whose
+    //      ledger write never landed.
+    //   3. config, and only when there is neither. That is a legacy row
+    //      predating both the ledger and the discount, so the standard price
+    //      is what was paid.
+    let capturedCents: number | null = charge?.amountCents ?? null;
+    if (capturedCents === null && employerJob.stripeSessionId) {
+      const stripe = getStripe();
+      if (stripe) {
+        try {
+          const paidSession = await stripe.checkout.sessions.retrieve(employerJob.stripeSessionId);
+          capturedCents = paidSession.amount_total ?? null;
+        } catch (sessionErr) {
+          logger.warn('Could not read the captured amount from Stripe for an invoice', {
+            employerJobId: employerJob.id,
+            error: sessionErr instanceof Error ? sessionErr.message : String(sessionErr),
+          });
+        }
+      }
+    }
+    const amount = capturedCents ?? config.getStripePriceInCents(tier);
     const chargeDate = charge?.createdAt ?? new Date(employerJob.createdAt);
     const chargeType = charge?.type ?? 'new';
 

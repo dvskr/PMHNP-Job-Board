@@ -16,6 +16,14 @@
  *   - Domain changes when NO freebies have been used → allowed
  *   - Domain changes when ANY freebies exist for the user → BLOCKED
  *
+ * SCOPE NOTE (2026-09): the counts below still key on paymentStatus 'free',
+ * which after the paid-first switch means LEGACY rows only, because a
+ * discounted first post is stored as 'paid' like any other. That is not a
+ * hole: buildQuotaKeys emits `acct:<user id>` alongside `dom:`, and the
+ * discount predicate matches on ANY key, so the same account cannot re-earn
+ * the discount by moving domains no matter what this helper decides. This
+ * rule is now a legacy-row safety net rather than the primary defense.
+ *
  * **Where to call this:**
  * Anywhere we accept an email-change request — `/api/auth/change-email`,
  * Supabase email-change webhooks, admin override flows. Today there is no
@@ -82,7 +90,7 @@ export async function evaluateEmailChange(
     if (userOwnedFreePosts > 0) {
         return {
             allowed: false,
-            reason: `Email domain changes aren't allowed once free posts have been used at ${oldDomain ?? 'your current domain'}. Contact support@pmhnphiring.com if your company domain has actually changed.`,
+            reason: `Email domain changes aren't allowed once the first-post discount has been used at ${oldDomain ?? 'your current domain'}. Contact support@pmhnphiring.com if your company domain has actually changed.`,
             lockedDomain: oldDomain ?? undefined,
         };
     }
@@ -101,7 +109,7 @@ export async function evaluateEmailChange(
         if (oldDomainFreePosts > 0 && userOwnedFreePosts > 0) {
             return {
                 allowed: false,
-                reason: `Email domain changes aren't allowed once free posts have been used at ${oldDomain}. Contact support if your company domain has actually changed.`,
+                reason: `Email domain changes aren't allowed once the first-post discount has been used at ${oldDomain}. Contact support if your company domain has actually changed.`,
                 lockedDomain: oldDomain,
             };
         }

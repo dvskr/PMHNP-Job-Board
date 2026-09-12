@@ -54,8 +54,8 @@ test.describe('payments + quota identity', () => {
     const afterJson = await after.json();
     console.log('settings after company =', JSON.stringify(afterJson.profile?.company));
 
-    const quota = await page.request.get('/api/employer/free-quota-status');
-    console.log('free-quota-status after rename =', await quota.text());
+    const quota = await page.request.get('/api/employer/post-price');
+    console.log('post-price after rename =', await quota.text());
 
     // Restore (always)
     const restore = await page.request.patch('/api/auth/profile', {
@@ -103,7 +103,7 @@ test.describe('payments + quota identity', () => {
     for (const p of bj.payments ?? []) {
       console.log('  payment', p.jobId, 'status=', p.status, 'isFree=', p.isFree, 'isActive=', p.isActive, 'expiresAt=', p.expiresAt, 'charges=', p.charges?.length);
     }
-    const quota = await page.request.get('/api/employer/free-quota-status');
+    const quota = await page.request.get('/api/employer/post-price');
     console.log('quota =', await quota.text());
     const usage = await page.request.get('/api/employer/usage');
     console.log('usage status =', usage.status(), (await usage.text()).slice(0, 600));

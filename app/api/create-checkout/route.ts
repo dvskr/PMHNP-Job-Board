@@ -127,7 +127,9 @@ export async function POST(request: NextRequest) {
     //     the same discount, gated per-account by the acct: key.
     //   - 'pending' rows are excluded. Those are abandoned checkouts, never
     //     live postings, so an employer who backs out of Stripe and returns
-    //     must not find their discount already spent.
+    //     must not find their discount already spent. That exclusion is also
+    //     why the gate expires this identity's earlier open sessions before
+    //     counting: see the block below.
     //
     // Fails toward the DISCOUNT on lookup errors. Overcharging someone for the
     // half-price post they were promised is the failure this route exists to
@@ -135,14 +137,50 @@ export async function POST(request: NextRequest) {
     let isFirstPost = true;
     try {
       const signupDomain = domainFromEmail(signupEmail);
+      const identity = {
+        OR: [
+          { quotaKeys: { hasSome: buildQuotaKeys({ userId, signupEmail, lockedCompanyName }) } },
+          // Legacy rows predating quotaKeys carry only this column.
+          ...(signupDomain ? [{ quotaDomain: signupDomain }] : []),
+        ],
+      };
+
+      // Collapse this identity's open checkouts down to the one we are about
+      // to create. Every POST mints a fresh pending row plus a Checkout
+      // session, Stripe sessions do not expire on their own, and pending rows
+      // are excluded from the count below by design. Left alone that turns the
+      // Back button, or a handful of tabs, into several simultaneously payable
+      // half-price sessions, each of which publishes a discounted post.
+      // Expiring the older ones first means only the checkout the employer
+      // actually finishes can ever become a posting.
+      const openCheckouts = await prisma.employerJob.findMany({
+        where: {
+          paymentStatus: 'pending',
+          stripeSessionId: { not: null },
+          ...identity,
+        },
+        select: { id: true, stripeSessionId: true },
+      });
+      for (const open of openCheckouts) {
+        if (!open.stripeSessionId) continue;
+        try {
+          await stripe.checkout.sessions.expire(open.stripeSessionId);
+        } catch (expireErr) {
+          // Stripe refuses to expire a session that is already completed or
+          // already expired, and both outcomes are fine. A completed session
+          // has a webhook that lifts its row out of 'pending', so the count
+          // below sees it and this post is priced as a standard one.
+          logger.debug('Could not expire an earlier checkout session', {
+            employerJobId: open.id,
+            error: expireErr instanceof Error ? expireErr.message : String(expireErr),
+          });
+        }
+      }
+
       const priorPosts = await prisma.employerJob.count({
         where: {
           paymentStatus: { not: 'pending' },
-          OR: [
-            { quotaKeys: { hasSome: buildQuotaKeys({ userId, signupEmail, lockedCompanyName }) } },
-            // Legacy rows predating quotaKeys carry only this column.
-            ...(signupDomain ? [{ quotaDomain: signupDomain }] : []),
-          ],
+          ...identity,
         },
       });
       isFirstPost = priorPosts < config.discountedPostsPerEmployer;
@@ -436,6 +474,22 @@ export async function POST(request: NextRequest) {
         dashboardToken: employerJob.dashboardToken,
       },
     });
+
+    // Bind the session to the pending row immediately. This is what the
+    // discount gate reads on the employer's next attempt, so a row without it
+    // is an open half-price session nothing can close.
+    try {
+      await prisma.employerJob.update({
+        where: { id: employerJob.id },
+        data: { stripeSessionId: session.id },
+      });
+    } catch (linkErr) {
+      logger.error('Failed to record the checkout session on the employer job row', linkErr, {
+        employerJobId: employerJob.id,
+      });
+      // Not fatal: the employer still gets their checkout. Worst case this one
+      // session cannot be expired by a later attempt.
+    }
 
     if (!session.url) {
       logger.error('Stripe returned a checkout session without a URL', null, { sessionId: session.id });

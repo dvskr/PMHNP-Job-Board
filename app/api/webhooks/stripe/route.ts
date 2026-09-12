@@ -437,7 +437,11 @@ export async function POST(request: NextRequest) {
                   invoicePdfUrl: stableInvoiceUrl,
                   hostedInvoiceUrl: newPostInvoiceData.hostedInvoiceUrl,
                   invoiceNumber: newPostInvoiceData.invoiceNumber,
-                }
+                },
+                // Which price this post was charged at. The guarantee block in
+                // the email renders only for 'first', so omitting this argument
+                // silently withheld the guarantee from every first post.
+                priceKind,
               );
             } catch (emailError) {
               logger.error('Failed to send confirmation email', emailError, { jobId });

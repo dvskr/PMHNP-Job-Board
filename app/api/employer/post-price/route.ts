@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { config, PostPriceKind } from '@/lib/config';
+import { logger } from '@/lib/logger';
 import { buildQuotaKeys, domainFromEmail } from '@/lib/employer-quota';
 
 /**
@@ -35,7 +36,11 @@ interface PostPriceResponse {
   reason?: string;
 }
 
-/** Shape for a caller who cannot post: quote the standard price, no discount. */
+/**
+ * Neutral shape: no discount claimed. Used for a caller who cannot post, and
+ * for a lookup that failed, where claiming a discount we cannot verify is the
+ * one answer that costs the employer something.
+ */
 function ineligible(reason: string): PostPriceResponse {
   return {
     eligible: false,
@@ -103,18 +108,19 @@ export async function GET() {
       remaining,
     };
     return NextResponse.json(response);
-  } catch {
-    // Quote the DISCOUNT on failure, for the same reason create-checkout
-    // charges it on failure: a quote that undersells is recoverable, a quote
-    // that oversells the promised half-price post is a broken promise.
-    const response: PostPriceResponse = {
-      eligible: true,
-      isFirstPost: true,
-      priceKind: 'first',
-      priceDollars: config.priceFor('first'),
-      remaining: config.discountedPostsPerEmployer,
-      reason: 'server-error',
-    };
-    return NextResponse.json(response, { status: 200 });
+  } catch (error) {
+    // FAIL NEUTRAL, NOT TOWARD THE DISCOUNT. create-checkout charges the
+    // discount when its own lookup fails, and that is correct there because
+    // the same request both decides and bills. Here the quote and the charge
+    // are two separate requests: a preview that says "half price" does not
+    // make create-checkout charge half price, it just sets the employer up to
+    // be billed the standard price after being promised the discount and the
+    // refund guarantee that rides with it.
+    //
+    // Every caller guards on res.ok alone and none of them reads `reason`, so
+    // a 500 is what actually moves the funnel to neutral price copy. A 200
+    // with a discount in it is indistinguishable from a real quote.
+    logger.error('post-price lookup failed; declining to quote a price', error);
+    return NextResponse.json(ineligible('server-error'), { status: 500 });
   }
 }

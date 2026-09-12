@@ -47,6 +47,31 @@ const filesMatching = (pattern: RegExp): string[] =>
   USER_FACING_FILES.filter((rel) => pattern.test(read(rel)));
 
 /**
+ * Same sweep as filesMatching, but each hit is reported as `path:line  text`
+ * so a failure says which line to delete instead of only which file to open.
+ * A match that straddles a line break (JSX wraps copy freely) still reports
+ * the file, flagged so nobody hunts for a line number that does not exist.
+ * Pattern must not carry /g: a stateful lastIndex would skip hits.
+ */
+function hitsFor(pattern: RegExp): string[] {
+  const out: string[] = [];
+  for (const rel of filesMatching(pattern)) {
+    const lines = read(rel).split('\n');
+    const onOneLine = lines
+      .map((line, index) => ({ line, number: index + 1 }))
+      .filter(({ line }) => pattern.test(line));
+    if (onOneLine.length === 0) {
+      out.push(`${rel} (match spans a line break)`);
+      continue;
+    }
+    for (const { line, number } of onOneLine) {
+      out.push(`${rel}:${number}  ${line.trim().slice(0, 110)}`);
+    }
+  }
+  return out;
+}
+
+/**
  * Renders offenders into the assertion itself so a failure names the files
  * instead of printing "expected 7 to be 0".
  */
@@ -134,14 +159,31 @@ describe('the unpaid posting route is retired, not merely unused', () => {
 });
 
 describe('no surface still advertises a free first post', () => {
-  it('the phrase "first post free" appears nowhere in app/ or components/', () => {
-    const hits = filesMatching(/first\s+post\s+free/i);
-    expect(offenders(hits, 'still selling a free first post')).toBe('');
+  /**
+   * Deliberately wider than the phrase the first sweep searched for. Pinning
+   * the exact string "first post free" is why two surfaces survived it: the
+   * offer had been written as "first one free" on one page and "your first
+   * post is free" on another. Copy varies, the promise does not, so the guard
+   * matches the promise: a first {post,one,listing,job} that is, will be, or
+   * simply reads as free.
+   */
+  const FREE_FIRST_POST = /first\s+(?:post|one|listing|job)\s+(?:is\s+|are\s+|will\s+be\s+|comes\s+)?free/i;
+
+  it('no phrasing of "the first post is free" appears in app/ or components/', () => {
+    expect(offenders(hitsFor(FREE_FIRST_POST), 'still selling a free first post')).toBe('');
   });
 
   it('the phrase "no credit card required" appears nowhere in app/ or components/', () => {
-    const hits = filesMatching(/no\s+credit\s+card\s+required/i);
-    expect(offenders(hits, 'still promising that no card is needed')).toBe('');
+    expect(offenders(hitsFor(/no\s+credit\s+card\s+required/i), 'still promising that no card is needed')).toBe('');
+  });
+
+  /**
+   * There is no trial in the paid-first model: the first post is a purchase at
+   * a lower price, not a sample. A plan label, badge or billing row that still
+   * says "Free trial" tells a paying employer they were never charged.
+   */
+  it('nothing is labelled a free trial', () => {
+    expect(offenders(hitsFor(/free\s+trial/i), 'still labels something a free trial')).toBe('');
   });
 });
 

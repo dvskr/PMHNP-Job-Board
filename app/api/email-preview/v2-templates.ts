@@ -242,7 +242,13 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       `Your posting is now visible to thousands of PMHNPs actively searching for their next role. The listing will remain active for ${config.durationDays} days.`,
       'View Your Listing', `${BASE_URL}/jobs`, 'Your job posting is now live.',
       // Preview renders the first-post variant, the only one carrying the guarantee.
-      `${config.firstPostGuarantee ? `${spacerV2(20)}${tealCallout('Your first-post guarantee', `Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`)}` : ''}${spacerV2(16)}${secondary(`Need to edit? <a href="${BASE_URL}/employer/dashboard" style="color:${V2.teal};text-decoration:underline;">Open your dashboard</a>.`)}`),
+      `${config.firstPostGuarantee ? `${spacerV2(20)}${tealCallout(
+        'Your first-post guarantee',
+        `Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full. Reply to this email and we will take care of it.`,
+        // Mirrors the definition in lib/email-service.ts. Wherever the
+        // guarantee is spelled out at length it has to say what it counts.
+        'An applicant means a candidate who submits an application through the site, or who clicks through to your own application page when your posting links out. Your dashboard shows both counts, so you can check the number yourself.',
+      )}` : ''}${spacerV2(16)}${secondary(`Need to edit? <a href="${BASE_URL}/employer/dashboard" style="color:${V2.teal};text-decoration:underline;">Open your dashboard</a>.`)}`),
   },
 
   // 5. Expiry Warning

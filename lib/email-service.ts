@@ -534,6 +534,7 @@ export async function sendConfirmationEmail(
           <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
             <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Your first-post guarantee</p>
             <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full. Reply to this email and we will take care of it.</p>
+            <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};line-height:1.5;">An applicant means a candidate who submits an application through the site, or who clicks through to your own application page when your posting links out. Your dashboard shows both counts, so you can check the number yourself.</p>
           </div>
         </td></tr>`
       : '';
@@ -635,7 +636,7 @@ export async function sendRenewalConfirmationEmail(
       <tr><td class="content-pad" style="padding:0 40px;">
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
           <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Receipt</p>
-          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">Renewal — $${config.renewalPrice}.00 · ${invoiceLine}</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">Renewal: $${config.renewalPrice}.00 · ${invoiceLine}</p>
           <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">You also got a fresh ${config.limits.candidateUnlocksPerPosting} candidate unlocks and ${config.limits.inmailsPerPosting} InMails for this renewal cycle.</p>
         </div>
       </td></tr>
@@ -652,7 +653,7 @@ export async function sendRenewalConfirmationEmail(
     await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: `✅ Job Renewed — "${jobTitle}" is live again`,
+      subject: `✅ Job Renewed: "${jobTitle}" is live again`,
       html,
     }, 'renewal_confirmation', { jobTitle }, `${BASE_URL}/unsubscribe?token=${unsubscribeToken}`);
 

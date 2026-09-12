@@ -127,6 +127,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Days this renewal will ACTUALLY deliver. Near the one-year cap the
+    // renewal is truncated, and the price does not drop, so the buyer has to
+    // read the real number before paying rather than a flat promise of
+    // config.durationDays that the cap cannot keep. Refusing outright is
+    // wrong too: a short renewal is still worth buying if the employer knows
+    // it is short, and only they can weigh that against a fresh posting.
+    const deliveredDays = Math.min(config.durationDays, Math.floor(runwayDays));
+    const isTruncated = deliveredDays < config.durationDays;
+    const renewalTerm = isTruncated
+      ? `Renew for ${deliveredDays} days. This posting reaches the one-year maximum listing period then, so a full ${config.durationDays} days is not available. A new posting starts a fresh term.`
+      : `Renew for ${config.durationDays} days, ${renewalSavingPercent}% off the standard post price.`;
+
     // Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -136,7 +148,7 @@ export async function POST(request: NextRequest) {
             currency: 'usd',
             product_data: {
               name: `Job Renewal: ${employerJob.job.title}`,
-              description: `Renew for ${config.durationDays} days, ${renewalSavingPercent}% off the standard post price. ${employerJob.job.employer}`,
+              description: `${renewalTerm} ${employerJob.job.employer}`,
             },
             unit_amount: price,
           },

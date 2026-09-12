@@ -177,7 +177,7 @@ const ROUTE_CATALOG = `
 /api/employer/candidates/[id]/resume|GET
 /api/employer/candidates/[id]|GET
 /api/employer/candidates|GET
-/api/employer/free-quota-status|GET
+/api/employer/post-price|GET
 /api/employer/invoice|GET
 /api/employer/jd-templates/[id]|DELETE,PATCH
 /api/employer/jd-templates|GET,POST
@@ -609,7 +609,6 @@ test.describe('unauthenticated contract sweep', () => {
       { method: 'POST', path: '/api/consent' },
       { method: 'POST', path: '/api/email/unsubscribe' },
       { method: 'POST', path: '/api/email/preferences' },
-      { method: 'POST', path: '/api/jobs/post-free' },
       { method: 'POST', path: '/api/create-checkout' },
       { method: 'POST', path: '/api/analytics/sources' },
       { method: 'POST', path: '/api/autofill/track' },
@@ -695,7 +694,7 @@ test.describe('cross-role access', () => {
       const r = await call(seeker.req, method, urlPath, { data: method === 'GET' ? undefined : {} });
       if (r.status >= 500) problems.push(`5xx: ${describeResult(method, urlPath, r)}`);
       else if (r.status === 200) {
-        // /api/employer/free-quota-status deliberately answers 200 with
+        // /api/employer/post-price deliberately answers 200 with
         // `{eligible:false, reason:'not-employer'}` because the post-job
         // preview renders that refusal inline. Any OTHER 200 means the route
         // never checked the caller's role.

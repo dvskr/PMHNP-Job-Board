@@ -7,21 +7,25 @@ import { attachErrorCollectors, assertClean, type Collected } from './_helpers';
  *
  * Journey: an employer signs in (or signs up), lands on the employer
  * dashboard, walks the 4-step /post-job wizard (validation, Quill editor,
- * screening questions, logo upload, AI JD, JD templates), previews, posts
- * through the free path, then manages the listing: public page, search
- * visibility, pause/unpause, edit-by-token, archive/restore, renewal and
- * paid-checkout guards, billing/usage/invoice/receipt APIs, settings and
- * notification persistence, analytics + CSV export, legacy token dashboard,
- * sign-out redirects and copy rules.
+ * screening questions, logo upload, AI JD, JD templates), previews, hands off
+ * to checkout, then manages a listing: public page, search visibility,
+ * pause/unpause, edit-by-token, archive/restore, renewal and checkout guards,
+ * billing/usage/invoice/receipt APIs, settings and notification persistence,
+ * analytics + CSV export, legacy token dashboard, sign-out redirects and copy
+ * rules.
  *
  * Every test is independent and re-runnable. Data-mutating describes skip
- * against production. The free-post quota is one per signup domain for the
- * life of the account, so the "job lifecycle" block only runs when the shared
- * employer still has its free post (it creates the listing) or when a previous
- * run left an "E2E Hunt PMHNP" listing to drive. Once the quota is gone and no
- * such listing exists it skips, and the "existing employer posting
- * (read-only)" block below carries the public-page, search, edit-token and
- * renewal-guard coverage without mutating a listing another suite may own.
+ * against production.
+ *
+ * Pricing model these specs run against: every post is paid and every post
+ * goes through Stripe Checkout. The first post per employer identity is half
+ * price, the rest are standard price, and there is no route that publishes a
+ * listing without payment. A suite that never completes a payment therefore
+ * cannot create a listing, so the "job lifecycle" block adopts an existing
+ * "E2E Hunt PMHNP" listing and skips when there is none. Checkout itself is
+ * still exercised: the hand-off runs up to the Stripe-hosted page and the
+ * navigation is aborted at that boundary, so a session is created and never
+ * paid.
  */
 
 const AGAINST_PROD =
@@ -84,8 +88,8 @@ async function json(res: APIResponse): Promise<Record<string, unknown>> {
 }
 
 async function quotaStatus(page: Page): Promise<Record<string, unknown>> {
-  const res = await page.request.get('/api/employer/free-quota-status');
-  expect(res.status(), 'free-quota-status must answer 200').toBe(200);
+  const res = await page.request.get('/api/employer/post-price');
+  expect(res.status(), 'post-price must answer 200 for a signed-in employer').toBe(200);
   return json(res);
 }
 
@@ -340,7 +344,7 @@ test.describe('employer signup', () => {
     expect(after.company).toBe('E2E Upgrade Clinic');
 
     // Employer surfaces now accept the account.
-    const quota = await json(await page.request.get('/api/employer/free-quota-status'));
+    const quota = await json(await page.request.get('/api/employer/post-price'));
     expect(quota.reason).not.toBe('not-employer');
     assertClean(c, 'role upgrade');
   });
@@ -369,18 +373,20 @@ test.describe('employer dashboard and read APIs', () => {
     assertClean(c, 'dashboard');
   });
 
-  test('free-quota-status reports an eligible employer with a coherent quota shape', async ({ page }) => {
+  test('post-price reports an eligible employer with a coherent price shape', async ({ page }) => {
     const c = attachErrorCollectors(page);
     await employerLogin(page);
     const q = await quotaStatus(page);
     expect(q.eligible, JSON.stringify(q)).toBe(true);
-    expect(typeof q.willBeFree).toBe('boolean');
-    expect(q.limit).toBe(1);
-    expect(typeof q.remaining).toBe('number');
-    expect(q.durationDays).toBe(q.willBeFree ? q.freeDurationDays : q.paidDurationDays);
-    expect(q.freeDurationDays).toBe(30);
-    expect(q.paidDurationDays).toBe(60);
-    assertClean(c, 'quota');
+    expect(typeof q.isFirstPost).toBe('boolean');
+    // The kind, the remaining-discount counter and the quoted price must all
+    // tell the same story: one half-price post per employer identity, then
+    // the standard price with nothing left to discount.
+    expect(q.priceKind).toBe(q.isFirstPost ? 'first' : 'standard');
+    expect(q.remaining).toBe(q.isFirstPost ? 1 : 0);
+    expect(typeof q.priceDollars).toBe('number');
+    expect(Number(q.priceDollars) > 0).toBe(true);
+    assertClean(c, 'post-price');
   });
 
   test('billing, usage, invoice and receipt APIs answer sanely for a free account', async ({ page }) => {
@@ -476,7 +482,7 @@ test.describe('employer dashboard and read APIs', () => {
       const res = await page.request.get(path);
       expect([401, 403], `${path} -> ${res.status()}`).toContain(res.status());
     }
-    const q = await json(await page.request.get('/api/employer/free-quota-status'));
+    const q = await json(await page.request.get('/api/employer/post-price'));
     expect(q.eligible).toBe(false);
     expect(q.reason).toBe('unauthenticated');
 
@@ -924,21 +930,17 @@ test.describe('paid checkout guard', () => {
   test.skip(AGAINST_PROD, 'no mutations against production');
   test.skip(!HAS_EMPLOYER, 'E2E_EMPLOYER_EMAIL / E2E_EMPLOYER_PASS not set');
 
-  test('create-checkout refuses to charge (409) while a free post is available, otherwise returns a Stripe URL', async ({ page }) => {
+  test('create-checkout returns a Stripe URL at whichever price post-price quoted', async ({ page }) => {
     const c = attachErrorCollectors(page);
     await employerLogin(page);
     const q = await quotaStatus(page);
     const { status, body, stripeUrl } = await runCheckout(page, `E2E Hunt PMHNP Paid guard ${Date.now()}`);
-    if (q.willBeFree) {
-      expect(status, JSON.stringify(body)).toBe(409);
-      expect(body.code).toBe('FREE_POST_AVAILABLE');
-      await page.waitForURL(/\/post-job\/preview/, { timeout: 30_000 });
-      await expect(page.getByText(/Free trial post/)).toBeVisible({ timeout: 60_000 });
-    } else {
-      expect([200, 503], JSON.stringify(body)).toContain(status);
-      // Stop at the Stripe-hosted page: the redirect is aborted, never loaded.
-      if (status === 200) expect(String(stripeUrl)).toMatch(/^https:\/\/checkout\.stripe\.com\//);
-    }
+    // Every post is paid now, so there is no free-post 409 branch. Both the
+    // discounted first post and a standard post land on a Stripe-hosted
+    // page; 503 is Stripe unconfigured in this environment.
+    expect([200, 503], `${q.priceKind} post: ${JSON.stringify(body)}`).toContain(status);
+    // Stop at the Stripe-hosted page: the redirect is aborted, never loaded.
+    if (status === 200) expect(String(stripeUrl)).toMatch(/^https:\/\/checkout\.stripe\.com\//);
     assertClean(c, 'checkout guard');
   });
 });
@@ -961,94 +963,59 @@ test.describe('job lifecycle', () => {
   test.skip(AGAINST_PROD, 'no mutations against production');
   test.skip(!HAS_EMPLOYER, 'E2E_EMPLOYER_EMAIL / E2E_EMPLOYER_PASS not set');
 
-  test('create a free post through the wizard and preview (or re-use the existing E2E listing)', async ({ page }) => {
+  test('re-use the existing E2E listing (every post is paid, so the suite never creates one)', async ({ page }) => {
     test.setTimeout(240_000);
     const c = attachErrorCollectors(page);
     await employerLogin(page);
     await resetDraft(page);
-    const q = await quotaStatus(page);
 
-    if (q.willBeFree) {
-      const title = `E2E Hunt PMHNP ${Date.now()}`;
-      await gotoWizard(page);
-      await fillStep1(page, title);
-      await fillStep2(page);
-      await fillStep3(page);
-      await fillStep4(page, { onPlatform: true });
-      await page.getByRole('button', { name: /Choose from suggested questions/ }).click();
-      await page.getByRole('button', { name: /active DEA license/ }).click();
-      await page.getByRole('button', { name: /Continue to Preview/ }).click();
-      await page.waitForURL(/\/post-job\/preview/, { timeout: 60_000 });
-
-      // Preview shows exactly what was entered.
-      await expect(page.getByRole('heading', { name: title })).toBeVisible({ timeout: 60_000 });
-      await expect(page.getByText('Test Corp').first()).toBeVisible();
-      await expect(page.getByText(/\$140,000|140k/).first()).toBeVisible();
-      await expect(page.getByText(/licensed in Texas and California/).first()).toBeVisible();
-      await expect(page.getByText(/Candidates apply directly on this platform/)).toBeVisible();
-      await expect(page.getByText(/Free trial post/)).toBeVisible({ timeout: 60_000 });
-
-      const [postRes] = await Promise.all([
-        page.waitForResponse((r) => r.url().includes('/api/jobs/post-free'), { timeout: 120_000 }),
-        page.getByRole('button', { name: /Looks Good/ }).click(),
-      ]);
-      const posted = await postRes.json().catch(() => ({}));
-      expect(postRes.status(), JSON.stringify(posted)).toBe(200);
-      expect(posted.success).toBe(true);
-      await page.waitForURL(/\/success\?free=true/, { timeout: 60_000 });
-      await expect(page.getByRole('heading', { name: /Job Posted Successfully/ })).toBeVisible({ timeout: 60_000 });
-
-      const jobs = await readDashboardJobs(page);
-      const mine = jobs.find((j) => j.title === title);
-      expect(mine, `dashboard jobs: ${JSON.stringify(jobs)}`).toBeTruthy();
-      expect(mine!.editToken).toBe(posted.editToken);
-      expect(mine!.publicHref, 'published job must link to its public page').toMatch(/^\/jobs\/.+/);
-      lifecycle = { id: posted.jobId, title, slug: mine!.publicHref!.replace('/jobs/', ''), editToken: mine!.editToken!, createdThisRun: true };
-    } else {
-      // Quota consumed by an earlier run: re-use the E2E listing.
-      const billing = await json(await page.request.get('/api/employer/billing'));
-      const freeJobs = (billing.payments as Array<Record<string, unknown>>).filter((p) => p.isFree && String(p.jobTitle).startsWith('E2E Hunt PMHNP'));
-      test.skip(freeJobs.length === 0, 'free quota already used on this domain and no E2E Hunt listing to re-use');
-      const target = freeJobs[0];
-      const jobs = await readDashboardJobs(page);
-      let mine = jobs.find((j) => j.title === target.jobTitle);
-      expect(mine, `dashboard jobs: ${JSON.stringify(jobs)}`).toBeTruthy();
-      // Make sure it is active + published for the rest of the flow.
-      const archivedFilter = page.getByRole('button', { name: /archived \(\d+\)/i });
-      if (!mine!.publicHref) {
-        const card = page.locator('.emp-job-card', { hasText: mine!.title });
-        if (await card.getByRole('button', { name: /Restore/ }).isVisible().catch(() => false)) {
-          await card.getByRole('button', { name: /Restore/ }).click();
-        } else if (await archivedFilter.isVisible().catch(() => false)) {
-          await archivedFilter.click();
-          const archivedCard = page.locator('.emp-job-card', { hasText: mine!.title });
-          if (await archivedCard.getByRole('button', { name: /Restore/ }).isVisible().catch(() => false)) {
-            await archivedCard.getByRole('button', { name: /Restore/ }).click();
-          }
+    // There is no unpaid create path any more: the wizard ends at Stripe
+    // checkout for the first post and every post after it. The lifecycle
+    // therefore runs against a listing seeded earlier (a legacy free row or a
+    // paid one) and skips when none exists rather than fabricating a payment.
+    const billing = await json(await page.request.get('/api/employer/billing'));
+    const e2eJobs = (billing.payments as Array<Record<string, unknown>>).filter((p) => String(p.jobTitle).startsWith('E2E Hunt PMHNP'));
+    test.skip(e2eJobs.length === 0, 'no E2E Hunt listing to re-use; seed one via checkout in Stripe test mode');
+    const target = e2eJobs[0];
+    const jobs = await readDashboardJobs(page);
+    let mine = jobs.find((j) => j.title === target.jobTitle);
+    expect(mine, `dashboard jobs: ${JSON.stringify(jobs)}`).toBeTruthy();
+    // Make sure it is active + published for the rest of the flow.
+    const archivedFilter = page.getByRole('button', { name: /archived \(\d+\)/i });
+    if (!mine!.publicHref) {
+      const card = page.locator('.emp-job-card', { hasText: mine!.title });
+      if (await card.getByRole('button', { name: /Restore/ }).isVisible().catch(() => false)) {
+        await card.getByRole('button', { name: /Restore/ }).click();
+      } else if (await archivedFilter.isVisible().catch(() => false)) {
+        await archivedFilter.click();
+        const archivedCard = page.locator('.emp-job-card', { hasText: mine!.title });
+        if (await archivedCard.getByRole('button', { name: /Restore/ }).isVisible().catch(() => false)) {
+          await archivedCard.getByRole('button', { name: /Restore/ }).click();
         }
-        await page.request.patch(`/api/employer/jobs/${target.jobId}/toggle-publish`).catch(() => undefined);
-        const again = await readDashboardJobs(page);
-        mine = again.find((j) => j.title === target.jobTitle);
       }
-      expect(mine!.publicHref, 're-used listing must be live').toMatch(/^\/jobs\/.+/);
-      lifecycle = { id: String(target.jobId), title: mine!.title, slug: mine!.publicHref!.replace('/jobs/', ''), editToken: mine!.editToken!, createdThisRun: false };
+      await page.request.patch(`/api/employer/jobs/${target.jobId}/toggle-publish`).catch(() => undefined);
+      const again = await readDashboardJobs(page);
+      mine = again.find((j) => j.title === target.jobTitle);
     }
-    assertClean(c, 'create/re-use job');
+    expect(mine!.publicHref, 're-used listing must be live').toMatch(/^\/jobs\/.+/);
+    lifecycle = { id: String(target.jobId), title: mine!.title, slug: mine!.publicHref!.replace('/jobs/', ''), editToken: mine!.editToken!, createdThisRun: false };
+    assertClean(c, 're-use job');
   });
 
-  test('dashboard lists the job as live with a Free trial badge and a working edit link', async ({ page }) => {
+  test('dashboard lists the job as live with a working edit link', async ({ page }) => {
     test.skip(!lifecycle, 'no lifecycle job');
     const c = attachErrorCollectors(page);
     await employerLogin(page);
     await readDashboardJobs(page);
     const card = page.locator('.emp-job-card', { hasText: lifecycle!.title });
     await expect(card).toBeVisible();
-    await expect(card.getByText(/Free trial/)).toBeVisible();
+    // The re-used listing may be a legacy free row or a paid one, so no
+    // plan badge is asserted here; the paid-first pricing suite pins the
+    // legacy label separately.
     await expect(card.getByText(/Live|Active/).first()).toBeVisible();
     await expect(card.getByRole('link', { name: /Edit/ })).toHaveAttribute('href', `/jobs/edit/${lifecycle!.editToken}`);
     await expect(card.getByRole('button', { name: /Pause/ })).toBeVisible();
     await expect(card.getByRole('button', { name: /Archive/ })).toBeVisible();
-    // Free post shows the correct 30-day expiry on the card.
     await expect(card.getByText(/expires|days left|expiring/i).first()).toBeVisible();
     assertClean(c, 'dashboard job card');
   });
@@ -1465,7 +1432,7 @@ test.describe('paid checkout after quota', () => {
     const c = attachErrorCollectors(page);
     await employerLogin(page);
     const q = await quotaStatus(page);
-    test.skip(q.willBeFree === true, 'free post still available; the guard test covers this state');
+    test.skip(q.isFirstPost === true, 'discounted first post still available; the guard test covers this state');
     const { status, body, stripeUrl } = await runCheckout(page, `E2E Hunt PMHNP Paid ${Date.now()}`);
     expect([200, 503], JSON.stringify(body)).toContain(status);
     if (status === 200) {

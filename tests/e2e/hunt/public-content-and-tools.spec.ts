@@ -1142,15 +1142,15 @@ test.describe('error and edge routes', () => {
     assertClean(collected, '/success');
   });
 
-  test('/success?free=true with no job reference should not claim a job was posted', async ({ page }) => {
-    // app/success/page.tsx trusts the ?free=true flag alone: any anonymous
-    // visitor typing the URL sees "Job Posted Successfully!" plus a
-    // confirmation-email promise, with nothing verified server-side.
-    test.fail(true, 'known: free-mode success page renders without any verification');
+  test('/success with no Stripe session never claims a job was posted', async ({ page }) => {
+    // The retired free mode used to honour a bare ?free=true flag here. Every
+    // post is paid now, so app/success/page.tsx verifies a Stripe session or,
+    // with none, bounces straight back to the wizard. A typed URL with no
+    // session must therefore never render a success heading.
     const collected = await open(page, '/success?free=true');
-    await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('h1')).not.toHaveText(/job posted successfully/i);
-    assertClean(collected, '/success?free=true');
+    await page.waitForURL(/\/post-job/, { timeout: 60_000, waitUntil: 'domcontentloaded' });
+    await expect(page.locator('h1')).not.toHaveText(/posted successfully|payment successful/i);
+    assertClean(collected, '/success without a session');
   });
 });
 
