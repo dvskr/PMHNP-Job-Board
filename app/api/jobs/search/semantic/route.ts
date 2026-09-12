@@ -26,7 +26,8 @@ import { logger } from '@/lib/logger';
 import { embed, AiGatewayError } from '@/lib/ai/gateway';
 import { semanticJobSearch, reciprocalRankFusion } from '@/lib/ai/vector-search';
 import { parseSemanticQuery } from '@/lib/ai/query-parser';
-import { salaryAtLeastClause, newGradWhereClause } from '@/lib/filters';
+import type { Prisma } from '@prisma/client';
+import { salaryAtLeastClause, newGradWhereClause, publicJobsWhere } from '@/lib/filters';
 import { isAiFeatureEnabled } from '@/lib/ai/feature-flags';
 import { getExperimentArm, trackExperimentEvent } from '@/lib/ai/experiments';
 import { createClient } from '@/lib/supabase/server';
@@ -226,9 +227,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             }]
             : []),
     ];
+    // AI search must answer the same inventory /jobs does: publicJobsWhere
+    // contributes isPublished, the expiry guard (the detail page 410s on an
+    // expired posting while cleanup-expired only unpublishes twice a day) and
+    // every GLOBAL_EXCLUSIONS negation (off-specialty and MD-only rows that
+    // /jobs hides permanently). Its AND is spliced with hardConstraints rather
+    // than spread over them — a second `AND:` key would silently drop one set.
+    const publicWhere = publicJobsWhere();
+    const publicAnd = publicWhere.AND as Prisma.JobWhereInput[];
+
     const keywordHits = await prisma.job.findMany({
         where: {
-            isPublished: true,
+            ...publicWhere,
             archivedAt: null,
             // `state` column stores full names ("California"); the parser
             // returns 2-letter codes — filter against `stateCode` instead.
@@ -237,7 +247,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             // apply here.
             ...(state && !remoteOnly ? { stateCode: state } : {}),
             ...(remoteOnly && !state ? { isRemote: true } : {}),
-            ...(hardConstraints.length > 0 ? { AND: hardConstraints } : {}),
+            AND: [...publicAnd, ...hardConstraints],
             OR: tokenOr,
         },
         select: { id: true },
@@ -291,10 +301,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // straight to the existing component without prop-by-prop spreading.
     const jobs = await prisma.job.findMany({
         // newGradWhereClause here backstops the vector leg's looser SQL
-        // predicate — see the hard-constraints comment above.
+        // predicate — see the hard-constraints comment above. publicJobsWhere
+        // is the single-point visibility backstop for BOTH legs: the vector leg
+        // is raw SQL that knows nothing about GLOBAL_EXCLUSIONS, so a fused id
+        // that fails these gates must fail hydration and get dropped by the
+        // ordered map below rather than reach the UI.
         where: {
+            ...publicWhere,
+            archivedAt: null,
             id: { in: fused.map((h) => h.jobId) },
-            ...(newGrad ? newGradWhereClause() : {}),
+            AND: [...publicAnd, ...(newGrad ? [newGradWhereClause()] : [])],
         },
         select: {
             id: true, title: true, slug: true, employer: true, location: true,

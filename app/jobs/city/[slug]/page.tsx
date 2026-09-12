@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, TrendingUp, Building2, Bell, MapPinned, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { publicJobsWhere } from '@/lib/filters';
 import { JOB_LISTING_OMIT } from '@/lib/pseo/job-listing-omit';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import JobCard from '@/components/JobCard';
@@ -92,10 +93,12 @@ async function resolveAmbiguousSlug(slug: string): Promise<string | null> {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 
-    // Find the first published job in a city matching this name
+    // Find the first visible job in a city matching this name. publicJobsWhere,
+    // not a bare isPublished: an expired or off-specialty row must not be what
+    // decides the canonical slug a visitor gets 308'd to.
     const match = await prisma.job.findFirst({
         where: {
-            isPublished: true,
+            ...publicJobsWhere(),
             city: { equals: cityName, mode: 'insensitive' },
             stateCode: { not: null },
         },
@@ -122,10 +125,20 @@ interface ProcessedEmployer {
     count: number;
 }
 
+/**
+ * Every query on this page starts from publicJobsWhere() — isPublished, not
+ * past expiry, and NOT each GLOBAL_EXCLUSIONS — rather than a bare
+ * `isPublished: true`. With the bare flag the page listed cards whose detail
+ * URL already answered 410 Gone (cleanup-expired only unpublishes twice a day)
+ * and counted MD-only Psychiatrist/Physician rows that /jobs hides, so the
+ * count in the SERP title, the hero, the FAQ and the MIN_JOBS render gate were
+ * all computed on jobs a visitor can never see. The city clauses only use
+ * top-level `city` / `OR`, which do not collide with publicJobsWhere's `AND`.
+ */
 async function getCityJobs(cityName: string, stateName: string, stateCode: string) {
     const jobs = await prisma.job.findMany({
         where: {
-            isPublished: true,
+            ...publicJobsWhere(),
             city: { equals: cityName, mode: 'insensitive' },
             OR: [
                 { state: stateName },
@@ -143,7 +156,7 @@ async function getCityJobs(cityName: string, stateName: string, stateCode: strin
 async function getCityStats(cityName: string, stateName: string, stateCode: string) {
     const totalJobs = await prisma.job.count({
         where: {
-            isPublished: true,
+            ...publicJobsWhere(),
             city: { equals: cityName, mode: 'insensitive' },
             OR: [
                 { state: stateName },
@@ -154,7 +167,7 @@ async function getCityStats(cityName: string, stateName: string, stateCode: stri
 
     const salaryData = await prisma.job.aggregate({
         where: {
-            isPublished: true,
+            ...publicJobsWhere(),
             city: { equals: cityName, mode: 'insensitive' },
             OR: [
                 { state: stateName },
@@ -188,7 +201,7 @@ async function getCityStats(cityName: string, stateName: string, stateCode: stri
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
         where: {
-            isPublished: true,
+            ...publicJobsWhere(),
             city: { equals: cityName, mode: 'insensitive' },
             OR: [
                 { state: stateName },
@@ -214,7 +227,7 @@ async function getCityStats(cityName: string, stateName: string, stateCode: stri
     // True unique employer count (not limited by take:5)
     const uniqueEmployerRows = await prisma.job.findMany({
         where: {
-            isPublished: true,
+            ...publicJobsWhere(),
             city: { equals: cityName, mode: 'insensitive' },
             OR: [
                 { state: stateName },
@@ -246,7 +259,9 @@ async function getRelatedCities(
     const cityData = await prisma.job.groupBy({
         by: ['city'],
         where: {
-            isPublished: true,
+            // Same predicate the linked-to city pages count with, so a sidebar
+            // count can't clear MIN_JOBS on rows that page will filter out.
+            ...publicJobsWhere(),
             city: { not: null },
             OR: [
                 { state: stateName },

@@ -37,6 +37,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { isAiFeatureEnabled } from '@/lib/ai/feature-flags';
 import { sendAndLog, escapeHtml } from '@/lib/email-service';
+import { isOutboundPaused } from '@/lib/outbound-kill-switch';
 import { getBaseUrl } from '@/lib/env';
 
 interface DigestJob {
@@ -191,9 +192,19 @@ export const recommendationDigestWeekly = inngest.createFunction(
         concurrency: 5,
     },
     async ({ step }) => {
+        // Emergency brake (lib/outbound-kill-switch). This digest is an
+        // automated marketing send like the crons, so the pause has to reach it
+        // too; checked before the roster query so a paused run does no work.
+        if (isOutboundPaused()) {
+            logger.info('recommendation-digest: skipped, automated sending is paused');
+            return { paused: true, sent: 0 };
+        }
+
         // Find candidates who:
         //   - have at least one rec in the past 7 days
-        //   - have a known email and aren't hard-suppressed (bounce/complaint)
+        //   - have a known email, aren't hard-suppressed (bounce/complaint)
+        //     and haven't unsubscribed by hand (is_subscribed=false, which is
+        //     what the /email-preferences link in this email's own footer sets)
         //   - have an email_leads row for the unsubscribe token
         //
         // NOTE: We deliberately do NOT require `newsletter_opt_in = true` here.
@@ -214,6 +225,7 @@ export const recommendationDigestWeekly = inngest.createFunction(
                 WHERE cr.created_at >= NOW() - INTERVAL '${FRESH_BATCH_WINDOW_DAYS} days'
                   AND cr.dismissed_at IS NULL
                   AND el.is_suppressed = false
+                  AND el.is_subscribed = true
                   AND up.deleted_at IS NULL
                   AND up.role = 'job_seeker'
                   AND up.email IS NOT NULL
@@ -256,6 +268,7 @@ export const recommendationDigestWeekly = inngest.createFunction(
                     JOIN email_leads el ON el.email = up.email
                     WHERE up.supabase_id = $1
                       AND el.is_suppressed = false
+                      AND el.is_subscribed = true
                       AND up.deleted_at IS NULL
                       AND up.role = 'job_seeker'
                       AND up.email IS NOT NULL
@@ -309,7 +322,7 @@ export const recommendationDigestWeekly = inngest.createFunction(
                 });
 
                 try {
-                    await sendAndLog(
+                    const sendResult = await sendAndLog(
                         {
                             from: '', // sendAndLog overrides with marketing sender
                             to: cand.email,
@@ -320,6 +333,17 @@ export const recommendationDigestWeekly = inngest.createFunction(
                         { supabaseId: cand.supabase_id, recIds: recs.map((r) => r.id) },
                         unsubscribeUrl,
                     );
+                    // sendAndLog only throws on a transport fault; a refusal
+                    // (rejected address, opt-out caught at the choke point)
+                    // comes back in the envelope. Counting that as 'sent' would
+                    // report a clean run for mail nobody received.
+                    if (sendResult?.error) {
+                        logger.warn('recommendation-digest: send refused', {
+                            supabaseId,
+                            reason: sendResult.error.name,
+                        });
+                        return 'error';
+                    }
                     return 'sent';
                 } catch (err) {
                     logger.warn('recommendation-digest: send failed', { supabaseId }, err);

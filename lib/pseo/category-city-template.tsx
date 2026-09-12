@@ -47,6 +47,7 @@ import {
 } from '@/lib/state-practice-authority';
 import { PseoPageViewTracker } from '@/components/analytics/ViewTrackers';
 import { buildCityFacts, buildTaxonomyCityNarrative } from './city-narrative';
+import { publicJobsWhere } from '@/lib/filters';
 
 // ─── Category Configuration (extends SettingConfig for specialties) ────────────
 
@@ -78,7 +79,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['addiction pmhnp', 'substance abuse pmhnp', 'MAT pmhnp', 'suboxone pmhnp'],
     faqCategory: 'substance-abuse',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('addiction'),
@@ -105,7 +106,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['child pmhnp', 'adolescent pmhnp', 'pediatric psychiatric NP', 'youth mental health'],
     faqCategory: 'child-adolescent',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('child-adolescent'),
@@ -132,7 +133,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['substance abuse pmhnp', 'SUD pmhnp', 'detox pmhnp', 'rehab pmhnp'],
     faqCategory: 'substance-abuse',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('substance-abuse'),
@@ -159,7 +160,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['new grad pmhnp', 'entry level pmhnp', 'new graduate pmhnp', 'pmhnp fellowship'],
     faqCategory: 'new-grad',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('new-grad'),
@@ -186,7 +187,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['per diem pmhnp', 'PRN pmhnp', 'part time pmhnp', 'flexible pmhnp'],
     faqCategory: 'per-diem',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('per-diem'),
@@ -217,7 +218,7 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['full time pmhnp', 'permanent pmhnp', 'salaried pmhnp'],
     faqCategory: 'remote', // Use remote FAQ as closest match
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('full-time'),
@@ -244,7 +245,7 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['part time pmhnp', 'half time pmhnp', 'flexible pmhnp'],
     faqCategory: 'per-diem',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('part-time'),
@@ -271,7 +272,7 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['contract pmhnp', 'locum tenens pmhnp', '1099 pmhnp', 'temp pmhnp'],
     faqCategory: 'travel',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('contract'),
@@ -302,7 +303,7 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['entry level pmhnp', 'new grad pmhnp', 'junior pmhnp', '0-2 years pmhnp'],
     faqCategory: 'new-grad',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('entry-level'),
@@ -329,7 +330,7 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['experienced pmhnp', 'mid career pmhnp', '3-5 years pmhnp', 'senior pmhnp positions'],
     faqCategory: 'remote',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('mid-career'),
@@ -356,7 +357,7 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['senior pmhnp', 'lead pmhnp', 'director pmhnp', 'advanced practice pmhnp'],
     faqCategory: 'remote',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('senior'),
@@ -387,7 +388,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['hospital pmhnp', 'inpatient hospital pmhnp', 'academic medical center pmhnp'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('hospital'),
@@ -414,7 +415,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['private practice pmhnp', 'independent pmhnp', 'group practice pmhnp', 'own practice pmhnp'],
     faqCategory: 'outpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('private-practice'),
@@ -441,7 +442,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['community health pmhnp', 'FQHC pmhnp', 'community mental health pmhnp', 'public health pmhnp'],
     faqCategory: 'outpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('community-health'),
@@ -468,7 +469,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['VA pmhnp', 'veterans affairs pmhnp', 'military pmhnp', 'federal pmhnp'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('va'),
@@ -499,7 +500,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['geriatric pmhnp', 'geropsych pmhnp', 'elderly psychiatric NP', 'older adult mental health'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('geriatric'),
@@ -526,7 +527,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['veterans pmhnp', 'military mental health pmhnp', 'PTSD pmhnp', 'combat veteran psychiatric NP'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('veterans'),
@@ -553,7 +554,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['lgbtq pmhnp', 'gender affirming pmhnp', 'transgender mental health', 'queer affirming psychiatric NP'],
     faqCategory: 'outpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('lgbtq'),
@@ -580,7 +581,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['crisis pmhnp', 'psychiatric emergency pmhnp', '988 suicide hotline pmhnp', 'crisis intervention NP'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('crisis'),
@@ -641,7 +642,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['1099 pmhnp', 'independent contractor pmhnp', '1099 psychiatric nurse practitioner', 'contract psych NP'],
     faqCategory: 'outpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('1099'),
@@ -668,7 +669,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['behavioral health pmhnp', 'behavioral health NP', 'integrated behavioral health', 'mental health facility NP'],
     faqCategory: 'outpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('behavioral-health'),
@@ -695,7 +696,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['correctional pmhnp', 'prison pmhnp', 'forensic psychiatric NP', 'jail mental health NP'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('correctional'),
@@ -722,7 +723,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     keywords: ['locum tenens pmhnp', 'locum psych NP', 'temporary assignment pmhnp', 'locum psychiatric nurse practitioner'],
     faqCategory: 'travel',
     buildWhere: (stateName: string, cityName?: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
       ...withTagFallback('locum-tenens'),

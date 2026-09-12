@@ -12,7 +12,11 @@ import { AlertTriangle, CheckCircle, RefreshCw, Briefcase, FileText, DollarSign,
 
 const ReactQuill = lazy(() => import('react-quill-new'));
 import 'react-quill-new/dist/quill.snow.css';
-import ScreeningQuestionsBuilder from '@/components/ScreeningQuestionsBuilder';
+import ScreeningQuestionsBuilder, {
+  editScreeningScope,
+  readScreeningQuestions,
+  writeScreeningQuestions,
+} from '@/components/ScreeningQuestionsBuilder';
 
 const editJobSchema = z.object({
   title: z.string().min(10, 'Job title must be at least 10 characters'),
@@ -330,7 +334,10 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 knockoutAnswer: q.knockoutAnswer || '',
               }))
             : [];
-          localStorage.setItem('jobScreeningQuestions', JSON.stringify(existingQs));
+          // Scoped to this job's edit token. The old shared key meant these
+          // questions, knockout rules and all, were still sitting there when
+          // the employer next opened /post-job.
+          writeScreeningQuestions(editScreeningScope(resolvedParams.token), existingQs);
         } catch { /* ignore */ }
 
         // Pre-fill form
@@ -370,9 +377,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
       // how the post-job page collects them at submit time.
       let screeningQuestions: { text: string; type: string; options?: string[]; required?: boolean; knockout?: boolean; knockoutAnswer?: string }[] = [];
       try {
-        const stored = localStorage.getItem('jobScreeningQuestions');
-        if (stored) {
-          const parsed = JSON.parse(stored);
+        {
+          const parsed = readScreeningQuestions(editScreeningScope(token));
           if (Array.isArray(parsed)) {
             screeningQuestions = parsed.map((q: { text?: string; type?: string; options?: string[]; required?: boolean; knockout?: boolean; knockoutAnswer?: string }) => ({
               text: q.text || '',
@@ -407,7 +413,9 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
             maxSalary: data.salaryMax,
             salaryPeriod: data.salaryPeriod || 'annual',
             benefits: Array.isArray(data.benefits) ? data.benefits : [],
-            contactEmail: data.contactEmail,
+            // contactEmail is intentionally absent: the edit link is a bearer
+            // token, and that address is what grants ownership of postings
+            // made before employer accounts. The API drops it either way.
             companyWebsite: data.companyWebsite || null,
             // Only send screening questions when on-platform — otherwise wipe them
             // by sending [] so a switch from on-platform → external clears stale Qs.
@@ -947,7 +955,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 {/* Screening Questions builder — only when on-platform */}
                 {applyOnPlatform && (
                   <div style={{ marginTop: '16px' }}>
-                    <ScreeningQuestionsBuilder />
+                    <ScreeningQuestionsBuilder scope={editScreeningScope(token)} />
                   </div>
                 )}
               </div>
@@ -970,14 +978,23 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
                 <label htmlFor="contactEmail" style={fieldLabel}>
-                  Contact Email <span style={{ color: '#DC2626' }}>*</span>
+                  Contact Email
                 </label>
+                {/* Read-only on purpose. This link is a bearer token with no
+                    session behind it, and the contact address is what proves
+                    ownership of postings created before employer accounts, so
+                    a forwarded link must not be able to repoint applicant
+                    notifications to a new inbox. The API ignores this field
+                    too: the readOnly attribute is the explanation, not the
+                    guard. */}
                 <input
-                  type="email" id="contactEmail"
+                  type="email" id="contactEmail" readOnly
                   {...register('contactEmail')}
-                  style={errors.contactEmail ? clayInputError : clayInput}
+                  style={{ ...clayInput, color: '#6B7F8A', cursor: 'not-allowed' }}
                 />
-                {errors.contactEmail && <p style={errorText}>{errors.contactEmail.message}</p>}
+                <p style={{ marginTop: '6px', fontSize: '12px', color: '#8A9BA6' }}>
+                  Fixed for the life of the posting: contact support if this needs to change.
+                </p>
               </div>
 
               <div>
@@ -997,7 +1014,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 fontSize: '11px', color: '#6B7F8A', lineHeight: 1.5,
               }}>
                 <strong style={{ color: '#1A2E35' }}>Not editable here:</strong> company name &amp; logo (Settings → Company Profile),
-                pricing tier, expiry date, paused/featured/archived state — those have their own dedicated controls.
+                contact email (contact support), pricing tier, expiry date, paused/featured/archived state. Those have their own dedicated controls.
               </div>
             </div>
           </div>

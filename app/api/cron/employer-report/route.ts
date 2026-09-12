@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sendPerformanceReportEmail } from '@/lib/email-service'
+import { sendPerformanceReportEmail, isMarketingOptedOut } from '@/lib/email-service'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
+import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
 
 export const maxDuration = 120 // 2 minutes — employer report emails
 
 export async function GET(request: NextRequest) {
     const authError = await verifyCronOrAdmin(request);
     if (authError) return authError;
+
+    // Emergency brake, checked before any eligibility work so the pause costs
+    // nothing while it is engaged.
+    if (isOutboundPaused()) {
+        return NextResponse.json({ enabled: false, message: OUTBOUND_PAUSED_MESSAGE });
+    }
 
     try {
         return await withCronTracking('employer-report', async () => {
@@ -66,12 +73,23 @@ export async function GET(request: NextRequest) {
         }
 
         let sentCount = 0
+        let optedOutCount = 0
         const errors: string[] = []
 
         for (const [email, data] of employerMap) {
             // Only send if there's meaningful activity (at least 1 view)
             const totalViews = data.jobs.reduce((s, j) => s + j.views, 0)
             if (totalViews === 0) continue
+
+            // The report is marketing mail and carries an unsubscribe link, so
+            // honour the opt-out this cron used to ignore: hand unsubscribes
+            // (EmailLead.isSubscribed=false) as well as bounces and complaints.
+            // sendAndLog refuses these too, but skipping here keeps the run's
+            // reportsSent count honest and avoids the wasted round trip.
+            if (await isMarketingOptedOut(email)) {
+                optedOutCount++
+                continue
+            }
 
             // Throttle: pause 1s before every 10th send (other than the
             // first batch). Previously the modulo check fired AFTER the
@@ -83,12 +101,19 @@ export async function GET(request: NextRequest) {
             }
 
             try {
-                await sendPerformanceReportEmail(
+                // A refused send comes back as success:false rather than a
+                // throw, so counting the call itself as a report sent would
+                // overstate the run.
+                const result = await sendPerformanceReportEmail(
                     email,
                     data.employerName,
                     data.jobs,
                     'Monthly'
                 )
+                if (!result.success) {
+                    errors.push(`${email}: ${result.error ?? 'send refused'}`)
+                    continue
+                }
                 sentCount++
             } catch (e) {
                 errors.push(`${email}: ${e}`)
@@ -100,12 +125,14 @@ export async function GET(request: NextRequest) {
                 success: true,
                 employersFound: employerMap.size,
                 reportsSent: sentCount,
+                optedOut: optedOutCount,
                 errors,
                 timestamp: new Date().toISOString(),
             }),
             metrics: {
                 employersFound: employerMap.size,
                 reportsSent: sentCount,
+                optedOut: optedOutCount,
                 errorCount: errors.length,
             },
         };

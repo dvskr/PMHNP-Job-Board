@@ -1119,12 +1119,13 @@ test.describe('error and edge routes', () => {
   });
 
   test('a single-segment unknown path returns the branded 404, not a blank page', async ({ page }) => {
-    // app/[indexnow]/route.ts is a Route Handler on a top-level dynamic
-    // segment, so it matches every one-segment URL before
-    // app/[...catchall]/page.tsx can. Its notFound() cannot render
-    // app/not-found.tsx from a route handler, so the visitor gets HTTP 404
-    // with an empty body: a blank white page for the most common 404 shape
-    // (a mistyped or expired link).
+    // Regression guard. app/[indexnow]/route.ts used to be a Route Handler on a
+    // top-level dynamic segment, so it matched every one-segment URL before
+    // app/[...catchall]/page.tsx could. A route handler's notFound() cannot
+    // render app/not-found.tsx, so the visitor got HTTP 404 with an empty body:
+    // a blank white page for the most common 404 shape there is, a mistyped or
+    // expired link. The IndexNow key is served from middleware.ts now and that
+    // route file is gone, so a one-segment miss reaches the branded page.
     const collected = attachErrorCollectors(page);
     page.setDefaultNavigationTimeout(120_000);
     const res = await page.goto(`/this-does-not-exist-${Date.now()}`, { waitUntil: 'domcontentloaded' });

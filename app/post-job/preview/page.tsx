@@ -10,6 +10,7 @@ import { trackDiscountSpent } from '@/lib/analytics';
 import JobCard from '@/components/JobCard';
 import type { Job } from '@/lib/types';
 import { deriveExperienceLabel } from '@/lib/experience-label';
+import { POST_JOB_SCREENING_SCOPE, readScreeningQuestions } from '@/components/ScreeningQuestionsBuilder';
 
 interface JobFormData {
   title: string;
@@ -84,10 +85,10 @@ export default function PreviewPage() {
     if (!stored) { router.push('/post-job'); return; }
     try {
       const data = JSON.parse(stored) as JobFormData;
-      try {
-        const storedQuestions = localStorage.getItem('jobScreeningQuestions');
-        if (storedQuestions) data.screeningQuestions = JSON.parse(storedQuestions);
-      } catch { /* ignore */ }
+      // Scoped to this flow: the retired shared key was also written by the
+      // job edit page, and its questions carry knockout rules that auto-reject
+      // applicants, so a stale one must never ride along with a new posting.
+      data.screeningQuestions = readScreeningQuestions(POST_JOB_SCREENING_SCOPE);
       setFormData(data);
     } catch (error) {
       console.error('Error parsing form data:', error);

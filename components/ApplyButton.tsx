@@ -64,7 +64,7 @@ function deriveAlertKeyword(title: string): string {
 }
 
 export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticated, applyOnPlatform = false, sourceType = null, state = null, jobType = null, compact = false }: ApplyButtonProps) {
-  const { isApplied, markApplied, getAppliedDate } = useAppliedJobs();
+  const { isApplied, isHydrated, markApplied, getAppliedDate } = useAppliedJobs();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -149,7 +149,10 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
       .catch(() => { });
   }, [authed, applyOnPlatform, jobId]);
 
-  const applied = isApplied(jobId) || serverApplied?.applied;
+  // Mount-guarded: isApplied is backed by localStorage, so reading it on the
+  // first render made the CTA label ("Apply Again" vs "Easy Apply") differ
+  // between SSR and hydration and React threw the subtree away.
+  const applied = (isHydrated && isApplied(jobId)) || serverApplied?.applied;
   const appliedDate = getAppliedDate(jobId);
 
   // Fire the click-tracker. Used by both apply paths (external link + platform
@@ -301,9 +304,29 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
     setAwaitingApplyConfirm(false);
   };
 
+  /**
+   * The form stays mounted on success. It flips to its own "Application
+   * Submitted" panel (with the similar-jobs list) and closes itself via the
+   * Done/X buttons; unmounting it here batched with that flip, so the
+   * confirmation was destroyed in the same commit that would have rendered it
+   * and the candidate got no acknowledgement at all.
+   */
   const handlePlatformApplySuccess = () => {
     markApplied(jobId);
+  };
+
+  /**
+   * Re-check the server after the modal closes. serverApplied is otherwise
+   * fetched once on mount, so the "You've already applied" notice stayed
+   * hidden until a full reload.
+   */
+  const handlePlatformApplyClose = () => {
     setShowPlatformApply(false);
+    if (!authed || !applyOnPlatform) return;
+    fetch(`/api/applications/check?jobId=${jobId}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data) setServerApplied(data); })
+      .catch(() => { });
   };
 
   // Carry the apply intent through the auth round-trip: landing back on the
@@ -362,7 +385,7 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
         <InPlatformApplyForm
           jobId={jobId}
           jobTitle={jobTitle}
-          onClose={() => setShowPlatformApply(false)}
+          onClose={handlePlatformApplyClose}
           onSuccess={handlePlatformApplySuccess}
         />
       )}

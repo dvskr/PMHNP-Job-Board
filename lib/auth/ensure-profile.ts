@@ -27,6 +27,7 @@
 import type { User } from '@supabase/supabase-js'
 import type { PrismaClient } from '@prisma/client'
 import { logger } from '@/lib/logger'
+import { logAudit } from '@/lib/audit-log'
 
 interface SupabaseAuthMetadata {
   role?: string
@@ -62,11 +63,115 @@ export function readSignupMetadata(user: User): AuthMetadataDerivedFields {
 }
 
 /**
+ * The exact write that undoes a soft-delete. Shared with
+ * app/api/auth/restore-account/route.ts so the login-path restore and the
+ * explicit endpoint can never restore *different* fields: a partial restore
+ * that leaves `emailSuppressed` set is a silently mailless account.
+ */
+export const ACCOUNT_RESTORE_DATA = {
+  deletedAt: null,
+  purgeAt: null,
+  profileVisible: true,
+  openToOffers: true,
+  emailSuppressed: false,
+  emailSuppressedAt: null,
+} as const
+
+interface SoftDeleteState {
+  id: string
+  deletedAt?: Date | null
+  purgeAt?: Date | null
+}
+
+/**
+ * Soft-delete gate for every path that resolves a session into a profile.
+ *
+ * Deleting an account signs the user out but keeps the Supabase identity until
+ * the purge cron runs, so a session on a soft-deleted profile only exists
+ * because the person logged back in — which is exactly the "undo" the delete
+ * flow promises them. Restoring here rather than in the browser matters: the
+ * client-side probe on the login form is fire-and-forget, IP rate-limited, and
+ * wired to the password form only, so a 429, a network blip, or a Google login
+ * left the account marked deleted while the user carried on using it, until
+ * the purge cron destroyed it 30 days later.
+ *
+ * Once the grace window has lapsed the row is awaiting hard deletion and must
+ * not be handed back at all: returning null fails closed rather than granting
+ * a full session to an account we have promised to erase.
+ */
+async function resolveSoftDeleteState<T>(
+  prisma: PrismaClient,
+  row: SoftDeleteState,
+  options: { include?: Record<string, unknown>; logSource?: string },
+): Promise<T | null> {
+  if (!('deletedAt' in row)) {
+    // Callers pass `include`, never `select`, so every scalar is present. If
+    // that ever changes the gate below would silently no-op, so be loud.
+    logger.error('[ensureProfileFromAuth] profile row has no deletedAt; soft-delete gate skipped', {
+      profileId: row.id,
+      source: options.logSource ?? null,
+    })
+    return row as unknown as T
+  }
+
+  if (!row.deletedAt) return row as unknown as T
+
+  if (row.purgeAt && row.purgeAt.getTime() <= Date.now()) {
+    logger.warn('[ensureProfileFromAuth] refused session for account past its restore window', {
+      profileId: row.id,
+      source: options.logSource ?? null,
+    })
+    return null
+  }
+
+  const restored = await prisma.userProfile.update({
+    where: { id: row.id },
+    data: { ...ACCOUNT_RESTORE_DATA },
+    ...(options.include ? { include: options.include } : {}),
+  })
+  await logAudit({
+    action: 'account.restore',
+    actorType: 'user',
+    actorId: row.id,
+    targetType: 'user',
+    targetId: row.id,
+    metadata: { via: options.logSource ?? 'ensureProfileFromAuth' },
+  })
+  logger.info('[ensureProfileFromAuth] restored soft-deleted account on login', {
+    profileId: row.id,
+    source: options.logSource ?? null,
+  })
+  return restored as unknown as T
+}
+
+/**
+ * Same gate for callers that already hold the profile row and only need to
+ * know what happened: 'restored' (soft-delete undone), 'active' (nothing to
+ * do), or 'purge_pending' (window lapsed, the session must not continue).
+ * Used by the OAuth callback, which builds its profile row by hand.
+ */
+export async function restoreIfWithinGrace(
+  prisma: PrismaClient,
+  profile: SoftDeleteState,
+  source: string,
+): Promise<'active' | 'restored' | 'purge_pending'> {
+  const wasDeleted = !!profile.deletedAt
+  const resolved = await resolveSoftDeleteState<unknown>(prisma, profile, { logSource: source })
+  if (resolved === null) return 'purge_pending'
+  return wasDeleted ? 'restored' : 'active'
+}
+
+/**
  * Idempotent profile bootstrap. Returns the existing profile if one is
  * already linked to the auth user, otherwise creates one with the
  * metadata-derived role + name fields. If a stale profile exists with
  * the same email but a different supabaseId (re-signup after delete),
  * it gets relinked rather than duplicated.
+ *
+ * Returns null when the session cannot be turned into a usable profile: the
+ * auth user has no email, or the profile was soft-deleted and its restore
+ * window has already lapsed (see resolveSoftDeleteState). Callers must treat
+ * null as "no access", not as "profile not created yet".
  *
  * NOTE: This function ONLY creates. It never updates an existing
  * profile's role — that's intentional. An admin who was promoted via
@@ -93,7 +198,7 @@ export async function ensureProfileFromAuth<
     where: { supabaseId: user.id },
     ...(options.include ? { include: options.include } : {}),
   })
-  if (existing) return existing as unknown as T
+  if (existing) return resolveSoftDeleteState<T>(prisma, existing as unknown as SoftDeleteState, options)
 
   // Slow path 1: profile exists under this email but a different
   // supabaseId. Happens when the auth user was deleted+recreated. Relink.
@@ -112,9 +217,9 @@ export async function ensureProfileFromAuth<
       profileId: byEmail.id,
       source: options.logSource ?? null,
     })
-    return relinked as unknown as T
+    return resolveSoftDeleteState<T>(prisma, relinked as unknown as SoftDeleteState, options)
   }
-  if (byEmail) return byEmail as unknown as T
+  if (byEmail) return resolveSoftDeleteState<T>(prisma, byEmail as unknown as SoftDeleteState, options)
 
   // Slow path 2: no profile anywhere. Create from auth metadata.
   const derived = readSignupMetadata(user)

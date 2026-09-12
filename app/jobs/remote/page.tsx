@@ -6,7 +6,8 @@ import Image from 'next/image';
 import { Home, Globe, TrendingUp, Building2, Bell, ArrowRight, Briefcase, DollarSign } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
-import { GLOBAL_EXCLUSIONS } from '@/lib/filters';
+import type { Prisma } from '@prisma/client';
+import { publicJobsWhere } from '@/lib/filters';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -39,18 +40,26 @@ interface ProcessedEmployer {
   count: number;
 }
 
-const REMOTE_FILTER = {
-  isPublished: true,
-  isRemote: true,
-  AND: GLOBAL_EXCLUSIONS.map(e => ({ NOT: e })),
-};
+/**
+ * Built per request, never hoisted to a module constant: the clause carries a
+ * concrete expiry instant, and a module-level constant would freeze it for the
+ * whole lifetime of the serverless instance, letting a posting that expired
+ * since cold start keep its card here while its detail URL answers 410.
+ *
+ * publicJobsWhere contributes isPublished + the expiry guard + every global
+ * exclusion, so this page counts exactly what /jobs does, restricted to remote.
+ * Mirrored by categoryLandingWhere('remote'), which gates the sitemap entry.
+ */
+function remoteFilter(): Prisma.JobWhereInput {
+  return { ...publicJobsWhere(), isRemote: true };
+}
 
 /**
  * Fetch remote jobs with pagination
  */
 async function getRemoteJobs(skip: number = 0, take: number = 20) {
   const jobs = await prisma.job.findMany({
-    where: REMOTE_FILTER,
+    where: remoteFilter(),
     orderBy: BEST_SORT_ORDER_BY,
     skip,
     take,
@@ -65,13 +74,13 @@ async function getRemoteJobs(skip: number = 0, take: number = 20) {
 async function getRemoteStats() {
   // Total remote jobs
   const totalJobs = await prisma.job.count({
-    where: REMOTE_FILTER,
+    where: remoteFilter(),
   });
 
   // Average salary for remote positions
   const salaryData = await prisma.job.aggregate({
     where: {
-      ...REMOTE_FILTER,
+      ...remoteFilter(),
       normalizedMinSalary: { not: null },
       normalizedMaxSalary: { not: null },
     },
@@ -88,7 +97,7 @@ async function getRemoteStats() {
   // Companies hiring remotely
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
-    where: REMOTE_FILTER,
+    where: remoteFilter(),
     _count: {
       employer: true,
     },

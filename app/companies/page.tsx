@@ -1,5 +1,6 @@
 import { brand } from '@/config/brand';
 import { prisma } from '@/lib/prisma';
+import { activeIndexableJobWhere } from '@/lib/active-job-filter';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -49,12 +50,16 @@ const clayCard: React.CSSProperties = {
 };
 
 export default async function CompaniesIndexPage() {
+  // activeIndexableJobWhere, not a bare `isPublished: true`: this index links
+  // straight to /companies/[slug], which loads its jobs with that exact
+  // predicate and notFound()s at zero. A company whose only published jobs are
+  // expired or flagged as repeated dead links was listed here with a non-zero
+  // count and 404'd on click.
+  const activeJobWhere = activeIndexableJobWhere();
   const companies = await prisma.company.findMany({
     where: {
       jobs: {
-        some: {
-          isPublished: true,
-        },
+        some: activeJobWhere,
       },
     },
     select: {
@@ -66,7 +71,7 @@ export default async function CompaniesIndexPage() {
       _count: {
         select: {
           jobs: {
-            where: { isPublished: true },
+            where: activeJobWhere,
           },
         },
       },

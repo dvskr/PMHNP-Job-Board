@@ -43,11 +43,16 @@ interface ProcessedEmployer {
 /**
  * Fetch new grad jobs with pagination
  */
-const NEW_GRAD_FILTER = buildCategoryWhereClause('new-grad');
+/**
+ * Built per request, never hoisted to a module constant: the clause pins a
+ * concrete expiry instant, and a module constant would freeze it at cold start
+ * so postings that expired during the instance's life would keep showing.
+ */
+const categoryWhere = () => buildCategoryWhereClause('new-grad');
 
 async function getNewGradJobs(skip: number = 0, take: number = 20) {
     const jobs = await prisma.job.findMany({
-        where: NEW_GRAD_FILTER,
+        where: categoryWhere(),
         orderBy: BEST_SORT_ORDER_BY,
         skip,
         take,
@@ -61,12 +66,12 @@ async function getNewGradJobs(skip: number = 0, take: number = 20) {
  */
 async function getNewGradStats() {
     // Total new grad jobs
-    const totalJobs = await prisma.job.count({ where: NEW_GRAD_FILTER });
+    const totalJobs = await prisma.job.count({ where: categoryWhere() });
 
     // Average salary for new grad positions
     const salaryData = await prisma.job.aggregate({
         where: {
-            ...NEW_GRAD_FILTER,
+            ...categoryWhere(),
             normalizedMinSalary: { not: null },
             normalizedMaxSalary: { not: null },
         },
@@ -83,7 +88,7 @@ async function getNewGradStats() {
     // Companies hiring new grads
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
-        where: NEW_GRAD_FILTER,
+        where: categoryWhere(),
         _count: {
             employer: true,
         },

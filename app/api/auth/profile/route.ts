@@ -10,6 +10,28 @@ import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { inngest } from '@/lib/inngest/client'
 import { ensureProfileFromAuth } from '@/lib/auth/ensure-profile'
 
+// The settings editor counts a professional summary up to this same limit
+// (app/settings/page.tsx). When the server cap was lower, sanitizeText()
+// sliced the tail off without complaint and the PATCH still answered 200, so
+// the user got a "Profile updated!" toast over a summary that had quietly
+// lost its last paragraphs. Keep the two numbers equal.
+const BIO_MAX_LENGTH = 1000
+
+// The rate type decides whether the desired-salary numbers mean an hourly or
+// an annual range. Every reader falls back to 'yearly', so an unrecognised
+// value would silently misprice a candidate to employers.
+const SALARY_RATE_TYPES = new Set(['hourly', 'yearly'])
+
+// `parseInt(x, 10) || null` mapped a legitimate 0 to null: "New Grad (0)"
+// disappeared on every save (the select came back empty under a success
+// toast), new grads dropped out of `yearsExperience >= N` employer filters,
+// and a $0 floor could not be expressed. Only genuinely unparseable input
+// is null.
+function toIntOrNull(value: unknown): number | null {
+  const parsed = Number.parseInt(String(value), 10)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
 // Shared include for _count used by completeness scoring
 const profileInclude = {
   _count: {
@@ -151,7 +173,13 @@ export async function POST(request: NextRequest) {
       update: {
         firstName,
         lastName,
-        company,
+        // Company name is captured once and never rewritten by a re-call of
+        // the signup endpoint. It is only filled here when the account has
+        // none yet (the job_seeker -> employer upgrade above is the real
+        // case). Rewriting it would hand an existing employer a rename that
+        // PATCH /api/employer/settings and PATCH below both refuse, and a
+        // rename resets the org quota identity (lib/employer-quota.ts).
+        ...(existingProfile?.company ? {} : { company }),
         phone,
         ...(allowRoleUpgrade ? { role: 'employer' } : {}),
       },
@@ -307,7 +335,7 @@ export async function PATCH(request: NextRequest) {
 
     // Sanitize new PMHNP fields
     const headline = body.headline !== undefined ? (body.headline ? sanitizeText(body.headline, 120) : null) : undefined
-    const bio = body.bio !== undefined ? (body.bio ? sanitizeText(body.bio, 500) : null) : undefined
+    const bio = body.bio !== undefined ? (body.bio ? sanitizeText(body.bio, BIO_MAX_LENGTH) : null) : undefined
     const certifications = body.certifications !== undefined ? (body.certifications ? sanitizeText(body.certifications, 500) : null) : undefined
     const licenseStates = body.licenseStates !== undefined ? (body.licenseStates ? sanitizeText(body.licenseStates, 500) : null) : undefined
     const specialties = body.specialties !== undefined ? (body.specialties ? sanitizeText(body.specialties, 500) : null) : undefined
@@ -315,28 +343,72 @@ export async function PATCH(request: NextRequest) {
     const preferredJobType = body.preferredJobType !== undefined ? (body.preferredJobType ? sanitizeText(body.preferredJobType, 30) : null) : undefined
     const linkedinUrl = body.linkedinUrl !== undefined ? (body.linkedinUrl ? sanitizeUrl(body.linkedinUrl) : null) : undefined
 
-    // Integer fields
+    // Integer fields. 0 is a real answer here ("New Grad"), so parsing goes
+    // through toIntOrNull rather than a `|| null` falsy collapse.
     const yearsExperience = body.yearsExperience !== undefined
-      ? (body.yearsExperience !== null ? parseInt(String(body.yearsExperience), 10) || null : null)
+      ? (body.yearsExperience !== null ? toIntOrNull(body.yearsExperience) : null)
       : undefined
     const desiredSalaryMin = body.desiredSalaryMin !== undefined
-      ? (body.desiredSalaryMin !== null ? parseInt(String(body.desiredSalaryMin), 10) || null : null)
+      ? (body.desiredSalaryMin !== null ? toIntOrNull(body.desiredSalaryMin) : null)
       : undefined
     const desiredSalaryMax = body.desiredSalaryMax !== undefined
-      ? (body.desiredSalaryMax !== null ? parseInt(String(body.desiredSalaryMax), 10) || null : null)
+      ? (body.desiredSalaryMax !== null ? toIntOrNull(body.desiredSalaryMax) : null)
       : undefined
+
     const desiredSalaryType = body.desiredSalaryType !== undefined
-      ? (body.desiredSalaryType ? sanitizeText(body.desiredSalaryType, 20) : null)
+      ? (body.desiredSalaryType ? sanitizeText(body.desiredSalaryType, 20).toLowerCase() : null)
       : undefined
+    // Reject an unknown rate type instead of storing it: readers fall back to
+    // 'yearly', so a typo would present an hourly range as an annual salary.
+    if (typeof desiredSalaryType === 'string' && !SALARY_RATE_TYPES.has(desiredSalaryType)) {
+      return NextResponse.json(
+        { error: "desiredSalaryType must be 'hourly' or 'yearly'" },
+        { status: 400 },
+      )
+    }
 
     // Boolean fields
     const openToOffers = typeof body.openToOffers === 'boolean' ? body.openToOffers : undefined
     const profileVisible = typeof body.profileVisible === 'boolean' ? body.profileVisible : undefined
 
-    // DateTime field
+    // DateTime field. An unparseable string produced an Invalid Date that
+    // only failed inside Prisma, surfacing as a public 500 with no hint of
+    // which field was wrong.
     const availableDate = body.availableDate !== undefined
       ? (body.availableDate ? new Date(body.availableDate) : null)
       : undefined
+    if (availableDate instanceof Date && Number.isNaN(availableDate.getTime())) {
+      return NextResponse.json({ error: 'availableDate is not a valid date' }, { status: 400 })
+    }
+
+    // COMPANY NAME IS WRITE-ONCE, the same contract PATCH
+    // /api/employer/settings enforces (that route carries the full rationale).
+    // The name anchors organization identity for every posting the account
+    // publishes, and it feeds the acct:/dom:/org: quota keys in
+    // lib/employer-quota.ts that now gate the discounted first post: a rename
+    // between posts republishes under a fresh-looking brand and re-earns the
+    // discount. The lock previously lived only in the employer settings route
+    // while /settings PATCHes the whole profile here, so the strict endpoint
+    // sat behind a wide-open one. A same-value write must still pass, or
+    // saving an unrelated field would 409.
+    const existing = await prisma.userProfile.findUnique({
+      where: { supabaseId: user.id },
+      select: { company: true },
+    })
+    if (!existing) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+    const lockedCompany = existing.company?.trim() || ''
+    if (lockedCompany && company !== undefined && (company?.trim() || '') !== lockedCompany) {
+      return NextResponse.json(
+        {
+          error: 'Company name is set at signup and cannot be changed here. Contact support and we will update it for you.',
+          code: 'COMPANY_NAME_LOCKED',
+          currentName: existing.company,
+        },
+        { status: 409 },
+      )
+    }
 
     const updatedProfile = await prisma.userProfile.update({
       where: { supabaseId: user.id },

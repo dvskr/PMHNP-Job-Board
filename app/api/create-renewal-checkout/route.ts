@@ -13,6 +13,14 @@ function getStripe(): Stripe | null {
   return new Stripe(key);
 }
 
+/**
+ * How long after a successful renewal this endpoint refuses another one for
+ * the same posting. Long enough to cover the "land back on the dashboard and
+ * click the still-visible Renew control" window, short enough that a genuine
+ * second renewal is only a wait away.
+ */
+const RECENT_RENEWAL_LOCKOUT_MINUTES = 60;
+
 interface RenewalCheckoutBody {
   jobId: string;
   editToken: string;
@@ -60,6 +68,8 @@ export async function POST(request: NextRequest) {
             // Needed for the 365-day renewal cap check below.
             createdAt: true,
             expiresAt: true,
+            // Needed for the double-charge guard below.
+            lastRenewedAt: true,
           },
         },
       },
@@ -97,6 +107,35 @@ export async function POST(request: NextRequest) {
         { error: 'This posting was refunded and is no longer eligible for renewal. Please contact support or create a new posting.' },
         { status: 409 }
       );
+    }
+    // A chargeback ('disputed') unpublishes the posting and strips its featured
+    // entitlements. The renewal webhook re-publishes and re-features whatever it
+    // is handed, so letting a disputed posting through here would buy the
+    // revocation back at the renewal price while the bank case is still open.
+    if (employerJob.paymentStatus === 'disputed') {
+      return NextResponse.json(
+        { error: 'This posting has an open payment dispute, so it cannot be renewed. Please contact support to resolve the dispute first.' },
+        { status: 409 }
+      );
+    }
+
+    // Double-charge guard. Every route back from a completed renewal (the
+    // renewal-success page, the confirmation email, a browser back button onto
+    // a cached dashboard) lands the employer next to a renew control for the
+    // posting they just paid for. The runway they bought is already on the
+    // listing, so a second charge inside the lockout is a mistake, not an
+    // intent. A deliberate second renewal is only a wait away.
+    const lastRenewedAt = employerJob.job?.lastRenewedAt ?? null;
+    if (lastRenewedAt) {
+      const minutesSinceRenewal = (Date.now() - lastRenewedAt.getTime()) / 60000;
+      if (minutesSinceRenewal >= 0 && minutesSinceRenewal < RECENT_RENEWAL_LOCKOUT_MINUTES) {
+        return NextResponse.json(
+          {
+            error: `This posting was renewed in the last ${RECENT_RENEWAL_LOCKOUT_MINUTES} minutes and the extra time is already on it. Check your dashboard for the new expiry date, or contact support if something looks wrong.`,
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // Single-tier: every renewal is the renewal price, whatever the original

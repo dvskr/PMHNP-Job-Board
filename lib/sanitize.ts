@@ -280,6 +280,27 @@ export function normalizeContentWhitespace(html: string): string {
 }
 
 /**
+ * The only CSS declarations an employer's job description may carry.
+ *
+ * sanitize-html only filters the `style` attribute when `allowedStyles` is
+ * present: with it undefined, `filterCss` returns the parsed declarations
+ * untouched and EVERY property survives. That is how a self-serve posting
+ * could ship `position:fixed; inset:0; z-index:9999` and lay a full-viewport
+ * layer over the public job page — covering the real Apply button with an
+ * off-site link. Scripts and on* handlers were already stripped, so the hole
+ * was UI redress rather than script XSS, but the outcome for the applicant is
+ * the same. Only typography survives now; nothing here can move, size, or
+ * stack a box.
+ */
+const ALLOWED_DESCRIPTION_STYLES: Record<string, RegExp[]> = {
+    'text-align': [/^(left|right|center|justify)$/],
+    'font-weight': [/^(normal|bold|bolder|lighter|[1-9]00)$/],
+    'font-style': [/^(normal|italic)$/],
+    'text-decoration': [/^(none|underline|line-through)$/],
+    'color': [/^#[0-9a-f]{3,8}$/i, /^rgba?\([\d\s,.%]+\)$/i],
+};
+
+/**
  * Sanitize HTML content for safe rendering via dangerouslySetInnerHTML.
  * Uses the sanitize-html library for robust, battle-tested XSS prevention.
  * Allows safe formatting tags but strips scripts, iframes, event handlers,
@@ -297,11 +318,22 @@ export function sanitizeHtmlContent(html: string): string {
         ]),
         allowedAttributes: {
             ...sanitizeHtml.defaults.allowedAttributes,
-            '*': ['id', 'class', 'style'],
+            // `id` and `class` are identity, not formatting. This HTML is
+            // injected into a page that owns its own ids and utility classes
+            // (.job-description-html and the CSS around it), so a posting
+            // carrying either can shadow a real element or repaint itself
+            // with our styles. The employer editor's formats are headings,
+            // lists, bold, italic, underline and links — none of which need
+            // an id or a class — so both are dropped and `style` survives
+            // only through ALLOWED_DESCRIPTION_STYLES.
+            '*': ['style'],
             'img': ['src', 'alt', 'loading', 'width', 'height'],
             'a': ['href', 'target', 'rel', 'title'],
             'td': ['colspan', 'rowspan', 'style'],
             'th': ['colspan', 'rowspan', 'style', 'scope'],
+        },
+        allowedStyles: {
+            '*': ALLOWED_DESCRIPTION_STYLES,
         },
         allowedSchemes: ['http', 'https', 'mailto'],
         // Strip all disallowed tags rather than escaping them

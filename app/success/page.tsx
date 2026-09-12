@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { POST_JOB_SCREENING_SCOPE, clearScreeningQuestions } from '@/components/ScreeningQuestionsBuilder';
 
 interface VerifiedSession {
   paid: boolean;
@@ -32,7 +33,7 @@ function SuccessContent() {
     // Every post is paid, so every arrival here carries a Stripe session.
     // Clean up the local draft first: it is spent either way.
     localStorage.removeItem('jobFormData');
-    localStorage.removeItem('jobScreeningQuestions');
+    clearScreeningQuestions(POST_JOB_SCREENING_SCOPE);
 
     if (!sessionId) {
       // No session id → user wandered here directly. Bounce.

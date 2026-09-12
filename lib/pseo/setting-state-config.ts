@@ -156,10 +156,11 @@ export interface SettingConfig {
  * (the keyword list now lives inside category-tagger.ts RULES).
  */
 import { withTagFallback, type CategoryTag } from './category-tagger';
+import { publicJobsWhere } from '@/lib/filters';
 
 function buildKeywordWhere(_legacy: string[], stateName: string, tag: CategoryTag): Record<string, unknown> {
   return {
-    isPublished: true,
+    ...publicJobsWhere(),
     state: { equals: stateName, mode: 'insensitive' },
     ...withTagFallback(tag),
   };
@@ -175,7 +176,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     keywords: ['remote pmhnp', 'work from home pmhnp', 'remote psychiatric nurse practitioner', 'telehealth pmhnp'],
     faqCategory: 'remote',
     buildWhere: (stateName: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...withTagFallback('remote'),
     }),
@@ -201,7 +202,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     keywords: ['telehealth pmhnp', 'telemedicine pmhnp', 'virtual psychiatry', 'telepsychiatry nurse practitioner'],
     faqCategory: 'telehealth',
     buildWhere: (stateName: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...withTagFallback('telehealth'),
     }),
@@ -227,7 +228,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     keywords: ['inpatient pmhnp', 'hospital pmhnp', 'acute care pmhnp', 'inpatient psychiatric nurse practitioner'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...withTagFallback('inpatient'),
     }),
@@ -253,7 +254,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     keywords: ['outpatient pmhnp', 'clinic pmhnp', 'private practice pmhnp', 'outpatient psychiatric nurse practitioner'],
     faqCategory: 'outpatient',
     buildWhere: (stateName: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...withTagFallback('outpatient'),
     }),
@@ -279,7 +280,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     keywords: ['travel pmhnp', 'locum tenens pmhnp', 'travel psychiatric nurse practitioner', 'locum psych np'],
     faqCategory: 'travel',
     buildWhere: (stateName: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       // Travel and locum-tenens are distinct canonical tags but the
       // /jobs/travel/{state} page semantically covers both. The two
@@ -338,7 +339,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     keywords: ['full-time pmhnp', 'permanent pmhnp', 'full time psychiatric nurse practitioner', 'W-2 pmhnp'],
     faqCategory: 'full-time',
     buildWhere: (stateName: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...withTagFallback('full-time'),
     }),
@@ -364,7 +365,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     keywords: ['part-time pmhnp', 'part time pmhnp', 'flexible pmhnp', 'PRN pmhnp'],
     faqCategory: 'part-time',
     buildWhere: (stateName: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...withTagFallback('part-time'),
     }),
@@ -390,7 +391,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     keywords: ['contract pmhnp', 'temp pmhnp', 'contract psychiatric nurse practitioner', 'temp to perm pmhnp'],
     faqCategory: 'contract',
     buildWhere: (stateName: string) => ({
-      isPublished: true,
+      ...publicJobsWhere(),
       state: { equals: stateName, mode: 'insensitive' },
       ...withTagFallback('contract'),
     }),

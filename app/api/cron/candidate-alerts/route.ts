@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
+import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
 
 export const maxDuration = 120; // 2 minutes — email sends to multiple employers
 
@@ -17,6 +18,12 @@ export async function GET(req: Request) {
     // Auth: verify cron secret
     const authError = await verifyCronOrAdmin(req);
     if (authError) return authError;
+
+    // Emergency brake, checked before the eligibility scan so the pause costs
+    // nothing while it is engaged.
+    if (isOutboundPaused()) {
+        return NextResponse.json({ enabled: false, message: OUTBOUND_PAUSED_MESSAGE });
+    }
 
     try {
         return await withCronTracking('candidate-alerts', async () => {

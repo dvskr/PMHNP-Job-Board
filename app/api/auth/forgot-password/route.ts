@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { rateLimit } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
+import { safeAuthRedirect } from '@/lib/auth/redirect-origin-guard';
 
 /**
  * POST /api/auth/forgot-password
@@ -29,68 +30,30 @@ const bodySchema = z.object({
  * link that, after a successful login, bounced the user to
  * `https://evil.example.com?token=…` for phishing or session theft.
  *
- * Allow-list: production canonical + Vercel preview deployments + local
- * dev. Anything else is silently dropped (falls back to Supabase's
- * configured default).
+ * The allow-list itself now lives in lib/auth/redirect-origin-guard.ts: it
+ * matches exact hosts built from this deployment's own env-derived origins.
+ * The `*.vercel.app` prefix heuristic that used to live here is gone, because
+ * a Vercel project name is claimable by any account, so a prefixed host was
+ * never proof of first-party ownership. Anything unrecognised is dropped and
+ * Supabase falls back to its configured default.
  */
-const ALLOWED_REDIRECT_HOSTS: ReadonlySet<string> = new Set(
-    [
-        'pmhnphiring.com',
-        'www.pmhnphiring.com',
-        'dev.pmhnphiring.com',
-        'localhost',
-        '127.0.0.1',
-        // Whatever this deployment calls itself, so a custom domain or a
-        // renamed preview keeps working without another code change.
-        hostnameOf(process.env.NEXT_PUBLIC_BASE_URL),
-        process.env.VERCEL_URL,
-        process.env.VERCEL_PROJECT_PRODUCTION_URL,
-    ].filter((h): h is string => !!h),
-);
-
-function hostnameOf(value: string | undefined): string | undefined {
-    if (!value) return undefined;
-    try {
-        return new URL(value).hostname;
-    } catch {
-        return undefined;
-    }
-}
-
-/**
- * Preview deployments of THIS project only.
- *
- * The previous check accepted any host ending in `.vercel.app`. That suffix is
- * third-party registrable: anyone can deploy `pmhnp-reset.vercel.app` in their
- * own account, pass it as `redirectTo`, and have the genuine password-reset
- * email carry the victim to their page after the reset completes. That is the
- * exact open redirect this allow-list exists to close, so the suffix must be
- * paired with the project's own deployment prefix.
- */
-const VERCEL_PREVIEW_PREFIX = 'pmhnp-job-board';
-
-function isFirstPartyVercelPreview(hostname: string): boolean {
-    if (!hostname.endsWith('.vercel.app')) return false;
-    return hostname.startsWith(`${VERCEL_PREVIEW_PREFIX}-`) || hostname === `${VERCEL_PREVIEW_PREFIX}.vercel.app`;
-}
 
 // Exported for tests/api/forgot-password-redirect-allowlist.test.ts — the
 // allow-list is the whole security control here, so it is locked directly.
 export function safeRedirectOrigin(raw: string | undefined): string | undefined {
-    if (!raw) return undefined;
-    try {
-        const u = new URL(raw);
-        if (u.protocol !== 'https:' && u.hostname !== 'localhost' && u.hostname !== '127.0.0.1') {
-            logger.warn('forgot-password: rejected non-https redirectTo', { host: u.hostname });
-            return undefined;
+    const safe = safeAuthRedirect(raw);
+    if (raw && !safe) {
+        // Host only: the rest of the URL is caller-controlled and belongs
+        // nowhere near the log line.
+        let host: string | null = null;
+        try {
+            host = new URL(raw).hostname;
+        } catch {
+            host = null;
         }
-        if (ALLOWED_REDIRECT_HOSTS.has(u.hostname)) return raw;
-        if (isFirstPartyVercelPreview(u.hostname)) return raw;
-        logger.warn('forgot-password: rejected redirectTo with unknown host', { host: u.hostname });
-        return undefined;
-    } catch {
-        return undefined;
+        logger.warn('forgot-password: rejected redirectTo outside the first-party allow-list', { host });
     }
+    return safe;
 }
 
 export async function POST(request: NextRequest) {

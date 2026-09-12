@@ -69,6 +69,13 @@ export async function getUnlocksForPosting(employerJobId: string): Promise<numbe
 /**
  * Count how many InMails (unique conversations) are tied to a specific job posting.
  * Only counts unique conversations, not total messages — follow-up replies are free.
+ *
+ * Unattributed conversations (jobId = null) opened since this posting started
+ * count against it. /api/employer/messages now always names a posting, but the
+ * rows written while it did not were counted against nothing at all, which is
+ * exactly how the cap was bypassed: send with no jobId, stay at used = 0 for
+ * ever. Charging them to the posting that was live at the time is the closest
+ * honest attribution available.
  */
 export async function getInMailsForPosting(
     senderId: string,
@@ -77,11 +84,20 @@ export async function getInMailsForPosting(
 ): Promise<number> {
     return prisma.conversation.count({
         where: {
-            OR: [
-                { participantA: senderId },
-                { participantB: senderId },
+            AND: [
+                {
+                    OR: [
+                        { participantA: senderId },
+                        { participantB: senderId },
+                    ],
+                },
+                {
+                    OR: [
+                        { jobId },
+                        { jobId: null },
+                    ],
+                },
             ],
-            jobId,
             createdAt: { gte: postingCreatedAt },
         },
     });

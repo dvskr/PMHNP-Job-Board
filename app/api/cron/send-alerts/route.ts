@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
+import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
 
 export const maxDuration = 60
 
@@ -11,6 +12,13 @@ export async function GET(request: NextRequest) {
   // Verify cron secret
   const authError = await verifyCronOrAdmin(request);
   if (authError) return authError;
+
+  // Emergency brake. Job alert digests go out through Resend's batch API, not
+  // through sendAndLog, so this cron needs its own check: without it the brake
+  // would leave the single highest-volume automated sender running.
+  if (isOutboundPaused()) {
+    return NextResponse.json({ enabled: false, message: OUTBOUND_PAUSED_MESSAGE });
+  }
 
   try {
     return await withCronTracking('send-alerts', async () => {

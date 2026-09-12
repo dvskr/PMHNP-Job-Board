@@ -20,6 +20,8 @@ import type { Prisma } from '@prisma/client';
 import {
   buildCategoryWhereClause,
   easyApplyClause,
+  listingExpiryHorizon,
+  publicJobsWhere,
   GLOBAL_EXCLUSIONS,
 } from '@/lib/filters';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from './render-gate';
@@ -59,22 +61,23 @@ export function categoryLandingRobotsMeta(
  * clause the page itself counts with, so the sitemap gate and the page's
  * robots gate agree by construction. Special cases mirror the page sources
  * exactly (locked by tests/seo/category-landing-gate.test.ts):
- *   - remote:     app/jobs/remote/page.tsx REMOTE_FILTER (isRemote boolean)
- *   - easy-apply: app/jobs/easy-apply/page.tsx easyApplyFilter (employer
- *                 posts carry hard expiresAt terms, hence the expiry guard)
+ *   - remote:     app/jobs/remote/page.tsx remoteFilter() (isRemote boolean)
+ *   - easy-apply: app/jobs/easy-apply/page.tsx easyApplyFilter
  *   - inpatient:  buildCategoryWhereClause with the isRemote exclusion
  *   - default:    buildCategoryWhereClause(slug)
+ *
+ * Every branch carries the expiry guard. The remote branch used to omit it on
+ * the theory that only employer posts have hard expiresAt terms, but the
+ * normalizer stamps expiresAt on aggregated rows too (lib/job-normalizer.ts),
+ * so an expired posting kept its card and its place in the advertised count
+ * while its detail URL already answered 410.
  */
 export function categoryLandingWhere(
   slug: string,
-  now: Date = new Date(),
+  now: Date = listingExpiryHorizon(),
 ): Prisma.JobWhereInput {
   if (slug === 'remote') {
-    return {
-      isPublished: true,
-      isRemote: true,
-      AND: GLOBAL_EXCLUSIONS.map((e) => ({ NOT: e })),
-    };
+    return { ...publicJobsWhere(now), isRemote: true };
   }
   if (slug === 'easy-apply') {
     return {
@@ -87,7 +90,7 @@ export function categoryLandingWhere(
     };
   }
   if (slug === 'inpatient') {
-    return buildCategoryWhereClause('inpatient', { isRemote: { not: true } });
+    return buildCategoryWhereClause('inpatient', { isRemote: { not: true } }, now);
   }
-  return buildCategoryWhereClause(slug);
+  return buildCategoryWhereClause(slug, {}, now);
 }

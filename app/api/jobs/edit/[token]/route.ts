@@ -15,10 +15,14 @@ import { isEditTokenWindowOpen, EDIT_TOKEN_CLOSED_MESSAGE } from '@/lib/auth/edi
  *     brute-forced even at modest scale.
  *   - Every successful and failed access is logged with anonymized context
  *     so token enumeration attempts are visible in observability.
- *   - The response is deliberately scoped to fields the edit form renders —
- *     contactEmail is included because the form displays it for editing,
- *     not because callers should be able to harvest it. Treat the token as
- *     a bearer credential; the rate limiter is the brute-force defense.
+ *   - The response is deliberately scoped to fields the edit form renders.
+ *     contactEmail is included because the form shows the employer where
+ *     applicant notifications go, READ-ONLY: it is the ownership key for
+ *     legacy `userId: null` postings, so POST /api/jobs/update refuses to
+ *     write it and a leaked link cannot repoint the address. It is exposed
+ *     here for display, not because callers should be able to harvest it.
+ *     Treat the token as a bearer credential; the rate limiter is the
+ *     brute-force defense.
  */
 export async function GET(
   request: NextRequest,

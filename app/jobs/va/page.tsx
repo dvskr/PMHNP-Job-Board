@@ -36,14 +36,19 @@ interface ProcessedEmployer {
   count: number;
 }
 
-const VA_FILTER = buildCategoryWhereClause('va');
+/**
+ * Built per request, never hoisted to a module constant: the clause pins a
+ * concrete expiry instant, and a module constant would freeze it at cold start
+ * so postings that expired during the instance's life would keep showing.
+ */
+const categoryWhere = () => buildCategoryWhereClause('va');
 
 /**
  * Fetch VA jobs with pagination
  */
 async function getVAJobs(skip: number = 0, take: number = 20) {
   const jobs = await prisma.job.findMany({
-    where: VA_FILTER,
+    where: categoryWhere(),
     orderBy: BEST_SORT_ORDER_BY,
     skip,
     take,
@@ -56,10 +61,10 @@ async function getVAJobs(skip: number = 0, take: number = 20) {
  * Fetch VA job statistics
  */
 async function getVAStats() {
-  const totalJobs = await prisma.job.count({ where: VA_FILTER });
+  const totalJobs = await prisma.job.count({ where: categoryWhere() });
 
   const salaryData = await prisma.job.aggregate({
-    where: { ...VA_FILTER, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+    where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
     _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
   });
 
@@ -69,7 +74,7 @@ async function getVAStats() {
 
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
-    where: VA_FILTER,
+    where: categoryWhere(),
     _count: { employer: true },
     orderBy: { _count: { employer: 'desc' } },
     take: 8,

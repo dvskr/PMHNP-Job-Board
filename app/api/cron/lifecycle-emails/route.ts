@@ -92,6 +92,9 @@ export async function GET(req: Request) {
               createdAt: { gte: capCutoff },
               emailType: { in: [...SHARED_MARKETING_CAP_EMAIL_TYPES] },
               NOT: { subject: { startsWith: '[TEST]' } },
+              // Mail the provider refused never reached the recipient, so it
+              // must not consume the cap. sendAndLog stamps those 'failed'.
+              status: { not: 'failed' },
             },
             select: { to: true },
           }),

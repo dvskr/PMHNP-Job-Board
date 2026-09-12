@@ -171,7 +171,10 @@ export default function AdminEmailPage() {
         finally { setSending(false); }
     };
 
-    // ── Test send (to admin) ──
+    // ── Test send (to the signed-in admin) ──
+    // The recipient is resolved server-side from the session. This page is a
+    // client component, so an address written here would ship in the browser
+    // bundle and every admin's test would land in one person's inbox.
     const handleTestSend = async () => {
         if (!subject || !body) { showMsg('Subject and body are required', true); return; }
         setSending(true);
@@ -182,8 +185,7 @@ export default function AdminEmailPage() {
                 body: JSON.stringify({
                     subject: `[TEST] ${subject}`,
                     body,
-                    audience: 'custom',
-                    customEmails: ['daggu@live.com'], // admin email
+                    audience: 'self',
                 }),
             });
             const data = await res.json();

@@ -232,14 +232,23 @@ export async function POST(request: NextRequest) {
     const price = config.priceInCentsFor(priceKind);
 
     // Salary parsing + normalization
-    const parsedMinSalary = (() => {
+    const rawMinSalary = (() => {
       const val = Number(sanitized.minSalary);
       return Number.isFinite(val) && !Number.isNaN(val) ? val : null;
     })();
-    const parsedMaxSalary = (() => {
+    const rawMaxSalary = (() => {
       const val = Number(sanitized.maxSalary);
       return Number.isFinite(val) && !Number.isNaN(val) ? val : null;
     })();
+    // A transposed range is an easy thing to type and it reaches the reader
+    // raw: normalizeSalary swaps its own normalized pair internally, but the
+    // minSalary/maxSalary columns written below are what the job card, the
+    // salary filter and the JSON-LD read, so a $200k to $150k posting sorted
+    // and filtered as if it paid $200k at the bottom. Order them here, once,
+    // before anything downstream sees them.
+    const transposed = rawMinSalary !== null && rawMaxSalary !== null && rawMinSalary > rawMaxSalary;
+    const parsedMinSalary = transposed ? rawMaxSalary : rawMinSalary;
+    const parsedMaxSalary = transposed ? rawMinSalary : rawMaxSalary;
     const parsedSalaryPeriod = sanitized.salaryPeriod || (parsedMinSalary || parsedMaxSalary ? 'year' : null);
 
     const normalizedSalary = normalizeSalary({
@@ -255,6 +264,11 @@ export async function POST(request: NextRequest) {
       parsedSalaryPeriod
     );
 
+    const parsedLoc = parseLocation(sanitized.location);
+
+    // parsedLoc is computed before the score, not after it: passing city and
+    // state as null scored every employer posting as if it had no location,
+    // docking the one signal the employer always supplies.
     const qualityScore = computeQualityScore({
       applyLink: sanitized.applyLink,
       displaySalary,
@@ -262,12 +276,10 @@ export async function POST(request: NextRequest) {
       normalizedMaxSalary: normalizedSalary.normalizedMaxSalary,
       descriptionSummary: summarizeForMeta(sanitized.description),
       description: sanitized.description,
-      city: null,
-      state: null,
+      city: parsedLoc.city,
+      state: parsedLoc.state,
       isEmployerPosted: true,
     });
-
-    const parsedLoc = parseLocation(sanitized.location);
 
     // Calculate expiry — paid duration (60 days)
     const expiresAt = new Date();

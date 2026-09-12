@@ -87,9 +87,18 @@ const getStats = cache(async function getStats(config: SettingConfig, stateName:
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where = config.buildWhere(stateName) as any;
 
-  // Use cached stats if available
-  let totalJobs = pseo?.totalJobs ?? 0;
-  let avgSalary = pseo?.rawAvgSalary ?? 0;
+  // Trust the aggregated row ONLY while it is fresh. updatedAt is the
+  // aggregate-pseo cron's liveness stamp; once it falls outside the shared
+  // staleness window the cron is broken and the stored count may be months
+  // old. This count drives the <title>, the OG title, the noindex gate and
+  // the 0-job notFound() below, so a stale row silently publishes a SERP
+  // count the page can't back up — and disagrees with the sitemap, which
+  // already drops rows past the same cutoff. Mirrors the gate in
+  // category-city-template.tsx.
+  const isFresh =
+    !!pseo && pseo.totalJobs > 0 && pseo.updatedAt.getTime() >= pseoFreshnessCutoff().getTime();
+  let totalJobs = isFresh ? pseo!.totalJobs : 0;
+  let avgSalary = isFresh ? (pseo!.rawAvgSalary ?? 0) : 0;
 
   // Fallback: live count when pseoStats cache is empty/stale
   if (totalJobs === 0) {
@@ -140,8 +149,15 @@ export async function buildSettingStateMetadata(
   const stateName = resolveStateSlug(stateSlug);
   if (!config || !stateName) return { title: 'Not Found' };
 
-  const stats = await getStats(config, stateName, stateSlug);
-  const basePath = `/jobs/${config.slug}/${stateSlug}`;
+  // Always key off the canonical hyphenated slug, never the raw param.
+  // resolveStateSlug also accepts the 2-letter code (/jobs/remote/ny), and
+  // emitting a self-canonical for the alias made every setting × state page
+  // indexable twice. The page component 308s the alias away, so the canonical
+  // must name the same target the redirect lands on. It is also the real
+  // pseoStats locationSlug key, which is only ever written hyphenated.
+  const canonicalStateSlug = stateToSlug(stateName);
+  const stats = await getStats(config, stateName, canonicalStateSlug);
+  const basePath = `/jobs/${config.slug}/${canonicalStateSlug}`;
 
   return {
     title: `${stats.totalJobs} ${config.label} PMHNP Jobs in ${stateName} (${config.salaryRange})`,
@@ -200,11 +216,24 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
     notFound();
   }
 
+  // 308 any non-canonical state form (2-letter code, e.g. /jobs/remote/ny) to
+  // the hyphenated slug. resolveStateSlug accepts both, and without this the
+  // alias rendered a full page that self-canonicalled to itself: every
+  // setting × state combination was indexable twice. /jobs/state/[state]
+  // already redirects the same way; this template is the one that didn't.
+  const canonicalStateSlug = stateToSlug(stateName!);
+  if (stateSlug !== canonicalStateSlug) {
+    const { permanentRedirect } = await import('next/navigation');
+    permanentRedirect(
+      `/jobs/${config.slug}/${canonicalStateSlug}${page > 1 ? `?page=${page}` : ''}`,
+    );
+  }
+
   const limit = 10;
   const skip = (page - 1) * limit;
 
   // 1. Fetch fast pre-calculated stats
-  const stats = await getStats(config, stateName!, stateSlug);
+  const stats = await getStats(config, stateName!, canonicalStateSlug);
 
   // SEO Fix: Return real 404 for categoryÃ—state combos with no matching jobs.
   // Stops the server from trying to fetch jobs that don't exist.
@@ -218,7 +247,9 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
 
   const totalPages = Math.ceil(stats.totalJobs / limit);
   const rawNeighbors = NEIGHBORING_STATES[stateName!] || [];
-  const basePath = `/jobs/${config.slug}/${stateSlug}`;
+  // Pagination rel links hang off basePath, so it uses the canonical slug
+  // rather than the raw param for the same reason the canonical tag does.
+  const basePath = `/jobs/${config.slug}/${canonicalStateSlug}`;
 
   // GSC Fix (P1.5 + 2026-07 audit): gate cross-links by pseoStats.totalJobs ≥
   // MIN_JOBS_FOR_CATEGORY_CITY. The previous ≥1 gate linked category-city
@@ -241,7 +272,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
     otherSettingRows = await prisma.pseoStats.findMany({
       where: {
         type: 'setting-state',
-        locationSlug: stateSlug,
+        locationSlug: canonicalStateSlug,
         totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
         categorySlug: { not: config.slug },
         updatedAt: { gte: pseoFreshnessThreshold },

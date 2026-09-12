@@ -34,7 +34,7 @@ export default function SavedJobsPage() {
   const { savedJobs: savedIds, removeJob, clearAll: clearSavedJobs } = useSavedJobs();
 
   // Applied jobs hook
-  const { appliedJobs, getAppliedDate, removeApplied, clearAll: clearAppliedJobs } = useAppliedJobs();
+  const { appliedJobs, getAppliedDate, isSubmitted, removeApplied, clearAll: clearAppliedJobs } = useAppliedJobs();
   const [appliedJobsData, setAppliedJobsData] = useState<Job[]>([]);
   const [appliedLoading, setAppliedLoading] = useState(false);
   const [appliedError, setAppliedError] = useState<string | null>(null);
@@ -139,9 +139,10 @@ export default function SavedJobsPage() {
   };
 
   const handleClearApplied = () => {
-    if (confirm('Are you sure you want to clear your application history? This cannot be undone.')) {
-      // The hook wipes both localStorage and the user's server-side rows
-      // (when authenticated). No reload needed — state updates flow through.
+    if (confirm('Clear your application history? Applications you submitted through the platform are kept: everything else is removed and this cannot be undone.')) {
+      // The hook wipes localStorage and the user's server-side click-through
+      // rows (when authenticated), but never a submitted application: those
+      // are the employer's record too and are withdrawn, not deleted.
       clearAppliedJobs();
       setAppliedJobsData([]);
     }
@@ -546,7 +547,10 @@ export default function SavedJobsPage() {
                                 key={id}
                                 appliedDate={appliedDate}
                                 formatDate={formatAppliedDate}
-                                onRemove={() => removeApplied(id)}
+                                // A submitted application is not prunable history:
+                                // the server refuses the delete, and withdrawing it
+                                // lives on /my-applications.
+                                onRemove={isSubmitted(id) ? null : () => removeApplied(id)}
                             />
                         );
                     })}
@@ -582,7 +586,8 @@ function UnavailableJobPlaceholder({
 }: {
     appliedDate?: Date | null;
     formatDate?: (d: Date) => string;
-    onRemove: () => void;
+    /** null when the entry is a submitted application, which cannot be pruned here. */
+    onRemove: (() => void) | null;
 }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -636,26 +641,49 @@ function UnavailableJobPlaceholder({
 
                 <div style={{ flex: 1 }} />
 
-                <button
-                    onClick={onRemove}
-                    style={{
-                        alignSelf: 'flex-start',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        color: '#EF4444',
-                        background: '#FEF2F2',
-                        border: '1px solid #FECACA',
-                        borderRadius: '10px',
-                        padding: '6px 12px',
-                        cursor: 'pointer',
-                    }}
-                >
-                    <Trash2 size={12} />
-                    Remove from history
-                </button>
+                {onRemove ? (
+                    <button
+                        onClick={onRemove}
+                        style={{
+                            alignSelf: 'flex-start',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: '#EF4444',
+                            background: '#FEF2F2',
+                            border: '1px solid #FECACA',
+                            borderRadius: '10px',
+                            padding: '6px 12px',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <Trash2 size={12} />
+                        Remove from history
+                    </button>
+                ) : (
+                    <Link
+                        href="/my-applications"
+                        style={{
+                            alignSelf: 'flex-start',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: '#0D9488',
+                            background: '#EDF5F0',
+                            border: '1px solid #D5E8E0',
+                            borderRadius: '10px',
+                            padding: '6px 12px',
+                            textDecoration: 'none',
+                        }}
+                    >
+                        <FileCheck size={12} />
+                        Manage this application
+                    </Link>
+                )}
             </div>
             {appliedDate && formatDate && (
                 <div

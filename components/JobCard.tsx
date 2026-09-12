@@ -78,7 +78,10 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   // recipient in our system. Computed once per render.
   const canMessageEmployer = job.sourceType === 'employer';
   const saved = isSaved(job.id);
-  const applied = isApplied(job.id);
+  // Mount-guarded like `viewed` below: the applied badge is backed by
+  // localStorage, which the server cannot see. Reading it on the first render
+  // made SSR and hydration disagree and React discarded the card subtree.
+  const applied = isHydrated && isApplied(job.id);
   // Prefer the stored, immutable slug. Recomputing from title every render
   // means a future title edit would silently change the URL the card points
   // at — slugify is the legacy-row fallback only.

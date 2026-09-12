@@ -6,6 +6,7 @@ import { MapPin, DollarSign, Building2, Shield, TrendingUp, Users, Heart, Briefc
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { getMetroCity, getAllMetroSlugs, buildMetroJobsWhere, type MetroCity } from '@/lib/metro-data';
+import { publicJobsWhere } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -36,7 +37,13 @@ async function getMetroStats(metro: MetroCity) {
   // Shared with the sitemap's metro gate (app/sitemap.ts) — see
   // buildMetroJobsWhere. The sitemap only advertises metros whose live
   // count via this exact clause is > 0, and this page noindexes at 0.
-  const where = buildMetroJobsWhere(metro);
+  //
+  // publicJobsWhere is merged HERE rather than inside buildMetroJobsWhere,
+  // which stays edge-safe plain data (type-only Prisma import). Without it the
+  // metro stats counted expired rows whose detail URL answers 410 and MD-only
+  // Psychiatrist rows that /jobs hides. The geography clause uses top-level
+  // `OR` / `stateCode`, so it does not collide with publicJobsWhere's `AND`.
+  const where = { ...buildMetroJobsWhere(metro), ...publicJobsWhere() };
 
   const [totalJobs, salaryData, topEmployers, recentJobs] = await Promise.all([
     prisma.job.count({ where }),
@@ -72,12 +79,14 @@ async function getMetroStats(metro: MetroCity) {
 
 /** Also fetch statewide stats for comparison */
 async function getStateStats(stateCode: string) {
+  // Same visibility predicate as the metro figures above: the page renders the
+  // two side by side, so counting them differently made the comparison lie.
   const stateJobs = await prisma.job.count({
-    where: { isPublished: true, stateCode: { equals: stateCode, mode: 'insensitive' } },
+    where: { ...publicJobsWhere(), stateCode: { equals: stateCode, mode: 'insensitive' } },
   });
   const stateSalary = await prisma.job.aggregate({
     where: {
-      isPublished: true,
+      ...publicJobsWhere(),
       stateCode: { equals: stateCode, mode: 'insensitive' },
       normalizedMinSalary: { not: null },
       normalizedMaxSalary: { not: null },

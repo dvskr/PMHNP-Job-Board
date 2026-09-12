@@ -10,9 +10,17 @@
  *
  * All fixtures are fictional.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
+
+// Warm the route's module graph in a hook with its own timeout. The tests below
+// each `await import(...)` it, and whichever ran first paid the whole transform
+// cost inside a 5s test budget; that timed-out call then resolved during the
+// next test and polluted its mock call list.
+beforeAll(async () => {
+  await import('@/app/api/jobs/update/route');
+}, 120_000);
 
 vi.mock('@/lib/inngest/client', () => ({ inngest: { send: vi.fn().mockResolvedValue(undefined) } }));
 
