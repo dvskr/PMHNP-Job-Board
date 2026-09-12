@@ -1,4 +1,4 @@
-﻿-- Atomic mutex for the once-per-identity first-post discount.
+-- Atomic mutex for the once-per-identity first-post discount.
 --
 -- The discount gate COUNTS an employer's prior posts and the row insert ACTS
 -- on that count, so two checkout requests fired at the same instant could both
