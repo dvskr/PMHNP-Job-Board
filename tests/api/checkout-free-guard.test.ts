@@ -100,10 +100,9 @@ describe('create-checkout first-post discount gate', () => {
     expect(src).not.toContain("quotaDomain: sanitized.contactEmail");
   });
 
-  it('guarantee copy is gated on the config toggle and interpolates its numbers', () => {
-    expect(src).toContain('config.firstPostGuarantee');
-    expect(src).toContain('config.guaranteeMinApplicants');
-    expect(src).toContain('config.guaranteeWindowDays');
+  it('sells the post without a refund promise', () => {
+    expect(src).not.toMatch(/refund it in full/i);
+    expect(src).not.toContain('firstPostGuarantee');
   });
 });
 

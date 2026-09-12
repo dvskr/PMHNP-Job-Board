@@ -67,7 +67,7 @@
 #### For Employers
 | Feature | Description |
 |---------|-------------|
-| **Paid Job Posting** | Every post goes through Stripe Checkout, with a discounted first post per employer identity. Prices, duration, and the first-post guarantee live in [`lib/config.ts`](lib/config.ts); see [`docs/pricing-system.md`](docs/pricing-system.md) |
+| **Paid Job Posting** | Every post goes through Stripe Checkout, with a discounted first post per employer identity. Prices and duration live in [`lib/config.ts`](lib/config.ts); see [`docs/pricing-system.md`](docs/pricing-system.md) |
 | **Featured Listings** | Premium featured jobs with enhanced visibility |
 | **Dashboard Analytics** | Track views, clicks, and applicant engagement |
 | **Job Management** | Edit, renew, or upgrade active job posts |

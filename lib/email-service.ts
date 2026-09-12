@@ -401,7 +401,6 @@ export async function sendSignupWelcomeEmail(
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;text-align:center;">
           <p style="margin:0 0 4px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Welcome offer</p>
           <p style="margin:0;font-family:${SANS_V2};font-size:15px;color:${V2.textPrimary};line-height:1.5;">Your first job post is <strong>half price at $${config.firstPostPrice}</strong>, ${config.firstPostDiscountPercent()}% off the standard $${config.postingPrice}. Every post after it is $${config.postingPrice}.</p>
-          ${config.firstPostGuarantee ? `<p style="margin:8px 0 0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};line-height:1.5;">If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.</p>` : ''}
         </div>
       </td></tr>
       ${spacerV2(28)}
@@ -487,8 +486,9 @@ export async function sendConfirmationEmail(
   // stays so historical callers and any future split keep working.
   durationDays: number = config.durationDays,
   invoice?: InvoiceLinks,
-  // Which price this post was charged at. Only 'first' earns the guarantee
-  // block, so an unspecified caller never promises a refund it cannot honour.
+  // Which price this post was charged at. Kept on the signature so the
+  // webhook can keep passing it and any future first-post-only copy has a
+  // hook; nothing in the email currently branches on it.
   priceKind?: PostPriceKind,
 ): Promise<EmailResult> {
   try {
@@ -527,18 +527,6 @@ export async function sendConfirmationEmail(
         </div>
       </td></tr>`;
 
-    const guaranteeBlock = (config.firstPostGuarantee && priceKind === 'first')
-      ? `
-        ${spacerV2(16)}
-        <tr><td class="content-pad" style="padding:0 40px;">
-          <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
-            <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Your first-post guarantee</p>
-            <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full. Reply to this email and we will take care of it.</p>
-            <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};line-height:1.5;">An applicant means a candidate who submits an application through the site, or who clicks through to your own application page when your posting links out. Your dashboard shows both counts, so you can check the number yourself.</p>
-          </div>
-        </td></tr>`
-      : '';
-
     const invoiceBlock = (invoice?.invoicePdfUrl || invoice?.hostedInvoiceUrl)
       ? `
         ${spacerV2(16)}
@@ -563,7 +551,7 @@ export async function sendConfirmationEmail(
           <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">${featuresLine}</p>
           <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">Candidates you unlock stay in your dashboard forever, even after this posting expires.</p>
         </div>
-      </td></tr>${guaranteeBlock}${invoiceBlock}
+      </td></tr>${invoiceBlock}
       ${spacerV2(28)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('View Your Listing', `${BASE_URL}/jobs/${jobSlug}`)}

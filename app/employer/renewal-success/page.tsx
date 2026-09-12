@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { config } from '@/lib/config';
 
 interface RenewalData {
   jobTitle: string;
@@ -104,7 +105,7 @@ function RenewalSuccessContent() {
     );
   }
 
-  const daysExtended = 60;
+  const daysExtended = config.durationDays;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 via-white to-teal-50 flex items-center justify-center p-4">

@@ -310,11 +310,6 @@ export default function CheckoutPage() {
                 ? `Your half price first post is used. This listing is $${config.postingPrice} for ${config.durationDays} days.`
                 : `Job listing: $${priceDollars} for ${config.durationDays} days.`}
           </p>
-          {quotaContext === 'first-post' && config.firstPostGuarantee && (
-            <p style={{ fontSize: '12px', color: '#0F766E', margin: '6px 0 0', lineHeight: 1.5 }}>
-              {`If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`}
-            </p>
-          )}
         </div>
 
         {/* Job Summary Card */}

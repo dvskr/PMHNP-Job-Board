@@ -804,14 +804,9 @@ function PostJobContent() {
           <h2 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 8px' }}>
             Your first job post is half price
           </h2>
-          <p style={{ fontSize: '14px', color: '#6B7F8A', margin: config.firstPostGuarantee ? '0 0 12px' : '0 0 28px', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '14px', color: '#6B7F8A', margin: '0 0 28px', lineHeight: 1.5 }}>
             {`Create an employer account and post for $${config.firstPostPrice} instead of $${config.postingPrice}. Takes about 5 minutes, and the listing runs ${config.durationDays} days.`}
           </p>
-          {config.firstPostGuarantee && (
-            <p style={{ fontSize: '13px', color: '#0F766E', margin: '0 0 28px', lineHeight: 1.5, fontWeight: 600 }}>
-              {`If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`}
-            </p>
-          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <a href="/signup?role=employer&redirectTo=/post-job" style={{
               ...clayBtn, justifyContent: 'center',

@@ -338,14 +338,13 @@ export function trackBeginCheckout(amountCents: number, type: 'new' | 'renewal')
   });
 }
 
-/** Free post submitted successfully (no Stripe involved) */
-export function trackSubmitFreePost(jobId: string) {
-  gtag('event', 'submit_free_post', { job_id: jobId });
-}
-
-/** Employer hit the free-post lifetime limit on this domain */
-export function trackFreePostLimitHit(domain: string, used: number, limit: number) {
-  gtag('event', 'free_post_limit_hit', {
+/**
+ * Employer reached checkout with the once-per-identity first-post discount
+ * already spent, so this post is at the standard price. Successor to the
+ * retired free_post_limit_hit event; same funnel step, honest name.
+ */
+export function trackDiscountSpent(domain: string, used: number, limit: number) {
+  gtag('event', 'first_post_discount_spent', {
     email_domain: domain,
     used,
     limit,

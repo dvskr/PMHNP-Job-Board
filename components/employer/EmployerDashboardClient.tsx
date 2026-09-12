@@ -315,11 +315,13 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 throw new Error(result.error || 'Failed to create checkout');
             }
 
-            if (result.url) {
-                window.location.href = result.url;
-            } else if (result.success && result.free) {
-                window.location.reload();
+            if (!result.url) {
+                // Every renewal is paid, so a 200 without a Stripe URL is a
+                // contract break, not a free path; surface it instead of
+                // leaving the button spinning forever.
+                throw new Error('Checkout did not return a payment link');
             }
+            window.location.href = result.url;
         } catch (err) {
             console.error('Renewal checkout error:', err);
             alert(err instanceof Error ? err.message : 'Failed to start renewal process');

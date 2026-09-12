@@ -231,13 +231,6 @@ export async function POST(request: NextRequest) {
     const priceKind: PostPriceKind = isFirstPost ? 'first' : 'standard';
     const price = config.priceInCentsFor(priceKind);
 
-    // Guarantee copy rides the first post only, and disappears everywhere the
-    // moment config.firstPostGuarantee is turned off.
-    const guaranteeNote =
-      isFirstPost && config.firstPostGuarantee
-        ? ` If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`
-        : '';
-
     // Salary parsing + normalization
     const parsedMinSalary = (() => {
       const val = Number(sanitized.minSalary);
@@ -429,7 +422,7 @@ export async function POST(request: NextRequest) {
               name: isFirstPost
                 ? `First Job Post, ${config.firstPostDiscountPercent()}% off: ${sanitized.title}`
                 : `Job Post: ${sanitized.title}`,
-              description: `${sanitized.employer}, ${sanitized.location}. Runs ${config.durationDays} days.${guaranteeNote}`,
+              description: `${sanitized.employer}, ${sanitized.location}. Runs ${config.durationDays} days.`,
             },
             unit_amount: price,
           },
@@ -453,7 +446,7 @@ export async function POST(request: NextRequest) {
       invoice_creation: {
         enabled: true,
         invoice_data: {
-          description: `Job Post: ${sanitized.title}, ${sanitized.employer} (${sanitized.location}).${guaranteeNote}`,
+          description: `Job Post: ${sanitized.title}, ${sanitized.employer} (${sanitized.location}).`,
           metadata: {
             jobId: job.id,
             employerJobId: employerJob.id,

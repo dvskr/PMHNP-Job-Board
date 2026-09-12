@@ -5,7 +5,7 @@ import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import EmployerTestimonials from '@/components/EmployerTestimonials';
 import { config } from '@/lib/config';
-import { Check, ArrowRight, X, HelpCircle, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Check, ArrowRight, X, HelpCircle, RefreshCw } from 'lucide-react';
 
 // ISR: featured employer testimonials come from the database, so revalidate
 // hourly (same cadence as /for-employers) instead of freezing at build time.
@@ -55,24 +55,14 @@ const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: t
 
 const renewalDiscountPercent = Math.round((1 - config.renewalPrice / config.postingPrice) * 100);
 
-const guaranteeLine = `Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`;
-
-// The claim procedure, stated identically on /pricing, /faq and /terms. The
-// count can only be settled once the window has run its full length, so the
-// claim period opens when the window closes rather than at purchase.
-const guaranteeClaimLine = `Claims open when the ${config.guaranteeWindowDays}-day window closes and stay open for ${config.guaranteeClaimDays} days after that: email support@pmhnphiring.com and we return the full first-post fee to your original payment method.`;
-
 const faqs = [
     { q: 'How much does it cost to post a job?', a: `Your first post is ${config.firstPostDiscountPercent()}% off: $${config.firstPostPrice} instead of $${config.postingPrice}. That half-price rate applies once per employer. Every post after it is a flat $${config.postingPrice}.` },
-    ...(config.firstPostGuarantee
-        ? [{ q: 'What is the first-post guarantee?', a: `${guaranteeLine} ${guaranteeClaimLine}` }]
-        : []),
     { q: 'How long do job postings stay active?', a: `Every posting runs for ${config.durationDays} days, first post included. You can renew at any time from your employer dashboard.` },
     { q: 'What does renewal cost?', a: `Renewals are $${config.renewalPrice} (${renewalDiscountPercent}% off the regular price). Your listing gets another ${config.durationDays} days and is boosted back to the top of search results.` },
     { q: 'If I renew before my posting expires, do I lose the remaining days?', a: `No. Renewing early adds ${config.durationDays} days to your current expiration date, so you don't lose any time you've already paid for. Renew whenever it's convenient.` },
     { q: 'Is the half-price first post any different from a standard post?', a: `No. Same features: Featured badge, top placement, ${config.limits.candidateUnlocksPerPosting} candidate unlocks, ${config.limits.inmailsPerPosting} InMails, full analytics, and the same ${config.durationDays}-day duration. The only difference is the price.` },
     { q: 'Do I lose access to candidates I\'ve unlocked when my posting expires?', a: 'No. Once you\'ve unlocked a candidate (viewed their full profile), their contact info, resume, and details remain in your dashboard forever, even after the posting expires. To unlock new candidates or send new InMails, you\'ll need an active posting.' },
-    { q: 'Can I edit my job posting after publishing?', a: `Yes! You can edit your posting anytime from your dashboard: update salary, requirements, or any details. Changes go live immediately.${config.firstPostGuarantee ? ' Routine edits like these never affect the first-post guarantee.' : ''}` },
+    { q: 'Can I edit my job posting after publishing?', a: `Yes! You can edit your posting anytime from your dashboard: update salary, requirements, or any details. Changes go live immediately.` },
     { q: 'Do you offer bulk discounts?', a: 'Yes! Contact us at support@pmhnphiring.com for custom pricing if you need to post 5+ positions. We offer volume discounts for larger organizations.' },
 ];
 
@@ -105,11 +95,6 @@ export default function PricingPage() {
                         <p style={{ fontSize: '17px', color: '#5A4A42', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
                             Half price on your first post, ${config.postingPrice} after that, ${config.renewalPrice} to renew. Every post runs {config.durationDays} days with the full package: no downgrades, no hidden fees.
                         </p>
-                        {config.firstPostGuarantee && (
-                            <p style={{ fontSize: '14px', color: '#0D9488', fontWeight: 600, maxWidth: '600px', margin: '14px auto 0', lineHeight: 1.6 }}>
-                                {guaranteeLine}
-                            </p>
-                        )}
                     </div>
                 </section>
 
@@ -159,15 +144,6 @@ export default function PricingPage() {
                                         </p>
                                     </div>
 
-                                    {config.firstPostGuarantee && (
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px 16px', background: 'rgba(255,255,255,0.7)', borderRadius: '10px', border: '1px solid rgba(13,148,136,0.1)', marginBottom: '20px' }}>
-                                            <ShieldCheck size={14} style={{ color: '#0D9488', flexShrink: 0, marginTop: '2px' }} />
-                                            <p style={{ fontSize: '12px', color: '#134E4A', margin: 0, lineHeight: 1.5 }}>
-                                                {guaranteeLine}
-                                            </p>
-                                        </div>
-                                    )}
-
                                     <Link href="/post-job" className="emp-cta-primary" style={{
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                         padding: '14px 28px', borderRadius: '14px', fontWeight: 700, fontSize: '15px',
@@ -210,7 +186,7 @@ export default function PricingPage() {
                         }}>
                             <div style={{ padding: '32px 28px' }}>
                                 <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-calendar.webp" alt="" width={56} sizes="56px" height={56} style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px' }} />
-                                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>60-Day Listing</h3>
+                                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>{config.durationDays}-Day Listing</h3>
                                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
                                     Double the industry standard. Your job stays visible for 2 full months: no daily budget, no bidding.
                                 </p>

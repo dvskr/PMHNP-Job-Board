@@ -8,7 +8,7 @@ import { config } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
-  description: 'Read the Terms of Service for PMHNP Hiring, operated by Akari Labs LLC. Understand your rights, responsibilities, pricing, the first-post refund guarantee, and platform policies for the PMHNP-only job board.',
+  description: 'Read the Terms of Service for PMHNP Hiring, operated by Akari Labs LLC. Understand your rights, responsibilities, pricing, and platform policies for the PMHNP-only job board.',
   openGraph: {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-terms-of-service.webp', width: 1280, height: 900, alt: 'PMHNP Hiring terms of service page with user rights, employer responsibilities, and platform policies' }],
   },
@@ -136,22 +136,11 @@ export default function TermsPage() {
           </ul>
 
           <h2 style={h2Style}>8. Refund Policy</h2>
-          {config.firstPostGuarantee && (
-            <>
-              <p style={{ ...pStyle, fontWeight: 600, color: '#1A2E35' }}>First-posting applicant guarantee:</p>
-              <p style={pStyle}>Where an employer&apos;s first posting is purchased at the discounted first-posting rate of ${config.firstPostPrice} USD and that posting receives fewer than {config.guaranteeMinApplicants} applicants within {config.guaranteeWindowDays} days of publication, Akari Labs LLC will refund the full first-posting fee of ${config.firstPostPrice} USD on request. The guarantee applies once per employer identity, to the first posting only, and does not extend to standard-rate postings or renewals.</p>
-              <p style={pStyle}><strong>What counts as an applicant.</strong> For the purpose of this guarantee, an &quot;applicant&quot; is a candidate who submits an application through the Site, or who clicks through to the employer&apos;s own application page where the posting links out to an external application. Both figures are reported in the employer dashboard, so the employer can verify the count independently at any time.</p>
-              <p style={pStyle}><strong>How and when to claim.</strong> The applicant count cannot be settled until the {config.guaranteeWindowDays}-day window has run its full length, so the claim period opens on the day that window closes. A claim must be submitted to <a href="mailto:support@pmhnphiring.com" style={{ color: '#0D9488', textDecoration: 'none' }}>support@pmhnphiring.com</a> within {config.guaranteeClaimDays} days after the {config.guaranteeWindowDays}-day window closes, and must identify the posting. A claim sent before the window closes is held and assessed on the day it closes.</p>
-              <p style={pStyle}><strong>Editing, pausing, and archiving.</strong> Routine edits do not affect the guarantee. Updating the salary, requirements, description, benefits, screening questions, or any similar detail of the same role leaves the guarantee fully intact, and employers may make those edits at any time. The guarantee ends only where the posting is replaced with a different role, meaning a change of job title, hiring employer, or location. Where an employer pauses, unpublishes, or archives the posting, the days on which it was not live do not count toward the {config.guaranteeWindowDays}-day window and the window resumes when the posting is live again.</p>
-              <p style={pStyle}>The guarantee does not apply where the posting was removed for violation of these Terms. We may withdraw this guarantee for postings created after the date of withdrawal; postings already purchased under it are not affected.</p>
-              <p style={{ ...pStyle, fontWeight: 600, color: '#1A2E35' }}>All other refunds:</p>
-            </>
-          )}
           <ul style={ulStyle}>
-            <li style={liStyle}>{config.firstPostGuarantee ? 'Except as provided by the first-posting applicant guarantee, job posting and renewal fees are non-refundable' : 'Job posting and renewal fees are generally non-refundable'}</li>
+            <li style={liStyle}>Job posting and renewal fees are generally non-refundable</li>
             <li style={liStyle}>Refund requests may be considered within 7 days of purchase on a case-by-case basis</li>
             <li style={liStyle}>To request a refund, email <a href="mailto:support@pmhnphiring.com" style={{ color: '#0D9488', textDecoration: 'none' }}>support@pmhnphiring.com</a> with your order details and the reason for the request</li>
-            <li style={liStyle}>{config.firstPostGuarantee ? 'Outside the first-posting applicant guarantee, we reserve the right to grant or deny refund requests at our sole discretion' : 'We reserve the right to grant or deny refund requests at our sole discretion'}</li>
+            <li style={liStyle}>We reserve the right to grant or deny refund requests at our sole discretion</li>
             <li style={liStyle}>If we remove a posting for violation of these Terms, no refund will be issued</li>
             <li style={liStyle}>Postings published without charge under a prior version of these Terms have no associated payment and are therefore not refundable</li>
             <li style={liStyle}>Refunds, if granted, will be issued to the original payment method through Stripe and may take 5-10 business days to appear on your statement</li>
