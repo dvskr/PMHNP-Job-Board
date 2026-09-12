@@ -228,8 +228,10 @@ export async function POST(request: NextRequest) {
 
     // Single-tier: all posts are 'pro' internally. Only the price varies.
     const pricing: PricingTier = 'pro';
-    const priceKind: PostPriceKind = isFirstPost ? 'first' : 'standard';
-    const price = config.priceInCentsFor(priceKind);
+    // Not const: losing the race for the discount hold below downgrades this
+    // post to standard price, and the line item must follow.
+    let priceKind: PostPriceKind = isFirstPost ? 'first' : 'standard';
+    let price = config.priceInCentsFor(priceKind);
 
     // Salary parsing + normalization
     const rawMinSalary = (() => {
@@ -289,9 +291,17 @@ export async function POST(request: NextRequest) {
     const editToken = crypto.randomBytes(32).toString('hex');
     const dashboardToken = createId();
 
+    // The discount claim this row will try to take. The count above is a read
+    // and this is the write that acts on it, so two simultaneous requests can
+    // both read "no prior posts"; the UNIQUE index on discountHoldKey is what
+    // makes only one of them able to act on it. Keyed on the account rather
+    // than the domain or the organization because a unique column holds one
+    // value and the account is the identity a second tab shares.
+    let discountHoldKey = isFirstPost && userId ? `acct:${userId.toLowerCase()}` : null;
+
     // Wrap Job + slug update + EmployerJob in one transaction so a partial
     // failure can't leave an orphan job row that the employer can never recover.
-    const { job, employerJob } = await prisma.$transaction(async (tx) => {
+    const createPosting = () => prisma.$transaction(async (tx) => {
       const created = await tx.job.create({
         data: {
           title: sanitized.title,
@@ -384,11 +394,91 @@ export async function POST(request: NextRequest) {
           // column.
           quotaDomain: domainFromEmail(signupEmail),
           quotaKeys: buildQuotaKeys({ userId, signupEmail, lockedCompanyName }),
+          discountHoldKey,
         },
       });
 
       return { job: updatedJob, employerJob: ej };
     });
+
+    /**
+     * Resolve a lost race for the discount claim.
+     *
+     * Someone already holds this account's hold. Who they are decides what we
+     * do, and both answers are correct rather than one being a fallback:
+     *
+     *   still pending  a checkout this employer opened and did not finish
+     *                  (another tab, the Back button). Expire its session so
+     *                  it can never be paid, release the hold, and take it.
+     *                  This is what keeps abandoning a checkout from costing
+     *                  the employer the discount they were promised.
+     *   anything else  they have already PAID for their discounted post. This
+     *                  one is a standard post, which is the same answer the
+     *                  count would have given had it not raced.
+     *
+     * Returns true when the caller should retry the insert.
+     */
+    const yieldDiscountHold = async (holdKey: string): Promise<boolean> => {
+      const holder = await prisma.employerJob.findUnique({
+        where: { discountHoldKey: holdKey },
+        select: { id: true, paymentStatus: true, stripeSessionId: true },
+      });
+
+      if (!holder) return true; // Released between the conflict and this read.
+
+      if (holder.paymentStatus !== 'pending') {
+        logger.info('First-post discount already spent, pricing this post as standard', {
+          holdKey, holderId: holder.id,
+        });
+        return false;
+      }
+
+      if (holder.stripeSessionId) {
+        try {
+          await stripe.checkout.sessions.expire(holder.stripeSessionId);
+        } catch (expireErr) {
+          // Already completed or already expired. A completed session has a
+          // webhook that lifts the row out of 'pending', and the re-read below
+          // will then price this post as standard.
+          logger.debug('Could not expire the checkout session holding the discount', {
+            holderId: holder.id,
+            error: expireErr instanceof Error ? expireErr.message : String(expireErr),
+          });
+        }
+      }
+
+      // Only release a hold still attached to an unpaid checkout. The
+      // condition re-checks paymentStatus so a webhook that landed while we
+      // were talking to Stripe wins, and this post falls back to standard.
+      const released = await prisma.employerJob.updateMany({
+        where: { id: holder.id, paymentStatus: 'pending', discountHoldKey: holdKey },
+        data: { discountHoldKey: null },
+      });
+      return released.count > 0;
+    };
+
+    let job: Awaited<ReturnType<typeof createPosting>>['job'];
+    let employerJob: Awaited<ReturnType<typeof createPosting>>['employerJob'];
+    try {
+      ({ job, employerJob } = await createPosting());
+    } catch (createErr) {
+      const conflictedOnHold =
+        discountHoldKey !== null &&
+        (createErr as { code?: string })?.code === 'P2002' &&
+        JSON.stringify((createErr as { meta?: unknown })?.meta ?? '').includes('discount_hold_key');
+      if (!conflictedOnHold) throw createErr;
+
+      // Exactly one retry. Either we took the hold over or this post is
+      // standard priced; both are terminal, so a loop would only spin.
+      const tookOver = await yieldDiscountHold(discountHoldKey!);
+      if (!tookOver) {
+        isFirstPost = false;
+        priceKind = 'standard';
+        price = config.priceInCentsFor(priceKind);
+        discountHoldKey = null;
+      }
+      ({ job, employerJob } = await createPosting());
+    }
 
     // Persist screening questions (only for platform-apply jobs)
     if (applyOnPlatform && Array.isArray(rawBody.screeningQuestions)) {
