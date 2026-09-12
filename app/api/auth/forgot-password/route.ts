@@ -33,18 +33,59 @@ const bodySchema = z.object({
  * dev. Anything else is silently dropped (falls back to Supabase's
  * configured default).
  */
-const ALLOWED_REDIRECT_HOSTS: ReadonlySet<string> = new Set([
-    'pmhnphiring.com',
-    'www.pmhnphiring.com',
-    'localhost',
-]);
+const ALLOWED_REDIRECT_HOSTS: ReadonlySet<string> = new Set(
+    [
+        'pmhnphiring.com',
+        'www.pmhnphiring.com',
+        'dev.pmhnphiring.com',
+        'localhost',
+        '127.0.0.1',
+        // Whatever this deployment calls itself, so a custom domain or a
+        // renamed preview keeps working without another code change.
+        hostnameOf(process.env.NEXT_PUBLIC_BASE_URL),
+        process.env.VERCEL_URL,
+        process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    ].filter((h): h is string => !!h),
+);
 
-function safeRedirectOrigin(raw: string | undefined): string | undefined {
+function hostnameOf(value: string | undefined): string | undefined {
+    if (!value) return undefined;
+    try {
+        return new URL(value).hostname;
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * Preview deployments of THIS project only.
+ *
+ * The previous check accepted any host ending in `.vercel.app`. That suffix is
+ * third-party registrable: anyone can deploy `pmhnp-reset.vercel.app` in their
+ * own account, pass it as `redirectTo`, and have the genuine password-reset
+ * email carry the victim to their page after the reset completes. That is the
+ * exact open redirect this allow-list exists to close, so the suffix must be
+ * paired with the project's own deployment prefix.
+ */
+const VERCEL_PREVIEW_PREFIX = 'pmhnp-job-board';
+
+function isFirstPartyVercelPreview(hostname: string): boolean {
+    if (!hostname.endsWith('.vercel.app')) return false;
+    return hostname.startsWith(`${VERCEL_PREVIEW_PREFIX}-`) || hostname === `${VERCEL_PREVIEW_PREFIX}.vercel.app`;
+}
+
+// Exported for tests/api/forgot-password-redirect-allowlist.test.ts — the
+// allow-list is the whole security control here, so it is locked directly.
+export function safeRedirectOrigin(raw: string | undefined): string | undefined {
     if (!raw) return undefined;
     try {
         const u = new URL(raw);
-        if (u.hostname.endsWith('.vercel.app')) return raw;  // preview deploys
+        if (u.protocol !== 'https:' && u.hostname !== 'localhost' && u.hostname !== '127.0.0.1') {
+            logger.warn('forgot-password: rejected non-https redirectTo', { host: u.hostname });
+            return undefined;
+        }
         if (ALLOWED_REDIRECT_HOSTS.has(u.hostname)) return raw;
+        if (isFirstPartyVercelPreview(u.hostname)) return raw;
         logger.warn('forgot-password: rejected redirectTo with unknown host', { host: u.hostname });
         return undefined;
     } catch {

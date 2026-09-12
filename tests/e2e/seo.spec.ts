@@ -19,17 +19,22 @@ test('robots.txt is reachable and well-formed', async ({ request }) => {
   expect(body).not.toMatch(/User-Agent:\s*\*\s*\nDisallow:\s*\/\s*$/im);
 });
 
-test('sitemap.xml is reachable and contains URLs', async ({ request }) => {
+test('sitemap.xml is reachable and contains URLs', async ({ request, baseURL }) => {
   const res = await request.get('/sitemap.xml');
   expect(res.status()).toBe(200);
   const body = await res.text();
   expect(body).toContain('<urlset');
-  // At minimum, the homepage URL should be present (use NEXT_PUBLIC_BASE_URL fallback host)
-  const expectedHost = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(
-    /\/$/,
-    ''
-  );
-  expect(body).toContain(expectedHost);
+  // At minimum, the homepage URL should be present. The server builds <loc>
+  // from its own NEXT_PUBLIC_BASE_URL, which may differ from the one loaded
+  // into this test process (e.g. a dev server on another port), so accept
+  // either the target baseURL or the configured public host.
+  const candidates = [baseURL, process.env.NEXT_PUBLIC_BASE_URL, 'https://pmhnphiring.com']
+    .filter((v): v is string => !!v)
+    .map((v) => v.replace(/\/$/, ''));
+  expect(
+    candidates.some((host) => body.includes(`<loc>${host}</loc>`) || body.includes(`<loc>${host}/`)),
+    `sitemap <loc> host should be one of ${candidates.join(', ')}`,
+  ).toBe(true);
 });
 
 test('sitemap index is reachable', async ({ request }) => {

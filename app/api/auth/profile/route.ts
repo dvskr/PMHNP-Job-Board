@@ -289,7 +289,21 @@ export async function PATCH(request: NextRequest) {
     const phone = body.phone !== undefined ? (body.phone ? sanitizeText(body.phone, 20) : null) : undefined
     const company = body.company !== undefined ? (body.company ? sanitizeText(body.company, 100) : null) : undefined
     const avatarUrl = body.avatarUrl !== undefined ? (body.avatarUrl ? sanitizeUrl(body.avatarUrl) : null) : undefined
-    const resumeUrl = body.resumeUrl !== undefined ? (body.resumeUrl ? sanitizeUrl(body.resumeUrl) : null) : undefined
+    // SECURITY / DATA LOSS: `resumeUrl` is deliberately NOT accepted here.
+    //
+    // It named a private storage object that /api/documents/resume/me/url and
+    // the autofill routes sign with the service-role key, with no ownership
+    // check of their own. Accepting it from the body let any signed-in user
+    // point their own profile at someone else's resume path and then read that
+    // resume through their own endpoints.
+    //
+    // The same line also destroyed data: the stored value is a bare storage
+    // path, sanitizeUrl() returns '' for anything that is not http(s)/mailto or
+    // root-relative, so a settings form that echoed the profile back wiped the
+    // candidate's resume link.
+    //
+    // The field is written server-side only: POST /api/upload on a successful
+    // upload, and DELETE /api/profile/resume to clear it.
 
     // Sanitize new PMHNP fields
     const headline = body.headline !== undefined ? (body.headline ? sanitizeText(body.headline, 120) : null) : undefined
@@ -332,7 +346,6 @@ export async function PATCH(request: NextRequest) {
         ...(phone !== undefined && { phone }),
         ...(company !== undefined && { company }),
         ...(avatarUrl !== undefined && { avatarUrl }),
-        ...(resumeUrl !== undefined && { resumeUrl }),
         ...(headline !== undefined && { headline }),
         ...(bio !== undefined && { bio }),
         ...(certifications !== undefined && { certifications }),

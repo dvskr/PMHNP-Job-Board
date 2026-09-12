@@ -62,11 +62,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const page = parseInt(searchParams.get('page') || '1');
-    const rawLimit = parseInt(searchParams.get('limit') || '20');
+    // Pagination params are attacker-controlled and must be clamped before they
+    // reach Prisma. `page=0`, `page=-1` and `page=abc` used to produce a
+    // negative or NaN `skip`, which Prisma rejects with an assertion — a public
+    // unauthenticated 500 on any crawler that mangles a query string.
+    const rawPage = parseInt(searchParams.get('page') || '1', 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const rawLimit = parseInt(searchParams.get('limit') || '20', 10);
     // Security: Cap limit to 50 max to prevent mass data extraction
     // (a scraper could request limit=100000 and get everything in one call)
-    const limit = Math.min(Math.max(1, rawLimit), 50);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(1, rawLimit), 50) : 20;
     const skip = (page - 1) * limit;
 
     // Parse filters from URL

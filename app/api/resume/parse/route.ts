@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { parseResume, ParsedResume } from '@/lib/resume-parser';
 import { rateLimit } from '@/lib/rate-limit';
 import { downloadResumeBytes, extractRequestContext } from '@/lib/resume-storage';
+import { isOwnDocPath } from '@/lib/document-storage';
 import { inngest } from '@/lib/inngest/client';
 
 /**
@@ -102,6 +103,19 @@ export async function POST(request: NextRequest) {
 
       if (!rawResumeUrl || typeof rawResumeUrl !== 'string') {
         return NextResponse.json({ error: 'resumeUrl is required' }, { status: 400 });
+      }
+
+      // The path is client-supplied and downloadResumeBytes signs it with the
+      // service-role key, so without this check any signed-in user could name
+      // someone else's resume object and have it downloaded and AI-parsed into
+      // their own profile. Storage paths always carry the owner's id as a path
+      // segment, so a foreign path is never a legitimate request.
+      if (!isOwnDocPath(rawResumeUrl, 'resume', user.id)) {
+        logger.warn('resume/parse: refused a resume path outside the caller', {
+          userId: user.id,
+        });
+        await markProfileFailed(user.id);
+        return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
       }
 
       const reqCtx = extractRequestContext(request);

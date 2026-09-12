@@ -17,6 +17,12 @@
 /playwright-report
 /test-results
 /tests/e2e/.results
+# Ad-hoc Playwright output dirs from bug-hunt runs (--output=...)
+/tests/e2e/.hunt-out-*
+/.pw-triage*
+# Stray probe scripts and run logs a hunting session leaves at root
+/tmp-probe-*
+/tmp-a11y-run-*
 .playwright
 
 # next.js

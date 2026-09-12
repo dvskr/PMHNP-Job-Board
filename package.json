@@ -48,7 +48,8 @@
     "backfill:experience": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/backfill-experience.ts --env=prod",
     "backfill:experience:dev": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/backfill-experience.ts --env=dev",
     "recs:run": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-recommendations.ts",
-    "seed:test-candidates": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/seed-test-candidates.ts"
+    "seed:test-candidates": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/seed-test-candidates.ts",
+    "e2e:users": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/create-test-users.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
