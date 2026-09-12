@@ -9,7 +9,15 @@ import {
   createEmployerLead,
   updateLeadStatus,
   renderTemplate,
+  OUTREACH_TEMPLATE_NAMES,
+  type OutreachTemplateName,
 } from '@/lib/outreach-service';
+
+/** Narrows untrusted body input to a key the template map actually has. */
+function isOutreachTemplateName(value: unknown): value is OutreachTemplateName {
+  return typeof value === 'string'
+    && (OUTREACH_TEMPLATE_NAMES as readonly string[]).includes(value);
+}
 
 export async function GET(request: NextRequest) {
   const authError = await requireApiAdmin(request);
@@ -141,13 +149,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Validate template name
-      const validTemplates = ['initial', 'followUp', 'freeOffer'];
-      if (!validTemplates.includes(templateName)) {
+      // Validate template name against the single source of truth in
+      // lib/outreach-service, so a renamed template cannot leave a dangling key.
+      if (!isOutreachTemplateName(templateName)) {
         return NextResponse.json(
           {
             success: false,
-            error: `Invalid template name. Valid options: ${validTemplates.join(', ')}`,
+            error: `Invalid template name. Valid options: ${OUTREACH_TEMPLATE_NAMES.join(', ')}`,
           },
           { status: 400 }
         );

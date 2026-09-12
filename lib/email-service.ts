@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import { slugify } from '@/lib/utils';
 import { brand } from '@/config/brand';
-import { config } from '@/lib/config';
+import { config, type PostPriceKind } from '@/lib/config';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
@@ -111,7 +111,7 @@ export type EmailType =
  * hard-bounces (nothing receives for them), so sendAndLog refuses them
  * outright. Add any future fixture domain here BEFORE creating accounts on it.
  */
-const FIXTURE_RECIPIENT_DOMAINS = new Set(['acmepsych-fixtures.org', 'acmepsych.org', 'example.com', 'example.org']);
+const FIXTURE_RECIPIENT_DOMAINS = new Set(['acmepsych-fixtures.org', 'acmepsych.org', 'example.com', 'example.org', 'pmhnptest.com']);
 
 const MARKETING_EMAIL_TYPES = new Set<EmailType>([
   'welcome_alert', 'job_alert', 'salary_guide', 'broadcast',
@@ -400,7 +400,8 @@ export async function sendSignupWelcomeEmail(
       <tr><td class="content-pad" style="padding:0 40px;">
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;text-align:center;">
           <p style="margin:0 0 4px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Welcome offer</p>
-          <p style="margin:0;font-family:${SANS_V2};font-size:15px;color:${V2.textPrimary};line-height:1.5;">Your first job post is <strong>completely free</strong> \u2014 no credit card required.</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:15px;color:${V2.textPrimary};line-height:1.5;">Your first job post is <strong>half price at $${config.firstPostPrice}</strong>, ${config.firstPostDiscountPercent()}% off the standard $${config.postingPrice}. Every post after it is $${config.postingPrice}.</p>
+          ${config.firstPostGuarantee ? `<p style="margin:8px 0 0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};line-height:1.5;">If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.</p>` : ''}
         </div>
       </td></tr>
       ${spacerV2(28)}
@@ -418,7 +419,7 @@ export async function sendSignupWelcomeEmail(
       ${spacerV2(48)}
       ${closeContentV2()}`,
         unsubscribeFooterV2('sample'),
-        `Your employer account is ready \u2014 your first post is free.`
+        `Your employer account is ready. Your first post is half price at $${config.firstPostPrice}.`
       );
     } else {
       html = emailShellV2(`
@@ -449,7 +450,7 @@ export async function sendSignupWelcomeEmail(
       from: EMAIL_FROM,
       to: email,
       subject: isEmployer
-        ? 'Welcome to PMHNP Hiring — Start Hiring Today'
+        ? 'Welcome to PMHNP Hiring: Start Hiring Today'
         : `Welcome to PMHNP Hiring, ${firstName || 'there'}!`,
       html,
     }, 'welcome_signup', { role }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
@@ -482,10 +483,13 @@ export async function sendConfirmationEmail(
   dashboardToken?: string,
   unsubscribeToken?: string,
   // Audit #30: confirmation email duration must match the actual expiry
-  // written to the DB — free posts run 30 days, paid posts run 60. Caller
-  // passes the right value; defaults to the paid duration for backward compat.
+  // written to the DB. Every post now runs config.durationDays; the parameter
+  // stays so historical callers and any future split keep working.
   durationDays: number = config.durationDays,
   invoice?: InvoiceLinks,
+  // Which price this post was charged at. Only 'first' earns the guarantee
+  // block, so an unspecified caller never promises a refund it cannot honour.
+  priceKind?: PostPriceKind,
 ): Promise<EmailResult> {
   try {
     const jobSlug = slugify(jobTitle, jobId);
@@ -523,6 +527,18 @@ export async function sendConfirmationEmail(
         </div>
       </td></tr>`;
 
+    const guaranteeBlock = (config.firstPostGuarantee && priceKind === 'first')
+      ? `
+        ${spacerV2(16)}
+        <tr><td class="content-pad" style="padding:0 40px;">
+          <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
+            <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Your first-post guarantee</p>
+            <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full. Reply to this email and we will take care of it.</p>
+            <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};line-height:1.5;">An applicant means a candidate who submits an application through the site, or who clicks through to your own application page when your posting links out. Your dashboard shows both counts, so you can check the number yourself.</p>
+          </div>
+        </td></tr>`
+      : '';
+
     const invoiceBlock = (invoice?.invoicePdfUrl || invoice?.hostedInvoiceUrl)
       ? `
         ${spacerV2(16)}
@@ -545,9 +561,9 @@ export async function sendConfirmationEmail(
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
           <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">What's Included</p>
           <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">${featuresLine}</p>
-          <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">Candidates you unlock stay in your dashboard forever — even after this posting expires.</p>
+          <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">Candidates you unlock stay in your dashboard forever, even after this posting expires.</p>
         </div>
-      </td></tr>${invoiceBlock}
+      </td></tr>${guaranteeBlock}${invoiceBlock}
       ${spacerV2(28)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('View Your Listing', `${BASE_URL}/jobs/${jobSlug}`)}
@@ -564,7 +580,7 @@ export async function sendConfirmationEmail(
     await sendAndLog({
       from: EMAIL_FROM,
       to: employerEmail,
-      subject: `✅ Your PMHNP job post is live — "${jobTitle}"`,
+      subject: `✅ Your PMHNP job post is live: "${jobTitle}"`,
       html,
     }, 'job_confirmation', { jobId }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
 
@@ -620,7 +636,7 @@ export async function sendRenewalConfirmationEmail(
       <tr><td class="content-pad" style="padding:0 40px;">
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
           <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Receipt</p>
-          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">Renewal — $${config.renewalPrice}.00 · ${invoiceLine}</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">Renewal: $${config.renewalPrice}.00 · ${invoiceLine}</p>
           <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">You also got a fresh ${config.limits.candidateUnlocksPerPosting} candidate unlocks and ${config.limits.inmailsPerPosting} InMails for this renewal cycle.</p>
         </div>
       </td></tr>
@@ -637,7 +653,7 @@ export async function sendRenewalConfirmationEmail(
     await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: `✅ Job Renewed — "${jobTitle}" is live again`,
+      subject: `✅ Job Renewed: "${jobTitle}" is live again`,
       html,
     }, 'renewal_confirmation', { jobTitle }, `${BASE_URL}/unsubscribe?token=${unsubscribeToken}`);
 

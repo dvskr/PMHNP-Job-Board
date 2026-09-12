@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { isOwnSupabaseStorageUrl } from '@/lib/supabase/origins';
+import { isOwnDocPath } from '@/lib/document-storage';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -67,10 +68,34 @@ export async function POST(request: NextRequest) {
             sanitizedCoverLetter = sanitizeText(coverLetter).slice(0, MAX_COVER_LETTER_LENGTH) || null;
         }
 
-        // Validate resume URL (must be from our Supabase storage)
+        // Validate an attached document reference.
+        //
+        // Two things have to hold, and only one of them used to:
+        //
+        //  1. If the value is absolute, its host must be our own storage.
+        //  2. The object must belong to THIS candidate. The value is taken from
+        //     the request body and later handed to the employer-facing signer,
+        //     so without an ownership check an applicant could attach any
+        //     object in the bucket.
+        //
+        // The host check alone also blocked the normal path: /api/upload stores
+        // a BARE storage path ("uploads/<uid>/<ts>-cv.pdf"), the apply form
+        // reads that value back from the profile and submits it, and
+        // `new URL()` throws on it. Every candidate with a previously uploaded
+        // resume was told "Please upload your resume through the platform"
+        // about the resume they had already uploaded, with no way through.
+        const validateOwnDoc = (
+            value: string,
+            docType: 'resume' | 'cover_letter',
+        ): boolean => {
+            const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(value);
+            if (isAbsolute && !isOwnSupabaseStorageUrl(value)) return false;
+            return isOwnDocPath(value, docType, user.id);
+        };
+
         let validResumeUrl: string | null = null;
         if (resumeUrl && typeof resumeUrl === 'string') {
-            if (!isOwnSupabaseStorageUrl(resumeUrl)) {
+            if (!validateOwnDoc(resumeUrl, 'resume')) {
                 return NextResponse.json(
                     { error: 'Invalid resume URL. Please upload your resume through the platform.' },
                     { status: 400 }
@@ -82,7 +107,7 @@ export async function POST(request: NextRequest) {
         // Validate cover letter URL (if uploaded as PDF)
         let validCoverLetterUrl: string | null = null;
         if (coverLetterUrl && typeof coverLetterUrl === 'string') {
-            if (!isOwnSupabaseStorageUrl(coverLetterUrl)) {
+            if (!validateOwnDoc(coverLetterUrl, 'cover_letter')) {
                 return NextResponse.json(
                     { error: 'Invalid cover letter URL. Please upload your cover letter through the platform.' },
                     { status: 400 }

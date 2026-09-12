@@ -4,6 +4,7 @@ import {
   unsubscribeFooterV2,
   V2, SANS, SERIF,
 } from '@/lib/email-templates-v2';
+import { config } from '@/lib/config';
 
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
 const IMG = process.env.EMAIL_ASSETS_URL || `${BASE_URL}/images/email`;
@@ -62,6 +63,17 @@ function simple(iconFile: string, heading: string, body: string, cta: string, ct
     ${extra || ''}
     ${spacerV2(48)}
     ${closeContentV2()}`, unsubscribeFooterV2('sample'), preheader);
+}
+
+/** Teal callout used for the offer and guarantee blocks. Mirrors lib/email-service.ts. */
+function tealCallout(label: string, body: string, footnote?: string): string {
+  return `<tr><td class="content-pad" style="padding:0 40px;">
+    <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
+      <p style="margin:0 0 6px;font-family:${SANS};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">${label}</p>
+      <p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textHeading};line-height:1.6;">${body}</p>
+      ${footnote ? `<p style="margin:8px 0 0;font-family:${SANS};font-size:13px;color:${V2.textMuted};line-height:1.5;">${footnote}</p>` : ''}
+    </div>
+  </td></tr>`;
 }
 
 function card(content: string): string {
@@ -126,7 +138,15 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${headerBlockV2('Your Employer Account Is Ready', '')}
       ${spacerV2(12)}
       ${bodyText('Post positions, track engagement, and connect with qualified Psychiatric Mental Health Nurse Practitioners \u2014 all from one dashboard.')}
-      ${spacerV2(36)}
+      ${spacerV2(20)}
+      ${tealCallout(
+        'Welcome offer',
+        `Your first job post is <strong>half price at $${config.firstPostPrice}</strong>, ${config.firstPostDiscountPercent()}% off the standard $${config.postingPrice}. Every post after it is $${config.postingPrice}.`,
+        config.firstPostGuarantee
+          ? `If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`
+          : undefined,
+      )}
+      ${spacerV2(28)}
       ${sectionHead('Three steps to your first hire')}
       ${spacerV2(20)}
       ${step('icon-emp-megaphone.png', 'Publish your listing', 'Our guided form takes under five minutes. Add role details, compensation, and requirements.')}
@@ -138,7 +158,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${centeredCta('Post Your First Job', `${BASE_URL}/post-job`)}
       ${spacerV2(48)}
       ${closeContentV2()}`, unsubscribeFooterV2('sample'),
-      'Your employer account is ready \u2014 start hiring PMHNPs today.'),
+      `Your employer account is ready. Your first post is half price at $${config.firstPostPrice}.`),
   },
 
   // 3. Job Alert
@@ -219,9 +239,16 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     label: 'Job Post Confirmation',
     desc: 'Sent to employers after a job is published',
     fn: () => simple('hero-job-post.png', 'Your Listing Is Live',
-      'Your posting is now visible to thousands of PMHNPs actively searching for their next role. The listing will remain active for 30 days.',
+      `Your posting is now visible to thousands of PMHNPs actively searching for their next role. The listing will remain active for ${config.durationDays} days.`,
       'View Your Listing', `${BASE_URL}/jobs`, 'Your job posting is now live.',
-      `${spacerV2(16)}${secondary(`Need to edit? <a href="${BASE_URL}/employer/dashboard" style="color:${V2.teal};text-decoration:underline;">Open your dashboard</a>.`)}`),
+      // Preview renders the first-post variant, the only one carrying the guarantee.
+      `${config.firstPostGuarantee ? `${spacerV2(20)}${tealCallout(
+        'Your first-post guarantee',
+        `Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full. Reply to this email and we will take care of it.`,
+        // Mirrors the definition in lib/email-service.ts. Wherever the
+        // guarantee is spelled out at length it has to say what it counts.
+        'An applicant means a candidate who submits an application through the site, or who clicks through to your own application page when your posting links out. Your dashboard shows both counts, so you can check the number yourself.',
+      )}` : ''}${spacerV2(16)}${secondary(`Need to edit? <a href="${BASE_URL}/employer/dashboard" style="color:${V2.teal};text-decoration:underline;">Open your dashboard</a>.`)}`),
   },
 
   // 5. Expiry Warning
@@ -234,7 +261,12 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${bodyText('Your posting for <strong>Senior PMHNP \u2014 Private Practice</strong> will expire on Wednesday, March 18, 2026. Renew now to maintain visibility and continue receiving applications.')}
       ${spacerV2(24)}
       <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${stat('2,847', 'Views')}<td width="8"></td>${stat('186', 'Applies')}<td width="8"></td>${stat('24', 'Saved')}</tr></table></td></tr>
-      ${spacerV2(28)}
+      ${spacerV2(20)}
+      ${tealCallout(
+        `Renew for $${config.renewalPrice} (Save ${Math.round((1 - config.renewalPrice / config.postingPrice) * 100)}%)`,
+        `Adds ${config.durationDays} days to your current expiration plus a fresh ${config.limits.candidateUnlocksPerPosting} unlocks and ${config.limits.inmailsPerPosting} InMails. Renewing early doesn't lose any remaining days.`,
+      )}
+      ${spacerV2(24)}
       ${centeredCta('Renew Your Listing', `${BASE_URL}/employer/dashboard`)}
       ${spacerV2(48)}
       ${closeContentV2()}`, unsubscribeFooterV2('sample'),

@@ -95,6 +95,31 @@ export function toBareDocPath(stored: string | null | undefined, docType: DocTyp
     return stored.replace(new RegExp(`^${bucket}/`), '');
 }
 
+/**
+ * Does this storage path belong to `ownerId`?
+ *
+ * Every private doc is written as `<prefix>/<ownerId>/<timestamp>-<name>`
+ * (lib/supabase-storage.ts), so the owner's id is always its own path segment.
+ *
+ * This exists because the signing and download helpers below deliberately do
+ * not check ownership: they run with the service-role key and sign whatever
+ * path they are handed. That is fine when the path comes from the caller's own
+ * profile row, and a cross-user PII read when it comes from a request body.
+ * Any route that accepts a path from the client MUST gate on this first.
+ */
+export function isOwnDocPath(
+    stored: string | null | undefined,
+    docType: DocType,
+    ownerId: string | null | undefined,
+): boolean {
+    if (!ownerId) return false;
+    const path = toBareDocPath(stored, docType);
+    if (!path) return false;
+    // Reject traversal outright rather than reasoning about what it resolves to.
+    if (path.includes('..')) return false;
+    return path.split('/').filter(Boolean).includes(ownerId);
+}
+
 /* ─────────────────────────── Public API ─────────────────────────── */
 
 /**

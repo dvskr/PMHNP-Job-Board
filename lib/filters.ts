@@ -727,23 +727,36 @@ export function specialtyClause(specialty: string): Prisma.JobWhereInput {
 }
 
 /**
- * Canonical "what visitors can see on /jobs" predicate: isPublished + NOT
- * each GLOBAL_EXCLUSIONS. This is the exact base buildWhereClause starts
- * from, so any surface that displays a site-wide job count must count with
- * this — a bare `{ isPublished: true }` count is systematically larger than
- * the filtered results users click through to.
+ * Canonical "what visitors can see on /jobs" predicate: isPublished, not past
+ * its expiry, and NOT each GLOBAL_EXCLUSIONS. This is the exact base
+ * buildWhereClause starts from, so any surface that displays a site-wide job
+ * count must count with this — a bare `{ isPublished: true }` count is
+ * systematically larger than the filtered results users click through to.
+ *
+ * The expiry clause matters because the detail page disagrees without it. The
+ * middleware job-410 gate treats a posting past `expiresAt` as Gone even while
+ * `isPublished` is still true, and cleanup-expired only flips that flag twice a
+ * day. In between, an expired job kept its card on /jobs while its detail page
+ * answered 410 — every click a dead end. Leaning on the cron also over-counted
+ * inside that lag window on every stats surface.
+ *
+ * `now` is injectable so callers that must agree byte-for-byte (and tests) can
+ * pin a single instant.
  */
-export function publicJobsWhere(): Prisma.JobWhereInput {
+export function publicJobsWhere(now: Date = new Date()): Prisma.JobWhereInput {
   return {
     isPublished: true,
-    AND: GLOBAL_EXCLUSIONS.map((exclusion): Prisma.JobWhereInput => ({ NOT: exclusion })),
+    AND: [
+      { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+      ...GLOBAL_EXCLUSIONS.map((exclusion): Prisma.JobWhereInput => ({ NOT: exclusion })),
+    ],
   };
 }
 
-export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
+export function buildWhereClause(filters: FilterState, now: Date = new Date()): Prisma.JobWhereInput {
   // Base predicate shared with publicJobsWhere() so listing results and
   // site-wide counts can never drift apart.
-  const where = publicJobsWhere();
+  const where = publicJobsWhere(now);
   const andConditions = where.AND as Prisma.JobWhereInput[];
 
   // Search — split into terms and require ALL terms to match (AND)
@@ -910,6 +923,15 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
 export function parseFiltersFromParams(searchParams: URLSearchParams): FilterState {
   const minYearsRaw = searchParams.get('minYears');
   const minYears = minYearsRaw !== null && /^\d+$/.test(minYearsRaw) ? Number(minYearsRaw) : null;
+  // Number('1e400') is Infinity, which is truthy and reaches Prisma as an
+  // unserializable value (public 500 on ?salaryMin=1e400). Only a finite,
+  // non-negative salary floor is a filter; anything else means "no filter".
+  const salaryMinRaw = searchParams.get('salaryMin');
+  const salaryMinParsed = salaryMinRaw !== null ? Number(salaryMinRaw) : null;
+  const salaryMin =
+    salaryMinParsed !== null && Number.isFinite(salaryMinParsed) && salaryMinParsed > 0
+      ? salaryMinParsed
+      : null;
   return {
     search: searchParams.get('q') || '',
     workMode: searchParams.getAll('workMode'),
@@ -919,7 +941,7 @@ export function parseFiltersFromParams(searchParams: URLSearchParams): FilterSta
     newGradFriendly: searchParams.get('newGrad') === '1' ? true : null,
     minYearsExperience: minYears,
     easyApply: searchParams.get('easyApply') === '1' ? true : null,
-    salaryMin: searchParams.get('salaryMin') ? Number(searchParams.get('salaryMin')) : null,
+    salaryMin,
     postedWithin: searchParams.get('postedWithin') || null,
     location: searchParams.get('location') || null,
     cityExact: searchParams.get('cityExact') || null,

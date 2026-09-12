@@ -58,7 +58,15 @@ export async function GET(req: NextRequest) {
         select: { jobId: true, job: { select: { id: true, title: true, viewCount: true, applyClickCount: true } } },
     });
 
-    const jobIds = jobIdFilter ? [jobIdFilter] : employerJobs.map(ej => ej.jobId);
+    // The jobId filter NARROWS the owned set — it must never replace it, or
+    // `?jobId=<a rival's job>` would return that posting's view/click event
+    // series (the same defect fixed in the applicants route).
+    const ownedJobIds = employerJobs.map(ej => ej.jobId);
+    if (jobIdFilter && !ownedJobIds.includes(jobIdFilter)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const jobIds = jobIdFilter ? [jobIdFilter] : ownedJobIds;
 
     if (jobIds.length === 0) {
         return NextResponse.json({

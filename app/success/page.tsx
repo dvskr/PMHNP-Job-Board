@@ -4,7 +4,6 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import { trackSubmitFreePost } from '@/lib/analytics';
 
 interface VerifiedSession {
   paid: boolean;
@@ -18,35 +17,25 @@ interface VerifiedSession {
 function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
-  const freeParam = searchParams.get('free');
-
-  // Free-mode posts don't go through Stripe — they post directly via /api/jobs/post-free
-  // and redirect here with ?free=true. Nothing to verify in that case.
-  const isFreeMode = freeParam === 'true';
 
   const [state, setState] = useState<{
     loading: boolean;
     error: string | null;
     session: VerifiedSession | null;
   }>({
-    loading: !isFreeMode && !!sessionId,
+    loading: !!sessionId,
     error: null,
     session: null,
   });
 
   useEffect(() => {
-    // Always clean up the in-memory job draft regardless of path
+    // Every post is paid, so every arrival here carries a Stripe session.
+    // Clean up the local draft first: it is spent either way.
     localStorage.removeItem('jobFormData');
-
-    if (isFreeMode) {
-      // P7: free post conversion event (no Stripe purchase event for free posts)
-      const jobId = searchParams.get('jobId') ?? 'unknown';
-      trackSubmitFreePost(jobId);
-      return;
-    }
+    localStorage.removeItem('jobScreeningQuestions');
 
     if (!sessionId) {
-      // No session id and not free mode → user wandered here directly. Bounce.
+      // No session id → user wandered here directly. Bounce.
       window.location.href = '/post-job';
       return;
     }
@@ -99,7 +88,7 @@ function SuccessContent() {
 
     tick();
     return () => { cancelled = true; };
-  }, [sessionId, isFreeMode]);
+  }, [sessionId]);
 
   // ─── Clay design tokens (match post-job/preview/dashboard pages) ───
   const pageWrap: React.CSSProperties = {
@@ -216,21 +205,15 @@ function SuccessContent() {
             <CheckCircle size={40} color="#fff" strokeWidth={2.5} />
           </div>
 
-          <h1 style={headingStyle}>
-            {isFreeMode ? 'Job Posted Successfully!' : 'Payment Successful!'}
-          </h1>
+          <h1 style={headingStyle}>Payment Successful!</h1>
 
           <p style={{ fontSize: '16px', color: '#5A6B73', margin: '0 0 6px', lineHeight: 1.6 }}>
             {state.session?.jobTitle
               ? <>Your job <strong style={{ color: '#1A2E35' }}>{state.session.jobTitle}</strong> is now live on PMHNP Hiring.</>
-              : isFreeMode
-                ? 'Your job listing is now live on PMHNP Hiring.'
-                : 'Your job post is now live.'}
+              : 'Your job post is now live.'}
           </p>
           <p style={{ fontSize: '14px', color: '#8A9BA6', margin: '0 0 28px', lineHeight: 1.6 }}>
-            {isFreeMode
-              ? "We've sent a confirmation email with a link to your dashboard."
-              : "We've sent a confirmation email with your receipt and a link to your dashboard."}
+            We&apos;ve sent a confirmation email with your receipt and a link to your dashboard.
           </p>
 
           {/* "What happens next" — claymorphic teal panel */}

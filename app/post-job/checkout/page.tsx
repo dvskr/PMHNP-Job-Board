@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Loader2, Lock } from 'lucide-react';
-import { config } from '@/lib/config';
+import { config, type PostPriceKind } from '@/lib/config';
 import { trackBeginCheckout } from '@/lib/analytics';
 
 interface ScreeningQuestion {
@@ -77,33 +77,36 @@ export default function CheckoutPage() {
   const [jobData, setJobData] = useState<JobFormData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Why this post is paid — read-only quota check (same endpoint the preview
-  // page uses). We only ASSERT a reason we actually verified:
-  //   'quota-used'          eligible + willBeFree:false → free post consumed
-  //   'free-email-provider' personal-email account never qualified
-  //   'free-eligible'       eligible + willBeFree:true → they should NOT pay;
-  //                         warn instead of charging $199 for a free post
-  //   null                  unknown (fetch failed / auth reasons) → neutral copy
+  // Which price this post carries — read-only check against the same endpoint
+  // the preview page uses. We only ASSERT a state we actually verified:
+  //   'first-post' eligible + isFirstPost:true  → half price, guarantee applies
+  //   'standard'   eligible + isFirstPost:false → the discount is already spent
+  //   null         unknown (fetch failed / not signed in) → neutral copy at the
+  //                standard price; /api/create-checkout prices it authoritatively
   const [quotaContext, setQuotaContext] = useState<
-    'quota-used' | 'free-email-provider' | 'free-eligible' | null
+    'first-post' | 'standard' | null
   >(null);
+  // Signed out. /api/create-checkout is session-gated, so pressing Pay would
+  // fail on the far side of a click the employer had every reason to trust.
+  const [needsLogin, setNeedsLogin] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/employer/free-quota-status');
+        const res = await fetch('/api/employer/post-price');
         if (!res.ok) return;
         const data = (await res.json()) as {
-          eligible?: boolean; willBeFree?: boolean; reason?: string;
+          eligible?: boolean; isFirstPost?: boolean; reason?: string;
         };
         if (cancelled) return;
         if (data.eligible === true) {
-          setQuotaContext(data.willBeFree ? 'free-eligible' : 'quota-used');
-        } else if (data.reason === 'free-email-provider') {
-          setQuotaContext('free-email-provider');
+          setQuotaContext(data.isFirstPost ? 'first-post' : 'standard');
+        } else if (data.reason === 'unauthenticated') {
+          setNeedsLogin(true);
         }
-        // unauthenticated / not-employer / server-error → stay null (neutral)
+        // not-employer, or a non-ok response we never parsed → stay null, which
+        // renders neutral copy at the standard price and asserts nothing.
       } catch {
         /* leave null — neutral copy, never a false claim */
       }
@@ -112,9 +115,6 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    // Checkout always requires paid form data
-    // (this page is only reached when free posts are exhausted)
-
     // Read jobFormData from localStorage
     const storedData = localStorage.getItem('jobFormData');
 
@@ -137,6 +137,11 @@ export default function CheckoutPage() {
     }
   }, [router]);
 
+  // Unknown context is priced as standard: /api/create-checkout is the
+  // authority and will apply the discount if this poster still has it.
+  const priceKind: PostPriceKind = quotaContext === 'first-post' ? 'first' : 'standard';
+  const priceDollars = config.priceFor(priceKind);
+
   const handlePayment = async () => {
     if (!jobData) return;
 
@@ -144,7 +149,7 @@ export default function CheckoutPage() {
     setError(null);
 
     // P7: fire begin_checkout before redirect to Stripe
-    trackBeginCheckout(config.stripePriceInCents, 'new');
+    trackBeginCheckout(config.priceInCentsFor(priceKind), 'new');
 
     try {
       const response = await fetch('/api/create-checkout', {
@@ -181,15 +186,9 @@ export default function CheckoutPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({} as { error?: string; cause?: string; code?: string }));
-        // Server-side guard: this poster still has their free post. Good news,
-        // not an error — send them to the preview, which routes to the free flow.
-        if (response.status === 409 && errorData.code === 'FREE_POST_AVAILABLE') {
-          router.push('/post-job/preview');
-          return;
-        }
+        const errorData = await response.json().catch(() => ({} as { error?: string; cause?: string }));
         const baseMsg = errorData.error || 'Failed to create checkout session';
-        const fullMsg = errorData.cause ? `${baseMsg} — ${errorData.cause}` : baseMsg;
+        const fullMsg = errorData.cause ? `${baseMsg}: ${errorData.cause}` : baseMsg;
         throw new Error(fullMsg);
       }
 
@@ -207,7 +206,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const getPrice = () => `$${config.postingPrice}`;
+  const getPrice = () => `$${priceDollars}`;
 
   const getPlanName = () => 'Job Post';
 
@@ -274,35 +273,49 @@ export default function CheckoutPage() {
           <p style={{ fontSize: '14px', color: '#8A9BA6', margin: 0 }}>Review your listing before payment</p>
         </div>
 
-        {/* Free-post context — why this post is paid. Only asserts a reason
-            the quota endpoint actually confirmed; unknown states get neutral
-            copy instead of a false "free post used" claim. */}
-        {quotaContext === 'free-eligible' ? (
+        {/* Sign-in prompt, surfaced before the Pay click rather than after it.
+            The draft stays in localStorage, so logging in returns here intact. */}
+        {needsLogin && (
           <div style={{
-            ...cardBase, padding: '12px 18px', marginBottom: '16px',
+            ...cardBase, padding: '16px 20px', marginBottom: '16px',
             background: '#FFFBEB', border: '1px solid #FDE68A',
           }}>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#92400E', margin: 0, lineHeight: 1.5 }}>
-              Your first post is still free — you don&apos;t need to pay for this listing.{' '}
-              <Link href="/post-job/preview" style={{ color: '#92400E', textDecoration: 'underline' }}>
-                Return to preview to publish it free
-              </Link>.
+            <p style={{ fontSize: '14px', fontWeight: 700, color: '#92400E', margin: '0 0 4px' }}>
+              You need to be logged in to pay for this post.
             </p>
-          </div>
-        ) : (
-          <div style={{
-            ...cardBase, padding: '12px 18px', marginBottom: '16px',
-            background: '#F0FDFA', border: '1px solid #99F6E4',
-          }}>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#115E59', margin: 0, lineHeight: 1.5 }}>
-              {quotaContext === 'free-email-provider'
-                ? `Free first posts require a company email — this listing is $${config.postingPrice}.`
-                : quotaContext === 'quota-used'
-                  ? `Your free post is used — this listing is $${config.postingPrice}.`
-                  : `Standard listing — $${config.postingPrice} for ${config.durationDays} days.`}
+            <p style={{ fontSize: '13px', color: '#92400E', margin: '0 0 12px', lineHeight: 1.5 }}>
+              Your draft is saved on this device, so you can log in and come straight back to this page.
             </p>
+            <Link href="/login?next=/post-job/checkout" style={{
+              ...clayBtn, padding: '10px 20px', fontSize: '13px', textDecoration: 'none',
+              background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+              boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
+            }}>
+              Log in to continue
+            </Link>
           </div>
         )}
+
+        {/* Price context — why this listing costs what it costs. Only asserts
+            a state the price endpoint actually confirmed; unknown states get
+            neutral copy instead of a false discount claim. */}
+        <div style={{
+          ...cardBase, padding: '12px 18px', marginBottom: '16px',
+          background: '#F0FDFA', border: '1px solid #99F6E4',
+        }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#115E59', margin: 0, lineHeight: 1.5 }}>
+            {quotaContext === 'first-post'
+              ? `Half price first post: $${config.firstPostPrice} instead of $${config.postingPrice}, for ${config.durationDays} days.`
+              : quotaContext === 'standard'
+                ? `Your half price first post is used. This listing is $${config.postingPrice} for ${config.durationDays} days.`
+                : `Job listing: $${priceDollars} for ${config.durationDays} days.`}
+          </p>
+          {quotaContext === 'first-post' && config.firstPostGuarantee && (
+            <p style={{ fontSize: '12px', color: '#0F766E', margin: '6px 0 0', lineHeight: 1.5 }}>
+              {`If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`}
+            </p>
+          )}
+        </div>
 
         {/* Job Summary Card */}
         <div style={{ ...cardBase, padding: '24px', marginBottom: '16px' }}>
@@ -353,7 +366,7 @@ export default function CheckoutPage() {
             ) : (
               <div>
                 <span style={detailLabel}>How Candidates Apply</span>
-                <p style={detailValue}>On PMHNP Hiring — applications arrive in your dashboard.</p>
+                <p style={detailValue}>On PMHNP Hiring. Applications arrive in your dashboard.</p>
               </div>
             )}
           </div>
@@ -375,6 +388,11 @@ export default function CheckoutPage() {
               <p style={{ fontSize: '13px', color: '#8A9BA6', margin: 0 }}>{config.durationDays}-day listing</p>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              {priceKind === 'first' && (
+                <span style={{ fontSize: '16px', fontWeight: 600, color: '#B0BEC5', textDecoration: 'line-through', marginRight: '8px' }}>
+                  ${config.postingPrice}
+                </span>
+              )}
               <span style={{ fontSize: '28px', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35' }}>{getPrice()}</span>
               <p style={{ fontSize: '12px', color: '#8A9BA6', margin: 0 }}>one-time</p>
             </div>
@@ -406,20 +424,20 @@ export default function CheckoutPage() {
         {/* Payment Button */}
         <button
           onClick={handlePayment}
-          disabled={loading}
+          disabled={loading || needsLogin}
           className="checkout-btn-primary"
           style={{
             ...clayBtn, width: '100%', justifyContent: 'center',
             background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
             boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
-            opacity: loading ? 0.6 : 1,
-            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading || needsLogin ? 0.6 : 1,
+            cursor: loading || needsLogin ? 'not-allowed' : 'pointer',
           }}
         >
           {loading ? (
             <><Loader2 size={16} className="animate-spin" /> Creating checkout session...</>
           ) : (
-            <><Lock size={15} /> Proceed to Payment — {getPrice()}</>
+            <><Lock size={15} /> Proceed to Payment: {getPrice()}</>
           )}
         </button>
 
@@ -451,7 +469,7 @@ export default function CheckoutPage() {
       </div>
 
       <style>{`
-        .checkout-btn-primary:hover { transform: translateY(-1px); box-shadow: 6px 6px 16px rgba(13,148,136,0.3), inset 1px 1px 2px rgba(255,255,255,0.15) !important; }
+        .checkout-btn-primary:not(:disabled):hover { transform: translateY(-1px); box-shadow: 6px 6px 16px rgba(13,148,136,0.3), inset 1px 1px 2px rgba(255,255,255,0.15) !important; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>

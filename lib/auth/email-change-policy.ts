@@ -1,19 +1,28 @@
 /**
  * Email-change policy.
  *
- * The free-post quota is per-domain (audit #26 final): each company domain
- * gets its first post free, lifetime, shared across all employees. The quota
+ * The first-post discount is per-domain (audit #26 final): each company domain
+ * gets one half-price post, lifetime, shared across all employees. The quota
  * anchor is `EmployerJob.quotaDomain` — an immutable snapshot of the signup
- * email's domain, set at posting time.
+ * email's domain, set at posting time. (Before 2026-09 the same machinery
+ * gated a free first post; only the reward changed, not the rule.)
  *
  * If we let a user freely change their account email's *domain*, they can
- * use the freebie on @acme.com, change their account to @example.com, and
- * claim another free post under the new domain. To prevent that, this helper
+ * use the discount on @acme.com, change their account to @example.com, and
+ * claim it again under the new domain. To prevent that, this helper
  * enforces:
  *
  *   - Local-part changes (bob@acme.com → bob.smith@acme.com) → allowed
  *   - Domain changes when NO freebies have been used → allowed
  *   - Domain changes when ANY freebies exist for the user → BLOCKED
+ *
+ * SCOPE NOTE (2026-09): the counts below still key on paymentStatus 'free',
+ * which after the paid-first switch means LEGACY rows only, because a
+ * discounted first post is stored as 'paid' like any other. That is not a
+ * hole: buildQuotaKeys emits `acct:<user id>` alongside `dom:`, and the
+ * discount predicate matches on ANY key, so the same account cannot re-earn
+ * the discount by moving domains no matter what this helper decides. This
+ * rule is now a legacy-row safety net rather than the primary defense.
  *
  * **Where to call this:**
  * Anywhere we accept an email-change request — `/api/auth/change-email`,
@@ -81,7 +90,7 @@ export async function evaluateEmailChange(
     if (userOwnedFreePosts > 0) {
         return {
             allowed: false,
-            reason: `Email domain changes aren't allowed once free posts have been used at ${oldDomain ?? 'your current domain'}. Contact support@pmhnphiring.com if your company domain has actually changed.`,
+            reason: `Email domain changes aren't allowed once the first-post discount has been used at ${oldDomain ?? 'your current domain'}. Contact support@pmhnphiring.com if your company domain has actually changed.`,
             lockedDomain: oldDomain ?? undefined,
         };
     }
@@ -100,7 +109,7 @@ export async function evaluateEmailChange(
         if (oldDomainFreePosts > 0 && userOwnedFreePosts > 0) {
             return {
                 allowed: false,
-                reason: `Email domain changes aren't allowed once free posts have been used at ${oldDomain}. Contact support if your company domain has actually changed.`,
+                reason: `Email domain changes aren't allowed once the first-post discount has been used at ${oldDomain}. Contact support if your company domain has actually changed.`,
                 lockedDomain: oldDomain,
             };
         }

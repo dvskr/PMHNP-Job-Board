@@ -12,9 +12,9 @@
  *     widgetInstalledUrl?: string    // required when status='installed'
  *   }
  */
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireAdmin } from '@/lib/auth/protect'
+import { requireApiAdmin } from '@/lib/auth/require-api-admin'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
@@ -42,8 +42,12 @@ const BODY_SCHEMA = z
     { message: 'widgetInstalledUrl is required when status="installed"', path: ['widgetInstalledUrl'] },
   )
 
-export async function PATCH(req: Request): Promise<NextResponse> {
-  await requireAdmin()
+export async function PATCH(req: NextRequest): Promise<NextResponse> {
+  // requireApiAdmin, not the page-style requireAdmin: this endpoint is called
+  // by fetch() from the admin dashboard, so rejection must be a JSON 401/403
+  // rather than a thrown redirect the caller cannot read.
+  const authError = await requireApiAdmin(req)
+  if (authError) return authError
 
   let parsed: z.infer<typeof BODY_SCHEMA>
   try {

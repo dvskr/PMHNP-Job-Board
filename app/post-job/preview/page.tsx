@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MapPin, Briefcase, Monitor, ExternalLink, ChevronLeft, ChevronRight, Loader2, Check, CheckCircle } from 'lucide-react';
 import { formatSalary } from '@/lib/utils';
 import { sanitizeHtmlContent } from '@/lib/sanitize';
-import { config } from '@/lib/config';
+import { config, type PostPriceKind } from '@/lib/config';
 import { trackFreePostLimitHit } from '@/lib/analytics';
 import JobCard from '@/components/JobCard';
 import type { Job } from '@/lib/types';
@@ -39,14 +39,12 @@ interface JobFormData {
   screeningQuestions?: { text: string; type: string; options?: string[]; required?: boolean; knockout?: boolean; knockoutAnswer?: string }[];
 }
 
-interface QuotaStatus {
+interface PostPriceStatus {
   eligible: boolean;
-  willBeFree?: boolean;
-  remaining?: number;
-  limit?: number;
-  durationDays?: number;
-  paidDurationDays?: number;
-  freeDurationDays?: number;
+  isFirstPost: boolean;
+  priceKind: PostPriceKind;
+  priceDollars: number;
+  remaining: number;
   reason?: string;
 }
 
@@ -79,8 +77,7 @@ export default function PreviewPage() {
   const [formData, setFormData] = useState<JobFormData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [quotaStatus, setQuotaStatus] = useState<QuotaStatus | null>(null);
+  const [postPrice, setPostPrice] = useState<PostPriceStatus | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem('jobFormData');
@@ -104,12 +101,12 @@ export default function PreviewPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/employer/free-quota-status');
+        const res = await fetch('/api/employer/post-price');
         if (!res.ok) return;
-        const data = (await res.json()) as QuotaStatus;
-        if (!cancelled) setQuotaStatus(data);
+        const data = (await res.json()) as PostPriceStatus;
+        if (!cancelled) setPostPrice(data);
       } catch {
-        /* leave quotaStatus null — falls back to neutral copy */
+        /* leave postPrice null — falls back to neutral copy */
       }
     })();
     return () => { cancelled = true; };
@@ -117,105 +114,31 @@ export default function PreviewPage() {
 
   const handleBack = () => { router.push('/post-job'); };
 
-  // Derived quota flags — drive the banner copy, the CTA label, and which
-  // endpoint the continue button hits. Null/erroring quotaStatus falls back
-  // to the optimistic free-first path (the API re-checks server-side).
-  const willBeFree = quotaStatus?.eligible === true && quotaStatus.willBeFree === true;
-  const isPaidPost = quotaStatus?.eligible === true && quotaStatus.willBeFree === false;
-  const isFreeEmailBlocked = quotaStatus?.eligible === false && quotaStatus.reason === 'free-email-provider';
-  const needsLogin = quotaStatus?.eligible === false && quotaStatus.reason === 'unauthenticated';
-  // Both of these are guaranteed-paid posts — calling /api/jobs/post-free
-  // would only bounce with an error, so we route straight to checkout.
-  const goesToCheckout = isPaidPost || isFreeEmailBlocked;
+  // Derived pricing flags — drive the banner copy and the CTA label. Every
+  // post goes to checkout; the only question is which price it carries. A
+  // null/erroring postPrice falls back to neutral copy and the standard
+  // price, and checkout re-prices server-side either way.
+  const isFirstPost = postPrice?.eligible === true && postPrice.isFirstPost === true;
+  const isStandardPost = postPrice?.eligible === true && postPrice.isFirstPost === false;
+  const needsLogin = postPrice?.eligible === false && postPrice.reason === 'unauthenticated';
+  const priceKind: PostPriceKind = isFirstPost ? 'first' : 'standard';
+  const priceDollars = postPrice?.priceDollars ?? config.priceFor(priceKind);
   const contactDomain = formData ? ((formData.contactEmail || '').split('@')[1] || '') : '';
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
+    if (!formData) return;
     setIsLoading(true);
-    setError(null);
-    try {
-      if (!formData) return;
-
-      // Known-paid post: skip the doomed free-post call and go straight to
-      // payment. The limit-hit event still fires here so the P7 funnel sees
-      // the same moment it used to capture via the API rejection.
-      if (goesToCheckout) {
-        if (isPaidPost) {
-          trackFreePostLimitHit(
-            contactDomain || 'unknown',
-            quotaStatus?.limit ?? config.freePostsPerEmail,
-            quotaStatus?.limit ?? config.freePostsPerEmail
-          );
-        }
-        router.push('/post-job/checkout');
-        return;
-      }
-
-      // Otherwise try free posting first — API re-checks the quota server-side
-      const response = await fetch('/api/jobs/post-free', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: formData.title,
-          employer: formData.companyName,
-          location: formData.location,
-          mode: formData.mode,
-          jobType: formData.jobType,
-          description: formData.description,
-          applyLink: formData.applyOnPlatform ? null : formData.applyUrl,
-          applyOnPlatform: formData.applyOnPlatform || false,
-          contactEmail: formData.contactEmail,
-          minSalary: formData.salaryMin,
-          maxSalary: formData.salaryMax,
-          salaryPeriod: formData.salaryPeriod || 'annual',
-          companyWebsite: formData.companyWebsite,
-          pricing: 'pro',
-          benefits: formData.benefits,
-          setting: formData.setting,
-          population: formData.population,
-          companyLogoUrl: formData.companyLogoUrl,
-          minYearsExperience: formData.minYearsExperience ?? null,
-          maxYearsExperience: formData.maxYearsExperience ?? null,
-          newGradFriendly: formData.newGradFriendly ?? false,
-          experienceQualifier: formData.experienceQualifier?.trim() || null,
-          screeningQuestions: formData.screeningQuestions || [],
-        }),
-      });
-      const result = await response.json();
-      if (result.success) {
-        localStorage.removeItem('jobFormData');
-        localStorage.removeItem('jobScreeningQuestions');
-        // Wipe the server-side draft so it doesn't show up in the
-        // employer dashboard's "Continue an unfinished post" list
-        // after the job is published. Best-effort.
-        try {
-          await fetch('/api/job-draft', { method: 'DELETE' });
-        } catch {
-          // Non-fatal — the dashboard list is a UX nicety, not data
-          // integrity; a stale draft can be cleared from the dashboard.
-        }
-        // Carry the new job's id to the success page for the P7
-        // submit_free_post conversion event.
-        router.push(result.jobId
-          ? `/success?free=true&jobId=${encodeURIComponent(result.jobId)}`
-          : '/success?free=true');
-      } else if (result.requiresPayment) {
-        // Free posts exhausted — fire P7 limit-hit event then redirect to checkout
-        trackFreePostLimitHit(
-          contactDomain || 'unknown',
-          result.freePostsUsed ?? config.freePostsPerEmail,
-          result.freePostsLimit ?? config.freePostsPerEmail
-        );
-        router.push('/post-job/checkout');
-      } else {
-        // Prefer the server's explanatory `message` (e.g. the company-email
-        // requirement) over the terse `error` code.
-        setError(result.message || result.error || 'Failed to post job');
-      }
-    } catch {
-      setError('Something went wrong. Please try again.');
-    } finally {
-      setIsLoading(false);
+    if (isStandardPost) {
+      // Event name predates the paid-first model: it now marks the moment an
+      // employer's one discounted post is already spent, which is the same
+      // point in the P7 funnel it always measured.
+      trackFreePostLimitHit(
+        contactDomain || 'unknown',
+        config.discountedPostsPerEmployer - (postPrice?.remaining ?? 0),
+        config.discountedPostsPerEmployer
+      );
     }
+    router.push('/post-job/checkout');
   };
 
   if (loading || !formData) {
@@ -298,14 +221,11 @@ export default function PreviewPage() {
     companyLogoUrl: formData.companyLogoUrl || null,
   };
 
-  const paidDays = quotaStatus?.paidDurationDays ?? config.durationDays;
-  const packageHeadline = willBeFree
-    ? `Free trial post — live for ${quotaStatus?.freeDurationDays ?? config.freeDurationDays} days`
-    : isPaidPost
-      ? `Your organization${contactDomain ? ` (${contactDomain})` : ''} has used its free post — this listing is $${config.postingPrice} for ${paidDays} days`
-      : isFreeEmailBlocked
-        ? `This listing is $${config.postingPrice} for ${paidDays} days`
-        : `Live for ${config.durationDays} days`;
+  const packageHeadline = isFirstPost
+    ? `Half price first post: $${priceDollars} for ${config.durationDays} days`
+    : isStandardPost
+      ? `Your organization${contactDomain ? ` (${contactDomain})` : ''} has used its half price first post. This listing is $${priceDollars} for ${config.durationDays} days`
+      : `$${priceDollars} for ${config.durationDays} days`;
   const packageDetails = `Top placement · ${config.limits.candidateUnlocksPerPosting} candidate unlocks · ${config.limits.inmailsPerPosting} InMails · Applicant analytics`;
 
   return (
@@ -320,8 +240,8 @@ export default function PreviewPage() {
           <p style={{ fontSize: '14px', color: '#8A9BA6', margin: 0 }}>Review how your job will appear to candidates</p>
         </div>
 
-        {/* Up-front quota explanations — surfaced BEFORE the user clicks
-            submit so known-doomed requests never happen blind. */}
+        {/* Up-front sign-in prompt — surfaced BEFORE the user clicks submit
+            so a doomed checkout hand-off never happens blind. */}
         {needsLogin && (
           <div style={{ ...cardBase, padding: '16px 20px', marginBottom: '16px', background: '#FFFBEB', border: '1px solid #FDE68A' }}>
             <p style={{ fontSize: '14px', fontWeight: 700, color: '#92400E', margin: '0 0 4px' }}>
@@ -337,16 +257,6 @@ export default function PreviewPage() {
             }}>
               Log in to continue
             </a>
-          </div>
-        )}
-        {isFreeEmailBlocked && (
-          <div style={{ ...cardBase, padding: '16px 20px', marginBottom: '16px', background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-            <p style={{ fontSize: '14px', fontWeight: 700, color: '#92400E', margin: '0 0 4px' }}>
-              Free first posts require a company email.
-            </p>
-            <p style={{ fontSize: '13px', color: '#92400E', margin: 0, lineHeight: 1.5 }}>
-              Your account is registered with a personal email provider (Gmail, Yahoo, etc.), so the free first post does not apply — this listing will be a paid post at ${config.postingPrice}. To claim a free first post, create an employer account with your company email address.
-            </p>
           </div>
         )}
 
@@ -559,7 +469,7 @@ export default function PreviewPage() {
                   }}>
                     Apply Now <ExternalLink size={16} />
                   </a>
-                  <p style={{ marginTop: '8px', fontSize: '11px', color: '#B0BEC5', textAlign: 'center' }}>Opens in a new tab — verify your link works.</p>
+                  <p style={{ marginTop: '8px', fontSize: '11px', color: '#B0BEC5', textAlign: 'center' }}>Opens in a new tab. Verify your link works.</p>
                 </>
               )}
             </div>
@@ -580,21 +490,14 @@ export default function PreviewPage() {
             <div>
               <p style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>{packageHeadline}</p>
               <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>{packageDetails}</p>
-              {willBeFree && typeof quotaStatus?.remaining === 'number' && (
-                <p style={{ fontSize: '11px', color: '#0D9488', margin: '4px 0 0', fontWeight: 600 }}>
-                  {quotaStatus.remaining} of {quotaStatus.limit} free posts remaining for your domain
+              {isFirstPost && config.firstPostGuarantee && (
+                <p style={{ fontSize: '11px', color: '#0D9488', margin: '4px 0 0', fontWeight: 600, lineHeight: 1.5 }}>
+                  {`Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`}
                 </p>
               )}
             </div>
           </div>
         </div>
-
-        {/* Error */}
-        {error && (
-          <div style={{ ...cardBase, padding: '14px 18px', marginBottom: '16px', background: '#FEF2F2', border: '1px solid #FECACA' }}>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#DC2626', margin: 0 }}>{error}</p>
-          </div>
-        )}
 
         {/* Action Buttons */}
         <div style={{
@@ -608,20 +511,32 @@ export default function PreviewPage() {
           }}>
             <ChevronLeft size={16} /> Back to Edit
           </button>
-          <button onClick={handleContinue} disabled={isLoading} className="preview-btn-primary" style={{
-            ...clayBtn, flex: 1, justifyContent: 'center',
-            background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
-            boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
-            opacity: isLoading ? 0.6 : 1,
-          }}>
-            {isLoading ? (
-              <><Loader2 size={16} className="animate-spin" /> Processing...</>
-            ) : goesToCheckout ? (
-              <>Continue to Payment — ${config.postingPrice} <ChevronRight size={16} /></>
-            ) : (
-              <>Looks Good — Post Job <ChevronRight size={16} /></>
-            )}
-          </button>
+          {/* A signed-out visitor has no checkout to go to: /post-job/checkout
+              would hand them to a session-gated /api/create-checkout and dead
+              end there. Send them to login instead, and say so on the button
+              rather than quoting a price they cannot yet pay. */}
+          {needsLogin ? (
+            <a href="/login?next=/post-job/preview" className="preview-btn-primary" style={{
+              ...clayBtn, flex: 1, justifyContent: 'center', textDecoration: 'none',
+              background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+              boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
+            }}>
+              Log in to continue <ChevronRight size={16} />
+            </a>
+          ) : (
+            <button onClick={handleContinue} disabled={isLoading} className="preview-btn-primary" style={{
+              ...clayBtn, flex: 1, justifyContent: 'center',
+              background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+              boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
+              opacity: isLoading ? 0.6 : 1,
+            }}>
+              {isLoading ? (
+                <><Loader2 size={16} className="animate-spin" /> Processing...</>
+              ) : (
+                <>Continue to Payment: ${priceDollars} <ChevronRight size={16} /></>
+              )}
+            </button>
+          )}
         </div>
       </div>
 

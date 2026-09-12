@@ -93,7 +93,7 @@ export function htmlToReadableText(input: string): string {
  * Remove potentially dangerous patterns from URLs
  */
 export function sanitizeUrl(url: string): string {
-    const trimmed = url.trim();
+    const trimmed = asString(url).trim();
 
     // Block javascript: protocol
     if (/^javascript:/i.test(trimmed)) {
@@ -119,11 +119,27 @@ export function sanitizeUrl(url: string): string {
 }
 
 /**
+ * Coerce whatever arrived over the wire into a string.
+ *
+ * These sanitizers sit at the HTTP boundary, where a caller can omit a field
+ * or send a number/array/object for it. Reading `.replace` off `undefined`
+ * threw a TypeError that surfaced as a public HTTP 500 (POST /api/contact and
+ * POST /api/job-alerts with a partial body). Missing input is empty input; the
+ * route's own required-field validation then answers a proper 400.
+ */
+function asString(input: unknown): string {
+    if (typeof input === 'string') return input;
+    if (input === null || input === undefined) return '';
+    if (typeof input === 'number' || typeof input === 'boolean') return String(input);
+    return '';
+}
+
+/**
  * Sanitize email address
  */
 export function sanitizeEmail(email: string): string {
     // Strip any HTML tags, trim, lowercase, and limit length
-    const cleaned = email
+    const cleaned = asString(email)
         .replace(/<[^>]+>/g, '')
         .replace(/[<>"'`;]/g, '')
         .toLowerCase()
@@ -137,7 +153,7 @@ export function sanitizeEmail(email: string): string {
  * Removes dangerous HTML but preserves line breaks and basic formatting
  */
 export function sanitizeText(input: string, maxLength = 10000): string {
-    let sanitized = input
+    let sanitized = asString(input)
         // Remove script tags and their content
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
         // Remove event handlers

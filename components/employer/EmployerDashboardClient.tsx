@@ -263,7 +263,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
     const handleToggleArchive = (job: Job) => {
         // Restoring is reversible — no confirmation needed. Archiving needs confirmation
-        // because the job leaves the public board and free posts don't refund quota.
+        // because the job leaves the public board and the fee paid for it is not returned.
         if (job.archivedAt) {
             void performArchiveToggle(job);
             return;
@@ -777,7 +777,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                         <span style={{ ...clayPill, background: '#CCFBF1', color: '#0D9488' }}>★ Featured</span>
                                                     )}
                                                     {(job.paymentStatus === 'free' || job.paymentStatus === 'free_renewed' || job.paymentStatus === 'free_upgraded') && (
-                                                        <span style={{ ...clayPill, background: '#F0FDFA', color: '#0D9488', border: '1px solid rgba(13,148,136,0.18)' }}>Free trial</span>
+                                                        <span style={{ ...clayPill, background: '#F0FDFA', color: '#0D9488', border: '1px solid rgba(13,148,136,0.18)' }}>Legacy free post</span>
                                                     )}
                                                     {job.archivedAt && (
                                                         <span style={{ ...clayPill, background: '#EDE9FE', color: '#7C3AED' }}>Archived</span>
@@ -945,9 +945,11 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                     </>
                 )}
 
-                {/* ═══ Archive Confirmation Modal — branches by paid vs free ═══ */}
+                {/* ═══ Archive Confirmation Modal — branches by paid vs legacy free ═══
+                     Free posting ended; these statuses only ever appear on rows
+                     created before it did, so the branch stays for them. */}
                 {archiveTarget && (() => {
-                    const isFreePost = archiveTarget.paymentStatus === 'free'
+                    const isLegacyFreePost = archiveTarget.paymentStatus === 'free'
                         || archiveTarget.paymentStatus === 'free_renewed'
                         || archiveTarget.paymentStatus === 'free_upgraded';
                     return (
@@ -1001,14 +1003,14 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                     </ul>
                                 </div>
 
-                                {/* Branch — paid vs free quota note */}
-                                {isFreePost ? (
+                                {/* Branch — paid vs legacy free note */}
+                                {isLegacyFreePost ? (
                                     <div style={{
                                         background: '#FFF8E1', border: '1px solid rgba(245,158,11,0.18)',
                                         borderRadius: '12px', padding: '12px 14px', marginBottom: '20px',
                                     }}>
                                         <p style={{ fontSize: '12px', color: '#92400E', margin: 0, lineHeight: 1.5 }}>
-                                            <strong>Heads up:</strong> this is a free trial post. Archiving doesn&apos;t refund the credit — your organization&apos;s free quota stays at the same count.
+                                            <strong>Heads up:</strong> this posting was published under the earlier free-post offer, which has ended. Archiving it creates no credit, and your next post is charged at the current rate.
                                         </p>
                                     </div>
                                 ) : (
@@ -1185,7 +1187,8 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                     );
                 })()}
 
-                {/* ═══ Renewal Modal — branches on whether the original posting was free ═══ */}
+                {/* ═══ Renewal Modal — branches on legacy free postings, which
+                     predate paid-first posting and carry no renewal discount ═══ */}
                 {showRenewModal && selectedJob && selectedJob.paymentStatus === 'free' && (
                     <div style={{
                         position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1199,14 +1202,14 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                 fontSize: '18px', fontWeight: 700,
                                 fontFamily: 'var(--font-lora), Georgia, serif',
                                 color: '#1A2E35', marginBottom: '4px',
-                            }}>This free post can&apos;t be renewed</h3>
+                            }}>This legacy free post can&apos;t be renewed</h3>
                             <p style={{ fontSize: '13px', color: '#8A9BA6', marginBottom: '14px' }}>{selectedJob.title}</p>
 
                             <p style={{ fontSize: '14px', color: '#1A2E35', lineHeight: 1.6, marginBottom: '8px' }}>
-                                Renewals at the discounted ${config.renewalPrice} rate are available for paid postings only.
+                                This posting was published under the earlier free-post offer, and renewals at the discounted ${config.renewalPrice} rate apply to paid postings only.
                             </p>
                             <p style={{ fontSize: '13px', color: '#6B7F8A', lineHeight: 1.6, marginBottom: '20px' }}>
-                                You can post this role again as a fresh listing for ${config.postingPrice} — same {config.durationDays}-day duration and a new bucket of {config.limits.candidateUnlocksPerPosting} unlocks &amp; {config.limits.inmailsPerPosting} InMails.
+                                You can post this role again as a fresh listing for ${config.postingPrice}: same {config.durationDays}-day duration and a new bucket of {config.limits.candidateUnlocksPerPosting} unlocks &amp; {config.limits.inmailsPerPosting} InMails.
                             </p>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1215,7 +1218,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                     background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
                                     textDecoration: 'none', padding: '12px 16px', fontWeight: 700, fontSize: '14px',
                                 }}>
-                                    Post a New Job — ${config.postingPrice}
+                                    Post a New Job: ${config.postingPrice}
                                 </Link>
                                 <button
                                     onClick={() => { setShowRenewModal(false); setSelectedJob(null); }}

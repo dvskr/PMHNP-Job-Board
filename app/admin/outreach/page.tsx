@@ -238,7 +238,7 @@ export default function OutreachPage() {
                 value={formData.companyName}
                 onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                 style={inputStyle}
-                placeholder="e.g., Talkiatry"
+                placeholder="e.g., Riverbend Behavioral Health"
               />
             </div>
             <div>
@@ -294,7 +294,9 @@ export default function OutreachPage() {
         <div style={{ ...card, padding: '24px', marginBottom: '24px' }}>
           <h3 style={{ ...heading, fontSize: '16px', marginBottom: '16px' }}>Email Templates</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {(['initial', 'followUp', 'freeOffer'] as const).map((template) => (
+            {/* Keep in sync with OUTREACH_TEMPLATE_NAMES in lib/outreach-service.
+                Not imported: that module pulls in Prisma and this is a client component. */}
+            {(['initial', 'followUp', 'firstPostOffer'] as const).map((template) => (
               <div
                 key={template}
                 style={{
@@ -303,7 +305,7 @@ export default function OutreachPage() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <h4 style={{ ...heading, fontSize: '14px', textTransform: 'capitalize' }}>
-                    {template === 'followUp' ? 'Follow Up' : template === 'freeOffer' ? 'Free Offer' : 'Initial Outreach'}
+                    {template === 'followUp' ? 'Follow Up' : template === 'firstPostOffer' ? 'First Post Offer' : 'Initial Outreach'}
                   </h4>
                   <button
                     onClick={() => handleCopyTemplate(template)}
@@ -319,7 +321,7 @@ export default function OutreachPage() {
                 <p style={sub}>
                   {template === 'initial' && 'First outreach to potential employers'}
                   {template === 'followUp' && 'Follow-up for non-responders'}
-                  {template === 'freeOffer' && 'Special free posting offer'}
+                  {template === 'firstPostOffer' && 'Discounted first-post offer'}
                 </p>
               </div>
             ))}

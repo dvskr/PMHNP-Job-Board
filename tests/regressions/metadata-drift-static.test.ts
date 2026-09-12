@@ -23,12 +23,16 @@ describe('post-job metadata sells the single-tier model from config', () => {
 
   it('price and duration come from lib/config, not hardcoded numbers', () => {
     expect(src).toContain("import { config } from '@/lib/config'");
+    expect(src).toContain('${config.firstPostPrice}');
     expect(src).toContain('${config.postingPrice}');
     expect(src).toContain('${config.durationDays}');
   });
 
-  it('free post claim carries no duration, only the paid listing does', () => {
-    expect(src).toMatch(/First post free, then \$\$\{config\.postingPrice\} for a \$\{config\.durationDays\}-day/);
+  it('advertises the half-price first post, and only the listing carries a duration', () => {
+    expect(src).toMatch(
+      /First post half price at \$\$\{config\.firstPostPrice\}, then \$\$\{config\.postingPrice\} for a \$\{config\.durationDays\}-day/,
+    );
+    expect(src).not.toContain('First post free');
   });
 });
 

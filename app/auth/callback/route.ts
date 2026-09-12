@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { syncToBeehiiv } from '@/lib/beehiiv'
 import { sendSignupWelcomeEmail } from '@/lib/email-service'
 import { safeInternalPath } from '@/lib/auth/safe-redirect'
+import { readSignupMetadata } from '@/lib/auth/ensure-profile'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -56,9 +57,19 @@ export async function GET(request: Request) {
       if (!existingProfile && data.user.email) {
         const metadata = data.user.user_metadata || {}
 
+        // SECURITY: `user_metadata` is client-writable — a caller controls it
+        // via supabase.auth.signUp({ options: { data } }) and updateUser({ data }).
+        // Writing `role` straight from it let anyone mint an admin profile just
+        // by signing up with { role: 'admin' } and completing the callback.
+        // readSignupMetadata is the shared allow-list (employer | job_seeker,
+        // never admin) that /api/auth/profile and requireAuth already use;
+        // admin is granted by direct DB action only.
+        const derived = readSignupMetadata(data.user)
+        const signupRole = derived.role
+
         // Handle both email signup metadata and Google OAuth metadata
-        let firstName = metadata.first_name || null
-        let lastName = metadata.last_name || null
+        let firstName = derived.firstName
+        let lastName = derived.lastName
         const avatarUrl = metadata.avatar_url || null
 
         // For Google OAuth, parse full_name if firstName/lastName not provided
@@ -74,8 +85,8 @@ export async function GET(request: Request) {
             email: data.user.email,
             firstName: firstName,
             lastName: lastName,
-            role: metadata.role || 'job_seeker',
-            company: metadata.company || null,
+            role: signupRole,
+            company: derived.company,
             avatarUrl: avatarUrl,
           }
         })
@@ -85,7 +96,7 @@ export async function GET(request: Request) {
 
         // Create lead records (mirrors /api/auth/profile POST logic)
         try {
-          const userRole = metadata.role || 'job_seeker'
+          const userRole = signupRole
           if (userRole === 'employer') {
             const existingEmployerLead = await prisma.employerLead.findFirst({
               where: { contactEmail: data.user.email },
@@ -93,7 +104,7 @@ export async function GET(request: Request) {
             if (!existingEmployerLead) {
               await prisma.employerLead.create({
                 data: {
-                  companyName: metadata.company || `${firstName || ''} ${lastName || ''}`.trim() || 'Unknown',
+                  companyName: derived.company || `${firstName || ''} ${lastName || ''}`.trim() || 'Unknown',
                   contactEmail: data.user.email,
                   contactName: [firstName, lastName].filter(Boolean).join(' ') || null,
                   source: 'google_signup',
@@ -122,7 +133,7 @@ export async function GET(request: Request) {
         }
 
         // Auto-create daily job alert for job seekers (only if none exists)
-        if ((metadata.role || 'job_seeker') === 'job_seeker') {
+        if (signupRole === 'job_seeker') {
           try {
             const existingAlert = await prisma.jobAlert.findFirst({
               where: { email: data.user.email },
@@ -151,7 +162,7 @@ export async function GET(request: Request) {
 
         // Send welcome email for first-time Google OAuth users only
         try {
-          const userRole = metadata.role || 'job_seeker'
+          const userRole = signupRole
           await sendSignupWelcomeEmail(data.user.email, firstName || '', userRole)
         } catch (emailError) {
           console.error('Failed to send welcome email', emailError)
@@ -176,7 +187,7 @@ export async function GET(request: Request) {
           await sendSignupWelcomeEmail(
             data.user.email,
             profile?.firstName || data.user.user_metadata?.first_name || '',
-            profile?.role || data.user.user_metadata?.role || 'job_seeker'
+            profile?.role || 'job_seeker'
           )
           console.log('Welcome email sent', { userId: data.user.id })
         }

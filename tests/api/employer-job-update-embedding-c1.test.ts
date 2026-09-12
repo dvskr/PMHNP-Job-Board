@@ -53,6 +53,8 @@ describe('C1 — employer job update emits embedding.refresh.job', () => {
     vi.mocked(prisma.employerJob.findFirst).mockResolvedValue({
       id: 'ej-1', jobId: 'job-abc', contactEmail: 'employer@example.com',
       companyWebsite: null, companyLogoUrl: null, editToken: 'valid-token-abc',
+      // Published, so the editToken window (lib/auth/edit-token-window.ts) is open.
+      job: { isPublished: true, expiresAt: null },
     } as never);
     vi.mocked(prisma.job.update).mockResolvedValue({
       id: 'job-abc', title: 'PMHNP Outpatient', isPublished: true,
@@ -76,6 +78,7 @@ describe('C1 — employer job update emits embedding.refresh.job', () => {
     vi.mocked(prisma.employerJob.findFirst).mockResolvedValue({
       id: 'ej-2', jobId: 'job-xyz', contactEmail: 'employer@example.com',
       companyWebsite: null, companyLogoUrl: null, editToken: 'valid-token-abc',
+      job: { isPublished: true, expiresAt: null },
     } as never);
     vi.mocked(prisma.job.update).mockResolvedValue({
       id: 'job-xyz', title: 'PMHNP Inpatient', isPublished: true,

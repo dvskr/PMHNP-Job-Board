@@ -5,6 +5,7 @@ import { summarizeForMeta } from '@/lib/description-cleaner';
 import { parseLocation } from '@/lib/location-parser';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { isEditTokenWindowOpen, EDIT_TOKEN_CLOSED_MESSAGE } from '@/lib/auth/edit-token-window';
 import { inngest } from '@/lib/inngest/client';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { slugify } from '@/lib/utils';
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest) {
     // Verify token
     const employerJob = await prisma.employerJob.findFirst({
       where: { editToken: token },
+      include: { job: { select: { isPublished: true, expiresAt: true } } },
     });
 
     if (!employerJob) {
@@ -87,6 +89,18 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid or expired edit token' },
         { status: 401 }
       );
+    }
+
+    // The same 30-day window the GET loader enforces. Without it a leaked
+    // magic link could still rewrite this posting's applyLink — sending every
+    // applicant to an attacker's page — years after the listing expired.
+    // A missing job relation means the row is orphaned: fail closed.
+    if (!employerJob.job || !isEditTokenWindowOpen(employerJob.job)) {
+      logger.warn('[jobs-update] edit-token rejected: outside the edit window', {
+        tokenPrefix: token.slice(0, 4),
+        jobId: employerJob.jobId,
+      });
+      return NextResponse.json({ error: EDIT_TOKEN_CLOSED_MESSAGE }, { status: 401 });
     }
 
     // Apply-on-platform: clear applyLink when switching to in-platform.
@@ -236,6 +250,11 @@ export async function POST(request: NextRequest) {
 
 // Unpublish job endpoint
 export async function DELETE(request: NextRequest) {
+  // Unpublishing is destructive and token-authenticated, so it needs the same
+  // brute-force ceiling the loader and the update handler already have.
+  const rateLimitResult = await rateLimit(request, 'jobs-update', RATE_LIMITS.general);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
@@ -250,6 +269,7 @@ export async function DELETE(request: NextRequest) {
     // Verify token
     const employerJob = await prisma.employerJob.findFirst({
       where: { editToken: token },
+      include: { job: { select: { isPublished: true, expiresAt: true } } },
     });
 
     if (!employerJob) {
@@ -257,6 +277,16 @@ export async function DELETE(request: NextRequest) {
         { error: 'Invalid or expired edit token' },
         { status: 401 }
       );
+    }
+
+    // Same window as the loader and the update handler: a leaked magic link
+    // must not be able to unpublish a posting indefinitely.
+    if (!employerJob.job || !isEditTokenWindowOpen(employerJob.job)) {
+      logger.warn('[jobs-update] unpublish rejected: outside the edit window', {
+        tokenPrefix: token.slice(0, 4),
+        jobId: employerJob.jobId,
+      });
+      return NextResponse.json({ error: EDIT_TOKEN_CLOSED_MESSAGE }, { status: 401 });
     }
 
     // Unpublish job (soft delete)

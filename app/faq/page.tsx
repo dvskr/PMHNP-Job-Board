@@ -61,22 +61,35 @@ export default function FAQPage() {
     },
   ];
 
+  const renewalDiscountPercent = Math.round((1 - config.renewalPrice / config.postingPrice) * 100);
+
+  // The claim procedure, worded identically on /pricing, /faq and /terms. The
+  // applicant count can only be settled once the window has run its full
+  // length, so the claim period opens when the window closes, not at purchase.
+  const guaranteeClaimLine = `Claims open when the ${config.guaranteeWindowDays}-day window closes and stay open for ${config.guaranteeClaimDays} days after that: email support@pmhnphiring.com and we return the full first-post fee to your original payment method.`;
+
   const employerFaqs = [
     {
       question: "How much does it cost to post a job?",
-      answer: `Your first job post is completely FREE with all features included — no credit card required. After that, each additional post costs $${config.postingPrice} flat. Renewals are discounted at $${config.renewalPrice} (${Math.round((1 - config.renewalPrice / config.postingPrice) * 100)}% off).`
+      answer: `Your first job post is half price: $${config.firstPostPrice} instead of $${config.postingPrice}, once per employer. Every post after that costs $${config.postingPrice} flat. Renewals are discounted at $${config.renewalPrice} (${renewalDiscountPercent}% off).`
     },
+    ...(config.firstPostGuarantee
+      ? [{
+          question: "Is there a guarantee on the first post?",
+          answer: `Yes. Your first post is half price at $${config.firstPostPrice}. If it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full. An applicant means a candidate who submits an application through the Site, or who clicks through to your own application page when your listing links out to it. Both figures already appear in your employer dashboard, so you can check the count yourself. ${guaranteeClaimLine} Routine edits to the posting, such as salary, requirements, or description, never affect the guarantee, and any days you pause or archive the posting do not count toward the ${config.guaranteeWindowDays}-day window.`
+        }]
+      : []),
     {
       question: "What features are included?",
-      answer: `Every job post — free or paid — gets the same features: Featured badge, top placement in search results, company logo, full analytics with salary benchmarks, ${config.limits.candidateUnlocksPerPosting} candidate profile views, ${config.limits.inmailsPerPosting} InMails, up to 5 screening questions, and apply-on-platform. The only difference is listing duration: free posts run ${config.freeDurationDays} days, paid posts run ${config.durationDays} days.`
+      answer: `Every job post gets the same features: Featured badge, top placement in search results, company logo, full analytics with salary benchmarks, ${config.limits.candidateUnlocksPerPosting} candidate profile views, ${config.limits.inmailsPerPosting} InMails, up to 5 screening questions, and apply-on-platform. The half-price first post is identical to a standard post in every way except the price.`
     },
     {
       question: "How long do job postings last?",
-      answer: `Paid postings are active for ${config.durationDays} days; free postings run for ${config.freeDurationDays} days. Paid postings can be renewed any time from the employer dashboard for $${config.renewalPrice} (${Math.round((1 - config.renewalPrice / config.postingPrice) * 100)}% off the regular price). Free postings cannot be renewed at the discounted rate — post a fresh listing at $${config.postingPrice} instead.`
+      answer: `Every posting is active for ${config.durationDays} days, first post included. Postings can be renewed any time from the employer dashboard for $${config.renewalPrice} (${renewalDiscountPercent}% off the regular price).`
     },
     {
       question: "If I renew before my post expires, do I lose the remaining days?",
-      answer: `No. Renewing early adds ${config.durationDays} days to your current expiration date — you keep every day you've already paid for. Renew on your schedule.`
+      answer: `No. Renewing early adds ${config.durationDays} days to your current expiration date, so you keep every day you've already paid for. Renew on your schedule.`
     },
     {
       question: "What happens to candidates I've unlocked when my posting expires?",
@@ -84,7 +97,7 @@ export default function FAQPage() {
     },
     {
       question: "Can I edit my job posting?",
-      answer: "Yes! Open your employer dashboard (link is in your confirmation email) and click Edit on any posting. You can update salary, requirements, description, or any other details — changes go live immediately."
+      answer: `Yes! Open your employer dashboard (link is in your confirmation email) and click Edit on any posting. You can update salary, requirements, description, or any other details: changes go live immediately.${config.firstPostGuarantee ? ' Routine edits like these never affect the first-post guarantee. Only replacing the posting with a different role, meaning a different job title, hiring employer, or location, ends it.' : ''}`
     },
     {
       question: "How do I access my employer dashboard?",
@@ -92,7 +105,7 @@ export default function FAQPage() {
     },
     {
       question: "Do you offer refunds?",
-      answer: "Contact us at support@pmhnphiring.com within 7 days of posting if you're unsatisfied and we'll work with you. We want you to have a great experience and will do our best to resolve any issues."
+      answer: `${config.firstPostGuarantee ? `First posts carry the applicant guarantee described above: at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, or we refund the full first-post fee. Claims open when that window closes and stay open for ${config.guaranteeClaimDays} days after it. ` : ''}For anything else, contact us at support@pmhnphiring.com within 7 days of posting if you're unsatisfied and we'll work with you. We want you to have a great experience and will do our best to resolve any issues.`
     },
   ];
 

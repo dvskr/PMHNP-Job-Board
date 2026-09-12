@@ -66,6 +66,10 @@ const employerJobRow = {
   companyWebsite: null,
   companyLogoUrl: null,
   editToken: 'valid-token-abc',
+  // The route loads the posting's publish state so it can enforce the same
+  // 30-day editToken window the GET loader applies
+  // (lib/auth/edit-token-window.ts). A published job is always inside it.
+  job: { isPublished: true, expiresAt: null },
 };
 
 const materialFields = {

@@ -35,12 +35,20 @@ export function getAdminCreds(): AuthCreds | null {
 
 export async function loginAtPath(page: Page, path: string, creds: AuthCreds) {
   await page.goto(path);
+  // The auth form is client-only (no action/name attributes), so a submit that
+  // lands before React hydrates is silently dropped. Let the network settle and
+  // make sure the submit button is interactive before typing.
+  await page.waitForLoadState('networkidle').catch(() => undefined);
+  await page.locator('button[type="submit"]').first().waitFor({ state: 'visible' });
+  // Some entry points are thin redirects (e.g. /employer/login -> /login?role=employer),
+  // so the page we must leave is wherever the form actually rendered, not `path`.
+  const formPath = new URL(page.url()).pathname;
   await page.locator('input[type="email"]').first().fill(creds.email);
   await page.locator('input[type="password"]').first().fill(creds.password);
   await page.locator('button[type="submit"]').first().click();
-  // Wait until we leave the login page (or hit a known post-login route)
-  await page.waitForURL((url) => !url.pathname.startsWith(path), {
-    timeout: 20_000,
+  // Wait until we leave the login form (or hit a known post-login route)
+  await page.waitForURL((url) => url.pathname !== formPath && !url.pathname.startsWith(path), {
+    timeout: 45_000,
     waitUntil: 'domcontentloaded',
   });
 }

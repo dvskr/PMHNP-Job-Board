@@ -58,7 +58,18 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ applicants: [], jobs: [] });
     }
 
-    // Build filter conditions
+    // Build filter conditions.
+    // The jobId filter NARROWS the owned set — it must never replace it. Before
+    // this guard, `?jobId=<someone else's job>` swapped the ownership-scoped
+    // list for the caller's value, returning that job's applicants in full:
+    // name, bio, education, work history, licenses, cover letter, screening
+    // answers, the owning employer's private notes, and a freshly minted signed
+    // resume URL. The UI only ever sends an id from the `jobs` array below, so
+    // a foreign id is always either a bug or an attack.
+    if (jobIdFilter && !jobIds.includes(jobIdFilter)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const where: Record<string, unknown> = {
         jobId: jobIdFilter ? { in: [jobIdFilter] } : { in: jobIds },
     };

@@ -67,7 +67,7 @@
 #### For Employers
 | Feature | Description |
 |---------|-------------|
-| **Free Job Posting** | Post jobs for free (configurable paid mode via Stripe) |
+| **Paid Job Posting** | Every post goes through Stripe Checkout, with a discounted first post per employer identity. Prices, duration, and the first-post guarantee live in [`lib/config.ts`](lib/config.ts); see [`docs/pricing-system.md`](docs/pricing-system.md) |
 | **Featured Listings** | Premium featured jobs with enhanced visibility |
 | **Dashboard Analytics** | Track views, clicks, and applicant engagement |
 | **Job Management** | Edit, renew, or upgrade active job posts |
@@ -208,7 +208,7 @@
 3. **Job Posting** (Employer Flow)
    - Employer fills form → Zod validation
    - Draft saved with email resume token
-   - Optional payment via Stripe Checkout
+   - Payment via Stripe Checkout (required for every post)
    - Webhook confirms payment → job published
 
 4. **Job Alerts** (Automated)
@@ -735,7 +735,7 @@ Fetch jobs with filters.
 Get a single job by ID with full details.
 
 #### `POST /api/jobs/post-free`
-Create a free job posting. Requires: `title`, `employer`, `location`, `description`, `applyLink`, `contactEmail`.
+**Retired.** Returns `410 Gone` and writes nothing. Posting now goes through Stripe Checkout: see `POST /api/create-checkout`.
 
 #### `GET /api/jobs/categories`
 Get job counts by category (remote, travel, telehealth, etc.).
@@ -765,6 +765,9 @@ Get employer dashboard data (requires `dashboardToken`).
 
 #### `GET /api/employer/candidates`
 Browse candidate profiles (requires employer auth).
+
+#### `GET /api/employer/post-price`
+Quote the price for the signed-in employer's next post. Returns `priceKind` (`first` or `standard`), `priceDollars`, and `isFirstPost`, so the funnel shows the same figure Checkout will charge.
 
 #### `POST /api/create-checkout`
 Create Stripe Checkout session for job posting payment.
@@ -1045,13 +1048,14 @@ EMAIL_FROM="PMHNP Hiring <noreply@pmhnphiring.com>"
 DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..."  # Ingestion notifications
 ```
 
-### Payments (Optional)
+### Payments
+
+Required: every job post is created through Stripe Checkout, so the posting flow does not work without these.
 
 ```env
 STRIPE_SECRET_KEY="sk_test_xxxxxxxxxxxxx"
 STRIPE_WEBHOOK_SECRET="whsec_xxxxxxxxxxxxx"
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_xxxxxxxxxxxxx"
-ENABLE_PAID_POSTING="false"  # Set "true" to require payment
 ```
 
 ### Security & Monitoring

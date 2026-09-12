@@ -21,7 +21,10 @@ test.describe('Fix 1: /api/og edge caching', () => {
     expect(cacheControl).toContain('stale-while-revalidate=86400');
   });
 
-  test('serves cached on repeat (HIT after warmup)', async ({ request }) => {
+  test('serves cached on repeat (HIT after warmup)', async ({ request, baseURL }) => {
+    // Edge cache HITs only exist behind Vercel's CDN; a local dev server never
+    // sets x-vercel-cache, so this guard is meaningful only against a deployment.
+    test.skip(/localhost|127\.0\.0\.1/.test(baseURL ?? ''), 'no edge cache on a local dev server');
     const url = '/api/og?title=cache-warmup-' + Date.now();
     // First call warms the cache
     await request.get(url);
@@ -109,22 +112,24 @@ test.describe('Fix 4: /api/resume/parse error handling', () => {
   });
 });
 
-test.describe('Fix 5: robots.txt crawl-delay', () => {
-  test('PerplexityBot has crawl-delay', async ({ request }) => {
+test.describe('Fix 5: robots.txt bot rosters', () => {
+  // The d916ec2 Crawl-delay throttles were deliberately removed later (see the
+  // header comment in app/robots.ts, issue #162): AI answer engines and the
+  // SEO-tool crawlers are now listed so their access is explicit, without a
+  // per-bot delay. Guard the roster, not the retired directive.
+  test('PerplexityBot has an explicit robots block', async ({ request }) => {
     const res = await request.get('/robots.txt');
     const body = await res.text();
-    // Find the PerplexityBot block and check it has Crawl-delay
     const perplexityBlock = body.match(/User-Agent:\s*PerplexityBot[\s\S]*?(?=User-Agent:|$)/i);
     expect(perplexityBlock, 'PerplexityBot block missing from robots.txt').toBeTruthy();
-    expect(perplexityBlock![0]).toMatch(/Crawl-delay:\s*\d+/i);
+    expect(perplexityBlock![0]).not.toMatch(/^Disallow:\s*\/\s*$/im);
   });
 
-  test('AhrefsBot has crawl-delay', async ({ request }) => {
+  test('AhrefsBot has an explicit robots block', async ({ request }) => {
     const res = await request.get('/robots.txt');
     const body = await res.text();
     const ahrefsBlock = body.match(/User-Agent:\s*AhrefsBot[\s\S]*?(?=User-Agent:|$)/i);
     expect(ahrefsBlock, 'AhrefsBot block missing from robots.txt').toBeTruthy();
-    expect(ahrefsBlock![0]).toMatch(/Crawl-delay:\s*\d+/i);
   });
 });
 

@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { isEditTokenWindowOpen, EDIT_TOKEN_CLOSED_MESSAGE } from '@/lib/auth/edit-token-window';
 
 /**
  * GET /api/jobs/edit/[token]
@@ -70,24 +71,16 @@ export async function GET(
     // P5.A fix (2026-06-01): runbook flagged that the edit token never
     // expires — once a confirmation email leaks (forwarded, archived,
     // breached) anyone can edit/unpublish the posting indefinitely.
-    // Bound the validity window: the token is honored while the job is
-    // published OR within 30 days of its expiresAt cutoff. Anything past
-    // that is rejected so an old leaked email can't reach a years-old
-    // record. Renewal/repost flows mint fresh tokens (see the webhook).
-    const EDIT_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
-    const expiresAt = employerJob.job.expiresAt;
-    if (!employerJob.job.isPublished) {
-      const ageMs = expiresAt ? Date.now() - new Date(expiresAt).getTime() : Number.POSITIVE_INFINITY;
-      if (ageMs > EDIT_GRACE_MS) {
-        logger.warn('[jobs-edit] edit-token rejected: job too far past expiry', {
-          tokenPrefix: token.slice(0, 4),
-          jobId: employerJob.job.id,
-        });
-        return NextResponse.json(
-          { error: 'Edit window has closed for this posting. Renew or re-post via your dashboard.' },
-          { status: 401 }
-        );
-      }
+    // The window lives in lib/auth/edit-token-window so this loader and the
+    // POST/DELETE handlers in /api/jobs/update cannot drift apart; they did,
+    // and the mutating half went unguarded until 2026-09-02.
+    // Renewal/repost flows mint fresh tokens (see the webhook).
+    if (!isEditTokenWindowOpen(employerJob.job)) {
+      logger.warn('[jobs-edit] edit-token rejected: job too far past expiry', {
+        tokenPrefix: token.slice(0, 4),
+        jobId: employerJob.job.id,
+      });
+      return NextResponse.json({ error: EDIT_TOKEN_CLOSED_MESSAGE }, { status: 401 });
     }
 
     return NextResponse.json({

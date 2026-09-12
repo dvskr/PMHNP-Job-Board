@@ -1,18 +1,47 @@
 import { prisma } from '@/lib/prisma';
 import { EmployerLead } from '@/lib/types';
+import { config } from '@/lib/config';
 
-const TEMPLATES = {
+/**
+ * Outreach templates for the admin lead pipeline.
+ *
+ * These are employer-facing sales copy, so they follow the same rules as every
+ * other pricing surface: the offer is read from lib/config.ts rather than typed
+ * into the prose, and the refund promise appears only while
+ * config.firstPostGuarantee is on. The pre-2026-09 versions offered a free
+ * featured post, which checkout no longer honours.
+ *
+ * These are short marketing instances of the guarantee, so they carry the
+ * sentence without the long-form definition of "applicant"; that definition
+ * lives in the terms and on the surfaces that explain the guarantee at length.
+ */
+
+/** The paid-first offer, one sentence, always interpolated. */
+const offerLine =
+  `Your first post is $${config.firstPostPrice}, ${config.firstPostDiscountPercent()}% off the standard $${config.postingPrice}, and every post runs ${config.durationDays} days.`;
+
+/** Empty when the guarantee is withdrawn, so no template promises a refund. */
+const guaranteeParagraph = config.firstPostGuarantee
+  ? `\n\nIf it does not bring you at least ${config.guaranteeMinApplicants} applicants in ${config.guaranteeWindowDays} days, we refund it in full.`
+  : '';
+
+/** Template keys, exported so the API route validates against this list. */
+export const OUTREACH_TEMPLATE_NAMES = ['initial', 'followUp', 'firstPostOffer'] as const;
+
+export type OutreachTemplateName = (typeof OUTREACH_TEMPLATE_NAMES)[number];
+
+const TEMPLATES: Record<OutreachTemplateName, { subject: string; body: string }> = {
   initial: {
     subject: 'Reach qualified PMHNPs with {{companyName}}',
     body: `Hi {{contactName}},
 
 I noticed {{companyName}} is hiring psychiatric nurse practitioners. I'm reaching out because we run PMHNP Hiring, the specialized job board for psychiatric mental health nurse practitioners.
 
-We have over 1,000 PMHNPs subscribed to job alerts, and our site gets targeted traffic from practitioners actively looking for new opportunities.
+Our audience is practitioners actively looking for their next role, so a listing here reaches people who are already qualified for it.
 
-Right now, we're offering free featured job posts during our launch period.
+${offerLine}${guaranteeParagraph}
 
-Would you be interested in posting your open positions? I'm happy to set up your first listing.
+Would you be interested in posting your open positions? I'm happy to walk you through your first listing.
 
 Best,
 [Your name]
@@ -27,7 +56,7 @@ P.S. You can check out our site at pmhnphiring.com`
 
 Just following up on my previous email about posting your PMHNP positions on our job board.
 
-We've had great results helping companies like Talkiatry and LifeStance reach qualified candidates.
+${offerLine}${guaranteeParagraph}
 
 Happy to answer any questions or set up a quick call.
 
@@ -35,15 +64,15 @@ Best,
 [Your name]`
   },
 
-  freeOffer: {
-    subject: 'Free PMHNP job posting for {{companyName}}',
+  firstPostOffer: {
+    subject: `${config.firstPostDiscountPercent()}% off the first PMHNP job post for {{companyName}}`,
     body: `Hi {{contactName}},
 
-I'd like to offer {{companyName}} a free featured job posting on PMHNP Hiring.
+I'd like to get {{companyName}} in front of our audience of psychiatric nurse practitioners.
 
-No strings attached - I want to help you reach our audience of psychiatric nurse practitioners.
+${offerLine} Every listing gets the same featured placement, candidate unlocks, and analytics.${guaranteeParagraph}
 
-Just reply to this email with your job details, or post directly at pmhnphiring.com/post-job
+Reply with your job details and I'll help you get it live, or post directly at pmhnphiring.com/post-job
 
 Best,
 [Your name]`
@@ -51,7 +80,7 @@ Best,
 };
 
 export function renderTemplate(
-  templateName: keyof typeof TEMPLATES,
+  templateName: OutreachTemplateName,
   variables: { companyName: string; contactName?: string }
 ): { subject: string; body: string } {
   const template = TEMPLATES[templateName];

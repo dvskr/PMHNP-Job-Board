@@ -1,85 +1,151 @@
-import 'dotenv/config';
-import { createClient } from '@supabase/supabase-js';
-import { prisma } from '../lib/prisma.js';
+#!/usr/bin/env node
+// Load env BEFORE any import that touches process.env.
+// eslint-disable-next-line import/order
+import { config as dotenvConfig } from 'dotenv';
+dotenvConfig({ path: '.env.local' });
+dotenvConfig();
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+/**
+ * Local-dev E2E account seeder.
+ *
+ * Creates (or repairs) the three accounts the Playwright journeys expect,
+ * matching .env.test.example: a job seeker, an employer, and an admin.
+ *
+ * Idempotent and safe to re-run:
+ *   - If the Supabase auth user exists, its password is reset to the known
+ *     E2E value and the email is confirmed.
+ *   - If the UserProfile row exists, its role is corrected.
+ *   - Nothing else in the database is touched.
+ *
+ * Run:
+ *   npm run e2e:users
+ *   (equivalent to: npx ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/create-test-users.ts)
+ *
+ * Never point this at production: it reads NEXT_PUBLIC_SUPABASE_URL,
+ * SUPABASE_SERVICE_ROLE_KEY and DATABASE_URL from .env.local / .env.
+ */
+
+import { createClient } from '@supabase/supabase-js';
+import { prisma } from '@/lib/prisma';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !serviceRoleKey) {
+    console.error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
+    process.exit(1);
+}
+
+if (/sggccmqjzuimwlahocmy/.test(supabaseUrl)) {
+    console.error('Refusing to seed E2E accounts into the production Supabase project.');
+    process.exit(1);
+}
 
 const admin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false }
+    auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const TEST_SEEKER_EMAIL = 'testseeker@pmhnptest.com';
-const TEST_SEEKER_PASS = 'TestSeeker123!';
-const TEST_EMPLOYER_EMAIL = 'testemployer@pmhnptest.com';
-const TEST_EMPLOYER_PASS = 'TestEmployer123!';
+interface TestAccount {
+    email: string;
+    password: string;
+    role: 'job_seeker' | 'employer' | 'admin';
+    firstName: string;
+    company?: string;
+}
 
-async function createTestUser(email: string, password: string, role: string, firstName: string, company?: string) {
-    // Check if user already exists
-    const existing = await prisma.userProfile.findFirst({ where: { email } });
+const ACCOUNTS: TestAccount[] = [
+    { email: 'testseeker@pmhnptest.com', password: 'TestSeeker123!', role: 'job_seeker', firstName: 'TestCandidate' },
+    { email: 'testemployer@pmhnptest.com', password: 'TestEmployer123!', role: 'employer', firstName: 'TestEmployer', company: 'Test Corp' },
+    { email: 'testadmin@pmhnptest.com', password: 'TestAdmin123!', role: 'admin', firstName: 'TestAdmin' },
+];
+
+async function findAuthUserByEmail(email: string): Promise<string | null> {
+    const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    if (error) throw new Error(`listUsers failed: ${error.message}`);
+    const match = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+    return match?.id ?? null;
+}
+
+async function ensureAuthUser(account: TestAccount, knownId: string | null): Promise<string> {
+    const existingId = knownId ?? (await findAuthUserByEmail(account.email));
+    if (existingId) {
+        const { error } = await admin.auth.admin.updateUserById(existingId, {
+            password: account.password,
+            email_confirm: true,
+        });
+        if (error) throw new Error(`updateUserById failed for ${account.email}: ${error.message}`);
+        console.log(`  = auth user exists, password reset: ${account.email}`);
+        return existingId;
+    }
+
+    const { data, error } = await admin.auth.admin.createUser({
+        email: account.email,
+        password: account.password,
+        email_confirm: true,
+    });
+    if (error || !data.user) throw new Error(`createUser failed for ${account.email}: ${error?.message}`);
+    console.log(`  + created auth user: ${account.email}`);
+    return data.user.id;
+}
+
+async function ensureProfile(account: TestAccount, supabaseId: string) {
+    const existing = await prisma.userProfile.findFirst({ where: { email: account.email } });
     if (existing) {
-        console.log(`  ✓ ${role} already exists: ${email} (supabaseId: ${existing.supabaseId})`);
+        if (existing.role !== account.role || existing.supabaseId !== supabaseId) {
+            await prisma.userProfile.update({
+                where: { id: existing.id },
+                data: { role: account.role, supabaseId },
+            });
+            console.log(`  ~ profile repaired (role=${account.role}): ${account.email}`);
+        } else {
+            console.log(`  = profile exists (role=${account.role}): ${account.email}`);
+        }
         return existing;
     }
 
-    // Create Supabase auth user
-    const { data: authData, error: authError } = await admin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true, // Auto-confirm email
-    });
-
-    if (authError) {
-        console.error(`  ✗ Failed to create auth user: ${authError.message}`);
-        return null;
-    }
-
-    console.log(`  ✓ Created Supabase auth user: ${authData.user.id}`);
-
-    // Create UserProfile
-    const profile = await prisma.userProfile.create({
+    const created = await prisma.userProfile.create({
         data: {
-            supabaseId: authData.user.id,
-            email,
-            role,
-            firstName,
+            supabaseId,
+            email: account.email,
+            role: account.role,
+            firstName: account.firstName,
             lastName: 'Test',
-            ...(company ? { company } : {}),
+            ...(account.company ? { company: account.company } : {}),
         },
     });
-
-    console.log(`  ✓ Created UserProfile: ${profile.id}`);
-    return profile;
+    console.log(`  + created profile (role=${account.role}): ${account.email}`);
+    return created;
 }
 
 async function main() {
-    console.log('=== Creating Test Accounts ===\n');
+    console.log('=== E2E test accounts ===\n');
 
-    console.log('1. Creating test job seeker...');
-    const seeker = await createTestUser(TEST_SEEKER_EMAIL, TEST_SEEKER_PASS, 'job_seeker', 'TestCandidate');
-
-    console.log('\n2. Creating test employer...');
-    const employer = await createTestUser(TEST_EMPLOYER_EMAIL, TEST_EMPLOYER_PASS, 'employer', 'TestEmployer', 'Test Corp');
-
-    if (!seeker || !employer) {
-        console.error('\nFailed to create test users. Exiting.');
-        return;
+    for (const account of ACCOUNTS) {
+        console.log(`${account.role}:`);
+        const profile = await prisma.userProfile.findFirst({ where: { email: account.email } });
+        const supabaseId = await ensureAuthUser(account, profile?.supabaseId ?? null);
+        await ensureProfile(account, supabaseId);
     }
 
-    // Find an employer-posted job to test with
     const testJob = await prisma.job.findFirst({
         where: { sourceType: 'employer', isPublished: true },
-        select: { id: true, title: true, slug: true },
+        select: { title: true, slug: true },
     });
 
-    console.log(`\n=== Test Credentials ===`);
-    console.log(`Job Seeker: ${TEST_SEEKER_EMAIL} / ${TEST_SEEKER_PASS}`);
-    console.log(`Employer:   ${TEST_EMPLOYER_EMAIL} / ${TEST_EMPLOYER_PASS}`);
-    if (testJob) {
-        console.log(`Test Job:   "${testJob.title}" → /jobs/${testJob.slug}`);
+    console.log('\n=== Credentials (copy into .env.test) ===');
+    for (const account of ACCOUNTS) {
+        const key = account.role === 'job_seeker' ? 'SEEKER' : account.role.toUpperCase();
+        console.log(`E2E_${key}_EMAIL=${account.email}`);
+        console.log(`E2E_${key}_PASS=${account.password}`);
     }
-    console.log(`\nSeeker profile ID: ${seeker.id}`);
-    console.log(`Employer profile ID: ${employer.id}`);
+    if (testJob) {
+        console.log(`\nEmployer-posted job for apply tests: "${testJob.title}" at /jobs/${testJob.slug}`);
+    }
 }
 
-main().catch(console.error).finally(() => prisma.$disconnect());
+main()
+    .catch((err) => {
+        console.error(err);
+        process.exitCode = 1;
+    })
+    .finally(() => prisma.$disconnect());

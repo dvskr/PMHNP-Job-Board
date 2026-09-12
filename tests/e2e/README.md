@@ -14,9 +14,6 @@ npm run test:e2e:install
 cp .env.test.example .env.test
 # edit .env.test with your real test-user emails/passwords
 
-# 3. (Optional) Drop a sample resume PDF into fixtures
-# tests/e2e/fixtures/sample-resume.pdf
-
 # 4. Run!
 npm run test:e2e               # full suite (auto-starts dev server)
 npm run test:e2e:smoke         # just smoke tests (~30s)
@@ -47,7 +44,7 @@ Tests load credentials from `.env.test` (gitignored). If a credential is missing
 |---|---|---|
 | `E2E_SEEKER_EMAIL` / `E2E_SEEKER_PASS` | seeker journey | auth tests skip |
 | `E2E_EMPLOYER_EMAIL` / `E2E_EMPLOYER_PASS` | employer journey | auth tests skip |
-| `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASS` | admin journey | auth tests skip |
+| `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASS` | admin journey (`npm run e2e:users` seeds testadmin@pmhnptest.com) | auth tests skip |
 | `E2E_TEST_RESUME_PATH` | seeker resume upload | resume test skips |
 | `E2E_TEST_JOB_ID` | seeker apply test | falls back to first job from listings |
 | `E2E_STRIPE_TEST_CARD` etc. | (reserved for future post-job checkout) | n/a |
@@ -55,7 +52,7 @@ Tests load credentials from `.env.test` (gitignored). If a credential is missing
 To create the seeker + employer test users in your local DB:
 
 ```bash
-npx ts-node scripts/create-test-users.ts
+npm run e2e:users   # idempotent: creates or repairs seeker, employer, and admin accounts on the dev project
 ```
 
 ## Suite map
@@ -117,5 +114,5 @@ https://claude.ai/code/routines
 
 - **Stripe checkout flow** — the post-job test fills the form but doesn't submit (Stripe needs explicit setup; we'd add `STRIPE_TEST_KEY` env wiring + iframe filling)
 - **Email sending** — admin email composer test fills the subject but doesn't click Send (would actually deliver mail)
-- **Resume upload** — needs a real PDF at `tests/e2e/fixtures/sample-resume.pdf`. The .txt fixture in this folder is for documentation only; the parser requires PDF/DOCX.
+- **Resume upload** uses `tests/e2e/fixtures/sample-resume.pdf` (a small committed PDF that pdf-parse reads). The .txt fixture is for documentation only; the parser requires PDF/DOCX.
 - **Selectors are role/label-based** — if you rename a button from "Apply" to "Apply Now", that's fine (regex matches both); if you rename to "Send Application", update the test

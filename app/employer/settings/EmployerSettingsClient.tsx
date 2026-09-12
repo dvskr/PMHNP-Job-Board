@@ -638,7 +638,9 @@ export default function EmployerSettingsClient() {
                                 </thead>
                                 <tbody>
                                     {payments.map(p => {
-                                        // Free posts have no charge → no invoice link.
+                                        // Legacy free posts predate the paid-first model and carry no
+                                        // charge, so there is no invoice to link. They still have to
+                                        // render: the rows are historical and are never rewritten.
                                         // Paid posts get a "Download" button that hits our PDF generator.
                                         // Defensive reads — historical payment rows occasionally have
                                         // null `tier` or missing `charges`, and a render-time crash on
@@ -647,7 +649,7 @@ export default function EmployerSettingsClient() {
                                         const latestCharge = p.charges?.[0];
                                         const tier = p.tier ?? '';
                                         const isFeatured = tier.includes('Featured');
-                                        const planLabel = p.isFree ? 'Free trial' : (tier || 'Standard');
+                                        const planLabel = p.isFree ? 'Legacy free post' : (tier || 'Standard');
                                         const planBg = p.isFree ? '#F0FDFA' : (isFeatured ? '#FFF8E1' : '#F0FDFA');
                                         const planColor = p.isFree ? '#0D9488' : (isFeatured ? '#F59E0B' : '#0D9488');
                                         const statusLabel = p.isActive ? 'Active' : 'Expired';

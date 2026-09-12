@@ -93,22 +93,17 @@ describe('homepage employer pool (FeaturedJobsSection)', () => {
   });
 });
 
-describe('isFeatured write consistency across the three post paths (audit fact 7)', () => {
-  // The column must stop lying: /pricing promises the Featured badge on free
-  // AND paid posts, and the employer messaging + candidate-unlock gates key
-  // on Job.isFeatured. The flag flips exactly when a post becomes LIVE:
-  //   - post-free      → at creation (free posts publish immediately)
+describe('isFeatured write consistency across the post paths (audit fact 7)', () => {
+  // The column must stop lying: /pricing promises the Featured badge on every
+  // post, and the employer messaging + candidate-unlock gates key on
+  // Job.isFeatured. The flag flips exactly when a post becomes LIVE:
   //   - create-checkout → NOT at creation (pending unpaid draft; the
   //     messaging gate checks only isFeatured + ownership, so featuring a
   //     pending row would unlock InMail outreach for a never-paid post)
   //   - stripe webhook  → new-post branch features alongside isPublished;
   //     renewal branch already did
-  it('post-free features the post at creation via config.isFeaturedTier', () => {
-    expect(read('app/api/jobs/post-free/route.ts')).toMatch(
-      /isFeatured: config\.isFeaturedTier\('pro'\)/,
-    );
-  });
-
+  // The free-post path that used to feature at creation is retired: with no
+  // unpaid posting path left, the webhook is the only writer that features.
   it('create-checkout keeps the pending draft unfeatured until payment', () => {
     const src = read('app/api/create-checkout/route.ts');
     expect(src).toMatch(/isFeatured: false/);

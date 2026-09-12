@@ -53,12 +53,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (!data?.properties?.action_link) {
-      logger.error('No action_link in generateLink response', data)
+      // Never log `data` itself: generateLink returns the action link and the
+      // hashed OTP inside it.
+      logger.error('No action_link in generateLink response')
       return NextResponse.json({ error: 'Failed to generate confirmation link' }, { status: 500 })
     }
 
     const confirmationUrl = data.properties.action_link
-    logger.info('Generated confirmation link', { email: normalizedEmail, url: confirmationUrl })
+    // The action link IS a sign-in credential: following it authenticates as
+    // this user. It must never reach the log drain, Sentry, or a support
+    // screenshot, so record only that a link was issued.
+    logger.info('Generated confirmation link', { email: normalizedEmail })
 
     // Build email using the V2 Warm Diorama design system
     const html = emailShellV2(`
