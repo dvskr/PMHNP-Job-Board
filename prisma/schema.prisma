@@ -283,6 +283,25 @@ model EmployerJob {
   /// finds here before counting. Null on rows created before this column and
   /// on renewal charges, which are tracked on JobCharge instead.
   stripeSessionId     String?          @map("stripe_session_id")
+  /// Atomic mutex for the once-per-identity first-post discount, holding the
+  /// acct: quota key of the employer who claimed it (null on every standard
+  /// post and every renewal).
+  ///
+  /// The count below it is a read, and the row that acts on that read is a
+  /// later write, so two requests fired at the same instant could both read
+  /// "no prior posts" and both mint a payable half-price session. Expiring
+  /// earlier sessions cannot help there: neither request has created its
+  /// session yet when the other looks. A UNIQUE index makes the claim itself
+  /// the serialization point, because Postgres will only let one row hold a
+  /// given key.
+  ///
+  /// The hold is deliberately NOT released when the post is paid: a permanent
+  /// claim is exactly the "this identity has spent its discount" fact we want,
+  /// and it backstops the count. It IS taken over when the holder is still an
+  /// unpaid checkout, so abandoning a checkout still does not cost the
+  /// employer their discount. NULLs do not collide in a Postgres unique index,
+  /// so standard posts are unaffected.
+  discountHoldKey     String?          @unique @map("discount_hold_key")
   // Immutable snapshot of the signup email's domain at posting time.
   // Used as the canonical anchor for the free-post quota count so that:
   //   - Editing contactEmail can't shift the count
