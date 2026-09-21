@@ -102,7 +102,10 @@ describe('homepage FAQ is honest, visible, and single-sourced', () => {
   });
 
   it('cited figures route through STAT_SOURCES', () => {
-    expect(src).toMatch(/STAT_SOURCES\.averageSalary/);
+    // `averageSalary` became `npAverageSalaryBls` on 2026-09-21. BLS OEWS
+    // 29-1171 covers nurse practitioners of every specialty, so the homepage
+    // answer now cites it as that and points at the live engine for PMHNP pay.
+    expect(src).toMatch(/STAT_SOURCES\.npAverageSalaryBls/);
     expect(src).toMatch(/STAT_SOURCES\.blsGrowthProjection/);
     expect(src).toMatch(/STAT_SOURCES\.fullPracticeStates/);
   });

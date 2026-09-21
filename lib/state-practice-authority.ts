@@ -20,7 +20,11 @@ export interface StatePracticeInfo {
 
 // Practice authority by state
 export const STATE_PRACTICE_AUTHORITY: Record<string, StatePracticeInfo> = {
-    // Full Practice Authority States (27 states + DC)
+    // Full Practice Authority jurisdictions. Deliberately NOT restated as a
+    // number here: the count is derived below by FULL_PRACTICE_COUNT. A
+    // hand-written total in a comment is how this file, stats-sources.ts and
+    // the blog ended up publishing three different figures (see the note on
+    // FULL_PRACTICE_SUMMARY).
     'Alaska': {
         authority: 'full',
         description: 'Full Practice Authority',
@@ -285,6 +289,43 @@ export const STATE_PRACTICE_AUTHORITY: Record<string, StatePracticeInfo> = {
 /**
  * Get practice authority info for a state
  */
+/**
+ * How many jurisdictions in the table above grant Full Practice Authority,
+ * and how to say it in prose.
+ *
+ * WHY THESE ARE DERIVED. Until 2026-09 the count was written by hand in three
+ * places and all three disagreed with each other AND with this table: the
+ * comment above said "27 states + DC", lib/stats-sources.ts said "27 states +
+ * DC", and content/blog/pmhnp-private-practice-salary.mdx said "28 states +
+ * DC" (including inside its FAQPage JSON-LD), while the table itself lists
+ * 25 states plus the District of Columbia. Every practice-authority map, state
+ * page and licensure surface renders from this table, so the map and the
+ * sentence next to it were contradicting each other in front of readers and
+ * answer engines. A derived count cannot drift from the data it describes.
+ *
+ * Adding or reclassifying a jurisdiction updates every surface automatically.
+ */
+const FULL_PRACTICE_JURISDICTIONS = Object.entries(STATE_PRACTICE_AUTHORITY)
+    .filter(([, info]) => info.authority === 'full')
+    .map(([name]) => name);
+
+const DISTRICT_OF_COLUMBIA = 'District of Columbia';
+
+/** Total jurisdictions with Full Practice Authority, DC included. */
+export const FULL_PRACTICE_COUNT = FULL_PRACTICE_JURISDICTIONS.length;
+
+/** Full Practice Authority states, excluding DC. */
+export const FULL_PRACTICE_STATE_COUNT =
+    FULL_PRACTICE_COUNT - (FULL_PRACTICE_JURISDICTIONS.includes(DISTRICT_OF_COLUMBIA) ? 1 : 0);
+
+/**
+ * Prose form, e.g. "25 states + DC". Use this anywhere the count is written
+ * out; never retype the number.
+ */
+export const FULL_PRACTICE_SUMMARY = FULL_PRACTICE_JURISDICTIONS.includes(DISTRICT_OF_COLUMBIA)
+    ? `${FULL_PRACTICE_STATE_COUNT} states + DC`
+    : `${FULL_PRACTICE_STATE_COUNT} states`;
+
 export function getStatePracticeAuthority(stateName: string): StatePracticeInfo | null {
     return STATE_PRACTICE_AUTHORITY[stateName] || null;
 }

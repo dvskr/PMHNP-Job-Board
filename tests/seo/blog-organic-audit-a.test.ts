@@ -185,7 +185,10 @@ describe('A5: blog FAQ answers do not hardcode stats', () => {
     });
 
     it('sourced figures interpolate from STAT_SOURCES', () => {
-        expect(faqRegion).toContain('STAT_SOURCES.averageSalary');
+        // Renamed from `averageSalary` on 2026-09-21: BLS OEWS 29-1171 is
+        // nurse practitioners of every specialty, so the key and the copy now
+        // say so rather than passing it off as a PMHNP figure.
+        expect(faqRegion).toContain('STAT_SOURCES.npAverageSalaryBls');
         expect(faqRegion).toContain('STAT_SOURCES.blsGrowthProjection');
         expect(blogPage).toContain("import { STAT_SOURCES } from '@/lib/stats-sources'");
     });
@@ -197,8 +200,8 @@ describe('A5: blog FAQ answers do not hardcode stats', () => {
     it('FAQ copy and its interpolated STAT_SOURCES fields carry no em/en dashes', () => {
         expect(faqRegion).not.toMatch(/[–—]/);
         const interpolated = [
-            STAT_SOURCES.averageSalary.formatted,
-            STAT_SOURCES.averageSalary.source,
+            STAT_SOURCES.npAverageSalaryBls.formatted,
+            STAT_SOURCES.npAverageSalaryBls.source,
             STAT_SOURCES.blsGrowthProjection.formatted,
             STAT_SOURCES.blsGrowthProjection.source,
             STAT_SOURCES.hrsaShortagePopulation.formatted,

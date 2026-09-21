@@ -342,7 +342,7 @@ export default async function BlogPostPage({ params }: Props) {
                 // Audit A5: salary/growth figures interpolated from
                 // STAT_SOURCES so every surface quotes the same sourced
                 // numbers; the invented open-position count was dropped.
-                text: `Yes. PMHNPs are among the most in-demand healthcare providers in the US. The average salary is ${STAT_SOURCES.averageSalary.formatted} per the ${STAT_SOURCES.averageSalary.source}, and employment growth of ${STAT_SOURCES.blsGrowthProjection.formatted} is projected by the ${STAT_SOURCES.blsGrowthProjection.source}. With ${STAT_SOURCES.hrsaShortagePopulation.formatted} Americans living in designated mental health professional shortage areas (${STAT_SOURCES.hrsaShortagePopulation.source}), demand is expected to stay strong for years to come.`,
+                text: `Yes. PMHNPs are among the most in-demand healthcare providers in the US. For pay context, the ${STAT_SOURCES.npAverageSalaryBls.source} reports an average of ${STAT_SOURCES.npAverageSalaryBls.formatted} for nurse practitioners across all specialties, and our salary guide computes PMHNP medians from advertised ranges in live postings. Employment growth of ${STAT_SOURCES.blsGrowthProjection.formatted} is projected by the ${STAT_SOURCES.blsGrowthProjection.source}. With ${STAT_SOURCES.hrsaShortagePopulation.formatted} Americans living in designated mental health professional shortage areas (${STAT_SOURCES.hrsaShortagePopulation.source}), demand is expected to stay strong for years to come.`,
             },
         ],
         'new-grad-pmhnp-first-job': [
@@ -371,7 +371,7 @@ export default async function BlogPostPage({ params }: Props) {
                 // Audit A5: the psychiatrist salary range had no citable
                 // source, so the comparison is now number-free; the PMHNP
                 // figure comes from STAT_SOURCES.
-                text: `No. Psychiatrists generally earn substantially more, while PMHNPs earn an average of ${STAT_SOURCES.averageSalary.formatted} per the ${STAT_SOURCES.averageSalary.source}. However, PMHNPs require significantly less training time and student debt, often resulting in a better return on investment earlier in their career.`,
+                text: `No. Psychiatrists generally earn substantially more. For context, the ${STAT_SOURCES.npAverageSalaryBls.source} reports an average of ${STAT_SOURCES.npAverageSalaryBls.formatted} for nurse practitioners across all specialties, and our salary guide computes PMHNP medians from advertised ranges in live postings. However, PMHNPs require significantly less training time and student debt, often resulting in a better return on investment earlier in their career.`,
             },
             {
                 name: 'Should I become a PMHNP or psychiatrist?',
