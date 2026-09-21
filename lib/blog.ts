@@ -293,7 +293,7 @@ export class SlugCollisionError extends Error {
     readonly slug: string;
     constructor(slug: string) {
         super(
-            `A blog post with slug "${slug}" already exists — refusing to create a "-2" duplicate. ` +
+            `A blog post with slug "${slug}" already exists. Refusing to create a "-2" duplicate. ` +
             `If this is genuinely a different article, retitle it so it produces a distinct slug.`
         );
         this.name = 'SlugCollisionError';

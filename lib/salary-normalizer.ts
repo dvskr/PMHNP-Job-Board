@@ -263,7 +263,7 @@ export function normalizeSalary(job: {
     (job.minSalary && !result.normalizedMinSalary && result.normalizedMaxSalary) ||
     (job.maxSalary && !result.normalizedMaxSalary && result.normalizedMinSalary)
   ) {
-    console.log(`[Salary] Dropped surviving bound — its pair failed policy ($${job.minSalary || '-'}–$${job.maxSalary || '-'})`);
+    console.log(`[Salary] Dropped surviving bound, its pair failed policy ($${job.minSalary || '-'} to $${job.maxSalary || '-'})`);
     result.normalizedMinSalary = null;
     result.normalizedMaxSalary = null;
     result.salaryConfidence = null;

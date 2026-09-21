@@ -96,7 +96,7 @@ function UnsubscribeContent() {
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">
                             Processing your request...
                         </h2>
-                        <p className="text-gray-600">Please wait a moment</p>
+                        <p className="text-gray-600">Please wait a moment.</p>
                     </div>
                 )}
 

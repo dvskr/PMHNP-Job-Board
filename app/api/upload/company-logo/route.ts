@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
         } catch (encodeErr) {
             console.error('sharp WebP encode failed:', encodeErr);
             return NextResponse.json(
-                { error: 'Could not process image — file may be corrupted' },
+                { error: 'Could not process the image. The file may be corrupted.' },
                 { status: 400 },
             );
         }
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
         if (!serviceRoleKey) {
             console.error('SUPABASE_SERVICE_ROLE_KEY is not set');
             return NextResponse.json(
-                { error: 'Server configuration error — missing service role key' },
+                { error: 'Server configuration error: missing service role key' },
                 { status: 500 }
             );
         }

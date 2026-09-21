@@ -211,7 +211,7 @@ export default function AdminDashboard() {
       <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ ...heading, fontSize: '30px', marginBottom: '4px', letterSpacing: '-0.5px' }}>Admin Dashboard</h1>
-          <p style={sub}>PMHNP Hiring — Overview · Last 30 days</p>
+          <p style={sub}>PMHNP Hiring overview, last 30 days</p>
         </div>
         <button onClick={fetchAnalytics} style={{
           padding: '10px 22px', borderRadius: '20px', cursor: 'pointer',
@@ -358,7 +358,7 @@ export default function AdminDashboard() {
                     </span>
                   </td>
                   <td style={{ padding: '14px 16px', fontSize: '13px', color: '#94A3B8', borderBottom: '1px solid #F0F3F2', textTransform: 'capitalize' }}>
-                    {job.source || '—'}
+                    {job.source || 'Not set'}
                   </td>
                 </tr>
               ))}

@@ -138,18 +138,18 @@ export async function recordSourcePresence(
     };
 
     if (input.fetchedCount === 0) {
-        log.warn('Skipping presence check — source returned 0 jobs');
+        log.warn('Skipping presence check: source returned 0 jobs');
         return recordSkip('skipped_zero_fetched', 'fetchedCount=0');
     }
 
     if (input.historicalAvgFetched <= 0) {
-        log.info('Skipping presence check — no baseline yet for this source');
+        log.info('Skipping presence check: no baseline yet for this source');
         return recordSkip('skipped_no_baseline', 'historicalAvgFetched<=0');
     }
 
     const minRequired = Math.max(1, Math.floor(input.historicalAvgFetched * minFetchRatio));
     if (input.fetchedCount < minRequired) {
-        log.warn('Skipping presence check — partial fetch suspected', {
+        log.warn('Skipping presence check: partial fetch suspected', {
             fetched: input.fetchedCount,
             required: minRequired,
             avg: input.historicalAvgFetched,
@@ -256,7 +256,7 @@ async function maybeAlertPartialFetch(
     try {
         const { sendDiscordMessage } = await import('@/lib/discord-notifier');
         await sendDiscordMessage('', [{
-            title: `⚠️ ${source} partial fetch — orphan check skipped`,
+            title: `⚠️ ${source} partial fetch, orphan check skipped`,
             description: `${args.fetched} fetched · need ≥${args.required} (7d avg ${args.avg.toFixed(0)}/run)`,
             color: 0xFFAA00,
         }]);

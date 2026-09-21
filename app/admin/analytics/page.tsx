@@ -377,7 +377,7 @@ export default function AnalyticsPage() {
                                                         color: job.viewToClickRate >= 5 ? '#22C55E' : job.viewToClickRate >= 2 ? '#EAB308' : '#94A3B8',
                                                     }}>{job.viewToClickRate}%</span>
                                                 </td>
-                                                <td style={{ ...td, textTransform: 'capitalize' }}>{job.source || '—'}</td>
+                                                <td style={{ ...td, textTransform: 'capitalize' }}>{job.source || 'Not set'}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -453,7 +453,7 @@ export default function AnalyticsPage() {
                         </h2>
                     </div>
                     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {data.reports.length === 0 && <p style={sub}>No reports 🎉</p>}
+                        {data.reports.length === 0 && <p style={sub}>No reports yet</p>}
                         {data.reports.map(r => (
                             <div key={r.id} style={{
                                 padding: '14px 18px', borderRadius: '10px',

@@ -107,7 +107,7 @@ export default function MessageEmployerModal({
                 } else if (res.status === 401) {
                     setIsAuthenticated(false);
                 } else {
-                    setError(data.error || 'Failed to send message');
+                    setError(data.error || 'Failed to send message.');
                 }
                 return;
             }

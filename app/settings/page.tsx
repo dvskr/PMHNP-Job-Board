@@ -681,7 +681,7 @@ function SettingsPageInner() {
                 Resume
               </h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
-                Upload your resume to quickly apply to jobs
+                Upload your resume to quickly apply to jobs.
               </p>
 
               {/* AI autofill explainer — surfaces the feature so users
@@ -717,7 +717,7 @@ function SettingsPageInner() {
                   </p>
                   <p style={{ fontSize: '12px', color: '#4A5E6A', margin: 0, lineHeight: 1.5 }}>
                     After upload we read your name, contact, NPI/DEA, every state license,
-                    certifications, education and work history — then show you a review screen.
+                    certifications, education and work history, then show you a review screen.
                     Choose <strong>Fill empty fields</strong> to keep what you already have, or{' '}
                     <strong>Replace everything</strong> to use the resume as the source of truth.
                     Nothing saves until you confirm.
@@ -794,7 +794,7 @@ function SettingsPageInner() {
                     }}
                   />
                 </div>
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Email cannot be changed</p>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Email cannot be changed.</p>
               </div>
 
               {/* Company (only for employers).
@@ -1139,7 +1139,7 @@ function SettingsPageInner() {
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
                     <Shield size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-                    Private — employers see a range, not exact numbers
+                    Private: employers see a range, not exact numbers.
                   </p>
                 </div>
 

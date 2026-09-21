@@ -341,8 +341,8 @@ export async function generateMetadata({ params, searchParams }: StatePageProps)
     const stats = await getStateStats(stateName, stateCode);
 
     const title = stats.avgSalary > 0
-      ? `${stats.totalJobs} PMHNP Jobs in ${stateName} (${stateCode}) — $${stats.avgSalary}K Avg Salary`
-      : `${stats.totalJobs} PMHNP Jobs in ${stateName} (${stateCode}) — Apply Today`;
+      ? `${stats.totalJobs} PMHNP Jobs in ${stateName} (${stateCode}): $${stats.avgSalary}K Avg Salary`
+      : `${stats.totalJobs} PMHNP Jobs in ${stateName} (${stateCode}): Apply Today`;
 
     const description = stats.avgSalary > 0
       ? `Find ${stats.totalJobs} psychiatric nurse practitioner jobs in ${stateName}. Average PMHNP salary: $${stats.avgSalary}K. Telehealth, inpatient, outpatient, and private practice positions. New jobs added daily.`
@@ -666,7 +666,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
               <div style={{ padding: '24px 22px', flex: 1 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Salary & Compensation</h3>
                 <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
-                  PMHNPs in {stateName} earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K–$200K+'} annually.
+                  PMHNPs in {stateName} earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K to $200K+'} annually.
                 </p>
               </div>
             </div>
@@ -702,7 +702,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
             <div className="cat-bento-cta" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}>
               <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>{stateName} Alerts</h3>
-              <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>New listings in {stateName} — delivered daily.</p>
+              <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>New listings in {stateName}, delivered daily.</p>
               <Link href={`/job-alerts?location=${encodeURIComponent(stateName)}`} className="cat-cta-primary" style={{ padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content', boxShadow: '3px 3px 8px rgba(13,148,136,0.15)' }}>
                 Create Alert <ArrowRight size={14} />
               </Link>

@@ -56,7 +56,7 @@ Fields:
 - salary_max: number, maximum annual salary in USD
 - salary_period: "hour", "month", or "year" (original unit BEFORE conversion)
 - job_type: "Full-Time", "Part-Time", "Contract", "Per Diem", or "PRN"
-- work_mode: EXACTLY ONE of "Remote", "Hybrid", "In-Person" (use these strings verbatim — do NOT use "On-site", "Onsite", "Telehealth", or other variants; map "Telehealth" to "Remote" and "On-site"/"Onsite" to "In-Person")
+- work_mode: EXACTLY ONE of "Remote", "Hybrid", "In-Person" (use these strings verbatim; do NOT use "On-site", "Onsite", "Telehealth", or other variants; map "Telehealth" to "Remote" and "On-site"/"Onsite" to "In-Person")
 - city: string, job city (not employer HQ)
 - state: string, full US state name
 - experience_level: "Entry Level", "Mid Level", "Senior Level", or "Director"

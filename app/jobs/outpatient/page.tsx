@@ -78,11 +78,11 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: `${categoryTitleCount(stats.totalJobs)}Outpatient PMHNP Jobs — Clinic & Private Practice`,
+        title: `${categoryTitleCount(stats.totalJobs)}Outpatient PMHNP Jobs: Clinic & Private Practice`,
         description: `Find ${categoryTitleCount(stats.totalJobs)}outpatient PMHNP jobs. Clinic, private practice, and community mental health psychiatric nurse practitioner positions with M-F schedules. Apply today.`,
         keywords: ['outpatient pmhnp jobs', 'outpatient psychiatric nurse practitioner', 'pmhnp private practice', 'clinic pmhnp jobs', 'community mental health pmhnp'],
         openGraph: {
-            title: `${categoryTitleCount(stats.totalJobs)}Outpatient PMHNP Jobs — Clinic & Private Practice`,
+            title: `${categoryTitleCount(stats.totalJobs)}Outpatient PMHNP Jobs: Clinic & Private Practice`,
             description: 'Browse outpatient psychiatric nurse practitioner positions in clinics, private practices, and community mental health centers.',
             type: 'website',
             images: [{
@@ -229,7 +229,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
             <div className="cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_outpatient_panel.webp" alt="Patient panel management" width={200} sizes="(max-width: 768px) 100vw, 200px" height={140} style={{ width: '100%', maxWidth: '180px', height: 'auto', borderRadius: '12px', marginBottom: '16px' }} />
               <h3 className="font-lora" style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>Patient Panels</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Manage a caseload of 80–120 patients with scheduled follow-ups.</p>
+              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Manage a caseload of 80 to 120 patients with scheduled follow-ups.</p>
             </div>
 
             {/* ROW 2: Icon Cards */}
@@ -251,7 +251,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_outpatient_growth.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Work-Life Balance</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Sustainable pace with 15–20 patients per day.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Sustainable pace with 15 to 20 patients per day.</p>
             </div>
 
             {/* ROW 3 */}

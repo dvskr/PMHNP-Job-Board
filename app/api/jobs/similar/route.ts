@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
     const jobId = searchParams.get('jobId');
 
     if (!jobId) {
-        return NextResponse.json({ error: 'jobId required' }, { status: 400 });
+        return NextResponse.json({ error: 'jobId is required' }, { status: 400 });
     }
 
     // Get the source job

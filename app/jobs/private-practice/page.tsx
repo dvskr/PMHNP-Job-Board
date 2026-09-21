@@ -39,7 +39,7 @@ async function getStats() {
 const faqs = [
   { q: 'What types of private practice PMHNP roles exist?', a: 'Private practice roles include solo practice (you own and operate), group practice (join an established multi-provider office), independent contractor (1099 work for a practice), and hybrid roles combining in-person and telehealth. Each offers different levels of autonomy, risk, and earning potential.' },
   { q: 'How much do private practice PMHNPs earn?', a: 'Private practice earnings vary widely with patient volume, payer mix, and overhead. Solo owners keep more upside but cover their own overhead, group practice employees trade some upside for benefits and stability, and 1099 arrangements sit in between.' },
-  { q: 'Do I need business experience for private practice?', a: 'For group practice employee roles, no — you focus on clinical work. For starting your own practice, understanding billing, credentialing, marketing, and operations is essential. Many PMHNPs start in group practices before launching solo practices.' },
+  { q: 'Do I need business experience for private practice?', a: 'For group practice employee roles, no. You focus on clinical work. For starting your own practice, understanding billing, credentialing, marketing, and operations is essential. Many PMHNPs start in group practices before launching solo practices.' },
   { q: 'What\'s needed to start a private practice?', a: 'You need: PMHNP-BC certification, state APRN licensure with full practice authority (or collaborating physician), DEA registration, NPI number, malpractice insurance, EHR system, office space or telehealth platform, and insurance panel credentialing.' },
   { q: 'Is group practice or solo practice better?', a: 'Group practice offers built-in referrals, shared overhead, administrative support, and lower financial risk. Solo practice offers maximum autonomy, higher earning ceiling, and full control of your schedule. Most PMHNPs recommend 2-3 years in group practice before going solo.' },
 ];
@@ -83,7 +83,7 @@ export default async function PrivatePracticePage({ searchParams }: PageProps) {
         headlineSub="jobs, own your practice."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Build your own practice with clinical freedom, flexible schedules, and entrepreneurial independence."

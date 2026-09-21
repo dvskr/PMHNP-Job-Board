@@ -75,7 +75,7 @@ const TONE_INSTRUCTIONS: Record<ParsedRequest['tone'], string> = {
   conversational:
     'Write in a warm conversational register. Contractions are fine. Use second-person ("you will") so the candidate feels addressed. The tone is approachable and direct.',
   warm:
-    'Write in a warm mission-driven register. Use second-person and emphasize team, impact on patients, and clinical autonomy. The tone is empathetic and human — not corporate.',
+    'Write in a warm mission-driven register. Use second-person and emphasize team, impact on patients, and clinical autonomy. The tone is empathetic and human, not corporate.',
 };
 
 const LENGTH_INSTRUCTIONS: Record<ParsedRequest['length'], string> = {
@@ -84,7 +84,7 @@ const LENGTH_INSTRUCTIONS: Record<ParsedRequest['length'], string> = {
   standard:
     'Target 5,000-6,500 characters of visible text. HARD CEILING 8,000. Cover every section with two or three sentences and concrete bullets.',
   detailed:
-    'Target 7,500-9,500 characters of visible text. HARD CEILING 11,000. Use richer paragraphs with specific clinical examples; expand the Compensation and Why-join sections — but stop when you hit the ceiling. Do not pad.',
+    'Target 7,500-9,500 characters of visible text. HARD CEILING 11,000. Use richer paragraphs with specific clinical examples; expand the Compensation and Why-join sections, but stop when you hit the ceiling. Do not pad.',
 };
 
 function buildSystemPrompt(input: ParsedRequest): string {
@@ -108,12 +108,12 @@ Return ONLY the HTML body. No preamble, no closing remarks.`;
     case 'shorten':
       return `${baseHeader}
 
-You will receive an EXISTING long-form job description and must produce a SHORTER rewrite — roughly 30% fewer visible characters than the source, with every section, every fact, and every key bullet preserved. Tighten by removing redundant adjectives, consolidating overlapping bullets, and shortening transition sentences. Do not drop sections. Do not drop required qualifications or compensation specifics.
+You will receive an EXISTING long-form job description and must produce a SHORTER rewrite: roughly 30% fewer visible characters than the source, with every section, every fact, and every key bullet preserved. Tighten by removing redundant adjectives, consolidating overlapping bullets, and shortening transition sentences. Do not drop sections. Do not drop required qualifications or compensation specifics.
 ${sharedRules}`;
     case 'lengthen':
       return `${baseHeader}
 
-You will receive an EXISTING job description and must produce a LONGER rewrite — roughly 40% more visible characters than the source. Expand by adding more specific clinical examples (case mix, modalities, multidisciplinary collaboration), more concrete day-in-the-life detail in the schedule section, and richer prose in the Compensation and Why-join sections. Do not invent specific facts the source does not contain (salaries, named drugs, neighborhoods, sign-on bonuses).
+You will receive an EXISTING job description and must produce a LONGER rewrite: roughly 40% more visible characters than the source. Expand by adding more specific clinical examples (case mix, modalities, multidisciplinary collaboration), more concrete day-in-the-life detail in the schedule section, and richer prose in the Compensation and Why-join sections. Do not invent specific facts the source does not contain (salaries, named drugs, neighborhoods, sign-on bonuses).
 ${sharedRules}`;
     case 'retone':
       return `${baseHeader}
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
       logger.warn('AI JD failed guardrails', { mode: parsed.mode, errors: guardrail.errors });
       return NextResponse.json(
         {
-          error: 'AI draft failed quality checks — please try again or adjust your inputs.',
+          error: 'The AI draft failed quality checks. Please try again or adjust your inputs.',
           details: guardrail.errors,
         },
         { status: 422 },

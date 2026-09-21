@@ -233,7 +233,7 @@ export default function AdminBlogPage() {
                                                     : <GlobeLock size={16} style={{ color: '#94A3B8' }} />}
                                             </button>
                                         </td>
-                                        <td style={td}>{post.targetKeyword || '—'}</td>
+                                        <td style={td}>{post.targetKeyword || 'Not set'}</td>
                                         <td style={td}>
                                             {formatCT(post.publishDate, 'date')}
                                         </td>

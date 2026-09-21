@@ -442,7 +442,7 @@ export default function JdStarterPanel({ description, onChange, formContext }: J
     // turns a generic AI draft into one that talks about the actual job
     // (patient mix, EHR, schedule specifics, sign-on amount, etc.).
     if (payload.factsSummary && payload.factsSummary.trim().length > 0) {
-      ctxParts.push(`Specific facts from the employer (use these verbatim where relevant — do not contradict, do not invent additional specifics): ${payload.factsSummary.trim()}`);
+      ctxParts.push(`Specific facts from the employer (use these verbatim where relevant; do not contradict them, and do not invent additional specifics): ${payload.factsSummary.trim()}`);
     }
 
     try {
@@ -501,7 +501,7 @@ export default function JdStarterPanel({ description, onChange, formContext }: J
       if (body.usage) setUsage(body.usage as AiUsage);
       setAiDialogOpen(false);
     } catch {
-      setError({ message: 'Network error — please try again.' });
+      setError({ message: 'Network error. Please try again.' });
     } finally {
       setBusy(null);
     }
@@ -529,7 +529,7 @@ export default function JdStarterPanel({ description, onChange, formContext }: J
         state: formContext.location || '',
       });
       onChange(rendered);
-      setLastAiMeta(null); // Template insert is NOT an AI action — don't show the AI toolbar.
+      setLastAiMeta(null); // Template insert is NOT an AI action, so don't show the AI toolbar.
       setTemplatePickerOpen(false);
     };
 
@@ -765,7 +765,7 @@ function EmptyStateHero({
   onBlank: () => void;
 }) {
   const aiDesc = aiLimitReached
-    ? 'Daily AI limit reached — browse a skeleton or write manually. Resets at midnight CT.'
+    ? 'Daily AI limit reached. Browse a skeleton or write manually. Resets at midnight CT.'
     : 'Fresh long-form draft in ~30 seconds from your form inputs and a short facts summary.';
 
   return (
@@ -915,7 +915,7 @@ function PostGenToolbar({
         style={{ ...sx.pill, ...(customTemplatesAtCap ? sx.pillDisabled : {}) }}
         disabled={customTemplatesAtCap}
         onClick={onSaveAsTemplate}
-        title={customTemplatesAtCap ? 'Template library is full — delete one to save another' : 'Save this draft to your reusable template library'}
+        title={customTemplatesAtCap ? 'Template library is full. Delete one to save another.' : 'Save this draft to your reusable template library'}
       >
         <Bookmark size={12} />
         Save to my templates
@@ -1071,7 +1071,7 @@ function TemplatePicker({
                   !canSaveCurrent
                     ? 'Add more content in the editor before you can save it as a template'
                     : customCount >= customCap
-                      ? 'Template library is full — delete one first'
+                      ? 'Template library is full. Delete one first.'
                       : 'Save the current editor draft as a reusable template'
                 }
                 style={{
@@ -1508,7 +1508,7 @@ function AiDialog({
               />
               {showFactsError && (
                 <p style={{ marginTop: 6, fontSize: 12, color: '#EF4444', fontWeight: 600 }}>
-                  Add at least {FACTS_SUMMARY_MIN} characters of real facts before generating — the AI needs grounding so the draft talks about your actual job.
+                  Add at least {FACTS_SUMMARY_MIN} characters of real facts before generating. The AI needs grounding so the draft talks about your actual job.
                 </p>
               )}
             </div>
@@ -1673,7 +1673,7 @@ function SaveTemplateDialog({
               value={label}
               maxLength={120}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="e.g. Outpatient PMHNP — North Austin clinic"
+              placeholder="e.g. Outpatient PMHNP, North Austin clinic"
               autoFocus
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: 10, fontSize: 14,
@@ -1701,7 +1701,7 @@ function SaveTemplateDialog({
               value={summary}
               maxLength={300}
               onChange={(e) => setSummary(e.target.value)}
-              placeholder="e.g. Adult outpatient med-management — Athena EHR — 250 panel cap"
+              placeholder="e.g. Adult outpatient med-management, Athena EHR, 250 panel cap"
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: 10, fontSize: 13,
                 border: '1px solid rgba(0,0,0,0.08)', background: '#F5F6F8',
@@ -1710,7 +1710,7 @@ function SaveTemplateDialog({
               }}
             />
             <div style={{ marginTop: 4, fontSize: 11, color: '#94A3B8' }}>
-              {summary.length}/300 — helps you recognize this template later
+              {summary.length}/300. This helps you recognize the template later.
             </div>
           </div>
         </div>

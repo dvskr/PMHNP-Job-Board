@@ -58,7 +58,7 @@ function formatAppliedDate(date: Date): string {
  * because they have no spaces around the dash.
  */
 function deriveAlertKeyword(title: string): string {
-  const head = title.split(/\s[-–—|:]\s|\s\(/)[0].trim();
+  const head = title.split(/\s[-\u2013\u2014|:]\s|\s\(/)[0].trim();
   const keyword = head.length >= 4 ? head : title.trim();
   return keyword.slice(0, 60).trim();
 }

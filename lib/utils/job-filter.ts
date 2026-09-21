@@ -534,7 +534,7 @@ export function classifyRelevance(
         return (
             titleLower === generic ||
             titleLower.startsWith(generic + ' -') ||
-            titleLower.startsWith(generic + ' –') ||
+            titleLower.startsWith(generic + ' \u2013') ||
             titleLower.startsWith(generic + ' (') ||
             titleLower.startsWith(generic + ',') ||
             titleLower.startsWith(generic + ' $') ||

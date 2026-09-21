@@ -18,7 +18,7 @@ import PdCampaignClient, { type PdLead } from './PdCampaignClient'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'PD Campaign — Admin',
+  title: 'PD Campaign: Admin',
   robots: { index: false, follow: false },
 }
 

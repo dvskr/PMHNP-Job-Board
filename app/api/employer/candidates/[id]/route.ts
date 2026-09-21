@@ -51,7 +51,7 @@ export async function GET(
     })
 
     if (!viewerProfile || (viewerProfile.role !== 'employer' && viewerProfile.role !== 'admin')) {
-        return NextResponse.json({ error: 'Forbidden — employer or admin only' }, { status: 403 })
+        return NextResponse.json({ error: 'Forbidden: employer or admin only' }, { status: 403 })
     }
 
     // Determine access level: admin always gets full access,
@@ -95,7 +95,7 @@ export async function GET(
             // Branch the message by reason — daily cap means "come back tomorrow",
             // posting cap means "buy another posting", no posting means "post first".
             const messages: Record<string, string> = {
-                daily_cap: `Daily unlock cap reached (${unlockCheck.limit} per 24h). This is an anti-scrape safety limit — try again tomorrow.`,
+                daily_cap: `Daily unlock cap reached (${unlockCheck.limit} per 24h). This is an anti-scrape safety limit. Please try again tomorrow.`,
                 posting_cap: 'Candidate unlock limit reached for your active postings.',
                 no_posting: 'You need at least one active job posting to unlock candidates.',
             };
@@ -198,7 +198,7 @@ export async function GET(
             const min = candidate.desiredSalaryMin ? roundTo5k(candidate.desiredSalaryMin) : null
             const max = candidate.desiredSalaryMax ? roundTo5k(candidate.desiredSalaryMax) : null
             if (min && max) {
-                response.salaryRange = `$${(min / 1000).toFixed(0)}k – $${(max / 1000).toFixed(0)}k`
+                response.salaryRange = `$${(min / 1000).toFixed(0)}k to $${(max / 1000).toFixed(0)}k`
             } else if (min) {
                 response.salaryRange = `$${(min / 1000).toFixed(0)}k+`
             } else if (max) {

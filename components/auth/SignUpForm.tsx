@@ -114,12 +114,12 @@ export default function SignUpForm() {
     setError(null);
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Passwords do not match.');
       setLoading(false);
       return;
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError('Password must be at least 8 characters.');
       setLoading(false);
       return;
     }
@@ -194,7 +194,7 @@ export default function SignUpForm() {
         }
       }
     } catch {
-      setError('An unexpected error occurred');
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -459,7 +459,7 @@ export default function SignUpForm() {
                 <input type="checkbox" checked={newsletterOptIn} onChange={(e) => setNewsletterOptIn(e.target.checked)}
                   style={{ accentColor: '#0D9488', width: '15px', height: '15px', flexShrink: 0 }} />
                 <span style={{ fontSize: '13px', color: '#4B5E68' }}>
-                  Send me career tips, salary insights &amp; market updates
+                  Send me career tips, salary insights, and market updates
                 </span>
               </label>
             </div>
@@ -469,7 +469,7 @@ export default function SignUpForm() {
                 <input type="checkbox" checked={newsletterOptIn} onChange={(e) => setNewsletterOptIn(e.target.checked)}
                   style={{ accentColor: '#B45309', width: '15px', height: '15px', marginTop: '2px', flexShrink: 0 }} />
                 <span style={{ fontSize: '13px', color: '#4B5E68' }}>
-                  Send me hiring tips, salary benchmarks &amp; PMHNP market insights
+                  Send me hiring tips, salary benchmarks, and PMHNP market insights
                 </span>
               </label>
             </div>

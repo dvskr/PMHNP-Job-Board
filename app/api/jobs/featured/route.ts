@@ -228,7 +228,7 @@ export async function GET(request: NextRequest) {
     const providedKey = authHeader?.replace('Bearer ', '');
     if (!providedKey || providedKey !== apiKey) {
         return NextResponse.json(
-            { error: 'Unauthorized — invalid or missing API key' },
+            { error: 'Unauthorized: invalid or missing API key' },
             { status: 401 }
         );
     }

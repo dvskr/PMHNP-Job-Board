@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     alternates: {
         types: {
             'application/rss+xml': [
-                { url: '/blog/feed.xml', title: 'PMHNP Hiring — Career Blog & Insights' },
+                { url: '/blog/feed.xml', title: 'PMHNP Hiring: Career Blog & Insights' },
             ],
         },
     },

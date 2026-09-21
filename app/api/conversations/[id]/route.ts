@@ -347,7 +347,7 @@ export async function POST(
                     audience: 'owner',
                     action: 'view',
                     ...extractRequestContext(req),
-                    reason: `compose echo — message ${message.id}`,
+                    reason: `compose echo: message ${message.id}`,
                 },
             );
         }

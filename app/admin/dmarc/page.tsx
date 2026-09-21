@@ -22,7 +22,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 3600 // 1 hour — reports arrive daily, no need to hammer
 
 export const metadata: Metadata = {
-  title: 'DMARC — Admin',
+  title: 'DMARC: Admin',
   robots: { index: false, follow: false },
 }
 

@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
             return {
                 response: NextResponse.json({
                     success: true,
-                    message: 'No saved jobs in the 3-30 day reminder window',
+                    message: 'No saved jobs in the 3 to 30 day reminder window',
                     remindersSent: 0,
                 }),
                 metrics: { usersProcessed: 0, remindersSent: 0 },

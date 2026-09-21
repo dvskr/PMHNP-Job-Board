@@ -49,7 +49,7 @@ const btnPrimary = clayBtnPrimary
 const btnOutline = clayBtnOutlineSmall
 
 function formatGradDate(iso: string | null): string {
-    if (!iso) return '—'
+    if (!iso) return 'Not set'
     const d = new Date(iso)
     return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
@@ -261,7 +261,7 @@ export default function EducationSection({ showMsg }: Props) {
                                             <div style={{ fontSize: '13px', color: clayPalette.textSecondary, marginTop: '2px' }}>
                                                 {e.fieldOfStudy && <>{e.fieldOfStudy} · </>}{e.schoolName}
                                                 {e.startDate && <> · {formatGradDate(e.startDate)}</>}
-                                                {e.startDate && e.graduationDate && ' – '}
+                                                {e.startDate && e.graduationDate && ' to '}
                                                 {!e.startDate && e.graduationDate && ' · '}
                                                 {e.graduationDate && <>{formatGradDate(e.graduationDate)}</>}
                                                 {e.gpa && <> · GPA: {e.gpa}</>}

@@ -83,9 +83,9 @@ export function parseLocation(location: string): ParsedLocation {
   // ── Pre-clean: strip remote/hybrid/country markers to isolate city/state ──
   let cleaned = normalized
     // Remove "Remote -", "Remote:", "Remote –", "(Remote)" etc.
-    .replace(/\b(remote|telehealth|telepsychiatry|virtual|work from home|wfh|hybrid|flexible)\s*[-–:]\s*/gi, '')
+    .replace(/\b(remote|telehealth|telepsychiatry|virtual|work from home|wfh|hybrid|flexible)\s*[-\u2013:]\s*/gi, '')
     .replace(/\(\s*(remote|telehealth|virtual|hybrid|flexible)\s*\)/gi, '')
-    .replace(/[-–]\s*(remote|telehealth|virtual|hybrid|flexible)\b/gi, '')
+    .replace(/[-\u2013]\s*(remote|telehealth|virtual|hybrid|flexible)\b/gi, '')
     .replace(/\b(remote|telehealth|telepsychiatry|virtual|work from home|wfh)\b/gi, '')
     // Remove "HQ:", "Headquarters:"
     .replace(/\b(hq|headquarters)\s*[:]\s*/gi, '')
@@ -109,7 +109,7 @@ export function parseLocation(location: string): ParsedLocation {
     // Strip borough/neighborhood qualifiers: "Grand Central, Manhattan" → keep as-is
     .replace(/,\s*,/g, ',') // clean double commas
     .trim()
-    .replace(/^[,\-–\s]+|[,\-–\s]+$/g, ''); // trim delimiters
+    .replace(/^[,\-\u2013\s]+|[,\-\u2013\s]+$/g, ''); // trim delimiters
 
   // If nothing left after cleaning and it's remote, return remote-only
   if (!cleaned && result.isRemote) {

@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
 
         if (candidates.length === 0) {
             const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-            console.log('[CRON:historical-deindex] Queue empty — nothing to drain');
+            console.log('[CRON:historical-deindex] Queue empty, nothing to drain');
             return {
                 response: NextResponse.json({
                     success: true,

@@ -52,7 +52,7 @@ async function getStats() {
 const veteransFaqs = [
   {
     question: "What's the difference between Veterans PMHNP roles and federal VA employment?",
-    answer: 'Veterans PMHNP roles span multiple sectors — VA medical centers (federal employment), Vet Centers (community-readjustment counseling), Community Care Network (CCN) civilian providers, and private trauma practices specializing in veterans care. /jobs/va focuses specifically on federal Veterans Affairs employment with the GS pay scale, FEHB benefits, and EDRP loan repayment.',
+    answer: 'Veterans PMHNP roles span multiple sectors: VA medical centers (federal employment), Vet Centers (community-readjustment counseling), Community Care Network (CCN) civilian providers, and private trauma practices specializing in veterans care. The VA jobs page focuses specifically on federal Veterans Affairs employment with the GS pay scale, FEHB benefits, and EDRP loan repayment.',
   },
   {
     question: 'What clinical specialties matter most in veterans-focused PMHNP work?',
@@ -60,18 +60,18 @@ const veteransFaqs = [
   },
   {
     question: 'Do I need military experience to work in veterans care?',
-    answer: 'No — military experience is not required, but cultural competency is. Many employers value veterans-care training certificates such as Star Behavioral Health Providers, PsychArmor, and the VA Center for Compassionate Care training. Prior experience in trauma services, addiction medicine, or community mental health translates well.',
+    answer: 'No. Military experience is not required, but cultural competency is. Many employers value veterans-care training certificates such as Star Behavioral Health Providers, PsychArmor, and the VA Center for Compassionate Care training. Prior experience in trauma services, addiction medicine, or community mental health translates well.',
   },
   {
     question: 'How does the VA Community Care Network (CCN) affect PMHNP employment?',
-    answer: 'CCN contracts civilian providers to deliver mental health care to eligible veterans. PMHNPs in private practice, telehealth platforms, and community clinics can join CCN to expand their caseload with VA-funded patients while keeping their existing employer relationship — an alternative path to serving veterans without entering federal employment.',
+    answer: 'CCN contracts civilian providers to deliver mental health care to eligible veterans. PMHNPs in private practice, telehealth platforms, and community clinics can join CCN to expand their caseload with VA-funded patients while keeping their existing employer relationship, an alternative path to serving veterans without entering federal employment.',
   },
 ];
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
   return {
-    title: `${categoryTitleCount(stats.totalJobs)}Veterans PMHNP Jobs — Trauma-Informed Care`,
+    title: `${categoryTitleCount(stats.totalJobs)}Veterans PMHNP Jobs: Trauma-Informed Care`,
     description: `Find ${categoryTitleCount(stats.totalJobs)}PMHNP jobs serving veterans across VA, Vet Centers, Community Care Network civilian providers, and trauma practices. PTSD, MST, and TBI specialty roles.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/veterans` },
     openGraph: {
@@ -127,7 +127,7 @@ export default async function VeteransPage({ searchParams }: PageProps) {
         headlineSub="jobs, veteran mental health."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Serve veterans with specialized psychiatric care for PTSD, TBI, MST, and combat-related conditions."

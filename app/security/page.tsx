@@ -115,14 +115,14 @@ export default function SecurityPage() {
 
                 <p style={{ fontSize: '15px', color: '#4A5568', lineHeight: 1.75, marginTop: '32px' }}>
                     {brand.name} (operated by <strong>{brand.legal.entityName}</strong>) handles personal information
-                    that matters — resumes, contact details, sometimes credentialing identifiers. This page explains
+                    that matters: resumes, contact details, sometimes credentialing identifiers. This page explains
                     how we protect that data, which vendors we share it with, and what to do if you spot a security
                     issue. It is intentionally specific. If a customer or auditor wants more detail, the documents
                     linked below back every claim with code and policy references.
                 </p>
 
                 <Practice icon={<Lock size={20} />} title="Encryption everywhere">
-                    All traffic is served over TLS 1.3 with HSTS enabled (`includeSubDomains; preload`).
+                    All traffic is served over TLS 1.3 with HSTS enabled (includeSubDomains; preload).
                     Data at rest is encrypted by default in Supabase Postgres and Supabase Storage.
                     Resume files are stored in a private bucket and only accessed via signed URLs that
                     expire after one hour, so a leaked link cannot be replayed days later.
@@ -149,7 +149,7 @@ export default function SecurityPage() {
                     </p>
                     <p>
                         We honor the Global Privacy Control (Sec-GPC) and Do Not Track (DNT) browser
-                        signals as a binding opt-out — no banner appears, no analytics fire.
+                        signals as a binding opt-out: no banner appears, no analytics fire.
                     </p>
                 </Practice>
 
@@ -161,11 +161,11 @@ export default function SecurityPage() {
                         so attackers can&apos;t enumerate accounts.
                     </p>
                     <p>
-                        Account deletion is soft-delete with a 30-day grace window — accidental
+                        Account deletion is soft-delete with a 30-day grace window, so accidental
                         deletions are reversible. After the grace period, a daily cron hard-purges
                         the record and the matching Supabase Auth identity. Inactive accounts that
                         haven&apos;t logged in for 23 months receive a warning email and are then
-                        soft-deleted; total dormancy lifecycle to hard delete is ~25 months.
+                        soft-deleted; total dormancy lifecycle to hard delete is about 25 months.
                     </p>
                 </Practice>
 
@@ -174,7 +174,7 @@ export default function SecurityPage() {
                         Every sensitive action (account deletion, data export, role change, DSAR
                         receipt, soft-delete purge) is recorded in an append-only audit log. We
                         operate a written incident-response runbook with a 72-hour notification
-                        commitment that aligns with GDPR Art. 33 — privacy regulators get notified,
+                        commitment that aligns with GDPR Art. 33: privacy regulators get notified,
                         affected users receive a plain-language email, and a post-incident review is
                         published within 30 days.
                     </p>
@@ -214,7 +214,7 @@ export default function SecurityPage() {
                             <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                                 <td style={{ padding: '12px 8px 12px 0' }}>GDPR / UK GDPR</td>
                                 <td style={{ padding: '12px 8px' }}>
-                                    Aligned. DPIA on file — see <Link href="/privacy" style={linkStyle}>Privacy Policy</Link> §11–§16.
+                                    Aligned. DPIA on file; see <Link href="/privacy" style={linkStyle}>Privacy Policy</Link> §11 to §16.
                                 </td>
                             </tr>
                             <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
@@ -227,19 +227,19 @@ export default function SecurityPage() {
                             <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                                 <td style={{ padding: '12px 8px 12px 0' }}>PCI-DSS</td>
                                 <td style={{ padding: '12px 8px' }}>
-                                    SAQ-A. Card data captured by Stripe Checkout — never stored on our infrastructure.
+                                    SAQ-A. Card data captured by Stripe Checkout, never stored on our infrastructure.
                                 </td>
                             </tr>
                             <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                                 <td style={{ padding: '12px 8px 12px 0' }}>SOC 2</td>
                                 <td style={{ padding: '12px 8px' }}>
-                                    In progress — Type 1 attestation planned when our first enterprise customer requires it. Most controls are already in place; see audit summary below.
+                                    In progress. Type 1 attestation planned when our first enterprise customer requires it. Most controls are already in place; see audit summary below.
                                 </td>
                             </tr>
                             <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                                 <td style={{ padding: '12px 8px 12px 0' }}>HIPAA</td>
                                 <td style={{ padding: '12px 8px' }}>
-                                    Not applicable — we do not process Protected Health Information. Job seekers may voluntarily disclose health-related items in resumes; that content is not parsed for clinical data.
+                                    Not applicable. We do not process Protected Health Information. Job seekers may voluntarily disclose health-related items in resumes; that content is not parsed for clinical data.
                                 </td>
                             </tr>
                             <tr>
@@ -265,16 +265,16 @@ export default function SecurityPage() {
                 </h2>
                 <ul style={{ fontSize: '14px', color: '#4A5568', lineHeight: 1.85, paddingLeft: '20px' }}>
                     <li>
-                        <Link href="/privacy" style={linkStyle}>Privacy Policy</Link> — what we collect, why, retention.
+                        <Link href="/privacy" style={linkStyle}>Privacy Policy</Link>: what we collect, why, retention.
                     </li>
                     <li>
-                        <Link href="/sub-processors" style={linkStyle}>Sub-processors</Link> — every vendor with DPA + privacy-policy links.
+                        <Link href="/sub-processors" style={linkStyle}>Sub-processors</Link>: every vendor with DPA + privacy-policy links.
                     </li>
                     <li>
-                        <Link href="/data-request" style={linkStyle}>Data Request</Link> — file access / deletion / correction requests.
+                        <Link href="/data-request" style={linkStyle}>Data Request</Link>: file access / deletion / correction requests.
                     </li>
                     <li>
-                        <Link href="/do-not-sell" style={linkStyle}>Do Not Sell or Share</Link> — CCPA / CPRA one-click opt-out.
+                        <Link href="/do-not-sell" style={linkStyle}>Do Not Sell or Share</Link>: CCPA / CPRA one-click opt-out.
                     </li>
                     <li>
                         <Link href="/terms" style={linkStyle}>Terms of Service</Link>.

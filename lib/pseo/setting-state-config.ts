@@ -259,7 +259,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
       ...withTagFallback('outpatient'),
     }),
     benefits: [
-      { title: 'Work-Life Balance', description: 'Most outpatient positions offer M-F schedules with no nights, weekends, or on-call requirements.', iconName: 'Clock' },
+      { title: 'Work-Life Balance', description: 'Most outpatient positions offer Monday to Friday schedules with no nights, weekends, or on-call requirements.', iconName: 'Clock' },
       { title: 'Long-Term Relationships', description: 'Build meaningful therapeutic relationships through ongoing medication management and therapy.', iconName: 'Heart' },
       { title: 'Private Practice Path', description: 'Outpatient experience is the foundation for starting your own practice earning $200K+ with full autonomy.', iconName: 'DollarSign' },
     ],
@@ -319,7 +319,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     ),
     benefits: [
       { title: 'Critical Need', description: 'The opioid epidemic has created unprecedented demand for addiction-trained PMHNPs across every state.', iconName: 'AlertTriangle' },
-      { title: 'MAT Prescribing', description: 'PMHNPs can prescribe buprenorphine (Suboxone) and naltrexone — essential medications for opioid use disorder.', iconName: 'Shield' },
+      { title: 'MAT Prescribing', description: 'PMHNPs can prescribe buprenorphine (Suboxone) and naltrexone, essential medications for opioid use disorder.', iconName: 'Shield' },
       { title: 'Loan Repayment', description: 'Many addiction treatment centers qualify for NHSC loan repayment programs, offering up to $50K in student loan forgiveness.', iconName: 'DollarSign' },
     ],
     tips: [
@@ -344,12 +344,12 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
       ...withTagFallback('full-time'),
     }),
     benefits: [
-      { title: 'Benefits Package', description: 'Full-time positions include health insurance, 401K match, PTO, CME allowance, and malpractice coverage.', iconName: 'Shield' },
+      { title: 'Benefits Package', description: 'Full-time positions include health insurance, 401(k) match, PTO, CME allowance, and malpractice coverage.', iconName: 'Shield' },
       { title: 'Career Stability', description: 'W-2 employment offers predictable income, regular schedules, and long-term career growth at a single organization.', iconName: 'TrendingUp' },
       { title: 'Professional Development', description: 'Most employers fund continuing education, conference attendance, and specialty certifications.', iconName: 'Lightbulb' },
     ],
     tips: [
-      'Negotiate beyond salary — CME budget, PTO, and signing bonus matter',
+      'Negotiate beyond salary: CME budget, PTO, and signing bonus matter',
       'Evaluate benefits packages including retirement match and insurance',
       'Ask about caseload expectations and documentation time',
       'Clarify on-call requirements and compensation',
@@ -371,7 +371,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     }),
     benefits: [
       { title: 'Schedule Flexibility', description: 'Work 2-3 days per week, freeing time for private practice, family, or other commitments.', iconName: 'Clock' },
-      { title: 'Higher Hourly Rates', description: 'Part-time PMHNPs often earn $60-100+/hr — higher per-hour than full-time equivalents.', iconName: 'DollarSign' },
+      { title: 'Higher Hourly Rates', description: 'Part-time PMHNPs often earn $60-100+/hr, higher per hour than full-time equivalents.', iconName: 'DollarSign' },
       { title: 'Stack Multiple Roles', description: 'Combine part-time positions across different settings to maximize income and clinical variety.', iconName: 'Activity' },
     ],
     tips: [
@@ -424,7 +424,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     benefits: [
       { title: 'Mentorship Programs', description: 'Many new grad positions include structured mentorship with experienced psychiatrists and PMHNPs.', iconName: 'Users' },
       { title: 'Competitive Starting Pay', description: 'New grad PMHNPs start at $110K-160K+ with full benefits, signing bonuses, and loan repayment.', iconName: 'DollarSign' },
-      { title: 'Clinical Growth', description: 'First roles build your clinical foundation — choose settings that offer diverse patient populations and supervision.', iconName: 'TrendingUp' },
+      { title: 'Clinical Growth', description: 'First roles build your clinical foundation, so choose settings that offer diverse patient populations and supervision.', iconName: 'TrendingUp' },
     ],
     tips: [
       'Prioritize positions with structured mentorship or supervision',
@@ -448,7 +448,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
       '1099',
     ),
     benefits: [
-      { title: 'Higher Gross Pay', description: '1099 PMHNPs earn $75-150+/hr — 20-40% higher than W-2 rates with significant tax deduction opportunities.', iconName: 'DollarSign' },
+      { title: 'Higher Gross Pay', description: '1099 PMHNPs earn $75-150+/hr, 20-40% higher than W-2 rates with significant tax deduction opportunities.', iconName: 'DollarSign' },
       { title: 'Schedule Control', description: 'Set your own hours, work with multiple clients, and control your patient volume and caseload.', iconName: 'Clock' },
       { title: 'Tax Advantages', description: 'Deduct business expenses, contribute $66K/year to SEP-IRA, and write off home office and mileage.', iconName: 'Shield' },
     ],
@@ -475,13 +475,13 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     ),
     benefits: [
       { title: 'Integrated Care Model', description: 'Work alongside primary care, social workers, and therapists in a collaborative care team.', iconName: 'Users' },
-      { title: 'Growing Sector', description: 'Behavioral health integration is expanding rapidly with federal funding — demand far outpaces supply.', iconName: 'TrendingUp' },
+      { title: 'Growing Sector', description: 'Behavioral health integration is expanding rapidly with federal funding, and demand far outpaces supply.', iconName: 'TrendingUp' },
       { title: 'Diverse Settings', description: 'Practice in FQHCs, hospitals, school-based clinics, corporate wellness, and community health centers.', iconName: 'Building2' },
     ],
     tips: [
       'Build competency in brief, evidence-based interventions (PHQ-9, GAD-7)',
       'Develop strong collaborative relationships with PCPs and therapists',
-      'Learn to manage patients with co-morbid medical and psychiatric conditions',
+      'Learn to manage patients with comorbid medical and psychiatric conditions',
       'Explore FQHC positions for loan repayment eligibility',
       'Stay current on integrated care models and measurement-based care',
     ],

@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
             });
 
             if (runs.length === 0) {
-                console.log(`[ingest-wave-summary] No ingest runs in last ${WINDOW_MINUTES}m — skipping embed`);
+                console.log(`[ingest-wave-summary] No ingest runs in last ${WINDOW_MINUTES}m, skipping embed`);
                 return {
                     response: NextResponse.json({
                         success: true,
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
             // Discord with a "0 added · 0 errors · all green" report.
             const isSilentWave = waveAdded === 0 && totalErrors === 0 && !hasWarning;
             if (isSilentWave) {
-                console.log(`[ingest-wave-summary] Silent wave (0 added, 0 errors, ${runs.length} runs) — skipping embed`);
+                console.log(`[ingest-wave-summary] Silent wave (0 added, 0 errors, ${runs.length} runs), skipping embed`);
                 return {
                     response: NextResponse.json({
                         success: true,

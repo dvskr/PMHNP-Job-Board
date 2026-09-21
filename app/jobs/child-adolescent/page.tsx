@@ -84,7 +84,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${categoryTitleCount(stats.totalJobs)}Child & Adolescent PMHNP Jobs — Pediatric Psych NP Positions`,
+    title: `${categoryTitleCount(stats.totalJobs)}Child & Adolescent PMHNP Jobs: Pediatric Psych NP Positions`,
     description: `Find ${categoryTitleCount(stats.totalJobs)}child and adolescent PMHNP jobs. Pediatric psychiatric nurse practitioner positions in schools, children's hospitals, and youth behavioral health clinics with specialized training and family-centered care.`,
     keywords: ['child pmhnp jobs', 'adolescent pmhnp', 'pediatric psychiatric nurse practitioner', 'child psychiatry np', 'CAPMHNP jobs'],
     openGraph: {
@@ -123,7 +123,7 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
   const childAdolescentFaqs = [
     {
       question: "What do child & adolescent PMHNPs do?",
-      answer: "Child & adolescent PMHNPs specialize in diagnosing and treating psychiatric disorders in children, teens, and young adults aged 0–21. They manage ADHD, anxiety, depression, autism spectrum disorders, behavioral disorders, eating disorders, and trauma-related conditions using medication management and family-centered therapeutic approaches."
+      answer: "Child & adolescent PMHNPs specialize in diagnosing and treating psychiatric disorders in children, teens, and young adults aged 0 to 21. They manage ADHD, anxiety, depression, autism spectrum disorders, behavioral disorders, eating disorders, and trauma-related conditions using medication management and family-centered therapeutic approaches."
     },
     {
       question: "How much do pediatric psychiatric NPs earn?",
@@ -135,7 +135,7 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
     },
     {
       question: "Are school-based PMHNP positions available?",
-      answer: "Yes — school-based PMHNP positions are growing rapidly as districts address the youth mental health crisis. These roles typically follow the school calendar with summers off, offer competitive salaries, and provide a rewarding opportunity to serve children where they spend most of their day."
+      answer: "Yes. School-based PMHNP positions are growing rapidly as districts address the youth mental health crisis. These roles typically follow the school calendar with summers off, offer competitive salaries, and provide a rewarding opportunity to serve children where they spend most of their day."
     },
   ];
 

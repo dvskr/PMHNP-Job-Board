@@ -124,8 +124,8 @@ export default function OnboardingProfessionalForm({ initial }: { initial: Initi
                         Make yourself findable to employers
                     </h1>
                     <p style={{ fontSize: '14px', color: '#6B7F8A', margin: '0 0 24px', lineHeight: 1.5 }}>
-                        Upload a resume and we&apos;ll fill out everything below for you — or type the
-                        details in by hand. Either way, takes about 30 seconds.
+                        Upload a resume and we&apos;ll fill out everything below for you, or type the
+                        details in by hand. Either way, it takes about 30 seconds.
                     </p>
 
                     {/* ─── Fast path: resume upload + AI autofill ───
@@ -156,7 +156,7 @@ export default function OnboardingProfessionalForm({ initial }: { initial: Initi
                                 fontSize: '15px', fontWeight: 700, color: '#5B21B6', margin: 0,
                                 fontFamily: 'var(--font-lora), Georgia, serif',
                             }}>
-                                Fastest: upload your resume, AI fills the rest
+                                Fastest: upload your resume and let AI fill in the rest
                             </h2>
                         </div>
                         <ResumeUpload

@@ -17,13 +17,13 @@ import {
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'For Job Seekers — Find Your Next PMHNP Role | PMHNP Hiring',
+  title: 'For Job Seekers: Find Your Next PMHNP Role | PMHNP Hiring',
   // Removed the hardcoded "9,000+" job count (audit 09 M-21) — the actual
   // count drifts and a stale figure in metadata that doesn't match the
   // live UI is a credibility hit. Description now describes the platform
   // value without a numeric claim.
   description:
-    'Find your next PMHNP opportunity — remote and in-person psychiatric nurse practitioner jobs with salary transparency, AI matching, and one-click apply. Free for job seekers.',
+    'Find your next PMHNP opportunity: remote and in-person psychiatric nurse practitioner jobs with salary transparency, AI matching, and one-click apply. Free for job seekers.',
   openGraph: {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-seeker-career-resources.webp', width: 1280, height: 900, alt: 'PMHNP job seeker career resources' }],
   },
@@ -100,10 +100,10 @@ export default async function ForJobSeekersPage() {
             100% Free · No Hidden Fees
           </p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
-            Everything You Need — For Free
+            Everything You Need, For Free
           </h2>
           <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 48px', lineHeight: 1.6 }}>
-            Every feature, every tool, every resource — completely free for PMHNP job seekers.
+            Every feature, every tool, every resource, completely free for PMHNP job seekers.
           </p>
 
           {/* Bento Grid */}
@@ -119,7 +119,7 @@ export default async function ForJobSeekersPage() {
                 <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-ai-match.webp" alt="" width={56} sizes="56px" height={56} style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>AI Match Scoring</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  Every job gets a 0–100 match score based on your license, specialty, experience, location, and salary preferences.
+                  Every job gets a 0 to 100 match score based on your license, specialty, experience, location, and salary preferences.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
@@ -147,7 +147,7 @@ export default async function ForJobSeekersPage() {
             <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-alerts.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Daily Job Alerts</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>New jobs matching your criteria — delivered to your inbox daily.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>New jobs matching your criteria, delivered to your inbox daily.</p>
             </div>
 
             <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
@@ -159,7 +159,7 @@ export default async function ForJobSeekersPage() {
             <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-resume.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>AI Resume Parser</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Upload your resume — AI fills your profile instantly.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Upload your resume and AI fills your profile instantly.</p>
             </div>
 
             <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
@@ -222,7 +222,7 @@ export default async function ForJobSeekersPage() {
             Find Your Ideal Work Setting
           </h2>
           <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '440px', margin: '0 auto 44px', lineHeight: 1.6 }}>
-            From telehealth to private practice — we cover every practice setting.
+            From telehealth to private practice, we cover every practice setting.
           </p>
 
           <div className="seeker-types-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
@@ -261,7 +261,7 @@ export default async function ForJobSeekersPage() {
             How We Compare
           </h2>
           <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '440px', margin: '0 auto 44px', lineHeight: 1.6 }}>
-            Built exclusively for PMHNPs — not a generic job board.
+            Built exclusively for PMHNPs, not a generic job board.
           </p>
 
           <div className="seeker-compare-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px', alignItems: 'start' }}>
@@ -365,7 +365,7 @@ export default async function ForJobSeekersPage() {
             Tools Built for Your PMHNP Career
           </h2>
           <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '450px', margin: '0 auto 44px', lineHeight: 1.6 }}>
-            Research salaries, check licensure requirements, and plan your next move — all in one place.
+            Research salaries, check licensure requirements, and plan your next move, all in one place.
           </p>
 
           <div className="seeker-resource-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
@@ -388,7 +388,7 @@ export default async function ForJobSeekersPage() {
               },
               {
                 title: 'PMHNP Career Blog',
-                desc: 'Interview tips, resume advice, CE requirements, and industry trends — written by PMHNPs, for PMHNPs.',
+                desc: 'Interview tips, resume advice, CE requirements, and industry trends, written by PMHNPs, for PMHNPs.',
                 href: '/blog',
                 icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/job-seekers/icon-blog.webp',
                 gradient: 'linear-gradient(145deg, #EEF2FF, #E0E7FF)',

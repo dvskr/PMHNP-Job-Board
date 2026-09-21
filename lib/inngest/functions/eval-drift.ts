@@ -35,7 +35,7 @@ const DRIFT_THRESHOLD_PCT = 10; // alert when 7-day mean drops more than this %.
 export const evalDriftDaily = inngest.createFunction(
     {
         id: 'ai-eval-drift-daily',
-        name: 'AI eval drift — daily snapshot + 7d moving-average alert',
+        name: 'AI eval drift: daily snapshot + 7d moving-average alert',
         // Trigger: 08:00 UTC daily (~midnight Pacific, off-peak).
         triggers: [{ cron: 'TZ=UTC 0 8 * * *' }],
         retries: 2,

@@ -91,7 +91,7 @@ let hasWarnedMemoryFallback = false;
 // Clean up old entries every minute
 if (!redis) {
     if (process.env.NODE_ENV === 'production' && !hasWarnedMemoryFallback) {
-        console.warn('[RATE-LIMIT] ⚠️ Redis unavailable — falling back to in-memory rate limiting (ineffective on serverless)');
+        console.warn('[RATE-LIMIT] ⚠️ Redis unavailable, falling back to in-memory rate limiting (ineffective on serverless)');
         hasWarnedMemoryFallback = true;
     }
     setInterval(() => {

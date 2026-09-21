@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
             currency: 'usd',
             product_data: {
               name: `Job Renewal: ${employerJob.job.title}`,
-              description: `${renewalTerm} ${employerJob.job.employer}`,
+              description: `${employerJob.job.employer}. ${renewalTerm}`,
             },
             unit_amount: price,
           },

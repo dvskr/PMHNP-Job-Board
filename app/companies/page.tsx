@@ -8,11 +8,11 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 export const revalidate = 3600; // ISR: revalidate every hour
 
 export const metadata: Metadata = {
-  title: 'PMHNP Employers — Companies Hiring Psychiatric Nurse Practitioners',
+  title: 'PMHNP Employers: Companies Hiring Psychiatric Nurse Practitioners',
   description:
     'Browse employers actively hiring psychiatric nurse practitioners across all 50 states. Updated daily.',
   openGraph: {
-    title: 'Companies Hiring PMHNPs — PMHNP Hiring',
+    title: 'Companies Hiring PMHNPs | PMHNP Hiring',
     description: 'Explore employers with open psychiatric nurse practitioner positions.',
     url: 'https://pmhnphiring.com/companies',
     type: 'website',
@@ -138,10 +138,10 @@ export default async function CompaniesIndexPage() {
           <div style={{ fontSize: '15px', color: '#3D3530', lineHeight: 1.75 }}>
             <p style={{ marginBottom: '16px' }}>
               Every employer below has at least one currently published PMHNP role on
-              PMHNP Hiring. The list is a mix of <strong>direct employers</strong> —
+              PMHNP Hiring. The list is a mix of <strong>direct employers</strong>, such as
               health systems, community mental health centers (CMHCs), Federally
               Qualified Health Centers (FQHCs), VA medical centers, telehealth
-              platforms, and private practices — alongside <strong>staffing agencies</strong>{' '}
+              platforms, and private practices, alongside <strong>staffing agencies</strong>{' '}
               that place PMHNPs into locum and travel assignments. We pull active
               postings from each employer&apos;s career pages and ATS feeds twice
               daily, so the company list reflects who is genuinely hiring now, not
@@ -162,10 +162,10 @@ export default async function CompaniesIndexPage() {
             </p>
             <p style={{ marginBottom: 0 }}>
               Compensation patterns differ by employer type too. VA roles bundle
-              federal pension + EDRP loan repayment up to $200K; FQHCs and CMHCs
+              a federal pension and EDRP loan repayment up to $200K; FQHCs and CMHCs
               qualify for NHSC repayment; telehealth platforms typically offer the
               highest hourly rates but no benefits; hospital systems offer signing
-              bonuses + relocation. Open one of the listings below to see specific
+              bonuses and relocation. Open one of the listings below to see specific
               roles, compensation ranges, and apply paths for that employer.
             </p>
           </div>

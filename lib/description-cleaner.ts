@@ -13,7 +13,7 @@ export function cleanDescription(rawDescription: string): string {
   // 1. Remove specific encoding artifacts
   cleaned = cleaned.replace(new RegExp(String.fromCharCode(65533), 'g'), ''); // Remove 
   cleaned = cleaned.replace(/â€™/g, "'");
-  cleaned = cleaned.replace(/â€“/g, "–");
+  cleaned = cleaned.replace(/â€“/g, "\u2013");
   cleaned = cleaned.replace(/â€œ/g, '"');
   cleaned = cleaned.replace(/â€/g, '"');
   cleaned = cleaned.replace(/Â/g, ''); // frequent artifact
@@ -29,8 +29,8 @@ export function cleanDescription(rawDescription: string): string {
   cleaned = cleaned.replace(/&lsquo;/g, "'");
   cleaned = cleaned.replace(/&rdquo;/g, '"');
   cleaned = cleaned.replace(/&ldquo;/g, '"');
-  cleaned = cleaned.replace(/&mdash;/g, '—');
-  cleaned = cleaned.replace(/&ndash;/g, '–');
+  cleaned = cleaned.replace(/&mdash;/g, '\u2014');
+  cleaned = cleaned.replace(/&ndash;/g, '\u2013');
   cleaned = cleaned.replace(/&bull;/g, '•');
   cleaned = cleaned.replace(/&#x27;/g, "'");
   cleaned = cleaned.replace(/&#x2F;/g, '/');

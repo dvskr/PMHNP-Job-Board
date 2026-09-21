@@ -45,7 +45,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const supabase = await createClient();
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        return NextResponse.json({ error: 'Unauthorized — provide a token or log in' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized: provide a token or log in' }, { status: 401 });
       }
       employerJob = await prisma.employerJob.findFirst({
         // P5.A (2026-06-01): contactEmail fallback restricted to legacy
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Receipt not found or access denied' }, { status: 404 });
     }
     if (employerJob.paymentStatus !== 'paid') {
-      return NextResponse.json({ error: 'Receipt not available — payment not completed' }, { status: 400 });
+      return NextResponse.json({ error: 'Receipt not available: payment not completed' }, { status: 400 });
     }
 
     const charge = chargeId
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         });
 
     if (!charge) {
-      return NextResponse.json({ error: 'No charge on file — cannot resolve receipt' }, { status: 404 });
+      return NextResponse.json({ error: 'No charge on file, so the receipt cannot be resolved' }, { status: 404 });
     }
 
     const stripe = getStripe();

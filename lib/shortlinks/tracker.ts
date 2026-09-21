@@ -118,7 +118,7 @@ export async function recordClick(input: RecordClickInput): Promise<void> {
         select: { id: true },
       })
       if (recent) {
-        logger.debug('[shortlink] dedup hit — skipping insert', {
+        logger.debug('[shortlink] dedup hit, skipping insert', {
           code: input.code,
           campaign: input.resolution.campaign,
         })

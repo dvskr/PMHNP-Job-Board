@@ -85,7 +85,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('addiction'),
     }),
     benefits: [
-      { title: 'High Demand', description: 'Addiction specialists are critically needed — over 40 million Americans have a substance use disorder.', iconName: 'Activity' },
+      { title: 'High Demand', description: 'Addiction specialists are critically needed: over 40 million Americans have a substance use disorder.', iconName: 'Activity' },
       { title: 'Loan Repayment', description: 'Many addiction positions qualify for NHSC loan repayment up to $50,000+ for serving underserved areas.', iconName: 'DollarSign' },
       { title: 'Meaningful Impact', description: 'Help patients reclaim their lives through evidence-based medication-assisted treatment (MAT).', iconName: 'Heart' },
     ],
@@ -112,7 +112,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('child-adolescent'),
     }),
     benefits: [
-      { title: 'Critical Need', description: 'Youth mental health crisis means massive demand — 1 in 5 children has a diagnosable mental disorder.', iconName: 'Users' },
+      { title: 'Critical Need', description: 'Youth mental health crisis means massive demand: 1 in 5 children has a diagnosable mental disorder.', iconName: 'Users' },
       { title: 'School-Based Options', description: 'School-based positions follow the academic calendar with summers off and competitive benefits.', iconName: 'Building2' },
       { title: 'Early Intervention Impact', description: 'Shape lifelong outcomes through early identification and treatment of childhood psychiatric conditions.', iconName: 'Heart' },
     ],
@@ -193,7 +193,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('per-diem'),
     }),
     benefits: [
-      { title: 'Maximum Flexibility', description: 'Set your own schedule — work as many or as few shifts as you want, when you want.', iconName: 'Activity' },
+      { title: 'Maximum Flexibility', description: 'Set your own schedule and work as many or as few shifts as you want, when you want.', iconName: 'Activity' },
       { title: 'Higher Hourly Rate', description: 'Per diem roles pay $80-$150+/hr, often 20-40% more than the hourly equivalent of full-time work.', iconName: 'DollarSign' },
       { title: 'Income Supplement', description: 'Perfect for supplementing a full-time position or private practice while maintaining clinical variety.', iconName: 'TrendingUp' },
     ],
@@ -202,7 +202,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       'Track hours carefully for tax purposes',
       'Build relationships at multiple facilities',
       'Negotiate competitive hourly rates',
-      'Consider 1099 vs W-2 per diem arrangements',
+      'Consider 1099 vs. W-2 per diem arrangements',
     ],
   },
 };
@@ -224,13 +224,13 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('full-time'),
     }),
     benefits: [
-      { title: 'Comprehensive Benefits', description: 'Full health insurance, dental, vision, retirement plans, and PTO — typically 20-30 days off.', iconName: 'Heart' },
+      { title: 'Comprehensive Benefits', description: 'Full health insurance, dental, vision, retirement plans, and PTO, typically 20-30 days off.', iconName: 'Heart' },
       { title: 'Job Security', description: 'Stable employment with consistent income, malpractice coverage, and professional development support.', iconName: 'Shield' },
       { title: 'Career Growth', description: 'Access to leadership tracks, CME funding ($2,000-$5,000/year), and promotion opportunities.', iconName: 'TrendingUp' },
     ],
     tips: [
       'Negotiate sign-on bonuses (often $10K-$25K)',
-      'Ask about panel size — aim for 14-18 patients/day',
+      'Ask about panel size and aim for 14-18 patients per day',
       'Clarify on-call requirements before accepting',
       'Review non-compete clauses carefully',
       'Confirm CME budget and time-off allowance',
@@ -251,7 +251,7 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('part-time'),
     }),
     benefits: [
-      { title: 'Work-Life Balance', description: 'Set your own schedule — work 2-3 days per week while maintaining clinical skills and income.', iconName: 'Activity' },
+      { title: 'Work-Life Balance', description: 'Set your own schedule and work 2-3 days per week while maintaining clinical skills and income.', iconName: 'Activity' },
       { title: 'Multiple Income Streams', description: 'Combine part-time with private practice, telehealth, or consulting for maximum earning.', iconName: 'DollarSign' },
       { title: 'Reduced Burnout', description: 'Lower caseloads and schedule flexibility help prevent the burnout epidemic in mental health.', iconName: 'Heart' },
     ],
@@ -278,7 +278,7 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('contract'),
     }),
     benefits: [
-      { title: 'Premium Pay', description: 'Contract rates are typically 30-60% higher than permanent positions — $85-$160+/hour.', iconName: 'DollarSign' },
+      { title: 'Premium Pay', description: 'Contract rates are typically 30-60% higher than permanent positions: $85-$160+/hour.', iconName: 'DollarSign' },
       { title: 'Tax Advantages', description: '1099 contractors can deduct travel, housing, CME, malpractice insurance, and home office expenses.', iconName: 'TrendingUp' },
       { title: 'Geographic Freedom', description: 'Try different cities, practice settings, and patient populations before committing long-term.', iconName: 'MapPin' },
     ],
@@ -310,7 +310,7 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
     }),
     benefits: [
       { title: 'Structured Mentorship', description: 'Most entry-level positions include 6-12 months of supervised practice with experienced psychiatrists or PMHNPs.', iconName: 'Users' },
-      { title: 'Competitive Starting Pay', description: 'PMHNP shortage means entry-level pay starts at $105K-$145K — higher than most other NP specialties.', iconName: 'DollarSign' },
+      { title: 'Competitive Starting Pay', description: 'PMHNP shortage means entry-level pay starts at $105K-$145K, higher than most other NP specialties.', iconName: 'DollarSign' },
       { title: 'Career Launchpad', description: 'Build your clinical foundation with manageable caseloads (8-12 patients/day) before scaling up.', iconName: 'TrendingUp' },
     ],
     tips: [
@@ -352,7 +352,7 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
     slug: 'senior',
     label: 'Senior',
     fullLabel: 'Senior PMHNP',
-    heroSubtitle: 'Leadership & advanced practice positions for 7+ years experience',
+    heroSubtitle: 'Leadership & advanced practice positions for 7+ years of experience',
     salaryRange: '$160K-220K+',
     keywords: ['senior pmhnp', 'lead pmhnp', 'director pmhnp', 'advanced practice pmhnp'],
     faqCategory: 'remote',
@@ -372,7 +372,7 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
       'Negotiate equity or partnership opportunities',
       'Consider building your own private practice or telehealth group',
       'Pursue board certification in subspecialties for premium positioning',
-      'Mentor the next generation — it builds your network and reputation',
+      'Mentor the next generation; it builds your network and reputation',
     ],
   },
 };
@@ -401,7 +401,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     tips: [
       'Large systems (HCA, Kaiser, Ascension) offer the best benefits',
       'Academic medical centers often include teaching opportunities',
-      'Ask about call schedules — hospital roles may require weekend coverage',
+      'Ask about call schedules; hospital roles may require weekend coverage',
       'Negotiate CME days (5-10 per year is standard for hospital systems)',
       'Union hospitals may offer higher base pay and better protections',
     ],
@@ -454,7 +454,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     ],
     tips: [
       'Check NHSC loan repayment eligibility for your site (hpsa.hrsa.gov)',
-      'FQHCs provide malpractice coverage under FTCA — a major benefit',
+      'FQHCs provide malpractice coverage under FTCA, a major benefit',
       'Expect higher patient volumes (16-22/day) but broader scope',
       'Bilingual skills are highly valued and may qualify for pay differentials',
       'Community health experience is excellent for future leadership roles',
@@ -475,15 +475,15 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('va'),
     }),
     benefits: [
-      { title: 'Federal Benefits', description: 'Federal pension (FERS), TSP retirement matching, FEHB health insurance, and 26 days PTO starting.', iconName: 'Shield' },
-      { title: 'Full Practice Authority', description: 'VA grants PMHNPs full practice authority nationwide regardless of state laws — prescribe independently.', iconName: 'Heart' },
+      { title: 'Federal Benefits', description: 'Federal pension (FERS), TSP retirement matching, FEHB health insurance, and 26 days of PTO to start.', iconName: 'Shield' },
+      { title: 'Full Practice Authority', description: 'VA grants PMHNPs full practice authority nationwide regardless of state laws, so you can prescribe independently.', iconName: 'Heart' },
       { title: 'Student Loan Repayment', description: 'EDRP offers up to $200K in student loan repayment for qualifying VA positions.', iconName: 'DollarSign' },
     ],
     tips: [
-      'VA applications go through USAJobs.gov — create your profile early',
+      'VA applications go through USAJobs.gov, so create your profile early',
       'Apply under Direct Hire Authority for faster processing',
       'PTSD and TBI experience is highly valued at VA facilities',
-      'Federal pay is based on GS/GP scales — negotiate within the grade',
+      'Federal pay is based on GS/GP scales; negotiate within the grade',
       'VA offers some of the best work-life balance in healthcare',
     ],
   },
@@ -506,7 +506,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('geriatric'),
     }),
     benefits: [
-      { title: 'Growing Demand', description: '10,000 baby boomers turn 65 daily — geriatric psych is one of the fastest-growing PMHNP niches.', iconName: 'TrendingUp' },
+      { title: 'Growing Demand', description: '10,000 baby boomers turn 65 daily, and geriatric psych is one of the fastest-growing PMHNP niches.', iconName: 'TrendingUp' },
       { title: 'Meaningful Care', description: 'Help older adults maintain independence and quality of life through expert psychiatric medication management.', iconName: 'Heart' },
       { title: 'Diverse Settings', description: 'Work in SNFs, memory care units, home health, outpatient clinics, or consultation-liaison services.', iconName: 'Building2' },
     ],
@@ -533,8 +533,8 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('veterans'),
     }),
     benefits: [
-      { title: 'Critical Mission', description: '22 veterans die by suicide daily — veteran-focused PMHNPs directly save lives through expert care.', iconName: 'Heart' },
-      { title: 'Specialized Training', description: 'Access to VA-funded CPT, PE, and EMDR training — gold-standard trauma therapies at no cost.', iconName: 'Shield' },
+      { title: 'Critical Mission', description: '22 veterans die by suicide daily, and veteran-focused PMHNPs directly save lives through expert care.', iconName: 'Heart' },
+      { title: 'Specialized Training', description: 'Access to VA-funded CPT, PE, and EMDR training: gold-standard trauma therapies at no cost.', iconName: 'Shield' },
       { title: 'Federal Benefits', description: 'VA positions include federal pension, TSP matching, 26+ days PTO, and up to $200K loan repayment.', iconName: 'DollarSign' },
     ],
     tips: [
@@ -542,7 +542,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       'Get trained in CPT (Cognitive Processing Therapy) and PE (Prolonged Exposure)',
       'Military-connected clinicians are especially valued',
       'Community-based veteran organizations also hire PMHNPs',
-      'Tri-care network providers serve military families outside VA system',
+      'TRICARE network providers serve military families outside the VA system',
     ],
   },
   lgbtq: {
@@ -560,7 +560,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('lgbtq'),
     }),
     benefits: [
-      { title: 'Underserved Niche', description: 'LGBTQ+ individuals face 2.5× higher rates of mental health conditions — trained providers are critically needed.', iconName: 'Heart' },
+      { title: 'Underserved Niche', description: 'LGBTQ+ individuals face 2.5× higher rates of mental health conditions, so trained providers are critically needed.', iconName: 'Heart' },
       { title: 'Growing Demand', description: 'Gender-affirming care is expanding rapidly with new clinics and telehealth platforms specifically serving the community.', iconName: 'TrendingUp' },
       { title: 'Meaningful Impact', description: 'Help reduce health disparities by providing culturally competent psychiatric care to marginalized populations.', iconName: 'Users' },
     ],
@@ -587,14 +587,14 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('crisis'),
     }),
     benefits: [
-      { title: 'Premium Compensation', description: 'Crisis roles pay 15-30% more than standard positions — $130K-$195K with shift differentials for nights/weekends.', iconName: 'DollarSign' },
-      { title: 'High-Impact Work', description: 'Stabilize patients in their most vulnerable moments — every shift makes a life-or-death difference.', iconName: 'Heart' },
+      { title: 'Premium Compensation', description: 'Crisis roles pay 15-30% more than standard positions: $130K-$195K with shift differentials for nights/weekends.', iconName: 'DollarSign' },
+      { title: 'High-Impact Work', description: 'Stabilize patients in their most vulnerable moments; every shift makes a life-or-death difference.', iconName: 'Heart' },
       { title: 'Funded by 988', description: 'The 988 Suicide & Crisis Lifeline expansion is creating thousands of new positions with dedicated federal funding.', iconName: 'TrendingUp' },
     ],
     tips: [
       'Get CPI (Crisis Prevention Institute) certification',
       'Learn de-escalation techniques and safety protocols',
-      'Expect 12-hour shifts — negotiate 3 days on, 4 days off schedules',
+      'Expect 12-hour shifts, and negotiate 3 days on, 4 days off schedules',
       'Build rapid assessment skills (risk stratification, disposition)',
       'Crisis stabilization centers are the fastest-growing employer type',
     ],
@@ -648,7 +648,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('1099'),
     }),
     benefits: [
-      { title: 'Higher Gross Pay', description: '1099 PMHNPs earn $75-$150+/hr — 20-40% higher than W2 rates with significant tax deduction opportunities.', iconName: 'DollarSign' },
+      { title: 'Higher Gross Pay', description: '1099 PMHNPs earn $75-$150+/hr, 20-40% higher than W-2 rates with significant tax deduction opportunities.', iconName: 'DollarSign' },
       { title: 'Schedule Control', description: 'Set your own hours, work with multiple clients, and control your patient volume and caseload.', iconName: 'Clock' },
       { title: 'Tax Advantages', description: 'Deduct business expenses, contribute $66K/year to SEP-IRA, and write off home office and mileage.', iconName: 'DollarSign' },
     ],
@@ -656,7 +656,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       'Form an LLC or PLLC before signing your first contract',
       'Get individual malpractice insurance ($1.5-3K/year)',
       'Set up quarterly estimated tax payments with the IRS',
-      'Open a SEP-IRA or Solo 401k for retirement savings',
+      'Open a SEP-IRA or Solo 401(k) for retirement savings',
       'Keep detailed records of all business expenses for deductions',
     ],
   },
@@ -677,7 +677,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     benefits: [
       { title: 'Integrated Care', description: 'Work in multidisciplinary teams combining psychiatric care with therapy, social work, and primary care.', iconName: 'Users' },
       { title: 'Diverse Settings', description: 'Practice in outpatient clinics, residential treatment, partial hospitalization, or intensive outpatient programs.', iconName: 'Building2' },
-      { title: 'Growing Sector', description: 'Behavioral health investment has surged — new facilities and telehealth platforms are expanding rapidly.', iconName: 'TrendingUp' },
+      { title: 'Growing Sector', description: 'Behavioral health investment has surged, and new facilities and telehealth platforms are expanding rapidly.', iconName: 'TrendingUp' },
     ],
     tips: [
       'Integrated behavioral health models are the fastest-growing employer type',
@@ -703,7 +703,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     }),
     benefits: [
       { title: 'Premium Pay', description: 'Correctional PMHNPs earn $130K-$190K+ due to the challenging environment and high demand for mental health providers.', iconName: 'DollarSign' },
-      { title: 'Loan Repayment', description: 'Many correctional facilities qualify for NHSC and state loan repayment programs — up to $50K for 2 years of service.', iconName: 'DollarSign' },
+      { title: 'Loan Repayment', description: 'Many correctional facilities qualify for NHSC and state loan repayment programs, up to $50K for 2 years of service.', iconName: 'DollarSign' },
       { title: 'Unique Clinical Skills', description: 'Develop expertise in forensic psychiatry, crisis intervention, and managing complex comorbidities in underserved populations.', iconName: 'Shield' },
     ],
     tips: [
@@ -729,7 +729,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('locum-tenens'),
     }),
     benefits: [
-      { title: 'Highest Hourly Rates', description: 'Locum tenens PMHNPs earn $80-$160/hr — the highest hourly rates in psychiatric nursing with full travel expenses covered.', iconName: 'DollarSign' },
+      { title: 'Highest Hourly Rates', description: 'Locum tenens PMHNPs earn $80-$160/hr, the highest hourly rates in psychiatric nursing with full travel expenses covered.', iconName: 'DollarSign' },
       { title: 'No Long-Term Commitment', description: 'Assignments from 2 weeks to 6+ months. Take breaks between assignments and maintain complete career flexibility.', iconName: 'Calendar' },
       { title: 'Nationwide Opportunities', description: 'Work across multiple states, experience different healthcare systems, and build a diverse clinical portfolio.', iconName: 'MapPin' },
     ],
@@ -1258,7 +1258,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
         headlineSub={`jobs in ${city!.name}, ${city!.stateCode}.`}
         stats={[
           { value: `${stats.totalJobs}`, label: 'positions' },
-          { value: stats.rawAvgSalary > 0 ? `$${stats.rawAvgSalary}k` : config.salaryRange.split('–')[0] || '$130K+', label: 'avg salary' },
+          { value: stats.rawAvgSalary > 0 ? `$${stats.rawAvgSalary}k` : config.salaryRange.split('\u2013')[0] || '$130K+', label: 'avg salary' },
           { value: demand.label, label: 'demand' },
         ]}
         description={`${config.label} psychiatric NP positions in ${city!.name}. ${config.heroSubtitle}.`}
@@ -1363,7 +1363,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                     {config.label} Alerts
                   </h3>
                   <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px', lineHeight: 1.6, fontWeight: 500 }}>
-                    New {config.label.toLowerCase()} PMHNP positions in {city!.name} — delivered daily.
+                    New {config.label.toLowerCase()} PMHNP positions in {city!.name}, delivered daily.
                   </p>
                   <Link href="/job-alerts" className="pseo-cta-primary" style={{
                     display: 'block', width: '100%', textAlign: 'center',
@@ -1483,7 +1483,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                   <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
                   <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>{config.label} Alerts</h3>
                   <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
-                    New {config.label.toLowerCase()} listings in {city!.name} — delivered daily.
+                    New {config.label.toLowerCase()} listings in {city!.name}, delivered daily.
                   </p>
                   <Link href="/job-alerts" className="pseo-cta-primary" style={{
                     padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',
@@ -1723,7 +1723,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                   : `${config.label} PMHNP positions in ${city!.name} typically pay ${config.salaryRange}. Actual compensation depends on experience, employer type, and whether the role includes benefits. ${city!.name}'s cost of living index is ${city!.costOfLivingIndex} (national average = 100).`,
               },
               {
-                q: `Does ${city!.state} allow PMHNPs full practice authority?`,
+                q: `Does ${city!.state} grant PMHNPs full practice authority?`,
                 a: practiceAuthority ? `${city!.state} has ${practiceAuthority.authority.toLowerCase()} practice authority for nurse practitioners. ${String(practiceAuthority.authority).includes('Full') ? 'PMHNPs can practice independently, prescribe medications, and diagnose without physician oversight.' : String(practiceAuthority.authority).includes('Reduced') ? 'PMHNPs require a collaborative agreement with a physician but can prescribe and diagnose with that arrangement.' : 'PMHNPs must practice under physician supervision for prescribing and some clinical decisions.'}` : `Contact the ${city!.state} Board of Nursing for current practice authority information.`,
               },
               {
@@ -1785,7 +1785,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
             Common Questions
           </p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>
-            {config.label} PMHNP Jobs in {city!.name} — FAQ
+            {config.label} PMHNP Jobs in {city!.name}: FAQ
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1802,7 +1802,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                     : `${config.label} PMHNP positions in ${city!.name} typically pay ${config.salaryRange}. Actual compensation depends on experience, employer type, and whether the role includes benefits.`,
                 },
                 {
-                  q: `Does ${city!.state} allow PMHNPs full practice authority?`,
+                  q: `Does ${city!.state} grant PMHNPs full practice authority?`,
                   a: practiceAuthority ? `${city!.state} has ${practiceAuthority.authority.toLowerCase()} practice authority for nurse practitioners. ${String(practiceAuthority.authority).includes('Full') ? 'PMHNPs can practice independently without physician oversight.' : String(practiceAuthority.authority).includes('Reduced') ? 'PMHNPs require a collaborative agreement with a physician.' : 'PMHNPs must practice under physician supervision for prescribing and some clinical decisions.'}` : `Contact the ${city!.state} Board of Nursing for current practice authority information.`,
                 },
                 {

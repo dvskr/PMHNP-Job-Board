@@ -103,7 +103,7 @@ export async function getExperimentArm(
         });
         if (existing) return existing.arm;
     } catch (err) {
-        logger.warn('experiment assignment read failed — falling back to hash', undefined, err);
+        logger.warn('experiment assignment read failed, falling back to hash', undefined, err);
         return pickArm(config, tenantKey);
     }
 
@@ -129,7 +129,7 @@ export async function getExperimentArm(
             update: {},
         });
     } catch (err) {
-        logger.warn('experiment assignment write failed — proceeding with hashed arm', undefined, err);
+        logger.warn('experiment assignment write failed, proceeding with hashed arm', undefined, err);
     }
 
     return arm;
@@ -161,7 +161,7 @@ export async function trackExperimentEvent(args: {
             },
         });
     } catch (err) {
-        logger.warn('experiment event write failed — silently dropping', undefined, err);
+        logger.warn('experiment event write failed, silently dropping', undefined, err);
     }
 }
 

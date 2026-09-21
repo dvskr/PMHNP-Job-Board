@@ -83,7 +83,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     return {
         // SEO Fix #7: trim title to ≤60 chars and description to ≤160 chars.
         title: `${categoryTitleCount(stats.totalJobs)}Telehealth PMHNP Jobs`,
-        description: `Find ${categoryTitleCount(stats.totalJobs)}telehealth PMHNP and telepsychiatry jobs. Work from home — flexible hours, no commute, video-visit roles. Updated daily.`,
+        description: `Find ${categoryTitleCount(stats.totalJobs)}telehealth PMHNP and telepsychiatry jobs. Work from home with flexible hours, no commute, and video-visit roles. Updated daily.`,
         keywords: ['telehealth pmhnp', 'telepsychiatry jobs', 'virtual pmhnp', 'telemedicine psychiatric nurse practitioner', 'behavioral health NP telehealth', 'telepsychiatry nurse practitioner jobs', 'remote psych NP telehealth'],
         openGraph: {
             title: `${categoryTitleCount(stats.totalJobs)}Telehealth PMHNP Jobs - Virtual Psychiatric Care`,
@@ -282,7 +282,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_telehealth_flex.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Flexible Hours</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Schedule sessions around your life — early mornings, evenings, or weekends.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Schedule sessions around your life: early mornings, evenings, or weekends.</p>
             </div>
             {/* ROW 3 */}
             <div className="cat-bento-hero-3" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>

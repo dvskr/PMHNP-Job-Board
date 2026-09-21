@@ -255,7 +255,7 @@ export function buildCriteriaSummary(alert: { keyword?: string | null; location?
   if (alert.minSalary || alert.maxSalary) {
     const minK = alert.minSalary ? Math.round(alert.minSalary / 1000) : 0
     const maxK = alert.maxSalary ? Math.round(alert.maxSalary / 1000) : 0
-    if (minK && maxK) parts.push(`$${minK}k–$${maxK}k`)
+    if (minK && maxK) parts.push(`$${minK}k to $${maxK}k`)
     else if (minK) parts.push(`$${minK}k+`)
     else parts.push(`up to $${maxK}k`)
   }
@@ -324,7 +324,7 @@ function buildAlertHtml(
   const jobCardsHtml = displayJobs.map((job, index) => {
     const minK = (job.normalizedMinSalary || job.minSalary) && (job.normalizedMinSalary || job.minSalary)! > 0 ? Math.round((job.normalizedMinSalary || job.minSalary)! / 1000) : 0
     const maxK = (job.normalizedMaxSalary || job.maxSalary) && (job.normalizedMaxSalary || job.maxSalary)! > 0 ? Math.round((job.normalizedMaxSalary || job.maxSalary)! / 1000) : 0
-    const salaryText = minK && maxK ? `$${minK}k–$${maxK}k` : minK ? `$${minK}k+` : maxK ? `Up to $${maxK}k` : ''
+    const salaryText = minK && maxK ? `$${minK}k to $${maxK}k` : minK ? `$${minK}k+` : maxK ? `Up to $${maxK}k` : ''
     return renderJobCardHtml({
       title: job.title,
       employer: job.employer,
@@ -370,7 +370,7 @@ function buildAlertHtml(
       &nbsp;&middot;&nbsp;
       <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alertToken}" style="color:${V2.textMuted};text-decoration:underline;">Delete alert</a>
     </p>`,
-    `${jobCount} new PMHNP jobs matching your alert — view them before they're filled!`
+    `${jobCount} new PMHNP jobs matching your alert. View them before they are filled.`
   )
 }
 

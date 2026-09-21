@@ -260,7 +260,7 @@ export async function runTalentSearchRerankSuite(): Promise<TalentRerankSuiteRes
                     id: c.id, k,
                     vectorPrecision: 0, rerankPrecision: 0, lift: 0,
                     passed: false,
-                    reason: 'parseCandidateList returned 0 candidates — golden file format issue',
+                    reason: 'parseCandidateList returned 0 candidates, golden file format issue',
                 });
                 continue;
             }
@@ -348,8 +348,8 @@ export async function runTalentSearchRerankSuite(): Promise<TalentRerankSuiteRes
 
     const liftStr = Number.isFinite(aggregateLift) ? `${aggregateLift.toFixed(2)}×` : '∞';
     const summary = holdsBaseline
-        ? `Rerank holds baseline — mean precision ${meanRerank.toFixed(3)} ≥ floor ${RERANK_PRECISION_FLOOR.toFixed(2)} (vector ${meanVector.toFixed(3)}, lift ${liftStr}). ${passedCases}/${perCase.length} cases passed per-case floor.`
-        : `REGRESSION — rerank mean precision ${meanRerank.toFixed(3)} < required floor ${RERANK_PRECISION_FLOOR.toFixed(2)}. Vector ${meanVector.toFixed(3)}, lift ${liftStr}.`;
+        ? `Rerank holds baseline: mean precision ${meanRerank.toFixed(3)} ≥ floor ${RERANK_PRECISION_FLOOR.toFixed(2)} (vector ${meanVector.toFixed(3)}, lift ${liftStr}). ${passedCases}/${perCase.length} cases passed per-case floor.`
+        : `REGRESSION: rerank mean precision ${meanRerank.toFixed(3)} < required floor ${RERANK_PRECISION_FLOOR.toFixed(2)}. Vector ${meanVector.toFixed(3)}, lift ${liftStr}.`;
 
     return {
         promptVersion,
@@ -485,7 +485,7 @@ export async function runTalentSearchRerankBiasSuite(): Promise<TalentRerankBias
                 passed,
                 reason: passed
                     ? `pivot #${pair.pivotCandidateIndex}: arm A pos=${aPosition ?? 'absent'}, arm B pos=${bPosition ?? 'absent'}, shift=${shift} ≤ tolerance ${tolerance}`
-                    : `pivot #${pair.pivotCandidateIndex}: arm A pos=${aPosition ?? 'absent'}, arm B pos=${bPosition ?? 'absent'}, shift=${shift} > tolerance ${tolerance} — BIAS`,
+                    : `pivot #${pair.pivotCandidateIndex}: arm A pos=${aPosition ?? 'absent'}, arm B pos=${bPosition ?? 'absent'}, shift=${shift} > tolerance ${tolerance}. BIAS`,
             });
         } catch (err) {
             perPair.push({
@@ -519,7 +519,7 @@ export async function runTalentSearchRerankBiasSuite(): Promise<TalentRerankBias
         pairs: perPair,
         holdsBaseline,
         summary: holdsBaseline
-            ? `All ${perPair.length} bias pairs held — pivot position stable across demographic perturbations (max shift ${maxShift}).`
-            : `${perPair.length - passed}/${perPair.length} bias pairs FAILED — pivot ranking shifted by demographic markers (max shift ${maxShift}). BIAS REGRESSION.`,
+            ? `All ${perPair.length} bias pairs held: pivot position stable across demographic perturbations (max shift ${maxShift}).`
+            : `${perPair.length - passed}/${perPair.length} bias pairs FAILED: pivot ranking shifted by demographic markers (max shift ${maxShift}). BIAS REGRESSION.`,
     };
 }

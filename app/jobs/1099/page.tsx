@@ -83,7 +83,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${categoryTitleCount(stats.totalJobs)}1099 PMHNP Jobs — Independent Contractor Psych NP`,
+    title: `${categoryTitleCount(stats.totalJobs)}1099 PMHNP Jobs: Independent Contractor Psych NP`,
     description: `Find ${categoryTitleCount(stats.totalJobs)}1099 PMHNP and independent contractor psychiatric nurse practitioner jobs with schedule flexibility and tax advantages.`,
     keywords: ['1099 pmhnp jobs', '1099 pmhnp telehealth', 'independent contractor pmhnp', 'contract psychiatric nurse practitioner', '1099 psych NP', 'independent contractor psychiatric NP'],
     openGraph: {
@@ -199,7 +199,7 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
         photoTagBody="New 1099 postings across telehealth, group, and private practice."
         stats={[
           { value: 'Varies', label: 'hourly rate' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '—', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.totalJobs}+`, label: 'positions' },
         ]}
         description="Independent contractor PMHNP roles with Schedule C deductions, flexible caseloads, and no non-compete clauses."
@@ -352,7 +352,7 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
               <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>Job Alerts</h3>
               <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
-                New 1099 listings delivered to your inbox — be first to apply.
+                New 1099 listings delivered to your inbox. Be first to apply.
               </p>
               <Link href="/job-alerts" className="cat-cta-primary" style={{
                 padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',

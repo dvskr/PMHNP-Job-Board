@@ -92,7 +92,7 @@ function readThreshold(log = logger): number {
     if (!raw) return DEFAULT_MIN_MISSES;
     const parsed = parseInt(raw, 10);
     if (!Number.isFinite(parsed) || parsed < 1) {
-        log.warn('Invalid JOB_HEALTH_MIN_PRESENCE_MISSES — falling back to default', { raw });
+        log.warn('Invalid JOB_HEALTH_MIN_PRESENCE_MISSES, falling back to default', { raw });
         return DEFAULT_MIN_MISSES;
     }
     return parsed;

@@ -24,7 +24,7 @@ interface DiscordEmbed {
  */
 export async function sendDiscordMessage(content: string, embeds?: DiscordEmbed[]): Promise<boolean> {
     if (!DISCORD_WEBHOOK_URL) {
-        console.warn('[Discord] DISCORD_WEBHOOK_URL not set — skipping notification');
+        console.warn('[Discord] DISCORD_WEBHOOK_URL not set, skipping notification');
         return false;
     }
 

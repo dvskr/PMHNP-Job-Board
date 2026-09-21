@@ -194,7 +194,7 @@ async function fetchTenantJobs(tenant: { slug: string; name: string }): Promise<
                     // the ingest with thin records that still pass the title-only
                     // quality gate. The next ingest cycle will retry.
                     if (!description) {
-                        console.warn(`[Workable] empty description for ${tenant.slug}/${j.shortcode} — dropping job`);
+                        console.warn(`[Workable] empty description for ${tenant.slug}/${j.shortcode}, dropping job`);
                         await sleep(DETAIL_FETCH_GAP_MS);
                         continue;
                     }

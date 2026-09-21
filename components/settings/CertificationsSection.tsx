@@ -49,13 +49,13 @@ const btnPrimary = clayBtnPrimary
 const btnOutline = clayBtnOutlineSmall
 
 function maskNumber(num: string | null): string {
-    if (!num) return '—'
+    if (!num) return 'Not set'
     if (num.length <= 4) return num
     return '•'.repeat(num.length - 4) + num.slice(-4)
 }
 
 function formatDate(iso: string | null): string {
-    if (!iso) return '—'
+    if (!iso) return 'Not set'
     return new Date(iso).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',

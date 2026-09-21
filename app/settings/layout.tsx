@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 // canonical so inbound link variants don't splinter.
 export const metadata: Metadata = {
     title: 'Account Settings | PMHNP Hiring',
-    description: 'Manage your PMHNP Hiring account — profile, resume, job preferences, alerts, and notifications.',
+    description: 'Manage your PMHNP Hiring account: profile, resume, job preferences, alerts, and notifications.',
     alternates: { canonical: 'https://pmhnphiring.com/settings' },
     robots: { index: false, follow: false },
 };

@@ -93,7 +93,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     return {
         // B3 (organic audit 2026-08): count dropped from titles below the
         // MIN_JOBS floor; sub-threshold landings render noindex,follow.
-        title: `${categoryTitleCount(stats.totalJobs)}Behavioral Health PMHNP Jobs — Psych NP Positions`,
+        title: `${categoryTitleCount(stats.totalJobs)}Behavioral Health PMHNP Jobs: Psych NP Positions`,
         description: `Find ${categoryTitleCount(stats.totalJobs)}behavioral health nurse practitioner jobs. Positions across inpatient, outpatient, community mental health, telehealth, and residential settings. Average salary $${stats.avgSalary || 155}K+.`,
         keywords: ['behavioral health NP jobs', 'behavioral health nurse practitioner', 'mental health NP jobs', 'psychiatric NP positions', 'PMHNP behavioral health'],
         openGraph: {
@@ -182,7 +182,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
             )}
           <div style={{ textAlign: 'center', marginTop: '32px' }}>
               <Link href="/jobs?category=behavioral-health" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
-                Browse All Behavioral health Jobs <ArrowRight size={16} />
+                Browse All Behavioral Health Jobs <ArrowRight size={16} />
               </Link>
             </div>
           </div>
@@ -273,7 +273,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_bh_demand.webp" alt="Growing demand" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>High Demand</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>BH integration driving massive growth in PMHNP positions nationwide.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>BH integration is driving growth in PMHNP positions nationwide.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_bh_prevention.webp" alt="Preventive care" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />

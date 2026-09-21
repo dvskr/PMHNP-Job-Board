@@ -34,8 +34,8 @@ function ResetPasswordContent() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    if (password !== confirmPassword) { setError('Passwords do not match'); setLoading(false); return; }
-    if (password.length < 8) { setError('Password must be at least 8 characters'); setLoading(false); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match.'); setLoading(false); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); setLoading(false); return; }
 
     try {
       const supabase = createClient()
@@ -44,7 +44,7 @@ function ResetPasswordContent() {
       setSuccess(true)
       setTimeout(() => { router.push('/login') }, 3000)
     } catch {
-      setError('An unexpected error occurred')
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }

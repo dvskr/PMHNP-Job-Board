@@ -107,13 +107,13 @@ export async function recordChunkAndMaybeAggregate(
 
     const totalChunks = CHUNKED_SOURCE_TOTAL_CHUNKS[input.source];
     if (!totalChunks) {
-        log.warn('Unknown chunked source — skipping aggregation', { source: input.source });
+        log.warn('Unknown chunked source, skipping aggregation', { source: input.source });
         return baseResult(input, 'skipped_unknown_source', 0, totalChunks ?? 0, null);
     }
 
     const redis = input.redis ?? getRedis();
     if (!redis) {
-        log.warn('UPSTASH_REDIS_REST_URL/TOKEN not set — chunked aggregation skipped');
+        log.warn('UPSTASH_REDIS_REST_URL/TOKEN not set, chunked aggregation skipped');
         return baseResult(input, 'skipped_no_redis', 0, totalChunks, null);
     }
 
@@ -141,7 +141,7 @@ export async function recordChunkAndMaybeAggregate(
     }
 
     // 3. All chunks complete — aggregate.
-    log.info('All chunks complete — aggregating', { totalChunks });
+    log.info('All chunks complete, aggregating', { totalChunks });
     const { unionIds, totalFetched } = await collectAllChunks(redis, runKey, totalChunks);
 
     // 4. Run presence check against the aggregated set.

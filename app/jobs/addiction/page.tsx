@@ -93,7 +93,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: `${categoryTitleCount(stats.totalJobs)}Addiction PMHNP Jobs — Substance Use & MAT Psych NP Positions`,
+        title: `${categoryTitleCount(stats.totalJobs)}Addiction PMHNP Jobs: Substance Use & MAT Psych NP Positions`,
         description: `Find ${categoryTitleCount(stats.totalJobs)}addiction & substance use disorder PMHNP jobs. MAT programs, opioid treatment, detox, and recovery centers. Avg $${stats.avgSalary || 155}K+.`,
         keywords: ['addiction pmhnp jobs', 'substance use pmhnp', 'MAT pmhnp', 'suboxone prescriber jobs', 'addiction psychiatry NP'],
         openGraph: {
@@ -303,7 +303,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
               <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>Job Alerts</h3>
               <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
-                New addiction listings delivered to your inbox — be first to apply.
+                New addiction listings delivered to your inbox. Be first to apply.
               </p>
               <Link href="/job-alerts" className="cat-cta-primary" style={{
                 padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',
@@ -392,7 +392,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
               { q: "What does an addiction PMHNP do?", a: "An addiction PMHNP specializes in treating substance use disorders (SUD) and co-occurring mental health conditions. They prescribe medications like buprenorphine and naltrexone for medication-assisted treatment (MAT), manage detox protocols, provide therapy, and coordinate comprehensive recovery plans." },
               { q: "Do I need special certification for addiction PMHNP work?", a: "While not always required, the DEA X-waiver (now integrated into standard DEA registration) is essential for prescribing buprenorphine. ASAM certification or CARN (Certified Addictions Registered Nurse) credentials significantly strengthen your candidacy and are preferred by many employers." },
               { q: "How much do addiction PMHNPs earn?", a: "Pay varies by setting and location; listings on this page show the advertised range whenever the employer discloses one. Many roles include loan repayment programs, sign-on bonuses, and relocation assistance due to the critical shortage of addiction medicine providers." },
-              { q: "Is addiction psychiatry a good PMHNP specialty?", a: "Yes — addiction psychiatry is one of the fastest-growing PMHNP specialties. The opioid crisis has driven sustained growth in positions, and there's a severe shortage of qualified providers. The work is deeply meaningful, with high job security and competitive compensation." },
+              { q: "Is addiction psychiatry a good PMHNP specialty?", a: "Yes. Addiction psychiatry is one of the fastest-growing PMHNP specialties. The opioid crisis has driven sustained growth in positions, and there's a severe shortage of qualified providers. The work is deeply meaningful, with high job security and competitive compensation." },
             ].map((faq, idx) => (
               <div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px 28px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>{faq.q}</h3>

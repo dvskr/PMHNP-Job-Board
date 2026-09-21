@@ -252,7 +252,7 @@ export function extractSalaryFromDescription(description: string): RawSalaryInpu
 
   // Pattern 1: $XXX - $XXX per hour
   const hourlyRangeMatch = text.match(
-    /\$(\d{2,3})(?:\.\d{2})?\s*[-–to]+\s*\$(\d{2,3})(?:\.\d{2})?\s*(?:\/|\s*per\s*)?(?:hr|hour|hourly)/i
+    /\$(\d{2,3})(?:\.\d{2})?\s*[-\u2013to]+\s*\$(\d{2,3})(?:\.\d{2})?\s*(?:\/|\s*per\s*)?(?:hr|hour|hourly)/i
   );
   if (hourlyRangeMatch) {
     return {
@@ -274,7 +274,7 @@ export function extractSalaryFromDescription(description: string): RawSalaryInpu
 
   // Pattern 3: $XXXk - $XXXk (annual)
   const annualKMatch = text.match(
-    /\$(\d{2,3})k\s*[-–to]+\s*\$(\d{2,3})k/i
+    /\$(\d{2,3})k\s*[-\u2013to]+\s*\$(\d{2,3})k/i
   );
   if (annualKMatch) {
     return {
@@ -287,7 +287,7 @@ export function extractSalaryFromDescription(description: string): RawSalaryInpu
 
   // Pattern 4: $XXX,XXX - $XXX,XXX (annual)
   const annualFullMatch = text.match(
-    /\$(\d{2,3})(\d{3})\s*[-–to]+\s*\$(\d{2,3})(\d{3})/i
+    /\$(\d{2,3})(\d{3})\s*[-\u2013to]+\s*\$(\d{2,3})(\d{3})/i
   );
   if (annualFullMatch) {
     return {

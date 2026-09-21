@@ -627,7 +627,7 @@ export default function LinkedInFilters({ onTotalChange }: LinkedInFiltersProps 
                 Your experience
               </p>
               <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: '0 6px 8px', lineHeight: 1.4 }}>
-                Pick your years — we&rsquo;ll show the roles you qualify for.
+                Pick your years, and we&rsquo;ll show the roles you qualify for.
               </p>
               <CheckboxFilter
                 label="I have 1+ years"

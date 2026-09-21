@@ -307,7 +307,7 @@ export default function CandidateCard({
                     }
                     return (
                         <span
-                            title={`Cosine similarity ${aiMatchPercent}% — ranking is determined by the AI rerank, not this score`}
+                            title={`Cosine similarity ${aiMatchPercent}%. Ranking is determined by the AI rerank, not this score.`}
                             style={{
                                 ...recessedPill,
                                 background: tier.bg,

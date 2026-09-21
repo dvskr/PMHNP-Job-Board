@@ -46,7 +46,7 @@ const NOT_BONUS_OR_HOURLY = String.raw`(?!\s*(?:\/\s*(?:hr|hour)\b|per\s+(?:hr|h
 // Optional range tail so "salary $120k-$140k" strips wholesale instead of
 // leaving a "-$140k" residue in the cleaned query. Non-capturing: the floor
 // stays the FIRST amount, and groups 1/2 keep their positions.
-const RANGE_TAIL = String.raw`(?:\s*(?:-|–|—|to|through)\s*\$?(?:\d{2,3}k|\d{2,3},\d{3}|\d{6})\b)?`;
+const RANGE_TAIL = String.raw`(?:\s*(?:-|\u2013|\u2014|to|through)\s*\$?(?:\d{2,3}k|\d{2,3},\d{3}|\d{6})\b)?`;
 const SALARY_WORD = String.raw`(?:salary|salaries|pay(?:s|ing)?|compensation|comp|base)`;
 const FLOOR_CUE = String.raw`(?:over|above|at\s+least|more\s+than|making|earning|starting\s+at|minimum(?:\s+of)?|min(?:\s+of)?)`;
 

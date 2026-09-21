@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         &nbsp;&middot;&nbsp;
         <a href="mailto:support@pmhnphiring.com" style="color:${V2.textMuted};text-decoration:underline;">Contact us</a>
       </p>`,
-      `You saved "${safeTitle}" — view the full listing and apply!`
+      `You saved "${safeTitle}". View the full listing and apply.`
     )
 
     if (await isEmailSuppressed(email)) {

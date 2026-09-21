@@ -368,7 +368,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                 <p style={{
                   fontSize: '13px', color: '#6B7F8A', margin: 0, fontWeight: 500,
                 }}>
-                  Browse fresh PMHNP roles across the US — telehealth, on-site, hybrid, and locum.
+                  Browse fresh PMHNP roles across the US: telehealth, on-site, hybrid, and locum.
                 </p>
               </header>
               {/* Empty right column mirrors the breadcrumb column so the
@@ -458,7 +458,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                         onChange={(e) => setAiQuery(e.target.value)}
                         autoComplete="off"
                         aria-label="Describe the role you want"
-                        title='Describe a role in your own words — e.g. "telehealth child psychiatry, west coast"'
+                        title='Describe a role in your own words, for example "telehealth child psychiatry, west coast"'
                         className="hero-search-input"
                         style={{ boxShadow: 'none', outline: 'none', border: 'none', background: 'transparent', width: '100%', fontSize: '0.9rem', color: '#1f2937', textAlign: 'left' }}
                         onFocus={(e) => { e.target.style.boxShadow = 'none'; e.target.style.outline = 'none'; }}

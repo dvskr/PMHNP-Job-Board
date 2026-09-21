@@ -21,7 +21,7 @@ export default function CategoryFAQAccordion({ faqs, categoryLabel }: CategoryFA
                     Common Questions
                 </p>
                 <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>
-                    {categoryLabel} PMHNP Jobs — FAQ
+                    {categoryLabel} PMHNP Jobs: FAQ
                 </h2>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

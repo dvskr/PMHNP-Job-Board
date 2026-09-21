@@ -115,7 +115,7 @@ export default async function EmployerTestimonials() {
                             &ldquo;{t.content}&rdquo;
                         </blockquote>
                         <figcaption style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35' }}>
-                            — {formatAttribution(t.employerName, t.displayAs)}
+                            {formatAttribution(t.employerName, t.displayAs)}
                         </figcaption>
                     </figure>
                 ))}

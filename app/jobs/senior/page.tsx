@@ -56,11 +56,11 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const [stats, params] = await Promise.all([getStats(), searchParams]);
   const page = Math.max(1, parseInt(params.page || '1'));
   return {
-    title: `${categoryTitleCount(stats.totalJobs)}Senior PMHNP Jobs — Director & Leadership`,
+    title: `${categoryTitleCount(stats.totalJobs)}Senior PMHNP Jobs: Director & Leadership`,
     description: `Browse ${categoryTitleCount(stats.totalJobs)}senior PMHNP leadership positions. Clinical Director, Program Director, Medical Director, and Lead PMHNP roles.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/senior` },
     keywords: ['senior PMHNP jobs', 'PMHNP director', 'PMHNP leadership', 'clinical director psychiatric', 'PMHNP supervisor'],
-    openGraph: { title: `Senior PMHNP Jobs — ${categoryTitleCount(stats.totalJobs)}Leadership Positions`, description: `Find ${categoryTitleCount(stats.totalJobs)}senior psychiatric NP roles.`, url: 'https://pmhnphiring.com/jobs/senior', type: 'website' },
+    openGraph: { title: `Senior PMHNP Jobs: ${categoryTitleCount(stats.totalJobs)}Leadership Positions`, description: `Find ${categoryTitleCount(stats.totalJobs)}senior psychiatric NP roles.`, url: 'https://pmhnphiring.com/jobs/senior', type: 'website' },
     ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }
@@ -107,7 +107,7 @@ export default async function SeniorPage({ searchParams }: PageProps) {
         headlineSub="jobs, leadership roles."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Senior-level PMHNP positions with clinical leadership, program development, and executive compensation."

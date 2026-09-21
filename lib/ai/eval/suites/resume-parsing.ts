@@ -267,7 +267,7 @@ export async function runResumeParsingSuite(): Promise<ResumeParsingSuiteResult>
         perCase,
         holdsBaseline,
         summary: holdsBaseline
-            ? `Resume parser holds baseline — mean F1 ${meanScore.toFixed(3)} ≥ ${resumeParsingContract.baselineThreshold.toFixed(2)} (${passed}/${perCase.length} cases passed)`
-            : `REGRESSION — mean F1 ${meanScore.toFixed(3)} < baseline ${resumeParsingContract.baselineThreshold.toFixed(2)} (${passed}/${perCase.length} cases passed)`,
+            ? `Resume parser holds baseline: mean F1 ${meanScore.toFixed(3)} ≥ ${resumeParsingContract.baselineThreshold.toFixed(2)} (${passed}/${perCase.length} cases passed)`
+            : `REGRESSION: mean F1 ${meanScore.toFixed(3)} < baseline ${resumeParsingContract.baselineThreshold.toFixed(2)} (${passed}/${perCase.length} cases passed)`,
     };
 }

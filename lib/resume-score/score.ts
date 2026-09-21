@@ -236,7 +236,7 @@ function scoreLicensure(ctx: ResumeContext): ResumeScoreDimension {
         score += 6;
         findings.push('A US state is listed near your licensure, which recruiters need for state matching.');
     } else if (hasAdvanced || hasRn) {
-        findings.push('No US state was found near your licensure mentions. Add the issuing state next to each license so recruiters can match you to state specific roles.');
+        findings.push('No US state was found near your licensure mentions. Add the issuing state next to each license so recruiters can match you to state-specific roles.');
     }
     if ((hasAdvanced || hasRn) && /\b(compact|multi[\s-]?state|multistate|nurse licensure compact|nlc)\b/.test(ctx.lower)) {
         score += 3;
@@ -366,7 +366,7 @@ function scoreQuantifiedImpact(ctx: ResumeContext): ResumeScoreDimension {
     const findings: string[] = [];
     if (count === 0) {
         findings.push('No quantified accomplishments were found, which is the most common resume weakness.');
-        findings.push('Rewrite your top bullets with numbers. For example, change "Managed patient medications" to "Managed medications for a caseload of 60 patients, seeing 18 to 22 patients daily with a 92% follow up adherence rate".');
+        findings.push('Rewrite your top bullets with numbers. For example, change "Managed patient medications" to "Managed medications for a caseload of 60 patients, seeing 18 to 22 patients daily with a 92% follow-up adherence rate".');
     } else if (count < 4) {
         findings.push(`Found ${count} quantified ${count === 1 ? 'line' : 'lines'}. Aim for at least 4 by adding caseload sizes, daily patient volume, or outcome percentages to more bullets.`);
     } else {

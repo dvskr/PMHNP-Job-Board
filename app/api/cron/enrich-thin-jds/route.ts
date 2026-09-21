@@ -44,13 +44,13 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
 const SYSTEM_PROMPT = `You are rewriting a too-short job posting for a PMHNP role into a long-form SEO-optimized description.
 
-You will be given the EXISTING description, the role title, the employer name, and the location. Use them as factual anchors — never invent specifics that aren't in the source.
+You will be given the EXISTING description, the role title, the employer name, and the location. Use them as factual anchors; never invent specifics that aren't in the source.
 
 Output requirements:
 - Pure HTML body with <h2>, <h3>, <ul>, <li>, <p> tags. No wrapper tags, no preamble.
 - 5,000 to 8,000 characters of visible text.
 - Sections in this order: About / Position summary / Key responsibilities / Required qualifications / Preferred qualifications / Schedule / Compensation and benefits / Why join us / How to apply.
-- Vary your vocabulary — no single 4-character-plus word can exceed 3% of total words.
+- Vary your vocabulary: no single 4-character-plus word can exceed 3% of total words.
 - Never invent specifics (salaries, neighborhoods, named drugs not in the source).
 - Faithfully preserve any facts from the source description: schedule, salary, benefits, mode, setting.
 - If the source omits a section, write a generic placeholder paragraph that reads naturally without making up specifics.`;
@@ -77,7 +77,7 @@ async function enrichOne(job: ThinJob): Promise<{ ok: boolean; reason?: string }
     `Role: ${job.title}`,
     `Employer: ${job.employer}`,
     `Location: ${job.location}`,
-    `Existing description (too thin — rewrite into long form, faithful to these facts):`,
+    `Existing description (too thin; rewrite into long form, faithful to these facts):`,
     job.description,
   ].join('\n');
 

@@ -143,19 +143,19 @@ export async function GET() {
             const suggestions: string[] = [];
             const hasSalary = !!(j.salaryRange || j.displaySalary || (j.normalizedMinSalary && j.normalizedMinSalary > 0));
             if (!hasSalary) {
-                suggestions.push('Add a salary range — listings with pay info get up to 30% more clicks.');
+                suggestions.push('Add a salary range: listings with pay info get up to 30% more clicks.');
             }
             if (salaryRating === 'below') {
                 suggestions.push('Your salary is below market median. Consider increasing to attract more candidates.');
             }
             if (jobViews > 0 && jobCtr < avgCtrBenchmark * 0.7) {
-                suggestions.push('Low click-through rate — try a more specific title or add benefits details.');
+                suggestions.push('Low click-through rate: try a more specific title or add benefits details.');
             }
             if (jobViews < avgViewsBenchmark * 0.5) {
-                suggestions.push('Low visibility — upgrade to Featured for 3-5× more views.');
+                suggestions.push('Low visibility: upgrade to Featured for 3 to 5 times more views.');
             }
             if ((j.description || '').length < 500) {
-                suggestions.push('Short job description — detailed listings (500+ words) engage more candidates.');
+                suggestions.push('Short job description: detailed listings (500+ words) engage more candidates.');
             }
             if (!j.isRemote && !j.mode) {
                 suggestions.push('Specify the work mode (remote, hybrid, on-site) to reach the right candidates.');

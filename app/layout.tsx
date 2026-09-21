@@ -186,7 +186,7 @@ export default async function RootLayout({
         <link rel="author" href="/humans.txt" />
         <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM Site Information" />
         <link rel="alternate" type="text/plain" href="/ai.txt" title="AI Permissions" />
-        <link rel="alternate" type="application/rss+xml" href="/feed.xml" title={`${brand.name} — Latest Jobs`} />
+        <link rel="alternate" type="application/rss+xml" href="/feed.xml" title={`${brand.name}: Latest Jobs`} />
         {/* Organization and WebSite Schema Markup */}
         {/* fb:app_id removed (audit 27 M-1): no Meta Pixel, CAPI, or Facebook
             Login integration exists in the codebase, so the tag was inert

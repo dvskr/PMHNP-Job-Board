@@ -126,7 +126,7 @@ function renderDigestHtml(args: {
         <tr><td>
           <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0D9488;">PMHNP Hiring · Weekly Digest</p>
           <h1 style="margin:0 0 4px;font-family:Georgia,serif;font-size:26px;font-weight:800;color:#1A2E35;">${args.jobs.length} new role${args.jobs.length === 1 ? '' : 's'} match your profile</h1>
-          <p style="margin:0 0 20px;font-size:14px;color:#6B7F8A;">${greeting} We picked these from your latest recommendations — Easy Apply jobs first.</p>
+          <p style="margin:0 0 20px;font-size:14px;color:#6B7F8A;">${greeting} we picked these from your latest recommendations, with Easy Apply jobs first.</p>
 
           <table cellpadding="0" cellspacing="0" border="0" width="100%">
             ${rows}

@@ -59,12 +59,12 @@ const BUCKET_COLOR: Record<string, string> = {
 };
 
 function fmt(n: number | null | undefined): string {
-    if (n == null) return '—';
+    if (n == null) return 'Not set';
     return n.toLocaleString();
 }
 
 function fmtDur(ms: number | null): string {
-    if (ms == null) return '—';
+    if (ms == null) return 'Not set';
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(1)}s`;
 }
@@ -280,7 +280,7 @@ export default function PipelineFlowPage() {
             <Section title="Recent cron runs" icon={<Activity size={16} />}>
                 {data?.recentRuns?.length === 0 && (
                     <div style={{ padding: '12px 14px', color: '#6B7F8A', fontSize: '13px' }}>
-                        No runs logged yet — `withCronTracking` only fires after deploy. After the next ingest cron, rows will appear here.
+                        No runs logged yet: `withCronTracking` only fires after deploy. After the next ingest cron, rows will appear here.
                     </div>
                 )}
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -321,7 +321,7 @@ export default function PipelineFlowPage() {
 }
 
 function KpiCard({ label, value, accent }: { label: string; value: number | null | undefined; accent: string }) {
-    const display = value == null ? '—' : value.toLocaleString();
+    const display = value == null ? 'Not set' : value.toLocaleString();
     return (
         <div style={{ background: '#FFFFFF', border: '1px solid #E8ECF0', borderRadius: '12px', padding: '16px 18px' }}>
             <div style={{ fontSize: '12px', color: '#6B7F8A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>

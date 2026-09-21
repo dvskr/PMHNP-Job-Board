@@ -636,7 +636,7 @@ export default function DashboardContent() {
                 <p style={{
                     fontSize: '14px', color: '#8A9BA6', margin: 0,
                 }}>
-                    — Here&apos;s what&apos;s happening with your job search.
+                    Here&apos;s what&apos;s happening with your job search.
                 </p>
             </div>
 
@@ -772,7 +772,7 @@ export default function DashboardContent() {
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <p style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35', margin: 0, lineHeight: 1.4 }}>
-                                    Skip the form — upload your resume
+                                    Skip the form: upload your resume
                                 </p>
                                 <p style={{ fontSize: '11px', color: '#4A5E6A', margin: '1px 0 0', lineHeight: 1.4 }}>
                                     AI extracts your licenses, certifications, education and work history. You review before anything saves.
@@ -898,7 +898,7 @@ export default function DashboardContent() {
                                 No applications yet
                             </p>
                             <p style={{ fontSize: '13px', color: '#8A9BA6', marginBottom: '12px' }}>
-                                Applied jobs will appear here
+                                Applied jobs will appear here.
                             </p>
                             <Link href="/jobs" style={{ ...viewAllLink, fontSize: '14px' }}>
                                 Start browsing jobs <ArrowRight size={14} />
@@ -962,7 +962,7 @@ export default function DashboardContent() {
                                 No saved jobs
                             </p>
                             <p style={{ fontSize: '13px', color: '#8A9BA6', marginBottom: '12px' }}>
-                                Bookmark jobs below to save them
+                                Bookmark jobs below to save them.
                             </p>
                             <Link href="/jobs" style={{ ...viewAllLink, fontSize: '14px' }}>
                                 Browse jobs <ArrowRight size={14} />
@@ -998,7 +998,7 @@ export default function DashboardContent() {
                     <div style={{ ...cardBase, textAlign: 'center', padding: '48px 24px' }}>
                         <Briefcase size={32} style={{ color: '#A8C5B8', margin: '0 auto 12px' }} />
                         <p style={{ fontSize: '14px', color: '#6B7F8A' }}>
-                            No recommendations yet — complete your profile preferences
+                            No recommendations yet. Complete your profile preferences to get matches.
                         </p>
                     </div>
                 ) : (

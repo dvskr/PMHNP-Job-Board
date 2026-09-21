@@ -116,11 +116,11 @@ function JobAlertsContent() {
 
     // Validate email
     if (!email.trim()) {
-      setEmailError('Email is required');
+      setEmailError('Email is required.');
       return;
     }
     if (!validateEmail(email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError('Please enter a valid email address.');
       return;
     }
 
@@ -145,8 +145,8 @@ function JobAlertsContent() {
         setMessage({
           type: 'success',
           text: data.reactivated
-            ? 'You already had this alert paused — we turned it back on. Your next digest arrives soon.'
-            : 'Your alert is active — your first digest arrives soon.',
+            ? 'You already had this alert paused, so we turned it back on. Your next digest arrives soon.'
+            : 'Your alert is active. Your first digest arrives soon.',
         });
         // Reset form
         setEmail('');

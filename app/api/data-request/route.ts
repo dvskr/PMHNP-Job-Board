@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
             {
                 error: isMissingTable
-                    ? 'DSAR table missing — run prisma migrate add_data_request'
+                    ? 'DSAR table missing: run prisma migrate add_data_request'
                     : 'Failed to record request',
             },
             { status: isMissingTable ? 503 : 500 },

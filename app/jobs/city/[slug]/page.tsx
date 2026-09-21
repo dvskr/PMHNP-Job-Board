@@ -331,7 +331,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
         // were pushing the title past 60 chars and cutting "Avg" mid-phrase).
         // Salary appended only if there's room.
         const baseTitle = `${stats.totalJobs} PMHNP Jobs in ${cityName}, ${stateCode}`;
-        const salarySuffix = stats.avgSalary > 0 ? ` — $${stats.avgSalary}k Avg` : '';
+        const salarySuffix = stats.avgSalary > 0 ? `: $${stats.avgSalary}k Avg` : '';
         const title = (baseTitle + salarySuffix).length <= 60
             ? baseTitle + salarySuffix
             : baseTitle;
@@ -441,7 +441,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
     }
 
     const salaryRange = stats.minSalary > 0 && stats.maxSalary > 0
-        ? `$${stats.minSalary}k–$${stats.maxSalary}k`
+        ? `$${stats.minSalary}k to $${stats.maxSalary}k`
         : null;
 
     return (
@@ -504,7 +504,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                 breadcrumbs={['Careers', stateName, cityName]}
                 headlineLine1={cityName}
                 headlineLine2="PMHNP"
-                headlineSub={`jobs in ${stateCode}, find your fit.`}
+                headlineSub={`jobs in ${stateCode}. Find your fit.`}
                 stats={[
                     { value: `${stats.totalJobs}`, label: 'positions' },
                     { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
@@ -695,7 +695,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary Outlook</h3>
                                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                                    {cityName} PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K–$200K'} annually. {salaryRange ? `Range: ${salaryRange}/yr.` : 'Competitive compensation with benefits.'}
+                                    {cityName} PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K to $200K'} annually. {salaryRange ? `Range: ${salaryRange}/yr.` : 'Competitive compensation with benefits.'}
                                 </p>
                             </div>
                             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
@@ -712,7 +712,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                             <Bell size={28} style={{ color: '#0D9488', marginBottom: '14px' }} />
                             <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>Job Alerts</h3>
                             <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
-                                New {cityName} listings delivered to your inbox — be first to apply.
+                                New {cityName} listings delivered to your inbox, so you can be first to apply.
                             </p>
                             <Link href={`/job-alerts?location=${encodeURIComponent(cityName + ', ' + stateCode)}`} style={{
                                 padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',
@@ -860,7 +860,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                             className="font-lora"
                             style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', marginBottom: '10px' }}
                         >
-                            {cityName}, {stateCode} — PMHNP Market Context
+                            {cityName}, {stateCode}: PMHNP Market Context
                         </h2>
                         <p style={{ fontSize: '14px', lineHeight: 1.7, color: '#5A4A42', margin: 0 }}>
                             {narrative}
@@ -875,7 +875,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                 { question: `What is the average PMHNP salary in ${cityName}?`, answer: stats.avgSalary > 0 ? `PMHNPs in ${cityName} earn an average salary of $${stats.avgSalary}k per year.${salaryRange ? ` The range is ${salaryRange}/yr depending on experience, setting, and whether the position is W-2 or 1099.` : ''}` : `PMHNP salaries in ${cityName} typically range from $130,000 to $200,000+ per year, depending on experience, practice setting, and employment type.` },
                 { question: `What types of PMHNP jobs are available in ${cityName}?`, answer: `${cityName} offers a variety of PMHNP positions including outpatient clinics, inpatient psychiatric units, community health centers, private practices, telehealth roles, and substance abuse treatment facilities. Both full-time and part-time options are available.` },
                 { question: `Who are the top PMHNP employers in ${cityName}?`, answer: `Top employers hiring PMHNPs in ${cityName} include ${stats.topEmployers.slice(0, 5).map(e => e.name).join(', ')}. These organizations offer competitive salaries, benefits, and growth opportunities.` },
-                { question: `Do I need a ${stateName} license to work as a PMHNP in ${cityName}?`, answer: `Yes, you need an active ${stateName} nursing license and PMHNP certification to practice in ${cityName}. Requirements vary by state — check our ${stateName} licensure guide for specific details on scope of practice, prescriptive authority, and continuing education requirements.` },
+                { question: `Do I need a ${stateName} license to work as a PMHNP in ${cityName}?`, answer: `Yes, you need an active ${stateName} nursing license and PMHNP certification to practice in ${cityName}. Requirements vary by state, so check our ${stateName} licensure guide for specific details on scope of practice, prescriptive authority, and continuing education requirements.` },
             ]} />
 
             {/* ═══ Hover + Responsive CSS ═══ */}

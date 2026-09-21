@@ -97,7 +97,7 @@ export default function PWAInstallBanner() {
                 <div className="flex items-center gap-3">
                     <Download size={18} style={{ color: '#2DD4BF' }} />
                     <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        Add PMHNP Hiring to your home screen for quick access
+                        Add PMHNP Hiring to your home screen for quick access.
                     </span>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">

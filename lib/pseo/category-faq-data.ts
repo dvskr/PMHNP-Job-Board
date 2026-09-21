@@ -117,7 +117,7 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
         },
         {
             question: 'Can new graduate PMHNPs find jobs easily?',
-            answer: 'Yes — demand for PMHNPs far exceeds supply. New graduates are highly sought after, with many employers offering structured orientation, mentorship, and collaborative practice agreements. The psychiatric NP field has one of the highest job placement rates among all NP specialties.',
+            answer: 'Yes. Demand for PMHNPs far exceeds supply. New graduates are highly sought after, with many employers offering structured orientation, mentorship, and collaborative practice agreements. The psychiatric NP field has one of the highest job placement rates among all NP specialties.',
         },
         {
             question: 'What should new grad PMHNPs look for in their first job?',
@@ -143,7 +143,7 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
         },
         {
             question: 'Can per diem PMHNPs work at multiple facilities?',
-            answer: 'Yes — per diem PMHNPs can typically work at multiple facilities simultaneously. This is one of the main advantages of per diem work. You\'ll need to ensure you have proper credentialing and privileges at each facility, and check for any non-compete clauses in your agreements.',
+            answer: 'Yes. Per diem PMHNPs can typically work at multiple facilities simultaneously. This is one of the main advantages of per diem work. You\'ll need to ensure you have proper credentialing and privileges at each facility, and check for any non-compete clauses in your agreements.',
         },
     ],
     inpatient: ({ totalJobs, avgSalary }) => [
@@ -183,7 +183,7 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
         },
         {
             question: 'Can outpatient PMHNPs start their own private practice?',
-            answer: 'Yes — outpatient experience is ideal preparation for private practice. In full practice authority states, PMHNPs can open independent practices. Most PMHNPs gain a few years of supervised experience first, then transition to private practice for greater earning potential and full schedule control.',
+            answer: 'Yes. Outpatient experience is ideal preparation for private practice. In full practice authority states, PMHNPs can open independent practices. Most PMHNPs gain a few years of supervised experience first, then transition to private practice for greater earning potential and full schedule control.',
         },
     ],
     'substance-abuse': ({ totalJobs }) => [
@@ -219,7 +219,7 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
         },
         {
             question: 'Are school-based PMHNP positions available?',
-            answer: 'Yes — school-based PMHNP positions are growing rapidly as districts address the youth mental health crisis. These roles typically follow the school calendar with summers off, offer competitive salaries, and provide a rewarding opportunity to serve children where they spend most of their day.',
+            answer: 'Yes. School-based PMHNP positions are growing rapidly as districts address the youth mental health crisis. These roles typically follow the school calendar with summers off, offer competitive salaries, and provide a rewarding opportunity to serve children where they spend most of their day.',
         },
     ],
     addiction: (props) => CATEGORY_FAQS['substance-abuse']?.(props) ?? [],

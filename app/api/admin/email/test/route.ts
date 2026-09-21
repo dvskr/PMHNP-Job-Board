@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     return new NextResponse(
       `<!DOCTYPE html><html><head>
-        <title>Email Test Console — PMHNP Hiring</title>
+        <title>Email Test Console: PMHNP Hiring</title>
         <style>
           * { box-sizing: border-box; }
           body { background: ${BG}; color: ${TEXT}; font-family: ${SANS}; margin: 0; padding: 40px 20px; }
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
       to,
       subject: `[TEST] ${entry.label}`,
       html,
-      text: 'This is a test email from PMHNP Hiring admin console.',
+      text: 'This is a test email from the PMHNP Hiring admin console.',
     });
 
     return NextResponse.json({

@@ -57,13 +57,13 @@ export async function POST(request: NextRequest) {
     const trimmed = typeof content === 'string' ? content.trim() : '';
     if (trimmed.length < 10) {
       return NextResponse.json(
-        { error: 'Please share a bit more — at least 10 characters.' },
+        { error: 'Please share a bit more: at least 10 characters.' },
         { status: 400 }
       );
     }
     if (trimmed.length > 2000) {
       return NextResponse.json(
-        { error: 'Testimonial too long — please keep it under 2000 characters.' },
+        { error: 'Testimonial too long. Please keep it under 2000 characters.' },
         { status: 400 }
       );
     }

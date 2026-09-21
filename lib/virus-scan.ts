@@ -52,7 +52,7 @@ export async function scanFileForViruses(
     const failOpen = process.env.VIRUS_SCAN_FAIL_OPEN === 'true';
 
     if (!apiKey) {
-        logger.warn('virus-scan: CLOUDMERSIVE_API_KEY not configured — skipping scan');
+        logger.warn('virus-scan: CLOUDMERSIVE_API_KEY not configured, skipping scan');
         return {
             clean: true,
             skipped: true,

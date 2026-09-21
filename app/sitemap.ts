@@ -453,17 +453,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // ALL pages stop being recrawled. Log loudly when we approach the cap so
     // ops can split into batches before that happens.
     if (all.length > 40000) {
-      logger.warn(`[sitemap] Primary sitemap is ${all.length} entries — approaching Google's 50k limit. Plan to split job pages into /api/sitemaps/jobs/[batch] before exceeding 48000.`);
+      logger.warn(`[sitemap] Primary sitemap is ${all.length} entries, approaching Google's 50k limit. Plan to split job pages into /api/sitemaps/jobs/[batch] before exceeding 48000.`);
     }
     if (all.length > 48000) {
-      logger.error(`[sitemap] Primary sitemap is ${all.length} entries — Google may reject the whole sitemap (50k cap). Splitting job pages into batches is now mandatory.`);
+      logger.error(`[sitemap] Primary sitemap is ${all.length} entries; Google may reject the whole sitemap (50k cap). Splitting job pages into batches is now mandatory.`);
     }
     // Per-section sanity floors — if any of these collapse to 0 unexpectedly,
     // the DB query likely silently failed and we'd be poisoning Google with
     // a near-empty sitemap. Better to fail-fast and let the outer catch return
     // the static-only sitemap.
     if (activeJobCount === 0) {
-      throw new Error('Sitemap: 0 active jobs returned — DB likely degraded; aborting to avoid empty sitemap.');
+      throw new Error('Sitemap: 0 active jobs returned; DB likely degraded; aborting to avoid empty sitemap.');
     }
 
     return all

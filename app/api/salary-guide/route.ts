@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     // Suppression check before any DB writes — a suppressed user shouldn't even
     // re-create an EmailLead row from this entry point.
     if (await isEmailSuppressed(normalizedEmail)) {
-      logger.info('Salary guide skipped — email suppressed', { email: normalizedEmail });
+      logger.info('Salary guide skipped: email suppressed', { email: normalizedEmail });
       return NextResponse.json({ success: true, suppressed: true });
     }
 

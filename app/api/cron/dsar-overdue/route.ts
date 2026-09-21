@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
             // don't post a "0 open" message every day.
             if (overdue.length > 0 || dueSoon.length > 0) {
                 const fmt = (r: typeof open[number]) =>
-                    `• \`${r.type}\` (${r.jurisdiction ?? 'n/a'}) — due ${r.dueBy.toISOString().slice(0, 10)} — status ${r.status} — id ${r.id.slice(0, 8)}`;
+                    `• \`${r.type}\` (${r.jurisdiction ?? 'n/a'}): due ${r.dueBy.toISOString().slice(0, 10)}, status ${r.status}, id ${r.id.slice(0, 8)}`;
                 const lines: string[] = [];
                 if (overdue.length) {
                     lines.push(`🚨 **${overdue.length} OVERDUE DSAR${overdue.length > 1 ? 's' : ''}** (past regulatory deadline):`);
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
                     lines.push(`⚠️ **${dueSoon.length} DSAR${dueSoon.length > 1 ? 's' : ''} due within ${DUE_SOON_DAYS} days**:`);
                     lines.push(...dueSoon.slice(0, 15).map(fmt));
                 }
-                lines.push(`(${open.length} total open requests — review in the data_requests table.)`);
+                lines.push(`(${open.length} total open requests. Review them in the data_requests table.)`);
                 await sendDiscordMessage(lines.join('\n'));
             }
 

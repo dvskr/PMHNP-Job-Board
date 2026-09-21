@@ -682,7 +682,7 @@ export default function EmployerSettingsClient() {
                                                 </td>
                                                 <td style={{ padding: '14px 8px', fontSize: '13px', whiteSpace: 'nowrap' }}>
                                                     {p.isFree ? (
-                                                        <span style={{ color: '#B0BEC5', fontSize: '12px' }}>—</span>
+                                                        <span style={{ color: '#B0BEC5', fontSize: '12px' }}>None</span>
                                                     ) : latestCharge ? (
                                                         // Two buttons side-by-side: the Stripe "Invoice" PDF
                                                         // (formal document) and the Stripe "Receipt" page

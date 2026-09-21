@@ -171,6 +171,6 @@ export async function runRecommendationsSuite(): Promise<RecommendationsSuiteRes
         holdsBaseline,
         summary: holdsBaseline
             ? `Mean hit rate ${meanHitRate.toFixed(3)} ≥ baseline ${baseline.toFixed(3)} (${passed}/${perCase.length} cases passed)`
-            : `Mean hit rate ${meanHitRate.toFixed(3)} < baseline ${baseline.toFixed(3)} (${passed}/${perCase.length} cases passed) — REGRESSION`,
+            : `Mean hit rate ${meanHitRate.toFixed(3)} < baseline ${baseline.toFixed(3)} (${passed}/${perCase.length} cases passed). REGRESSION`,
     };
 }

@@ -171,7 +171,7 @@ function htmlToPlainText(html: string): string {
     .replace(/&#39;/gi, "'")
     .replace(/&middot;/gi, '·')
     .replace(/&copy;/gi, '©')
-    .replace(/&mdash;/gi, '—')
+    .replace(/&mdash;/gi, '\u2014')
     .replace(/&zwnj;/gi, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
@@ -434,7 +434,7 @@ export async function sendWelcomeEmail(
     const html = emailShellV2(`
       ${headerBlockV2('Your Alert Is Active', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-alert-subscription-160.png', `Your job alert is now active. We scan thousands of PMHNP positions daily and will send you a ${frequencyLabel} with new matches \u2014 so you never miss the right opportunity.`)}
+      ${simpleBlock('hero-alert-subscription-160.png', `Your job alert is now active. We scan thousands of PMHNP positions daily and will send you a ${frequencyLabel} with new matches, so you never miss the right opportunity.`)}
       ${criteriaCard}
       ${spacerV2(28)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
@@ -484,7 +484,7 @@ export async function sendSignupWelcomeEmail(
       html = emailShellV2(`
       ${headerBlockV2('Your Employer Account Is Ready', '')}
       ${spacerV2(12)}
-      ${bodyTextV2('Post positions, track engagement, and connect with qualified Psychiatric Mental Health Nurse Practitioners \u2014 all from one dashboard.')}
+      ${bodyTextV2('Post positions, track engagement, and connect with qualified Psychiatric Mental Health Nurse Practitioners, all from one dashboard.')}
       ${spacerV2(20)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;text-align:center;">
@@ -529,7 +529,7 @@ export async function sendSignupWelcomeEmail(
             ${spacerV2(48)}
             ${closeContentV2()}`,
           unsubscribeFooterV2('sample'),
-          `Welcome ${firstName || ''} \u2014 find your perfect PMHNP role.`
+          `Welcome${firstName ? ` ${firstName}` : ''}. Find your perfect PMHNP role.`
       );
     }
 
@@ -810,7 +810,7 @@ export async function sendExpiryWarningEmail(
       ${spacerV2(12)}
       ${bodyTextV2(`Your posting for <strong>${escapeHtml(jobTitle)}</strong> will expire on ${expiryDateStr}. Renew now to maintain visibility and continue receiving applications.`)}
       ${spacerV2(24)}
-      <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(viewCount.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(applyClickCount.toLocaleString(), 'Applies')}<td width="8"></td>${statBlockV2('—', 'Saved')}</tr></table></td></tr>
+      <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(viewCount.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(applyClickCount.toLocaleString(), 'Applies')}<td width="8"></td>${statBlockV2('N/A', 'Saved')}</tr></table></td></tr>
       ${spacerV2(20)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
@@ -982,14 +982,14 @@ export async function sendRefundConfirmationEmail(
 
     const html = emailShellV2(
       `
-      ${headerBlockV2('Refund processed', '')}
+      ${headerBlockV2('Refund Processed', '')}
       ${spacerV2(12)}
       ${bodyTextV2(`We've processed a ${refundType.toLowerCase()} of <strong>${formattedAmount}</strong> for your job posting <strong>${escapeHtml(jobTitle)}</strong>.`)}
       ${spacerV2(20)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
           <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">${refundType}</p>
-          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">${formattedAmount} will appear on the original payment method within <strong>5–10 business days</strong>, depending on your bank or card issuer.</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">${formattedAmount} will appear on the original payment method within <strong>5 to 10 business days</strong>, depending on your bank or card issuer.</p>
           <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">Reference for your records: this refund relates to the posting "${escapeHtml(jobTitle)}".</p>
         </div>
       </td></tr>
@@ -998,7 +998,7 @@ export async function sendRefundConfirmationEmail(
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2(unsubscribeToken || 'sample'),
-      `${refundType} of ${formattedAmount} processed — appears in 5–10 business days.`,
+      `${refundType} of ${formattedAmount} processed. It appears in 5 to 10 business days.`,
     );
 
     const unsubToken = unsubscribeToken ?? await getOrCreateUnsubToken(email);
@@ -1006,7 +1006,7 @@ export async function sendRefundConfirmationEmail(
       {
         from: EMAIL_FROM,
         to: email,
-        subject: `${refundType} processed — ${formattedAmount} for "${jobTitle}"`,
+        subject: `${refundType} processed: ${formattedAmount} for "${jobTitle}"`,
         html,
       },
       'refund_confirmation',
@@ -1040,7 +1040,7 @@ export async function sendDraftSavedEmail(
     const html = emailShellV2(`
       ${headerBlockV2('Your Draft Is Saved', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-draft-saved-160.png', 'We saved your progress. Your draft is ready whenever you are \u2014 pick up right where you left off. This link expires in 30 days.')}
+      ${simpleBlock('hero-draft-saved-160.png', 'We saved your progress. Your draft is ready whenever you are, so pick up right where you left off. This link expires in 30 days.')}
       ${spacerV2(32)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('Continue Your Posting', resumeUrl)}
@@ -1094,7 +1094,7 @@ export function buildContactConfirmationHtml(name: string, subject: string): str
         </td></tr>
         <tr><td style="padding:16px 20px;">
           <p style="margin:0 0 2px;font-family:${SANS_V2};font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;">Expected Response</p>
-          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textBody};">Within 24 hours &middot; Mon&ndash;Fri 9AM&ndash;5PM CT</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textBody};">Within 24 hours &middot; Mon to Fri, 9 AM to 5 PM CT</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1352,7 +1352,7 @@ export async function sendCandidateInquiryNotification(
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2('sample'),
-      `${escapeHtml(candidateName)} has a question about your "${escapeHtml(jobTitle || 'job')}" posting \u2014 reply now!`
+      `${escapeHtml(candidateName)} has a question about your "${escapeHtml(jobTitle || 'job')}" posting. Reply now.`
     );
 
     const sendResult = await sendAndLog({
@@ -1527,7 +1527,7 @@ export async function sendNewApplicationEmail(params: NewApplicationEmailParams)
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: employerEmail,
-      subject: `📋 New application for "${jobTitle}" — ${candidateName}`,
+      subject: `📋 New application for "${jobTitle}" from ${candidateName}`,
       html,
     }, 'application_notification', { jobTitle, candidateName });
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1587,7 +1587,7 @@ export async function sendApplicationConfirmationEmail(params: ApplicationConfir
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: candidateEmail,
-      subject: `✅ Application received — ${jobTitle} at ${employerName}`,
+      subject: `✅ Application received: ${jobTitle} at ${employerName}`,
       html,
     }, 'application_confirmation', { jobTitle, employerName });
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1652,13 +1652,13 @@ export async function sendStatusUpdateEmail(params: StatusUpdateEmailParams): Pr
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2('sample'),
-      `Update on your application \u2014 moved to ${statusInfo.label.toLowerCase()} stage.`
+      `Update on your application: moved to ${statusInfo.label.toLowerCase()} stage.`
     );
 
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: candidateEmail,
-      subject: `${statusInfo.emoji} Application update — ${jobTitle} at ${employerName}`,
+      subject: `${statusInfo.emoji} Application update: ${jobTitle} at ${employerName}`,
       html,
     }, 'status_update', { jobTitle, newStatus });
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1740,7 +1740,7 @@ export async function sendPerformanceReportEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: `📊 ${periodLabel} Report: ${totalViews} views, ${totalApps} applications — ${employerName}`,
+      subject: `📊 ${periodLabel} Report: ${totalViews} views, ${totalApps} applications for ${employerName}`,
       html,
     }, 'performance_report', { employerName, totalViews, totalApps }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1790,7 +1790,7 @@ export async function sendSavedJobReminderEmail(
         ? Math.round((job.normalizedMinSalary || job.minSalary)! / 1000) : 0;
       const maxK = (job.normalizedMaxSalary || job.maxSalary) && (job.normalizedMaxSalary || job.maxSalary)! > 0
         ? Math.round((job.normalizedMaxSalary || job.maxSalary)! / 1000) : 0;
-      const salaryText = minK && maxK ? `$${minK}k–$${maxK}k` : minK ? `$${minK}k+` : maxK ? `Up to $${maxK}k` : '';
+      const salaryText = minK && maxK ? `$${minK}k to $${maxK}k` : minK ? `$${minK}k+` : maxK ? `Up to $${maxK}k` : '';
       return renderJobCardHtml({
         title: job.title,
         employer: job.employer,
@@ -1860,11 +1860,11 @@ export async function sendInactivityPurgeWarningEmail(
   try {
     const unsubToken = await getOrCreateUnsubToken(email);
     const html = emailShellV2(`
-      ${headerBlockV2('Your PMHNP Hiring account is scheduled for deletion', '')}
+      ${headerBlockV2('Your PMHNP Hiring Account Is Scheduled for Deletion', '')}
       ${spacerV2(12)}
       ${bodyTextV2(`We noticed you haven't used your PMHNP Hiring account in a while. To respect your privacy, accounts that stay inactive are automatically removed.`)}
       ${spacerV2(8)}
-      ${bodyTextV2(`<strong>If you do nothing, your account and data will be deleted in ${graceDays} days.</strong> To keep it, just sign in once — that's all it takes.`)}
+      ${bodyTextV2(`<strong>If you do nothing, your account and data will be deleted in ${graceDays} days.</strong> To keep it, just sign in once. That's all it takes.`)}
       ${spacerV2(24)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('Keep my account →', `${BASE_URL}/login`)}

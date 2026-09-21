@@ -143,7 +143,7 @@ export default function TermsPage() {
             <li style={liStyle}>We reserve the right to grant or deny refund requests at our sole discretion</li>
             <li style={liStyle}>If we remove a posting for violation of these Terms, no refund will be issued</li>
             <li style={liStyle}>Postings published without charge under a prior version of these Terms have no associated payment and are therefore not refundable</li>
-            <li style={liStyle}>Refunds, if granted, will be issued to the original payment method through Stripe and may take 5-10 business days to appear on your statement</li>
+            <li style={liStyle}>Refunds, if granted, will be issued to the original payment method through Stripe and may take 5 to 10 business days to appear on your statement</li>
           </ul>
 
           <h2 style={h2Style}>9. Candidate Data, Unlocks & Privacy</h2>
@@ -159,7 +159,7 @@ export default function TermsPage() {
           <p style={pStyle}>Candidates agree that, when they make their profile visible and indicate openness to opportunities, their profile may be discoverable by employers using the Service. Candidates may at any time make their profile non-visible or close their account. See our <Link href="/privacy" style={{ color: '#0D9488', textDecoration: 'none' }}>Privacy Policy</Link> for full details on how candidate data is collected, used, shared, and protected.</p>
 
           <h2 style={h2Style}>10. Intellectual Property</h2>
-          <p style={pStyle}>All content provided by Akari Labs LLC on PMHNP Hiring — including text, graphics, logos, icons, images, audio clips, data compilations, software, design, and the &quot;PMHNP Hiring&quot; brand — is the property of Akari Labs LLC or its licensors and is protected by United States and international copyright, trademark, and other intellectual property laws.</p>
+          <p style={pStyle}>All content provided by Akari Labs LLC on PMHNP Hiring (including text, graphics, logos, icons, images, audio clips, data compilations, software, design, and the &quot;PMHNP Hiring&quot; brand) is the property of Akari Labs LLC or its licensors and is protected by United States and international copyright, trademark, and other intellectual property laws.</p>
           <p style={pStyle}>You may not reproduce, distribute, modify, create derivative works of, publicly display, or otherwise exploit any content from the Service without our prior written permission, except for your personal, non-commercial use within the Service.</p>
           <p style={pStyle}>By submitting content to the Service (including job postings, candidate profiles, resumes, and messages), you grant Akari Labs LLC a worldwide, non-exclusive, royalty-free license to host, store, display, transmit, and use that content as necessary to operate, improve, and promote the Service. This license terminates when you delete the content, except where reasonably required for our backups, audit logs, or legal compliance.</p>
 
@@ -173,10 +173,10 @@ export default function TermsPage() {
             <li style={liStyle}>We are not an employment agency, recruiter, or staffing firm</li>
             <li style={liStyle}>We do not warrant that the Service will be uninterrupted, error-free, or free of harmful components</li>
           </ul>
-          <p style={pStyle}>Job seekers and employers use the Service at their own risk. We strongly encourage all users to conduct their own due diligence — including license verification, reference checks, and background checks where appropriate — before extending or accepting any offer.</p>
+          <p style={pStyle}>Job seekers and employers use the Service at their own risk. We strongly encourage all users to conduct their own due diligence (including license verification, reference checks, and background checks where appropriate) before extending or accepting any offer.</p>
 
           <h2 style={h2Style}>12. Limitation of Liability</h2>
-          <p style={pStyle}>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, AKARI LABS LLC, ITS OFFICERS, DIRECTORS, EMPLOYEES, CONTRACTORS, AGENTS, LICENSORS, AND SUPPLIERS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, REVENUE, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, ARISING OUT OF OR RELATING TO YOUR USE OF — OR INABILITY TO USE — THE SERVICE.</p>
+          <p style={pStyle}>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, AKARI LABS LLC, ITS OFFICERS, DIRECTORS, EMPLOYEES, CONTRACTORS, AGENTS, LICENSORS, AND SUPPLIERS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, REVENUE, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, ARISING OUT OF OR RELATING TO YOUR USE OF, OR INABILITY TO USE, THE SERVICE.</p>
           <p style={pStyle}>OUR TOTAL CUMULATIVE LIABILITY TO YOU FOR ALL CLAIMS ARISING FROM OR RELATED TO THE SERVICE SHALL NOT EXCEED THE GREATER OF: (A) THE TOTAL AMOUNT YOU PAID TO US IN THE TWELVE (12) MONTHS PRECEDING THE EVENT GIVING RISE TO THE CLAIM, OR (B) ONE HUNDRED US DOLLARS ($100).</p>
           <p style={pStyle}>SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OF CERTAIN WARRANTIES OR THE LIMITATION OR EXCLUSION OF LIABILITY FOR INCIDENTAL OR CONSEQUENTIAL DAMAGES. ACCORDINGLY, SOME OF THE ABOVE LIMITATIONS MAY NOT APPLY TO YOU.</p>
 
@@ -192,8 +192,8 @@ export default function TermsPage() {
 
           <h2 style={h2Style}>14. Termination</h2>
           <p style={pStyle}>You may terminate your account at any time by following the account-deletion flow in your dashboard or by emailing <a href="mailto:support@pmhnphiring.com" style={{ color: '#0D9488', textDecoration: 'none' }}>support@pmhnphiring.com</a>. Account deletion is subject to a 30-day grace period during which the account may be restored, after which it is permanently purged.</p>
-          <p style={pStyle}>We may suspend or terminate your access to the Service, or any portion of it, at any time, with or without notice, for any reason — including violation of these Terms, suspected fraud, or any other conduct we determine is harmful to the Service or other users.</p>
-          <p style={pStyle}>Upon termination, your right to use the Service immediately ceases. Provisions that by their nature should survive termination — including intellectual property, disclaimers, limitation of liability, indemnification, and dispute resolution — shall survive.</p>
+          <p style={pStyle}>We may suspend or terminate your access to the Service, or any portion of it, at any time, with or without notice, for any reason, including violation of these Terms, suspected fraud, or any other conduct we determine is harmful to the Service or other users.</p>
+          <p style={pStyle}>Upon termination, your right to use the Service immediately ceases. Provisions that by their nature should survive termination (including intellectual property, disclaimers, limitation of liability, indemnification, and dispute resolution) shall survive.</p>
 
           <h2 style={h2Style}>15. Governing Law, Venue & Dispute Resolution</h2>
           <p style={pStyle}>These Terms and any dispute arising out of or related to them or the Service are governed by the laws of the State of Wyoming, United States, without regard to its conflict-of-laws principles. The United Nations Convention on Contracts for the International Sale of Goods does not apply.</p>

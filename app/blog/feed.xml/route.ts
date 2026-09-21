@@ -49,7 +49,7 @@ ${post.image_url ? `      <enclosure url="${escape(post.image_url)}" type="image
         const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>PMHNP Hiring — Career Blog &amp; Industry Insights</title>
+    <title>PMHNP Hiring: Career Blog &amp; Industry Insights</title>
     <link>${BASE_URL}/blog</link>
     <description>PMHNP career guides, salary trends, licensure changes, and industry analysis from the dedicated psychiatric nurse practitioner job board.</description>
     <language>en-us</language>

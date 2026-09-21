@@ -96,7 +96,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const cardLocation = job.isRemote
     ? 'Remote'
     : (job.city && job.state ? `${job.city}, ${job.state}` : (job.state || job.location || ''));
-  const cardAriaLabel = `${job.title} at ${job.employer}${cardLocation ? ` — ${cardLocation}` : ''}`;
+  const cardAriaLabel = `${job.title} at ${job.employer}${cardLocation ? `, ${cardLocation}` : ''}`;
   // S5 fix (2026-06-01): getJobFreshness computes against `new Date()`,
   // which differs by milliseconds-to-seconds between server SSR and the
   // hydration tick on the client — producing strings like "Posted today"

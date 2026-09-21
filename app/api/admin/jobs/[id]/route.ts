@@ -117,7 +117,7 @@ export async function PATCH(
                 const maxFuture = now + 365 * 24 * 60 * 60 * 1000; // 12 months
                 if (parsed.getTime() < now) {
                     return NextResponse.json(
-                        { success: false, error: 'expiresAt cannot be in the past — use isPublished=false to unpublish instead' },
+                        { success: false, error: 'expiresAt cannot be in the past. Use isPublished=false to unpublish instead.' },
                         { status: 400 },
                     );
                 }
@@ -218,7 +218,7 @@ export async function DELETE(
                 return NextResponse.json(
                     {
                         success: false,
-                        error: 'Cannot hard-delete a free posting — cascade would erase the freebie-quota record. Soft-delete (default, no ?hard flag) instead, or contact engineering for a quota-preserving removal.',
+                        error: 'Cannot hard-delete a free posting: the cascade would erase the freebie-quota record. Soft-delete (default, no ?hard flag) instead, or contact engineering for a quota-preserving removal.',
                     },
                     { status: 409 },
                 );

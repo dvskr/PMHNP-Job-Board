@@ -4,7 +4,7 @@ import { Metadata } from 'next';
 import EmployerSettingsClient from './EmployerSettingsClient';
 
 export const metadata: Metadata = {
-    title: 'Settings — Employer Portal',
+    title: 'Settings | Employer Portal',
 };
 
 export default async function EmployerSettingsPage() {

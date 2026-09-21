@@ -40,7 +40,7 @@ const faqs = [
   { q: 'What defines a mid-career PMHNP role?', a: 'Mid-career PMHNP positions target providers with 3-10+ years of experience. These roles offer leadership opportunities, higher autonomy, specialty focus, and premium compensation.' },
   { q: 'What leadership roles are available?', a: 'Mid-career PMHNPs can advance to clinical supervisor, program director, lead clinician, chief NP, or clinical director positions. Many roles involve mentoring new graduates and overseeing treatment protocols.' },
   { q: 'How do I transition into a specialty?', a: 'With 3+ years of general psychiatric experience, you can specialize in forensic psychiatry, addiction medicine, child/adolescent, geriatric, or consultation-liaison psychiatry. Additional certifications and targeted clinical rotations accelerate the transition.' },
-  { q: 'Is precepting valuable for mid-career growth?', a: 'Yes — precepting students and supervising new grads strengthens your clinical leadership profile, often qualifies for adjunct faculty appointments, and many employers offer preceptor bonuses.' },
+  { q: 'Is precepting valuable for mid-career growth?', a: 'Yes. Precepting students and supervising new grads strengthens your clinical leadership profile, often qualifies for adjunct faculty appointments, and many employers offer preceptor bonuses.' },
   { q: 'What salary growth can mid-career PMHNPs expect?', a: 'Mid-career PMHNPs generally out-earn entry-level positions. Leadership roles, specialty expertise, and multi-state licensure push compensation higher in high-demand markets.' },
 ];
 
@@ -83,7 +83,7 @@ export default async function MidCareerPage({ searchParams }: PageProps) {
         headlineSub="jobs, advance your career."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Mid-career PMHNP positions with leadership opportunities, specialized tracks, and premium compensation."

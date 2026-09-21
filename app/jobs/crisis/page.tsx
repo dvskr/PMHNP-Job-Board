@@ -97,7 +97,7 @@ export default async function CrisisPage({ searchParams }: PageProps) {
         headlineSub="jobs, crisis intervention."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Emergency psychiatric care with crisis intervention, stabilization, and acute assessment roles."

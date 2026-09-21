@@ -351,7 +351,7 @@ export default function AdminJobsPage() {
                       {job.employer}
                     </td>
                     <td style={{ ...s.td, whiteSpace: 'nowrap' }}>
-                      <span style={{ textTransform: 'capitalize' }}>{job.sourceProvider || '—'}</span>
+                      <span style={{ textTransform: 'capitalize' }}>{job.sourceProvider || 'Not set'}</span>
                     </td>
                     <td style={{ ...s.td, textAlign: 'center' }}>
                       <button onClick={() => toggleField(job.id, 'isPublished', !job.isPublished)}

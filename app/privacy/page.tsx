@@ -94,9 +94,9 @@ export default function PrivacyPage() {
           <h3 style={h3Style}>Service Providers (sub-processors)</h3>
           <p style={pStyle}>We use the following sub-processors to operate the service. Each receives only the data necessary for its specific function and is bound by a Data Processing Agreement. The complete current list with processing locations and DPA links is maintained at our <Link href="/sub-processors" style={{ color: '#0D9488', textDecoration: 'underline' }}>sub-processors page</Link>.</p>
           <ul style={ulStyle}>
-            <li style={liStyle}><strong>Vercel:</strong> Application hosting and performance telemetry (Speed Insights — only after analytics consent).</li>
+            <li style={liStyle}><strong>Vercel:</strong> Application hosting and performance telemetry (Speed Insights, only after analytics consent).</li>
             <li style={liStyle}><strong>Supabase:</strong> Database, authentication, and file storage (resumes, profile assets).</li>
-            <li style={liStyle}><strong>Stripe:</strong> Payment processing for employer job postings (hosted Checkout — card data never touches our servers).</li>
+            <li style={liStyle}><strong>Stripe:</strong> Payment processing for employer job postings (hosted Checkout; card data never touches our servers).</li>
             <li style={liStyle}><strong>Resend:</strong> Transactional and marketing email delivery.</li>
             <li style={liStyle}><strong>Google Analytics 4:</strong> Aggregate site analytics. Loads only after explicit analytics consent. IP anonymization and Google Signals are disabled. We honor Global Privacy Control (GPC) signals.</li>
             <li style={liStyle}><strong>Sentry:</strong> Application error monitoring (build-time wired; client-side reporting currently disabled).</li>
@@ -177,7 +177,7 @@ export default function PrivacyPage() {
 
           <h2 style={h2Style}>12. Automated Decision-Making and AI</h2>
           <p style={pStyle}>We use a candidate-matching algorithm (an AI model) to suggest jobs that may be a good fit and to surface relevant applicants to employers. The output is a non-binding score; a human (the employer) makes the final hiring decision.</p>
-          <p style={pStyle}>Under GDPR Article 22 you have the right to obtain human review of any decision that is based solely on automated processing. Because our matching is decision-support, not decision-making, this rarely applies — but if you believe the algorithm has produced an unfair outcome, contact <a href={`mailto:${brand.email.privacy}`} style={{ color: '#0D9488', textDecoration: 'underline' }}>{brand.email.privacy}</a> and we will review.</p>
+          <p style={pStyle}>Under GDPR Article 22 you have the right to obtain human review of any decision that is based solely on automated processing. Because our matching is decision-support, not decision-making, this rarely applies, but if you believe the algorithm has produced an unfair outcome, contact <a href={`mailto:${brand.email.privacy}`} style={{ color: '#0D9488', textDecoration: 'underline' }}>{brand.email.privacy}</a> and we will review.</p>
 
           <h2 style={h2Style}>13. Sensitive Information</h2>
           <p style={pStyle}>Some fields in your profile are sensitive under GDPR Article 9 or treated as &quot;sensitive personal information&quot; under CPRA. We collect them only when you choose to provide them and only for the specific purpose described:</p>
@@ -193,7 +193,7 @@ export default function PrivacyPage() {
             <li style={liStyle}>The right to know what personal information we collect, use, and disclose.</li>
             <li style={liStyle}>The right to delete personal information.</li>
             <li style={liStyle}>The right to correct inaccurate personal information.</li>
-            <li style={liStyle}>The right to opt-out of the &quot;sale&quot; or &quot;sharing&quot; of personal information for cross-context behavioral advertising.</li>
+            <li style={liStyle}>The right to opt out of the &quot;sale&quot; or &quot;sharing&quot; of personal information for cross-context behavioral advertising.</li>
             <li style={liStyle}>The right to limit the use of sensitive personal information.</li>
             <li style={liStyle}>The right to non-discrimination for exercising any of these rights.</li>
           </ul>
@@ -201,7 +201,7 @@ export default function PrivacyPage() {
             We do not sell personal information for money. Loading analytics or advertising scripts may meet the
             broader CPRA definition of &quot;sharing&quot;. To opt out, click{' '}
             <Link href="/do-not-sell" style={{ color: '#0D9488', textDecoration: 'underline', fontWeight: 600 }}>Do Not Sell or Share My Personal Information</Link>{' '}
-            or send a Global Privacy Control signal from your browser — we honor both.
+            or send a Global Privacy Control signal from your browser; we honor both.
           </p>
           <p style={pStyle}>To exercise any other CCPA right, file a request through our <Link href="/data-request" style={{ color: '#0D9488', textDecoration: 'underline' }}>Data Request form</Link> or email <a href={`mailto:${brand.email.privacy}`} style={{ color: '#0D9488', textDecoration: 'underline' }}>{brand.email.privacy}</a> with &quot;CCPA Request&quot; in the subject. We respond within 45 days.</p>
 
@@ -209,7 +209,7 @@ export default function PrivacyPage() {
           <ul style={ulStyle}>
             <li style={liStyle}>Access, rectification, erasure, restriction, data portability, and objection.</li>
             <li style={liStyle}>Withdrawal of consent at any time without affecting the lawfulness of processing carried out before withdrawal.</li>
-            <li style={liStyle}>The right to lodge a complaint with your supervisory authority — for the EU, find yours at <a href="https://edpb.europa.eu/about-edpb/about-edpb/members_en" target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', textDecoration: 'underline' }}>edpb.europa.eu</a>; for the UK, the Information Commissioner&apos;s Office at <a href="https://ico.org.uk" target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', textDecoration: 'underline' }}>ico.org.uk</a>.</li>
+            <li style={liStyle}>The right to lodge a complaint with your supervisory authority: for the EU, find yours at <a href="https://edpb.europa.eu/about-edpb/about-edpb/members_en" target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', textDecoration: 'underline' }}>edpb.europa.eu</a>; for the UK, the Information Commissioner&apos;s Office at <a href="https://ico.org.uk" target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', textDecoration: 'underline' }}>ico.org.uk</a>.</li>
           </ul>
           <p style={pStyle}>File requests through our <Link href="/data-request" style={{ color: '#0D9488', textDecoration: 'underline' }}>Data Request form</Link>. We respond within 30 days.</p>
 

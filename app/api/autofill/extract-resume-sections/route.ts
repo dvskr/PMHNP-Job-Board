@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
             audience: 'extension',
             action: 'view',
             ...extractRequestContext(req),
-            reason: 'chrome autofill — extract-resume-sections',
+            reason: 'chrome autofill: extract-resume-sections',
         });
         if (!freshResumeUrl) {
             return NextResponse.json({ error: 'Could not access stored resume', education: [], experience: [] }, { status: 200 });
@@ -193,7 +193,7 @@ function systemPrompt(): string {
 
 Your task is to extract STRUCTURED data from resume text and return it as valid JSON.
 
-You MUST be accurate — extract exact school names, degree types, dates, job titles, employer names, etc. from the resume.
+You MUST be accurate: extract exact school names, degree types, dates, job titles, employer names, etc. from the resume.
 Do not make up data. Only return what is actually in the resume.
 
 For dates, use YYYY-MM format (e.g., "2019-05"). If only a year is given, use YYYY-01.

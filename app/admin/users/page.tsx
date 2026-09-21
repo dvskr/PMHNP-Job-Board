@@ -276,7 +276,7 @@ export default function AdminUsersPage() {
                                 {filteredUsers.map(user => (
                                     <tr key={user.id}>
                                         <td style={{ ...td, fontWeight: 600, color: '#1A2E35', cursor: 'pointer' }} onClick={() => viewProfile(user.id)}>
-                                            {[user.firstName, user.lastName].filter(Boolean).join(' ') || '—'}
+                                            {[user.firstName, user.lastName].filter(Boolean).join(' ') || 'Not set'}
                                         </td>
                                         <td style={td}>{user.email}</td>
                                         <td style={td}>
@@ -294,7 +294,7 @@ export default function AdminUsersPage() {
                                                 <option value="admin">Admin</option>
                                             </select>
                                         </td>
-                                        <td style={td}>{user.company || '—'}</td>
+                                        <td style={td}>{user.company || 'Not set'}</td>
                                         <td style={td}>
                                             <div className="flex gap-1">
                                                 {user.openToOffers && badge('Open', 'green')}
@@ -342,7 +342,7 @@ export default function AdminUsersPage() {
                                 {filteredSubs.map(lead => (
                                     <tr key={lead.id}>
                                         <td style={{ ...td, fontWeight: 600, color: '#1A2E35' }}>{lead.email}</td>
-                                        <td style={td}>{lead.source || '—'}</td>
+                                        <td style={td}>{lead.source || 'Not set'}</td>
                                         <td style={td}>{lead.hasAccount ? badge('Yes', 'green') : badge('No', 'orange')}</td>
                                         <td style={td}>{lead.isSubscribed ? badge('Active', 'green') : badge('Unsub', 'red')}</td>
                                         <td style={td}>{lead.newsletterOptIn ? badge('Yes', 'green') : badge('No', 'gray')}</td>
@@ -386,8 +386,8 @@ export default function AdminUsersPage() {
                                         <td style={{ ...td, fontWeight: 600, color: '#1A2E35' }}>
                                             {lead.website ? <a href={lead.website} target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', textDecoration: 'none' }}>{lead.companyName}</a> : lead.companyName}
                                         </td>
-                                        <td style={td}>{lead.contactName || '—'}</td>
-                                        <td style={td}>{lead.contactEmail || '—'}</td>
+                                        <td style={td}>{lead.contactName || 'Not set'}</td>
+                                        <td style={td}>{lead.contactEmail || 'Not set'}</td>
                                         <td style={td}>{lead.hasAccount ? badge('Yes', 'green') : badge('No', 'orange')}</td>
                                         <td style={td}>
                                             {lead.status === 'prospect' && badge('Prospect', 'orange')}
@@ -459,12 +459,12 @@ export default function AdminUsersPage() {
                         {/* Profile info */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
                             {[
-                                { l: 'Name', v: `${selectedUser.firstName || ''} ${selectedUser.lastName || ''}`.trim() || '—' },
+                                { l: 'Name', v: `${selectedUser.firstName || ''} ${selectedUser.lastName || ''}`.trim() || 'Not set' },
                                 { l: 'Email', v: selectedUser.email },
                                 { l: 'Role', v: selectedUser.role },
-                                { l: 'Company', v: selectedUser.company || '—' },
-                                { l: 'Phone', v: selectedUser.phone || '—' },
-                                { l: 'Headline', v: selectedUser.headline || '—' },
+                                { l: 'Company', v: selectedUser.company || 'Not set' },
+                                { l: 'Phone', v: selectedUser.phone || 'Not set' },
+                                { l: 'Headline', v: selectedUser.headline || 'Not set' },
                                 { l: 'Joined', v: formatCT(selectedUser.createdAt, 'date') },
                                 { l: 'Status', v: `${selectedUser.profileVisible ? 'Visible' : 'Hidden'} / ${selectedUser.openToOffers ? 'Open' : 'Closed'}` },
                             ].map(f => (

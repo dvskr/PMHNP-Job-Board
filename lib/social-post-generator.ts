@@ -144,7 +144,7 @@ export function buildFacebookCaption(jobs: SocialJob[]): string {
     jobs.forEach((job, i) => {
         const emoji = JOB_EMOJIS[i] ?? `${i + 1}.`;
         const featured = job.isFeatured ? ' ⭐ FEATURED' : '';
-        const salary = job.displaySalary ? ` — ${job.displaySalary} 💰` : '';
+        const salary = job.displaySalary ? ` | ${job.displaySalary} 💰` : '';
         const loc = job.isRemote ? 'Remote' : job.location;
         const type = job.jobType ? ` | ${job.jobType}` : '';
         const link = `${BASE_URL}/jobs/${job.slug}`;
@@ -175,7 +175,7 @@ export function buildInstagramCaption(jobs: SocialJob[]): string {
 
     jobs.forEach((job, i) => {
         const emoji = JOB_EMOJIS[i] ?? `${i + 1}.`;
-        const salary = job.displaySalary ? ` — ${job.displaySalary}` : '';
+        const salary = job.displaySalary ? ` | ${job.displaySalary}` : '';
         lines.push(`${emoji} ${job.title}${salary}`);
     });
 
@@ -306,7 +306,7 @@ export async function runSocialPostPipeline(
                 result.success = false;
             }
         } else {
-            console.warn('[SOCIAL] POSTIZ_FB_INTEGRATION_ID not set — skipping FB');
+            console.warn('[SOCIAL] POSTIZ_FB_INTEGRATION_ID not set, skipping FB');
             result.facebook = { posted: false, error: 'Integration ID not configured' };
             result.reason = (result.reason ? result.reason + '; ' : '') + 'POSTIZ_FB_INTEGRATION_ID not set';
         }
@@ -335,7 +335,7 @@ export async function runSocialPostPipeline(
                 result.success = false;
             }
         } else {
-            console.warn('[SOCIAL] POSTIZ_INSTAGRAM_INTEGRATION_ID not set — skipping IG');
+            console.warn('[SOCIAL] POSTIZ_INSTAGRAM_INTEGRATION_ID not set, skipping IG');
             result.instagram = { posted: false, error: 'Integration ID not configured' };
             result.reason = (result.reason ? result.reason + '; ' : '') + 'POSTIZ_INSTAGRAM_INTEGRATION_ID not set';
         }

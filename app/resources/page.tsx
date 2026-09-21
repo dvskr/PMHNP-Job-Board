@@ -174,13 +174,13 @@ export default async function ResourcesPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({
         '@context': 'https://schema.org',
         '@type': 'CollectionPage',
-        name: `PMHNP Resources & Career Guides — ${currentYear}`,
+        name: `PMHNP Resources & Career Guides (${currentYear})`,
         description: 'Free career resources for psychiatric nurse practitioners.',
         url: 'https://pmhnphiring.com/resources',
         publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
         hasPart: [
           { '@type': 'Article', name: 'PMHNP Full Practice Authority Guide', url: 'https://pmhnphiring.com/resources/fpa-guide' },
-          { '@type': 'Article', name: '1099 vs W2 for PMHNPs — Compensation Comparison', url: 'https://pmhnphiring.com/resources/1099-vs-w2' },
+          { '@type': 'Article', name: '1099 vs W2 for PMHNPs: Compensation Comparison', url: 'https://pmhnphiring.com/resources/1099-vs-w2' },
           { '@type': 'Article', name: 'How to Start a PMHNP Private Practice', url: 'https://pmhnphiring.com/resources/private-practice-guide' },
           { '@type': 'Article', name: 'Multi-State Licensure for PMHNPs', url: 'https://pmhnphiring.com/resources/multi-state-licensure' },
         ],
@@ -202,7 +202,7 @@ export default async function ResourcesPage() {
             PMHNP Resources & Guides
           </h1>
           <p style={{ fontSize: '17px', color: '#5A4A42', maxWidth: '600px', margin: '0 auto 32px', lineHeight: 1.6 }}>
-            Everything you need for your PMHNP career — from licensure requirements to salary negotiation.
+            Everything you need for your PMHNP career, from licensure requirements to salary negotiation.
           </p>
 
           {/* Stat Pills */}
@@ -257,7 +257,7 @@ export default async function ResourcesPage() {
             }}>
               <div style={{ padding: '24px 28px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: '#F59E0B', background: '#FEF3C7', padding: '4px 10px', borderRadius: '20px' }}>Compensation</span>
-                <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', margin: '10px 0 6px' }}>1099 vs W2 for PMHNPs — Complete Comparison</h2>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', margin: '10px 0 6px' }}>1099 vs W2 for PMHNPs: Complete Comparison</h2>
                 <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.55, margin: 0 }}>
                   Independent contractor vs employee: tax strategies, income comparison, and which model maximizes your earnings.
                 </p>

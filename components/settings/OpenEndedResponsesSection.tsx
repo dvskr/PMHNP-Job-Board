@@ -8,8 +8,8 @@ interface OEQuestion { questionKey: string; questionText: string }
 
 const QUESTIONS: OEQuestion[] = [
     { questionKey: 'why_interested', questionText: 'Why are you interested in this position?' },
-    { questionKey: 'clinical_approach', questionText: 'Describe your clinical approach to psychiatric evaluation and treatment' },
-    { questionKey: 'challenging_case', questionText: 'Tell us about a challenging case you\'ve managed' },
+    { questionKey: 'clinical_approach', questionText: 'Describe your clinical approach to psychiatric evaluation and treatment.' },
+    { questionKey: 'challenging_case', questionText: 'Tell us about a challenging case you\'ve managed.' },
     { questionKey: 'reason_leaving', questionText: 'Why are you leaving your current position?' },
     { questionKey: 'career_goals', questionText: 'What are your long-term career goals?' },
     { questionKey: 'anything_else', questionText: 'Is there anything else you\'d like us to know?' },
@@ -68,7 +68,7 @@ export default function OpenEndedResponsesSection({ showMsg }: Props) {
                 <MessageSquare size={20} style={{ color: clayPalette.purple }} /> Saved Application Responses
             </h3>
             <p style={{ fontSize: '13px', color: clayPalette.textMuted, marginBottom: '24px', marginTop: 0 }}>
-                {filledCount} of {QUESTIONS.length} written — these auto-fill on job applications
+                {filledCount} of {QUESTIONS.length} written. These auto-fill on job applications.
             </p>
 
             {loading ? (

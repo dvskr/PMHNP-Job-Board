@@ -23,8 +23,8 @@ const FAQ_ITEMS = [
 export const metadata: Metadata = {
     // `absolute` opts out of the layout title template so we don't
     // double-suffix " | PMHNP Hiring".
-    title: { absolute: 'Contact PMHNP Hiring — Support, Employer & Partnership Inquiries' },
-    description: 'Reach the PMHNP Hiring team for job-seeker support, employer questions, partnerships, or feedback. We respond within 24-48 hours.',
+    title: { absolute: 'Contact PMHNP Hiring: Support, Employer & Partnership Inquiries' },
+    description: 'Reach the PMHNP Hiring team for job-seeker support, employer questions, partnerships, or feedback. We respond within 24 to 48 hours.',
     alternates: { canonical: `${brand.baseUrl}/contact` },
     openGraph: {
         title: 'Contact PMHNP Hiring',
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
         url: `${brand.baseUrl}/contact`,
         siteName: 'PMHNP Hiring',
     },
-    twitter: { card: 'summary_large_image', title: 'Contact PMHNP Hiring', description: 'Get in touch with the team — support, employer, and partnership inquiries.' },
+    twitter: { card: 'summary_large_image', title: 'Contact PMHNP Hiring', description: 'Get in touch with the team: support, employer, and partnership inquiries.' },
 };
 
 const clayCard: React.CSSProperties = {
@@ -153,7 +153,7 @@ export default function ContactPage() {
                                     </div>
                                     <div>
                                         <p style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', margin: '0 0 2px' }}>Response Time</p>
-                                        <p style={{ fontSize: '13px', color: '#8A9BA6', margin: 0 }}>We respond within 24-48 hours</p>
+                                        <p style={{ fontSize: '13px', color: '#8A9BA6', margin: 0 }}>We respond within 24 to 48 hours</p>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>

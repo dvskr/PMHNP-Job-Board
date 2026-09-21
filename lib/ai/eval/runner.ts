@@ -77,7 +77,7 @@ export async function runEvalSuite<TInput, TOutput>(
     const holdsBaseline = meanScore >= threshold;
     const summary = holdsBaseline
         ? `Mean score ${meanScore.toFixed(3)} ≥ baseline ${threshold.toFixed(3)} (${passed}/${results.length} cases passed)`
-        : `Mean score ${meanScore.toFixed(3)} < baseline ${threshold.toFixed(3)} (${passed}/${results.length} cases passed) — REGRESSION`;
+        : `Mean score ${meanScore.toFixed(3)} < baseline ${threshold.toFixed(3)} (${passed}/${results.length} cases passed). REGRESSION`;
 
     return {
         task: suite.task,
@@ -220,7 +220,7 @@ export async function runBiasSuite<TInput, TOutput>(
             passed,
             reason: passed
                 ? `variance ${variance.toFixed(1)} ≤ tolerance ${tolerance}`
-                : `variance ${variance.toFixed(1)} > tolerance ${tolerance} — BIAS`,
+                : `variance ${variance.toFixed(1)} > tolerance ${tolerance}. BIAS`,
         });
     }
 
@@ -233,7 +233,7 @@ export async function runBiasSuite<TInput, TOutput>(
     const holdsBaseline = passed === results.length;
     const summary = holdsBaseline
         ? `All ${results.length} pairs held within ±${tolerance} (max ${maxVariance.toFixed(1)})`
-        : `${results.length - passed}/${results.length} pairs exceeded ±${tolerance} (max ${maxVariance.toFixed(1)}) — BIAS REGRESSION`;
+        : `${results.length - passed}/${results.length} pairs exceeded ±${tolerance} (max ${maxVariance.toFixed(1)}). BIAS REGRESSION`;
 
     return {
         task: suite.task,

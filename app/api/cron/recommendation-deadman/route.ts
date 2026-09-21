@@ -80,7 +80,7 @@ export async function GET(req: Request): Promise<NextResponse> {
                     newestAgeHours: newestAgeHours ?? undefined,
                     embeddedCandidates,
                 });
-                log.warn('Recommendation pipeline stale — alert sent');
+                log.warn('Recommendation pipeline stale, alert sent');
             }
 
             return {

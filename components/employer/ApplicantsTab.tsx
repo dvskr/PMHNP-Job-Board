@@ -721,7 +721,7 @@ export default function ApplicantsTab() {
                                                             <p style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>📚 Education</p>
                                                             {app.candidate.education.map((edu, i) => (
                                                                 <p key={i} style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 2px', paddingLeft: '16px' }}>
-                                                                    {edu.degreeType}{edu.fieldOfStudy ? ` in ${edu.fieldOfStudy}` : ''} — {edu.schoolName}
+                                                                    {edu.degreeType}{edu.fieldOfStudy ? ` in ${edu.fieldOfStudy}` : ''}, {edu.schoolName}
                                                                     {edu.graduationDate && ` (${new Date(edu.graduationDate).getFullYear()})`}
                                                                 </p>
                                                             ))}
@@ -735,7 +735,7 @@ export default function ApplicantsTab() {
                                                             {app.candidate.workExperience.map((exp, i) => (
                                                                 <p key={i} style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 2px', paddingLeft: '16px' }}>
                                                                     {exp.jobTitle} at {exp.employerName}
-                                                                    {exp.startDate && ` (${new Date(exp.startDate).getFullYear()} - ${exp.isCurrent ? 'Present' : exp.endDate ? new Date(exp.endDate).getFullYear() : '?'})`}
+                                                                    {exp.startDate && ` (${new Date(exp.startDate).getFullYear()} to ${exp.isCurrent ? 'Present' : exp.endDate ? new Date(exp.endDate).getFullYear() : '?'})`}
                                                                     {exp.practiceSetting && ` · ${exp.practiceSetting}`}
                                                                 </p>
                                                             ))}
@@ -761,7 +761,7 @@ export default function ApplicantsTab() {
                                                             <p style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>🔑 Licenses</p>
                                                             {app.candidate.licenses.map((lic, i) => (
                                                                 <p key={i} style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 2px', paddingLeft: '16px' }}>
-                                                                    {lic.type} — {lic.state} ({lic.status})
+                                                                    {lic.type}, {lic.state} ({lic.status})
                                                                 </p>
                                                             ))}
                                                         </div>
