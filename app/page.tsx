@@ -95,7 +95,7 @@ export default async function Home() {
     },
     {
       q: 'How much do PMHNPs make?',
-      a: `PMHNPs earn an average annual salary of ${STAT_SOURCES.averageSalary.formatted} based on the ${STAT_SOURCES.averageSalary.source} (${STAT_SOURCES.averageSalary.asOf}). Actual pay varies by state, practice setting, experience, and whether a role is W-2 or 1099. Listings on PMHNP Hiring show the advertised range whenever the employer discloses one.`,
+      a: `The ${STAT_SOURCES.npAverageSalaryBls.source} reports an average of ${STAT_SOURCES.npAverageSalaryBls.formatted} (${STAT_SOURCES.npAverageSalaryBls.asOf}) for nurse practitioners across all specialties; it does not publish a separate psychiatric mental health figure. For PMHNP pay specifically, our salary guide computes medians from the advertised ranges in live postings and publishes the sample size behind every figure. Actual pay varies by state, practice setting, experience, and whether a role is W-2 or 1099. Listings on PMHNP Hiring show the advertised range whenever the employer discloses one.`,
     },
     {
       q: 'What is the PMHNP job outlook?',

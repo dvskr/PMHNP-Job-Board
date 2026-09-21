@@ -8,7 +8,7 @@ import { jsonLdString } from '@/lib/seo/json-ld';
  * implementation: same import path, same props.
  */
 import StateFAQAccordion from './StateFAQAccordion';
-import { NATIONAL_AVG_PMHNP_SALARY_FORMATTED } from '@/lib/salary-stats';
+import { NATIONAL_AVG_PMHNP_SALARY_FORMATTED, NATIONAL_AVG_SOURCE } from '@/lib/salary-stats';
 
 interface FAQItem {
     question: string;
@@ -41,7 +41,7 @@ function buildStateFaqs({
             question: `What is the average PMHNP salary in ${stateName}?`,
             answer: avgSalary > 0
                 ? `The average PMHNP salary in ${stateName} is approximately $${avgSalary},000 per year. However, salaries can range significantly based on experience level, practice setting (hospital, outpatient, private practice), and whether the position is full-time, part-time, or per diem. Telehealth positions may offer different compensation structures.`
-                : `PMHNP salaries in ${stateName} vary based on experience, setting, and job type. The national average for PMHNPs is approximately ${NATIONAL_AVG_PMHNP_SALARY_FORMATTED} per year. Check our salary guide for more detailed information about compensation by state and setting.`,
+                : `PMHNP salaries in ${stateName} vary based on experience, setting, and job type. For national context, ${NATIONAL_AVG_SOURCE} reports an average of ${NATIONAL_AVG_PMHNP_SALARY_FORMATTED} per year for nurse practitioners across all specialties. Our salary guide computes PMHNP medians from the advertised ranges in live postings, with the sample size shown beside every figure.`,
         },
         {
             question: `What are the PMHNP licensure requirements in ${stateName}?`,

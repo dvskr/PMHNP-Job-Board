@@ -10,6 +10,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import VideoJsonLd from '@/components/VideoJsonLd';
 import { Mail, HelpCircle } from 'lucide-react';
 import { config } from '@/lib/config';
+import { FULL_PRACTICE_SUMMARY } from '@/lib/state-practice-authority';
 
 const FAQ_OG_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-frequently-asked-questions.webp';
 
@@ -190,7 +191,7 @@ export default function FAQPage() {
     },
     {
       question: "Are there state licensure rules that affect demand for PMHNPs?",
-      answer: "Yes. States with Full Practice Authority (34 states + DC) allow PMHNPs to practice independently, driving higher demand and salaries. Reduced and restricted practice states require physician collaboration or supervision, which can limit the number of available positions and affect compensation."
+      answer: `Yes. States with Full Practice Authority (${FULL_PRACTICE_SUMMARY}, per the AANP State Practice Environment) allow PMHNPs to practice independently, driving higher demand and salaries. Reduced and restricted practice states require physician collaboration or supervision, which can limit the number of available positions and affect compensation. Our practice authority map at pmhnphiring.com/tools/practice-authority-map shows the classification for every state.`
     },
     {
       question: "What skills are employers seeking in PMHNP graduates?",

@@ -18,6 +18,8 @@
  * Never hardcode a salary / growth / shortage number anywhere else.
  */
 
+import { FULL_PRACTICE_STATE_COUNT, FULL_PRACTICE_SUMMARY } from './state-practice-authority';
+
 export interface StatSource {
     /** Raw numeric value used in JSON-LD or computations. */
     value: string;
@@ -39,12 +41,28 @@ export interface StatSource {
 export const STATS_LAST_REVIEWED = '2026-08-19';
 
 export const STAT_SOURCES = {
-    /** Average annual PMHNP salary, US-wide. */
-    averageSalary: {
+    /**
+     * Nurse Practitioner pay from BLS OEWS 29-1171.
+     *
+     * NOT a PMHNP figure, and the label must not imply one. BLS OEWS does not
+     * break out psychiatric mental health NPs; 29-1171 is Nurse Practitioners
+     * as a whole. This was previously described as "Average annual PMHNP
+     * salary", which attributed a specialty-specific claim to a source that
+     * does not report the specialty.
+     *
+     * For PMHNP pay, the live engine is the answer: lib/salary-report computes
+     * medians of advertised ranges from real postings and publishes the sample
+     * size. That is the number every salary surface should quote. This entry
+     * exists only for labor-market CONTEXT, cited as what it actually is.
+     *
+     * OPERATOR: `value` and `asOf` need re-verification against the current
+     * OEWS release before this is quoted anywhere new.
+     */
+    npAverageSalaryBls: {
         value: '155000',
         formatted: '$155,000',
         range: '$155,000 to $165,000',
-        source: 'BLS OEWS, Nurse Anesthetists / Nurse Practitioners (May 2024 release)',
+        source: 'BLS OEWS 29-1171, Nurse Practitioners (all specialties)',
         sourceUrl: 'https://www.bls.gov/oes/current/oes291171.htm',
         asOf: '2024-05',
     },
@@ -71,20 +89,33 @@ export const STAT_SOURCES = {
         asOf: '2024',
     },
 
-    /** States granting Full Practice Authority to NPs (incl. DC). */
+    /**
+     * States granting Full Practice Authority to NPs, DC included.
+     *
+     * DERIVED from lib/state-practice-authority.ts, never typed here. This
+     * entry used to carry a hand-written "27 states + DC" while that table
+     * listed a different number and the blog published a third, so the
+     * practice-authority map and the sentence beside it disagreed in front of
+     * readers and answer engines. The count now cannot drift from the data
+     * every map and state page renders from.
+     *
+     * OPERATOR: the classifications themselves still need a pass against the
+     * AANP State Practice Environment. Massachusetts in particular is listed
+     * as 'reduced' in our table and AANP may classify it as full.
+     */
     fullPracticeStates: {
-        value: '27',
-        formatted: '27 states + DC',
+        value: String(FULL_PRACTICE_STATE_COUNT),
+        formatted: FULL_PRACTICE_SUMMARY,
         source: 'AANP State Practice Environment',
         sourceUrl: 'https://www.aanp.org/advocacy/state/state-practice-environment',
         asOf: '2024',
     },
-} as const satisfies Record<string, StatSource>;
+} satisfies Record<string, StatSource>;
 
 /**
  * Render a stat with an inline citation suitable for visible HTML or JSON-LD
- * answer text. Example output for `averageSalary`:
- *   "$155,000 (BLS OEWS, May 2024)"
+ * answer text. Example output for `npAverageSalaryBls`:
+ *   "$155,000 to $165,000 (BLS OEWS 29-1171, Nurse Practitioners (all specialties), 2024-05)"
  */
 export function citedValue(s: StatSource): string {
     return `${s.range ?? s.formatted} (${s.source}, ${s.asOf})`;
