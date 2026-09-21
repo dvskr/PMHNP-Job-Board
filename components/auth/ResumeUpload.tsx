@@ -104,7 +104,7 @@ export default function ResumeUpload({
 
     /* client‑side validation */
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Invalid file type. Please upload a PDF or Word document (.pdf, .doc, .docx)')
+      setError('Invalid file type. Please upload a PDF or Word document (.pdf, .doc, .docx).')
       return
     }
     if (file.size > MAX_SIZE) {
@@ -417,7 +417,7 @@ export default function ResumeUpload({
                 Upload Your Resume
               </p>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                PDF or Word doc, max 5 MB — drag & drop or click to browse
+                PDF or Word doc, max 5 MB. Drag and drop or click to browse.
               </p>
             </>
           )}
@@ -445,7 +445,7 @@ export default function ResumeUpload({
           display: 'flex', alignItems: 'center', gap: '5px',
         }}>
           <Shield size={12} style={{ flexShrink: 0 }} />
-          Your resume is only shared when you apply or if you enable &ldquo;Profile visible to employers&rdquo;
+          Your resume is only shared when you apply or if you enable &ldquo;Profile visible to employers&rdquo;.
         </p>
 
         {errorEl}
@@ -654,7 +654,7 @@ export default function ResumeUpload({
         display: 'flex', alignItems: 'center', gap: '5px',
       }}>
         <Shield size={12} style={{ flexShrink: 0 }} />
-        Your resume is only shared when you apply or if you enable &ldquo;Profile visible to employers&rdquo;
+        Your resume is only shared when you apply or if you enable &ldquo;Profile visible to employers&rdquo;.
       </p>
 
       {errorEl}

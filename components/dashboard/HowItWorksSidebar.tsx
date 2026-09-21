@@ -64,7 +64,7 @@ export default function HowItWorksSidebar(): React.JSX.Element {
                     How this platform works
                 </h2>
                 <p style={{ margin: 0, fontSize: '12px', color: '#8A9BA6' }}>
-                    Three ways to apply — what the badges mean.
+                    Three ways to apply, and what the badges mean.
                 </p>
             </header>
 
@@ -82,7 +82,7 @@ export default function HowItWorksSidebar(): React.JSX.Element {
                     iconBg="#CCFBF1"
                     iconColor="#0F766E"
                     title="↗ Direct Apply"
-                    body="Goes straight to the employer's careers site — no aggregator middlemen. Either employer-posted or a vetted partner link."
+                    body="Goes straight to the employer's careers site, with no aggregator middlemen. Either employer-posted or a vetted partner link."
                 />
 
                 <Row
@@ -101,7 +101,7 @@ export default function HowItWorksSidebar(): React.JSX.Element {
                     <ExternalLink size={14} strokeWidth={2.5} />
                 </span>
                 <p style={{ margin: 0, fontSize: '12px', color: '#6B7F8A', lineHeight: 1.5 }}>
-                    Your <strong style={{ color: '#1A2E35' }}>Recommended for you</strong> feed prioritizes Easy Apply and Direct Apply first — they convert faster and won't send you on a wild goose chase.
+                    Your <strong style={{ color: '#1A2E35' }}>Recommended for you</strong> feed prioritizes Easy Apply and Direct Apply first: they convert faster and won't send you on a wild goose chase.
                 </p>
             </div>
         </aside>

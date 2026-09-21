@@ -17,7 +17,7 @@ export async function POST() {
   return NextResponse.json(
     {
       error: 'Free job posting has been retired',
-      message: 'All job posts now go through checkout. Please submit your listing from the post a job page.',
+      message: 'All job posts now go through checkout. Please submit your listing from the Post a Job page.',
       code: 'FREE_POSTING_RETIRED',
     },
     { status: 410 }

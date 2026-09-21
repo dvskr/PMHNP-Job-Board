@@ -88,7 +88,7 @@ export default function JobNotFound() {
         <Card padding="md" variant="bordered" className="bg-primary-50 border-primary-200">
           <div className="text-center py-8">
             <p className="text-gray-700 mb-4">
-              Check out our latest PMHNP job postings
+              Check out our latest PMHNP job postings.
             </p>
             <Link href="/jobs?sort=newest">
               <Button variant="primary" size="md">

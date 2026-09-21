@@ -116,7 +116,7 @@ function formatRelativeTime(date: Date): string {
 }
 
 function deltaPct(today: number, weekAgo: number): { pct: number; color: string; arrow: string } {
-    if (weekAgo === 0) return { pct: 0, color: '#7A6A62', arrow: '—' };
+    if (weekAgo === 0) return { pct: 0, color: '#7A6A62', arrow: '' };
     const pct = ((today - weekAgo) / weekAgo) * 100;
     return {
         pct,
@@ -203,7 +203,7 @@ export default async function SeoHealthPage() {
 
             {/* ─── 1. GSC SNAPSHOTS ─────────────────────────────────────────── */}
             <div style={card}>
-                <h2 style={h2}>1. Search Console — last 14 days</h2>
+                <h2 style={h2}>1. Search Console: last 14 days</h2>
                 {data.snapshots.length === 0 ? (
                     <p style={{ fontSize: '13px', color: '#7A6A62' }}>
                         No snapshots yet. The <code>/api/cron/gsc-health-check</code> cron runs daily at
@@ -295,7 +295,7 @@ export default async function SeoHealthPage() {
                                     {data.cronSummary.map((r) => (
                                         <tr key={r.name}>
                                             <td style={td}><code>{r.name}</code></td>
-                                            <td style={td}>{r._max.startedAt ? formatRelativeTime(r._max.startedAt) : '—'}</td>
+                                            <td style={td}>{r._max.startedAt ? formatRelativeTime(r._max.startedAt) : 'Not set'}</td>
                                             <td style={td}>{r._count._all}</td>
                                         </tr>
                                     ))}
@@ -322,9 +322,9 @@ export default async function SeoHealthPage() {
                                         <td style={{ ...td, color: r.success ? '#10B981' : '#EF4444', fontWeight: 600 }}>
                                             {r.success ? '✓ ok' : '✗ failed'}
                                         </td>
-                                        <td style={td}>{r.durationMs ? `${(r.durationMs / 1000).toFixed(1)}s` : '—'}</td>
+                                        <td style={td}>{r.durationMs ? `${(r.durationMs / 1000).toFixed(1)}s` : 'Not set'}</td>
                                         <td style={{ ...td, fontFamily: 'monospace', fontSize: '11px', maxWidth: '480px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {r.error ? r.error : r.metrics ? JSON.stringify(r.metrics) : '—'}
+                                            {r.error ? r.error : r.metrics ? JSON.stringify(r.metrics) : 'Not set'}
                                         </td>
                                     </tr>
                                 ))}
@@ -426,7 +426,7 @@ export default async function SeoHealthPage() {
                                 {data.recentSnippets.map((r) => (
                                     <tr key={r.citySlug}>
                                         <td style={td}><code>{r.citySlug}</code></td>
-                                        <td style={td}>{r.sourceModel ?? '—'}</td>
+                                        <td style={td}>{r.sourceModel ?? 'Not set'}</td>
                                         <td style={td}>{formatRelativeTime(r.generatedAt)}</td>
                                         <td style={{ ...td, color: r.approvedAt ? '#10B981' : '#F59E0B', fontWeight: 600 }}>
                                             {r.approvedAt ? '✓ approved' : '○ pending'}

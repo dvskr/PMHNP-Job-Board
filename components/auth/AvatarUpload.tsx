@@ -62,13 +62,13 @@ export default function AvatarUpload({
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError('Please select an image file')
+      setError('Please select an image file.')
       return
     }
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      setError('Image must be less than 2MB')
+      setError('Image must be smaller than 2 MB.')
       return
     }
 
@@ -198,7 +198,7 @@ export default function AvatarUpload({
 
       {/* Info Text */}
       <p className="text-xs text-gray-500 text-center max-w-xs">
-        JPG, PNG or GIF. Max 2MB.
+        JPG, PNG, or GIF. Max 2 MB.
       </p>
     </div>
   )

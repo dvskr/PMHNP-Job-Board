@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     // and description (audit 09 M-22). Spelled-out fields ensure the share
     // card matches the page identity.
     title: 'About PMHNP Hiring: The PMHNP-Only Job Board',
-    description: 'Built for the PMHNP community — thousands of psychiatric nurse practitioner jobs across all 50 states, free for job seekers, transparent for employers.',
+    description: 'Built for the PMHNP community: thousands of psychiatric nurse practitioner jobs across all 50 states, free for job seekers, transparent for employers.',
     type: 'website',
     url: `${brand.baseUrl}/about`,
     siteName: 'PMHNP Hiring',

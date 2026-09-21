@@ -59,7 +59,7 @@ const KNOWN_COMPANIES: Record<string, string[]> = {
  * doubt, this function returns the input unchanged.
  */
 function stripDepartmentTail(name: string): string {
-  const m = name.match(/^(.*?)\s+[-–—]\s+(.+?)$/);
+  const m = name.match(/^(.*?)\s+[-\u2013\u2014]\s+(.+?)$/);
   if (!m || !m[1] || !m[2]) return name;
   const head = m[1];
   const tail = m[2].trim();

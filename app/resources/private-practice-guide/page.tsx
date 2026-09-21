@@ -12,18 +12,18 @@ const LAST_REVIEWED = '2026-03-19';
 const HERO_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp';
 
 export const metadata: Metadata = {
-  title: 'How to Start a PMHNP Private Practice — Step-by-Step Guide 2026',
+  title: 'How to Start a PMHNP Private Practice: Step-by-Step Guide 2026',
   description: 'Complete guide to starting your own psychiatric NP private practice. LLC formation, insurance credentialing (CAQH, NPI), EHR setup, malpractice insurance, billing, overhead costs, and income projections ($200K-$300K+).',
   keywords: ['PMHNP private practice', 'how to start psychiatric NP private practice', 'PMHNP private practice income', 'psychiatric nurse practitioner own practice', 'PMHNP business startup', 'psych NP private practice'],
   openGraph: {
-    title: 'How to Start a PMHNP Private Practice — 2026 Guide',
+    title: 'How to Start a PMHNP Private Practice: 2026 Guide',
     description: 'Step-by-step guide to launching your own psychiatric nurse practitioner private practice.',
     type: 'article',
-    images: [{ url: HERO_IMAGE, width: 1280, height: 900, alt: 'How to Start a PMHNP Private Practice — 2026 Guide' }],
+    images: [{ url: HERO_IMAGE, width: 1280, height: 900, alt: 'How to Start a PMHNP Private Practice: 2026 Guide' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'How to Start a PMHNP Private Practice — 2026 Guide',
+    title: 'How to Start a PMHNP Private Practice: 2026 Guide',
     images: [HERO_IMAGE],
   },
   alternates: { canonical: `${brand.baseUrl}/resources/private-practice-guide` },
@@ -35,7 +35,7 @@ export default function PrivatePracticeGuidePage() {
       number: 1,
       title: 'Verify Your State Requirements',
       icon: Shield,
-      content: 'Check your state\'s practice authority laws. In 34 Full Practice Authority states + DC, you can practice independently. In reduced/restricted states, you\'ll need a collaborative agreement with a physician. See our Full Practice Authority Guide for details.',
+      content: 'Check your state\'s practice authority laws. In 34 Full Practice Authority states and DC, you can practice independently. In reduced/restricted states, you\'ll need a collaborative agreement with a physician. See our Full Practice Authority Guide for details.',
       link: { href: '/resources/fpa-guide', text: 'View FPA Guide →' },
     },
     {
@@ -69,10 +69,10 @@ export default function PrivatePracticeGuidePage() {
       icon: BookOpen,
       content: 'Choose an EHR (Electronic Health Records) system with integrated billing. Popular options for psychiatric private practices include:',
       details: [
-        'SimplePractice: $69-$99/month — Popular for psych practices, includes telehealth',
-        'TherapyNotes: $49-$59/month — Designed for mental health, excellent documentation',
-        'Valant: Custom pricing — Built specifically for behavioral health practices',
-        'DrChrono: $200+/month — Full-featured, good for larger practices',
+        'SimplePractice ($69-$99/month): popular for psych practices, includes telehealth',
+        'TherapyNotes ($49-$59/month): designed for mental health, excellent documentation',
+        'Valant (custom pricing): built specifically for behavioral health practices',
+        'DrChrono ($200+/month): full-featured, good for larger practices',
         'Consider outsourcing billing ($500-$1,500/month or 6-8% of collections)',
       ],
     },
@@ -157,8 +157,8 @@ export default function PrivatePracticeGuidePage() {
           __html: jsonLdString({
             '@context': 'https://schema.org',
             '@type': 'Article',
-            headline: 'How to Start a PMHNP Private Practice — 2026 Step-by-Step Guide',
-            description: 'Complete guide to starting your own psychiatric NP private practice — LLC formation, insurance credentialing, EHR setup, malpractice, billing, and income projections.',
+            headline: 'How to Start a PMHNP Private Practice: 2026 Step-by-Step Guide',
+            description: 'Complete guide to starting your own psychiatric NP private practice: LLC formation, insurance credentialing, EHR setup, malpractice, billing, and income projections.',
             datePublished: PUBLISHED_AT,
             dateModified: LAST_REVIEWED,
             image: HERO_IMAGE,
@@ -183,7 +183,7 @@ export default function PrivatePracticeGuidePage() {
               Last Reviewed: {new Date(LAST_REVIEWED).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })} | Step-by-step startup guide
             </p>
             <p className="text-lg md:text-xl text-teal-100 mb-6">
-              From LLC formation to full caseload — everything you need to launch your psychiatric NP practice
+              From LLC formation to full caseload: everything you need to launch your psychiatric NP practice.
             </p>
             <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
               <div className="text-center">

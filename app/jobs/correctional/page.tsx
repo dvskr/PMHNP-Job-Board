@@ -83,7 +83,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${categoryTitleCount(stats.totalJobs)}Correctional PMHNP Jobs — Forensic`,
+    title: `${categoryTitleCount(stats.totalJobs)}Correctional PMHNP Jobs: Forensic Psych NP`,
     // SEO Fix #7: trim description to ≤160 chars.
     description: `Find ${categoryTitleCount(stats.totalJobs)}correctional & forensic PMHNP jobs in prisons, jails, and detention facilities. Loan forgiveness eligibility and federal benefits at many facilities.`,
     keywords: ['correctional pmhnp jobs', 'forensic psychiatric nurse practitioner', 'prison pmhnp', 'corrections psych NP', 'forensic mental health NP jobs'],

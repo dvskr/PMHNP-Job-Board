@@ -86,14 +86,14 @@ export default function CreateAlertForm({ initialFilters = {}, onSuccess }: Crea
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to create alert');
+        throw new Error(result.error || 'Failed to create alert.');
       }
 
       setWasReactivated(result.reactivated === true);
       setIsSuccess(true);
       onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -118,8 +118,8 @@ export default function CreateAlertForm({ initialFilters = {}, onSuccess }: Crea
         </h3>
         <p className="mt-1 text-sm text-emerald-700">
           {wasReactivated
-            ? 'You already had this alert paused — we turned it back on. Your next digest arrives soon.'
-            : 'Your alert is active — your first digest arrives soon.'}
+            ? 'You already had this alert paused, so we turned it back on. Your next digest arrives soon.'
+            : 'Your alert is active. Your first digest arrives soon.'}
         </p>
       </div>
     );
@@ -149,10 +149,10 @@ export default function CreateAlertForm({ initialFilters = {}, onSuccess }: Crea
               : 'border-slate-300 focus:border-teal-500 focus:ring-teal-500'
             }`}
           {...register('email', {
-            required: 'Email is required',
+            required: 'Email is required.',
             pattern: {
               value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-              message: 'Please enter a valid email',
+              message: 'Please enter a valid email address.',
             },
           })}
         />

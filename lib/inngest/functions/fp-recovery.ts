@@ -110,7 +110,7 @@ export const fpRecoveryProbe = inngest.createFunction(
         });
 
         if (!applyLink) {
-            log.info('Skipping FP probe — no apply link');
+            log.info('Skipping FP probe: no apply link');
             return { skipped: 'no_apply_link' };
         }
 
@@ -128,15 +128,15 @@ export const fpRecoveryProbe = inngest.createFunction(
         });
 
         if (!job) {
-            log.info('Job no longer exists — skipping');
+            log.info('Job no longer exists, skipping');
             return { skipped: 'job_deleted' };
         }
         if (job.isPublished) {
-            log.info('Job already re-published by another mechanism — skipping');
+            log.info('Job already re-published by another mechanism, skipping');
             return { skipped: 'already_alive' };
         }
         if (job.isManuallyUnpublished) {
-            log.info('Job manually-unpublished by admin — never overriding');
+            log.info('Job manually-unpublished by admin, never overriding');
             return { skipped: 'manual_admin_override' };
         }
 

@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
                 audience: 'extension',
                 action: 'view',
                 ...extractRequestContext(req),
-                reason: 'chrome autofill — generate-answer',
+                reason: 'chrome autofill: generate-answer',
             });
             if (signedUrl) resumeText = await extractResumeText(signedUrl);
         }

@@ -209,7 +209,7 @@ export default function JobHealthDashboard() {
                         Job Health
                     </h1>
                     <p style={sub}>
-                        Live view of the dead-link / source-presence detection pipeline (Sprints 1–5).
+                        Live view of the dead-link / source-presence detection pipeline (Sprints 1 to 5).
                         Last check: {data.lastCheckAt ? fmtRelativeTime(data.lastCheckAt) : 'never'}.
                     </p>
                 </div>
@@ -241,7 +241,7 @@ export default function JobHealthDashboard() {
                     icon={<ShieldAlert size={20} />} accent={deadRatePct > 5 ? '#DC2626' : '#0D9488'}
                     label="Dead-suspected (live)"
                     value={c.deadSuspectedPublished}
-                    hint={`${deadRatePct.toFixed(1)}% of published — 3+ presence misses`}
+                    hint={`${deadRatePct.toFixed(1)}% of published, 3 or more presence misses`}
                 />
                 <MetricTile
                     icon={<TrendingDown size={20} />} accent="#F59E0B"
@@ -253,7 +253,7 @@ export default function JobHealthDashboard() {
                     icon={<CheckCircle2 size={20} />} accent="#6366F1"
                     label="Manually unpublished"
                     value={c.manuallyUnpublished}
-                    hint="Admin overrides — never auto-resurrected"
+                    hint="Admin overrides, never auto-resurrected"
                 />
             </div>
 

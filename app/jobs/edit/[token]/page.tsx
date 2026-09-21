@@ -607,7 +607,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 </h3>
                 <p style={{ fontSize: '13px', color: accentColor, margin: '0 0 14px', lineHeight: 1.5, opacity: 0.85 }}>
                   {expired
-                    ? `Expired on ${expiryDate} — no longer visible to candidates. Renew to relist.`
+                    ? `Expired on ${expiryDate} and no longer visible to candidates. Renew to relist.`
                     : `Expires on ${expiryDate}. Renew now to keep it visible.`}
                 </p>
                 <button
@@ -669,7 +669,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 </label>
                 <input
                   type="text" id="location"
-                  placeholder="e.g. Remote, New York NY"
+                  placeholder="e.g. Remote or New York, NY"
                   {...register('location')}
                   style={errors.location ? clayInputError : clayInput}
                 />
@@ -898,7 +898,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                       />
                       <div>
                         <span style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35' }}>External Application URL</span>
-                        <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '2px 0 0' }}>Candidates are redirected to your website or ATS</p>
+                        <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '2px 0 0' }}>Candidates are redirected to your website or ATS.</p>
                       </div>
                     </div>
                   </label>
@@ -918,7 +918,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                       />
                       <div>
                         <span style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35' }}>Receive on PMHNP Hiring</span>
-                        <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '2px 0 0' }}>Candidates apply directly — applications arrive in your dashboard</p>
+                        <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '2px 0 0' }}>Candidates apply directly, and applications arrive in your dashboard.</p>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
                           {['Resume', 'Cover letter', 'Email alerts'].map(f => (
                             <span key={f} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '8px', background: '#CCFBF1', color: '#0D9488', fontWeight: 500 }}>✓ {f}</span>

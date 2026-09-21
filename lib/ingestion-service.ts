@@ -411,7 +411,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
     for (let i = 0; i < rawJobs.length; i++) {
       // Check time budget — stop before hitting Vercel's 300s limit
       if (Date.now() - startTime > MAX_INGESTION_MS) {
-        console.warn(`[${source.toUpperCase()}] ⏰ Time budget exceeded at job ${i + 1}/${rawJobs.length} — stopping gracefully after ${((Date.now() - startTime) / 1000).toFixed(0)}s`);
+        console.warn(`[${source.toUpperCase()}] ⏰ Time budget exceeded at job ${i + 1}/${rawJobs.length}, stopping gracefully after ${((Date.now() - startTime) / 1000).toFixed(0)}s`);
         stoppedEarly = true;
         break;
       }
@@ -642,7 +642,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
             // Probe-system failure → accept the job. We never want a
             // bug or transient fault to reject otherwise-valid postings.
             console.warn(
-              `[${source.toUpperCase()}] Ingest probe failed for "${normalizedJob.title}" — accepting job:`,
+              `[${source.toUpperCase()}] Ingest probe failed for "${normalizedJob.title}", accepting job:`,
               probeErr,
             );
           }

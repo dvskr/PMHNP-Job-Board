@@ -1439,15 +1439,14 @@ test.describe('admin silent failures', () => {
   });
 
   test('admin dashboard subtitle follows the no-dash copy rule', async ({ page }) => {
-    // COPY: app/admin/page.tsx:214 renders "PMHNP Hiring — Overview · Last 30
-    // days"; product copy rules forbid em/en dashes.
+    // COPY: app/admin/page.tsx:214 renders "PMHNP Hiring overview, last 30
+    // days"; product copy rules forbid em/en dashes (fixed).
     const c = attach(page);
     await gotoAdmin(page, '/admin');
     const h1 = page.getByRole('heading', { level: 1, name: /Admin Dashboard/ });
     await expect(h1).toBeVisible({ timeout: 60_000 });
     const subtitle = await h1.locator('xpath=following-sibling::p[1]').innerText();
     assertClean(c, '/admin copy');
-    test.fail(true, 'em dash in the admin dashboard subtitle');
     expect(subtitle, `subtitle: ${subtitle}`).not.toMatch(/[\u2013\u2014]/);
   });
 });

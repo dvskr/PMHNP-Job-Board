@@ -88,7 +88,7 @@ export default function DoNotSellPage() {
                             </p>
                             <p style={{ ...pStyle, marginBottom: 0, color: '#065F46' }}>
                                 Analytics and marketing cookies are off. Clearing your browser data or switching
-                                devices will reset this preference — re-visit this page or use Global Privacy
+                                devices will reset this preference. Revisit this page or use Global Privacy
                                 Control for a more durable opt-out.
                             </p>
                         </div>
@@ -118,7 +118,7 @@ export default function DoNotSellPage() {
                 <h2 style={h2Style}>The most durable opt-out: Global Privacy Control</h2>
                 <p style={pStyle}>
                     Global Privacy Control (GPC) is a browser-level signal that travels with you across every
-                    site you visit. We honor it automatically — when GPC is on, the consent banner does not
+                    site you visit. We honor it automatically: when GPC is on, the consent banner does not
                     appear and analytics never load.
                 </p>
                 {gpcActive ? (

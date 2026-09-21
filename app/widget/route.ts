@@ -286,7 +286,7 @@ function renderHtml(args: {
     jobs.length === 0
       ? `<div class="pd-empty">
           <p>No PMHNP roles currently listed in <strong>${escape(state)}</strong>.</p>
-          <p>New jobs are added daily — <a href="${escape(baseUrl())}/jobs?utm_source=widget&amp;utm_medium=embed&amp;utm_campaign=${utmCampaign}" target="_blank" rel="noopener">browse all PMHNP jobs →</a></p>
+          <p>New jobs are added daily. <a href="${escape(baseUrl())}/jobs?utm_source=widget&amp;utm_medium=embed&amp;utm_campaign=${utmCampaign}" target="_blank" rel="noopener">Browse all PMHNP jobs →</a></p>
         </div>`
       : ''
 
@@ -762,7 +762,7 @@ function renderErrorHtml(args: { reason: string }): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>PMHNP Hiring — widget</title>
+<title>PMHNP Hiring Jobs Widget</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@600;700;800&display=swap" rel="stylesheet">

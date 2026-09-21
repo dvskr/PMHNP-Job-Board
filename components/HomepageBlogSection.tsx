@@ -38,7 +38,7 @@ const FEATURED_POSTS = [
     {
         category: 'Career Path',
         title: 'How to Become a PMHNP: The Complete Roadmap',
-        description: 'From BSN to board certification — every step, timeline, and insider tip for launching your psychiatric NP career in 2026.',
+        description: 'From BSN to board certification: every step, timeline, and insider tip for launching your psychiatric NP career in 2026.',
         href: '/blog/how-to-become-a-pmhnp',
     },
     {
@@ -62,7 +62,7 @@ const FEATURED_POSTS = [
     {
         category: 'Private Practice',
         title: 'PMHNP Private Practice Income: What to Expect',
-        description: 'Cash-pay vs insurance, overhead costs, and how practice owners in FPA states are clearing $200K–$300K+ annually.',
+        description: 'Cash-pay vs. insurance, overhead costs, and how practice owners in FPA states are clearing $200K to $300K+ annually.',
         href: '/blog/pmhnp-private-practice-income-2026',
     },
 ];

@@ -99,12 +99,12 @@ export default function InPlatformApplyForm({
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ];
         if (!allowedTypes.includes(file.type)) {
-            setError('Please upload a PDF or Word document');
+            setError('Please upload a PDF or Word document.');
             return;
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            setError('Resume must be under 5MB');
+            setError('Resume must be under 5MB.');
             return;
         }
 
@@ -123,7 +123,7 @@ export default function InPlatformApplyForm({
 
             if (!res.ok) {
                 const err = await res.json();
-                throw new Error(err.error || 'Upload failed');
+                throw new Error(err.error || 'Upload failed.');
             }
 
             const { url } = await res.json();
@@ -143,13 +143,13 @@ export default function InPlatformApplyForm({
 
         // Validate file type
         if (file.type !== 'application/pdf') {
-            setError('Cover letter must be a PDF file');
+            setError('Cover letter must be a PDF file.');
             return;
         }
 
         // Validate file size (5MB)
         if (file.size > 5 * 1024 * 1024) {
-            setError('Cover letter must be under 5MB');
+            setError('Cover letter must be under 5MB.');
             return;
         }
 
@@ -169,7 +169,7 @@ export default function InPlatformApplyForm({
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Upload failed');
+            if (!res.ok) throw new Error(data.error || 'Upload failed.');
 
             setCoverLetterUrl(data.path || data.url);
         } catch (err) {
@@ -207,7 +207,7 @@ export default function InPlatformApplyForm({
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.error || 'Failed to submit application');
+                throw new Error(data.error || 'Failed to submit application.');
             }
 
             setSubmitted(true);
@@ -224,7 +224,7 @@ export default function InPlatformApplyForm({
                 // Non-critical — ignore
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong');
+            setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -359,7 +359,7 @@ export default function InPlatformApplyForm({
                                     Using your profile resume
                                 </p>
                                 <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                                    Your saved resume will be shared with the employer
+                                    Your saved resume will be shared with the employer.
                                 </p>
                             </div>
                             <CheckCircle size={16} style={{ color: '#0d9488' }} />
@@ -524,7 +524,7 @@ export default function InPlatformApplyForm({
                                 }}
                             />
                             <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                                {coverLetter.length > 0 ? `${coverLetter.length} / 5,000 characters` : 'A brief note can help you stand out'}
+                                {coverLetter.length > 0 ? `${coverLetter.length} / 5,000 characters` : 'A brief note can help you stand out.'}
                             </p>
                         </>
                     ) : (

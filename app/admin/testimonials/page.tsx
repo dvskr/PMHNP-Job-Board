@@ -193,7 +193,7 @@ export default function AdminTestimonialsPage() {
                                                         <Star size={14} fill="#F59E0B" /> {t.rating}/5
                                                     </span>
                                                 ) : (
-                                                    <span style={muted}>—</span>
+                                                    <span style={muted}>Not set</span>
                                                 )}
                                             </td>
                                             <td style={{ ...td, whiteSpace: 'nowrap' }}>

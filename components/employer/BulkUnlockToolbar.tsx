@@ -134,7 +134,7 @@ export default function BulkUnlockToolbar({
       }
       setSelected(new Set());
     } catch {
-      setError('Network error — please try again.');
+      setError('Network error. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -197,9 +197,9 @@ export default function BulkUnlockToolbar({
 
       {remainingCredits !== null && remainingCredits === 0 && (
         <span style={{ fontSize: '12px', color: '#B45309' }}>
-          0 credits left —{' '}
+          0 credits left.{' '}
           <a href="/pricing" style={{ color: '#0D9488', textDecoration: 'underline' }}>
-            buy more
+            Buy more
           </a>
         </span>
       )}

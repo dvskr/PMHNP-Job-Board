@@ -88,7 +88,7 @@ export default function ScreeningAnswersSection({ showMsg }: Props) {
                 <ShieldCheck size={20} style={{ color: clayPalette.success }} /> Pre-filled Screening Answers
             </h3>
             <p style={{ fontSize: '13px', color: clayPalette.textMuted, marginBottom: '20px', marginTop: 0 }}>
-                {answeredCount} of {QUESTIONS.length} answered — these auto-fill screening questions on job applications
+                {answeredCount} of {QUESTIONS.length} answered. These auto-fill screening questions on job applications.
             </p>
 
             {loading ? (

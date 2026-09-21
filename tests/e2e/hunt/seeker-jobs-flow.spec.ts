@@ -1615,11 +1615,11 @@ test.describe('user-facing copy rules on seeker pages', () => {
   // Known em/en-dash copy on these routes (h0902); marked expected-to-fail so
   // the suite documents the violations without hiding them.
   const PAGES: Array<{ path: string; ready: RegExp; knownDash: string | null }> = [
-    { path: '/saved', ready: /My Jobs/, knownDash: 'app/saved/page.tsx: "Bookmark jobs you\'re interested in — they\'ll show up here." and "Title A–Z"' },
+    { path: '/saved', ready: /My Jobs/, knownDash: null },
     { path: '/my-applications', ready: /My Applications/, knownDash: null },
-    { path: '/settings?tab=personal', ready: /Settings/, knownDash: 'components/auth/ResumeUpload.tsx: "PDF or Word doc, max 5 MB — drag & drop or click to browse"' },
+    { path: '/settings?tab=personal', ready: /Settings/, knownDash: null },
     { path: '/job-alerts/manage', ready: /Manage Job Alerts/, knownDash: null },
-    { path: '/dashboard', ready: /./, knownDash: 'components/dashboard/DashboardContent.tsx:639: "— Here’s what’s happening with your job search."' },
+    { path: '/dashboard', ready: /./, knownDash: null },
     { path: '/dashboard/resume-studio', ready: /Your resumes/, knownDash: null },
   ];
 

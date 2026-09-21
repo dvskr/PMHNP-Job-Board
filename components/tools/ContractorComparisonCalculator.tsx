@@ -209,7 +209,7 @@ export default function ContractorComparisonCalculator() {
           Break-Even 1099 Hourly Rate
         </p>
         <div style={{ fontSize: 'clamp(34px, 6vw, 44px)', fontWeight: 800, color: '#134E4A', lineHeight: 1 }}>
-          {breakEvenHourlyRate > 0 ? `${formatRate(breakEvenHourlyRate)}/hr` : '—'}
+          {breakEvenHourlyRate > 0 ? `${formatRate(breakEvenHourlyRate)}/hr` : 'Not available'}
         </div>
         <p style={{ fontSize: '12.5px', color: '#134E4A', margin: '8px auto 0', maxWidth: '480px', lineHeight: 1.5 }}>
           At {form.hoursPerWeek || '0'} hrs/week for {form.weeksPerYear || '0'} weeks/year, a 1099 contract must pay at least

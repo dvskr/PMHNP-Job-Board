@@ -20,7 +20,7 @@ import {
 export const revalidate = 3600
 
 export const metadata: Metadata = {
-  title: 'For Program Directors — Free PMHNP Jobs Widget | PMHNP Hiring',
+  title: 'For Program Directors: Free PMHNP Jobs Widget | PMHNP Hiring',
   description:
     'Help your PMHNP students land their first job. Free embeddable jobs widget for your career services page, plus quarterly placement reports for your accreditation file.',
   alternates: { canonical: `${brand.baseUrl}/for-programs` },
@@ -148,7 +148,7 @@ export default async function ForProgramsPage() {
                   fontWeight: 400,
                 }}
               >
-                Two free tools for accredited PMHNP programs — an
+                Two free tools for accredited PMHNP programs: an
                 embeddable jobs widget for your career services page,
                 plus quarterly placement reports for your accreditation
                 file.
@@ -332,7 +332,7 @@ export default async function ForProgramsPage() {
                       marginBottom: '10px',
                     }}
                   >
-                    Telehealth · Full-time · $148k–$172k
+                    Telehealth · Full-time · $148k to $172k
                   </div>
                   <div
                     style={{
@@ -620,9 +620,9 @@ export default async function ForProgramsPage() {
                     Latest PMHNP Jobs
                   </div>
                   {[
-                    { t: 'Outpatient PMHNP — Telehealth', c: '#1A2E35' },
-                    { t: 'Inpatient PMHNP — UCSF Med Cntr', c: '#1A2E35' },
-                    { t: 'TMS NP — Bay Area Mental Health', c: '#1A2E35' },
+                    { t: 'Outpatient PMHNP, Telehealth', c: '#1A2E35' },
+                    { t: 'Inpatient PMHNP, UCSF Med Cntr', c: '#1A2E35' },
+                    { t: 'TMS NP, Bay Area Mental Health', c: '#1A2E35' },
                   ].map((row, i) => (
                     <div
                       key={i}
@@ -780,7 +780,7 @@ export default async function ForProgramsPage() {
                     lineHeight: 1.55,
                   }}
                 >
-                  PDF for your accreditation file — settings, salaries,
+                  PDF for your accreditation file: settings, salaries,
                   and employer types in your state.
                 </p>
               </div>
@@ -844,7 +844,7 @@ export default async function ForProgramsPage() {
                     fontWeight: 500,
                   }}
                 >
-                  Your program name on the widget — so students recognize
+                  Your program name on the widget, so students recognize
                   it as a service from your school, not a generic feed.
                 </p>
               </div>
@@ -900,7 +900,7 @@ export default async function ForProgramsPage() {
               lineHeight: 1.6,
             }}
           >
-            Pick your state and name your program — the live preview and
+            Pick your state and name your program; the live preview and
             embed snippet update as you type.
           </p>
 
@@ -987,7 +987,7 @@ export default async function ForProgramsPage() {
                 accent: '#E86C2C',
                 bg: '#FFF7ED',
                 title: 'Any other site',
-                body: 'Squarespace, Wix, Webflow, Canvas, Blackboard, plain HTML — all support an "Embed" or "Custom Code" block. Paste the snippet in.',
+                body: 'Squarespace, Wix, Webflow, Canvas, Blackboard, plain HTML: all support an "Embed" or "Custom Code" block. Paste the snippet in.',
                 note: 'If you can paste HTML anywhere on the page, you can install the widget.',
               },
             ].map(({ icon: Icon, accent, bg, title, body, note }) => (
@@ -1089,7 +1089,7 @@ export default async function ForProgramsPage() {
                 }}
               >
                 Forward the snippet to your web admin, or send us your
-                career-services URL — we'll install it for you.
+                career-services URL, and we'll install it for you.
               </p>
             </div>
             <a
@@ -1177,7 +1177,7 @@ export default async function ForProgramsPage() {
               {
                 step: '02',
                 title: 'We send the embed',
-                body: 'One line of HTML — give it to your IT team or paste it yourself. Co-branded with your program.',
+                body: 'One line of HTML: give it to your IT team or paste it yourself. Co-branded with your program.',
                 accent: '#E86C2C',
                 bg: '#FFF7ED',
               },
@@ -1282,7 +1282,7 @@ export default async function ForProgramsPage() {
             },
             {
               q: 'Do you collect data on our students?',
-              a: 'No. The widget is anonymous — we track aggregate clicks on the widget itself, but never tie clicks to individual students. No accounts, no PII, no cookies set on your students.',
+              a: 'No. The widget is anonymous. We track aggregate clicks on the widget itself, but never tie clicks to individual students. No accounts, no PII, no cookies set on your students.',
             },
             {
               q: "What if my IT team can't add an iframe?",
@@ -1290,11 +1290,11 @@ export default async function ForProgramsPage() {
             },
             {
               q: 'How is the placement report compiled?',
-              a: 'We aggregate the active PMHNP listings in your state by setting (outpatient, inpatient, telehealth, etc.), salary range, and employer type. After your widget has been live for ~90 days we add cohort-specific data showing where students from your program have been viewing roles.',
+              a: 'We aggregate the active PMHNP listings in your state by setting (outpatient, inpatient, telehealth, etc.), salary range, and employer type. After your widget has been live for about 90 days, we add cohort-specific data showing where students from your program have been viewing roles.',
             },
             {
               q: 'Can I see another program using the widget?',
-              a: 'Yes — once we have a few installs we share live examples on request. Email us.',
+              a: 'Yes. Once we have a few installs we share live examples on request. Email us.',
             },
           ].map(({ q, a }, i) => (
             <details

@@ -80,7 +80,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                 ? `${company.description.substring(0, 150)}... View open PMHNP positions at ${company.name}.`
                 : `Browse open Psychiatric Mental Health Nurse Practitioner (PMHNP) positions at ${company.name}. Find salary info, locations, and apply today.`,
             openGraph: {
-                title: `${company.name} — PMHNP Jobs`,
+                title: `${company.name}: PMHNP Jobs`,
                 // Expanded from a 30-char default so social cards (LinkedIn,
                 // Facebook) have enough copy to render a usable preview.
                 description: company.description

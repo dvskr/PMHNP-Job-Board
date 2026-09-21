@@ -47,10 +47,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     // SEO Fix #7: trim title to ≤60 chars (Google SERP cap). Previous title
     // ran 77 chars and got truncated mid-phrase, costing CTR.
-    title: `${jobCountDisplay} PMHNP Jobs — Psychiatric NP Job Board`,
+    title: `${jobCountDisplay} PMHNP Jobs | Psychiatric NP Job Board`,
     description: `Browse ${jobCountDisplay} PMHNP jobs updated daily. Remote, telehealth & in-person psychiatric NP positions with salary transparency. Free for job seekers.`,
     openGraph: {
-      title: `${jobCountDisplay} PMHNP Jobs - Find Your Next Position`,
+      title: `${jobCountDisplay} PMHNP Jobs: Find Your Next Position`,
       description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
       images: [
         {

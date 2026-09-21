@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
             const platform = (request.nextUrl.searchParams.get('platform') || 'facebook') as SocialPlatform;
 
             console.log('\n' + '='.repeat(60));
-            console.log(`[SOCIAL-CRON] DAILY SOCIAL POST — ${platform.toUpperCase()} ${dryRun ? '(DRY RUN)' : ''}`);
+            console.log(`[SOCIAL-CRON] DAILY SOCIAL POST: ${platform.toUpperCase()} ${dryRun ? '(DRY RUN)' : ''}`);
             console.log('='.repeat(60));
 
             const startTime = Date.now();

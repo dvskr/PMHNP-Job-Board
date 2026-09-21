@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
         // Record the skip as a real (skipped) run so cron_runs shows the cron is
         // firing — an unconfigured GSC key shouldn't make it look like it never ran.
         if (!keyJsonRaw) {
-            console.log('[CRON:gsc-health-check] Skipped — neither GSC_SERVICE_ACCOUNT_KEY nor GOOGLE_INDEXING_CREDENTIALS configured.');
+            console.log('[CRON:gsc-health-check] Skipped: neither GSC_SERVICE_ACCOUNT_KEY nor GOOGLE_INDEXING_CREDENTIALS is configured.');
             return {
                 response: NextResponse.json({
                     success: true,
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
         if (alerts.length > 0) {
             await sendDiscordMessage('', [
                 {
-                    title: '⚠ GSC Health Check — Regression Detected',
+                    title: '⚠ GSC Health Check: Regression Detected',
                     description: alerts.join('\n'),
                     color: 0xFFAA00,
                     timestamp: new Date().toISOString(),

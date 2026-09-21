@@ -189,6 +189,6 @@ export async function runJobSearchSuite(): Promise<JobSearchSuiteResult> {
         holdsBaseline,
         summary: holdsBaseline
             ? `Mean NDCG@10 ${meanNdcg.toFixed(3)} ≥ baseline ${baseline.toFixed(3)} (${passed}/${perCase.length} cases passed)`
-            : `Mean NDCG@10 ${meanNdcg.toFixed(3)} < baseline ${baseline.toFixed(3)} (${passed}/${perCase.length} cases passed) — REGRESSION`,
+            : `Mean NDCG@10 ${meanNdcg.toFixed(3)} < baseline ${baseline.toFixed(3)} (${passed}/${perCase.length} cases passed). REGRESSION`,
     };
 }

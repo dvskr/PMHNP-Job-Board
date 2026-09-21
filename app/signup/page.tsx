@@ -65,7 +65,7 @@ export default async function SignUpPage({
           title: 'Built for hiring PMHNPs',
         }
     : {
-        quote: 'Every listing here is a psychiatric mental health NP role — no sifting through generic nursing boards.',
+        quote: 'Every listing here is a psychiatric mental health NP role. No sifting through generic nursing boards.',
         name: 'PMHNP Hiring',
         title: 'Built exclusively for PMHNPs',
       }

@@ -73,7 +73,7 @@ const NEW_GRAD_PHRASES: ReadonlyArray<RegExp> = [
 
 // Order matters: the range pattern must run first so "1-2 years" doesn't get
 // captured by the plus pattern as just "1 year".
-const RANGE_PATTERN = /\b(\d{1,2})\s*(?:-|to|–)\s*(\d{1,2})\s+(?:years?|yrs?)\b/i;
+const RANGE_PATTERN = /\b(\d{1,2})\s*(?:-|to|\u2013)\s*(\d{1,2})\s+(?:years?|yrs?)\b/i;
 const PLUS_PATTERN =
   /\b(?:minimum\s+(?:of\s+)?|at\s+least\s+)?(\d{1,2})\s*\+?\s*(?:years?|yrs?)(?:\s+(?:of\s+)?experience|\s+exp)?/i;
 
@@ -82,7 +82,7 @@ const PLUS_PATTERN =
 // extracts "5 years" from "5 years of accredited training" and labels
 // a residency program as senior-only.
 const TRAINING_CONTEXT_PATTERN =
-  /\b\d{1,2}\s*(?:-|to|–)?\s*\d{0,2}\s*(?:years?|yrs?)\s+(?:of\s+)?(?:training|program|accredited|accreditation|curriculum|coursework|study|education|school|schooling|degree|residency|fellowship|nursing\s+program|pmhnp\s+program|nursing\s+school)\b/i;
+  /\b\d{1,2}\s*(?:-|to|\u2013)?\s*\d{0,2}\s*(?:years?|yrs?)\s+(?:of\s+)?(?:training|program|accredited|accreditation|curriculum|coursework|study|education|school|schooling|degree|residency|fellowship|nursing\s+program|pmhnp\s+program|nursing\s+school)\b/i;
 
 // Strong "this is fundamentally a training/new-grad job" signals.
 // Tightened to ONLY the structural program-type words, not bare

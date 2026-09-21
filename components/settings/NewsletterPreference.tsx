@@ -80,7 +80,7 @@ export default function NewsletterPreference({ email }: NewsletterPreferenceProp
                         Email Newsletter
                     </p>
                     <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                        Get the latest jobs &amp; career tips
+                        Get the latest jobs and career tips.
                     </p>
                 </div>
             </div>
@@ -90,7 +90,7 @@ export default function NewsletterPreference({ email }: NewsletterPreferenceProp
                 onClick={handleToggle}
                 disabled={!loaded || saving || !email}
                 aria-pressed={optIn}
-                aria-label={`Email newsletter ${optIn ? 'enabled' : 'disabled'} — click to toggle`}
+                aria-label={`Email newsletter ${optIn ? 'enabled' : 'disabled'}. Click to toggle.`}
                 style={{
                     position: 'relative',
                     width: '48px', height: '26px',

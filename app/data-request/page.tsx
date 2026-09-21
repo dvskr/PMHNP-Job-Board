@@ -28,7 +28,7 @@ const REQUEST_TYPES: { value: string; label: string; description: string }[] = [
     {
         value: 'object',
         label: 'Object to processing',
-        description: 'Ask us to stop a specific use of your data (e.g. AI candidate matching).',
+        description: 'Ask us to stop a specific use of your data (e.g., AI candidate matching).',
     },
     {
         value: 'restrict',
@@ -43,7 +43,7 @@ const REQUEST_TYPES: { value: string; label: string; description: string }[] = [
 ];
 
 const JURISDICTIONS = [
-    { value: '', label: '— Choose if you know —' },
+    { value: '', label: 'Choose if you know' },
     { value: 'gdpr', label: 'EEA / UK / Switzerland (GDPR / UK GDPR / FADP)' },
     { value: 'ccpa', label: 'California (CCPA / CPRA)' },
     { value: 'lgpd', label: 'Brazil (LGPD)' },
@@ -175,7 +175,7 @@ export default function DataRequestPage() {
                         <p style={{ ...helpStyle, marginTop: '16px' }}>
                             Don&apos;t have an account? You can still file a request by emailing{' '}
                             <a href="mailto:support@pmhnphiring.com?subject=Privacy%20Data%20Request" style={{ color: '#0D9488', textDecoration: 'underline' }}>support@pmhnphiring.com</a>{' '}
-                            — we&apos;ll verify your identity another way.
+                            and we&apos;ll verify your identity another way.
                         </p>
                     </div>
                 ) : submitted ? (
@@ -222,7 +222,7 @@ export default function DataRequestPage() {
                             />
                             <p style={helpStyle}>
                                 {authEmail
-                                    ? 'This is your account email — we verify requests against it and reply here.'
+                                    ? 'This is your account email. We verify requests against it and reply here.'
                                     : 'Use the email associated with your account. We’ll reply here.'}
                             </p>
                         </div>
@@ -235,7 +235,7 @@ export default function DataRequestPage() {
                         <div>
                             <label htmlFor="type" style={labelStyle}>What would you like us to do? *</label>
                             <select id="type" name="type" required style={inputStyle} defaultValue="">
-                                <option value="" disabled>— Choose a request type —</option>
+                                <option value="" disabled>Choose a request type</option>
                                 {REQUEST_TYPES.map((t) => (
                                     <option key={t.value} value={t.value}>{t.label}</option>
                                 ))}
@@ -262,7 +262,7 @@ export default function DataRequestPage() {
                             <label htmlFor="description" style={labelStyle}>Anything else we should know? (optional)</label>
                             <textarea id="description" name="description" rows={5} maxLength={2000} style={{ ...inputStyle, resize: 'vertical', minHeight: '120px' }} />
                             <p style={helpStyle}>
-                                E.g. specific records to delete, the alternate email you used, or which AI decision you want reviewed.
+                                For example, specific records to delete, the alternate email you used, or which AI decision you want reviewed.
                             </p>
                         </div>
 

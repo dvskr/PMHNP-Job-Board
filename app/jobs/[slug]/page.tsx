@@ -516,10 +516,10 @@ export async function generateMetadata({ params }: JobPageProps) {
     ? 'Remote'
     : (job.city && job.stateCode ? `${job.city}, ${job.stateCode}` : (job.state || ''));
   const fullTitle = titleLocation
-    ? `${job.title} at ${job.employer} — ${titleLocation}`
+    ? `${job.title} at ${job.employer}, ${titleLocation}`
     : `${job.title} at ${job.employer}`;
   const titleWithLocation = fullTitle.length > 65
-    ? `${job.title} — ${titleLocation || job.employer}`.slice(0, 65)
+    ? `${job.title}, ${titleLocation || job.employer}`.slice(0, 65)
     : fullTitle;
 
   // B5 (organic audit 2026-08): jobs whose source listing has been missing
@@ -633,7 +633,7 @@ function renderRemovedPage({ badge, badgeGradient, heading, subtext, title, empl
             {subtext}
           </p>
           <p style={{ fontSize: '14px', color: '#7A6A62', marginTop: '8px' }}>
-            Don&apos;t worry — we have hundreds of similar PMHNP positions available right now.
+            Don&apos;t worry: we have hundreds of similar PMHNP positions available right now.
           </p>
         </div>
 
@@ -1180,7 +1180,7 @@ export default async function JobPage({ params }: JobPageProps) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <p className="text-sm font-medium">
-                      {expiryStatus.text}{expiryStatus.isUrgent && ' — Apply soon!'}
+                      {expiryStatus.text}{expiryStatus.isUrgent && '. Apply soon.'}
                     </p>
                   </div>
                 )}

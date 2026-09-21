@@ -32,7 +32,7 @@ export const PAGE_IMAGE_SEO: Record<string, PageImageSEO> = {
     '/about': {
         image: `${BASE}/about-pmhnp-hiring-platform.webp`,
         alt: 'About PMHNP Hiring platform showing mission, methodology, and data sources for psychiatric nurse practitioner job board',
-        caption: 'About PMHNP Hiring - mission and methodology',
+        caption: 'About PMHNP Hiring: mission and methodology',
         title: 'About PMHNP Hiring',
     },
     '/for-employers': {

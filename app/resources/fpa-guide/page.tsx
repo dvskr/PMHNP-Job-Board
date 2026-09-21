@@ -15,11 +15,11 @@ const LAST_REVIEWED = '2026-03-19';
 const HERO_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp';
 
 export const metadata: Metadata = {
-  title: 'PMHNP Full Practice Authority Guide 2026 — All 50 States',
+  title: 'PMHNP Full Practice Authority Guide 2026: All 50 States',
   description: 'Complete state-by-state Full Practice Authority (FPA) guide for psychiatric nurse practitioners. See which states allow independent PMHNP practice, prescriptive authority rules, Nurse Licensure Compact states, and how FPA impacts salary (+12-15% premium).',
   keywords: ['PMHNP full practice authority', 'nurse practitioner independent practice states', 'FPA states 2026', 'PMHNP prescriptive authority by state', 'psych NP scope of practice', 'NLC compact states for NP'],
   openGraph: {
-    title: 'Full Practice Authority Guide for PMHNPs — 2026',
+    title: 'Full Practice Authority Guide for PMHNPs (2026)',
     description: 'State-by-state FPA classifications. See where psychiatric nurse practitioners can practice independently.',
     type: 'article',
     images: [{ url: HERO_IMAGE, width: 1280, height: 900, alt: 'PMHNP Full Practice Authority Guide 2026' }],
@@ -89,7 +89,7 @@ export default function FPAGuidePage() {
           __html: jsonLdString({
             '@context': 'https://schema.org',
             '@type': 'Article',
-            headline: 'PMHNP Full Practice Authority Guide 2026 — All 50 States',
+            headline: 'PMHNP Full Practice Authority Guide 2026: All 50 States',
             description: 'Complete state-by-state guide to Full Practice Authority for psychiatric nurse practitioners.',
             datePublished: PUBLISHED_AT,
             dateModified: LAST_REVIEWED,
@@ -144,7 +144,7 @@ export default function FPAGuidePage() {
                 What is Full Practice Authority (FPA)?
               </h2>
               <p className="mb-4" style={{ color: 'var(--text-secondary)' }}>
-                Full Practice Authority allows PMHNPs — also known as Psych NPs or psychiatric nurse practitioners — to evaluate patients, diagnose conditions, order and interpret diagnostic tests, prescribe medications (including controlled substances), and manage treatment plans <strong>without physician oversight</strong> or a collaborative agreement.
+                Full Practice Authority allows PMHNPs (also known as Psych NPs or psychiatric nurse practitioners) to evaluate patients, diagnose conditions, order and interpret diagnostic tests, prescribe medications (including controlled substances), and manage treatment plans <strong>without physician oversight</strong> or a collaborative agreement.
               </p>
               <div className="grid md:grid-cols-3 gap-4 mt-6">
                 <div className="p-4 rounded-lg bg-green-50 border border-green-200">
@@ -261,14 +261,14 @@ export default function FPAGuidePage() {
                 </h2>
               </div>
               <p className="mb-4" style={{ color: 'var(--text-secondary)' }}>
-                For remote and telehealth PMHNPs, practice authority in the <strong>patient&apos;s state</strong> determines your scope — not your home state. Key considerations:
+                For remote and telehealth PMHNPs, practice authority in the <strong>patient&apos;s state</strong> determines your scope, not your home state. Key considerations:
               </p>
               <ul className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>You must hold an APRN license in each state where your patients are located</span></li>
                 <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>DEA registration is required in each state where you prescribe controlled substances</span></li>
                 <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>Some telehealth companies handle multi-state licensing and credentialing for you</span></li>
                 <li className="flex gap-2"><AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" /><span>Restricted practice states may require a collaborative physician in that specific state</span></li>
-                <li className="flex gap-2"><AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" /><span>Pandemic-era telehealth waivers have mostly expired — verify current requirements</span></li>
+                <li className="flex gap-2"><AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" /><span>Pandemic-era telehealth waivers have mostly expired, so verify current requirements</span></li>
               </ul>
               <p className="text-sm mt-4" style={{ color: 'var(--text-secondary)' }}>
                 Browse <Link href="/jobs/remote" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>remote PMHNP jobs</Link> or <Link href="/jobs/telehealth" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>telehealth positions</Link> that handle multi-state licensing.

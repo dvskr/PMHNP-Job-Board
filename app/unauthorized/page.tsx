@@ -51,7 +51,7 @@ export default function UnauthorizedPage() {
                 </h1>
                 
                 <p style={{ fontSize: '15px', color: '#64748B', lineHeight: 1.6, maxWidth: '400px', margin: '0 auto 30px' }}>
-                    You don't have the necessary clearance or active permissions to view this resource.
+                    You don't have the permissions needed to view this resource.
                 </p>
 
                 <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -76,7 +76,7 @@ export default function UnauthorizedPage() {
                         textDecoration: 'none', transition: 'all 0.2s ease'
                     }}>
                         <Home size={18} />
-                        Go Config Home
+                        Go to Homepage
                     </Link>
                 </div>
             </div>

@@ -345,8 +345,8 @@ export default async function BlogIndexPage({
                                 </h3>
                                 <p style={{ fontSize: '14px', color: '#5A4A42' }}>
                                     {categoryFilter
-                                        ? 'No posts in this category yet. Check back soon!'
-                                        : 'No blog posts published yet. Check back soon!'}
+                                        ? 'No posts in this category yet. Check back soon.'
+                                        : 'No blog posts published yet. Check back soon.'}
                                 </p>
                             </div>
                         )}

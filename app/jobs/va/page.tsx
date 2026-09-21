@@ -99,7 +99,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     // B3 (organic audit 2026-08): categoryTitleCount drops the number below
     // the MIN_JOBS floor (no more literal "0 VA PMHNP Jobs" SERP titles) and
     // categoryLandingRobotsMeta noindexes sub-threshold landings.
-    title: `${categoryTitleCount(stats.totalJobs)}VA PMHNP Jobs — Federal Benefits, EDRP & Pension`,
+    title: `${categoryTitleCount(stats.totalJobs)}VA PMHNP Jobs: Federal Benefits, EDRP & Pension`,
     description: `Find ${categoryTitleCount(stats.totalJobs)}VA PMHNP jobs with federal pension, EDRP loan repayment up to $200K, FEHB coverage, and full practice authority nationwide. Updated daily.`,
     openGraph: {
       title: `${categoryTitleCount(stats.totalJobs)}VA PMHNP Jobs - Veterans Affairs`,
@@ -202,8 +202,8 @@ export default async function VAJobsPage({ searchParams }: PageProps) {
             </div>
             {jobs.length === 0 ? (
               <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No va positions at this time</h3>
-                <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>New va openings are added daily.</p>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No VA positions at this time</h3>
+                <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>New VA openings are added daily.</p>
                 <Link href="/jobs" className="inline-block px-6 py-3 text-white rounded-lg font-medium" style={{ backgroundColor: 'var(--color-primary)' }}>Browse All Jobs</Link>
               </div>
             ) : (
@@ -225,7 +225,7 @@ export default async function VAJobsPage({ searchParams }: PageProps) {
               <div style={{ padding: '24px' }}>
                 <Bell size={28} style={{ color: '#0D9488', marginBottom: '12px' }} />
                 <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 8px' }}>VA Alerts</h3>
-                <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px', lineHeight: 1.6, fontWeight: 500 }}>New va listings delivered daily.</p>
+                <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px', lineHeight: 1.6, fontWeight: 500 }}>New VA listings delivered daily.</p>
                 <Link href="/job-alerts" className="cat-cta-primary" style={{ display: 'block', width: '100%', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', background: '#0D9488', color: '#fff', textDecoration: 'none', boxShadow: '3px 3px 8px rgba(13,148,136,0.15)' }}>Create Alert</Link>
               </div>
             </div>
@@ -301,12 +301,12 @@ export default async function VAJobsPage({ searchParams }: PageProps) {
               <div key="01" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
                 <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>01</span>
                 <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>USAJobs Account</h3>
-                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Create a USAJobs.gov profile with a federal-format resume — standard CVs are rejected.</p>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Create a USAJobs.gov profile with a federal-format resume; standard CVs are rejected.</p>
               </div>
               <div key="02" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
                 <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>02</span>
                 <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>VetPro Credentialing</h3>
-                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Gather all documents for VHA VetPro credentialing — allow 60-90 days for processing.</p>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Gather all documents for VHA VetPro credentialing, and allow 60 to 90 days for processing.</p>
               </div>
               <div key="03" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
                 <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>03</span>

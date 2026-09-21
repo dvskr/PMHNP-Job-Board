@@ -41,7 +41,7 @@ const faqs = [
   { q: 'What salary do geriatric PMHNPs earn?', a: 'Pay varies by setting and location; listings on this page show the advertised range whenever the employer discloses one. Nursing home circuit roles with multiple facility coverage often pay premium rates due to travel and autonomous practice requirements.' },
   { q: 'What qualifications are needed?', a: 'Active PMHNP-BC, state APRN licensure, DEA registration, and experience with geriatric populations. Knowledge of Medicare billing, capacity evaluations, and age-specific pharmacokinetics is highly valued.' },
   { q: 'What settings hire geriatric PMHNPs?', a: 'Skilled nursing facilities (SNFs), memory care units, assisted living communities, geriatric outpatient clinics, home health agencies, and hospital geropsychiatry units.' },
-  { q: 'Why is demand for geriatric PMHNPs growing?', a: 'Over 10,000 Americans turn 65 daily. The aging population has increasing rates of dementia, depression, and anxiety — creating critical demand for specialized psychiatric providers in elder care.' },
+  { q: 'Why is demand for geriatric PMHNPs growing?', a: 'Over 10,000 Americans turn 65 daily. The aging population has increasing rates of dementia, depression, and anxiety, creating critical demand for specialized psychiatric providers in elder care.' },
 ];
 
 export async function generateMetadata(): Promise<Metadata> {

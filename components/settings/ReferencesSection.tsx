@@ -134,7 +134,7 @@ export default function ReferencesSection({ showMsg }: Props) {
             </h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                 <p style={{ fontSize: '13px', color: clayPalette.textMuted, margin: 0 }}>
-                    Most applications require 3 professional references — <strong style={{ color: refCount >= 3 ? clayPalette.accentLight : '#FB923C' }}>{refCount} of 3 added</strong>
+                    Most applications require 3 professional references: <strong style={{ color: refCount >= 3 ? clayPalette.accentLight : '#FB923C' }}>{refCount} of 3 added</strong>
                 </p>
                 <div style={{ flex: 1, maxWidth: '120px', height: '6px', borderRadius: '3px', background: clayPalette.border, overflow: 'hidden' }}>
                     <div style={{ width: `${progressPct}%`, height: '100%', borderRadius: '3px', background: refCount >= 3 ? clayPalette.accentLight : '#FB923C', transition: 'width 0.3s' }} />

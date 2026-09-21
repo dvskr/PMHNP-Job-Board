@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     // Mobile width = iPhone 13/14/15 standard (390px). Desktop = typical email max-width (640px).
     return new NextResponse(
-      `<!DOCTYPE html><html><head><title>All Email Previews — PMHNP Hiring</title>
+      `<!DOCTYPE html><html><head><title>All Email Previews: PMHNP Hiring</title>
       <style>
         * { box-sizing: border-box; }
         body { background: ${BG}; color: ${TEXT}; font-family: ${F}; margin: 0; padding: 0 16px 80px; }
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
     ).join('');
 
     return new NextResponse(
-      `<!DOCTYPE html><html><head><title>Email Previews — PMHNP Hiring</title>
+      `<!DOCTYPE html><html><head><title>Email Previews: PMHNP Hiring</title>
       <style>
         * { box-sizing: border-box; }
         body { background: ${BG}; color: ${TEXT}; font-family: ${F}; margin: 0; padding: 40px 20px; }

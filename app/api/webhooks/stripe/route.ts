@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       try {
         await prisma.processedStripeEvent.delete({ where: { eventId: event.id } });
       } catch (cleanupErr) {
-        logger.error('[Stripe] Failed to roll back dedupe row before 500 — Stripe retry may be silently dropped', cleanupErr, { eventId: event.id });
+        logger.error('[Stripe] Failed to roll back dedupe row before 500; Stripe retry may be silently dropped', cleanupErr, { eventId: event.id });
       }
     };
 
@@ -390,7 +390,7 @@ export async function POST(request: NextRequest) {
             // condition (e.g. transient DB read-after-write lag) can
             // self-heal. The job row's `isPublished=true` write above
             // stays — it's idempotent and a republish on retry is fine.
-            logger.error('[Stripe] EmployerJob not found for paid checkout — returning 500 so Stripe retries', undefined, {
+            logger.error('[Stripe] EmployerJob not found for paid checkout; returning 500 so Stripe retries', undefined, {
               jobId,
               sessionId: session.id,
             });
@@ -559,7 +559,7 @@ export async function POST(request: NextRequest) {
         if (!jobCharge) {
           // Not all invoices belong to a JobCharge (e.g. one-off invoices
           // sent outside the post-job flow). Safe to ignore.
-          logger.info('invoice.paid: no matching JobCharge — skipping', { invoiceId });
+          logger.info('invoice.paid: no matching JobCharge, skipping', { invoiceId });
           return NextResponse.json({ received: true });
         }
 
@@ -593,7 +593,7 @@ export async function POST(request: NextRequest) {
         const paymentIntentId = typeof charge.payment_intent === 'string' ? charge.payment_intent : null;
 
         if (!paymentIntentId) {
-          logger.warn('charge.refunded webhook with no payment_intent — cannot match to JobCharge', { chargeId: charge.id });
+          logger.warn('charge.refunded webhook with no payment_intent; cannot match to JobCharge', { chargeId: charge.id });
           return NextResponse.json({ received: true, note: 'no payment_intent' });
         }
 
@@ -604,7 +604,7 @@ export async function POST(request: NextRequest) {
         if (!jobCharge) {
           // Pre-audit-#28 charges don't have payment_intent persisted, OR
           // the refund is for a charge that originated outside our flow.
-          logger.warn('charge.refunded: no matching JobCharge — pre-#28 row or external charge', { paymentIntentId, chargeId: charge.id });
+          logger.warn('charge.refunded: no matching JobCharge (pre-#28 row or external charge)', { paymentIntentId, chargeId: charge.id });
           return NextResponse.json({ received: true, note: 'no matching JobCharge' });
         }
 
@@ -651,7 +651,7 @@ export async function POST(request: NextRequest) {
               data: { isPublished: false, isFeatured: false },
             });
           } else if (isPartial) {
-            logger.info('charge.refunded: partial refund — entitlement retained', {
+            logger.info('charge.refunded: partial refund, entitlement retained', {
               employerJobId: employerJob.id,
               refundedAmount,
               totalCents: jobCharge.amountCents,
@@ -672,7 +672,7 @@ export async function POST(request: NextRequest) {
             logger.error('Failed to send refund confirmation email', emailErr, { jobChargeId: jobCharge.id });
           }
         } else {
-          logger.warn('charge.refunded: JobCharge has no matching EmployerJob — orphaned ledger row', { jobChargeId: jobCharge.id });
+          logger.warn('charge.refunded: JobCharge has no matching EmployerJob (orphaned ledger row)', { jobChargeId: jobCharge.id });
         }
 
         logger.info('Refund processed', {
@@ -701,7 +701,7 @@ export async function POST(request: NextRequest) {
         const dispute = event.data.object as Stripe.Dispute;
         const paymentIntentId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : null;
         if (!paymentIntentId) {
-          logger.warn('charge.dispute.created with no payment_intent — cannot match to JobCharge', { disputeId: dispute.id });
+          logger.warn('charge.dispute.created with no payment_intent; cannot match to JobCharge', { disputeId: dispute.id });
           return NextResponse.json({ received: true, note: 'no payment_intent' });
         }
 
@@ -755,7 +755,7 @@ export async function POST(request: NextRequest) {
       try {
         await prisma.processedStripeEvent.delete({ where: { eventId: dedupedEventId } });
       } catch (cleanupErr) {
-        logger.error('[Stripe] Failed to roll back dedupe row in outer catch — Stripe retry may be silently dropped', cleanupErr, { eventId: dedupedEventId });
+        logger.error('[Stripe] Failed to roll back dedupe row in outer catch; Stripe retry may be silently dropped', cleanupErr, { eventId: dedupedEventId });
       }
     }
     return NextResponse.json(

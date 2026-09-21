@@ -43,7 +43,7 @@ export const STAT_SOURCES = {
     averageSalary: {
         value: '155000',
         formatted: '$155,000',
-        range: '$155,000–$165,000',
+        range: '$155,000 to $165,000',
         source: 'BLS OEWS, Nurse Anesthetists / Nurse Practitioners (May 2024 release)',
         sourceUrl: 'https://www.bls.gov/oes/current/oes291171.htm',
         asOf: '2024-05',

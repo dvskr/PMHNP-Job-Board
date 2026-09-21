@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
         const { jobId } = await request.json()
-        if (!jobId) return NextResponse.json({ error: 'jobId required' }, { status: 400 })
+        if (!jobId) return NextResponse.json({ error: 'jobId is required' }, { status: 400 })
 
         const savedJob = await prisma.savedJob.upsert({
             where: { userId_jobId: { userId: user.id, jobId } },
@@ -57,7 +57,7 @@ export async function DELETE(request: NextRequest) {
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
         const { jobId } = await request.json()
-        if (!jobId) return NextResponse.json({ error: 'jobId required' }, { status: 400 })
+        if (!jobId) return NextResponse.json({ error: 'jobId is required' }, { status: 400 })
 
         await prisma.savedJob.deleteMany({
             where: { userId: user.id, jobId },

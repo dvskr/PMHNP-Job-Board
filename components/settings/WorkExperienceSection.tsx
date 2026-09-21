@@ -60,7 +60,7 @@ function toMY(iso: string | null): { month: string; year: string } {
 }
 
 function fmtDate(iso: string | null): string {
-    if (!iso) return '—'
+    if (!iso) return 'Not set'
     const d = new Date(iso)
     return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
@@ -304,7 +304,7 @@ export default function WorkExperienceSection({ showMsg }: Props) {
                                                     {w.isCurrent && <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600, background: 'rgba(45,212,191,0.12)', color: clayPalette.accentLight }}>Current</span>}
                                                 </div>
                                                 <div style={{ fontSize: '13px', color: clayPalette.textSecondary, marginTop: '2px' }}>
-                                                    {w.employerName}{w.practiceSetting && <> · {w.practiceSetting}</>} · {fmtDate(w.startDate)} — {w.isCurrent ? 'Present' : fmtDate(w.endDate)}
+                                                    {w.employerName}{w.practiceSetting && <> · {w.practiceSetting}</>} · {fmtDate(w.startDate)} to {w.isCurrent ? 'Present' : fmtDate(w.endDate)}
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>

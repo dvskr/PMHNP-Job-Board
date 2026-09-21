@@ -78,7 +78,7 @@ export default async function EntryLevelPage({ searchParams }: PageProps) {
         headlineSub="jobs, start your career."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Launch your PMHNP career with supervised positions, mentorship, and structured training programs."
@@ -175,7 +175,7 @@ export default async function EntryLevelPage({ searchParams }: PageProps) {
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Before You Apply</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>What You Need</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
-            {[{ n: '01', t: 'PMHNP-BC', d: 'Active certification — the key credential employers require.' }, { n: '02', t: 'State License', d: 'APRN licensure and prescriptive authority in your state.' }, { n: '03', t: 'DEA Registration', d: 'Required for prescribing controlled substances.' }, { n: '04', t: 'Clinical Hours', d: 'Your 500+ clinical rotation hours qualify you for most roles.' }].map(item => (
+            {[{ n: '01', t: 'PMHNP-BC', d: 'Active certification, the key credential employers require.' }, { n: '02', t: 'State License', d: 'APRN licensure and prescriptive authority in your state.' }, { n: '03', t: 'DEA Registration', d: 'Required for prescribing controlled substances.' }, { n: '04', t: 'Clinical Hours', d: 'Your 500+ clinical rotation hours qualify you for most roles.' }].map(item => (
               <div key={item.n} className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
                 <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1' }}>{item.n}</span>
                 <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginTop: '12px', marginBottom: '8px' }}>{item.t}</h3>

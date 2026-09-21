@@ -300,7 +300,7 @@ export default function ProgramEmbedBuilder({ baseUrl }: Props) {
         <iframe
           key={`${stateCode}-${cleanProgram}-${limit}` /* force refresh when params change */}
           src={`/widget?state=${stateCode}&program=${encodeURIComponent(cleanProgram || 'Your Program')}${limit !== 6 ? `&limit=${limit}` : ''}`}
-          title={`Live PMHNP jobs widget — ${stateName}`}
+          title={`Live PMHNP jobs widget: ${stateName}`}
           loading="lazy"
           style={{
             width: '100%',
@@ -440,7 +440,7 @@ export default function ProgramEmbedBuilder({ baseUrl }: Props) {
           A small number of universities block all embedded content via a
           strict Content-Security-Policy. If the iframe above shows up
           blank or refuses to load, link your students to this page
-          instead — it filters to {stateName} PMHNP roles.
+          instead. It filters to {stateName} PMHNP roles.
         </p>
         <a
           href={fallbackUrl}

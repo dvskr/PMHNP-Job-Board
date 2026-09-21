@@ -83,7 +83,7 @@ export default function Comparison() {
                     <p style={{
                         fontSize: '15px', color: 'var(--text-muted)', margin: 0,
                     }}>
-                        See why PMHNPs prefer a specialized job board
+                        See why PMHNPs prefer a specialized job board.
                     </p>
                 </div>
 

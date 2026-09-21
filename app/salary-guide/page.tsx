@@ -756,7 +756,7 @@ export default async function SalaryGuidePage() {
               . Same tier-gated engine as this page, refreshed daily.
             </p>
             <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '10px' }}>
-              Maintained by Sathish Kumar, creator of PMHNP Hiring. For media inquiries or custom data requests, contact press@pmhnphiring.com
+              Maintained by Sathish Kumar, creator of PMHNP Hiring. For media inquiries or custom data requests, contact press@pmhnphiring.com.
             </p>
           </div>
 

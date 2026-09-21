@@ -137,7 +137,7 @@ export function checkJdGuardrails(jdHtml: string): GuardrailResult {
   const profanityHits = PROFANITY.filter((p) => lower.includes(p));
   if (profanityHits.length > 0) {
     errors.push(
-      `Job description contains language that doesn't belong in a recruiting post (${profanityHits.join(', ')}). Please revise.`,
+      `Job description contains language that does not belong in a recruiting post (${profanityHits.join(', ')}). Please revise.`,
     );
   }
 
@@ -145,7 +145,7 @@ export function checkJdGuardrails(jdHtml: string): GuardrailResult {
   const top = topKeywordDensity(text);
   if (top && top.share > MAX_KEYWORD_DENSITY) {
     errors.push(
-      `The word "${top.word}" makes up ${(top.share * 100).toFixed(1)}% of the description — Google may flag this as keyword stuffing. Rewrite for variety.`,
+      `The word "${top.word}" makes up ${(top.share * 100).toFixed(1)}% of the description. Google may flag this as keyword stuffing. Rewrite for variety.`,
     );
   }
 

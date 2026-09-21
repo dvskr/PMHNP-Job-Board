@@ -118,7 +118,7 @@ async function getNewGradStats() {
  */
 
 const newGradFaqs = [
-  { question: 'Can new grads get PMHNP jobs?', answer: 'Yes! Many employers actively recruit new PMHNP graduates, especially in underserved areas and community health settings.' },
+  { question: 'Can new grads get PMHNP jobs?', answer: 'Yes. Many employers actively recruit new PMHNP graduates, especially in underserved areas and community health settings.' },
   { question: 'What should new grads expect?', answer: 'Structured onboarding, clinical supervision, mentorship programs, and gradual caseload increase over 3-6 months.' },
   { question: 'What is the starting salary?', answer: 'Starting pay varies by setting and location; listings on this page show the advertised range whenever the employer discloses one. Compensation typically rises after the first year of experience.' },
   { question: 'Do I need experience to apply?', answer: 'Clinical rotation hours count as experience. Highlight any psychiatric nursing background and relevant certifications.' },
@@ -129,8 +129,8 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: `${categoryTitleCount(stats.totalJobs)}New Grad PMHNP Jobs — Entry-Level Psych NP`,
-        description: `Find ${categoryTitleCount(stats.totalJobs)}new grad PMHNP jobs. Entry-level psychiatric nurse practitioner positions with mentorship, fellowships, and residency programs. No experience required — start your PMHNP career today.`,
+        title: `${categoryTitleCount(stats.totalJobs)}New Grad PMHNP Jobs: Entry-Level Psych NP`,
+        description: `Find ${categoryTitleCount(stats.totalJobs)}new grad PMHNP jobs. Entry-level psychiatric nurse practitioner positions with mentorship, fellowships, and residency programs. No experience required. Start your PMHNP career today.`,
         keywords: ['new grad pmhnp', 'entry level pmhnp', 'pmhnp fellowship', 'new graduate psychiatric nurse practitioner', 'pmhnp residency'],
         openGraph: {
             title: `${categoryTitleCount(stats.totalJobs)}New Grad PMHNP Jobs - Entry Level Positions`,

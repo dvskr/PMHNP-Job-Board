@@ -884,7 +884,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                 const isUnpaid = !job.isPublished && job.paymentStatus === 'pending';
                                                 const disabled = expired || isUnpaid || togglingJobId === job.id;
                                                 const blockTitle = expired
-                                                    ? 'This posting has expired — renew or post a new listing to make changes.'
+                                                    ? 'This posting has expired. Renew it or post a new listing to make changes.'
                                                     : isUnpaid
                                                         ? 'Payment required to publish this posting. Complete checkout to make it live.'
                                                         : undefined;
@@ -958,7 +958,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                 lineHeight: 1.5,
                                             }}>
                                                 <Info size={13} style={{ flexShrink: 0, marginTop: '1px', color: '#B0BEC5' }} />
-                                                <span>Pausing hides the listing but doesn&apos;t extend it — your {config.durationDays}-day window keeps counting.</span>
+                                                <span>Pausing hides the listing but doesn&apos;t extend it. Your {config.durationDays}-day window keeps counting.</span>
                                             </div>
                                         )}
                                     </div>
@@ -1035,7 +1035,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                         borderRadius: '12px', padding: '12px 14px', marginBottom: '20px',
                                     }}>
                                         <p style={{ fontSize: '12px', color: '#92400E', margin: 0, lineHeight: 1.5 }}>
-                                            <strong>Heads up:</strong> this posting was published under the earlier free-post offer, which has ended. Archiving it creates no credit, and your next post is charged at the current rate.
+                                            <strong>Please note:</strong> this posting was published under the earlier free-post offer, which has ended. Archiving it creates no credit, and your next post is charged at the current rate.
                                         </p>
                                     </div>
                                 ) : (
@@ -1083,9 +1083,9 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                     const REASONS: { value: string; label: string; sub: string }[] = [
                         { value: 'filled', label: 'Filled the role', sub: 'You hired someone for this position' },
                         { value: 'enough_applicants', label: 'Got enough applicants', sub: 'You have enough candidates to review' },
-                        { value: 'too_many_applicants', label: 'Too many applicants', sub: 'Inbox is overwhelmed — pausing to catch up' },
+                        { value: 'too_many_applicants', label: 'Too many applicants', sub: 'Inbox is overwhelmed, pausing to catch up' },
                         { value: 'low_quality', label: 'Applicants weren’t a fit', sub: 'Quality of candidates didn’t match what you need' },
-                        { value: 'reposting_later', label: 'Reposting later', sub: 'Pausing temporarily — will republish soon' },
+                        { value: 'reposting_later', label: 'Reposting later', sub: 'Pausing temporarily, will republish soon' },
                         { value: 'other', label: 'Other', sub: 'Tell us in the box below' },
                     ];
                     const submitting = togglingJobId === unpublishTarget.id;
@@ -1116,7 +1116,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                 </div>
                                 <p style={{ fontSize: '13px', color: '#6B7F8A', margin: '0 0 18px', lineHeight: 1.5 }}>
                                     Why are you pausing <strong style={{ color: '#1A2E35' }}>{unpublishTarget.title}</strong>?
-                                    Helps us understand what&apos;s working and what isn&apos;t. Optional — you can skip.
+                                    This helps us understand what&apos;s working and what isn&apos;t. It is optional, so you can skip it.
                                 </p>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
@@ -1321,9 +1321,9 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                             {[
                                 <>Featured listings get <strong>3× more qualified applicants</strong> than non-featured posts.</>,
                                 <>Posts with a salary range get <strong>2× the apply clicks</strong> of posts without one.</>,
-                                <>Adding <strong>2–3 screening questions</strong> cuts unqualified applicants by ~40%.</>,
-                                <>Use <strong>in-platform apply</strong> instead of an external link — applications land directly in your dashboard so nothing slips through.</>,
-                                <>Don&apos;t wait for inbound — <strong>browse the Talent Pool</strong> and reach out to candidates who match your role.</>,
+                                <>Adding <strong>2 to 3 screening questions</strong> cuts unqualified applicants by ~40%.</>,
+                                <>Use <strong>in-platform apply</strong> instead of an external link, so applications land directly in your dashboard and nothing slips through.</>,
+                                <>Don&apos;t wait for inbound. <strong>Browse the Talent Pool</strong> and reach out to candidates who match your role.</>,
                             ].map((tip, i) => (
                                 <li key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                                     <span style={{
@@ -1515,7 +1515,7 @@ function EmployerFeedbackCard() {
                 setError(data.error || 'Couldn’t submit feedback right now. Please try again.');
             }
         } catch {
-            setError('Network error — please try again.');
+            setError('Network error. Please try again.');
         }
         setLoading(false);
     };
@@ -1644,7 +1644,7 @@ function EmployerTestimonialCard({ employerName }: { employerName: string }) {
                 setError(data.error || 'Couldn’t share your story right now. Please try again.');
             }
         } catch {
-            setError('Network error — please try again.');
+            setError('Network error. Please try again.');
         }
         setLoading(false);
     };

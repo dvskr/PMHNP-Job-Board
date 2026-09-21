@@ -13,7 +13,7 @@ export default function SalaryGuideForm() {
 
     if (!email || !email.includes('@')) {
       setStatus('error');
-      setMessage('Please enter a valid email');
+      setMessage('Please enter a valid email address.');
       return;
     }
 
@@ -34,7 +34,7 @@ export default function SalaryGuideForm() {
         setEmail('');
       } else {
         setStatus('error');
-        setMessage(data.error || 'Something went wrong');
+        setMessage(data.error || 'Something went wrong. Please try again.');
       }
     } catch {
       setStatus('error');

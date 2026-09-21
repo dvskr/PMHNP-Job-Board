@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
         action: 'parse',
         ip: reqCtx.ip,
         userAgent: reqCtx.userAgent,
-        reason: 'AI resume parse — preview-then-apply flow',
+        reason: 'AI resume parse: preview-then-apply flow',
       });
 
       if (!downloaded) {
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
         where: { supabaseId: user.id, resumeParseStatus: 'pending' },
         data: { resumeParseStatus: null },
       });
-      logger.info('Resume parsed (preview mode — no DB writes)', { userId: user.id });
+      logger.info('Resume parsed (preview mode, no DB writes)', { userId: user.id });
       return NextResponse.json({
         success: true,
         preview: true,

@@ -252,7 +252,7 @@ export default function robots(): MetadataRoute.Robots {
     ? [...FULL_DISALLOW, ...POST_DEADLINE_AUTH_REBLOCK]
     : FULL_DISALLOW;
   if (pastDeadline) {
-    console.info(`[robots.ts] AUTH_REBLOCK_DATE (${AUTH_REBLOCK_DATE}) passed — re-applying auth-page disallow.`);
+    console.info(`[robots.ts] AUTH_REBLOCK_DATE (${AUTH_REBLOCK_DATE}) passed, re-applying auth-page disallow.`);
   }
 
   return {

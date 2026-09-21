@@ -28,7 +28,7 @@ function EmailPreferencesContent() {
   useEffect(() => {
     const fetchPreferences = async () => {
       if (!token) {
-        setError('No token provided');
+        setError('No token was provided.');
         setLoading(false);
         return;
       }
@@ -38,7 +38,7 @@ function EmailPreferencesContent() {
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          setError(data.message || 'Invalid or expired link');
+          setError(data.message || 'This link is invalid or has expired.');
           return;
         }
 
@@ -49,7 +49,7 @@ function EmailPreferencesContent() {
           preferences: data.preferences ?? {},
         });
       } catch {
-        setError('Failed to load preferences');
+        setError('Failed to load your preferences.');
       } finally {
         setLoading(false);
       }
@@ -269,7 +269,7 @@ function EmailPreferencesContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold text-gray-900 text-sm">Monthly Newsletter</p>
-                <p className="text-xs text-gray-500 mt-1">PMHNP industry news, salary trends & career tips</p>
+                <p className="text-xs text-gray-500 mt-1">PMHNP industry news, salary trends, and career tips</p>
               </div>
               <div className="flex items-center gap-2">
                 {preferences?.newsletterOptIn ? (

@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
     title: {
-        template: '%s — PMHNP Hiring',
-        default: 'Employer Portal — PMHNP Hiring',
+        template: '%s | PMHNP Hiring',
+        default: 'Employer Portal | PMHNP Hiring',
     },
     robots: { index: false, follow: false },
 };

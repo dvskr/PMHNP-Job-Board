@@ -49,7 +49,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const [stats, params] = await Promise.all([getStats(), searchParams]);
   const page = Math.max(1, parseInt(params.page || '1'));
   return {
-    title: `${categoryTitleCount(stats.totalJobs)}Travel PMHNP Jobs — Locum Tenens`,
+    title: `${categoryTitleCount(stats.totalJobs)}Travel PMHNP Jobs: Locum Tenens`,
     description: `Find ${categoryTitleCount(stats.totalJobs)}travel PMHNP and locum tenens positions. Housing stipends, flexible nationwide assignments, premium pay.`,
     keywords: ['travel pmhnp jobs', 'locum tenens psych NP', 'travel psychiatric nurse practitioner', 'traveling PMHNP positions'],
     alternates: { canonical: `${brand.baseUrl}/jobs/travel` },

@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
             action: 'view',
             ip: reqCtx.ip,
             userAgent: reqCtx.userAgent,
-            reason: `applicants list ${kind} — application ${app.id}`,
+            reason: `applicants list ${kind}: application ${app.id}`,
         });
 
         const [signedResumeUrl, signedCoverLetterUrl] = await Promise.all([

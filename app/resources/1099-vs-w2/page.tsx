@@ -13,18 +13,18 @@ const LAST_REVIEWED = '2026-03-19';
 const HERO_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp';
 
 export const metadata: Metadata = {
-  title: '1099 vs W2 for PMHNPs — Complete Compensation Comparison 2026',
+  title: '1099 vs W2 for PMHNPs: Complete Compensation Comparison 2026',
   description: 'Compare 1099 independent contractor vs W2 employee PMHNP compensation. Tax strategies, benefits comparison, income calculator, and which model maximizes your psychiatric nurse practitioner earnings.',
   keywords: ['1099 vs W2 PMHNP', '1099 psychiatric nurse practitioner', 'PMHNP independent contractor taxes', 'contractor vs employee NP', '1099 PMHNP telehealth pay', 'psych NP compensation comparison'],
   openGraph: {
-    title: '1099 vs W2 for PMHNPs — Compensation Guide',
+    title: '1099 vs W2 for PMHNPs: Compensation Guide',
     description: 'Which pays more? Complete comparison of independent contractor vs employee compensation for psychiatric nurse practitioners.',
     type: 'article',
     images: [{ url: HERO_IMAGE, width: 1280, height: 900, alt: '1099 vs W2 PMHNP Compensation Guide' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: '1099 vs W2 for PMHNPs — Compensation Guide',
+    title: '1099 vs W2 for PMHNPs: Compensation Guide',
     images: [HERO_IMAGE],
   },
   alternates: { canonical: `${brand.baseUrl}/resources/1099-vs-w2` },
@@ -38,7 +38,7 @@ export default function CompensationGuidePage() {
     },
     {
       question: "How much more do 1099 PMHNPs make than W2?",
-      answer: "1099 PMHNPs earn 20-40% higher GROSS hourly rates than W2 ($75-$150/hr vs $55-$100/hr). However, after accounting for self-employment tax (15.3%), individual health insurance ($6K-$18K/year), malpractice ($1.5-3K/year), and no employer 401k match, the NET take-home difference is typically 10-20% higher for 1099 — IF you manage expenses and deductions well."
+      answer: "1099 PMHNPs earn 20-40% higher GROSS hourly rates than W2 ($75-$150/hr vs $55-$100/hr). However, after accounting for self-employment tax (15.3%), individual health insurance ($6K-$18K/year), malpractice ($1.5-3K/year), and no employer 401k match, the NET take-home difference is typically 10-20% higher for 1099, provided you manage expenses and deductions well."
     },
     {
       question: "What tax deductions can 1099 PMHNPs claim?",
@@ -85,7 +85,7 @@ export default function CompensationGuidePage() {
           __html: jsonLdString({
             '@context': 'https://schema.org',
             '@type': 'Article',
-            headline: '1099 vs W2 for PMHNPs — Complete Compensation Comparison 2026',
+            headline: '1099 vs W2 for PMHNPs: Complete Compensation Comparison 2026',
             description: 'Compare independent contractor vs employee compensation for psychiatric nurse practitioners.',
             datePublished: PUBLISHED_AT,
             dateModified: LAST_REVIEWED,
@@ -110,7 +110,7 @@ export default function CompensationGuidePage() {
               Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | Complete compensation comparison
             </p>
             <p className="text-lg md:text-xl text-blue-100 mb-6">
-              Which pays more? Independent contractor vs employee — taxes, benefits, and take-home pay compared
+              Which pays more? Independent contractor vs employee: taxes, benefits, and take-home pay compared.
             </p>
           </div>
         </div>
@@ -179,7 +179,7 @@ export default function CompensationGuidePage() {
                     </tr>
                     <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                       <td className="py-3 pr-4 font-medium" style={{ color: 'var(--text-primary)' }}>Business Deductions</td>
-                      <td className="py-3 px-4 text-right">—</td>
+                      <td className="py-3 px-4 text-right">Not applicable</td>
                       <td className="py-3 pl-4 text-right text-green-600">-$15,000</td>
                     </tr>
                     <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -249,7 +249,7 @@ export default function CompensationGuidePage() {
                     <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>CME courses, conferences, and subscriptions</span></li>
                     <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>Professional memberships (AANP, APNA, ISPN)</span></li>
                     <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>Technology: laptop, phone, EHR software</span></li>
-                    <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>QBI deduction (20% pass-through — consult CPA for eligibility)</span></li>
+                    <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>QBI deduction (20% pass-through; consult a CPA for eligibility)</span></li>
                   </ul>
                 </div>
                 <div>
@@ -265,7 +265,7 @@ export default function CompensationGuidePage() {
                     </div>
                     <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                       <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>W2 Employer 401(k)</div>
-                      <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>$23,000 employee + 3-6% employer match. Less total capacity but guaranteed match is free money.</div>
+                      <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>$23,000 employee + 3-6% employer match. Less total capacity, but a guaranteed match is free money.</div>
                     </div>
                   </div>
                 </div>
@@ -321,7 +321,7 @@ export default function CompensationGuidePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <Link href="/tools/1099-vs-w2-calculator" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
               <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🧮 1099 vs W-2 Calculator</h3>
-              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Run your own numbers — SE tax, benefits value, break-even rate.</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Run your own numbers: SE tax, benefits value, break-even rate.</p>
             </Link>
             <Link href="/jobs/1099" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
               <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>📋 Browse 1099 PMHNP Jobs</h3>

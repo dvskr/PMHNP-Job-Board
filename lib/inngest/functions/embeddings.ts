@@ -48,7 +48,7 @@ export interface CandidateEmbeddingRefreshEventData {
 export const refreshJobEmbedding = inngest.createFunction(
     {
         id: 'embedding-refresh-job',
-        name: 'Embedding refresh — job',
+        name: 'Embedding refresh: job',
         triggers: [{ event: 'embedding.refresh.job' }],
         // Coalesce edits per job within a 30-second window.
         throttle: { limit: 1, period: '30s', key: 'event.data.jobId' },
@@ -102,7 +102,7 @@ export const refreshJobEmbedding = inngest.createFunction(
 export const refreshCandidateEmbedding = inngest.createFunction(
     {
         id: 'embedding-refresh-candidate',
-        name: 'Embedding refresh — candidate',
+        name: 'Embedding refresh: candidate',
         triggers: [{ event: 'embedding.refresh.candidate' }],
         throttle: { limit: 1, period: '30s', key: 'event.data.supabaseId' },
         retries: 2,

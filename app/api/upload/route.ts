@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     if (!uploadType || !UPLOAD_TYPES.includes(uploadType)) {
       return NextResponse.json(
-        { error: 'Invalid upload type. Must be "resume", "cover_letter" or "avatar"' },
+        { error: 'Invalid upload type. Must be "resume", "cover_letter", or "avatar".' },
         { status: 400 }
       );
     }

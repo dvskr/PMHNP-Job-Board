@@ -24,9 +24,9 @@ export function formatCT(
     d: Date | string | null | undefined,
     mode: FormatCTMode = 'datetime',
 ): string {
-    if (d == null) return '—';
+    if (d == null) return 'Not set';
     const date = typeof d === 'string' ? new Date(d) : d;
-    if (Number.isNaN(date.getTime())) return '—';
+    if (Number.isNaN(date.getTime())) return 'Not set';
 
     const baseOpts: Intl.DateTimeFormatOptions = { timeZone: 'America/Chicago' };
     const opts: Intl.DateTimeFormatOptions =

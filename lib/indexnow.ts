@@ -62,7 +62,7 @@ export async function pingIndexNow(urls: string[]): Promise<{ ok: boolean; submi
 
   const key = getKey();
   if (!key) {
-    logger.info('IndexNow ping skipped — INDEXNOW_API_KEY / INDEXNOW_KEY not set', { count: filtered.length });
+    logger.info('IndexNow ping skipped: INDEXNOW_API_KEY / INDEXNOW_KEY not set', { count: filtered.length });
     return { ok: false, submitted: 0, reason: 'no_key' };
   }
 

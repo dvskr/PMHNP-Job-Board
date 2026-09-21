@@ -201,7 +201,7 @@ export default async function MetroLandingPage({ params }: PageProps) {
         breadcrumbs={['Careers', metro.state, metro.city]}
         headlineLine1={metro.city}
         headlineLine2="PMHNP"
-        headlineSub={`jobs in ${metro.stateCode}, find your fit.`}
+        headlineSub={`jobs in ${metro.stateCode}. Find your fit.`}
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
           { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
@@ -380,7 +380,7 @@ export default async function MetroLandingPage({ params }: PageProps) {
               <div style={{ padding: '24px 22px', flex: 1 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Cost of Living</h3>
                 <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
-                  {metro.avgCostOfLiving} — {metro.costOfLivingNote.split('.')[0]}.
+                  {metro.avgCostOfLiving}. {metro.costOfLivingNote.split('.')[0]}.
                 </p>
               </div>
             </div>
@@ -404,7 +404,7 @@ export default async function MetroLandingPage({ params }: PageProps) {
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary Outlook</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  {metro.city} PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K–$200K'} annually — {metro.costOfLivingNote.split('.')[0].toLowerCase()}.
+                  {metro.city} PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K to $200K'} annually, and {metro.costOfLivingNote.split('.')[0].toLowerCase()}.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
@@ -420,7 +420,7 @@ export default async function MetroLandingPage({ params }: PageProps) {
               <Bell size={28} style={{ color: '#0D9488', marginBottom: '14px' }} />
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>Job Alerts</h3>
               <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
-                New {metro.city} listings delivered to your inbox — be first to apply.
+                New {metro.city} listings delivered to your inbox, so you can be first to apply.
               </p>
               <Link href={`/job-alerts?location=${encodeURIComponent(metro.city)}`} className="metro-cta" style={{
                 padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',

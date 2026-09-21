@@ -87,9 +87,9 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
           <div>
             <span className="ab-kicker"><Target size={12} /> For PMHNPs</span>
             <h2 style={{ marginTop: 20 }}>Stop scrolling past generic <em>RN postings.</em></h2>
-            <p style={{ marginTop: 22, color: 'var(--ink-soft)', fontSize: 18, maxWidth: 540 }}>General nursing boards bury psychiatric NP roles under thousands of primary-care postings. This site only lists psychiatric mental health NP jobs — filtered by setting, salary, license, and the actual scope of practice you train in.</p>
+            <p style={{ marginTop: 22, color: 'var(--ink-soft)', fontSize: 18, maxWidth: 540 }}>General nursing boards bury psychiatric NP roles under thousands of primary-care postings. This site only lists psychiatric mental health NP jobs, filtered by setting, salary, license, and the actual scope of practice you train in.</p>
             <div className="ab-feat-list">
-              <div className="ab-feat"><div className="ab-feat-ico"><CheckCircle size={22} /></div><div><h4>100% Specialized Filters</h4><p>Search by psychiatric setting — Inpatient, Outpatient, Telehealth, Correctional, Addiction, Geriatric — instead of typical nursing tags.</p></div></div>
+              <div className="ab-feat"><div className="ab-feat-ico"><CheckCircle size={22} /></div><div><h4>100% Specialized Filters</h4><p>Search by psychiatric setting (Inpatient, Outpatient, Telehealth, Correctional, Addiction, Geriatric) instead of typical nursing tags.</p></div></div>
               <div className="ab-feat"><div className="ab-feat-ico coral"><DollarSign size={22} /></div><div><h4>Unmatched Salary Transparency</h4><p>We pierce the veil on compensation, comparing state benchmarks with thousands of real-time listings so you can negotiate fairly.</p></div></div>
               <div className="ab-feat"><div className="ab-feat-ico" style={{ color: '#6F63C0' }}><CalendarDays size={22} /></div><div><h4>Licensure-aware Alerts</h4><p>Search and alerts filter by state and work mode, so your feed stays focused on roles that fit where you practice.</p></div></div>
             </div>
@@ -126,7 +126,7 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
             <div className="ab-feat-list">
               <div className="ab-feat"><div className="ab-feat-ico coral"><Target size={22} /></div><div><h4>High-Intent Audience</h4><p>The talent on PMHNP Hiring is actively surveying psychiatric scopes, not casually browsing, so your post reaches people who can actually take the role.</p></div></div>
               <div className="ab-feat"><div className="ab-feat-ico" style={{ color: '#6F63C0' }}><BarChart3 size={22} /></div><div><h4>Analytics & Placements</h4><p>Secure featured placements and monitor actionable apply-funnel analytics directly from your verified employer dashboard.</p></div></div>
-              <div className="ab-feat"><div className="ab-feat-ico"><Layers size={22} /></div><div><h4>Calibrated Matching</h4><p>Our taxonomy maps exact subspecialties — SMI, C/L, substance use, perinatal — so you spend less time filtering and more time hiring.</p></div></div>
+              <div className="ab-feat"><div className="ab-feat-ico"><Layers size={22} /></div><div><h4>Calibrated Matching</h4><p>Our taxonomy maps exact subspecialties (SMI, C/L, substance use, perinatal), so you spend less time filtering and more time hiring.</p></div></div>
             </div>
             <div style={{ display: 'flex', gap: 12, marginTop: 36, flexWrap: 'wrap' }}>
               <Link href="/employers" className="ab-btn ab-btn-primary">Post a role</Link>
@@ -161,7 +161,7 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
             <span className="ab-kicker"><Users size={12} /> Who built this</span>
             <h2 style={{ marginTop: 20 }}>One person, one focused job board.</h2>
             <p>I built PMHNP Hiring because every general nursing job site I looked at made psychiatric NPs do the same thing over and over: filter out hundreds of unrelated RN postings just to find the handful of psych roles. There was no good reason for that, so I built something focused on one specialty instead.</p>
-            <p>I&apos;m a solo developer who built this entire project end to end, and I&apos;m not a clinician. My job here is the data pipeline — pulling job postings, normalizing salary fields, mapping state licensure rules, and surfacing the result through a fast, ad-light interface. The clinical content on this site is editorial commentary aggregated from public sources, not medical advice.</p>
+            <p>I&apos;m a solo developer who built this entire project end to end, and I&apos;m not a clinician. My job here is the data pipeline: pulling job postings, normalizing salary fields, mapping state licensure rules, and surfacing the result through a fast, ad-light interface. The clinical content on this site is editorial commentary aggregated from public sources, not medical advice.</p>
             <p>If something on the site is wrong, missing, or could be better, the fastest way to reach me is the <Link href="/contact" style={{ color: 'inherit', textDecoration: 'underline' }}>contact page</Link>.</p>
             <div className="ab-sig">
               <div className="ab-sig-mark">SK</div>
@@ -191,7 +191,7 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
           <div>
             <span className="ab-kicker coral" style={{ background: 'rgba(255,255,255,0.28)', color: '#fff', boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.4), inset -2px -2px 4px rgba(170,80,55,0.2)' }}><CheckCircle size={12} /> Ready when you are</span>
             <h2 style={{ marginTop: 20 }}>Initialize <em>your search.</em></h2>
-            <p>Browse open PMHNP roles by state, scope, and care setting — or open a direct conduit with our team to talk through a role you&apos;ve had your eye on.</p>
+            <p>Browse open PMHNP roles by state, scope, and care setting, or open a direct conduit with our team to talk through a role you&apos;ve had your eye on.</p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 32, flexWrap: 'wrap' }}>
               <Link href="/jobs" className="ab-btn ab-btn-dark">Browse all jobs</Link>
             </div>

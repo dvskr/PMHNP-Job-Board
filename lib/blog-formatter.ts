@@ -215,13 +215,13 @@ function boldStatistics(content: string): string {
     // Bold dollar amounts like $139K, $155,000, $126K–$155K
     // Negative lookbehind for ** and [ to avoid double-bolding or breaking links
     content = content.replace(
-        /(?<!\*\*)(?<!\[)(\$[\d,]+K?(?:\s*[–-]\s*\$[\d,]+K?)?)(?!\*\*)(?!\])/g,
+        /(?<!\*\*)(?<!\[)(\$[\d,]+K?(?:\s*[\u2013-]\s*\$[\d,]+K?)?)(?!\*\*)(?!\])/g,
         '**$1**'
     );
 
     // Bold percentages like 35%, 62%
     content = content.replace(
-        /(?<!\*\*)(?<!\d)(\d{1,3}%(?:\s*[–-]\s*\d{1,3}%)?)(?!\*\*)/g,
+        /(?<!\*\*)(?<!\d)(\d{1,3}%(?:\s*[\u2013-]\s*\d{1,3}%)?)(?!\*\*)/g,
         '**$1**'
     );
 

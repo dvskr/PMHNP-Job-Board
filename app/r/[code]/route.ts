@@ -120,7 +120,7 @@ export async function GET(
 
   // ── 4. Privacy signals — redirect without logging ─────────────────
   if (isPrivacyRespectingRequest(req)) {
-    logger.debug('[shortlink] privacy signal — skipping tracker', {
+    logger.debug('[shortlink] privacy signal, skipping tracker', {
       code,
       campaign: resolved.campaign,
     })

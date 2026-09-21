@@ -92,7 +92,7 @@ export default function AIRecommendationsToggle(): React.JSX.Element {
                         style={{ width: '16px', height: '16px', accentColor: '#7C3AED' }}
                     />
                     <span style={{ fontSize: '13px', fontWeight: 600, color: '#4C1D95' }}>
-                        {saving ? 'Saving…' : optIn ? 'Subscribed — uncheck to unsubscribe' : 'Subscribe to digest'}
+                        {saving ? 'Saving…' : optIn ? 'Subscribed (uncheck to unsubscribe)' : 'Subscribe to digest'}
                     </span>
                 </label>
                 {error && (

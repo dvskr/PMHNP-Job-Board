@@ -164,7 +164,7 @@ async function runSweep(jobs: JobToCheck[], startTime: number, log = logger): Pr
 
             if (!vote.flip) {
                 deferred++;
-                log.info('Vote deferred dead-flip — awaiting confirmation', {
+                log.info('Vote deferred dead-flip, awaiting confirmation', {
                     jobId: job.id,
                     reason: decision.reason,
                     voteOutcome: vote.outcome,

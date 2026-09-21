@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     if (!keysMatch) {
         return NextResponse.json(
-            { error: 'Unauthorized — invalid or missing API key' },
+            { error: 'Unauthorized: invalid or missing API key' },
             { status: 401 }
         );
     }

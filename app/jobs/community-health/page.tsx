@@ -84,7 +84,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${categoryTitleCount(stats.totalJobs)}Community Health PMHNP Jobs — FQHC & Public Health NP Positions`,
+    title: `${categoryTitleCount(stats.totalJobs)}Community Health PMHNP Jobs: FQHC & Public Health NP Positions`,
     description: `Find ${categoryTitleCount(stats.totalJobs)}community health PMHNP jobs. Psychiatric nurse practitioner positions at FQHCs, community mental health centers, and public health clinics with NHSC loan repayment eligibility and integrated care teams.`,
     keywords: ['community health pmhnp jobs', 'FQHC psychiatric nurse practitioner', 'public health PMHNP', 'community mental health NP', 'underserved population psych NP'],
     openGraph: {
@@ -131,7 +131,7 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
     },
     {
       question: "Do community health positions qualify for loan repayment?",
-      answer: "Yes — many FQHC and public health positions qualify for National Health Service Corps (NHSC) loan repayment; award amounts and terms are set by HRSA each cycle. Positions at 501(c)(3) nonprofit employers also qualify for Public Service Loan Forgiveness (PSLF) after 120 qualifying payments."
+      answer: "Yes. Many FQHC and public health positions qualify for National Health Service Corps (NHSC) loan repayment; award amounts and terms are set by HRSA each cycle. Positions at 501(c)(3) nonprofit employers also qualify for Public Service Loan Forgiveness (PSLF) after 120 qualifying payments."
     },
     {
       question: "What qualifications are needed for community health PMHNP roles?",
@@ -310,7 +310,7 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_ch_grant.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Grant-Funded Roles</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Many positions backed by federal and state mental health expansion grants.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Many positions are backed by federal and state mental health expansion grants.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_ch_heart.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />

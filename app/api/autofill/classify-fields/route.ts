@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
                 audience: 'extension',
                 action: 'view',
                 ...extractRequestContext(req),
-                reason: 'chrome autofill — classify-fields',
+                reason: 'chrome autofill: classify-fields',
             });
             if (signedUrl) resumeText = await extractResumeText(signedUrl);
         }
@@ -320,14 +320,14 @@ CRITICAL RULES:
 6. For yes/no questions, provide "Yes" or "No" based on the profile.
 7. Set confidence between 0.0 and 1.0 based on how certain you are.
 8. Set isQuestion=true for open-ended questions requiring generated text.
-9. IMPORTANT: If a field asks for basic information like name, email, phone, location, or current company — you MUST fill it from the profile data with high confidence. These are NOT ambiguous fields.
+9. IMPORTANT: If a field asks for basic information like name, email, phone, location, or current company, you MUST fill it from the profile data with high confidence. These are NOT ambiguous fields.
 10. Only set confidence to 0 and value to empty string if you truly have NO data to answer with AND the field is not a simple factual field.
 11. Use PMHNP-specific clinical terminology when appropriate.
 12. Keep generated answers concise and professional.
 13. For "Full name" or "Name" fields: combine firstName + lastName from the profile.
 14. For "Current location" or "Location" fields: combine city + state from the profile (e.g., "Austin, TX").
 15. For "Current company" or "Organization" fields: use the most recent work experience employer name.
-16. For "Website", "Portfolio", or "Personal site" fields: ONLY fill if the candidate has a dedicated website URL. Do NOT use the LinkedIn URL as a substitute — LinkedIn and Website are separate fields. If no website URL exists, return an empty value with confidence 0.
+16. For "Website", "Portfolio", or "Personal site" fields: ONLY fill if the candidate has a dedicated website URL. Do NOT use the LinkedIn URL as a substitute; LinkedIn and Website are separate fields. If no website URL exists, return an empty value with confidence 0.
 17. For "Cover Letter" file upload fields: Do NOT upload the resume. Cover letter and resume are separate documents. If no cover letter document exists, skip the field.
 18. For select/dropdown/custom-dropdown fields WITHOUT an options list: provide the best-guess value from the candidate's profile. For degree dropdowns, common Workday options are: "High School or Equivalent", "Associate's Degree", "Bachelor's Degree", "Master's Degree", "Doctorate", "JD", "MD". Map the candidate's degreeType to the closest standard option (e.g., "Master of Science in Nursing" → "Master's Degree").
 19. For language proficiency dropdowns: if no options are listed, use the scale "1 - Beginner", "2 - Elementary", "3 - Intermediate", "4 - Advanced", "5 - Fluent". Default to "5 - Fluent" for the candidate's primary language (English).

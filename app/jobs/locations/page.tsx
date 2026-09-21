@@ -270,7 +270,7 @@ export default async function LocationsPage() {
                           Remote PMHNP Jobs
                         </h2>
                         <p style={{ fontSize: '14px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
-                          Work from anywhere — telehealth &amp; fully remote positions across all 50 states
+                          Work from anywhere: telehealth and fully remote positions across all 50 states.
                         </p>
                       </div>
                     </div>

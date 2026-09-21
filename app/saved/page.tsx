@@ -56,7 +56,7 @@ export default function SavedJobsPage() {
       const data: { jobs: Job[] } = await response.json();
       setJobs(data.jobs);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -80,7 +80,7 @@ export default function SavedJobsPage() {
       const data: { jobs: Job[] } = await response.json();
       setAppliedJobsData(data.jobs);
     } catch (err) {
-      setAppliedError(err instanceof Error ? err.message : 'An error occurred');
+      setAppliedError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
     } finally {
       setAppliedLoading(false);
     }
@@ -279,7 +279,7 @@ export default function SavedJobsPage() {
                             >
                                 <option value="recent">Recently Saved</option>
                                 <option value="salary">Highest Salary</option>
-                                <option value="title">Title A–Z</option>
+                                <option value="title">Title A to Z</option>
                             </select>
                         </div>
                     )}
@@ -406,7 +406,7 @@ export default function SavedJobsPage() {
                     color: '#8A9BA6', fontSize: '14px', marginBottom: '24px',
                     maxWidth: '340px', marginInline: 'auto', lineHeight: 1.6,
                 }}>
-                    Bookmark jobs you&apos;re interested in — they&apos;ll show up here.
+                    Bookmark jobs you&apos;re interested in, and they&apos;ll show up here.
                 </p>
                 <Link href="/jobs" style={{
                     display: 'inline-flex', alignItems: 'center', gap: '8px',

@@ -133,9 +133,9 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     // B3 (organic audit 2026-08): categoryTitleCount drops the number below
     // the MIN_JOBS floor; categoryLandingRobotsMeta noindexes sub-threshold
     // landings AND paginated variants.
-    title: `${categoryTitleCount(stats.totalJobs)}Remote PMHNP Jobs — Work From Home`,
+    title: `${categoryTitleCount(stats.totalJobs)}Remote PMHNP Jobs: Work From Home`,
     // SEO Fix #7: trim to ≤160 chars (Google SERP cap).
-    description: `Find ${categoryTitleCount(stats.totalJobs)}remote PMHNP jobs. Work from home psychiatric nurse practitioner positions — telehealth, flexible, no commute.`,
+    description: `Find ${categoryTitleCount(stats.totalJobs)}remote PMHNP jobs. Work from home psychiatric nurse practitioner positions: telehealth, flexible, no commute.`,
     openGraph: {
       title: `${categoryTitleCount(stats.totalJobs)}Remote PMHNP Jobs - Work From Home`,
       description: 'Browse telehealth and remote psychiatric mental health nurse practitioner positions. Flexible schedules, competitive pay.',
@@ -213,7 +213,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
         indexLabel="№ 02 / 28"
         headlineLine1="Remote"
         headlineLine2="PMHNP"
-        headlineSub="jobs, work from anywhere."
+        headlineSub="jobs. Work from anywhere."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
           { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
@@ -366,7 +366,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
               <div style={{ padding: '32px 28px' }}>
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Location Independence</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  Practice from home, a private office, or anywhere with secure internet — no commute required.
+                  Practice from home, a private office, or anywhere with secure internet. No commute required.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
@@ -390,7 +390,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
             <div className="remote-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_perdiem.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Flexible Hours</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Design a schedule around your life — mornings, evenings, or weekends.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Design a schedule around your life: mornings, evenings, or weekends.</p>
             </div>
             <div className="remote-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_telehealth.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
@@ -430,7 +430,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_clay_bell.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '14px' }} />
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>Job Alerts</h3>
               <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
-                New listings delivered to your inbox — be first to apply.
+                New listings delivered to your inbox, so you can be first to apply.
               </p>
               <Link href="/job-alerts?mode=Remote" className="remote-cta-primary" style={{
                 padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',

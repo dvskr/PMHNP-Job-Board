@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        return NextResponse.json({ error: 'Unauthorized — provide a token or log in' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized: provide a token or log in' }, { status: 401 });
       }
 
       employerJob = await prisma.employerJob.findFirst({
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
 
     if (employerJob.paymentStatus !== 'paid') {
       return NextResponse.json(
-        { error: 'Invoice not available - payment not completed' },
+        { error: 'Invoice not available: payment not completed' },
         { status: 400 }
       );
     }
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.redirect(freshPdfUrl, { status: 302 });
           }
         } catch (stripeErr) {
-          logger.warn('Live Stripe invoice refresh failed — falling back to cached URL', {
+          logger.warn('Live Stripe invoice refresh failed, falling back to cached URL', {
             invoiceId: charge.stripeInvoiceId,
             error: stripeErr instanceof Error ? stripeErr.message : String(stripeErr),
           });

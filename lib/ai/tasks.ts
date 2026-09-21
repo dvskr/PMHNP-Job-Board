@@ -293,7 +293,7 @@ export const TASK_REGISTRY: Record<AiTaskId, TaskConfig> = {
 export function getTaskConfig(task: AiTaskId): TaskConfig {
     const config = TASK_REGISTRY[task];
     if (!config) {
-        throw new Error(`Unknown AI task "${task}" — register it in lib/ai/tasks.ts`);
+        throw new Error(`Unknown AI task "${task}". Register it in lib/ai/tasks.ts`);
     }
     return config;
 }

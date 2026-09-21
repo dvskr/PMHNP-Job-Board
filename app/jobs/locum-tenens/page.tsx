@@ -93,7 +93,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${categoryTitleCount(stats.totalJobs)}Locum Tenens PMHNP Jobs — Agency Staffing`,
+    title: `${categoryTitleCount(stats.totalJobs)}Locum Tenens PMHNP Jobs: Agency Staffing`,
     description: `Find ${categoryTitleCount(stats.totalJobs)}locum tenens PMHNP jobs. Multi-state assignments with housing stipends, malpractice coverage, and premium pay. Updated daily.`,
     keywords: ['locum tenens pmhnp', 'travel pmhnp jobs', 'locum psychiatric nurse practitioner', 'psych NP travel assignments', 'temporary pmhnp positions', 'locum tenens psych nurse practitioner'],
     openGraph: {

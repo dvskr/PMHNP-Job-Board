@@ -403,7 +403,7 @@ function ParsedSections({ parsed }: { parsed: ParsedResume }) {
                 <ListBlock items={parsed.workExperience.map((w) => ({
                     primary: `${w.jobTitle} · ${w.employerName}`,
                     secondary: [
-                        w.startDate || w.endDate ? `${w.startDate ?? '?'} – ${w.isCurrent ? 'Present' : (w.endDate ?? '?')}` : null,
+                        w.startDate || w.endDate ? `${w.startDate ?? '?'} to ${w.isCurrent ? 'Present' : (w.endDate ?? '?')}` : null,
                         w.practiceSetting,
                     ]
                         .filter(Boolean)

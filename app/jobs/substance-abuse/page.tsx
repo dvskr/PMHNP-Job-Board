@@ -80,11 +80,11 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: `${stats.totalJobs} Substance Abuse PMHNP Jobs — Addiction & MAT Psych NP`,
+        title: `${stats.totalJobs} Substance Abuse PMHNP Jobs: Addiction & MAT Psych NP`,
         description: `Find ${stats.totalJobs} substance abuse and addiction PMHNP jobs. MAT clinics, dual diagnosis, Suboxone prescriber, and rehab psychiatric nurse practitioner positions. High demand, rewarding work.`,
         keywords: ['substance abuse pmhnp', 'addiction pmhnp jobs', 'MAT pmhnp', 'suboxone prescriber', 'dual diagnosis pmhnp', 'SUD nurse practitioner'],
         openGraph: {
-            title: `${stats.totalJobs} Substance Abuse PMHNP Jobs — Addiction Treatment`,
+            title: `${stats.totalJobs} Substance Abuse PMHNP Jobs: Addiction Treatment`,
             description: 'Browse addiction and substance abuse psychiatric nurse practitioner positions. MAT clinics, rehab, dual diagnosis roles.',
             type: 'website',
             images: [{

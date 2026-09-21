@@ -69,7 +69,7 @@ export default function ResourceDownloadGate({ resourceUrl, resourceTitle }: Res
                 <h4 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Get free access</h4>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-                Enter your email to download the {resourceTitle}. You&apos;ll also receive career tips & job market updates.
+                Enter your email to download the {resourceTitle}. You&apos;ll also receive career tips and job market updates.
             </p>
             <form onSubmit={handleSubmit} className="flex gap-2">
                 <input

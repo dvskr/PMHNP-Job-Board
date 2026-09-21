@@ -47,7 +47,7 @@ export function extractSalary(text: string): { min: number | null; max: number |
   }
 
   // Common separator pattern: -, –, —, to, through
-  const sep = '(?:\\s*[-–—]\\s*|\\s+to\\s+|\\s+through\\s+)';
+  const sep = '(?:\\s*[-\u2013\u2014]\\s*|\\s+to\\s+|\\s+through\\s+)';
   // Dollar amount: $120,000 or $120k or $55.50
   const amt = '\\$([\\d,]+(?:\\.\\d{1,2})?(?:k)?)';
 

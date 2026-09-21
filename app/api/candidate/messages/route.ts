@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     try {
         const jobId = req.nextUrl.searchParams.get('jobId');
         if (!jobId) {
-            return NextResponse.json({ error: 'jobId required' }, { status: 400 });
+            return NextResponse.json({ error: 'jobId is required' }, { status: 400 });
         }
 
         const supabase = await createClient();

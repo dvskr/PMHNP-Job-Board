@@ -284,7 +284,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
                   </div>
                 </div>
                 <p style={{ fontSize: '12px', color: '#94A3B8', margin: '0 0 12px' }}>
-                  Range: ${fmt(result.salary.minSalary)} – ${fmt(result.salary.maxSalary)}
+                  Range: ${fmt(result.salary.minSalary)} to ${fmt(result.salary.maxSalary)}
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>

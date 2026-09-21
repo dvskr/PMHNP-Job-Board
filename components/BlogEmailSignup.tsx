@@ -60,7 +60,7 @@ export default function BlogEmailSignup({ source }: { source: string }) {
             </button>
             {status === 'error' && (
                 <p style={{ width: '100%', fontSize: '12px', color: '#EF4444', marginTop: '4px' }}>
-                    Something went wrong. Try again.
+                    Something went wrong. Please try again.
                 </p>
             )}
         </form>

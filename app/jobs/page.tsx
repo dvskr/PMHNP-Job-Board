@@ -48,7 +48,7 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
   let title = `Browse ${jobCountDisplay} PMHNP & Psychiatric NP Jobs Near Me`;
   // SEO Fix #7: trim default desc to ≤160 chars (Google SERP cap). Previous
   // 280-char default got truncated and lost the value-prop tail.
-  let description = `Search ${jobCountDisplay} PMHNP & psychiatric NP jobs by state, salary, and type — remote, telehealth, in-person, travel, locum & per diem. Updated daily.`;
+  let description = `Search ${jobCountDisplay} PMHNP & psychiatric NP jobs by state, salary, and type: remote, telehealth, in-person, travel, locum & per diem. Updated daily.`;
 
   // Customize based on active filters
   const titleParts: string[] = [];
@@ -84,7 +84,7 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
   const shouldNoindex = hasUserFilters || isPaginated || isEmpty;
 
   if (isPaginated && !hasUserFilters) {
-    title = `${title} — Page ${pageNum}`;
+    title = `${title}: Page ${pageNum}`;
   }
 
   // Self-canonical for paginated views; otherwise root /jobs.
@@ -103,7 +103,7 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
       // returns 404 from Supabase, breaking every social share of /jobs and
       // every filtered jobs URL. Pointing at the existing homepage asset
       // until a dedicated OG image is uploaded.
-      images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp', width: 1280, height: 900, alt: 'PMHNP Job Board — Browse psychiatric nurse practitioner jobs' }],
+      images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp', width: 1280, height: 900, alt: 'PMHNP Job Board: browse psychiatric nurse practitioner jobs' }],
     },
     twitter: {
       card: 'summary_large_image',

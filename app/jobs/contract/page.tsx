@@ -50,7 +50,7 @@ const contractFaqs = [
   { question: 'How much more do contract PMHNPs earn?', answer: 'Contract roles often advertise premium rates compared to permanent positions because they exclude benefits. W-2 contracts may include benefits; 1099 roles offer maximum flexibility and tax advantages.' },
   { question: 'What qualifications are needed for contract work?', answer: 'Active PMHNP-BC certification, state APRN licensure, DEA registration, and typically 1-2 years of clinical experience. Multi-state licensure is a major advantage.' },
   { question: 'Do contract PMHNPs get benefits?', answer: 'W-2 contracts through staffing agencies often include health insurance, malpractice coverage, housing stipends, and travel reimbursement. 1099 contractors arrange their own benefits.' },
-  { question: 'Can contract roles convert to permanent?', answer: 'Yes — many facilities use contract-to-perm arrangements. This lets both parties evaluate fit before committing to a permanent position, reducing hiring risk.' },
+  { question: 'Can contract roles convert to permanent?', answer: 'Yes. Many facilities use contract-to-perm arrangements. This lets both parties evaluate fit before committing to a permanent position, reducing hiring risk.' },
 ];
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {

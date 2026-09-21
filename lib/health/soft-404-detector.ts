@@ -47,7 +47,7 @@ const PATTERNS: ReadonlyArray<PatternRule> = [
     { id: 'requisition_closed', source: null, location: 'body', pattern: /requisition (is\s+)?(closed|cancell?ed)/i },
     { id: 'role_filled', source: null, location: 'body', pattern: /(this )?role (has been|is now) filled/i },
     { id: 'job_posting_removed', source: null, location: 'body', pattern: /job (posting|listing) (has been|was) (removed|taken down)/i },
-    { id: 'page_not_found_jobs', source: null, location: 'body', pattern: /careers?\s*[\|\-–:]\s*page not found/i },
+    { id: 'page_not_found_jobs', source: null, location: 'body', pattern: /careers?\s*[\|\-\u2013:]\s*page not found/i },
 
     // ---- Greenhouse: returns 200 with a generic "this position has been removed" page ----
     { id: 'greenhouse_no_longer', source: 'greenhouse', location: 'body', pattern: /this (role|position|job|opening) (is no longer|has been) (open|available|active|posted)/i },

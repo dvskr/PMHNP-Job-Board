@@ -226,7 +226,7 @@ function SavedIndicator({
 
   const label = (() => {
     if (status === 'saving') return 'Saving…';
-    if (status === 'error') return "Couldn't save — will retry";
+    if (status === 'error') return "Couldn't save, will retry";
     if (status === 'saved' && lastSavedAt) {
       const seconds = Math.floor((Date.now() - lastSavedAt.getTime()) / 1000);
       if (seconds < 5) return 'Saved just now';
@@ -920,7 +920,7 @@ function PostJobContent() {
             background: '#F0FDFA', border: '1px solid #99F6E4',
           }}>
             <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', margin: 0 }}>
-              ✓ Resumed your unfinished post — all fields restored. Auto-saving as you go.
+              ✓ Resumed your unfinished post with all fields restored. Auto-saving as you go.
             </p>
           </div>
         )}
@@ -1320,7 +1320,7 @@ function PostJobContent() {
                         />
                         <div>
                           <span style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35' }}>External Application URL</span>
-                          <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '2px 0 0' }}>Candidates are redirected to your website or ATS</p>
+                          <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '2px 0 0' }}>Candidates are redirected to your website or ATS.</p>
                         </div>
                       </div>
                     </label>
@@ -1338,7 +1338,7 @@ function PostJobContent() {
                         />
                         <div>
                           <span style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35' }}>Receive on PMHNP Hiring</span>
-                          <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '2px 0 0' }}>Candidates apply directly — no website needed</p>
+                          <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '2px 0 0' }}>Candidates apply directly, no website needed.</p>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
                             {['Resume', 'Cover letter', 'Email alerts'].map(f => (
                               <span key={f} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '8px', background: '#CCFBF1', color: '#0D9488', fontWeight: 500 }}>✓ {f}</span>
@@ -1359,7 +1359,7 @@ function PostJobContent() {
                       />
                       <ErrorMsg message={errors.applyUrl?.message} />
                       <InfoBox emoji="💡" color="amber">
-                        This should be a direct link to your application page — <strong>not your company homepage</strong>.
+                        This should be a direct link to your application page, <strong>not your company homepage</strong>.
                       </InfoBox>
                     </div>
                   )}

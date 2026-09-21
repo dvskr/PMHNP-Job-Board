@@ -91,7 +91,7 @@ export async function loadPrompt(task: AiTaskId, version?: string): Promise<Load
     let pinned = version;
     if (!pinned) {
         const entries = await fs.readdir(dir).catch(() => {
-            throw new Error(`No prompts registered for task "${task}" — create lib/ai/prompts/${task}/v1.json`);
+            throw new Error(`No prompts registered for task "${task}". Create lib/ai/prompts/${task}/v1.json`);
         });
         const versions = entries
             .filter((f) => /^v\d+\.json$/.test(f))

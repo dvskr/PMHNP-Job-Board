@@ -169,9 +169,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             });
         } catch (err) {
             if (err instanceof AiGatewayError) {
-                logger.warn('semantic search degraded — gateway error', { code: err.code });
+                logger.warn('semantic search degraded: gateway error', { code: err.code });
             } else {
-                logger.warn('semantic search degraded — unknown error', undefined, err);
+                logger.warn('semantic search degraded: unknown error', undefined, err);
             }
             degraded = true;
         }

@@ -106,7 +106,7 @@ const card: React.CSSProperties = {
 }
 
 function timeAgo(iso: string | null): string {
-  if (!iso) return '—'
+  if (!iso) return 'Not set'
   const diff = Date.now() - new Date(iso).getTime()
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
   if (days === 0) return 'Today'
@@ -201,7 +201,7 @@ export default function PdCampaignClient({ leads, funnel, total }: Props) {
         </h1>
         <p style={{ margin: 0, color: '#64748B', fontSize: '14px' }}>
           Mark replies, declines, bookings, and widget installs as PDs respond.
-          The send script handles `wave1_sent` / `wave2_sent` automatically — use
+          The send script handles `wave1_sent` / `wave2_sent` automatically. Use
           this page for everything downstream of that.
         </p>
       </header>
@@ -407,7 +407,7 @@ export default function PdCampaignClient({ leads, funnel, total }: Props) {
                   >
                     <td style={td}>
                       <div style={{ fontWeight: 600, color: '#1A2E35' }}>
-                        {lead.directorName ?? <span style={{ color: '#94A3B8' }}>— No director on file</span>}
+                        {lead.directorName ?? <span style={{ color: '#94A3B8' }}>No director on file</span>}
                       </div>
                       <div style={{ fontSize: '12.5px', color: '#64748B', marginTop: '2px' }}>
                         {lead.universityName} · {lead.state}
@@ -444,7 +444,7 @@ export default function PdCampaignClient({ leads, funnel, total }: Props) {
                     </td>
                     <td style={td}>
                       <div style={{ fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        <span>{lead.email ?? '—'}</span>
+                        <span>{lead.email ?? 'Not set'}</span>
                         {lead.clickCount > 0 && (
                           <span
                             title={`${lead.clickCount} click${lead.clickCount === 1 ? '' : 's'} on the email shortlink`}

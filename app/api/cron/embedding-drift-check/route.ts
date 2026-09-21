@@ -121,7 +121,7 @@ export async function GET(req: Request): Promise<NextResponse> {
                 missing,
                 driftPct,
             });
-            log.warn('Embedding drift exceeded threshold — alert sent');
+            log.warn('Embedding drift exceeded threshold, alert sent');
         }
 
         return {
