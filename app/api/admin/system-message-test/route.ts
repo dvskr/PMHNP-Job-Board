@@ -22,10 +22,11 @@ const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com')
  *
  * The recipient is ALWAYS the authenticated admin's own profile: it is
  * resolved from the session, never from the request, so this endpoint cannot
- * message (or email) anyone else. That is what makes it safe to run BEFORE
- * ENABLE_SYSTEM_MESSAGES is turned on: the operator sees the real thread in
- * /messages, checks the copy and the UI tolerance, then enables the flag as
- * a separate explicit step.
+ * message (or email) anyone else. That is what makes it safe to run at any
+ * time, including while the shared outbound brake
+ * (OUTBOUND_MESSAGING_PAUSED=1) is engaged: the operator sees the real thread
+ * in /messages and checks the copy and the UI tolerance without touching
+ * anybody else's inbox.
  *
  *   side=employer (default)  sample "new applications waiting" nudge
  *   side=candidate           digest built from up to 3 REAL published jobs

@@ -9,8 +9,10 @@
  * Route: /api/sitemaps/index
  */
 import { NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { activeIndexableJobWhere } from '@/lib/active-job-filter';
+import { GLOBAL_EXCLUSIONS } from '@/lib/filters';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 import { CITY_SITEMAP_CATEGORIES as SITEMAP_CATEGORIES } from '@/lib/pseo/jobs-segments-edge';
 import { getAllSettingSlugs, getAllStateSlugs } from '@/lib/pseo/setting-state-config';
@@ -112,7 +114,12 @@ export async function GET() {
     totalUrls = SITEMAP_CATEGORIES.length * Math.min(CITIES.length, 500);
   }
 
-  const totalBatches = Math.max(1, Math.ceil(totalUrls / BATCH_SIZE));
+  // No URLs means no batches. `Math.max(1, ...)` always advertised
+  // /api/sitemaps/cities/0, and with an empty or fully stale pseoStats that
+  // batch route answers a <urlset> with zero children, which Search Console
+  // reports as an empty sitemap against a URL we submitted. The job-batch
+  // count below already had this shape.
+  const totalBatches = totalUrls > 0 ? Math.ceil(totalUrls / BATCH_SIZE) : 0;
 
   // GSC Fix (P3.8): jobs-batch count. Splitting job-detail URLs into
   // /api/sitemaps/jobs/{N} keeps each file under the 50K-URL cap so the
@@ -122,9 +129,13 @@ export async function GET() {
     // #3 fix: use the SAME filter the batch route uses (dead-link gate + the
     // 7-day near-expiry buffer, GSC Fix 2026-07 audit) so the index never
     // advertises more job batches than /api/sitemaps/jobs/[batch] serves.
-    activeJobCount = await prisma.job.count({
-      where: activeIndexableJobWhere(new Date(), { expiryBufferDays: 7 }),
-    });
+    // Must match /api/sitemaps/jobs/[batch] exactly, GLOBAL_EXCLUSIONS
+    // included, or the index advertises more batches than that route serves.
+    const jobWhere: Prisma.JobWhereInput = {
+      ...activeIndexableJobWhere(new Date(), { expiryBufferDays: 7 }),
+      AND: GLOBAL_EXCLUSIONS.map((exclusion): Prisma.JobWhereInput => ({ NOT: exclusion })),
+    };
+    activeJobCount = await prisma.job.count({ where: jobWhere });
   } catch {
     // Fall back to a single batch — better to under-list than to hide jobs entirely.
     activeJobCount = 0;

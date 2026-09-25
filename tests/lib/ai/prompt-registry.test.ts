@@ -10,10 +10,12 @@ beforeEach(() => {
 });
 
 describe('lib/ai/prompts/registry', () => {
-    it('loads the candidate_scoring v1 prompt and reports id + version', async () => {
+    it('loads the latest candidate_scoring prompt and reports id + version', async () => {
         const p = await loadPrompt('candidate_scoring');
         expect(p.id).toBe('candidate_scoring');
-        expect(p.version).toBe('v1');
+        // v2 added the prompt-injection trust boundary; loadPrompt with no
+        // pinned version always resolves to the highest file in the directory.
+        expect(p.version).toBe('v2');
         expect(p.rawSystem).toContain('PMHNP');
     });
 

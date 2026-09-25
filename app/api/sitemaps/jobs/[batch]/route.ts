@@ -20,8 +20,10 @@
  * is partially fetched.
  */
 import { NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { activeIndexableJobWhere } from '@/lib/active-job-filter';
+import { GLOBAL_EXCLUSIONS } from '@/lib/filters';
 import { slugify } from '@/lib/utils';
 
 const BATCH_SIZE = 25000;
@@ -34,6 +36,23 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 // count in /api/sitemaps/index. (Previously the where-clause was built at
 // module scope, freezing `now` at cold start — it's now built per request.)
 const SITEMAP_EXPIRY_BUFFER_DAYS = 7;
+
+/**
+ * The sitemap must advertise the SAME set of jobs the listings show.
+ *
+ * activeIndexableJobWhere() covers published, not-expired and not-dead-link,
+ * but not GLOBAL_EXCLUSIONS, the off-specialty gate publicJobsWhere() applies
+ * to every public listing (pure psychiatrist MD, FNP-only, hospice and the
+ * rest). Without it Googlebot found those rows here, crawled them, and indexed
+ * JobPosting rich results for postings no internal link on a PMHNP-only board
+ * points at. Listing, sitemap and detail page have to agree.
+ */
+function indexableJobWhere(now: Date, expiryBufferDays: number): Prisma.JobWhereInput {
+    return {
+        ...activeIndexableJobWhere(now, { expiryBufferDays }),
+        AND: GLOBAL_EXCLUSIONS.map((exclusion): Prisma.JobWhereInput => ({ NOT: exclusion })),
+    };
+}
 
 interface JobBatchRow {
     id: string;
@@ -62,8 +81,9 @@ export async function GET(
         return NextResponse.json({ error: 'Invalid batch index' }, { status: 404 });
     }
 
-    // Published, not expired (with the near-expiry buffer), not a dead link.
-    const activeJobWhere = activeIndexableJobWhere(new Date(), { expiryBufferDays: SITEMAP_EXPIRY_BUFFER_DAYS });
+    // Published, not expired (with the near-expiry buffer), not a dead link,
+    // and not off-specialty.
+    const activeJobWhere = indexableJobWhere(new Date(), SITEMAP_EXPIRY_BUFFER_DAYS);
 
     // Cheap count first to validate batch index without paying the full findMany.
     const totalJobs = await prisma.job.count({ where: activeJobWhere });

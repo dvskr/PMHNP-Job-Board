@@ -185,7 +185,7 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
               <p style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35', margin: 0 }}>
                 {displayName}
               </p>
-              <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>
+              <p style={{ fontSize: '12px', color: '#4B5E68', margin: '2px 0 0' }}>
                 {user.email}
               </p>
               <span style={{

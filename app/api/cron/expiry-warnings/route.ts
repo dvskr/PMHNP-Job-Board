@@ -16,6 +16,7 @@ import {
   resolveFinalNoticeState,
 } from '@/lib/expiry-final-notice';
 import { config } from '@/lib/config';
+import { resolveManagementRecipient } from '../_lib/employer-recipient';
 
 export const maxDuration = 120 // 2 minutes — expiry warning emails
 
@@ -131,7 +132,8 @@ export async function GET(request: NextRequest) {
           },
         },
         include: {
-          employerJobs: true,
+          // The owning account's email, for resolveManagementRecipient below.
+          employerJobs: { include: { user: { select: { email: true } } } },
         },
       })
 
@@ -142,10 +144,13 @@ export async function GET(request: NextRequest) {
       for (const job of expiringJobs) {
         const employerJob = job.employerJobs
         if (employerJob?.contactEmail) {
+          // This mail carries a dashboard bearer token, so it goes to the
+          // verified account address where there is one. See _lib/employer-recipient.
+          const recipient = resolveManagementRecipient(employerJob)
           if (dryRun) {
             warningPreviews.push({
               jobId: job.id,
-              to: employerJob.contactEmail,
+              to: recipient,
               jobTitle: job.title,
               expiresAt: job.expiresAt?.toISOString() ?? null,
             })
@@ -157,12 +162,12 @@ export async function GET(request: NextRequest) {
           // every other employer email shares. The final-notice pass below has
           // always checked. Skip without stamping so the row is reconsidered
           // if the address is ever un-suppressed.
-          if (await isEmailSuppressed(employerJob.contactEmail)) {
+          if (await isEmailSuppressed(recipient)) {
             continue
           }
           try {
-            await sendExpiryWarningEmail(
-              employerJob.contactEmail,
+            const warningResult = await sendExpiryWarningEmail(
+              recipient,
               job.title,
               job.expiresAt!,
               job.viewCount || 0,
@@ -171,6 +176,15 @@ export async function GET(request: NextRequest) {
               null, // unsubscribeToken — sendExpiryWarningEmail will mint one if null
               job.id, // deep links the CTA to this listing's renew flow
             )
+            // A refused send comes back as success:false, it does not throw.
+            // Stamping expiryWarningSentAt on a refusal excluded the posting
+            // from this pass FOREVER, so a single Resend rejection meant the
+            // employer was never warned their paid listing was about to die.
+            // Same discipline PASS 2 applies via releaseClaim().
+            if (!warningResult.success) {
+              errors.push(`Job ${job.id}: ${warningResult.error ?? 'send refused'}`)
+              continue
+            }
             sentCount++
 
             // Mark as warned (dedup)
@@ -221,7 +235,7 @@ export async function GET(request: NextRequest) {
           applyClickCount: true,
           // Real application count for this posting, counted in the same query.
           _count: { select: { jobApplications: true } },
-          employerJobs: { select: { id: true, contactEmail: true } },
+          employerJobs: { select: { id: true, contactEmail: true, user: { select: { email: true } } } },
         },
         // Soonest death first. The window does not repeat, so a row this run
         // never reaches is a row that never gets its notice; if the function
@@ -271,6 +285,10 @@ export async function GET(request: NextRequest) {
         const employerJob = job.employerJobs
         if (!employerJob?.contactEmail || !job.expiresAt) continue
 
+        // Same bearer-token reasoning as PASS 1: the final notice's renew CTA
+        // is a dashboard-token link. See _lib/employer-recipient.
+        const recipient = resolveManagementRecipient(employerJob)
+
         if (isIneligible(job)) {
           skippedIneligible++
           continue
@@ -286,7 +304,7 @@ export async function GET(request: NextRequest) {
         if (dryRun) {
           finalNoticePreviews.push({
             jobId: job.id,
-            to: employerJob.contactEmail,
+            to: recipient,
             jobTitle: job.title,
             expiresAt: job.expiresAt.toISOString(),
             state,
@@ -298,7 +316,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Hard-suppressed address (bounce/complaint): skip WITHOUT stamping.
-        if (await isEmailSuppressed(employerJob.contactEmail)) {
+        if (await isEmailSuppressed(recipient)) {
           skippedSuppressed++
           continue
         }
@@ -365,7 +383,7 @@ export async function GET(request: NextRequest) {
           }
 
           const result = await sendExpiryFinalNoticeEmail({
-            email: employerJob.contactEmail,
+            email: recipient,
             jobTitle: job.title,
             // The freshly read instant, so the date in the email is the date
             // in the database at send time.

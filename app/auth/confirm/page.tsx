@@ -66,20 +66,42 @@ export default function AuthConfirmPage() {
           if (error) {
             console.warn('PKCE code exchange failed:', error.message)
 
-            // PKCE verifier mismatch — happens when the confirmation email
-            // opens in a different tab/browser than where signup occurred.
-            // Supabase already confirmed the user server-side during the
-            // redirect (before appending ?code=), so the email IS confirmed.
-            // We just can't establish a client session without the verifier.
-            setMessage('Email confirmed! Please log in to continue.')
-            setStatus('success')
-            // Thread the return target through login (?next= is honored by
-            // LoginContent) so the user still lands back where they started.
-            setTimeout(() => router.push(
-              nextPath !== '/dashboard'
-                ? `/login?confirmed=true&next=${encodeURIComponent(nextPath)}`
-                : '/login?confirmed=true'
-            ), 2000)
+            // An exchange can fail two ways that must NOT share a message.
+            //
+            // 1. No PKCE verifier in this browser. auth-js answers this with
+            //    AuthPKCECodeVerifierMissingError (code
+            //    'pkce_code_verifier_not_found') before it ever calls the
+            //    token endpoint. It means the confirmation email was opened in
+            //    a different tab, browser or device than the one that signed
+            //    up. Supabase already confirmed the address server-side before
+            //    it redirected here with ?code=, so the email IS confirmed and
+            //    only the client session is missing.
+            //
+            // 2. A verifier was present and the token endpoint still refused
+            //    the exchange. The code itself is bad: expired, replayed,
+            //    truncated or forged. Nothing was confirmed. Reporting that as
+            //    "Email confirmed!" sent users to a login that then rejects
+            //    them for an unconfirmed email, with no way to work out why.
+            const verifierMissing =
+              (error as { code?: string }).code === 'pkce_code_verifier_not_found' ||
+              error.name === 'AuthPKCECodeVerifierMissingError'
+
+            if (verifierMissing) {
+              setMessage('Email confirmed! Please log in to continue.')
+              setStatus('success')
+              // Thread the return target through login (?next= is honored by
+              // LoginContent) so the user still lands back where they started.
+              setTimeout(() => router.push(
+                nextPath !== '/dashboard'
+                  ? `/login?confirmed=true&next=${encodeURIComponent(nextPath)}`
+                  : '/login?confirmed=true'
+              ), 2000)
+              return
+            }
+
+            setStatus('error')
+            setMessage('We could not confirm this link. It may have expired or already been used. Please request a new confirmation email.')
+            setTimeout(() => router.push('/login'), 4000)
             return
           }
 

@@ -4,6 +4,7 @@ import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { extractWithLLM } from '@/lib/llm-enrichment';
 import { withCronTracking } from '@/lib/cron/track';
+import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes
 
@@ -168,9 +169,23 @@ export async function GET(req: Request) {
         })
       );
 
-      for (const r of results) {
+      for (const [index, r] of results.entries()) {
         stats.processed++;
-        if (r.status === 'rejected' || !r.value) { stats.errors++; continue; }
+        if (r.status === 'rejected' || !r.value) {
+          stats.errors++;
+          // The rejection reason used to be dropped on the floor, so an OpenAI
+          // outage that failed every call in the run looked identical in the
+          // logs to one stray parse error, and the response still reported 200
+          // with a stats object. allSettled keeps result order, so batch[index]
+          // is the job this entry came from.
+          const failedJob = batch[index];
+          logger.error(
+            '[Enrich Jobs] extraction failed',
+            r.status === 'rejected' ? r.reason : new Error('extractWithLLM returned no value'),
+            { jobId: failedJob?.id, jobTitle: failedJob?.title },
+          );
+          continue;
+        }
 
         if ('tooThin' in r.value && r.value.tooThin) {
           // Stamp lastEnrichedAt so it ages into the re-enrich cohort cooldown

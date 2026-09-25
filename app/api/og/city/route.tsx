@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
+import { LOGO_DATA_URI } from '../_logo';
 
 export const runtime = 'edge';
 
@@ -55,17 +56,8 @@ export async function GET(request: NextRequest) {
   const salary = searchParams.get('salary') || '';
   const shortage = searchParams.get('shortage') === 'true';
 
-  // Fetch logo
-  let logoSrc = '';
-  try {
-    // Fixed origin — never the request Host header (attacker-controlled; using
-    // it makes this OG route an SSRF proxy). The logo is a stable public asset.
-    const logoRes = await fetch('https://pmhnphiring.com/pmhnp_logo.png');
-    if (logoRes.ok) {
-      const logoBuf = await logoRes.arrayBuffer();
-      logoSrc = `data:image/png;base64,${Buffer.from(logoBuf).toString('base64')}`;
-    }
-  } catch { /* fallback text */ }
+  // Bundled with the function, not fetched. See app/api/og/_logo.ts.
+  const logoSrc = LOGO_DATA_URI;
 
   // Truncate long city names
   const displayCity = city.length > 28 ? city.slice(0, 26) + '…' : city;

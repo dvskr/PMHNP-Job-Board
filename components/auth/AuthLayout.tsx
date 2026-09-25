@@ -139,7 +139,7 @@ export default function AuthLayout({ children, illustration, testimonial }: Auth
               </div>
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35' }}>{testimonial.name}</div>
-                <div style={{ fontSize: '11px', color: '#6B7F8A' }}>{testimonial.title}</div>
+                <div style={{ fontSize: '11px', color: '#4B5E68' }}>{testimonial.title}</div>
               </div>
             </div>
           </div>

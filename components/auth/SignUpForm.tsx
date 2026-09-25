@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -72,11 +72,27 @@ export default function SignUpForm() {
 
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  // The cooldown interval is started inside an event handler, so it has no
+  // effect cleanup of its own. Without this ref it kept ticking (and calling
+  // setState on an unmounted component) for up to 60s after the user
+  // navigated away from the form.
+  const resendTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Signup creates the Supabase account first, then POSTs the profile that
+  // carries role/company and the newsletter and job-highlight opt-ins. When
+  // that second call fails the account still exists, so we cannot fail the
+  // whole signup: we say the preferences did not save instead of dropping
+  // them silently and letting the user wait for highlights that never come.
+  const [prefsWarning, setPrefsWarning] = useState<string | null>(null);
 
   useEffect(() => {
     const roleParam = searchParams.get('role');
     if (roleParam === 'employer') setRole('employer');
   }, [searchParams]);
+
+  useEffect(() => () => {
+    if (resendTimerRef.current) clearInterval(resendTimerRef.current);
+  }, []);
 
   // Post-signup return target (e.g. the /post-job wall sends
   // ?redirectTo=/post-job so the employer lands back on the form instead
@@ -98,12 +114,14 @@ export default function SignUpForm() {
       else {
         setResendStatus('sent');
         setResendCooldown(60);
+        if (resendTimerRef.current) clearInterval(resendTimerRef.current);
         const timer = setInterval(() => {
           setResendCooldown((prev) => {
             if (prev <= 1) { clearInterval(timer); return 0; }
             return prev - 1;
           });
         }, 1000);
+        resendTimerRef.current = timer;
       }
     } catch { setResendStatus('error'); }
   };
@@ -112,6 +130,16 @@ export default function SignUpForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setPrefsWarning(null);
+
+    // `required` passes on a string of spaces, and sanitizeText trims it away
+    // server-side, so a blank-name account was created with a success screen
+    // and no name at all. Check the trimmed value, not the raw one.
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('Please enter your first and last name.');
+      setLoading(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
@@ -157,20 +185,34 @@ export default function SignUpForm() {
       if (signUpError) { setError(signUpError.message); return; }
 
       if (data.user) {
-        await fetch('/api/auth/profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            supabaseId: data.user.id,
-            email: data.user.email,
-            firstName, lastName,
-            role: role === 'employer' ? 'employer' : 'job_seeker',
-            company: role === 'employer' ? company : null,
-            wantJobHighlights: role === 'seeker' ? wantJobHighlights : false,
-            highlightsFrequency: role === 'seeker' ? highlightsFrequency : undefined,
-            newsletterOptIn,
-          }),
-        });
+        // This POST carries the role, company and both opt-ins. It can fail
+        // for reasons the user did nothing to cause (429 from the auth rate
+        // limiter on a shared office IP, or 401 when the project requires
+        // email confirmation so no session cookie exists yet). fetch resolves
+        // for all of those, so without the res.ok check the preferences were
+        // dropped under a success screen. The account itself is already
+        // created, so we keep the success state and say what did not save.
+        try {
+          const profileRes = await fetch('/api/auth/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              supabaseId: data.user.id,
+              email: data.user.email,
+              firstName, lastName,
+              role: role === 'employer' ? 'employer' : 'job_seeker',
+              company: role === 'employer' ? company : null,
+              wantJobHighlights: role === 'seeker' ? wantJobHighlights : false,
+              highlightsFrequency: role === 'seeker' ? highlightsFrequency : undefined,
+              newsletterOptIn,
+            }),
+          });
+          if (!profileRes.ok) {
+            setPrefsWarning('Your account was created, but we could not save your email preferences. Set them in Settings once you sign in.');
+          }
+        } catch {
+          setPrefsWarning('Your account was created, but we could not save your email preferences. Set them in Settings once you sign in.');
+        }
 
         fetch('/api/auth/welcome', {
           method: 'POST',
@@ -205,7 +247,9 @@ export default function SignUpForm() {
     setError(null);
   };
 
-  const accent = role === 'employer' ? '#B45309' : '#0D9488';
+  // A11y: accent is used as link and button TEXT on white, where #0D9488
+  // is only 3.74:1. #0F766E is 5.47:1 and is the repo's compliant teal.
+  const accent = role === 'employer' ? '#B45309' : '#0F766E';
 
   // ─── SUCCESS STATE ───
   if (success) {
@@ -227,9 +271,14 @@ export default function SignUpForm() {
           <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: 0, fontFamily: 'var(--font-lora), Georgia, serif' }}>
             Check your email
           </h3>
-          <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0 }}>
+          <p style={{ fontSize: '14px', color: '#4B5E68', margin: 0 }}>
             We&apos;ve sent a confirmation link to <strong>{email}</strong>
           </p>
+          {prefsWarning && (
+            <p role="alert" style={{ fontSize: '13px', color: '#92400E', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 12px', margin: 0 }}>
+              {prefsWarning}
+            </p>
+          )}
           <p style={{ fontSize: '12px', color: '#4B5E68', margin: 0 }}>
             Check spam/junk if you don&apos;t see it within a few minutes.
           </p>
@@ -264,14 +313,17 @@ export default function SignUpForm() {
       }}>
         Create your account
       </h1>
-      <p style={{ fontSize: '14px', color: '#6B7F8A', marginBottom: '14px', textAlign: 'center' }}>
+      <p style={{ fontSize: '14px', color: '#4B5E68', marginBottom: '14px', textAlign: 'center' }}>
         {role === 'employer'
           ? 'Start posting jobs and hiring qualified PMHNPs'
-          : 'Join thousands of PMHNPs finding their perfect role'}
+          : 'Save jobs, set up alerts, and apply to psychiatric mental health NP roles'}
       </p>
 
       {/* ═══ ROLE TOGGLE ═══ */}
-      <div style={{
+      {/* The choice changes which fields the form asks for and which mailbox
+          rules apply, and it was signalled by colour and font-weight alone.
+          aria-pressed is the only cue assistive tech gets. */}
+      <div role="group" aria-label="Sign up as" style={{
         display: 'flex',
         background: '#F1F5F9',
         borderRadius: '14px',
@@ -279,7 +331,7 @@ export default function SignUpForm() {
         marginBottom: '14px',
         border: '1px solid #E2E8F0',
       }}>
-        <button type="button" onClick={() => switchRole('seeker')}
+        <button type="button" aria-pressed={role === 'seeker'} onClick={() => switchRole('seeker')}
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
             gap: '8px', padding: '11px 16px', fontSize: '14px',
@@ -287,14 +339,16 @@ export default function SignUpForm() {
             borderRadius: '11px', border: 'none', cursor: 'pointer',
             transition: 'all 0.2s ease',
             background: role === 'seeker' ? '#FFFFFF' : 'transparent',
-            color: role === 'seeker' ? '#0D9488' : '#94A3B0',
+            // A11y: #0D9488 is 3.74:1 on white and #94A3B0 is 2.35:1 on the
+            // #F1F5F9 track. #0F766E and #4B5E68 both clear 4.5:1.
+            color: role === 'seeker' ? '#0F766E' : '#4B5E68',
             boxShadow: role === 'seeker' ? '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' : 'none',
           }}
         >
           <User className="w-4 h-4" />
           Job Seeker
         </button>
-        <button type="button" onClick={() => switchRole('employer')}
+        <button type="button" aria-pressed={role === 'employer'} onClick={() => switchRole('employer')}
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
             gap: '8px', padding: '11px 16px', fontSize: '14px',
@@ -302,7 +356,7 @@ export default function SignUpForm() {
             borderRadius: '11px', border: 'none', cursor: 'pointer',
             transition: 'all 0.2s ease',
             background: role === 'employer' ? '#FFFFFF' : 'transparent',
-            color: role === 'employer' ? '#B45309' : '#94A3B0',
+            color: role === 'employer' ? '#B45309' : '#4B5E68',
             boxShadow: role === 'employer' ? '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' : 'none',
           }}
         >
@@ -325,7 +379,7 @@ export default function SignUpForm() {
             <GoogleSignInButton mode="signup" />
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }}>
               <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
-              <span style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>or</span>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#4B5E68', textTransform: 'uppercase', letterSpacing: '0.05em' }}>or</span>
               <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
             </div>
           </>
@@ -486,7 +540,7 @@ export default function SignUpForm() {
         </form>
 
         {/* Login link */}
-        <p style={{ textAlign: 'center', fontSize: '13px', color: '#6B7F8A', marginTop: '14px', marginBottom: 0 }}>
+        <p style={{ textAlign: 'center', fontSize: '13px', color: '#4B5E68', marginTop: '14px', marginBottom: 0 }}>
           Already have an account?{' '}
           <Link href={role === 'employer' ? '/login?role=employer' : '/login'}
             style={{ fontWeight: 700, color: accent, textDecoration: 'none' }}>

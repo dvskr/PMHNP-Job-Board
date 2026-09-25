@@ -15,6 +15,7 @@ import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import { slugify } from '@/lib/utils';
 
 /* ═══ Design Tokens — clay card style ═══ */
 const clayCard: React.CSSProperties = {
@@ -100,7 +101,7 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
       {jobs.length > 0 && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({
           '@context': 'https://schema.org', '@type': 'ItemList', name: 'Inpatient PMHNP Jobs', numberOfItems: stats.totalJobs,
-          itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })),
+          itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}` })),
         }) }} />
       )}
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Inpatient PMHNP Jobs" />

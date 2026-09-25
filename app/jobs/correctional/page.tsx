@@ -14,6 +14,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import { slugify } from '@/lib/utils';
 
 /* Design Tokens */
 const clayCard: React.CSSProperties = {
@@ -173,7 +174,7 @@ export default async function CorrectionalJobsPage({ searchParams }: PageProps) 
                 '@type': 'ListItem',
                 position: idx + 1,
                 name: job.title,
-                url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+                url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}`,
               })),
             }),
           }}

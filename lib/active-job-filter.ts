@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import { GLOBAL_EXCLUSIONS } from '@/lib/filters';
 
 /**
  * Dead-link gate (S6, audit 2026-05-31).
@@ -27,6 +28,16 @@ export const DEAD_LINK_MISS_THRESHOLD = 5;
  * an impression. Applies ONLY to the job-detail sitemap surfaces; aggregate
  * counts (city/company gates) deliberately keep the unbuffered view so they
  * stay consistent with the page-level render gates.
+ *
+ * GLOBAL_EXCLUSIONS (hunt 2026-09-03): this predicate used to carry the expiry
+ * and health gates but NOT the site-wide non-PMHNP exclusions, so the sitemaps,
+ * /feed.xml and /feeds/jobs.xml advertised the MD-Psychiatrist and
+ * off-specialty NP postings that publicJobsWhere() hides from every browse
+ * surface. A PMHNP job board must not syndicate a URL no visitor can reach
+ * through its own listings. The exclusions live in an `AND` array while the
+ * expiry stays in the top-level `OR`, which is the shape app/sitemap.ts already
+ * spreads and merges (its own `AND: NOT_EXCLUDED` overrides with the identical
+ * array).
  */
 export function activeIndexableJobWhere(
     now: Date = new Date(),
@@ -41,5 +52,6 @@ export function activeIndexableJobWhere(
             { expiresAt: null },
             { expiresAt: { gt: expiryHorizon } },
         ],
+        AND: GLOBAL_EXCLUSIONS.map((exclusion): Prisma.JobWhereInput => ({ NOT: exclusion })),
     };
 }

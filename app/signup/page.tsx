@@ -4,6 +4,7 @@ import AuthLayout from '@/components/auth/AuthLayout'
 import { getCurrentUser } from '@/lib/auth/protect'
 import { safeInternalPath } from '@/lib/auth/safe-redirect'
 import { prisma } from '@/lib/prisma'
+import { publicJobsWhere } from '@/lib/filters'
 import { config } from '@/lib/config'
 import { Suspense } from 'react'
 
@@ -24,9 +25,14 @@ export const metadata = {
 // numbers-free value prop instead of rendering "0 organizations".
 async function getEmployerStats() {
   try {
+    // publicJobsWhere() is the only predicate allowed to produce a site-wide
+    // job count. A bare { isPublished: true } counted expired postings and the
+    // globally excluded ones, so this panel advertised a larger catalog than
+    // the homepage and than /jobs will actually show.
+    const where = publicJobsWhere()
     const [totalJobs, totalCompanies] = await Promise.all([
-      prisma.job.count({ where: { isPublished: true } }),
-      prisma.job.groupBy({ by: ['employer'], where: { isPublished: true } }).then((r) => r.length),
+      prisma.job.count({ where }),
+      prisma.job.groupBy({ by: ['employer'], where }).then((r) => r.length),
     ])
     return { totalJobs, totalCompanies }
   } catch {

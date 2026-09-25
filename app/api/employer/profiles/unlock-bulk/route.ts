@@ -29,6 +29,7 @@ import { prisma } from '@/lib/prisma';
 import { canUnlockCandidate, getEmployerTier } from '@/lib/tier-limits';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
+import { postingUnlockHeadroom } from '../../_lib/posting-headroom';
 
 const requestSchema = z.object({
   candidateIds: z.array(z.string().min(1)).min(1).max(100),
@@ -89,7 +90,15 @@ export async function POST(req: NextRequest) {
   // attributed to another account's posting. Verify once (same id for the whole
   // batch); fall back to the auto-picker if it doesn't check out. Mirrors the
   // single-unlock endpoint (candidates/[id]/route.ts).
+  //
+  // Ownership alone is not enough. The verification runs once for the whole
+  // batch, so an already-full posting absorbed every unlock in the batch while
+  // canUnlockCandidate was allowing them against a DIFFERENT posting's
+  // headroom: the per-posting ledger /api/employer/usage renders then showed
+  // credits on a posting that could never spend them. Track how much room the
+  // requested posting has and stop using it once the batch fills it.
   let verifiedPostingId: string | undefined;
+  let verifiedPostingHeadroom = 0;
   if (parsed.postingId && !isAdmin) {
     const ownsPosting = await prisma.employerJob.findFirst({
       where: {
@@ -100,9 +109,12 @@ export async function POST(req: NextRequest) {
         ],
         job: { isPublished: true, expiresAt: { gt: new Date() } },
       },
-      select: { id: true },
+      select: { id: true, pricingTier: true },
     });
-    verifiedPostingId = ownsPosting ? parsed.postingId : undefined;
+    if (ownsPosting) {
+      verifiedPostingHeadroom = await postingUnlockHeadroom(ownsPosting.id, ownsPosting.pricingTier);
+      verifiedPostingId = verifiedPostingHeadroom > 0 ? parsed.postingId : undefined;
+    }
   }
 
   const unlocked: { candidateId: string }[] = [];
@@ -143,9 +155,15 @@ export async function POST(req: NextRequest) {
           failed.push({ candidateId, reason, message: REASON_MESSAGES[reason] || REASON_MESSAGES.posting_cap });
           continue;
         }
-        // Honor the client's selected posting only after it's been verified as
-        // owned + active above; otherwise fall back to canUnlockCandidate's pick.
-        chargePostingId = verifiedPostingId ?? unlockCheck.postingId;
+        // Honor the client's selected posting only while it is verified as
+        // owned + active AND still has room left in this batch; otherwise fall
+        // back to canUnlockCandidate's pick.
+        if (verifiedPostingId && verifiedPostingHeadroom > 0) {
+          chargePostingId = verifiedPostingId;
+          verifiedPostingHeadroom -= 1;
+        } else {
+          chargePostingId = unlockCheck.postingId;
+        }
       }
 
       await prisma.profileView.upsert({

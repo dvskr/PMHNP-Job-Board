@@ -12,6 +12,7 @@
  */
 import { prisma } from '@/lib/prisma';
 import { publicJobsWhere } from '@/lib/filters';
+import { logger } from '@/lib/logger';
 
 export interface SiteStats {
     totalJobs: number;
@@ -32,8 +33,19 @@ export interface ExtendedSiteStats extends SiteStats {
     salaryTransparencyPct: number;
 }
 
-/** Used only when the DB is unreachable — keeps the homepage rendering. */
-const FALLBACK: SiteStats = { totalJobs: 200, totalCompanies: 500, totalSubscribers: 0 };
+/**
+ * Used only when the DB is unreachable: "we do not know", expressed as zeros.
+ *
+ * This used to be { totalJobs: 200, totalCompanies: 500 } — placeholder numbers
+ * that nothing on the site could substantiate. Every consumer guards on
+ * `> 0` before rendering (the Career Pulse card on the job detail page, the
+ * homepage hero strip), so a non-zero placeholder sailed through those guards
+ * and shipped "200 Active openings nationwide" as though it were a live count.
+ * Zeros make the same guards do what they were written to do: show nothing
+ * rather than a fabricated number. This is the policy getExtendedSiteStats
+ * already states for its own null return.
+ */
+const FALLBACK: SiteStats = { totalJobs: 0, totalCompanies: 0, totalSubscribers: 0 };
 
 /** Compute the live numbers. Expensive — call from the cron, not page renders.
  *  Jobs (and the distinct-employer set) are counted with publicJobsWhere(),
@@ -78,10 +90,16 @@ let engagementCache: { value: EngagementStats; cachedAt: number } | null = null;
 
 async function computeEngagementStats(): Promise<EngagementStats> {
     const weekAgo = new Date(Date.now() - WEEK_MS);
+    // Same predicate as computeSiteStats. The homepage prints the job total and
+    // the salary percentage in ONE sentence, so a bare `{ isPublished: true }`
+    // denominator here described a strictly larger population (expired rows +
+    // the globally-excluded non-PMHNP rows) than the count printed next to it,
+    // and the two numbers could not both be true.
+    const jobsWhere = publicJobsWhere();
     const [jobsAddedThisWeek, publishedTotal, publishedWithSalary] = await Promise.all([
-        prisma.job.count({ where: { isPublished: true, createdAt: { gte: weekAgo } } }),
-        prisma.job.count({ where: { isPublished: true } }),
-        prisma.job.count({ where: { isPublished: true, displaySalary: { not: null } } }),
+        prisma.job.count({ where: { ...jobsWhere, createdAt: { gte: weekAgo } } }),
+        prisma.job.count({ where: jobsWhere }),
+        prisma.job.count({ where: { ...jobsWhere, displaySalary: { not: null } } }),
     ]);
     const salaryTransparencyPct = publishedTotal > 0
         ? Math.round((100 * publishedWithSalary) / publishedTotal)
@@ -111,7 +129,8 @@ export async function getExtendedSiteStats(
             ? { totalJobs: row.totalJobs, totalCompanies: row.totalCompanies, totalSubscribers: row.totalSubscribers }
             : await computeSiteStats();
         return { ...base, ...cached.value };
-    } catch {
+    } catch (error) {
+        logger.error('getExtendedSiteStats: hiding the stat strip, DB read failed', error);
         return null;
     }
 }
@@ -129,7 +148,12 @@ export async function getSiteStats(): Promise<SiteStats> {
             };
         }
         return await computeSiteStats();
-    } catch {
+    } catch (error) {
+        // Never silent: the zeros below make every `> 0` guard hide its
+        // stat, which is indistinguishable at the UI layer from a genuinely
+        // empty board. The log is the only signal that the DB, not the
+        // catalogue, is what went missing.
+        logger.error('getSiteStats: falling back to zeros, DB read failed', error);
         return FALLBACK;
     }
 }

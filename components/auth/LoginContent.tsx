@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -50,6 +50,13 @@ export default function LoginContent() {
   const [isUnconfirmed, setIsUnconfirmed] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  // Started from an event handler, so it has no effect cleanup of its own:
+  // without this ref it kept ticking for up to 60s after the page unmounted.
+  const resendTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => () => {
+    if (resendTimerRef.current) clearInterval(resendTimerRef.current);
+  }, []);
 
   // Init role from URL param
   useEffect(() => {
@@ -77,12 +84,14 @@ export default function LoginContent() {
       } else {
         setResendStatus('sent');
         setResendCooldown(60);
+        if (resendTimerRef.current) clearInterval(resendTimerRef.current);
         const timer = setInterval(() => {
           setResendCooldown((prev) => {
             if (prev <= 1) { clearInterval(timer); return 0; }
             return prev - 1;
           });
         }, 1000);
+        resendTimerRef.current = timer;
       }
     } catch {
       setResendStatus('error');
@@ -156,7 +165,9 @@ export default function LoginContent() {
     setIsUnconfirmed(false);
   };
 
-  const accent = role === 'employer' ? '#B45309' : '#0D9488';
+  // A11y: accent is used as link and button TEXT on white, where #0D9488
+  // is only 3.74:1. #0F766E is 5.47:1 and is the repo's compliant teal.
+  const accent = role === 'employer' ? '#B45309' : '#0F766E';
 
   return (
     <>
@@ -169,14 +180,18 @@ export default function LoginContent() {
       }}>
         Sign in
       </h1>
-      <p style={{ fontSize: '14px', color: '#6B7F8A', marginBottom: '14px', textAlign: 'center' }}>
+      <p style={{ fontSize: '14px', color: '#4B5E68', marginBottom: '14px', textAlign: 'center' }}>
         {role === 'employer'
           ? 'Manage your job listings and find top PMHNP talent'
           : 'Access your saved jobs, applications, and profile'}
       </p>
 
       {/* ═══ ROLE TOGGLE ═══ */}
-      <div style={{
+      {/* Which half is active changes the form materially (the email label
+          becomes "Work Email" and the post-login destination changes), and it
+          was signalled by colour and font-weight alone. aria-pressed is the
+          only cue assistive tech gets; role="group" names the pair. */}
+      <div role="group" aria-label="Sign in as" style={{
         display: 'flex',
         background: '#F1F5F9',
         borderRadius: '14px',
@@ -184,7 +199,7 @@ export default function LoginContent() {
         marginBottom: '14px',
         border: '1px solid #E2E8F0',
       }}>
-        <button type="button" onClick={() => switchRole('seeker')}
+        <button type="button" aria-pressed={role === 'seeker'} onClick={() => switchRole('seeker')}
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
             gap: '8px', padding: '11px 16px', fontSize: '14px',
@@ -192,14 +207,16 @@ export default function LoginContent() {
             borderRadius: '11px', border: 'none', cursor: 'pointer',
             transition: 'all 0.2s ease',
             background: role === 'seeker' ? '#FFFFFF' : 'transparent',
-            color: role === 'seeker' ? '#0D9488' : '#94A3B0',
+            // A11y: #0D9488 is 3.74:1 on white and #94A3B0 is 2.35:1 on the
+            // #F1F5F9 track. #0F766E and #4B5E68 both clear 4.5:1.
+            color: role === 'seeker' ? '#0F766E' : '#4B5E68',
             boxShadow: role === 'seeker' ? '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' : 'none',
           }}
         >
           <User className="w-4 h-4" />
           Job Seeker
         </button>
-        <button type="button" onClick={() => switchRole('employer')}
+        <button type="button" aria-pressed={role === 'employer'} onClick={() => switchRole('employer')}
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
             gap: '8px', padding: '11px 16px', fontSize: '14px',
@@ -207,7 +224,7 @@ export default function LoginContent() {
             borderRadius: '11px', border: 'none', cursor: 'pointer',
             transition: 'all 0.2s ease',
             background: role === 'employer' ? '#FFFFFF' : 'transparent',
-            color: role === 'employer' ? '#B45309' : '#94A3B0',
+            color: role === 'employer' ? '#B45309' : '#4B5E68',
             boxShadow: role === 'employer' ? '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' : 'none',
           }}
         >
@@ -230,7 +247,7 @@ export default function LoginContent() {
             <GoogleSignInButton mode="login" />
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }}>
               <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
-              <span style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>or</span>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#4B5E68', textTransform: 'uppercase', letterSpacing: '0.05em' }}>or</span>
               <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
             </div>
           </>
@@ -307,7 +324,7 @@ export default function LoginContent() {
         </form>
 
         {/* Sign up link */}
-        <p style={{ textAlign: 'center', fontSize: '13px', color: '#6B7F8A', marginTop: '14px', marginBottom: 0 }}>
+        <p style={{ textAlign: 'center', fontSize: '13px', color: '#4B5E68', marginTop: '14px', marginBottom: 0 }}>
           Don&apos;t have an account?{' '}
           <Link href={role === 'employer' ? '/signup?role=employer' : '/signup'}
             style={{ fontWeight: 700, color: accent, textDecoration: 'none' }}>

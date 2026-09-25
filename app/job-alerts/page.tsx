@@ -205,7 +205,7 @@ function JobAlertsContent() {
                 fontFamily: 'var(--font-lora), Georgia, serif',
                 color: '#1A2E35', marginBottom: '6px',
               }}>Create Your Job Alert</h2>
-              <p style={{ fontSize: '13px', color: '#8A9BA6', marginBottom: '24px', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '13px', color: '#4B5E68', marginBottom: '24px', lineHeight: 1.5 }}>
                 Enter your details below and we&apos;ll notify you when matching jobs are posted.
               </p>
 
@@ -219,7 +219,7 @@ function JobAlertsContent() {
                   <CheckCircle size={18} style={{ color: '#059669', flexShrink: 0, marginTop: '1px' }} />
                   <div>
                     <p style={{ fontSize: '13px', fontWeight: 600, color: '#059669', margin: '0 0 4px' }}>{message.text}</p>
-                    <p style={{ fontSize: '12px', color: '#6B7F8A', margin: 0 }}>
+                    <p style={{ fontSize: '12px', color: '#4B5E68', margin: 0 }}>
                       You can <Link href="/job-alerts/manage" style={{ color: '#0D9488', textDecoration: 'underline' }}>manage your alerts</Link> anytime.
                     </p>
                   </div>
@@ -242,10 +242,11 @@ function JobAlertsContent() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                   {/* Email */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6B7F8A', marginBottom: '6px' }}>
+                    <label htmlFor="alert-email" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4B5E68', marginBottom: '6px' }}>
                       Email Address <span style={{ color: '#EF4444' }}>*</span>
                     </label>
                     <input
+                      id="alert-email"
                       type="email"
                       value={email}
                       onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(''); }}
@@ -262,10 +263,11 @@ function JobAlertsContent() {
 
                   {/* Location */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6B7F8A', marginBottom: '6px' }}>
-                      Location <span style={{ fontWeight: 400, color: '#B0C4BC' }}>(optional)</span>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4B5E68', marginBottom: '6px' }} htmlFor="alert-location">
+                      Location <span style={{ fontWeight: 400, color: '#4B5E68' }}>(optional)</span>
                     </label>
                     <select
+                      id="alert-location"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       style={clayInput}
@@ -284,10 +286,11 @@ function JobAlertsContent() {
 
                   {/* Work Mode */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6B7F8A', marginBottom: '6px' }}>
-                      Work Mode <span style={{ fontWeight: 400, color: '#B0C4BC' }}>(optional)</span>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4B5E68', marginBottom: '6px' }} htmlFor="alert-mode">
+                      Work Mode <span style={{ fontWeight: 400, color: '#4B5E68' }}>(optional)</span>
                     </label>
                     <select
+                      id="alert-mode"
                       value={mode}
                       onChange={(e) => setMode(e.target.value)}
                       style={clayInput}
@@ -301,10 +304,11 @@ function JobAlertsContent() {
 
                   {/* Job Type */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6B7F8A', marginBottom: '6px' }}>
-                      Job Type <span style={{ fontWeight: 400, color: '#B0C4BC' }}>(optional)</span>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4B5E68', marginBottom: '6px' }} htmlFor="alert-job-type">
+                      Job Type <span style={{ fontWeight: 400, color: '#4B5E68' }}>(optional)</span>
                     </label>
                     <select
+                      id="alert-job-type"
                       value={jobType}
                       onChange={(e) => setJobType(e.target.value)}
                       style={clayInput}
@@ -318,21 +322,25 @@ function JobAlertsContent() {
 
                   {/* Frequency */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6B7F8A', marginBottom: '8px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4B5E68', marginBottom: '8px' }}>
                       How often would you like to receive alerts?
                     </label>
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    {/* aria-pressed is the only cue a screen reader gets here:
+                        the active half is otherwise distinguished by colour
+                        and shadow alone. */}
+                    <div role="group" aria-label="Alert frequency" style={{ display: 'flex', gap: '10px' }}>
                       {['daily', 'weekly'].map((f) => (
                         <button
                           key={f}
                           type="button"
+                          aria-pressed={frequency === f}
                           onClick={() => setFrequency(f)}
                           style={{
                             padding: '8px 18px', borderRadius: '12px',
                             fontSize: '13px', fontWeight: 600,
                             cursor: 'pointer', transition: 'all 0.2s',
                             background: frequency === f ? '#0D9488' : '#EDF5F0',
-                            color: frequency === f ? '#fff' : '#6B7F8A',
+                            color: frequency === f ? '#fff' : '#4B5E68',
                             border: `1px solid ${frequency === f ? 'rgba(255,255,255,0.3)' : '#D5E8E0'}`,
                             boxShadow: frequency === f
                               ? '4px 4px 10px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)'
@@ -349,7 +357,7 @@ function JobAlertsContent() {
                   <div style={{
                     ...cardRecessed, padding: '12px 16px',
                   }}>
-                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#B0C4BC', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#4B5E68', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
                       You&apos;ll receive alerts for
                     </p>
                     <p style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', margin: 0 }}>
@@ -387,7 +395,7 @@ function JobAlertsContent() {
                     )}
                   </button>
 
-                  <p style={{ fontSize: '11px', color: '#B0C4BC', textAlign: 'center', margin: 0 }}>
+                  <p style={{ fontSize: '11px', color: '#4B5E68', textAlign: 'center', margin: 0 }}>
                     You can unsubscribe anytime from the email or{' '}
                     <Link href="/job-alerts/manage" style={{ color: '#0D9488', textDecoration: 'underline' }}>
                       manage your alerts
@@ -426,7 +434,7 @@ function JobAlertsContent() {
                     </div>
                     <div>
                       <p style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', margin: '0 0 2px' }}>{item.title}</p>
-                      <p style={{ fontSize: '11px', color: '#8A9BA6', margin: 0, lineHeight: 1.4 }}>{item.desc}</p>
+                      <p style={{ fontSize: '11px', color: '#4B5E68', margin: 0, lineHeight: 1.4 }}>{item.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -453,7 +461,7 @@ function JobAlertsContent() {
                     href={link.href}
                     style={{
                       ...clayPill,
-                      background: '#EDF5F0', color: '#6B7F8A',
+                      background: '#EDF5F0', color: '#4B5E68',
                     }}
                   >
                     {link.icon}{link.label}
@@ -471,14 +479,14 @@ function JobAlertsContent() {
                 </p>
                 <div style={{ ...cardRecessed, padding: '12px', textAlign: 'center' }}>
                   <p style={{ fontSize: '22px', fontWeight: 800, color: '#0D9488', margin: '0 0 2px' }}>{activeJobsCount.toLocaleString()}</p>
-                  <p style={{ fontSize: '10px', color: '#8A9BA6', margin: 0 }}>Active job listings</p>
+                  <p style={{ fontSize: '10px', color: '#4B5E68', margin: 0 }}>Active job listings</p>
                 </div>
               </div>
             )}
 
             {/* Manage link */}
             <div style={{ textAlign: 'center', padding: '8px 0' }}>
-              <p style={{ fontSize: '12px', color: '#8A9BA6' }}>
+              <p style={{ fontSize: '12px', color: '#4B5E68' }}>
                 Already have alerts?{' '}
                 <Link href="/job-alerts/manage" style={{ color: '#0D9488', fontWeight: 600, textDecoration: 'underline' }}>
                   Manage them here
@@ -492,7 +500,7 @@ function JobAlertsContent() {
         <div style={{ textAlign: 'center', marginTop: '24px' }}>
           <Link href="/jobs" style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
-            fontSize: '13px', fontWeight: 600, color: '#6B7F8A',
+            fontSize: '13px', fontWeight: 600, color: '#4B5E68',
             textDecoration: 'none',
           }}>
             <ArrowLeft size={14} />

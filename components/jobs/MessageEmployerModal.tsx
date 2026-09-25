@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { X, Send, Loader2, CheckCircle, MessageSquare, AlertTriangle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 interface MessageEmployerModalProps {
     isOpen: boolean;
@@ -34,6 +35,11 @@ export default function MessageEmployerModal({
     const [awaitingReply, setAwaitingReply] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
     const [mounted, setMounted] = useState(false);
+
+    // Focus trap, Escape handling and focus restore, the same helper every
+    // other dialog in the app uses. Without it this portal left the page
+    // behind it in the tab order and Escape did nothing.
+    const trapRef = useFocusTrap<HTMLDivElement>({ isOpen, onEscape: onClose });
 
     // Track client-side mount for portal
     useEffect(() => { setMounted(true); }, []);
@@ -135,6 +141,10 @@ export default function MessageEmployerModal({
                 onClick={onClose}
             >
                 <div
+                    ref={trapRef}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="message-employer-login-title"
                     onClick={e => e.stopPropagation()}
                     style={{
                         backgroundColor: 'var(--bg-secondary)', borderRadius: '16px',
@@ -145,14 +155,22 @@ export default function MessageEmployerModal({
                 >
                     <div style={{ textAlign: 'center' }}>
                         <MessageSquare size={40} style={{ color: '#2DD4BF', margin: '0 auto 16px' }} />
-                        <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                        <h3 id="message-employer-login-title" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
                             Log in to message {employerName}
                         </h3>
                         <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 24px' }}>
                             Create a free account or log in to send a message about this position.
                         </p>
+                        {/* /login honours ?redirectTo= (and ?next=) only; the
+                            ?redirect= this used to send was dropped, landing the
+                            user on /dashboard. The old value was also the job
+                            UUID rather than its slug, so send the page the user
+                            is actually on instead of rebuilding a URL. */}
                         <button
-                            onClick={() => router.push(`/login?redirect=/jobs/${encodeURIComponent(jobId)}`)}
+                            onClick={() => {
+                                const here = `${window.location.pathname}${window.location.search}`;
+                                router.push(`/login?redirectTo=${encodeURIComponent(here)}`);
+                            }}
                             style={{
                                 width: '100%', padding: '12px', borderRadius: '10px',
                                 border: 'none', backgroundColor: '#2DD4BF', color: 'white',
@@ -190,6 +208,10 @@ export default function MessageEmployerModal({
         >
 
             <div
+                ref={trapRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="message-employer-title"
                 onClick={e => e.stopPropagation()}
                 style={{
                     backgroundColor: 'var(--bg-secondary)', borderRadius: '16px',
@@ -206,7 +228,7 @@ export default function MessageEmployerModal({
                     background: 'linear-gradient(135deg, rgba(45,212,191,0.08), rgba(59,130,246,0.05))',
                 }}>
                     <div>
-                        <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                        <h3 id="message-employer-title" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                             Message {employerName}
                         </h3>
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>
@@ -215,12 +237,14 @@ export default function MessageEmployerModal({
                     </div>
                     <button
                         onClick={onClose}
+                        aria-label="Close message dialog"
+                        title="Close"
                         style={{
                             background: 'none', border: 'none', cursor: 'pointer',
                             color: 'var(--text-secondary)', padding: '4px',
                         }}
                     >
-                        <X size={20} />
+                        <X size={20} aria-hidden="true" />
                     </button>
                 </div>
 
@@ -316,8 +340,12 @@ export default function MessageEmployerModal({
                                     ))}
                                 </ul>
                             )}
+                            {/* There is no /profile route: this sent the user to a
+                                404 with a ?redirect= nothing reads. /settings is
+                                where the candidate profile, including first name,
+                                is edited. */}
                             <button
-                                onClick={() => router.push('/profile?redirect=' + encodeURIComponent(window.location.pathname))}
+                                onClick={() => router.push('/settings?tab=personal')}
                                 style={{
                                     padding: '10px 24px', borderRadius: '10px',
                                     border: 'none', backgroundColor: '#F59E0B', color: 'white',

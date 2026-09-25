@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
+import { collectAdminFields, type AdminFieldSpec } from '../_lib/field-validation';
+import { BLOG_POST_CATEGORIES, BLOG_POST_STATUSES } from './_lib/blog-fields';
+
+/**
+ * Creation accepts the same shape as the editor, with two differences from the
+ * PUT handler: title/content/category are mandatory (checked after collection,
+ * since collectAdminFields only types the keys that are present), and category
+ * IS range-checked. A brand-new post has no legacy excuse for a category the
+ * blog cannot label or filter on.
+ */
+const NEW_POST_FIELD_SPECS: Record<string, AdminFieldSpec> = {
+    title: { kind: 'requiredText' },
+    content: { kind: 'requiredText' },
+    category: { kind: 'requiredText', oneOf: BLOG_POST_CATEGORIES },
+    status: { kind: 'requiredText', oneOf: BLOG_POST_STATUSES },
+    metaDescription: { kind: 'text', nullable: true },
+    targetKeyword: { kind: 'text', nullable: true },
+    imageUrl: { kind: 'text', nullable: true },
+};
 
 /**
  * GET /api/admin/blog
@@ -45,7 +64,15 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { title, content, category, status, metaDescription, targetKeyword, imageUrl } = body;
+        const collected = collectAdminFields(body, NEW_POST_FIELD_SPECS);
+        if (!collected.ok) {
+            return NextResponse.json({ success: false, error: collected.error }, { status: 400 });
+        }
+        const { title, content, category, status, metaDescription, targetKeyword, imageUrl } =
+            collected.data as {
+                title?: string; content?: string; category?: string; status?: string;
+                metaDescription?: string | null; targetKeyword?: string | null; imageUrl?: string | null;
+            };
 
         if (!title || !content || !category) {
             return NextResponse.json(

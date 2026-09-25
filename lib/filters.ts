@@ -702,30 +702,105 @@ export function locationClause(location: string): Prisma.JobWhereInput | null {
 }
 
 /**
+ * The four job types the /jobs sidebar renders a checkbox for. Everything else
+ * the column can hold falls under the synthetic "Other" option.
+ *
+ * The canonical taxonomy (lib/job-normalizer.ts canonicalizeJobType) is wider
+ * than this: it also writes 'PRN', 'Locum Tenens' and 'Internship'. Those have
+ * no checkbox, which is a deliberate UI choice, not a reason for the postings
+ * to be unreachable.
+ */
+export const FACETED_JOB_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Per Diem'] as const;
+
+/** Case-insensitive equality against the free-text jobType column. */
+function jobTypeIsAnyOf(types: readonly string[]): Prisma.JobWhereInput {
+  return {
+    OR: types.map((t): Prisma.JobWhereInput => ({ jobType: { equals: t, mode: 'insensitive' } })),
+  };
+}
+
+/**
  * Job-type clause shared by buildWhereClause AND the filter-counts route.
- * Named types match the structured jobType column exactly; the synthetic
- * "Other" option means a NULL jobType (unnormalized/unstated), so the
- * checkbox and its badge count agree on what "Other" is.
+ *
+ * Two coverage bugs this clause used to have (hunt 2026-09-03), both of which
+ * left postings unreachable by every combination of the facet and made the
+ * five badge counts fail to sum to the total printed above the list:
+ *
+ *   1. "Other" meant `jobType: null` only. A posting stored as 'PRN' or
+ *      'Locum Tenens' is neither NULL nor one of the four named options, so it
+ *      matched nothing. "Other" now means the honest complement: NULL, or a
+ *      value outside FACETED_JOB_TYPES.
+ *   2. Named types matched through a case-SENSITIVE `in`, so a legacy
+ *      'Full-time' row was missed by the Full-Time checkbox and, being
+ *      non-NULL, by "Other" as well. Matching is case-insensitive now.
+ *
+ * The NULL branch of the "Other" clause is not redundant with the NOT: in SQL
+ * `NOT (jobType = 'Full-Time' OR ...)` evaluates to NULL for a NULL column and
+ * therefore excludes the row, so NULL has to be named explicitly.
  */
 export function jobTypeClause(types: string[]): Prisma.JobWhereInput {
   const hasOther = types.includes('Other');
   const namedTypes = types.filter(t => t !== 'Other');
 
+  const otherClause: Prisma.JobWhereInput = {
+    OR: [
+      { jobType: null },
+      { NOT: jobTypeIsAnyOf(FACETED_JOB_TYPES) },
+    ],
+  };
+
   if (hasOther && namedTypes.length > 0) {
-    // Match named types OR NULL
-    return {
-      OR: [
-        { jobType: { in: namedTypes } },
-        { jobType: null },
-      ],
-    };
+    return { OR: [jobTypeIsAnyOf(namedTypes), otherClause] };
   }
   if (hasOther) {
-    // Only "Other" selected — match NULL
-    return { jobType: null };
+    return otherClause;
   }
-  // Only named types
-  return { jobType: { in: namedTypes } };
+  return jobTypeIsAnyOf(namedTypes);
+}
+
+/**
+ * Spelling variants of the LEGACY free-text `experienceLevel` column.
+ *
+ * The column was never normalized, so one bucket is stored several ways:
+ * 'Mid-Level' and 'Mid Level' are the same bucket, as are 'Senior' and
+ * 'Senior Level'. The filter matched with a case-SENSITIVE `in` against the
+ * exact label, so `?experienceLevel=Mid-Level` silently returned only the
+ * hyphenated rows and missed the (far larger) space-form set, and the
+ * space-form labels had no reachable query value at all.
+ *
+ * Keys are the label lowercased with whitespace and underscores folded to '-',
+ * so every casing and separator of a known label resolves to the same bucket.
+ * An unrecognized label falls through to itself, matched case-insensitively,
+ * so a value this table has not learned about is still reachable.
+ */
+const EXPERIENCE_LEVEL_VARIANTS: Readonly<Record<string, readonly string[]>> = {
+  'new-grad': ['New Grad', 'New Graduate'],
+  'new-graduate': ['New Grad', 'New Graduate'],
+  'entry-level': ['Entry Level', 'Entry-Level'],
+  'mid-level': ['Mid-Level', 'Mid Level'],
+  'senior': ['Senior', 'Senior Level'],
+  'senior-level': ['Senior', 'Senior Level'],
+};
+
+function experienceLevelKey(label: string): string {
+  return label.trim().toLowerCase().replace(/[\s_]+/g, '-');
+}
+
+/** Every stored spelling of the requested experience labels, OR'd together. */
+export function experienceLevelClause(levels: string[]): Prisma.JobWhereInput {
+  const wanted = new Set<string>();
+  for (const raw of levels) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const variants = EXPERIENCE_LEVEL_VARIANTS[experienceLevelKey(trimmed)];
+    if (variants) variants.forEach(v => wanted.add(v));
+    else wanted.add(trimmed);
+  }
+  return {
+    OR: [...wanted].map((v): Prisma.JobWhereInput => ({
+      experienceLevel: { equals: v, mode: 'insensitive' },
+    })),
+  };
 }
 
 /**
@@ -901,10 +976,14 @@ export function buildWhereClause(filters: FilterState, now: Date = new Date()): 
   }
 
   // Posted Within — see `freshnessClause` for the windowed semantics.
+  // Uses the injected `now`, not a fresh Date(): the expiry half of this
+  // predicate already honours it, and a second clock made the two halves of
+  // one where-clause straddle a boundary, which is exactly the determinism the
+  // parameter exists to provide.
   if (filters.postedWithin && filters.postedWithin !== 'all') {
     if (postedWithinToMs(filters.postedWithin) !== null) {
       andConditions.push(
-        freshnessClause(new Date(), filters.postedWithin as PostedWithinWindow),
+        freshnessClause(now, filters.postedWithin as PostedWithinWindow),
       );
     }
   }
@@ -950,9 +1029,7 @@ export function buildWhereClause(filters: FilterState, now: Date = new Date()): 
 
   // Experience Level (from DB column — LEGACY, frozen 2026-05-13)
   if (filters.experienceLevel && filters.experienceLevel.length > 0) {
-    andConditions.push({
-      experienceLevel: { in: filters.experienceLevel },
-    });
+    andConditions.push(experienceLevelClause(filters.experienceLevel));
   }
 
   // "Open to new grads" — unified with the /jobs/new-grad category

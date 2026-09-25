@@ -5,6 +5,7 @@ import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 import { logAudit } from '@/lib/audit-log';
 import { createClient } from '@/lib/supabase/server';
 import { slugify } from '@/lib/utils';
+import { parseBoundedInt } from '../_lib/field-validation';
 
 /**
  * GET /api/admin/jobs
@@ -25,8 +26,24 @@ export async function GET(request: NextRequest) {
 
     try {
         const { searchParams } = new URL(request.url);
-        const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-        const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '25', 10)));
+        // NaN from a non-numeric param used to survive Math.max/Math.min and
+        // reach Prisma as skip/take, which throws and was reported as a 500.
+        const parsedPage = parseBoundedInt(searchParams.get('page'), {
+            // Capped so `skip` below stays inside the 32-bit integer Postgres
+            // expects; an out-of-range OFFSET is another avoidable 500.
+            name: 'page', fallback: 1, min: 1, max: 100_000,
+        });
+        if (!parsedPage.ok) {
+            return NextResponse.json({ success: false, error: parsedPage.error }, { status: 400 });
+        }
+        const parsedLimit = parseBoundedInt(searchParams.get('limit'), {
+            name: 'limit', fallback: 25, min: 1, max: 100,
+        });
+        if (!parsedLimit.ok) {
+            return NextResponse.json({ success: false, error: parsedLimit.error }, { status: 400 });
+        }
+        const page = parsedPage.value;
+        const limit = parsedLimit.value;
         const search = searchParams.get('search')?.trim();
         const source = searchParams.get('source');
         const published = searchParams.get('published'); // 'true' | 'false' | null

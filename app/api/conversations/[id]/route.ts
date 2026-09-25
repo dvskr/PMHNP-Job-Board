@@ -5,7 +5,8 @@ import { sendEmployerMessageNotification, sendCandidateInquiryNotification } fro
 import { sanitizeText } from '@/lib/sanitize';
 import { verifyCsrf } from '@/lib/csrf';
 import { rateLimit } from '@/lib/rate-limit';
-import { mintDocReadUrl, extractRequestContext } from '@/lib/document-storage';
+import { mintDocReadUrl, extractRequestContext, isOwnDocPath } from '@/lib/document-storage';
+import { readJsonBody } from '@/app/api/_lib/json-body';
 
 /**
  * GET /api/conversations/[id]
@@ -246,8 +247,13 @@ export async function POST(
             }
         }
 
-        const body = await req.json();
-        const { body: messageBody, attachmentUrl, attachmentName } = body;
+        const parsed = await readJsonBody(req);
+        if (!parsed.ok) return parsed.response;
+        const { body: messageBody, attachmentUrl, attachmentName } = parsed.body as {
+            body?: string;
+            attachmentUrl?: string;
+            attachmentName?: string;
+        };
 
         if ((!messageBody || !messageBody.trim()) && !attachmentUrl) {
             return NextResponse.json({ error: 'Message body or attachment is required' }, { status: 400 });
@@ -255,6 +261,24 @@ export async function POST(
 
         if (messageBody && messageBody.length > 2000) {
             return NextResponse.json({ error: 'Message must be under 2000 characters' }, { status: 400 });
+        }
+
+        // IDOR gate. attachmentUrl arrives in the JSON body, and the GET
+        // handler later hands whatever is stored straight to mintDocReadUrl,
+        // which signs with the service-role key and deliberately performs no
+        // ownership check of its own (see lib/document-storage.ts: "Any route
+        // that accepts a path from the client MUST gate on this first").
+        // Without this, a participant could name any key in the private
+        // message-attachments bucket, including another user's, and both
+        // parties would be served a 15-minute signed URL for it. The only
+        // legitimate value is a handle this same user just got back from
+        // POST /api/upload/message-attachment, which writes
+        // `${user.id}/${Date.now()}_${name}`.
+        if (attachmentUrl && !isOwnDocPath(attachmentUrl, 'message_attachment', user.id)) {
+            return NextResponse.json(
+                { error: 'Attachment must be a file you uploaded to this conversation' },
+                { status: 400 },
+            );
         }
 
         // Determine recipient
@@ -378,6 +402,12 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const { id } = await params;
+
+    // Same origin check as the reply path: hiding a conversation is a state
+    // change on the caller's own inbox, and a cross-site page rides the same
+    // session cookie the participant check trusts.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
 
     try {
         const supabase = await createClient();

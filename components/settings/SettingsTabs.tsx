@@ -119,7 +119,9 @@ export default function SettingsTabs({ activeTab, onTabChange, isJobSeeker }: Pr
                             style={{
                                 display: 'flex', alignItems: 'center', gap: '6px',
                                 padding: '8px 14px', fontSize: '13px', fontWeight: isActive ? 700 : 500,
-                                color: isActive ? '#0D9488' : '#6B7F8A',
+                                // A11y: #0D9488 is ~3.2:1 on the #D5F5F1 active pill.
+                                // #0F766E clears 4.5:1 on it.
+                                color: isActive ? '#0F766E' : '#4B5E68',
                                 background: isActive ? '#D5F5F1' : 'transparent',
                                 border: 'none', cursor: 'pointer',
                                 borderRadius: '10px',

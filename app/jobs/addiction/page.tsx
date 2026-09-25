@@ -15,6 +15,7 @@ import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 import CategoryFAQ from '@/components/CategoryFAQ';
+import { slugify } from '@/lib/utils';
 
 // Force dynamic rendering
 /* Design Tokens */
@@ -135,7 +136,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
                 { name: "Addiction", url: "https://pmhnphiring.com/jobs/addiction" }
             ]} />
             {jobs.length > 0 && (
-              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Addiction PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Addiction PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}` })) }) }} />
             )}
 
             {/* ═══ HERO ═══ */}

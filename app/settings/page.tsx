@@ -51,6 +51,12 @@ const EXPERIENCE_OPTIONS = [
 ]
 const AVAILABILITY_OPTIONS = ['Immediately', '2 Weeks', '1 Month', '3 Months', 'Custom']
 
+// Mirror the caps PATCH /api/auth/profile applies with sanitizeText(). Without
+// them the browser accepted a 300-character name, the save answered 200, and
+// 250 characters vanished with no message and no maxLength to stop at.
+const NAME_MAX_LENGTH = 50
+const PHONE_MAX_LENGTH = 20
+
 // ── Types ──
 interface Profile {
   firstName: string | null
@@ -167,6 +173,7 @@ function SettingsPageInner() {
   const [showClearModal, setShowClearModal] = useState(false)
   const [clearing, setClearing] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [availabilityMode, setAvailabilityMode] = useState('Immediately')
 
 
@@ -175,7 +182,9 @@ function SettingsPageInner() {
     const fetchProfile = async () => {
       try {
         const res = await fetch('/api/auth/profile')
-        if (res.status === 401) { router.push('/login'); return }
+        // Thread the return target through login. A bare '/login' dropped the
+        // user on /dashboard after signing in and lost what they came for.
+        if (res.status === 401) { router.push('/login?redirectTo=/settings'); return }
         if (!res.ok) throw new Error('Failed to fetch profile')
         const data = await res.json()
 
@@ -199,8 +208,11 @@ function SettingsPageInner() {
           else setAvailabilityMode('Custom')
         }
       } catch (error) {
+        // Only a 401 means "not signed in", and that is handled above. Every
+        // other failure (500, dropped connection, bad JSON) used to bounce a
+        // signed-in user to /login, where re-authenticating changed nothing.
         console.error('Error fetching profile:', error)
-        router.push('/login')
+        setLoadError('We could not load your profile. Please refresh and try again.')
       } finally {
         setLoading(false)
       }
@@ -261,56 +273,49 @@ function SettingsPageInner() {
   }, [profile?.resumeParseStatus])
 
   // ── Handlers ──
-  const handleAvatarUpload = async (url: string) => {
+  // Persist one avatar field and report honestly. fetch() resolves for a 401,
+  // 403 or 500 just as it does for a 200, so without a res.ok check every one
+  // of these showed a success toast over a save that never happened, and the
+  // optimistic local state hid it until the next reload. On failure the
+  // previous value is put back so the page stops claiming the new one.
+  const patchAvatar = async (url: string | null, successText: string, failText: string) => {
     if (!profile) return
+    const previous = profile.avatarUrl ?? null
     setProfile({ ...profile, avatarUrl: url })
     try {
-      await fetch('/api/auth/profile', {
+      const res = await fetch('/api/auth/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avatarUrl: url }),
       })
-      showMsg('success', 'Avatar updated!')
-    } catch { showMsg('error', 'Failed to update avatar') }
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null)
+        throw new Error(detail?.error || `HTTP ${res.status}`)
+      }
+      showMsg('success', successText)
+    } catch {
+      setProfile(p => (p ? { ...p, avatarUrl: previous } : p))
+      showMsg('error', failText)
+    }
   }
 
-  const handleAvatarRemove = async () => {
-    if (!profile) return
-    setProfile({ ...profile, avatarUrl: null })
-    try {
-      await fetch('/api/auth/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatarUrl: null }),
-      })
-      showMsg('success', 'Avatar removed!')
-    } catch { showMsg('error', 'Failed to remove avatar') }
+  const handleAvatarUpload = (url: string) => patchAvatar(url, 'Avatar updated!', 'Failed to update avatar')
+
+  const handleAvatarRemove = () => patchAvatar(null, 'Avatar removed!', 'Failed to remove avatar')
+
+  // resumeUrl is written server-side only (POST /api/upload on upload, DELETE
+  // /api/profile/resume on removal) because accepting it from a PATCH body let
+  // a profile point at another user's storage path. Both child components have
+  // already awaited and checked their own endpoint by the time they call back,
+  // so these handlers only mirror the committed state into the local form.
+  const handleResumeUpload = (url: string) => {
+    setProfile(p => (p ? { ...p, resumeUrl: url } : p))
+    showMsg('success', 'Resume uploaded!')
   }
 
-  const handleResumeUpload = async (url: string) => {
-    if (!profile) return
-    setProfile({ ...profile, resumeUrl: url })
-    try {
-      await fetch('/api/auth/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeUrl: url }),
-      })
-      showMsg('success', 'Resume uploaded!')
-    } catch { showMsg('error', 'Failed to upload resume') }
-  }
-
-  const handleResumeRemove = async () => {
-    if (!profile) return
-    setProfile({ ...profile, resumeUrl: null })
-    try {
-      await fetch('/api/auth/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeUrl: null }),
-      })
-      showMsg('success', 'Resume removed!')
-    } catch { showMsg('error', 'Failed to remove resume') }
+  const handleResumeRemove = () => {
+    setProfile(p => (p ? { ...p, resumeUrl: null, resumeParseStatus: null } : p))
+    showMsg('success', 'Resume removed!')
   }
 
   const handleDeleteAccount = async () => {
@@ -388,7 +393,9 @@ function SettingsPageInner() {
           phone: profile.phone,
           company: profile.company,
           avatarUrl: profile.avatarUrl,
-          resumeUrl: profile.resumeUrl,
+          // resumeUrl is deliberately absent: PATCH /api/auth/profile refuses
+          // it (a body-supplied storage path let a profile point at another
+          // user's resume), so sending it was a no-op that read as a save.
           headline: profile.headline,
           bio: profile.bio,
           yearsExperience: profile.yearsExperience,
@@ -471,6 +478,19 @@ function SettingsPageInner() {
       </div>
     )
   }
+  if (loadError) {
+    return (
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '32px 16px' }}>
+        <div role="alert" style={{ ...cardStyle, textAlign: 'center' }}>
+          <AlertTriangle size={36} style={{ color: '#EF4444', margin: '0 auto 16px', display: 'block' }} />
+          <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>
+            Settings could not load
+          </h1>
+          <p style={{ fontSize: '14px', color: '#4B5E68' }}>{loadError}</p>
+        </div>
+      </div>
+    )
+  }
   if (!profile) return null
 
   const displayName = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Your Name'
@@ -514,7 +534,7 @@ function SettingsPageInner() {
             <h1 style={{ fontSize: '28px', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 4px' }}>
               Settings
             </h1>
-            <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0 }}>Manage your profile and preferences</p>
+            <p style={{ fontSize: '14px', color: '#4B5E68', margin: 0 }}>Manage your profile and preferences</p>
           </div>
           <div className="settings-header-actions flex items-center gap-[10px] flex-wrap">
             <button
@@ -746,43 +766,50 @@ function SettingsPageInner() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div>
-                <label style={labelStyle}>First Name</label>
+                <label htmlFor="set-first-name" style={labelStyle}>First Name</label>
                 <input
+                  id="set-first-name"
                   type="text"
                   value={profile.firstName || ''}
                   onChange={(e) => updateProfile({ firstName: e.target.value })}
                   placeholder="First name"
+                  maxLength={NAME_MAX_LENGTH}
                   style={inputStyle}
                 />
               </div>
               <div>
-                <label style={labelStyle}>Last Name</label>
+                <label htmlFor="set-last-name" style={labelStyle}>Last Name</label>
                 <input
+                  id="set-last-name"
                   type="text"
                   value={profile.lastName || ''}
                   onChange={(e) => updateProfile({ lastName: e.target.value })}
                   placeholder="Last name"
+                  maxLength={NAME_MAX_LENGTH}
                   style={inputStyle}
                 />
               </div>
               <div>
-                <label style={labelStyle}>Phone <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(optional)</span></label>
+                <label htmlFor="set-phone" style={labelStyle}>Phone <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(optional)</span></label>
                 <div style={{ position: 'relative' }}>
                   <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                   <input
+                    id="set-phone"
                     type="tel"
                     value={profile.phone || ''}
                     onChange={(e) => updateProfile({ phone: e.target.value })}
                     placeholder="555-1234"
+                    maxLength={PHONE_MAX_LENGTH}
                     style={{ ...inputStyle, paddingLeft: '36px' }}
                   />
                 </div>
               </div>
               <div>
-                <label style={labelStyle}>Email</label>
+                <label htmlFor="set-email" style={labelStyle}>Email</label>
                 <div style={{ position: 'relative' }}>
                   <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                   <input
+                    id="set-email"
                     type="email"
                     value={profile.email}
                     disabled
@@ -804,10 +831,11 @@ function SettingsPageInner() {
                   keeps the form from offering an edit that cannot be saved. */}
               {profile.role === 'employer' && (
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Company</label>
+                  <label htmlFor="set-company" style={labelStyle}>Company</label>
                   <div style={{ position: 'relative' }}>
                     <Building size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input
+                      id="set-company"
                       type="text"
                       value={profile.company || ''}
                       readOnly
@@ -842,8 +870,9 @@ function SettingsPageInner() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {/* Street Address */}
                 <div>
-                  <label style={labelStyle}>Street Address</label>
+                  <label htmlFor="set-address1" style={labelStyle}>Street Address</label>
                   <input
+                    id="set-address1"
                     type="text"
                     value={profile.addressLine1 || ''}
                     onChange={(e) => updateProfile({ addressLine1: e.target.value })}
@@ -854,8 +883,9 @@ function SettingsPageInner() {
 
                 {/* Address Line 2 */}
                 <div>
-                  <label style={labelStyle}>Apt, Suite, Unit <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(optional)</span></label>
+                  <label htmlFor="set-address2" style={labelStyle}>Apt, Suite, Unit <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(optional)</span></label>
                   <input
+                    id="set-address2"
                     type="text"
                     value={profile.addressLine2 || ''}
                     onChange={(e) => updateProfile({ addressLine2: e.target.value })}
@@ -867,8 +897,9 @@ function SettingsPageInner() {
                 {/* City + State row */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label style={labelStyle}>City</label>
+                    <label htmlFor="set-city" style={labelStyle}>City</label>
                     <input
+                      id="set-city"
                       type="text"
                       value={profile.city || ''}
                       onChange={(e) => updateProfile({ city: e.target.value })}
@@ -877,8 +908,9 @@ function SettingsPageInner() {
                     />
                   </div>
                   <div>
-                    <label style={labelStyle}>State</label>
+                    <label htmlFor="set-state" style={labelStyle}>State</label>
                     <select
+                      id="set-state"
                       value={profile.state || ''}
                       onChange={(e) => updateProfile({ state: e.target.value || null })}
                       style={{ ...inputStyle, cursor: 'pointer' }}
@@ -894,8 +926,9 @@ function SettingsPageInner() {
                 {/* Zip + Country row */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label style={labelStyle}>ZIP Code</label>
+                    <label htmlFor="set-zip" style={labelStyle}>ZIP Code</label>
                     <input
+                      id="set-zip"
                       type="text"
                       value={profile.zipCode || ''}
                       onChange={(e) => {
@@ -908,8 +941,9 @@ function SettingsPageInner() {
                     />
                   </div>
                   <div>
-                    <label style={labelStyle}>Country</label>
+                    <label htmlFor="set-country" style={labelStyle}>Country</label>
                     <input
+                      id="set-country"
                       type="text"
                       value={profile.country || 'United States'}
                       disabled
@@ -994,8 +1028,9 @@ function SettingsPageInner() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {/* Headline */}
                 <div>
-                  <label style={labelStyle}>Professional Headline</label>
+                  <label htmlFor="set-headline" style={labelStyle}>Professional Headline</label>
                   <input
+                    id="set-headline"
                     type="text"
                     value={profile.headline || ''}
                     onChange={(e) => updateProfile({ headline: e.target.value })}
@@ -1007,8 +1042,9 @@ function SettingsPageInner() {
 
                 {/* Bio / Summary */}
                 <div>
-                  <label style={labelStyle}>Professional Summary</label>
+                  <label htmlFor="set-bio" style={labelStyle}>Professional Summary</label>
                   <textarea
+                    id="set-bio"
                     value={profile.bio || ''}
                     onChange={(e) => {
                       if (e.target.value.length <= 1000) updateProfile({ bio: e.target.value })
@@ -1024,8 +1060,9 @@ function SettingsPageInner() {
 
                 {/* Years of Experience */}
                 <div>
-                  <label style={labelStyle}>Years of Experience</label>
+                  <label htmlFor="set-years" style={labelStyle}>Years of Experience</label>
                   <select
+                    id="set-years"
                     value={profile.yearsExperience ?? ''}
                     onChange={(e) => updateProfile({
                       yearsExperience: e.target.value ? parseInt(e.target.value, 10) : null,
@@ -1082,9 +1119,13 @@ function SettingsPageInner() {
 
                 {/* Salary Range */}
                 <div>
-                  <label style={labelStyle}>Desired Salary Range</label>
+                  {/* The visible label names a pair of inputs plus a rate
+                      toggle, so it labels the group and each control carries
+                      its own name. Screen readers announced all three as
+                      unnamed "edit text" before this. */}
+                  <label id="set-salary-label" style={labelStyle}>Desired Salary Range</label>
                   {/* Rate type toggle */}
-                  <div style={{
+                  <div role="group" aria-label="Salary rate type" style={{
                     display: 'inline-flex', borderRadius: '8px', overflow: 'hidden',
                     border: '1px solid var(--border-color)', marginBottom: '10px',
                   }}>
@@ -1094,6 +1135,7 @@ function SettingsPageInner() {
                         <button
                           key={type}
                           type="button"
+                          aria-pressed={isActive}
                           onClick={() => updateProfile({ desiredSalaryType: type })}
                           style={{
                             padding: '6px 16px', fontSize: '13px', fontWeight: 600,
@@ -1108,7 +1150,7 @@ function SettingsPageInner() {
                       )
                     })}
                   </div>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div role="group" aria-labelledby="set-salary-label" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <div style={{ position: 'relative', flex: 1 }}>
                       <DollarSign
                         size={16}
@@ -1116,6 +1158,7 @@ function SettingsPageInner() {
                       />
                       <input
                         type="number"
+                        aria-label="Minimum desired salary"
                         value={profile.desiredSalaryMin ?? ''}
                         onChange={(e) => updateProfile({ desiredSalaryMin: e.target.value ? parseInt(e.target.value, 10) : null })}
                         placeholder={(profile.desiredSalaryType || 'yearly') === 'hourly' ? 'e.g. 60' : 'Min'}
@@ -1130,6 +1173,7 @@ function SettingsPageInner() {
                       />
                       <input
                         type="number"
+                        aria-label="Maximum desired salary"
                         value={profile.desiredSalaryMax ?? ''}
                         onChange={(e) => updateProfile({ desiredSalaryMax: e.target.value ? parseInt(e.target.value, 10) : null })}
                         placeholder={(profile.desiredSalaryType || 'yearly') === 'hourly' ? 'e.g. 90' : 'Max'}
@@ -1145,14 +1189,15 @@ function SettingsPageInner() {
 
                 {/* Available Start Date */}
                 <div>
-                  <label style={labelStyle}>Available to Start</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  <label id="set-availability-label" style={labelStyle}>Available to Start</label>
+                  <div role="group" aria-labelledby="set-availability-label" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {AVAILABILITY_OPTIONS.map((opt) => {
                       const isSelected = availabilityMode === opt
                       return (
                         <button
                           key={opt}
                           type="button"
+                          aria-pressed={isSelected}
                           onClick={() => setAvailabilityMode(opt)}
                           style={{
                             padding: '8px 18px',
@@ -1174,6 +1219,7 @@ function SettingsPageInner() {
                   {availabilityMode === 'Custom' && (
                     <input
                       type="date"
+                      aria-label="Custom available start date"
                       value={profile.availableDate ? new Date(profile.availableDate).toISOString().split('T')[0] : ''}
                       onChange={(e) => updateProfile({ availableDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
                       style={{ ...inputStyle, marginTop: '10px', maxWidth: '220px' }}
@@ -1183,13 +1229,14 @@ function SettingsPageInner() {
 
                 {/* LinkedIn */}
                 <div>
-                  <label style={labelStyle}>LinkedIn Profile</label>
+                  <label htmlFor="set-linkedin" style={labelStyle}>LinkedIn Profile</label>
                   <div style={{ position: 'relative' }}>
                     <Linkedin
                       size={16}
                       style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}
                     />
                     <input
+                      id="set-linkedin"
                       type="url"
                       value={profile.linkedinUrl || ''}
                       onChange={(e) => updateProfile({ linkedinUrl: e.target.value })}
@@ -1232,14 +1279,15 @@ function SettingsPageInner() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {/* Work Authorization */}
                 <div>
-                  <label style={labelStyle}>Are you authorized to work in the United States?</label>
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                  <label id="set-work-auth-label" style={labelStyle}>Are you authorized to work in the United States?</label>
+                  <div role="group" aria-labelledby="set-work-auth-label" style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
                     {([{ label: 'Yes', value: true }, { label: 'No', value: false }] as const).map((opt) => {
                       const isSelected = profile.workAuthorized === opt.value
                       return (
                         <button
                           key={opt.label}
                           type="button"
+                          aria-pressed={isSelected}
                           onClick={() => updateProfile({ workAuthorized: opt.value })}
                           style={{
                             padding: '8px 22px', borderRadius: '24px', fontSize: '13px', fontWeight: 600,
@@ -1258,14 +1306,15 @@ function SettingsPageInner() {
 
                 {/* Sponsorship */}
                 <div>
-                  <label style={labelStyle}>Do you now or in the future require visa sponsorship?</label>
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                  <label id="set-sponsorship-label" style={labelStyle}>Do you now or in the future require visa sponsorship?</label>
+                  <div role="group" aria-labelledby="set-sponsorship-label" style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
                     {([{ label: 'Yes', value: true }, { label: 'No', value: false }] as const).map((opt) => {
                       const isSelected = profile.requiresSponsorship === opt.value
                       return (
                         <button
                           key={opt.label}
                           type="button"
+                          aria-pressed={isSelected}
                           onClick={() => updateProfile({ requiresSponsorship: opt.value })}
                           style={{
                             padding: '8px 22px', borderRadius: '24px', fontSize: '13px', fontWeight: 600,
@@ -1284,8 +1333,8 @@ function SettingsPageInner() {
 
                 {/* Gender */}
                 <div>
-                  <label style={labelStyle}>Gender</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+                  <label id="set-gender-label" style={labelStyle}>Gender</label>
+                  <div role="group" aria-labelledby="set-gender-label" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
                     {[
                       { label: 'Male', value: 'male' },
                       { label: 'Female', value: 'female' },
@@ -1297,6 +1346,7 @@ function SettingsPageInner() {
                         <button
                           key={opt.value}
                           type="button"
+                          aria-pressed={isSelected}
                           onClick={() => updateProfile({ gender: opt.value })}
                           style={{
                             padding: '8px 18px', borderRadius: '24px', fontSize: '13px', fontWeight: 600,
@@ -1315,8 +1365,9 @@ function SettingsPageInner() {
 
                 {/* Race / Ethnicity */}
                 <div>
-                  <label style={labelStyle}>Race / Ethnicity</label>
+                  <label htmlFor="set-race" style={labelStyle}>Race / Ethnicity</label>
                   <select
+                    id="set-race"
                     value={profile.raceEthnicity || ''}
                     onChange={(e) => updateProfile({ raceEthnicity: e.target.value || null })}
                     style={{ ...inputStyle, cursor: 'pointer' }}
@@ -1335,8 +1386,8 @@ function SettingsPageInner() {
 
                 {/* Veteran Status */}
                 <div>
-                  <label style={labelStyle}>Veteran Status</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                  <label id="set-veteran-label" style={labelStyle}>Veteran Status</label>
+                  <div role="group" aria-labelledby="set-veteran-label" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
                     {[
                       { label: 'I am a protected veteran', value: 'protected_veteran' },
                       { label: 'I am not a veteran', value: 'not_a_veteran' },
@@ -1347,6 +1398,7 @@ function SettingsPageInner() {
                         <button
                           key={opt.value}
                           type="button"
+                          aria-pressed={isSelected}
                           onClick={() => updateProfile({ veteranStatus: opt.value })}
                           style={{
                             padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 500,
@@ -1365,8 +1417,8 @@ function SettingsPageInner() {
 
                 {/* Disability Status */}
                 <div>
-                  <label style={labelStyle}>Disability Status</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                  <label id="set-disability-label" style={labelStyle}>Disability Status</label>
+                  <div role="group" aria-labelledby="set-disability-label" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
                     {[
                       { label: 'Yes, I have a disability', value: 'yes' },
                       { label: 'No, I do not have a disability', value: 'no' },
@@ -1377,6 +1429,7 @@ function SettingsPageInner() {
                         <button
                           key={opt.value}
                           type="button"
+                          aria-pressed={isSelected}
                           onClick={() => updateProfile({ disabilityStatus: opt.value })}
                           style={{
                             padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 500,
@@ -1478,7 +1531,7 @@ function SettingsPageInner() {
                 {/* NPI Number */}
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                    <label style={{ ...labelStyle, marginBottom: 0 }}>NPI Number</label>
+                    <label htmlFor="set-npi" style={{ ...labelStyle, marginBottom: 0 }}>NPI Number</label>
                     <span title="Your NPI is a unique 10-digit number issued by CMS. It never changes. Find yours at npiregistry.cms.hhs.gov">
                       <HelpCircle
                         size={14}
@@ -1487,6 +1540,7 @@ function SettingsPageInner() {
                     </span>
                   </div>
                   <input
+                    id="set-npi"
                     type="text"
                     value={profile.npiNumber || ''}
                     onChange={(e) => {
@@ -1506,8 +1560,9 @@ function SettingsPageInner() {
 
                 {/* DEA Number */}
                 <div>
-                  <label style={labelStyle}>DEA Number</label>
+                  <label htmlFor="set-dea" style={labelStyle}>DEA Number</label>
                   <input
+                    id="set-dea"
                     type="text"
                     value={profile.deaNumber || ''}
                     onChange={(e) => updateProfile({ deaNumber: e.target.value })}
@@ -1518,8 +1573,9 @@ function SettingsPageInner() {
 
                 {/* DEA Expiration */}
                 <div style={{ maxWidth: '50%' }}>
-                  <label style={labelStyle}>DEA Expiration Date</label>
+                  <label htmlFor="set-dea-exp" style={labelStyle}>DEA Expiration Date</label>
                   <input
+                    id="set-dea-exp"
                     type="date"
                     value={profile.deaExpirationDate ? new Date(profile.deaExpirationDate).toISOString().slice(0, 10) : ''}
                     onChange={(e) => updateProfile({ deaExpirationDate: e.target.value || null })}
@@ -1687,7 +1743,14 @@ function SettingsPageInner() {
               Danger Zone
             </h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '14px' }}>
-              Once you delete your account, there is no going back. Please be certain.
+              {/* DELETE /api/auth/delete-account is a soft delete with
+                  PURGE_GRACE_DAYS = 30, and signing back in restores the
+                  account. The old "no going back" copy told users recovery was
+                  impossible when it is a single sign-in away.
+                  tests/regressions/pages-account-mediums.test.ts pins the 30
+                  here to the constant in the route. */}
+              Deleting hides your profile and stops all email right away. You have 30 days to change
+              your mind: sign back in and everything is restored. After 30 days it is erased for good.
             </p>
             <button
               onClick={() => setShowDeleteModal(true)}
@@ -1750,7 +1813,8 @@ function SettingsPageInner() {
                   Delete Account?
                 </h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-                  This action cannot be undone.
+                  Your profile is hidden and all email stops immediately. Sign back in within 30 days
+                  to restore it. After that the account and its data are erased for good.
                 </p>
               </div>
 

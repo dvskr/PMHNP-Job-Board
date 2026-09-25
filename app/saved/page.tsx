@@ -10,6 +10,7 @@ import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import useSavedJobs from '@/lib/hooks/useSavedJobs';
+import { createClient } from '@/lib/supabase/client';
 
 type TabType = 'saved' | 'applied';
 type SortOption = 'recent' | 'salary' | 'title';
@@ -29,6 +30,9 @@ export default function SavedJobsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('recent');
+  // null while unknown, so the signed-out notice never flashes for a
+  // signed-in user on first paint.
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
   // Saved jobs hook - single source of truth
   const { savedJobs: savedIds, removeJob, clearAll: clearSavedJobs } = useSavedJobs();
@@ -42,6 +46,11 @@ export default function SavedJobsPage() {
   const lastFetchedIds = useRef<string>('');
 
   const fetchSavedJobs = useCallback(async (ids: string[]) => {
+    // Clear first, the way fetchAppliedJobs already does. setError was only
+    // ever called on failure, so one transient network error pinned the
+    // banner above correctly-loaded results for the rest of the session.
+    setError(null);
+
     if (ids.length === 0) {
       setJobs([]);
       setLoading(false);
@@ -90,6 +99,17 @@ export default function SavedJobsPage() {
     // Fetch saved jobs whenever savedIds changes
     fetchSavedJobs(savedIds);
   }, [savedIds, fetchSavedJobs]);
+
+  // Sign-in state drives the "this list is browser-only" notice. A failed
+  // lookup leaves it null, which renders nothing: a notice claiming the
+  // visitor is signed out is worse than no notice.
+  useEffect(() => {
+    let cancelled = false;
+    createClient().auth.getUser()
+      .then(({ data }) => { if (!cancelled) setSignedIn(!!data.user); })
+      .catch(() => { /* unknown: leave the notice hidden */ });
+    return () => { cancelled = true; };
+  }, []);
 
   // Fetch applied jobs when tab changes or appliedJobs changes
   useEffect(() => {
@@ -195,10 +215,39 @@ export default function SavedJobsPage() {
             }}>
                 My Jobs
             </h1>
-            <p style={{ fontSize: '15px', color: '#8A9BA6', margin: 0 }}>
+            <p style={{ fontSize: '15px', color: '#4B5E68', margin: 0 }}>
                 Jobs you&apos;ve saved and applications you&apos;ve submitted.
             </p>
         </div>
+
+        {/* Saved and applied jobs live in localStorage, so this page works
+            signed out. It is NOT gated the way /dashboard is, because gating
+            it would throw away an anonymous visitor's list. What it must not
+            do is show a signed-out visitor an empty page with no explanation:
+            they read it as "my saved jobs are gone". Say where the list lives
+            and offer the way to make it follow them. */}
+        {signedIn === false && (
+            <div style={{
+                ...cardBase, padding: '16px 20px', marginBottom: '20px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: '16px', flexWrap: 'wrap',
+            }}>
+                <p style={{ margin: 0, fontSize: '14px', color: '#4B5E68', lineHeight: 1.5 }}>
+                    You are not signed in. This list is stored in this browser only.
+                    Sign in to keep it across your devices.
+                </p>
+                <Link href="/login?redirectTo=/saved" style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    padding: '9px 18px', borderRadius: '12px',
+                    background: '#0F766E', color: '#fff',
+                    fontSize: '13px', fontWeight: 600, textDecoration: 'none',
+                    whiteSpace: 'nowrap',
+                }}>
+                    Sign in
+                    <ArrowRight size={14} />
+                </Link>
+            </div>
+        )}
 
         {/* ═══ Clay Tab Bar ═══ */}
         <div style={{
@@ -222,7 +271,7 @@ export default function SavedJobsPage() {
                             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                             padding: '12px 16px', borderRadius: '12px',
                             fontSize: '14px', fontWeight: isActive ? 700 : 500,
-                            color: isActive ? '#1A2E35' : '#6B7F8A',
+                            color: isActive ? '#1A2E35' : '#4B5E68',
                             background: isActive ? '#F7FBF8' : 'transparent',
                             border: isActive ? '1px solid rgba(213,232,224,0.5)' : '1px solid transparent',
                             boxShadow: isActive
@@ -232,14 +281,14 @@ export default function SavedJobsPage() {
                             transition: 'all 0.2s ease',
                         }}
                     >
-                        <TabIcon size={16} style={{ color: isActive ? '#0D9488' : '#8A9BA6' }} />
+                        <TabIcon size={16} style={{ color: isActive ? '#0D9488' : '#4B5E68' }} />
                         {tab.label}
                         {tab.count > 0 && (
                             <span style={{
                                 fontSize: '11px', fontWeight: 700,
                                 padding: '2px 8px', borderRadius: '20px',
                                 background: isActive ? '#0D9488' : '#D5E8E0',
-                                color: isActive ? '#fff' : '#6B7F8A',
+                                color: isActive ? '#fff' : '#4B5E68',
                             }}>
                                 {tab.count}
                             </span>
@@ -255,7 +304,7 @@ export default function SavedJobsPage() {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 marginBottom: '20px', flexWrap: 'wrap', gap: '12px',
             }}>
-                <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0, fontWeight: 500 }}>
+                <p style={{ fontSize: '14px', color: '#4B5E68', margin: 0, fontWeight: 500 }}>
                     {currentCount} {activeTab === 'saved' ? 'saved' : 'applied'} job{currentCount !== 1 ? 's' : ''}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -265,7 +314,7 @@ export default function SavedJobsPage() {
                             background: '#EDF5F0', borderRadius: '10px', padding: '6px 12px',
                             border: '1px solid #D5E8E0',
                         }}>
-                            <SortAsc size={14} style={{ color: '#6B7F8A' }} />
+                            <SortAsc size={14} style={{ color: '#4B5E68' }} />
                             <select
                                 id="sort-saved"
                                 value={sortBy}
@@ -382,7 +431,7 @@ export default function SavedJobsPage() {
                 <p style={{ color: '#EF4444', fontSize: '15px', fontWeight: 600, marginBottom: '8px' }}>
                     {currentError}
                 </p>
-                <p style={{ color: '#6B7F8A', fontSize: '13px' }}>
+                <p style={{ color: '#4B5E68', fontSize: '13px' }}>
                     Please try refreshing the page.
                 </p>
             </div>
@@ -403,7 +452,7 @@ export default function SavedJobsPage() {
                     No saved jobs yet
                 </h2>
                 <p style={{
-                    color: '#8A9BA6', fontSize: '14px', marginBottom: '24px',
+                    color: '#4B5E68', fontSize: '14px', marginBottom: '24px',
                     maxWidth: '340px', marginInline: 'auto', lineHeight: 1.6,
                 }}>
                     Bookmark jobs you&apos;re interested in, and they&apos;ll show up here.
@@ -437,7 +486,7 @@ export default function SavedJobsPage() {
                     No applications yet
                 </h2>
                 <p style={{
-                    color: '#8A9BA6', fontSize: '14px', marginBottom: '24px',
+                    color: '#4B5E68', fontSize: '14px', marginBottom: '24px',
                     maxWidth: '340px', marginInline: 'auto', lineHeight: 1.6,
                 }}>
                     Apply to jobs through the platform and track your progress here.
@@ -615,7 +664,7 @@ function UnavailableJobPlaceholder({
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: '#8A9BA6',
+                            color: '#4B5E68',
                             flexShrink: 0,
                         }}
                     >
@@ -633,7 +682,7 @@ function UnavailableJobPlaceholder({
                         >
                             Listing no longer available
                         </p>
-                        <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '2px 0 0' }}>
+                        <p style={{ fontSize: '12px', color: '#4B5E68', margin: '2px 0 0' }}>
                             The employer has taken this posting down.
                         </p>
                     </div>
@@ -689,7 +738,7 @@ function UnavailableJobPlaceholder({
                 <div
                     style={{
                         fontSize: '12px',
-                        color: '#8A9BA6',
+                        color: '#4B5E68',
                         fontWeight: 600,
                         marginTop: '8px',
                         marginLeft: '4px',

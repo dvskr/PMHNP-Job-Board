@@ -21,6 +21,11 @@ import { parseLocation } from '@/lib/location-parser';
 import { summarizeForMeta } from '@/lib/description-cleaner';
 import { normalizeExperienceFromInput } from '@/lib/experience-label';
 import { buildQuotaKeys, domainFromEmail } from '@/lib/employer-quota';
+import { expiresFromNow } from '@/lib/expires-at';
+import { collectJobTypes } from '@/lib/job-normalizer';
+import { extractEligibleStates } from '@/lib/eligible-states';
+import { STATE_NAME_TO_CODE } from '@/lib/us-states';
+import { readJsonBody } from '@/app/api/_lib/json-body';
 
 // Lazy Stripe client — instantiated per-request so a missing STRIPE_SECRET_KEY
 // surfaces as a clean 503 instead of crashing on module import.
@@ -80,7 +85,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const rawBody: CheckoutRequestBody = await request.json();
+    const parsed = await readJsonBody(request);
+    if (!parsed.ok) return parsed.response;
+    const rawBody = parsed.body as unknown as CheckoutRequestBody;
 
     // Auth — paid posts still must be tied to an authenticated employer.
     let userId: string | null = null;
@@ -283,9 +290,36 @@ export async function POST(request: NextRequest) {
       isEmployerPosted: true,
     });
 
-    // Calculate expiry — paid duration (60 days)
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + config.durationDays);
+    // The structured arrays JSON-LD (components/JobStructuredData.tsx), the
+    // Role Snapshot and the eligibility-aware search read in preference to the
+    // scalar columns. Derived with the same rules as /api/jobs/update and the
+    // ingest path. Without them a fully-remote employer post whose description
+    // restricts licensure to two states left eligibleStateCodes empty, and
+    // app/api/jobs/search/semantic reads an empty list on a remote row as "open
+    // everywhere", so the posting matched candidates it cannot legally hire.
+    // /api/create-checkout is now the only posting path, so every employer post
+    // was affected.
+    // One organization name on every surface. The listing and the EmployerJob
+    // row already prefer the account's locked name over whatever was typed into
+    // the form; the Stripe line item and invoice description did not, so an
+    // employer who typed a different company name got an invoice and receipt
+    // naming a company that appears nowhere on the posting they bought.
+    const billingCompanyName = lockedCompanyName || sanitized.employer;
+
+    const jobTypes = collectJobTypes(sanitized.jobType || null, sanitized.title);
+    const eligibleStateCodes = parsedLoc.isRemote && !parsedLoc.isHybrid
+      ? extractEligibleStates(sanitized.description)
+          .map((name) => STATE_NAME_TO_CODE[name])
+          .filter((code): code is string => !!code)
+      : [];
+
+    // Provisional expiry for the unpaid draft. The authoritative one is written
+    // by the Stripe webhook when payment lands, because a Checkout session
+    // stays payable for 24 hours and the term the employer bought should start
+    // then. UTC math via expiresFromNow: the local-time setDate() this used to
+    // call drifted an hour either way across a DST boundary, which is the bug
+    // lib/expires-at.ts was created to retire.
+    const expiresAt = expiresFromNow(config.durationDays);
 
     // Generate unique tokens
     const editToken = crypto.randomBytes(32).toString('hex');
@@ -306,7 +340,7 @@ export async function POST(request: NextRequest) {
         data: {
           title: sanitized.title,
           // Account's locked organization name wins over the form value.
-          employer: lockedCompanyName || sanitized.employer,
+          employer: billingCompanyName,
           location: sanitized.location,
           jobType: sanitized.jobType || null,
           mode: sanitized.mode || null,
@@ -341,6 +375,8 @@ export async function POST(request: NextRequest) {
           sourceType: 'employer',
           expiresAt,
           qualityScore,
+          jobTypes,
+          eligibleStateCodes,
           benefits: Array.isArray(rawBody.benefits) ? rawBody.benefits : [],
           setting: rawBody.setting || null,
           population: rawBody.population || null,
@@ -372,7 +408,7 @@ export async function POST(request: NextRequest) {
 
       const ej = await tx.employerJob.create({
         data: {
-          employerName: lockedCompanyName || sanitized.employer,
+          employerName: billingCompanyName,
           contactEmail: sanitized.contactEmail,
           companyWebsite: sanitized.companyWebsite || null,
           companyLogoUrl: rawBody.companyLogoUrl || null,
@@ -397,6 +433,39 @@ export async function POST(request: NextRequest) {
           discountHoldKey,
         },
       });
+
+      // Screening questions belong to the same transaction as the rows they
+      // hang off. Run after the commit on the top-level client, a throw here
+      // (a bad option payload, a transient error) returned a 500 while the Job
+      // and EmployerJob rows stayed committed: the employer retried and banked
+      // another pending posting, each with its own editToken, dashboardToken
+      // and expiry, none of them payable. The transaction is the whole reason
+      // this block exists, so the questions go inside it.
+      if (applyOnPlatform && Array.isArray(rawBody.screeningQuestions)) {
+        const questions = rawBody.screeningQuestions.slice(0, 5);
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          if (!q?.text || typeof q.text !== 'string') continue;
+
+          const validTypes = ['boolean', 'text', 'select', 'number'];
+          const qType = validTypes.includes(q.type) ? q.type : 'boolean';
+
+          await tx.jobScreeningQuestion.create({
+            data: {
+              jobId: created.id,
+              questionText: sanitizeText(q.text, 200),
+              questionType: qType,
+              options: Array.isArray(q.options)
+                ? q.options.map((o: string) => sanitizeText(String(o), 100)).slice(0, 10)
+                : [],
+              isRequired: !!q.required,
+              isKnockout: !!q.knockout,
+              knockoutAnswer: q.knockoutAnswer ? sanitizeText(String(q.knockoutAnswer), 100) : null,
+              sortOrder: i,
+            },
+          });
+        }
+      }
 
       return { job: updatedJob, employerJob: ej };
     });
@@ -480,33 +549,6 @@ export async function POST(request: NextRequest) {
       ({ job, employerJob } = await createPosting());
     }
 
-    // Persist screening questions (only for platform-apply jobs)
-    if (applyOnPlatform && Array.isArray(rawBody.screeningQuestions)) {
-      const questions = rawBody.screeningQuestions.slice(0, 5);
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        if (!q?.text || typeof q.text !== 'string') continue;
-
-        const validTypes = ['boolean', 'text', 'select', 'number'];
-        const qType = validTypes.includes(q.type) ? q.type : 'boolean';
-
-        await prisma.jobScreeningQuestion.create({
-          data: {
-            jobId: job.id,
-            questionText: sanitizeText(q.text, 200),
-            questionType: qType,
-            options: Array.isArray(q.options)
-              ? q.options.map((o: string) => sanitizeText(String(o), 100)).slice(0, 10)
-              : [],
-            isRequired: !!q.required,
-            isKnockout: !!q.knockout,
-            knockoutAnswer: q.knockoutAnswer ? sanitizeText(String(q.knockoutAnswer), 100) : null,
-            sortOrder: i,
-          },
-        });
-      }
-    }
-
     logger.info('Job created for paid checkout', { jobId: job.id, userId, priceKind });
 
     // Create Stripe Checkout session with job ID and dashboard token in metadata
@@ -524,7 +566,7 @@ export async function POST(request: NextRequest) {
               name: isFirstPost
                 ? `First Job Post, ${config.firstPostDiscountPercent()}% off: ${sanitized.title}`
                 : `Job Post: ${sanitized.title}`,
-              description: `${sanitized.employer}, ${sanitized.location}. Runs ${config.durationDays} days.`,
+              description: `${billingCompanyName}, ${sanitized.location}. Runs ${config.durationDays} days.`,
             },
             unit_amount: price,
           },
@@ -548,7 +590,7 @@ export async function POST(request: NextRequest) {
       invoice_creation: {
         enabled: true,
         invoice_data: {
-          description: `Job Post: ${sanitized.title}, ${sanitized.employer} (${sanitized.location}).`,
+          description: `Job Post: ${sanitized.title}, ${billingCompanyName} (${sanitized.location}).`,
           metadata: {
             jobId: job.id,
             employerJobId: employerJob.id,

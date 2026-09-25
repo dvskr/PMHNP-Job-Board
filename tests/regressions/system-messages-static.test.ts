@@ -4,10 +4,12 @@
  * Reads the real source (employer-distribution-plumbing.test.ts style) so the
  * operator-safety rails cannot be silently removed:
  *
- *   1. The cron is double-gated: ENABLE_SYSTEM_MESSAGES (default off) AND
- *      dryRun support, behind cron-secret/admin auth and run tracking.
- *   2. The env flag is re-enforced inside the send primitive, so the route is
- *      never the only thing between "off" and a bulk send.
+ *   1. The cron is gated on the shared outbound brake (isSystemMessagesEnabled
+ *      is !isOutboundPaused) and supports dryRun, behind cron-secret/admin
+ *      auth and run tracking. It names that brake honestly: an earlier version
+ *      documented an ENABLE_SYSTEM_MESSAGES flag nothing reads.
+ *   2. The brake is re-enforced inside the send primitive, so the route is
+ *      never the only thing between "paused" and a bulk send.
  *   3. dryRun returns before any write, and the 7-day per-recipient cap is
  *      read from the system profile's own sent messages.
  *   4. The sender is a dedicated, suppressed, non-login platform identity that
@@ -33,15 +35,29 @@ describe('cron route safety rails', () => {
     const src = read(CRON);
 
     it('authenticates before doing any work', () => {
-        expect(src).toMatch(/verifyCronOrAdmin\(req\)/);
-        expect(src.indexOf('verifyCronOrAdmin(req)')).toBeLessThan(
-            src.indexOf('isSystemMessagesEnabled()'),
-        );
+        // Anchored on the STATEMENTS, not on a bare call name: the docblock
+        // above them names the gate too, and a prose mention should not be
+        // able to fail (or pass) an ordering assertion.
+        const authAt = src.indexOf('const authError = await verifyCronOrAdmin(req);');
+        const gateAt = src.indexOf('if (!isSystemMessagesEnabled() && !dryRun)');
+        expect(authAt).toBeGreaterThan(-1);
+        expect(gateAt).toBeGreaterThan(-1);
+        expect(authAt).toBeLessThan(gateAt);
     });
 
-    it('refuses real runs unless ENABLE_SYSTEM_MESSAGES is on', () => {
+    it('refuses real runs while the shared outbound brake is engaged', () => {
         expect(src).toMatch(/if \(!isSystemMessagesEnabled\(\) && !dryRun\)/);
         expect(src).toMatch(/skipped: true/);
+    });
+
+    it('names the gate that actually stops it, not a variable nothing reads', () => {
+        // isSystemMessagesEnabled() is `!isOutboundPaused()`. The route used
+        // to document, and report in its skip response, an
+        // ENABLE_SYSTEM_MESSAGES flag that no code anywhere reads: an operator
+        // who set it saw no change and believed these nudges were off while
+        // they were messaging users.
+        expect(src).not.toMatch(/ENABLE_SYSTEM_MESSAGES/);
+        expect(src).toMatch(/reason: OUTBOUND_PAUSED_MESSAGE/);
     });
 
     it('supports ?dryRun=1', () => {

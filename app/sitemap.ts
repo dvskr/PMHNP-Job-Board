@@ -254,9 +254,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }));
 
     // B4: metro entries are gated on each metro's own live count (shared
-    // where-builder with the metro page, which noindexes at 0 jobs) and
-    // carry the metro's own latest-job date — omitted when unknown rather
-    // than stamped with the sitewide date.
+    // where-builder with the metro page) and carry the metro's own latest-job
+    // date, omitted when unknown rather than stamped with the sitewide date.
+    //
+    // The floor is MIN_JOBS_FOR_CATEGORY_CITY, matching the metro page's own
+    // robots gate. It was `> 0` while the page noindexed at 0, and when the
+    // page moved to the shared floor the two disagreed: the sitemap would have
+    // advertised a 1 or 2 job metro that the page marks noindex, which is the
+    // exact "submitted URL marked noindex" pattern in GSC this file exists to
+    // avoid. The gate is only honest if both ends use the same number.
     const metroAggregates = await Promise.all(
       METRO_SLUGS.map(async (slug) => {
         const metro = getMetroCity(slug);
@@ -273,7 +279,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })
     );
     metroPages = metroAggregates
-      .filter(m => m.count > 0)
+      .filter(m => m.count >= MIN_JOBS_FOR_CATEGORY_CITY)
       .map(m => ({
         url: `${baseUrl}/jobs/metro/${m.slug}`,
         ...(m.latest && { lastModified: m.latest }),

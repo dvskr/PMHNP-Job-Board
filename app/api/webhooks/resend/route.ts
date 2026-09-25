@@ -5,6 +5,30 @@ import { Webhook } from 'svix';
 
 const WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET || '';
 
+/**
+ * Engagement funnel, weakest first. A status may only be overwritten by one
+ * further along this ladder (plus the pre-delivery states lib/email-service.ts
+ * writes when the send itself is logged), so out-of-order webhook delivery
+ * cannot downgrade a recorded click. Bounce and complaint are handled
+ * separately: they are terminal outcomes, not funnel stages.
+ */
+const ENGAGEMENT_LADDER = ['delivered', 'opened', 'clicked'] as const;
+
+/** Statuses written before any webhook arrives (lib/email-service.ts). */
+const PRE_DELIVERY_STATUSES = ['sent', 'failed'] as const;
+
+const ENGAGEMENT_STATUS_BY_EVENT: Record<string, string | undefined> = {
+  'email.delivered': 'delivered',
+  'email.opened': 'opened',
+  'email.clicked': 'clicked',
+};
+
+/** Every status that `status` is allowed to replace. */
+function statusesBelow(status: string): string[] {
+  const rank = ENGAGEMENT_LADDER.indexOf(status as typeof ENGAGEMENT_LADDER[number]);
+  return [...PRE_DELIVERY_STATUSES, ...ENGAGEMENT_LADDER.slice(0, rank)];
+}
+
 interface ResendWebhookPayload {
   type: string;
   data: {
@@ -71,17 +95,21 @@ export async function POST(request: NextRequest) {
     const emails = payload.data.to || [];
     const resendId = payload.data.email_id;
 
-    // Handle engagement tracking events (update EmailSend status)
-    if (['email.delivered', 'email.opened', 'email.clicked'].includes(eventType)) {
+    // Handle engagement tracking events (update EmailSend status).
+    //
+    // The dedupe row above only suppresses a replay of the SAME svix id.
+    // Sibling events carry their own ids, so a 'delivered' retried after a
+    // transient failure lands AFTER the 'clicked' it preceded, and an
+    // unconditional write walked the funnel backwards: the click was recorded,
+    // then erased. Status only moves forward along delivered to opened to
+    // clicked, enforced in the WHERE clause so two concurrent deliveries cannot
+    // race between a read and a write.
+    if (ENGAGEMENT_STATUS_BY_EVENT[eventType]) {
       if (resendId) {
-        const statusMap: Record<string, string> = {
-          'email.delivered': 'delivered',
-          'email.opened': 'opened',
-          'email.clicked': 'clicked',
-        };
+        const status = ENGAGEMENT_STATUS_BY_EVENT[eventType];
         await prisma.emailSend.updateMany({
-          where: { resendId },
-          data: { status: statusMap[eventType] },
+          where: { resendId, status: { in: statusesBelow(status) } },
+          data: { status },
         });
       }
       return NextResponse.json({ received: true, action: 'tracked', event: eventType });

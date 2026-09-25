@@ -55,8 +55,10 @@ export async function GET(request: NextRequest) {
     const days = parseInt(searchParams.get('days') || '30', 10);
     const sourceFilter = searchParams.get('source');
 
-    // Validate days parameter
-    if (days < 1 || days > 365) {
+    // Validate days parameter. Number.isFinite first: `NaN < 1` and
+    // `NaN > 365` are both false, so ?days=abc slipped past this range check,
+    // produced an Invalid Date start bound and surfaced as a 500.
+    if (!Number.isFinite(days) || days < 1 || days > 365) {
       return NextResponse.json(
         { error: 'Days must be between 1 and 365' },
         { status: 400 }

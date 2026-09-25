@@ -1,9 +1,12 @@
-'use server';
-
+// No 'use server' directive here on purpose. This is an App Router route
+// handler, not a Server Action module: that directive marks every export in
+// the file as a callable server action, which is not what a GET handler is.
+// No other route.ts under app/api carries it.
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 import { ctDayBounds } from '@/lib/format-ct';
+import { parseBoundedInt } from '../_lib/field-validation';
 
 /**
  * GET /api/admin/analytics
@@ -20,7 +23,16 @@ export async function GET(request: NextRequest) {
 
     try {
         const { searchParams } = new URL(request.url);
-        const days = Math.min(Math.max(parseInt(searchParams.get('days') || '30', 10), 1), 365);
+        // `parseInt('abc')` is NaN, and NaN survives Math.max/Math.min, so the
+        // old expression handed an Invalid Date to every Prisma `gte` below
+        // and the catch-all reported the caller's typo as a 500.
+        const parsedDays = parseBoundedInt(searchParams.get('days'), {
+            name: 'days', fallback: 30, min: 1, max: 365,
+        });
+        if (!parsedDays.ok) {
+            return NextResponse.json({ error: parsedDays.error }, { status: 400 });
+        }
+        const days = parsedDays.value;
         const section = searchParams.get('section');
         const jobId = searchParams.get('jobId');
 

@@ -20,6 +20,15 @@
  * Cost guardrail: capped to MAX_JOBS_PER_RUN per cron tick so a runaway
  * cost spike can't happen. Cost-per-call is recorded in the AI gateway
  * cost-tracker by virtue of routing through `complete()`.
+ *
+ * NOT SCHEDULED. There is no /api/cron/enrich-thin-jds entry in vercel.json,
+ * so "per cron tick" above describes a tick that never happens and no
+ * aggregated description is ever rewritten by this pipeline. Unlike
+ * social-post, instagram-post and weekly-newsletter, which are unregistered on
+ * purpose and say so, this one is unregistered by omission. It runs today only
+ * when an operator triggers it by hand from /admin/cron. Scheduling it is an
+ * operator decision (it spends money per run), which is why this note names
+ * the gap rather than quietly closing it.
  */
 import { createHash } from 'crypto';
 import { NextResponse } from 'next/server';

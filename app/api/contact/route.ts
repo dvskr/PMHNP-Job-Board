@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
-import { sanitizeContactForm } from '@/lib/sanitize';
+import { sanitizeContactForm, type ContactFormInput } from '@/lib/sanitize';
+import { readJsonBody } from '@/app/api/_lib/json-body';
 import { logger } from '@/lib/logger';
 import {
   buildContactConfirmationHtml,
@@ -17,11 +18,14 @@ export async function POST(request: NextRequest) {
   const rateLimitResult = await rateLimit(request, 'contact', RATE_LIMITS.contact);
   if (rateLimitResult) return rateLimitResult;
 
+  const parsed = await readJsonBody(request);
+  if (!parsed.ok) return parsed.response;
+
   try {
-    const body = await request.json();
+    const body = parsed.body;
 
     // Sanitize inputs
-    const sanitized = sanitizeContactForm(body);
+    const sanitized = sanitizeContactForm(body as unknown as ContactFormInput);
     const { name: trimmedName, email: trimmedEmail, subject: trimmedSubject, message: trimmedMessage } = sanitized;
 
     // Validate all required fields

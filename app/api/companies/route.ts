@@ -15,11 +15,19 @@ export async function GET(request: NextRequest) {
     if (rateLimitResult) return rateLimitResult;
 
     const searchParams = request.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
     const sort = searchParams.get('sort') || 'jobCount';
 
-    // Security: Cap limit to 100 max
-    const validLimit = Math.min(Math.max(limit, 1), 100);
+    // Security: cap limit to 100 max.
+    //
+    // The Number.isFinite guard is load-bearing, not defensive noise: for
+    // ?limit=abc, parseInt gives NaN and Math.min(Math.max(NaN, 1), 100) is
+    // also NaN, because every comparison against NaN is false. That NaN
+    // reached Prisma's `take` and the route answered 500 to a plain bad
+    // query string. A non-numeric limit now falls back to the default.
+    const validLimit = Number.isFinite(limit)
+      ? Math.min(Math.max(limit, 1), 100)
+      : 50;
 
     // Determine sort order
     let orderBy: 

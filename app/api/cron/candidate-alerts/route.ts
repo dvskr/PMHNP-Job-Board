@@ -9,6 +9,10 @@ import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-s
 
 export const maxDuration = 120; // 2 minutes — email sends to multiple employers
 
+// The profile links in the digest were hardcoded to the production origin, so
+// every preview and local run built links pointing at prod.
+const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
+
 /**
  * GET /api/cron/candidate-alerts
  * Matches new candidates against employer alert preferences and sends digest emails.
@@ -123,7 +127,7 @@ export async function GET(req: Request) {
             const digest = matchingCandidates.map(c => ({
                 name: [c.firstName, c.lastName?.[0] ? c.lastName[0] + '.' : null].filter(Boolean).join(' ') || 'PMHNP Candidate',
                 headline: c.headline,
-                profileUrl: `https://pmhnphiring.com/employer/candidates/${c.supabaseId}`,
+                profileUrl: `${BASE_URL}/employer/candidates/${c.supabaseId}`,
                 specialties: c.specialties ? c.specialties.split(',').map(s => s.trim()) : [],
                 states: c.licenseStates ? c.licenseStates.split(',').map(s => s.trim()) : [],
                 experience: c.yearsExperience,

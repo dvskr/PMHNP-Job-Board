@@ -33,15 +33,22 @@ function UnsubscribeContent() {
     const router = useRouter();
     const token = searchParams.get('token');
 
-    const [status, setStatus] = useState<'loading' | 'confirm' | 'success' | 'updated' | 'error'>('confirm');
+    const [status, setStatus] = useState<'loading' | 'confirm' | 'success' | 'updated' | 'error'>('loading');
     const [message, setMessage] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     const [downgradeLoading, setDowngradeLoading] = useState<'weekly' | 'pause' | null>(null);
     const [alertInfo, setAlertInfo] = useState<AlertInfo | null>(null);
 
-    // Validate token on mount + fetch this alert's criteria so the user can
-    // see exactly which alert the link refers to. A failed lookup is not
-    // fatal — the delete/keep options still work without the summary.
+    // Validate the token on mount, then show this alert's criteria so the user
+    // can see exactly which alert the link refers to.
+    //
+    // The two failure modes are not the same and must not look the same. A 400
+    // or 404 is the server saying this token resolves to no alert: the link is
+    // dead, and offering Delete / Pause / Weekly on it is a page pretending to
+    // act on something that does not exist (the visitor only found out by
+    // clicking Delete and getting a 404). Anything else, a 5xx or a dropped
+    // connection, says nothing about the token, so we fail open to the confirm
+    // screen rather than calling a live link invalid.
     useEffect(() => {
         if (!token) {
             setStatus('error');
@@ -50,13 +57,22 @@ function UnsubscribeContent() {
         }
         let cancelled = false;
         fetch(`/api/job-alerts?token=${encodeURIComponent(token)}`)
-            .then(r => (r.ok ? r.json() : null))
-            .then(data => {
-                if (cancelled || !data?.success || !Array.isArray(data.alerts)) return;
+            .then(async r => {
+                if (cancelled) return;
+                if (r.status === 404 || r.status === 400) {
+                    setStatus('error');
+                    setMessage('This unsubscribe link is no longer valid. The alert may have already been deleted.');
+                    return;
+                }
+                if (!r.ok) { setStatus('confirm'); return; }
+                const data = await r.json().catch(() => null);
+                if (cancelled) return;
+                setStatus('confirm');
+                if (!data?.success || !Array.isArray(data.alerts)) return;
                 const match = (data.alerts as AlertInfo[]).find(a => a.token === token);
                 if (match) setAlertInfo(match);
             })
-            .catch(() => {});
+            .catch(() => { if (!cancelled) setStatus('confirm'); });
         return () => { cancelled = true; };
     }, [token]);
 

@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
+import { readJsonBody } from '@/app/api/_lib/json-body';
 
 type JsonInputValue =
   | string
@@ -76,8 +77,11 @@ export async function POST(request: NextRequest) {
     if (rateLimitResult) return rateLimitResult;
 
   try {
-    const body = await request.json();
-    const { token, isSubscribed, preferences } = body;
+    const parsed = await readJsonBody(request);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.body;
+    const { isSubscribed, preferences } = body;
+    const token = typeof body.token === 'string' ? body.token : '';
 
     if (!token) {
       return NextResponse.json(

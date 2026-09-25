@@ -14,6 +14,7 @@ import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
+import { slugify } from '@/lib/utils';
 
 /* ═══ Design Tokens — matched to employer page ═══ */
 const clayCard: React.CSSProperties = {
@@ -171,7 +172,7 @@ export default async function EasyApplyJobsPage({ searchParams }: PageProps) {
                 '@type': 'ListItem',
                 position: idx + 1,
                 name: job.title,
-                url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+                url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}`,
               })),
             }),
           }}

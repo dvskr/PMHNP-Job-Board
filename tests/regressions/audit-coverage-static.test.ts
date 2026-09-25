@@ -137,11 +137,17 @@ describe('pSEO crawler edge-caching', () => {
 });
 
 describe('OG routes are not SSRF proxies', () => {
+  // Originally this asserted the logo was fetched from a FIXED origin rather
+  // than from the request Host header, which is attacker-controlled. The logo
+  // is now inlined (app/api/og/_logo.ts) and no fetch runs at all, which is
+  // the same guarantee without the round trip, so the assertion moved from
+  // "fetch this exact URL" to "do not build a fetch out of request input".
   for (const f of ['app/api/og/route.tsx', 'app/api/og/city/route.tsx']) {
-    it(`${f} fetches the logo from a fixed origin`, () => {
+    it(`${f} never fetches a URL derived from the request`, () => {
       const src = read(f);
-      expect(src).toContain("fetch('https://pmhnphiring.com/pmhnp_logo.png')");
       expect(src).not.toMatch(/fetch\(`\$\{protocol\}:\/\/\$\{host\}/);
+      expect(src).not.toMatch(/fetch\([^)]*host/i);
+      expect(src).toContain('LOGO_DATA_URI');
     });
   }
 });

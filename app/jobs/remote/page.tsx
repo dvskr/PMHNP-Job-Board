@@ -1,6 +1,7 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Home, Globe, TrendingUp, Building2, Bell, ArrowRight, Briefcase, DollarSign } from 'lucide-react';
@@ -16,6 +17,7 @@ import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import { slugify } from '@/lib/utils';
 
 /* ═══ Design Tokens — matched to employer page ═══ */
 const clayCard: React.CSSProperties = {
@@ -163,7 +165,10 @@ interface PageProps {
  */
 export default async function RemoteJobsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const page = Math.max(1, parseInt(params.page || '1'));
+  // Math.max(1, NaN) is NaN, which would flow into `skip` and make Prisma
+  // reject the query, so parse defensively.
+  const rawPage = parseInt(params.page || '1', 10);
+  const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
   const limit = 10;
   const skip = (page - 1) * limit;
 
@@ -171,6 +176,13 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
     getRemoteJobs(skip, limit),
     getRemoteStats(),
   ]);
+
+  // Deep pagination past the last page answered 200 with an empty list and a
+  // noindex header; Google recrawls a noindexed 200 far longer than a 404.
+  // Same guard the category x city template already applies.
+  if (page > 1 && jobs.length === 0) {
+    notFound();
+  }
 
   const totalPages = Math.ceil(stats.totalJobs / limit);
 
@@ -196,7 +208,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
                 '@type': 'ListItem',
                 position: idx + 1,
                 name: job.title,
-                url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+                url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}`,
               })),
             }),
           }}

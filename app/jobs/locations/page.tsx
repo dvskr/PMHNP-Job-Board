@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { MapPin, Wifi, TrendingUp, Globe, Video, Plane, GraduationCap, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { publicJobsWhere } from '@/lib/filters';
+import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
+import { cityLinkHref } from '@/lib/pseo/related-cities';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryHero from '@/components/CategoryHero';
 import StateImage from '@/components/StateImage';
@@ -42,6 +44,8 @@ interface ProcessedCity {
   stateCode: string;
   count: number;
   slug: string;
+  /** Pre-resolved link target: /jobs/metro/{slug} for curated metros. */
+  href: string;
 }
 
 /**
@@ -124,16 +128,31 @@ async function getLocationStats() {
       slug: s.state!.toLowerCase().replace(/\s+/g, '-'),
     }));
 
-  // Process cities with explicit typing — include state code in slug for proper routing
+  // Process cities with explicit typing — include state code in slug for proper routing.
+  //
+  // Decision-tree rule 6: this directory may only advertise a city page that
+  // answers 200. /jobs/city/[slug] hard-404s below MIN_JOBS_FOR_CATEGORY_CITY
+  // and 308s the curated metro slugs, so an ungated link list fed Googlebot
+  // both dead ends and redirect hops from a hub page. Same gate the state hub
+  // and the related-cities sidebar use, from the same constant.
   const processedCities = topCities
-    .filter((c: CityGroupResult) => c.city !== null && c.state !== null && c.stateCode !== null)
-    .map((c: CityGroupResult) => ({
-      name: c.city!,
-      state: c.state!,
-      stateCode: c.stateCode || '',
-      count: c._count.city,
-      slug: `${c.city!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}-${(c.stateCode || '').toLowerCase()}`,
-    }));
+    .filter((c: CityGroupResult) =>
+      c.city !== null &&
+      c.state !== null &&
+      c.stateCode !== null &&
+      c._count.city >= MIN_JOBS_FOR_CATEGORY_CITY,
+    )
+    .map((c: CityGroupResult) => {
+      const slug = `${c.city!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}-${(c.stateCode || '').toLowerCase()}`;
+      return {
+        name: c.city!,
+        state: c.state!,
+        stateCode: c.stateCode || '',
+        count: c._count.city,
+        slug,
+        href: cityLinkHref(slug),
+      };
+    });
 
   return {
     states: processedStates,
@@ -466,7 +485,7 @@ export default async function LocationsPage() {
                 {stats.topCities.map((city: ProcessedCity) => (
                   <Link
                     key={`${city.slug}-${city.state}`}
-                    href={`/jobs/city/${city.slug}`}
+                    href={city.href}
                     className="group"
                   >
                     <div className="rounded-xl p-5 hover:shadow-md transition-all duration-200 h-full" style={clayCard}>

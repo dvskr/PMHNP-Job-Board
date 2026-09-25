@@ -30,6 +30,28 @@ describe('domainFromEmail', () => {
     }
   });
 
+  // Hunt 2026-09-03: the exact-match list missed ISP mailboxes and every
+  // country-code variant of the big providers, so those addresses both earned
+  // a free post AND became a shared quota key that refused the next unrelated
+  // employer on the same domain.
+  it('returns null for ISP consumer mailboxes', () => {
+    for (const provider of ['comcast.net', 'att.net', 'verizon.net', 'sbcglobal.net', 'cox.net']) {
+      expect(domainFromEmail(`someone@${provider}`)).toBeNull();
+    }
+  });
+
+  it('returns null for country-code variants of consumer brands', () => {
+    for (const provider of ['hotmail.co.uk', 'yahoo.co.uk', 'outlook.de', 'gmx.net', 'yandex.ru', 'yahoo.com.au']) {
+      expect(domainFromEmail(`someone@${provider}`)).toBeNull();
+    }
+  });
+
+  it('does not mistake a real company domain for a consumer brand', () => {
+    for (const domain of ['livewellclinic.com', 'yahoo-consulting.com', 'outlookbehavioral.health', 'msnhealthgroup.org', 'proton.health']) {
+      expect(domainFromEmail(`careers@${domain}`)).toBe(domain);
+    }
+  });
+
   it('returns null for malformed addresses', () => {
     const bad = [null, undefined, '', 'nope', '@x.com', 'a@', 'a@b@c.com', 'a@localhost', 'a@.'];
     for (const value of bad) {

@@ -96,10 +96,19 @@ describe('dead-link-gated jobs emit noindex,nofollow (B5)', () => {
 });
 
 describe('metro honesty (B4)', () => {
-  it('the metro page noindexes at 0 jobs and shares the sitemap where-builder', () => {
-    const src = read('app/jobs/metro/[slug]/page.tsx');
-    expect(src).toContain('buildMetroJobsWhere');
-    expect(src).toMatch(/stats\.totalJobs === 0 && \{\s*robots: \{ index: false, follow: true \}/);
+  it('the metro page and the sitemap gate on the SAME floor', () => {
+    // Pins the invariant, not one implementation of it. The page used to
+    // noindex at 0 while every other pSEO family gated at
+    // MIN_JOBS_FOR_CATEGORY_CITY, so a 1 or 2 job metro was indexable as a
+    // near-empty listings page. Moving the page to the shared floor without
+    // moving the sitemap would have been worse than either: the sitemap would
+    // submit URLs the page marks noindex.
+    const page = read('app/jobs/metro/[slug]/page.tsx');
+    const sitemap = read('app/sitemap.ts');
+
+    expect(page).toContain('buildMetroJobsWhere');
+    expect(page).toContain('categoryLandingRobotsMeta(stats.totalJobs)');
+    expect(sitemap).toMatch(/m\.count >= MIN_JOBS_FOR_CATEGORY_CITY/);
   });
 });
 

@@ -10,12 +10,23 @@
  * - Zero-job page count (potential deindex candidates)
  * - Last stats refresh timestamp
  */
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 
-export const revalidate = 3600; // Cache for 1 hour
+// Admin-gated, so it cannot be cached: the response is per-session by
+// definition and the guard reads cookies. `revalidate = 3600` used to sit
+// here from when the route was anonymous.
+export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // This is the data source behind /admin/seo-health and returns nothing a
+  // visitor needs: live job totals, per-category coverage and zero-job page
+  // counts. It was readable by anyone, which also made it an unauthenticated
+  // way to run several groupBy aggregates over jobs and pseo_stats on demand.
+  const authError = await requireApiAdmin(request);
+  if (authError) return authError;
+
   try {
     // 1. Category × City stats (the big one: ~115K pages)
     const categoryCityStats = await prisma.pseoStats.groupBy({

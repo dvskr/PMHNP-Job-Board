@@ -510,6 +510,27 @@ const BLOG_SANITIZE_CONFIG: sanitizeHtml.IOptions = {
         'img': ['src', 'alt', 'loading', 'width', 'height'],
         'a': ['href', 'target', 'rel'],
     },
+    // sanitize-html only filters `style` when allowedStyles is present: with it
+    // undefined, filterCss hands every declaration back untouched, so post
+    // content could ship `position:fixed; inset:0; z-index:9999` and lay a
+    // full-viewport layer over the article (UI redress, not script XSS, but the
+    // same outcome for the reader). lib/sanitize.ts closed this for job
+    // descriptions; the blog pipeline kept the unconstrained copy.
+    //
+    // The two table properties are not decoration: markdownToHtml above emits
+    // `style="overflow-x:auto"` on the table wrapper and
+    // `style="text-align:..."` on every aligned cell, so dropping `style`
+    // outright would break table rendering.
+    allowedStyles: {
+        '*': {
+            'text-align': [/^(left|right|center|justify)$/],
+            'overflow-x': [/^(auto|scroll|hidden|visible)$/],
+            'font-weight': [/^(normal|bold|bolder|lighter|[1-9]00)$/],
+            'font-style': [/^(normal|italic)$/],
+            'text-decoration': [/^(none|underline|line-through)$/],
+            'color': [/^#[0-9a-f]{3,8}$/i, /^rgba?\([\d\s,.%]+\)$/i],
+        },
+    },
     allowedSchemes: ['http', 'https', 'mailto'],
 };
 

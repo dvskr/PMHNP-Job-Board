@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { sanitizeText, sanitizeUrl } from '@/lib/sanitize';
+import { readJsonBody } from '@/app/api/_lib/json-body';
 
 /**
  * GET /api/employer/settings
@@ -87,8 +89,32 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { firstName, lastName, phone, company, companyDescription, companyWebsite, companyLogoUrl } = body;
+    const parsedBody = await readJsonBody(req);
+    if (!parsedBody.ok) return parsedBody.response;
+    const { firstName, lastName, phone, company, companyDescription, companyWebsite, companyLogoUrl } =
+        parsedBody.body;
+
+    // Every writable field here is also written by /api/auth/profile (name,
+    // phone) or /api/jobs/update (website, logo), and both of those sanitize.
+    // This route did not, so `javascript:` survived into companyWebsite and was
+    // copied onto every EmployerJob row the account owns, where the public job
+    // page renders it as an <a href> and the company page as Organization.url.
+    // Caps mirror the routes that own the same columns, and the description cap
+    // mirrors the 1000-character counter the settings form shows.
+    const COMPANY_DESCRIPTION_MAX = 1000;
+    const isTextOrAbsent = (v: unknown) => v === undefined || v === null || typeof v === 'string';
+    if (![firstName, lastName, phone, companyDescription, companyWebsite, companyLogoUrl].every(isTextOrAbsent)) {
+        return NextResponse.json(
+            { error: 'Profile and company fields must be text' },
+            { status: 400 },
+        );
+    }
+
+    const cleanText = (v: unknown, max: number) =>
+        v === null || v === '' ? null : sanitizeText(v as string, max);
+    // sanitizeUrl returns '' for javascript:, data:text/html and
+    // protocol-relative values; store that as null rather than an empty href.
+    const cleanUrl = (v: unknown) => (v ? sanitizeUrl(v as string) || null : null);
 
     // COMPANY NAME IS NEVER EDITABLE FROM SETTINGS. It is captured once at
     // employer signup and anchors organization identity: it is authoritative
@@ -116,18 +142,18 @@ export async function PATCH(req: NextRequest) {
     await prisma.userProfile.update({
         where: { id: profile.id },
         data: {
-            ...(firstName !== undefined && { firstName }),
-            ...(lastName !== undefined && { lastName }),
-            ...(phone !== undefined && { phone }),
+            ...(firstName !== undefined && { firstName: cleanText(firstName, 50) }),
+            ...(lastName !== undefined && { lastName: cleanText(lastName, 50) }),
+            ...(phone !== undefined && { phone: cleanText(phone, 20) }),
         },
     });
 
     // Update company info on all EmployerJob records
     if (companyDescription !== undefined || companyWebsite !== undefined || companyLogoUrl !== undefined) {
         const companyUpdate: Record<string, string | null> = {};
-        if (companyDescription !== undefined) companyUpdate.companyDescription = companyDescription;
-        if (companyWebsite !== undefined) companyUpdate.companyWebsite = companyWebsite;
-        if (companyLogoUrl !== undefined) companyUpdate.companyLogoUrl = companyLogoUrl;
+        if (companyDescription !== undefined) companyUpdate.companyDescription = cleanText(companyDescription, COMPANY_DESCRIPTION_MAX);
+        if (companyWebsite !== undefined) companyUpdate.companyWebsite = cleanUrl(companyWebsite);
+        if (companyLogoUrl !== undefined) companyUpdate.companyLogoUrl = cleanUrl(companyLogoUrl);
         // employerName is never written from settings: the name is fixed at
         // signup, so published listings always keep the identity they went
         // out under.

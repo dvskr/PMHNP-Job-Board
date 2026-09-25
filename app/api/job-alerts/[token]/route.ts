@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { readJsonBody } from '@/app/api/_lib/json-body';
 
 interface UpdateAlertBody {
   frequency?: string;
@@ -21,7 +22,9 @@ export async function PATCH(
       );
     }
 
-    const body: UpdateAlertBody = await request.json();
+    const parsed = await readJsonBody(request);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.body as unknown as UpdateAlertBody;
     const { frequency, isActive } = body;
 
     // Validate frequency if provided

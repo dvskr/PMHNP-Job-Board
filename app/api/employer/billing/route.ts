@@ -86,6 +86,14 @@ export async function GET(req: NextRequest) {
     const payments = employerJobs.map((ej) => {
         const isActive = ej.job.isPublished && (!ej.job.expiresAt || new Date(ej.job.expiresAt) > new Date());
         const isFree = isFreeStatus(ej.paymentStatus);
+        // /api/employer/invoice and /api/employer/receipt both refuse anything
+        // that is not paymentStatus 'paid' (refunded, disputed, pending). This
+        // feed handed out the live Stripe invoice PDF and hosted receipt URLs
+        // for those same rows, so the documents the product deliberately
+        // withholds were sitting in the JSON one gate away. The charge history
+        // still renders: only the two document links are withheld, on the same
+        // condition the dedicated endpoints use.
+        const documentsAvailable = ej.paymentStatus === 'paid';
         const ejCharges = chargesByJob.get(ej.id) ?? [];
         return {
             id: ej.id,
@@ -103,8 +111,8 @@ export async function GET(req: NextRequest) {
                 amountCents: c.amountCents,
                 currency: c.currency,
                 createdAt: c.createdAt.toISOString(),
-                invoicePdfUrl: c.invoicePdfUrl,
-                hostedInvoiceUrl: c.hostedInvoiceUrl,
+                invoicePdfUrl: documentsAvailable ? c.invoicePdfUrl : null,
+                hostedInvoiceUrl: documentsAvailable ? c.hostedInvoiceUrl : null,
                 invoiceNumber: c.invoiceNumber,
                 refundedAt: c.refundedAt?.toISOString() || null,
             })),

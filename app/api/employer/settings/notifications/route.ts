@@ -19,6 +19,19 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Role gate, matching every other /api/employer/* route. The query below is
+    // already scoped to the caller so a seeker leaked nothing, but it answered
+    // 200 with an empty list where the rest of the namespace answers 403, and a
+    // probe that maps the API by status code should not see one route disagree.
+    const profile = await prisma.userProfile.findUnique({
+        where: { supabaseId: user.id },
+        select: { role: true },
+    });
+
+    if (!profile || !['employer', 'admin'].includes(profile.role)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const employerJobs = await prisma.employerJob.findMany({
         where: {
             OR: [

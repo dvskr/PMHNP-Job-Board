@@ -71,6 +71,46 @@ function notify() {
 }
 
 /**
+ * Drop every trace of the signed-in user's application history from this
+ * browser.
+ *
+ * Sign-out used to leave `appliedJobs` in localStorage and `migrated` true in
+ * this module, so the next account to sign in on the same device had the
+ * previous user's ids read as "local only" and POSTed into ITS account: A's
+ * application history appeared on B's /my-applications. Call this from the
+ * sign-out handler before the session goes away.
+ */
+export function resetAppliedJobsForSignOut(): void {
+  cachedMap = {};
+  lastSyncAt = 0;
+  isAuth = false;
+  migrated = false;
+  inflight = null;
+  submittedIds.clear();
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error('useAppliedJobs: could not clear applied jobs from localStorage', error);
+    }
+  }
+  notify();
+}
+
+/**
+ * Undo an optimistic mutation the server refused.
+ *
+ * These calls used to end in `.catch(() => {})`. markApplied is the ONLY
+ * record that a candidate applied to an external job, so a swallowed failure
+ * left the tick on screen, then the next sync replaced the local map with the
+ * server's and the record vanished with no explanation.
+ */
+function rollback(restore: AppliedJobsMap): void {
+  console.error('useAppliedJobs: server rejected the change, restoring previous state');
+  applyMap(restore);
+}
+
+/**
  * Seed the module cache from localStorage. Deliberately NOT called during
  * render: the server has no localStorage, so a render-phase read made the
  * first client render disagree with the SSR markup and React threw the whole
@@ -117,7 +157,13 @@ async function syncFromServer(force = false): Promise<void> {
         isAuth = false;
         return;
       }
-      if (!res.ok) return;
+      if (!res.ok) {
+        // A real server-side failure, not a 401. Log it and clear the
+        // freshness stamp so the next mount retries rather than caching it.
+        console.error(`useAppliedJobs: GET ${API_PATH} failed with ${res.status}`);
+        lastSyncAt = 0;
+        return;
+      }
       // GET /api/applications returns a flat array of JobApplication rows.
       const rows = (await res.json()) as Array<{
         jobId: string;
@@ -156,8 +202,10 @@ async function syncFromServer(force = false): Promise<void> {
         }
       }
       applyMap(serverMap);
-    } catch {
-      // Network down — stay on the local cache.
+    } catch (error) {
+      // Network down — stay on the local cache, but never silently.
+      console.error('useAppliedJobs: sync failed, keeping the local cache', error);
+      lastSyncAt = 0;
     } finally {
       inflight = null;
     }
@@ -236,7 +284,11 @@ export default function useAppliedJobs(): UseAppliedJobsReturn {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ jobId, sourceUrl }),
-      }).catch(() => {});
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`POST ${API_PATH} returned ${res.status}`);
+        })
+        .catch(() => rollback(current));
     }
   }, []);
 
@@ -256,7 +308,11 @@ export default function useAppliedJobs(): UseAppliedJobsReturn {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ jobId }),
-      }).catch(() => {});
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`DELETE ${API_PATH} returned ${res.status}`);
+        })
+        .catch(() => rollback(current));
     }
   }, []);
 
@@ -280,7 +336,18 @@ export default function useAppliedJobs(): UseAppliedJobsReturn {
             body: JSON.stringify({ jobId }),
           }),
         ),
-      ).catch(() => {});
+      ).then((results) => {
+        const failed = results.filter(
+          (r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok),
+        ).length;
+        if (failed > 0) {
+          // A partial clear leaves this browser and the account disagreeing,
+          // and the next sync brings the survivors back anyway. Restore the
+          // pre-clear view so the screen matches what the server still holds.
+          console.error(`useAppliedJobs: ${failed} of ${ids.length} deletes failed during clearAll`);
+          rollback(current);
+        }
+      });
     }
   }, []);
 

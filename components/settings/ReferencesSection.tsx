@@ -94,27 +94,27 @@ export default function ReferencesSection({ showMsg }: Props) {
         <div style={clayFormPanel}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h4 style={claySubTitle}>{editingId ? 'Edit Reference' : 'Add Reference'}</h4>
-                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}><X size={18} /></button>
+                <button onClick={cancelForm} aria-label="Close reference form" style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}><X size={18} /></button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                    <div><label style={labelStyle}>Full Name *</label><input type="text" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="Dr. Jane Smith" style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Title / Position</label><input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Medical Director" style={inputStyle} /></div>
+                    <div><label htmlFor="ref-full-name" style={labelStyle}>Full Name *</label><input id="ref-full-name" type="text" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="Dr. Jane Smith" style={inputStyle} /></div>
+                    <div><label htmlFor="ref-title-position" style={labelStyle}>Title / Position</label><input id="ref-title-position" type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Medical Director" style={inputStyle} /></div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                    <div><label style={labelStyle}>Organization</label><input type="text" value={form.organization} onChange={(e) => setForm({ ...form, organization: e.target.value })} placeholder="ABC Hospital" style={inputStyle} /></div>
+                    <div><label htmlFor="ref-organization" style={labelStyle}>Organization</label><input id="ref-organization" type="text" value={form.organization} onChange={(e) => setForm({ ...form, organization: e.target.value })} placeholder="ABC Hospital" style={inputStyle} /></div>
                     <div>
-                        <label style={labelStyle}>Relationship</label>
-                        <select value={form.relationship} onChange={(e) => setForm({ ...form, relationship: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
+                        <label htmlFor="ref-relationship" style={labelStyle}>Relationship</label>
+                        <select id="ref-relationship" value={form.relationship} onChange={(e) => setForm({ ...form, relationship: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
                             <option value="">Select relationship</option>
                             {RELATIONSHIPS.map((r) => <option key={r} value={r}>{r}</option>)}
                         </select>
                     </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
-                    <div><label style={labelStyle}>Phone</label><input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="(555) 123-4567" style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Email</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@hospital.com" style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Years Known</label><input type="number" min="0" value={form.yearsKnown} onChange={(e) => setForm({ ...form, yearsKnown: e.target.value })} placeholder="5" style={inputStyle} /></div>
+                    <div><label htmlFor="ref-phone" style={labelStyle}>Phone</label><input id="ref-phone" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="(555) 123-4567" style={inputStyle} /></div>
+                    <div><label htmlFor="ref-email" style={labelStyle}>Email</label><input id="ref-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@hospital.com" style={inputStyle} /></div>
+                    <div><label htmlFor="ref-years-known" style={labelStyle}>Years Known</label><input id="ref-years-known" type="number" min="0" value={form.yearsKnown} onChange={(e) => setForm({ ...form, yearsKnown: e.target.value })} placeholder="5" style={inputStyle} /></div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
                     <button onClick={cancelForm} disabled={saving} style={{ ...btnOutline, opacity: saving ? 0.5 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}>Cancel</button>

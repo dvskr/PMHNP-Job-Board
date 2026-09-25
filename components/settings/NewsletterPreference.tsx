@@ -24,6 +24,11 @@ export default function NewsletterPreference({ email }: NewsletterPreferenceProp
     const [optIn, setOptIn] = useState(false);
     const [loaded, setLoaded] = useState(false);
     const [saving, setSaving] = useState(false);
+    // A failed status read is not the same as "not subscribed". Swallowing it
+    // into the false initial value told subscribed users their newsletter was
+    // off, and a toggle from there would have unsubscribed them for real.
+    const [statusError, setStatusError] = useState(false);
+    const [saveError, setSaveError] = useState(false);
 
     useEffect(() => {
         if (!email) return;
@@ -33,26 +38,38 @@ export default function NewsletterPreference({ email }: NewsletterPreferenceProp
             .then((j: { optIn?: boolean }) => {
                 if (!cancelled) {
                     setOptIn(!!j.optIn);
+                    setStatusError(false);
                     setLoaded(true);
                 }
             })
-            .catch(() => { if (!cancelled) setLoaded(true); });
+            .catch(() => {
+                if (!cancelled) {
+                    setStatusError(true);
+                    setLoaded(true);
+                }
+            });
         return () => { cancelled = true; };
     }, [email]);
 
     const handleToggle = async () => {
-        if (!email || saving) return;
+        if (!email || saving || statusError) return;
         setSaving(true);
+        setSaveError(false);
         const next = !optIn;
         setOptIn(next); // optimistic
         try {
-            await fetch('/api/newsletter', {
+            // fetch resolves for a 400 or a 429 exactly as it does for a 200,
+            // so without the res.ok check the switch stayed where the user put
+            // it while nothing was persisted.
+            const res = await fetch('/api/newsletter', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, optIn: next, source: 'settings_toggle' }),
             });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
         } catch {
             setOptIn(!next); // revert
+            setSaveError(true);
         } finally {
             setSaving(false);
         }
@@ -80,7 +97,11 @@ export default function NewsletterPreference({ email }: NewsletterPreferenceProp
                         Email Newsletter
                     </p>
                     <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                        Get the latest jobs and career tips.
+                        {statusError
+                            ? 'We could not load your newsletter setting. Refresh to try again.'
+                            : saveError
+                                ? 'That change did not save. Please try again.'
+                                : 'Get the latest jobs and career tips.'}
                     </p>
                 </div>
             </div>
@@ -88,9 +109,11 @@ export default function NewsletterPreference({ email }: NewsletterPreferenceProp
             <button
                 type="button"
                 onClick={handleToggle}
-                disabled={!loaded || saving || !email}
-                aria-pressed={optIn}
-                aria-label={`Email newsletter ${optIn ? 'enabled' : 'disabled'}. Click to toggle.`}
+                disabled={!loaded || saving || !email || statusError}
+                aria-pressed={statusError ? undefined : optIn}
+                aria-label={statusError
+                    ? 'Email newsletter setting unavailable'
+                    : `Email newsletter ${optIn ? 'enabled' : 'disabled'}. Click to toggle.`}
                 style={{
                     position: 'relative',
                     width: '48px', height: '26px',
@@ -98,8 +121,8 @@ export default function NewsletterPreference({ email }: NewsletterPreferenceProp
                     background: optIn ? '#0D9488' : '#E0EDE6',
                     border: '1px solid',
                     borderColor: optIn ? '#0D9488' : '#C5DDD5',
-                    cursor: (!loaded || saving) ? 'not-allowed' : 'pointer',
-                    opacity: loaded ? 1 : 0.55,
+                    cursor: (!loaded || saving || statusError) ? 'not-allowed' : 'pointer',
+                    opacity: (loaded && !statusError) ? 1 : 0.55,
                     transition: 'all 0.25s ease',
                     boxShadow: optIn
                         ? '0 2px 6px rgba(13,148,136,0.3)'

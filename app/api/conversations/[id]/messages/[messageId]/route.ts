@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { verifyCsrf } from '@/lib/csrf';
 
 // DELETE /api/conversations/[id]/messages/[messageId]
 export async function DELETE(
     req: NextRequest,
     { params }: { params: Promise<{ id: string; messageId: string }> },
 ) {
+    // Soft-deleting someone's sent message is a state change, so it gets the
+    // same origin check the reply path has. Sender-only ownership does not
+    // help: the sender is precisely the session a cross-site page rides.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     try {
         const { id, messageId } = await params;
 

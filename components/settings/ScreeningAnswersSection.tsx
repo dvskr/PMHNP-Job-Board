@@ -106,14 +106,24 @@ export default function ScreeningAnswersSection({ showMsg }: Props) {
                                         const showDetails = q.answerType === 'boolean_with_details' && a.answerBool === true
                                         return (
                                             <div key={q.questionKey}>
-                                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: clayPalette.textPrimary, marginBottom: '8px' }}>{q.questionText}</label>
+                                                {/* The question text IS the field label, so it has to be
+                                                    wired to the control it names. As a bare sibling <label>
+                                                    a screen reader announced "edit text, blank" and the
+                                                    Yes/No pair carried its state in colour alone. The
+                                                    questionKey is already unique per question, so it makes
+                                                    a stable id without a counter. */}
+                                                <label
+                                                    id={`screening-${q.questionKey}-label`}
+                                                    htmlFor={q.answerType === 'text' ? `screening-${q.questionKey}` : undefined}
+                                                    style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: clayPalette.textPrimary, marginBottom: '8px' }}
+                                                >{q.questionText}</label>
                                                 {q.answerType === 'text' ? (
-                                                    <input type="text" value={a.answerText} onChange={(e) => setAnswer(q.questionKey, { answerText: e.target.value })} placeholder="Enter your answer" style={inputStyle} />
+                                                    <input id={`screening-${q.questionKey}`} type="text" value={a.answerText} onChange={(e) => setAnswer(q.questionKey, { answerText: e.target.value })} placeholder="Enter your answer" style={inputStyle} />
                                                 ) : (
                                                     <>
-                                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                                        <div role="group" aria-labelledby={`screening-${q.questionKey}-label`} style={{ display: 'flex', gap: '6px' }}>
                                                             {[true, false].map((v) => (
-                                                                <button key={String(v)} type="button" onClick={() => setAnswer(q.questionKey, { answerBool: v })} style={{
+                                                                <button key={String(v)} type="button" aria-pressed={a.answerBool === v} onClick={() => setAnswer(q.questionKey, { answerBool: v })} style={{
                                                                     padding: '6px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s',
                                                                     border: a.answerBool === v ? `1.5px solid ${clayPalette.accentLight}` : `1.5px solid ${clayPalette.border}`,
                                                                     background: a.answerBool === v ? 'rgba(45,212,191,0.12)' : clayPalette.inputFill,
@@ -122,7 +132,7 @@ export default function ScreeningAnswersSection({ showMsg }: Props) {
                                                             ))}
                                                         </div>
                                                         {showDetails && (
-                                                            <textarea value={a.answerText} onChange={(e) => setAnswer(q.questionKey, { answerText: e.target.value })}
+                                                            <textarea aria-label={`Details for: ${q.questionText}`} value={a.answerText} onChange={(e) => setAnswer(q.questionKey, { answerText: e.target.value })}
                                                                 rows={2} placeholder="Please provide details..." style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit', marginTop: '8px' }} />
                                                         )}
                                                     </>

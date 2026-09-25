@@ -165,6 +165,23 @@ export default function LinkedInFilters({ onTotalChange }: LinkedInFiltersProps 
     };
   }, [fetchCounts]);
 
+  /**
+   * Build the /jobs URL for a filter change, carrying the active sort across.
+   *
+   * Every push here rebuilds the query string from scratch via
+   * filtersToParams, and FilterState has no sort field, so ?sort was dropped
+   * on the first filter click. The dropdown (owned by JobsPageClient) kept
+   * showing the old choice while the URL said otherwise, and reloading or
+   * sharing the link silently reordered the list.
+   */
+  const buildJobsHref = useCallback((next: FilterState): string => {
+    const params = filtersToParams(next);
+    const sort = searchParams.get('sort');
+    if (sort) params.set('sort', sort);
+    const qs = params.toString();
+    return qs ? `/jobs?${qs}` : '/jobs';
+  }, [searchParams]);
+
   // Toggle array-based filter (workMode, jobType, specialty)
   const toggleArrayFilter = (key: 'workMode' | 'jobType' | 'specialty' | 'experienceLevel', value: string) => {
     const newFilters = { ...filters };
@@ -173,7 +190,7 @@ export default function LinkedInFilters({ onTotalChange }: LinkedInFiltersProps 
     if (idx >= 0) arr.splice(idx, 1);
     else arr.push(value);
     newFilters[key] = arr;
-    router.push(`/jobs?${filtersToParams(newFilters).toString()}`, { scroll: false });
+    router.push(buildJobsHref(newFilters), { scroll: false });
     trackFilterChange(key, arr.join(','));
   };
 
@@ -181,29 +198,36 @@ export default function LinkedInFilters({ onTotalChange }: LinkedInFiltersProps 
   // and string/number for everything else.
   const setSingleFilter = (key: keyof FilterState, value: string | number | boolean | null) => {
     const newFilters = { ...filters, [key]: value };
-    router.push(`/jobs?${filtersToParams(newFilters).toString()}`, { scroll: false });
+    router.push(buildJobsHref(newFilters), { scroll: false });
   };
 
-  // Clear all filters
+  // Clear all filters. Sort is a view preference, not a filter, so it survives.
   const clearAllFilters = () => {
     setSearchInput('');
     setLocationInput('');
-    router.push('/jobs', { scroll: false });
+    router.push(buildJobsHref(DEFAULT_FILTERS), { scroll: false });
   };
 
   // Handle search submit
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newFilters = { ...filters, search: searchInput || undefined };
-    router.push(`/jobs?${filtersToParams(newFilters as FilterState).toString()}`, { scroll: false });
-    if (searchInput) trackSearch(searchInput);
+    // Trim first: buildWhereClause trims before querying, so an all-whitespace
+    // entry filtered nothing but still wrote ?q=+++ and rendered a blank chip
+    // with "Clear all (1)".
+    const search = searchInput.trim();
+    setSearchInput(search);
+    const newFilters = { ...filters, search: search || undefined };
+    router.push(buildJobsHref(newFilters as FilterState), { scroll: false });
+    if (search) trackSearch(search);
   };
 
   // Handle location submit
   const handleLocationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newFilters = { ...filters, location: locationInput || undefined };
-    router.push(`/jobs?${filtersToParams(newFilters as FilterState).toString()}`, { scroll: false });
+    const location = locationInput.trim();
+    setLocationInput(location);
+    const newFilters = { ...filters, location: location || undefined };
+    router.push(buildJobsHref(newFilters as FilterState), { scroll: false });
   };
 
   // Count active filters (including category)

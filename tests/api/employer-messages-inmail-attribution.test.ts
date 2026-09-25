@@ -83,7 +83,17 @@ vi.mock('@/lib/prisma', () => ({
                 Promise.resolve(
                     where.supabaseId === EMPLOYER_SUPABASE_ID
                         ? { id: EMPLOYER_PROFILE_ID, firstName: 'Fixture', lastName: 'Recruiter', company: 'Example Psychiatry (Fixture)', role: 'employer' }
-                        : { id: RECIPIENT_PROFILE_ID, email: 'candidate@examplemail.example', firstName: 'Fixture' },
+                        // New outreach now applies the same privacy gate the
+                        // unlock endpoints use, so the recipient fixture has to
+                        // carry the opt-in fields a real candidate row has.
+                        : {
+                            id: RECIPIENT_PROFILE_ID,
+                            email: 'candidate@examplemail.example',
+                            firstName: 'Fixture',
+                            role: 'job_seeker',
+                            profileVisible: true,
+                            openToOffers: true,
+                        },
                 ),
         },
         job: {

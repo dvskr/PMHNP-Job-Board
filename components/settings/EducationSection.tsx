@@ -156,56 +156,56 @@ export default function EducationSection({ showMsg }: Props) {
         <div style={clayFormPanel}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h4 style={claySubTitle}>{editingId ? 'Edit Education' : 'Add Education'}</h4>
-                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}><X size={18} /></button>
+                <button onClick={cancelForm} aria-label="Close education form" style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}><X size={18} /></button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                     <div>
-                        <label style={labelStyle}>Degree Type *</label>
-                        <select value={form.degreeType} onChange={(e) => setForm({ ...form, degreeType: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
+                        <label htmlFor="edu-degree-type" style={labelStyle}>Degree Type *</label>
+                        <select id="edu-degree-type" value={form.degreeType} onChange={(e) => setForm({ ...form, degreeType: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
                             <option value="">Select degree</option>
                             {DEGREE_TYPES.map((d) => <option key={d} value={d}>{d}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label style={labelStyle}>School / University *</label>
-                        <input type="text" value={form.schoolName} onChange={(e) => setForm({ ...form, schoolName: e.target.value })} placeholder="Enter school name" style={inputStyle} />
+                        <label htmlFor="edu-school-university" style={labelStyle}>School / University *</label>
+                        <input id="edu-school-university" type="text" value={form.schoolName} onChange={(e) => setForm({ ...form, schoolName: e.target.value })} placeholder="Enter school name" style={inputStyle} />
                     </div>
                 </div>
                 <div>
-                    <label style={labelStyle}>Field of Study / Program</label>
-                    <input type="text" value={form.fieldOfStudy} onChange={(e) => setForm({ ...form, fieldOfStudy: e.target.value })} placeholder="e.g. Psychiatric Mental Health Nurse Practitioner" style={inputStyle} />
+                    <label htmlFor="edu-field-of-study-program" style={labelStyle}>Field of Study / Program</label>
+                    <input id="edu-field-of-study-program" type="text" value={form.fieldOfStudy} onChange={(e) => setForm({ ...form, fieldOfStudy: e.target.value })} placeholder="e.g. Psychiatric Mental Health Nurse Practitioner" style={inputStyle} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
                     <div>
-                        <label style={labelStyle}>From</label>
+                        <label id="edu-from-label" style={labelStyle}>From</label>
                         <div style={{ display: 'flex', gap: '6px' }}>
-                            <select value={form.startMonth} onChange={(e) => setForm({ ...form, startMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
+                            <select aria-label="From month" value={form.startMonth} onChange={(e) => setForm({ ...form, startMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
                                 <option value="">Month</option>
                                 {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
                             </select>
-                            <select value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
+                            <select aria-label="From year" value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
                                 <option value="">Year</option>
                                 {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label style={labelStyle}>Graduated</label>
+                        <label id="edu-graduated-label" style={labelStyle}>Graduated</label>
                         <div style={{ display: 'flex', gap: '6px' }}>
-                            <select value={form.gradMonth} onChange={(e) => setForm({ ...form, gradMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
+                            <select aria-label="Graduated month" value={form.gradMonth} onChange={(e) => setForm({ ...form, gradMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
                                 <option value="">Month</option>
                                 {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
                             </select>
-                            <select value={form.gradYear} onChange={(e) => setForm({ ...form, gradYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
+                            <select aria-label="Graduated year" value={form.gradYear} onChange={(e) => setForm({ ...form, gradYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
                                 <option value="">Year</option>
                                 {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label style={labelStyle}>GPA (optional)</label>
-                        <input type="text" value={form.gpa} onChange={(e) => setForm({ ...form, gpa: e.target.value })} placeholder="e.g. 3.85" style={inputStyle} />
+                        <label htmlFor="edu-gpa" style={labelStyle}>GPA (optional)</label>
+                        <input id="edu-gpa" type="text" value={form.gpa} onChange={(e) => setForm({ ...form, gpa: e.target.value })} placeholder="e.g. 3.85" style={inputStyle} />
                     </div>
                 </div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: clayPalette.textSecondary, position: 'relative' }}>

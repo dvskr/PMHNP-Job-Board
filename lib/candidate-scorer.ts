@@ -7,7 +7,8 @@ import { loadPrompt } from '@/lib/ai/prompts/registry';
 // ═══════════════════════════════════════════════════════════════
 // AI Candidate Scorer — Matches candidates to job requirements
 // Routes through lib/ai/gateway for cost tracking, caching, fallback.
-// Prompt lives in lib/ai/prompts/candidate_scoring/v1.json (Sprint 0.2 registry).
+// Prompt lives in lib/ai/prompts/candidate_scoring/ (Sprint 0.2 registry);
+// loadPrompt picks the highest version in that directory.
 // ═══════════════════════════════════════════════════════════════
 
 // Permissive schema — model output can be off-spec, gateway-side Zod parsing
@@ -132,24 +133,40 @@ export async function scoreCandidate(
     }
 }
 
+/**
+ * The fence markers the v2 prompt wraps the untrusted sections in.
+ *
+ * A trust boundary written only in the system prompt is half a control: the
+ * candidate also controls the text INSIDE the fence, so without this they
+ * could close the fence early ("CANDIDATE_PROFILE") and write what looks like
+ * a fresh instruction block. Neutralising the markers in the data keeps the
+ * boundary where the prompt says it is.
+ */
+const PROMPT_FENCE_MARKERS = /<<<(?:JOB_POSTING|CANDIDATE_PROFILE)|JOB_POSTING|CANDIDATE_PROFILE/g;
+
+/** Free text a candidate or employer typed. Never an instruction to the model. */
+function asUntrustedText(value: unknown): string {
+    return String(value ?? '').replace(PROMPT_FENCE_MARKERS, '[redacted]');
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildCandidateSummary(candidate: any, application: JobApplicationForScoring | null): string {
     const parts: string[] = [];
 
-    if (candidate.headline) parts.push(`Headline: ${candidate.headline}`);
+    if (candidate.headline) parts.push(`Headline: ${asUntrustedText(candidate.headline)}`);
     if (candidate.yearsExperience) parts.push(`Years of Experience: ${candidate.yearsExperience}`);
-    if (candidate.certifications) parts.push(`Certifications: ${candidate.certifications}`);
-    if (candidate.licenseStates) parts.push(`Licensed States: ${candidate.licenseStates}`);
-    if (candidate.specialties) parts.push(`Specialties: ${candidate.specialties}`);
-    if (candidate.skills?.length) parts.push(`Skills: ${candidate.skills.join(', ')}`);
+    if (candidate.certifications) parts.push(`Certifications: ${asUntrustedText(candidate.certifications)}`);
+    if (candidate.licenseStates) parts.push(`Licensed States: ${asUntrustedText(candidate.licenseStates)}`);
+    if (candidate.specialties) parts.push(`Specialties: ${asUntrustedText(candidate.specialties)}`);
+    if (candidate.skills?.length) parts.push(`Skills: ${asUntrustedText(candidate.skills.join(', '))}`);
     if (candidate.npiNumber) parts.push('Has NPI Number: Yes');
     if (candidate.deaNumber) parts.push('Has DEA Number: Yes');
-    if (candidate.bio) parts.push(`Bio: ${candidate.bio.slice(0, 300)}`);
+    if (candidate.bio) parts.push(`Bio: ${asUntrustedText(candidate.bio).slice(0, 300)}`);
 
     if (candidate.education?.length > 0) {
         parts.push('Education:');
         for (const edu of candidate.education) {
-            parts.push(`  - ${edu.degreeType} in ${edu.fieldOfStudy || 'N/A'} from ${edu.schoolName}`);
+            parts.push(`  - ${asUntrustedText(edu.degreeType)} in ${asUntrustedText(edu.fieldOfStudy || 'N/A')} from ${asUntrustedText(edu.schoolName)}`);
         }
     }
 
@@ -157,21 +174,21 @@ function buildCandidateSummary(candidate: any, application: JobApplicationForSco
         parts.push('Work Experience:');
         for (const exp of candidate.workExperience) {
             const dates = `${exp.startDate ? new Date(exp.startDate).getFullYear() : '?'} - ${exp.isCurrent ? 'Present' : exp.endDate ? new Date(exp.endDate).getFullYear() : '?'}`;
-            parts.push(`  - ${exp.jobTitle} at ${exp.employerName} (${dates})`);
+            parts.push(`  - ${asUntrustedText(exp.jobTitle)} at ${asUntrustedText(exp.employerName)} (${dates})`);
         }
     }
 
     if (candidate.certificationRecords?.length > 0) {
         parts.push('Detailed Certifications:');
         for (const cert of candidate.certificationRecords) {
-            parts.push(`  - ${cert.certificationName}${cert.certifyingBody ? ` (${cert.certifyingBody})` : ''}`);
+            parts.push(`  - ${asUntrustedText(cert.certificationName)}${cert.certifyingBody ? ` (${asUntrustedText(cert.certifyingBody)})` : ''}`);
         }
     }
 
     if (candidate.licenses?.length > 0) {
         parts.push('Licenses:');
         for (const lic of candidate.licenses) {
-            parts.push(`  - ${lic.licenseType} in ${lic.licenseState} (${lic.status})`);
+            parts.push(`  - ${asUntrustedText(lic.licenseType)} in ${asUntrustedText(lic.licenseState)} (${asUntrustedText(lic.status)})`);
         }
     }
 
@@ -183,16 +200,18 @@ function buildCandidateSummary(candidate: any, application: JobApplicationForSco
             if (Array.isArray(answers) && answers.length > 0) {
                 parts.push('Screening Answers:');
                 for (const a of answers) {
-                    parts.push(`  Q: ${a.questionText} → A: ${a.answer}`);
+                    parts.push(`  Q: ${asUntrustedText(a.questionText)} → A: ${asUntrustedText(a.answer)}`);
                 }
             }
-        } catch {
-            // ignore malformed screening answers
+        } catch (error) {
+            // Malformed JSON in a stored answer blob must not abort scoring, but it
+            // is a data-integrity signal rather than an expected shape.
+            logger.warn('buildCandidateSummary: unparseable screeningAnswers, scoring without them', { error: String(error) });
         }
     }
 
     if (application?.coverLetter) {
-        parts.push(`Cover Letter (excerpt): ${application.coverLetter.slice(0, 300)}`);
+        parts.push(`Cover Letter (excerpt): ${asUntrustedText(application.coverLetter).slice(0, 300)}`);
     }
 
     return parts.join('\n');

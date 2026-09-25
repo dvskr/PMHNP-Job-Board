@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
+import { readJsonBody } from '@/app/api/_lib/json-body';
 
 /**
  * POST /api/feedback
@@ -20,8 +21,11 @@ export async function POST(request: NextRequest) {
   const rateLimitResult = await rateLimit(request, 'feedback', RATE_LIMITS.feedback);
   if (rateLimitResult) return rateLimitResult;
 
+  const parsed = await readJsonBody(request);
+  if (!parsed.ok) return parsed.response;
+
   try {
-    const body = await request.json();
+    const body = parsed.body;
     const { rating, message, page } = body as {
       rating?: unknown;
       message?: unknown;
