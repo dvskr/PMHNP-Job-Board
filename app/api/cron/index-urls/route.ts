@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { pingAllSearchEnginesBatch, summarizeBingResults } from '@/lib/search-indexing';
-import { slugify } from '@/lib/utils';
+import {
+    jobIndexUrl,
+    pingAllSearchEnginesBatch,
+    recentlyChangedJobsFilter,
+    summarizeBingResults,
+} from '@/lib/search-indexing';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
@@ -9,13 +13,12 @@ import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes — submits 200+ URLs to search engines
 
-const BASE_URL = 'https://pmhnphiring.com';
-
 /**
- * Daily cron: submit recently created/updated job URLs to
+ * Daily cron: submit newly created and newly re-written job URLs to
  * Google Indexing API, Bing Webmaster API, and IndexNow.
  *
- * - Fetches jobs created or updated in the last 25 hours (overlap buffer)
+ * - Fetches jobs created or re-enriched in the last 25 hours (overlap buffer).
+ *   See recentlyChangedJobsFilter for why updatedAt is NOT the signal.
  * - Google: up to 200/day (handled by pingAllSearchEnginesBatch)
  * - Bing: batch up to 500 at once
  * - IndexNow: batch up to 10,000 at once
@@ -37,14 +40,14 @@ export async function GET(request: NextRequest) {
             const recentJobs = await prisma.job.findMany({
                 where: {
                     isPublished: true,
-                    OR: [
-                        { createdAt: { gte: since } },
-                        { updatedAt: { gte: since } },
-                    ],
+                    OR: recentlyChangedJobsFilter(since),
                 },
                 select: {
                     id: true,
                     title: true,
+                    // The stored slug is the page's canonical. Selecting only
+                    // the title forced a recompute that drifts from it.
+                    slug: true,
                     sourceType: true,
                 },
                 orderBy: { createdAt: 'desc' },
@@ -73,11 +76,10 @@ export async function GET(request: NextRequest) {
             const scrapedJobs = recentJobs.filter((job) => job.sourceType !== 'employer');
             const orderedJobs = [...employerJobs, ...scrapedJobs];
 
-            // Build full URLs (employer URLs first — Google slice is positional)
-            const urls = orderedJobs.map((job) => {
-                const slug = slugify(job.title, job.id);
-                return `${BASE_URL}/jobs/${slug}`;
-            });
+            // Build full URLs (employer URLs first — Google slice is positional).
+            // jobIndexUrl reads the STORED slug so every submission matches the
+            // canonical the job page emits.
+            const urls = orderedJobs.map(jobIndexUrl);
 
             logger.info('[CRON:index-urls] Submitting URLs to search engines', {
                 urlCount: urls.length,

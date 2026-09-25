@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { isEditTokenWindowOpen, EDIT_TOKEN_CLOSED_MESSAGE } from '@/lib/auth/edit-token-window';
 import { inngest } from '@/lib/inngest/client';
-import { pingAllSearchEngines } from '@/lib/search-indexing';
+import { pingAllSearchEngines, jobIndexUrl } from '@/lib/search-indexing';
 import { slugify } from '@/lib/utils';
 import { normalizeSalary } from '@/lib/salary-normalizer';
 import { formatDisplaySalary } from '@/lib/salary-display';
@@ -258,7 +258,12 @@ export async function POST(request: NextRequest) {
     const isProduction = process.env.VERCEL_ENV === 'production'
       || (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_BASE_URL?.includes('localhost'));
     if (hasMaterialChange && updatedJob.isPublished && isProduction) {
-      const jobUrl = `https://pmhnphiring.com/jobs/${slugify(updatedJob.title, updatedJob.id)}`;
+      // Stored slug, not a recompute: an employer editing an admin-created or
+      // pre-2026-07 job would otherwise ping a URL that canonicals elsewhere,
+      // spending the daily quota without re-crawling the page they just
+      // changed. This route is the only ping for an edit, since the index-urls
+      // cron no longer re-lists edited jobs.
+      const jobUrl = jobIndexUrl(updatedJob);
       pingAllSearchEngines(jobUrl).catch((err) =>
         logger.error('[Jobs-Update] Background indexing ping failed', err)
       );

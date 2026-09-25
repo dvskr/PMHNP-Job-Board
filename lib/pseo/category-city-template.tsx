@@ -85,12 +85,19 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('addiction'),
     }),
     benefits: [
-      { title: 'High Demand', description: 'Addiction specialists are critically needed: over 40 million Americans have a substance use disorder.', iconName: 'Activity' },
-      { title: 'Loan Repayment', description: 'Many addiction positions qualify for NHSC loan repayment up to $50,000+ for serving underserved areas.', iconName: 'DollarSign' },
+      // The prevalence figure here said "over 40 million" while the site's own
+      // MAT guide said "48+ million". Neither number is derivable from this
+      // codebase, so the claim stands without one rather than pick a side.
+      { title: 'High Demand', description: 'Addiction specialists are critically needed as the opioid and stimulant crises keep substance use disorder prevalence high.', iconName: 'Activity' },
+      // NHSC award amounts and service terms are reset by HRSA each cycle, so a
+      // fixed dollar figure here goes stale and contradicts the FAQ copy.
+      { title: 'Loan Repayment', description: 'Many addiction positions serving underserved areas qualify for NHSC loan repayment; award amounts and service terms are set by HRSA each cycle.', iconName: 'DollarSign' },
       { title: 'Meaningful Impact', description: 'Help patients reclaim their lives through evidence-based medication-assisted treatment (MAT).', iconName: 'Heart' },
     ],
     tips: [
-      'Get DEA X-waiver for buprenorphine prescribing',
+      // The separate DEA waiver for buprenorphine was eliminated by the
+      // Consolidated Appropriations Act of 2023; standard registration covers it.
+      'Keep DEA registration current: buprenorphine needs no separate waiver',
       'Build motivational interviewing skills',
       'Understand MAT protocols (Suboxone, Vivitrol)',
       'Stay current on state opioid prescribing laws',
@@ -448,7 +455,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('community-health'),
     }),
     benefits: [
-      { title: 'Loan Repayment', description: 'NHSC loan repayment up to $50K for 2 years of service at qualifying FQHCs and underserved sites.', iconName: 'DollarSign' },
+      { title: 'Loan Repayment', description: 'NHSC loan repayment at qualifying FQHCs and underserved sites; award amounts and service terms are set by HRSA each cycle.', iconName: 'DollarSign' },
       { title: 'Mission-Driven Work', description: 'Serve underserved populations and make a direct impact on community mental health outcomes.', iconName: 'Heart' },
       { title: 'Diverse Experience', description: 'Treat a wide range of conditions across all ages, building broad clinical expertise quickly.', iconName: 'Activity' },
     ],
@@ -703,7 +710,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     }),
     benefits: [
       { title: 'Premium Pay', description: 'Correctional PMHNPs earn $130K-$190K+ due to the challenging environment and high demand for mental health providers.', iconName: 'DollarSign' },
-      { title: 'Loan Repayment', description: 'Many correctional facilities qualify for NHSC and state loan repayment programs, up to $50K for 2 years of service.', iconName: 'DollarSign' },
+      { title: 'Loan Repayment', description: 'Many correctional facilities qualify for NHSC and state loan repayment programs; award amounts and service terms are set by HRSA and the state each cycle.', iconName: 'DollarSign' },
       { title: 'Unique Clinical Skills', description: 'Develop expertise in forensic psychiatry, crisis intervention, and managing complex comorbidities in underserved populations.', iconName: 'Shield' },
     ],
     tips: [
@@ -1165,7 +1172,48 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
   });
   const taxonomyCityNarrative = dbCatCityOverride && dbCatCityOverride.approvedAt
     ? dbCatCityOverride.body
-    : buildTaxonomyCityNarrative(buildCityFacts(city!), config.slug, stats.totalJobs);
+    : buildTaxonomyCityNarrative(buildCityFacts(city!), config.slug, stats.totalJobs, config.label);
+
+  /* ── Single-source FAQ (2026-09 audit) ─────────────────────────────────────
+     This template used to declare the FAQ TWICE: one array inside an IIFE that
+     only fed the FAQPage JSON-LD, and a second hand-written array that fed the
+     visible accordion. Five questions, four of which disagreed, so the schema
+     promised answer engines a salary range and a practice-authority statement
+     that no visitor could find on the page. Google's FAQ guidance requires the
+     markup to mirror visible content, and a citation a reader cannot verify
+     costs the whole domain trust. One array now feeds both.
+
+     Questions 2 to 5 are also scoped to the taxonomy. Unscoped, sibling
+     category pages for one city shipped identical Q&A, which is the
+     near-duplicate signal the same audit flagged in the narrative.
+     tests/pseo/category-city-faq-parity.test.ts pins both properties. */
+  const cityFaqSystems = city!.healthcareSystems.slice(0, 3);
+  const categoryCityFaqs = [
+    {
+      q: `How many ${config.label.toLowerCase()} PMHNP jobs are available in ${city!.name}, ${city!.stateCode}?`,
+      a: `There ${stats.totalJobs === 1 ? 'is' : 'are'} currently ${stats.totalJobs} ${config.label.toLowerCase()} PMHNP ${stats.totalJobs === 1 ? 'position' : 'positions'} available in ${city!.name}, ${city!.stateCode}. New positions are posted regularly as demand for psychiatric nurse practitioners continues to grow.`,
+    },
+    {
+      q: `What do ${config.label.toLowerCase()} PMHNP jobs in ${city!.name} pay?`,
+      a: stats.rawAvgSalary > 0
+        ? `The average ${config.label.toLowerCase()} PMHNP salary in ${city!.name} is approximately $${stats.rawAvgSalary}K per year across the listings on this page. Adjusted for the local cost of living (index: ${city!.costOfLivingIndex}), that equates to about $${stats.colAdjustedSalary}K in purchasing power. The typical advertised range for ${config.label.toLowerCase()} positions is ${config.salaryRange}.`
+        : `${config.label} PMHNP positions in ${city!.name} typically pay ${config.salaryRange}. Actual compensation depends on experience, employer type, and whether the role includes benefits. ${city!.name}'s cost of living index is ${city!.costOfLivingIndex} (national average = 100).`,
+    },
+    {
+      q: `Does ${city!.state} grant PMHNPs full practice authority, and does it apply to ${config.label.toLowerCase()} roles?`,
+      a: practiceAuthority
+        ? `${city!.state} has ${practiceAuthority.authority.toLowerCase()} practice authority for nurse practitioners, and it applies to ${config.label.toLowerCase()} positions the same as any other setting. ${String(practiceAuthority.authority).includes('Full') ? 'PMHNPs can practice independently, prescribe medications, and diagnose without physician oversight.' : String(practiceAuthority.authority).includes('Reduced') ? 'PMHNPs require a collaborative agreement with a physician but can prescribe and diagnose under that arrangement.' : 'PMHNPs must practice under physician supervision for prescribing and some clinical decisions.'}`
+        : `Contact the ${city!.state} Board of Nursing for current practice authority information.`,
+    },
+    {
+      q: `Is ${city!.name} a good market for ${config.label.toLowerCase()} PMHNP work?`,
+      a: `${city!.name} ${city!.mentalHealthShortage ? 'is designated as a Mental Health Professional Shortage Area (HPSA), meaning there is high demand and often sign-on bonuses, loan repayment eligibility, and competitive salaries for PMHNPs.' : 'has growing demand for mental health providers.'} With a population of ${city!.population.toLocaleString('en-US')}${city!.metroArea ? ` and part of the ${city!.metroArea} metro area` : ''}, it currently carries ${stats.totalJobs} ${config.label.toLowerCase()} ${stats.totalJobs === 1 ? 'opening' : 'openings'}${cityFaqSystems.length > 0 ? ` across employers including ${cityFaqSystems.join(', ')}` : ' across a range of practice settings'}.`,
+    },
+    {
+      q: `What qualifications do I need for ${config.label.toLowerCase()} PMHNP jobs in ${city!.name}?`,
+      a: `To work as a PMHNP in ${city!.name}, ${city!.stateCode}, you need: (1) a Master's or Doctoral degree in psychiatric-mental health nursing, (2) national certification as a PMHNP (ANCC-certified), (3) an active RN and APRN license in ${city!.state}, and (4) DEA registration for prescribing controlled substances. ${config.label === 'Entry-Level' ? 'Many entry-level positions accept new graduates and provide structured mentorship.' : config.label === 'Senior' ? 'Senior positions typically require 7+ years of experience and may require subspecialty certifications.' : `${config.label} positions may carry additional requirements specific to the employer and setting.`}`,
+    },
+  ];
 
   /* ═══ Design Tokens — matched to category pages ═══ */
   const clayCard: React.CSSProperties = {
@@ -1705,46 +1753,26 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
               {taxonomyCityNarrative}
             </p>
             <p style={{ fontSize: '11px', marginTop: '8px', color: '#A09080' }}>
-              Sources: U.S. Census Bureau, Bureau of Labor Statistics, HRSA HPSA data, AANP State Practice Environment.
+              {/* Only cite what the paragraph above actually uses. It carried a
+                  Bureau of Labor Statistics credit although no BLS figure feeds
+                  this narrative. */}
+              Sources: U.S. Census Bureau (population), HRSA (Mental Health Professional Shortage Area designation), AANP State Practice Environment (practice authority).
             </p>
           </section>
 
           {/* ── AEO: Frequently Asked Questions with Schema ─────────────────── */}
           {(() => {
-            const faqs = [
-              {
-                q: `How many ${config.label.toLowerCase()} PMHNP jobs are available in ${city!.name}, ${city!.stateCode}?`,
-                a: `There ${stats.totalJobs === 1 ? 'is' : 'are'} currently ${stats.totalJobs} ${config.label.toLowerCase()} PMHNP ${stats.totalJobs === 1 ? 'position' : 'positions'} available in ${city!.name}, ${city!.stateCode}. New positions are posted regularly as demand for psychiatric nurse practitioners continues to grow.`,
-              },
-              {
-                q: `What is the average PMHNP salary in ${city!.name}?`,
-                a: stats.rawAvgSalary > 0
-                  ? `The average ${config.label.toLowerCase()} PMHNP salary in ${city!.name} is approximately $${stats.rawAvgSalary}K per year. Adjusted for the local cost of living (index: ${city!.costOfLivingIndex}), this equates to about $${stats.colAdjustedSalary}K in purchasing power. The typical range for ${config.label.toLowerCase()} positions is ${config.salaryRange}.`
-                  : `${config.label} PMHNP positions in ${city!.name} typically pay ${config.salaryRange}. Actual compensation depends on experience, employer type, and whether the role includes benefits. ${city!.name}'s cost of living index is ${city!.costOfLivingIndex} (national average = 100).`,
-              },
-              {
-                q: `Does ${city!.state} grant PMHNPs full practice authority?`,
-                a: practiceAuthority ? `${city!.state} has ${practiceAuthority.authority.toLowerCase()} practice authority for nurse practitioners. ${String(practiceAuthority.authority).includes('Full') ? 'PMHNPs can practice independently, prescribe medications, and diagnose without physician oversight.' : String(practiceAuthority.authority).includes('Reduced') ? 'PMHNPs require a collaborative agreement with a physician but can prescribe and diagnose with that arrangement.' : 'PMHNPs must practice under physician supervision for prescribing and some clinical decisions.'}` : `Contact the ${city!.state} Board of Nursing for current practice authority information.`,
-              },
-              {
-                q: `Is ${city!.name} a good place for PMHNP careers?`,
-                a: `${city!.name} ${city!.mentalHealthShortage ? 'is designated as a Mental Health Professional Shortage Area (HPSA), meaning there is high demand and often sign-on bonuses, loan repayment programs, and competitive salaries for PMHNPs.' : 'has growing demand for mental health providers.'} With a population of ${city!.population.toLocaleString('en-US')}${city!.metroArea ? ` and part of the ${city!.metroArea} metro area` : ''}, ${city!.name} offers ${city!.healthcareSystems.length > 0 ? `access to major health systems including ${city!.healthcareSystems.join(', ')}` : 'a variety of practice settings'}.`,
-              },
-              {
-                q: `What qualifications do I need for ${config.label.toLowerCase()} PMHNP jobs in ${city!.name}?`,
-                a: `To work as a PMHNP in ${city!.name}, ${city!.stateCode}, you need: (1) A Master's or Doctoral degree in psychiatric-mental health nursing, (2) National certification as a PMHNP (ANCC-certified), (3) An active RN and APRN license in ${city!.state}, and (4) DEA registration for prescribing controlled substances. ${config.label === 'Entry-Level' ? 'Many entry-level positions accept new graduates and provide structured mentorship.' : config.label === 'Senior' ? 'Senior positions typically require 7+ years of experience and may require subspecialty certifications.' : `${config.label} positions may have additional requirements specific to the employer and setting.`}`,
-              },
-            ];
             return (
               <>
-                {/* FAQ Schema JSON-LD */}
+                {/* FAQ Schema JSON-LD — built from categoryCityFaqs, the SAME
+                    array the visible accordion below renders. */}
                 <script
                   type="application/ld+json"
                   dangerouslySetInnerHTML={{
                     __html: jsonLdString({
                       '@context': 'https://schema.org',
                       '@type': 'FAQPage',
-                      mainEntity: faqs.map(faq => ({
+                      mainEntity: categoryCityFaqs.map(faq => ({
                         '@type': 'Question',
                         name: faq.q,
                         acceptedAnswer: {
@@ -1790,31 +1818,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {(() => {
-              const faqs = [
-                {
-                  q: `How many ${config.label.toLowerCase()} PMHNP jobs are available in ${city!.name}, ${city!.stateCode}?`,
-                  a: `There ${stats.totalJobs === 1 ? 'is' : 'are'} currently ${stats.totalJobs} ${config.label.toLowerCase()} PMHNP ${stats.totalJobs === 1 ? 'position' : 'positions'} available in ${city!.name}, ${city!.stateCode}. New positions are posted regularly as demand for psychiatric nurse practitioners continues to grow.`,
-                },
-                {
-                  q: `What is the average PMHNP salary in ${city!.name}?`,
-                  a: stats.rawAvgSalary > 0
-                    ? `The average ${config.label.toLowerCase()} PMHNP salary in ${city!.name} is approximately $${stats.rawAvgSalary}K per year. Adjusted for the local cost of living (index: ${city!.costOfLivingIndex}), this equates to about $${stats.colAdjustedSalary}K in purchasing power.`
-                    : `${config.label} PMHNP positions in ${city!.name} typically pay ${config.salaryRange}. Actual compensation depends on experience, employer type, and whether the role includes benefits.`,
-                },
-                {
-                  q: `Does ${city!.state} grant PMHNPs full practice authority?`,
-                  a: practiceAuthority ? `${city!.state} has ${practiceAuthority.authority.toLowerCase()} practice authority for nurse practitioners. ${String(practiceAuthority.authority).includes('Full') ? 'PMHNPs can practice independently without physician oversight.' : String(practiceAuthority.authority).includes('Reduced') ? 'PMHNPs require a collaborative agreement with a physician.' : 'PMHNPs must practice under physician supervision for prescribing and some clinical decisions.'}` : `Contact the ${city!.state} Board of Nursing for current practice authority information.`,
-                },
-                {
-                  q: `Is ${city!.name} a good place for PMHNP careers?`,
-                  a: `${city!.name} ${city!.mentalHealthShortage ? 'is designated as a Mental Health Professional Shortage Area (HPSA), meaning there is high demand and often sign-on bonuses and loan repayment programs.' : 'has growing demand for mental health providers.'} With a population of ${city!.population.toLocaleString('en-US')}${city!.metroArea ? ` in the ${city!.metroArea} metro` : ''}, ${city!.name} offers ${city!.healthcareSystems.length > 0 ? `access to major health systems including ${city!.healthcareSystems.slice(0, 3).join(', ')}` : 'a variety of practice settings'}.`,
-                },
-                {
-                  q: `What qualifications do I need for ${config.label.toLowerCase()} PMHNP jobs?`,
-                  a: `To work as a PMHNP in ${city!.name}, you need: a Master's or Doctoral degree in psychiatric-mental health nursing, ANCC PMHNP-BC certification, an active RN and APRN license in ${city!.state}, and DEA registration for prescribing controlled substances.`,
-                },
-              ];
-              return faqs.map((faq, i) => (
+              return categoryCityFaqs.map((faq, i) => (
                 <details key={i} className="pseo-faq-item" style={{
                   background: '#FFFFFF',
                   borderRadius: '16px',

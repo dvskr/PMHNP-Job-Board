@@ -1,7 +1,6 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
-import VideoJsonLd from '@/components/VideoJsonLd';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRight, ArrowRight } from 'lucide-react';
@@ -261,7 +260,6 @@ export default async function SalaryGuidePage() {
 
   return (
     <>
-      <VideoJsonLd pathname="/salary-guide" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(articleSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetSchema) }} />
       <BreadcrumbSchema items={[

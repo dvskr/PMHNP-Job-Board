@@ -2,6 +2,9 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import { publicJobsWhere } from '@/lib/filters';
+import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
+import { cityLinkHref } from '@/lib/pseo/related-cities';
 import { hasLicensePost } from '@/lib/pseo/license-posts';
 import { jsonLdString } from '@/lib/seo/json-ld';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -70,7 +73,12 @@ async function getStateData(stateName: string) {
     const [rows, totalOpen, changeAgg] = await Promise.all([
         prisma.job.findMany({
             where: {
-                isPublished: true,
+                // publicJobsWhere(), not a bare isPublished. /jobs/state/{state}
+                // computes its median over the same postings minus the
+                // GLOBAL_EXCLUSIONS non-PMHNP rows, so counting a different row
+                // set here made the two pages publish different medians for the
+                // same state, on the same domain, one click apart.
+                ...publicJobsWhere(),
                 state: stateName,
                 normalizedMinSalary: { not: null },
                 normalizedMaxSalary: { not: null },
@@ -84,7 +92,7 @@ async function getStateData(stateName: string) {
                 jobType: true,
             },
         }),
-        prisma.job.count({ where: { isPublished: true, state: stateName } }),
+        prisma.job.count({ where: { ...publicJobsWhere(), state: stateName } }),
         // Real change signal for dateModified / the visible Updated line:
         // the newest posting to enter this state's dataset, or the newest
         // employer renewal. NEVER job.updatedAt (it churns daily on view
@@ -136,22 +144,38 @@ async function getTopEmployers(stateName: string) {
     return employers.map((e) => ({ name: e.employer, jobCount: e._count.id }));
 }
 
+/**
+ * Top cities for the sidebar, resolved to URLs that answer 200.
+ *
+ * Two gates, both for decision-tree rule 6 (no internal link to a pSEO cell
+ * that is not populated):
+ *   - publicJobsWhere() instead of a bare isPublished, so an expired or
+ *     off-specialty row can never be what puts a city in this list;
+ *   - MIN_JOBS_FOR_CATEGORY_CITY, the same constant /jobs/city/[slug] renders
+ *     on, so a linked city always renders instead of hard-404ing.
+ * Curated metros are linked at their own URL rather than through the city
+ * page's 308. Ordered by count desc, so filtering the top 10 is sufficient.
+ */
 async function getTopCities(stateName: string) {
     const cities = await prisma.job.groupBy({
         by: ['city'],
-        where: { isPublished: true, state: stateName, city: { not: null } },
+        where: { ...publicJobsWhere(), state: stateName, city: { not: null } },
         _count: { id: true },
         orderBy: { _count: { id: 'desc' } },
         take: 10,
     });
     const stateCode = STATE_CODES[stateName] || '';
     return cities
-        .filter((c) => c.city)
-        .map((c) => ({
-            name: c.city!,
-            jobCount: c._count.id,
-            slug: `${c.city!.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${stateCode.toLowerCase()}`,
-        }));
+        .filter((c) => c.city && c._count.id >= MIN_JOBS_FOR_CATEGORY_CITY)
+        .map((c) => {
+            const slug = `${c.city!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}-${stateCode.toLowerCase()}`;
+            return {
+                name: c.city!,
+                jobCount: c._count.id,
+                slug,
+                href: cityLinkHref(slug),
+            };
+        });
 }
 
 // ── Static Params ───────────────────────────────────────────────────────────
@@ -685,7 +709,7 @@ export default async function StateSalaryPage({ params }: PageProps) {
                                 {topCities.map((city, i) => (
                                     <li key={city.name}>
                                         <Link
-                                            href={`/jobs/city/${city.slug}`}
+                                            href={city.href}
                                             style={{
                                                 display: 'flex',
                                                 justifyContent: 'space-between',

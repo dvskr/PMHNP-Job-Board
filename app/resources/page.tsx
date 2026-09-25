@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import VideoJsonLd from '@/components/VideoJsonLd';
 import ResourceDownloadGate from '@/components/ResourceDownloadGate';
 import LicensureChecker from '@/components/LicensureChecker';
 import StateImage from '@/components/StateImage';
@@ -158,7 +157,6 @@ export default async function ResourcesPage() {
 
   return (
     <>
-      <VideoJsonLd pathname="/resources" />
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'Resources', url: 'https://pmhnphiring.com/resources' },

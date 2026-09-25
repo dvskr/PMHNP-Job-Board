@@ -9,8 +9,60 @@
 
 import * as crypto from 'crypto';
 import { logger } from './logger';
+import { slugify } from './utils';
 
 const BASE_URL = 'https://pmhnphiring.com';
+
+// ─── What to submit, and under which URL ─────────────────────────────────────
+
+/**
+ * The URL a job page emits as its OWN canonical — the only form worth
+ * submitting to an engine.
+ *
+ * app/jobs/[slug]/page.tsx resolves a job by the trailing UUID and canonicals
+ * to `job.slug || slugify(title, id)`. Recomputing the slug from the title
+ * instead of reading the stored one drifts wherever the two were minted
+ * differently: admin-created posts store a slug built from title plus employer
+ * (app/api/admin/jobs/route.ts), and rows created before the 2026-07 slugify
+ * change (leading-hyphen trim, word-boundary truncation) keep the older shape.
+ * Submitting a variant spends the day's quota on a URL that canonicals
+ * elsewhere, so it lands as "Duplicate, submitted URL not selected as
+ * canonical" and the real URL is never pinged at all.
+ *
+ * Stored slug wins. slugify is only the fallback for legacy rows the backfill
+ * (scripts/backfill-job-slugs.ts) has not reached yet.
+ */
+export function jobIndexUrl(job: { id: string; title: string; slug?: string | null }): string {
+    return `${BASE_URL}/jobs/${job.slug || slugify(job.title, job.id)}`;
+}
+
+/**
+ * Prisma OR clause for "jobs whose indexed page plausibly changed since
+ * `since`" — the set a daily submission run should carry.
+ *
+ * Deliberately NOT updatedAt. Job.updatedAt is Prisma's `@updatedAt` column,
+ * so it moves on every write of any kind: the viewCount increment on each job
+ * view (app/api/jobs/[id]/route.ts), and renewJob's re-publish touch on every
+ * job re-seen by ingest (lib/ingestion-service.ts). Ingest runs each source
+ * two to three times a day, so an updatedAt window matches essentially the
+ * whole live catalog every day. That spends Bing's per-site daily quota on
+ * unchanged URLs and hands IndexNow thousands of no-change submissions, which
+ * is the pattern Bing names as a cause of de-prioritised processing.
+ *
+ * createdAt covers genuinely new postings. lastEnrichedAt covers the
+ * enrichment crons, which rewrite the description/salary body and are capped
+ * per run. Employer edits are absent on purpose: app/api/jobs/update pings the
+ * engines inline when a material field changes, so re-listing them here would
+ * only duplicate that.
+ */
+export function recentlyChangedJobsFilter(since: Date): Array<
+    { createdAt: { gte: Date } } | { lastEnrichedAt: { gte: Date } }
+> {
+    return [
+        { createdAt: { gte: since } },
+        { lastEnrichedAt: { gte: since } },
+    ];
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

@@ -5,16 +5,25 @@ import Image from 'next/image';
 import { Mail, Clock, HelpCircle, ArrowRight } from 'lucide-react';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { brand } from '@/config/brand';
+import { config } from '@/lib/config';
 import ContactForm from './ContactForm';
 import ContactFAQ from './ContactFAQ';
 
 // Single source of truth for FAQ content. Both the FAQPage JSON-LD (server-
 // rendered into <head>-adjacent script) and the visible accordion (client-
 // rendered for the toggle UX) consume this list — they cannot diverge.
+//
+// Posting answer: prices interpolate from lib/config.ts and are never typed
+// here. This answer used to read "create a free employer account ... featured
+// listings are available for enhanced visibility", which was wrong twice over
+// after the paid-first change: posting is not free, and Featured is included
+// in every post rather than sold as an upsell. Answer engines lift FAQPage
+// text verbatim, so that answer sent people to a paid checkout expecting a
+// free one, with this site as the cited source.
 const FAQ_ITEMS = [
     { q: 'Is PMHNP Hiring free for job seekers?', a: 'Yes! Browsing jobs, setting up alerts, and applying are completely free. We never charge job seekers.' },
     { q: 'How often are jobs updated?', a: 'Our pipeline runs twice daily, pulling from major job boards and direct employer career pages.' },
-    { q: 'How do I post a job as an employer?', a: 'Create a free employer account and post your job listing. Featured listings are available for enhanced visibility.' },
+    { q: 'How do I post a job as an employer?', a: `Posting is paid. Your first post is half price at $${config.firstPostPrice} instead of $${config.postingPrice}, once per employer, and every post runs for ${config.durationDays} days with Featured placement included. See pmhnphiring.com/pricing for what each post includes.` },
     { q: 'Can I get daily job alerts?', a: 'Absolutely! Sign up for free and set your preferences (location, job type, salary range). We\'ll email you matching jobs daily.' },
     { q: 'How do I delete my account?', a: 'Go to Settings > Account and click "Delete Account", or email us at support@pmhnphiring.com and we\'ll handle it within 24 hours.' },
     { q: 'Why did a job listing disappear?', a: 'Jobs are automatically removed when they expire, get filled, or are reported by multiple users as invalid. Check the employer\'s site for the latest openings.' },
@@ -113,7 +122,7 @@ export default function ContactPage() {
                         </p>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/clay_hero_contact.webp" alt="Contact PMHNP Jobs" width={280} sizes="(max-width: 768px) 100vw, 280px" height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
+                        <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/clay_hero_contact.webp" alt="Contact PMHNP Hiring" width={280} sizes="(max-width: 768px) 100vw, 280px" height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
                     </div>
                 </div>
             </section>
@@ -173,7 +182,8 @@ export default function ContactPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {[
                                     { label: 'FAQ', href: '/faq' },
-                                    { label: 'About PMHNP Jobs', href: '/about' },
+                                    // "PMHNP Jobs" is not the brand name (audit 09 M-18).
+                                    { label: 'About PMHNP Hiring', href: '/about' },
                                     { label: 'Terms of Service', href: '/terms' },
                                     { label: 'Privacy Policy', href: '/privacy' },
                                 ].map(link => (

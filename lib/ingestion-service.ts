@@ -1254,7 +1254,9 @@ export async function cleanupExpiredJobs(): Promise<number> {
         isPublished: true,
         expiresAt: { lt: now },
       },
-      select: { id: true, title: true, sourceProvider: true, expiresAt: true },
+      // slug is selected for the de-index pings below: the stored value is the
+      // canonical URL, and recomputing it does not always reproduce it.
+      select: { id: true, title: true, slug: true, sourceProvider: true, expiresAt: true },
     });
 
     if (jobsToExpire.length === 0) {
@@ -1298,17 +1300,16 @@ export async function cleanupExpiredJobs(): Promise<number> {
     const allExpiredJobs = [...jobsToExpire];
     if (allExpiredJobs.length > 0) {
       try {
-        // For de-indexing we recompute the slug from (title, id) — these are
-        // expired rows being removed, so the recomputed value matches what
-        // was stored at insert (slug is immutable per the post-free / ingest
-        // create paths). Anchoring on stored job.slug would be more correct
-        // for legacy rows that pre-date the slug column, which is why the
-        // detail-page canonical falls back to slugify(title, id) too.
-        const { pingAllSearchEnginesBatchDeleted } = await import('./search-indexing');
-        const expiredUrls = allExpiredJobs.map(job => {
-          const slug = slugify(job.title, job.id);
-          return `https://pmhnphiring.com/jobs/${slug}`;
-        });
+        // Stored slug wins. The previous comment here claimed a recompute from
+        // (title, id) always reproduces what was stored, and that is false:
+        // admin-created rows mint the slug from title PLUS employer
+        // (app/api/admin/jobs/route.ts), and rows predating the 2026-07 slugify
+        // change keep the older shape. Those pings asked Google to drop a URL
+        // it was never told about, while the real URL stayed indexed pointing
+        // at an unpublished job. jobIndexUrl falls back to slugify only for
+        // legacy rows with no stored slug.
+        const { pingAllSearchEnginesBatchDeleted, jobIndexUrl } = await import('./search-indexing');
+        const expiredUrls = allExpiredJobs.map(jobIndexUrl);
 
         console.log(`[Cleanup] De-indexing ${expiredUrls.length} expired jobs via dedicated deletion quota...`);
 

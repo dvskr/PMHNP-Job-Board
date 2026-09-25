@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { getMetroCity, getAllMetroSlugs, buildMetroJobsWhere, type MetroCity } from '@/lib/metro-data';
 import { publicJobsWhere } from '@/lib/filters';
+import { cleanSalaryRows, summarizeMidpoints, roundDisplayDollars } from '@/lib/salary-report/stats';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -45,11 +46,21 @@ async function getMetroStats(metro: MetroCity) {
   // `OR` / `stateCode`, so it does not collide with publicJobsWhere's `AND`.
   const where = { ...buildMetroJobsWhere(metro), ...publicJobsWhere() };
 
-  const [totalJobs, salaryData, topEmployers, recentJobs] = await Promise.all([
+  const [totalJobs, salaryRows, topEmployers, recentJobs] = await Promise.all([
     prisma.job.count({ where }),
-    prisma.job.aggregate({
+    // Rows, not a SQL mean. The previous version averaged normalizedMin and
+    // normalizedMax across every row with a range and printed the midpoint as
+    // "Average annual salary", with no sample size and no quarantine of the
+    // absurd rows. /salary-guide/{state} publishes a gated MEDIAN from the same
+    // postings, so the two disagreed on the same domain. The site's stated
+    // policy, in app/llms.txt/route.ts, is medians with sample sizes.
+    prisma.job.findMany({
       where: { ...where, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
-      _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+      select: {
+        normalizedMinSalary: true,
+        normalizedMaxSalary: true,
+        salaryIsEstimated: true,
+      },
     }),
     prisma.job.groupBy({
       by: ['employer'],
@@ -65,13 +76,17 @@ async function getMetroStats(metro: MetroCity) {
     }),
   ]);
 
-  const avgMin = salaryData._avg.normalizedMinSalary || 0;
-  const avgMax = salaryData._avg.normalizedMaxSalary || 0;
-  const avgSalary = Math.round((avgMin + avgMax) / 2 / 1000);
+  // Published only at the median tier or better (n >= 5). Below that the page
+  // says nothing rather than estimating: null means "withhold the figure".
+  const summary = summarizeMidpoints(cleanSalaryRows(salaryRows).midpoints);
+  const salary =
+    summary.tier === 'full' || summary.tier === 'median'
+      ? { medianK: Math.round(roundDisplayDollars(summary.median) / 1000), n: summary.n }
+      : null;
 
   return {
     totalJobs,
-    avgSalary,
+    salary,
     topEmployers: topEmployers.map(e => ({ name: e.employer, count: e._count.employer })),
     recentJobs: recentJobs as Job[],
   };
@@ -84,20 +99,26 @@ async function getStateStats(stateCode: string) {
   const stateJobs = await prisma.job.count({
     where: { ...publicJobsWhere(), stateCode: { equals: stateCode, mode: 'insensitive' } },
   });
-  const stateSalary = await prisma.job.aggregate({
+  const stateSalary = await prisma.job.findMany({
     where: {
       ...publicJobsWhere(),
       stateCode: { equals: stateCode, mode: 'insensitive' },
       normalizedMinSalary: { not: null },
       normalizedMaxSalary: { not: null },
     },
-    _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+    select: {
+      normalizedMinSalary: true,
+      normalizedMaxSalary: true,
+      salaryIsEstimated: true,
+    },
   });
-  const avgMin = stateSalary._avg.normalizedMinSalary || 0;
-  const avgMax = stateSalary._avg.normalizedMaxSalary || 0;
+  const summary = summarizeMidpoints(cleanSalaryRows(stateSalary).midpoints);
   return {
     totalJobs: stateJobs,
-    avgSalary: Math.round((avgMin + avgMax) / 2 / 1000),
+    salary:
+      summary.tier === 'full' || summary.tier === 'median'
+        ? { medianK: Math.round(roundDisplayDollars(summary.median) / 1000), n: summary.n }
+        : null,
   };
 }
 
@@ -117,7 +138,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description = [
     `Find PMHNP jobs in ${metro.city}, ${metro.stateCode}.`,
     `${metro.practiceAuthority} practice authority.`,
-    stats.avgSalary > 0 ? `Avg salary $${stats.avgSalary}K.` : '',
+    stats.salary ? `Median advertised pay $${stats.salary.medianK}K.` : '',
     `${metro.heroDescription.slice(0, 70).trim()}.`,
   ].filter(Boolean).join(' ').slice(0, 158);
 
@@ -204,7 +225,10 @@ export default async function MetroLandingPage({ params }: PageProps) {
         headlineSub={`jobs in ${metro.stateCode}. Find your fit.`}
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          // No invented fallback. "$130K+" was a number nothing in the codebase
+          // could reproduce, printed as a stat whenever the sample was too thin
+          // to publish a real one.
+          ...(stats.salary ? [{ value: `$${stats.salary.medianK}k`, label: 'median pay' }] : []),
           { value: metro.practiceAuthority, label: 'practice auth' },
         ]}
         description={metro.heroDescription}
@@ -312,15 +336,20 @@ export default async function MetroLandingPage({ params }: PageProps) {
             )}
 
             {/* Salary Insights */}
-            {stats.avgSalary > 0 && (
+            {stats.salary && (
               <div className="metro-card" style={{ ...clayCard, padding: '24px', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                   <TrendingUp size={20} style={{ color: '#34D399' }} />
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
-                <p style={{ fontSize: '11px', color: '#A09080', marginTop: '12px' }}>Based on {metro.city} PMHNP positions with salary data.</p>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.salary.medianK}k</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised salary</div>
+                {/* The sample size travels with the figure, the same way
+                    /salary-guide publishes it. A median without its n is not
+                    checkable, and this page sits one click from that guide. */}
+                <p style={{ fontSize: '11px', color: '#A09080', marginTop: '12px' }}>
+                  Median of the {stats.salary.n} current {metro.city} PMHNP postings that disclose a salary range.
+                </p>
               </div>
             )}
 
@@ -404,7 +433,10 @@ export default async function MetroLandingPage({ params }: PageProps) {
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary Outlook</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  {metro.city} PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K to $200K'} annually, and {metro.costOfLivingNote.split('.')[0].toLowerCase()}.
+                  {stats.salary
+                    ? `${metro.city} PMHNP postings that disclose a range advertise a median of $${stats.salary.medianK}k, across ${stats.salary.n} of them, and `
+                    : `Too few current ${metro.city} postings disclose a salary range for us to publish a median, and `}
+                  {metro.costOfLivingNote.split('.')[0].toLowerCase()}.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>

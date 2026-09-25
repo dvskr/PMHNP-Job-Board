@@ -3,7 +3,6 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import VideoJsonLd from '@/components/VideoJsonLd';
 import HomepageHero from '@/components/HomepageHero';
 import FeaturedJobsSection from '@/components/FeaturedJobsSection';
 import { prisma } from '@/lib/prisma';
@@ -79,7 +78,6 @@ export default async function ForJobSeekersPage() {
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'For Job Seekers', url: 'https://pmhnphiring.com/for-job-seekers' },
       ]} />
-      <VideoJsonLd pathname="/for-job-seekers" />
 
       {/* ═══════════════════════════════════════════════════════════════
           SECTION 1: HERO — Reuse HomepageHero (3D nurse background)

@@ -15,13 +15,14 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { stateToSlug } from '@/lib/pseo/setting-state-config';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
-import StateFAQ from '@/components/StateFAQ';
+import { cityLinkHref } from '@/lib/pseo/related-cities';
 import { Job } from '@/lib/types';
 import {
   getStatePracticeAuthority,
   getAuthorityColor,
   PracticeAuthority
 } from '@/lib/state-practice-authority';
+import { cleanSalaryRows, summarizeMidpoints, roundDisplayDollars } from '@/lib/salary-report/stats';
 
 // Force dynamic rendering - don't try to statically generate during build
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
@@ -206,22 +207,38 @@ async function getStateStats(stateName: string, stateCode: string) {
     where: stateScopedWhere(stateName, stateCode),
   });
 
-  // Average salary
-  const salaryData = await prisma.job.aggregate({
+  // Advertised pay, through the one engine allowed to produce a dollar figure.
+  //
+  // This used to be a SQL _avg of the min and max columns with no sample floor,
+  // no quarantine of defective ranges and no "advertised" qualifier, rendered
+  // as "the average PMHNP salary in {state}" in the title, the meta
+  // description and two FAQPage answers. /salary-guide/{state} ran the same
+  // rows through lib/salary-report/stats.ts and published a different number a
+  // click away, while app/llms.txt tells answer engines our figures are
+  // medians with sample sizes and are withheld below the floor. Same rows,
+  // same engine, same gates as the salary guide: the two surfaces can now only
+  // differ by the listing predicate, not by method.
+  const salaryRows = await prisma.job.findMany({
     where: {
       ...stateScopedWhere(stateName, stateCode),
       normalizedMinSalary: { not: null },
       normalizedMaxSalary: { not: null },
+      salaryIsEstimated: false,
     },
-    _avg: {
+    select: {
       normalizedMinSalary: true,
       normalizedMaxSalary: true,
+      salaryIsEstimated: true,
     },
   });
 
-  const avgMinSalary = salaryData._avg.normalizedMinSalary || 0;
-  const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
-  const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000); // Convert to thousands
+  const salarySummary = summarizeMidpoints(cleanSalaryRows(salaryRows).midpoints);
+  // Published only at the median tier or better (n >= 5). Below that the page
+  // must say nothing rather than estimate.
+  const salary =
+    salarySummary.tier === 'full' || salarySummary.tier === 'median'
+      ? { medianK: Math.round(roundDisplayDollars(salarySummary.median) / 1000), n: salarySummary.n }
+      : null;
 
   // Top employers
   const topEmployers = await prisma.job.groupBy({
@@ -253,7 +270,8 @@ async function getStateStats(stateName: string, stateCode: string) {
 
   return {
     totalJobs,
-    avgSalary,
+    /** Median advertised pay in $K with its sample size, or null below the floor. */
+    salary,
     topEmployers: processedEmployers,
     uniqueEmployerCount: uniqueEmployerCount.length,
   };
@@ -289,9 +307,22 @@ async function getNearbyStatesWithJobs(stateName: string): Promise<{ name: strin
 }
 
 /**
- * Fetch cities with job counts within a state
+ * Fetch cities with job counts within a state, already resolved to a URL that
+ * answers 200.
+ *
+ * Decision-tree rule 6: an internal link to a pSEO cell must come from a query
+ * gated on populated pages. This grid used to emit /jobs/city/{slug} for any
+ * city with at least one job, but the city page hard-404s below
+ * MIN_JOBS_FOR_CATEGORY_CITY and 308s the curated metro slugs, so every state
+ * hub was feeding Googlebot dead ends and redirect hops. Two rules fix it:
+ *   - drop cities under the gate (same constant the city page renders on, so
+ *     the two can never drift);
+ *   - send metro slugs straight to /jobs/metro/{slug}, the redirect target,
+ *     rather than through the 308.
+ * The groupBy is ordered by count desc, so filtering the top 8 is enough:
+ * anything below the 8th is below its count too.
  */
-async function getCitiesWithJobs(stateName: string, stateCode: string): Promise<{ name: string; count: number; slug: string }[]> {
+async function getCitiesWithJobs(stateName: string, stateCode: string): Promise<{ name: string; count: number; slug: string; href: string }[]> {
   const cityData = await prisma.job.groupBy({
     by: ['city'],
     where: {
@@ -310,16 +341,18 @@ async function getCitiesWithJobs(stateName: string, stateCode: string): Promise<
   });
 
   return cityData
-    .filter(c => c.city && c.city.trim().length > 0)
+    .filter(c => c.city && c.city.trim().length > 0 && c._count.city >= MIN_JOBS_FOR_CATEGORY_CITY)
     .map(c => {
       const sanitizedCity = (c.city as string).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const slug = sanitizedCity ? `${sanitizedCity}-${stateCode.toLowerCase()}` : '';
       return {
         name: c.city as string,
         count: c._count.city,
-        slug: sanitizedCity ? `${sanitizedCity}-${stateCode.toLowerCase()}` : '',
+        slug,
+        href: slug ? cityLinkHref(slug) : '',
       };
     })
-    .filter(c => c.slug.length > 0);
+    .filter(c => c.href.length > 0);
 }
 
 /**
@@ -340,20 +373,23 @@ export async function generateMetadata({ params, searchParams }: StatePageProps)
     const { name: stateName, code: stateCode } = stateInfo;
     const stats = await getStateStats(stateName, stateCode);
 
-    const title = stats.avgSalary > 0
-      ? `${stats.totalJobs} PMHNP Jobs in ${stateName} (${stateCode}): $${stats.avgSalary}K Avg Salary`
+    // "Median advertised", never "average": the figure is a median of the
+    // ranges postings disclose, and it is omitted entirely below the sample
+    // floor rather than softened.
+    const title = stats.salary
+      ? `${stats.totalJobs} PMHNP Jobs in ${stateName} (${stateCode}): $${stats.salary.medianK}K Median Advertised`
       : `${stats.totalJobs} PMHNP Jobs in ${stateName} (${stateCode}): Apply Today`;
 
-    const description = stats.avgSalary > 0
-      ? `Find ${stats.totalJobs} psychiatric nurse practitioner jobs in ${stateName}. Average PMHNP salary: $${stats.avgSalary}K. Telehealth, inpatient, outpatient, and private practice positions. New jobs added daily.`
+    const description = stats.salary
+      ? `Find ${stats.totalJobs} psychiatric nurse practitioner jobs in ${stateName}. Median advertised PMHNP salary: $${stats.salary.medianK}K across ${stats.salary.n} postings that disclose a range. Telehealth, inpatient, outpatient, and private practice positions. New jobs added daily.`
       : `Find ${stats.totalJobs} psychiatric nurse practitioner jobs in ${stateName}. Telehealth, inpatient, outpatient, and private practice PMHNP positions. New jobs added daily.`;
 
     return {
       title,
       description,
       openGraph: {
-        title: stats.avgSalary > 0
-          ? `${stats.totalJobs} PMHNP Jobs in ${stateName} | $${stats.avgSalary}k Average`
+        title: stats.salary
+          ? `${stats.totalJobs} PMHNP Jobs in ${stateName} | $${stats.salary.medianK}k Median Advertised`
           : `${stats.totalJobs} PMHNP Jobs in ${stateName}`,
         description,
         type: 'website',
@@ -477,11 +513,11 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
   // diverged from the visible text — a Google FAQ-policy violation. Never
   // fork a second answer set for the schema.
   const stateFaqs = [
-    { q: `How many PMHNP jobs are in ${stateName}?`, a: `There are currently ${stats.totalJobs} psychiatric nurse practitioner positions available in ${stateName}${stats.avgSalary > 0 ? `, with an average salary of $${stats.avgSalary}K/year` : ''}. New positions are added daily.` },
+    { q: `How many PMHNP jobs are in ${stateName}?`, a: `There are currently ${stats.totalJobs} psychiatric nurse practitioner positions available in ${stateName}${stats.salary ? `, and the ${stats.salary.n} of them that disclose a salary range advertise a median of $${stats.salary.medianK}K per year` : ''}. New positions are added daily.` },
     { q: `What is the practice authority in ${stateName}?`, a: practiceAuthority ? practiceAuthority.details : `Practice authority in ${stateName} varies. Check state-specific NP practice regulations for the most current requirements.` },
     // Honesty review 2026-08: the no-data fallback must stay number-free —
     // the old "$130K to $200K+" range had no source. Never invent a range.
-    { q: `What is the average PMHNP salary in ${stateName}?`, a: stats.avgSalary > 0 ? `The average PMHNP salary in ${stateName} is $${stats.avgSalary}K/year. Salaries vary based on experience, setting, and whether the role is W-2 or 1099.` : `Not enough current ${stateName} postings disclose a salary range to publish an average. Salaries vary by setting and experience; listings on this page show the advertised range whenever the employer discloses one.` },
+    { q: `What is the average PMHNP salary in ${stateName}?`, a: stats.salary ? `Across the ${stats.salary.n} current ${stateName} postings that disclose a salary range, the median advertised PMHNP salary is $${stats.salary.medianK}K per year. That is an advertised figure from job postings, not self-reported earnings, and it moves as postings turn over. Pay varies by experience, setting, and whether the role is W-2 or 1099.` : `Not enough current ${stateName} postings disclose a salary range to publish a median, so we withhold the figure rather than estimate it. Salaries vary by setting and experience; listings on this page show the advertised range whenever the employer discloses one.` },
     { q: `Which cities in ${stateName} have the most PMHNP jobs?`, a: citiesWithJobs.length > 0 ? `Top cities for PMHNP jobs in ${stateName} include ${citiesWithJobs.slice(0, 4).map(c => `${c.name} (${c.count} jobs)`).join(', ')}.` : `PMHNP positions in ${stateName} are distributed across multiple cities and include remote telehealth options.` },
     { q: `Can I work remotely as a PMHNP in ${stateName}?`, a: `Yes, many telehealth and remote PMHNP positions allow you to practice from ${stateName}. You'll need an active NP license in the state where your patient resides.` },
   ];
@@ -525,7 +561,9 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
         headlineSub={`in ${stateName}.`}
         stats={[
           { value: `${stats.totalJobs}`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          // No "$130K+" fallback: an invented floor is worse than an absent
+          // stat. Below the sample floor the tile drops out entirely.
+          ...(stats.salary ? [{ value: `$${stats.salary.medianK}k`, label: 'median advertised' }] : []),
           { value: `${stats.uniqueEmployerCount}`, label: 'employers' },
         ]}
         description={`Browse all psychiatric NP positions in ${stateName}. Remote telehealth, outpatient clinics, inpatient facilities, and private practice opportunities.`}
@@ -619,14 +657,15 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
                 </ul>
               </div>
             )}
-            {stats.avgSalary > 0 && (
+            {stats.salary && (
               <div className="cat-bento-card" style={{ ...clayCard, padding: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                   <TrendingUp size={20} style={{ color: '#34D399' }} />
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.salary.medianK}k</div>
+                {/* The sample size ships with the figure, always. */}
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised salary, n={stats.salary.n}</div>
               </div>
             )}
           </div>
@@ -666,7 +705,11 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
               <div style={{ padding: '24px 22px', flex: 1 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Salary & Compensation</h3>
                 <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
-                  PMHNPs in {stateName} earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K to $200K+'} annually.
+                  {/* The old no-data fallback here read "$130K to $200K+", a range
+                      with no source behind it. Say nothing instead. */}
+                  {stats.salary
+                    ? `${stateName} postings that disclose a range advertise a median of $${stats.salary.medianK}k per year (n=${stats.salary.n}).`
+                    : `Not enough current ${stateName} postings disclose a salary range to publish a median, so we withhold the figure.`}
                 </p>
               </div>
             </div>
@@ -725,7 +768,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
               </h3>
               <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
                 {citiesWithJobs.map((c) => (
-                  <Link key={c.slug} href={`/jobs/city/${c.slug}`}
+                  <Link key={c.slug} href={c.href}
                     className="pseo-pill"
                     style={{ ...clayCard, display: 'block', padding: '14px 10px', textAlign: 'center', textDecoration: 'none' }}>
                     <div style={{ fontWeight: 700, fontSize: '13px', color: '#1A2E35' }}>{c.name}</div>

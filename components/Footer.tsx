@@ -26,6 +26,11 @@ const linkColumns = [
       { label: 'Job Alerts', href: '/job-alerts' },
       { label: 'PMHNP Salary Guide', href: '/salary-guide' },
       { label: 'Free Career Tools', href: '/tools' },
+      // 2026-09: /jobs/easy-apply was in the primary sitemap with zero inbound
+      // links anywhere on the site. Sitemap-only URLs are the classic
+      // "Discovered, currently not indexed" profile, and answer engines had no
+      // anchor text explaining what Easy Apply means here.
+      { label: 'Easy Apply PMHNP Jobs', href: '/jobs/easy-apply' },
       { label: 'FAQ', href: '/faq' },
     ],
   },
@@ -51,8 +56,26 @@ const linkColumns = [
       { label: 'Veterans PMHNP Jobs', href: '/jobs/veterans' },
       { label: 'New Grad PMHNP', href: '/jobs/new-grad' },
       { label: 'Behavioral Health', href: '/jobs/behavioral-health' },
-      { label: 'Substance Abuse', href: '/jobs/substance-abuse' },
+      // Points at /jobs/addiction, not /jobs/substance-abuse. The latter
+      // canonicalizes to the former (app/jobs/substance-abuse/page.tsx) and is
+      // out of the primary sitemap, so a sitewide footer link was routing the
+      // site's single strongest internal vote through a canonical hop to the
+      // page that had almost no direct links of its own.
+      { label: 'Addiction & MAT PMHNP Jobs', href: '/jobs/addiction' },
       { label: 'Child & Adolescent', href: '/jobs/child-adolescent' },
+      { label: 'LGBTQ+ Affirming PMHNP Jobs', href: '/jobs/lgbtq' },
+    ],
+  },
+  {
+    // 2026-09: the three experience hubs are all in the primary sitemap, and
+    // the only inbound link any of them had was /jobs/senior linked from
+    // /jobs/mid-career, itself an orphan. Same orphan fix as Easy Apply above.
+    // New Grad stays in the Specialty column above: one sitewide link per hub.
+    title: 'Browse by Experience',
+    links: [
+      { label: 'Entry Level PMHNP Jobs', href: '/jobs/entry-level' },
+      { label: 'Mid-Career PMHNP Jobs', href: '/jobs/mid-career' },
+      { label: 'Senior PMHNP Jobs', href: '/jobs/senior' },
     ],
   },
   {
