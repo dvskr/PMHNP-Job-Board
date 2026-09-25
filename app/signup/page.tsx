@@ -55,31 +55,31 @@ export default async function SignUpPage({
   const isEmployer = params.role === 'employer'
   const stats = isEmployer ? await getEmployerStats() : null
 
-  // Side-panel copy — real value props only. Employer requests get live
+  // Side-panel copy: real value props only. Employer requests get live
   // platform numbers when the DB answered; everything else gets a
   // non-fabricated product statement attributed to the platform itself.
   const panel = isEmployer
     ? stats && stats.totalJobs > 0 && stats.totalCompanies > 0
       ? {
-          quote: `Join ${stats.totalCompanies.toLocaleString()} organizations hiring ${stats.totalJobs.toLocaleString()}+ PMHNPs on PMHNP Hiring.`,
-          name: 'PMHNP Hiring',
-          title: 'Live platform numbers',
+          message: `Join ${stats.totalCompanies.toLocaleString()} organizations hiring ${stats.totalJobs.toLocaleString()}+ PMHNPs on PMHNP Hiring.`,
+          source: 'PMHNP Hiring',
+          detail: 'Live platform numbers',
         }
       : {
-          quote: `Your first job post is half price at $${config.firstPostPrice}, and every listing reaches a dedicated psychiatric-NP audience.`,
-          name: 'PMHNP Hiring',
-          title: 'Built for hiring PMHNPs',
+          message: `Your first job post is half price at $${config.firstPostPrice}, and every listing reaches a dedicated psychiatric-NP audience.`,
+          source: 'PMHNP Hiring',
+          detail: 'Built for hiring PMHNPs',
         }
     : {
-        quote: 'Every listing here is a psychiatric mental health NP role. No sifting through generic nursing boards.',
-        name: 'PMHNP Hiring',
-        title: 'Built exclusively for PMHNPs',
+        message: 'Every listing here is a psychiatric mental health NP role. No sifting through generic nursing boards.',
+        source: 'PMHNP Hiring',
+        detail: 'Built exclusively for PMHNPs',
       }
 
   return (
     <AuthLayout
       illustration="/illustrations/auth-signup.png"
-      testimonial={panel}
+      note={panel}
     >
       <Suspense
         fallback={
