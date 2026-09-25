@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { MapPin, ArrowRight } from 'lucide-react';
+import { STATE_CODES } from '@/lib/pseo/setting-state-config';
 
 interface StateData {
     state: string;
@@ -40,9 +41,17 @@ export default function BrowseByState({ states }: BrowseByStateProps) {
                     gap: '12px',
                 }}>
                     {states.map((s) => (
+                        // /jobs?location= is disallowed in robots.txt and the
+                        // filtered /jobs view is noindexed, so link the
+                        // canonical state landing page instead. Rule 6: only
+                        // for names the state registry says have a page.
                         <Link
                             key={s.state}
-                            href={`/jobs?location=${encodeURIComponent(s.state)}`}
+                            href={
+                                Object.prototype.hasOwnProperty.call(STATE_CODES, s.state)
+                                    ? `/jobs/state/${s.state.toLowerCase().replace(/\s+/g, '-')}`
+                                    : '/jobs/locations'
+                            }
                             className="bbs-card"
                             style={{
                                 display: 'flex', alignItems: 'center', gap: '12px',

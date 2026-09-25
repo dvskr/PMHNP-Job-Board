@@ -84,21 +84,25 @@ function practiceAuthoritySection(): string {
 }
 
 function keyPagesSection(): string {
+    // Link lines follow the same llmstxt.org form llms.txt uses,
+    // `- [Name](absolute-url): description`. The two files were listing the
+    // same site in two different shapes, and a bare "url : description" line
+    // is not part of the spec.
     return `## Key Pages
 
-- ${BASE_URL}/jobs : Live job board
-- ${BASE_URL}/salary-guide : National and state advertised-pay data
-- ${BASE_URL}/salary-guide/{state-slug} : Per-state pay pages (e.g. /salary-guide/california)
-- ${BASE_URL}/resources : Career resources and state licensure guides
-- ${BASE_URL}/tools : Free career tools (offer analyzer, salary converter, practice authority map)
-- ${BASE_URL}/post-job : Employers: post a PMHNP job
+- [Job Board](${BASE_URL}/jobs): Live job board
+- [Salary Guide](${BASE_URL}/salary-guide): National and state advertised-pay data
+- [State Salary Pages](${BASE_URL}/salary-guide/california): Per-state pay pages; every state follows /salary-guide/{state-name-slug}
+- [Career Resources](${BASE_URL}/resources): Career resources and state licensure guides
+- [Career Tools](${BASE_URL}/tools): Free career tools (offer analyzer, salary converter, practice authority map)
+- [Post a Job](${BASE_URL}/post-job): Employers: post a PMHNP job
 
 ## Machine-Readable Feeds
 
-- RSS (recent jobs, employer-posted first): ${BASE_URL}/feed.xml
-- Full active inventory for aggregators: ${BASE_URL}/feeds/jobs.xml
-- State-level advertised-pay dataset (CSV: state, sample size, median, percentiles): ${BASE_URL}/data/pmhnp-advertised-salaries.csv
-- Sitemap index: ${BASE_URL}/api/sitemaps/index
+- [Jobs RSS Feed](${BASE_URL}/feed.xml): Recent jobs, employer-posted first
+- [Full Jobs Feed](${BASE_URL}/feeds/jobs.xml): Full active inventory for aggregators
+- [Salary Dataset CSV](${BASE_URL}/data/pmhnp-advertised-salaries.csv): State-level advertised pay (state, sample size, median, percentiles)
+- [Sitemap Index](${BASE_URL}/api/sitemaps/index): Sitemap index
 
 ## Contact
 
@@ -109,19 +113,50 @@ function keyPagesSection(): string {
 `;
 }
 
+/**
+ * When the data this file reports last moved: the newest posting to enter the
+ * dataset, or the newest employer renewal. The same signal the salary hub uses
+ * for dateModified, and for the same reasons: never render time, which would
+ * be a fabricated freshness stamp, and never updatedAt, which churns daily on
+ * view counts. Without it the file says "right now" with nothing saying when
+ * "now" was.
+ *
+ * The stamp is decorative and the figures are the payload, so a failure here
+ * is logged and drops the line rather than costing the whole section.
+ */
+async function latestDataChange(): Promise<Date | null> {
+    try {
+        const agg = await prisma.job.aggregate({
+            where: { isPublished: true },
+            _max: { createdAt: true, lastRenewedAt: true },
+        });
+        const candidates = [agg?._max?.createdAt, agg?._max?.lastRenewedAt]
+            .filter((d): d is Date => d instanceof Date);
+        if (candidates.length === 0) return null;
+        return new Date(Math.max(...candidates.map((d) => d.getTime())));
+    } catch (err) {
+        logger.error('[llms-full.txt] could not read the data-as-of signal, omitting the line', err);
+        return null;
+    }
+}
+
 async function liveFiguresSections(): Promise<string> {
-    const [market, hubStates, settingMedians, totalPublished] = await Promise.all([
+    const [market, hubStates, settingMedians, totalPublished, dataAsOf] = await Promise.all([
         getOfferMarketData(),
         getHubStateSummaries(),
         getNationalSettingMedians(),
         prisma.job.count({ where: { isPublished: true } }),
+        latestDataChange(),
     ]);
 
     const lines: string[] = [];
 
     lines.push('## Live Market Snapshot');
     lines.push('');
-    lines.push(`- Live published postings right now: ${totalPublished.toLocaleString('en-US')}`);
+    if (dataAsOf) {
+        lines.push(`- Data as of: ${dataAsOf.toISOString().split('T')[0]} (most recent posting or renewal in the dataset)`);
+    }
+    lines.push(`- Live published postings: ${totalPublished.toLocaleString('en-US')}`);
     lines.push(`- States currently publishing salary data: ${hubStates.length}`);
     lines.push('');
 

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { LazyMotion, domAnimation, m } from 'framer-motion';
+import { LazyMotion, MotionConfig, domAnimation, m } from 'framer-motion';
 
 /*
  * Exact Wellfound "From the blog" CSS — source: DevTools inspection
@@ -33,7 +33,9 @@ const FEATURED_POSTS = [
         category: 'Salary Guide',
         title: 'PMHNP Salary Guide 2026: State-by-State Analysis',
         description: 'We analyzed thousands of job postings to find the top-paying states, specialty premiums, and negotiation strategies that strengthen your offer.',
-        href: '/blog/pmhnp-salary-guide-2026',
+        // next.config.ts 301s /blog/pmhnp-salary-guide-2026 to /salary-guide,
+        // so the homepage's first blog card spent its vote on a redirect hop.
+        href: '/salary-guide',
     },
     {
         category: 'Career Path',
@@ -87,6 +89,11 @@ export default function HomepageBlogSection() {
 
             {/* ═══ Blog rows ═══ */}
             <LazyMotion features={domAnimation}>
+            {/* reducedMotion="user" honours the OS "reduce motion" setting:
+                framer motion then skips transform and layout animations and keeps
+                only opacity. Nothing in the app set this, so these sections
+                animated regardless of the preference. */}
+        <MotionConfig reducedMotion="user">
             <m.div
                 initial="hidden"
                 whileInView="visible"
@@ -120,6 +127,7 @@ export default function HomepageBlogSection() {
                     </m.div>
                 ))}
             </m.div>
+            </MotionConfig>
             </LazyMotion>
 
             {/* ═══ Branded CSS ═══ */}

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { formatDate, getExpiryStatus } from '@/lib/utils';
-import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield, Pause, Play, Rocket, Users, Eye, MousePointerClick, User, Plus, Briefcase, BarChart3, Star, MessageSquare, Send, HelpCircle, Archive, ArchiveRestore, Info, FileText } from 'lucide-react';
+import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield, Pause, Play, Rocket, Users, Eye, MousePointerClick, User, Plus, Briefcase, BarChart3, Star, MessageSquare, Send, HelpCircle, Archive, ArchiveRestore, Info, FileText, X } from 'lucide-react';
 import { config } from '@/lib/config';
 import { trackBeginCheckout } from '@/lib/analytics';
 import ApplicantsTab from '@/components/employer/ApplicantsTab';
@@ -87,6 +87,9 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [togglingJobId, setTogglingJobId] = useState<string | null>(null);
     const [archivingJobId, setArchivingJobId] = useState<string | null>(null);
+    // Why a pause/republish/archive click did not take. Null when the last one
+    // succeeded.
+    const [jobActionError, setJobActionError] = useState<string | null>(null);
     const [jobFilter, setJobFilter] = useState<'active' | 'archived'>('active');
     const [archiveTarget, setArchiveTarget] = useState<Job | null>(null);
     // Unpublish-reason capture: when employer pauses a live job, prompt them
@@ -257,19 +260,33 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
     const performTogglePublish = async (job: Job, reason: string | null, note: string | null) => {
         setTogglingJobId(job.id);
+        setJobActionError(null);
         try {
             const res = await fetch(`/api/employer/jobs/${job.id}/toggle-publish`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: reason ? JSON.stringify({ reason, note: note ?? undefined }) : undefined,
             });
-            const result = await res.json();
+            // A 5xx answers with an HTML page, so res.json() throws and used to
+            // land in the empty catch below: the spinner just stopped and the
+            // employer concluded the click had been ignored.
+            const result = await res.json().catch(() => ({} as { success?: boolean; isPublished?: boolean; error?: string }));
             if (res.ok && result.success) {
                 setLocalJobs(prev => prev.map(j =>
                     j.id === job.id ? { ...j, isPublished: result.isPublished } : j
                 ));
+                return;
             }
-        } catch { /* silent */ } finally {
+            console.error('Toggle publish failed:', res.status, result);
+            setJobActionError(
+                typeof result.error === 'string' && result.error
+                    ? result.error
+                    : `Could not ${job.isPublished ? 'pause' : 'republish'} "${job.title}". Please try again.`
+            );
+        } catch (err) {
+            console.error('Toggle publish failed:', err);
+            setJobActionError('Could not reach the server. Check your connection and try again.');
+        } finally {
             setTogglingJobId(null);
             setUnpublishTarget(null);
         }
@@ -297,17 +314,28 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     const performArchiveToggle = async (job: Job) => {
         setArchivingJobId(job.id);
         setArchiveTarget(null);
+        setJobActionError(null);
         try {
             const res = await fetch(`/api/employer/jobs/${job.id}/archive`, { method: 'PATCH' });
-            const result = await res.json();
+            const result = await res.json().catch(() => ({} as { success?: boolean; archivedAt?: string | null; error?: string }));
             if (res.ok && result.success) {
                 setLocalJobs(prev => prev.map(j =>
                     j.id === job.id
-                        ? { ...j, archivedAt: result.archivedAt, isPublished: result.archivedAt ? false : j.isPublished }
+                        ? { ...j, archivedAt: result.archivedAt ?? null, isPublished: result.archivedAt ? false : j.isPublished }
                         : j
                 ));
+                return;
             }
-        } catch { /* silent */ } finally {
+            console.error('Archive toggle failed:', res.status, result);
+            setJobActionError(
+                typeof result.error === 'string' && result.error
+                    ? result.error
+                    : `Could not ${job.archivedAt ? 'restore' : 'archive'} "${job.title}". Please try again.`
+            );
+        } catch (err) {
+            console.error('Archive toggle failed:', err);
+            setJobActionError('Could not reach the server. Check your connection and try again.');
+        } finally {
             setArchivingJobId(null);
         }
     };
@@ -606,6 +634,29 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 {/* ═══ Jobs Tab ═══ */}
                 {(activeTab === 'jobs' || isTokenAccess) && (
                     <>
+                        {jobActionError && (
+                            <div
+                                role="alert"
+                                style={{
+                                    ...cardBase, padding: '12px 16px', marginBottom: '14px',
+                                    background: '#FEE2E2', border: '1px solid #FECACA',
+                                    display: 'flex', alignItems: 'flex-start', gap: '10px',
+                                }}
+                            >
+                                <p style={{ flex: 1, margin: 0, fontSize: '13px', fontWeight: 500, color: '#991B1B', lineHeight: 1.5 }}>
+                                    {jobActionError}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setJobActionError(null)}
+                                    aria-label="Dismiss error"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#991B1B', padding: 0, lineHeight: 1 }}
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        )}
+
                         {/* ═══ Unfinished Draft — shown in both empty and
                             non-empty states so a half-written post is never
                             silently stranded. mounted gate avoids a

@@ -3,6 +3,7 @@
 import Script from 'next/script';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense, useCallback } from 'react';
+import { hasLikelyAuthCookie } from '@/lib/auth-cookie';
 import {
   trackPageView,
   setUserId,
@@ -35,6 +36,10 @@ function RouteChangeTracker() {
 // Reads the Supabase session and sets user_id + user_properties
 function UserIdentitySync() {
   const syncUser = useCallback(async () => {
+    // Anonymous visitors (and crawler renders) have no session cookie, so this
+    // call can only 401. Skip it rather than paying for a guaranteed miss on
+    // every pageview.
+    if (!hasLikelyAuthCookie()) { setUserId(null); return; }
     try {
       const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
       if (!res.ok) { setUserId(null); return; }

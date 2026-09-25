@@ -22,26 +22,44 @@ export async function POST(request: NextRequest) {
 
   try {
     const raw = await request.json();
+
+    /**
+     * Numeric filter values arrive as untrusted JSON on a public, unauthenticated
+     * endpoint (/jobs POSTs here on every visit). `JSON.parse` turns `1e400` into
+     * `Infinity`, which is a `number` and satisfies a bare `typeof`/`>= 0` guard,
+     * and a string like "abc" used to be copied straight through — both reached
+     * Prisma as an unserializable filter value and answered 500. Only a finite,
+     * non-negative number is a filter; anything else means "no filter", matching
+     * what lib/filters.ts parseFiltersFromParams already does for the GET path.
+     */
+    const finiteFilterNumber = (value: unknown): number | null => {
+      if (typeof value !== 'number') return null;
+      return Number.isFinite(value) && value >= 0 ? value : null;
+    };
+    /** The multi-select facets. A non-array is not a partial selection, it is noise. */
+    const stringList = (value: unknown): string[] =>
+      Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+    /** The single-value text facets. buildWhereClause calls string methods on these. */
+    const optionalString = (value: unknown): string | null =>
+      typeof value === 'string' && value !== '' ? value : null;
+
     // Normalize: ensure all array fields exist (handles old clients without experienceLevel)
     const filters: FilterState = {
-      search: raw.search || '',
-      workMode: raw.workMode || [],
-      jobType: raw.jobType || [],
-      specialty: raw.specialty || [],
-      experienceLevel: raw.experienceLevel || [],
+      search: typeof raw.search === 'string' ? raw.search : '',
+      workMode: stringList(raw.workMode),
+      jobType: stringList(raw.jobType),
+      specialty: stringList(raw.specialty),
+      experienceLevel: stringList(raw.experienceLevel),
       newGradFriendly: raw.newGradFriendly === true ? true : null,
-      minYearsExperience:
-        typeof raw.minYearsExperience === 'number' && raw.minYearsExperience >= 0
-          ? raw.minYearsExperience
-          : null,
+      minYearsExperience: finiteFilterNumber(raw.minYearsExperience),
       easyApply: raw.easyApply === true ? true : null,
-      salaryMin: raw.salaryMin ?? null,
-      postedWithin: raw.postedWithin ?? null,
-      location: raw.location ?? null,
-      cityExact: raw.cityExact ?? null,
-      stateCode: raw.stateCode ?? null,
-      employer: raw.employer ?? null,
-      category: raw.category ?? null,
+      salaryMin: finiteFilterNumber(raw.salaryMin),
+      postedWithin: optionalString(raw.postedWithin),
+      location: optionalString(raw.location),
+      cityExact: optionalString(raw.cityExact),
+      stateCode: optionalString(raw.stateCode),
+      employer: optionalString(raw.employer),
+      category: optionalString(raw.category),
     };
 
     // Base filters for all counts (excludes the specific category being counted)

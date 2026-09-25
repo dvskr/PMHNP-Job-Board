@@ -309,8 +309,10 @@ export default function PreviewPage() {
               marginBottom: '20px',
               position: 'relative',
             }}>
-              {/* Title */}
-              <h1 style={{
+              {/* Title. h2, not h1: the page's h1 is "Preview Your Job Post"
+                  above, and this is the title inside the preview card. Two h1s
+                  leave a screen reader with no single page heading. */}
+              <h2 style={{
                 fontSize: 'clamp(24px, 4vw, 36px)',
                 fontWeight: 800,
                 fontFamily: 'var(--font-lora), Georgia, serif',
@@ -319,7 +321,7 @@ export default function PreviewPage() {
                 marginTop: 0,
                 lineHeight: 1.2,
                 paddingRight: '40px',
-              }}>{formData.title}</h1>
+              }}>{formData.title}</h2>
 
               {/* Company Info Row: Logo + Name + Location */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>

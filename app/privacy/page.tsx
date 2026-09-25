@@ -131,7 +131,10 @@ export default function PrivacyPage() {
           </ul>
           <p style={pStyle}>No method of transmission over the Internet is 100% secure. While we strive to protect your personal information, we cannot guarantee its absolute security.</p>
 
-          <h2 style={h2Style}>6. Your Privacy Rights</h2>
+          {/* Anchor target for /data-request, which links readers straight to
+              the descriptions of each request type. scrollMarginTop clears the
+              fixed header so the heading is not parked underneath it. */}
+          <h2 id="your-privacy-rights" style={{ ...h2Style, scrollMarginTop: '88px' }}>6. Your Privacy Rights</h2>
           <h3 style={h3Style}>Access and Portability</h3>
           <p style={pStyle}>You can request a copy of the personal information we hold about you.</p>
           <h3 style={h3Style}>Correction</h3>

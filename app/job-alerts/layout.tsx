@@ -2,7 +2,10 @@ import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: 'Job Alerts | PMHNP Jobs',
+    // Bare title: the root layout's title.template appends `| PMHNP Hiring`.
+    // The old suffix both doubled the brand and used a name that is not the
+    // brand ("PMHNP Jobs").
+    title: 'Job Alerts',
     description: 'Set up personalized job alerts and get notified when new PMHNP positions match your criteria.',
     alternates: {
         canonical: `${brand.baseUrl}/job-alerts`,

@@ -51,18 +51,24 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: `${jobCountDisplay} PMHNP Jobs: Find Your Next Position`,
       description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
+      // The generated 1200x630 card, not the 1280x900 page screenshot that
+      // used to sit here. Facebook, LinkedIn, X and Slack crop a large card
+      // to 1.91:1, so a 1.42:1 screenshot lost its top and bottom third and
+      // arrived as an unreadable slice of UI with no headline. Every other
+      // page family already shares the /api/og card, and this is the URL
+      // shared most often.
       images: [
         {
-          url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp',
-          width: 1280,
-          height: 900,
-          alt: `PMHNP Hiring job board homepage showing ${jobCountDisplay} psychiatric nurse practitioner jobs from ${uniqueEmployerCount}+ companies across 50 states`,
+          url: '/api/og?v=3',
+          width: 1200,
+          height: 630,
+          alt: `PMHNP Hiring: ${jobCountDisplay} psychiatric nurse practitioner jobs from ${uniqueEmployerCount}+ companies across 50 states`,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp'],
+      images: ['/api/og?v=3'],
     },
     alternates: {
       canonical: brand.baseUrl,

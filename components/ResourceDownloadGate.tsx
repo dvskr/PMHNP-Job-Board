@@ -72,10 +72,14 @@ export default function ResourceDownloadGate({ resourceUrl, resourceTitle }: Res
                 Enter your email to download the {resourceTitle}. You&apos;ll also receive career tips and job market updates.
             </p>
             <form onSubmit={handleSubmit} className="flex gap-2">
+                {/* aria-label, not placeholder: the inline field has no room
+                    for a visible label and a placeholder is not an accessible
+                    name (it also vanishes once the user types). */}
                 <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    aria-label={`Email address to download the ${resourceTitle}`}
                     placeholder="you@example.com"
                     required
                     className="flex-1 px-3 py-2.5 rounded-lg text-sm border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"

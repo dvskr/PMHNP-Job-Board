@@ -2,6 +2,15 @@ import { prisma } from '@/lib/prisma';
 import ClayDoughStrip from '@/components/ClayDoughStrip';
 import { findCanonicalName, normalizeCompanyName } from '@/lib/company-normalizer';
 import { getExtendedSiteStats, ExtendedSiteStats } from '@/lib/site-stats';
+import { activeIndexableJobWhere } from '@/lib/active-job-filter';
+
+/**
+ * A company page is only worth linking from the homepage once it clears the
+ * same threshold that decides whether it is indexable at all. Mirrors
+ * MIN_COMPANY_JOBS_FOR_INDEX in app/companies/[slug]/page.tsx and the >= 8
+ * filter in app/sitemap.ts companyPages: keep all three in lockstep.
+ */
+const MIN_COMPANY_JOBS_FOR_INDEX = 8;
 
 /**
  * Fallback for thin employer data: a row of real site-wide counters styled
@@ -55,7 +64,7 @@ function SiteStatsRow({ stats }: { stats: ExtendedSiteStats }) {
  * and renders the clay dough strip.
  */
 export default async function EmployerTrustSection() {
-    let employers: { name: string; count: number }[] = [];
+    let employers: { name: string; count: number; href?: string }[] = [];
 
     try {
         // Pull more rows than we render so we can collapse variants
@@ -92,10 +101,40 @@ export default async function EmployerTrustSection() {
             }
         }
 
-        employers = Array.from(buckets.values())
+        const visible = Array.from(buckets.values())
             .sort((a, b) => b.count - a.count)
             .slice(0, 25)
             .map(({ name, count }) => ({ name, count }));
+
+        // Resolve each tile to its real /companies/{slug} page instead of the
+        // robots-disallowed /jobs?q={name} search it used to link. Rule 6: never
+        // emit an internal link to a page without first checking it exists and
+        // is indexable, so we look the row up by normalizedName (which IS the
+        // slug) and require the same job count that makes the page indexable.
+        // Tiles that do not resolve render as plain, unlinked chips.
+        const slugCandidates = Array.from(
+            new Set(visible.map(e => normalizeCompanyName(e.name)).filter(Boolean))
+        );
+        const linkableSlugs = new Set<string>();
+        if (slugCandidates.length > 0) {
+            const companyRows = await prisma.company.findMany({
+                where: { normalizedName: { in: slugCandidates } },
+                select: {
+                    normalizedName: true,
+                    _count: { select: { jobs: { where: activeIndexableJobWhere() } } },
+                },
+            });
+            for (const row of companyRows) {
+                if (row._count.jobs >= MIN_COMPANY_JOBS_FOR_INDEX) linkableSlugs.add(row.normalizedName);
+            }
+        }
+
+        employers = visible.map(({ name, count }) => {
+            const slug = normalizeCompanyName(name);
+            return linkableSlugs.has(slug)
+                ? { name, count, href: `/companies/${slug}` }
+                : { name, count };
+        });
     } catch (error) {
         console.error('Error fetching employer data:', error);
     }

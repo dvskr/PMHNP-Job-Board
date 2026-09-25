@@ -179,15 +179,22 @@ function planRepair(job: SalaryRow): RepairPlan | null {
     job.minSalary > 500
   ) {
     const restoredMin = Math.round(job.minSalary / 2080);
-    const restoredMax = job.maxSalary != null ? Math.round(job.maxSalary / 2080) : null;
+    // Single-bound rows carry a null raw maxSalary while still holding an
+    // annual-sized normalizedMaxSalary. Writing that null through collapsed the
+    // range to one number on every surface (card, header, OG, JSON-LD), so the
+    // stored normalized bound is the upper bound to repair from when the raw
+    // one is absent.
+    const annualMax = job.maxSalary ?? job.normalizedMaxSalary;
+    const restoredMax = annualMax != null ? Math.round(annualMax / 2080) : null;
     const cleanly =
       Math.abs(restoredMin * 2080 - job.minSalary) <= 0.01 * job.minSalary &&
-      (restoredMax == null || job.maxSalary == null ||
-        Math.abs(restoredMax * 2080 - job.maxSalary) <= 0.01 * job.maxSalary) &&
+      (annualMax == null || restoredMax == null ||
+        (Math.abs(restoredMax * 2080 - annualMax) <= 0.01 * annualMax &&
+          restoredMax >= restoredMin)) &&
       restoredMin >= 20 && restoredMin <= 350;
     if (cleanly) {
       const normalizedMin = job.minSalary;
-      const normalizedMax = job.maxSalary;
+      const normalizedMax = annualMax;
       const data = {
         minSalary: restoredMin,
         maxSalary: restoredMax,

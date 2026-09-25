@@ -4,12 +4,13 @@ Creator: Sathish Kumar
 Role: Creator & AI Data Engineer
 Operator: Akari Labs LLC
 Location: United States
+Contact: contact@pmhnphiring.com
 
 /* SITE */
 
 Site: PMHNP Hiring
 URL: https://pmhnphiring.com
-Description: The dedicated job board for Psychiatric Mental Health Nurse Practitioners
+Description: A specialized job board for Psychiatric Mental Health Nurse Practitioners (PMHNPs) in the United States: aggregated and employer-posted PMHNP jobs, live advertised-pay data, licensure guides, and free career tools.
 Standards: HTML5, CSS3, JavaScript ES2024
 Components: Next.js 15, React 19, TypeScript, Prisma, PostgreSQL
 Platform: Vercel
@@ -18,9 +19,10 @@ Launch: 2026
 
 /* PURPOSE */
 
-Mission: Connect every PMHNP with their ideal position through the most comprehensive, transparent, and data-rich job discovery platform in psychiatric nursing.
+Mission: Connect psychiatric mental health nurse practitioners with roles that fit, and show what those roles actually advertise.
 
-Coverage: All 50 US states + DC
-Cities: 4,135+ with enriched local data
-Categories: 24 job categories
-Pages: 100,000+ indexed content pages
+Coverage: All 50 US states and DC. State and city pages publish only where there are enough live postings to be useful; salary figures publish only above a minimum sample size, always with that sample size shown.
+
+/* NOTES */
+
+No counts or coverage totals are published here on purpose: https://pmhnphiring.com/llms.txt is the authoritative description of this site, and this file stays consistent with it.

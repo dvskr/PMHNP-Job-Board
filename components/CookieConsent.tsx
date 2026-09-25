@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import {
     denyAllConsent,
@@ -76,6 +76,12 @@ export default function CookieConsent({ initialConsent }: Props) {
     const [expanded, setExpanded] = useState(false);
     const [cats, setCats] = useState<ConsentCategories>(initialConsent ?? ALL_DENIED);
     const [savedCats, setSavedCats] = useState<ConsentCategories | null>(initialConsent);
+    // Measured height of the fixed banner, mirrored into an in-flow spacer so
+    // the page can be scrolled clear of it. Starts at 0 so the server markup
+    // and the first client render agree; the banner is re-measured whenever it
+    // expands into the per-category preferences panel.
+    const bannerRef = useRef<HTMLDivElement | null>(null);
+    const [bannerHeight, setBannerHeight] = useState(0);
 
     const evaluate = useCallback(() => {
         // 1. Honor browser privacy signals — legal requirement under CCPA/CPRA.
@@ -146,13 +152,45 @@ export default function CookieConsent({ initialConsent }: Props) {
     // at a time. Cookie consent has the highest priority — when it wants
     // to show, push/pwa/exit-intent are blocked from rendering.
     const slotGranted = useOverlaySlot('cookie', show);
+
+    useEffect(() => {
+        const el = bannerRef.current;
+        if (!slotGranted || !el) {
+            setBannerHeight(0);
+            return;
+        }
+        // ResizeObserver rather than a one-shot measure: the banner grows when
+        // the user opens the preferences panel and shrinks when they close it.
+        if (typeof ResizeObserver === 'undefined') {
+            setBannerHeight(el.offsetHeight);
+            return;
+        }
+        const observer = new ResizeObserver(() => {
+            setBannerHeight(el.offsetHeight);
+        });
+        observer.observe(el);
+        setBannerHeight(el.offsetHeight);
+        return () => observer.disconnect();
+    }, [slotGranted, expanded]);
+
     if (!slotGranted) return null;
 
     return (
-        // On mobile, sit above the BottomNav (md:hidden, ~64px content + safe-area)
-        // so the bottom of the nav remains tappable while the banner is visible.
-        // On md+ where BottomNav is hidden, use the screen edge.
+        <>
+        {/* Reserved space. The banner is position:fixed with z-index 9990, so
+            it floats over the last ~120px of scrollable content, and
+            MainContent's pb-24 only clears the 81px BottomNav. A control that
+            scrolls to the bottom edge (observed: the /post-job Continue
+            button) ended up underneath it and unclickable. This spacer grows
+            the document by the banner's measured height so everything can
+            still be scrolled clear of it, and disappears with the banner. */}
+        <div aria-hidden="true" style={{ height: bannerHeight }} />
+        {/* On mobile, sit above the BottomNav (md:hidden, ~64px content +
+            safe-area) so the bottom of the nav remains tappable while the
+            banner is visible. On md+ where BottomNav is hidden, use the
+            screen edge. */}
         <div
+            ref={bannerRef}
             className="fixed left-0 right-0 z-[9990] p-4 bottom-[calc(64px+env(safe-area-inset-bottom))] md:bottom-0"
             style={{
                 backgroundColor: '#F5F0EB',
@@ -263,6 +301,7 @@ export default function CookieConsent({ initialConsent }: Props) {
                 )}
             </div>
         </div>
+        </>
     );
 }
 

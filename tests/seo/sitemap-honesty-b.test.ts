@@ -70,6 +70,34 @@ describe('jobs batch sitemap omits lastmod (B6)', () => {
   });
 });
 
+describe('primary sitemap lastmod is a real content signal, not ingest noise', () => {
+  const src = read('app/sitemap.ts');
+
+  it('derives every per-entity lastmod from createdAt, never updatedAt', () => {
+    // Job.updatedAt is bumped by lib/ingestion-service.ts on every re-seen
+    // job, several times a day per source, which is why the job batches
+    // dropped lastmod outright (B6). The primary sitemap kept deriving state,
+    // city, company and metro lastmods from max(updatedAt), so ~1,000 pSEO
+    // entries claimed to have changed within the last ingest cycle whether or
+    // not a single job had been added or removed. max(createdAt) is the
+    // newest job added: a genuine content change for a listing page.
+    expect(src).not.toMatch(/_max:\s*\{\s*updatedAt:\s*true\s*\}/);
+    expect(src).toMatch(/_max:\s*\{\s*createdAt:\s*true\s*\}/);
+    // The sitewide date, and the per-company pick, come from the same signal.
+    expect(src).toMatch(/orderBy:\s*\{\s*createdAt:\s*'desc'\s*\}/);
+    expect(src).not.toMatch(/orderBy:\s*\{\s*updatedAt:\s*'desc'\s*\}/);
+  });
+
+  it('omits lastmod for an entity with no signal instead of stamping the sitewide date', () => {
+    // `?? latestJobDate` on a per-entity row undid the per-entity work: a row
+    // with no date still advertised the freshest date on the site. The
+    // remaining latestJobDate uses are the high-churn hubs (homepage, /jobs,
+    // /blog, category landings) and the degraded-mode fallbacks, which are
+    // whole-catalog entries by design.
+    expect(src).not.toContain('?? latestJobDate');
+  });
+});
+
 describe('view counting no longer fires @updatedAt (B6)', () => {
   const src = read('app/jobs/[slug]/page.tsx');
 

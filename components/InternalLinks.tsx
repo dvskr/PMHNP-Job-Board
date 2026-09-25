@@ -77,10 +77,19 @@ export default function InternalLinks({
         });
     }
 
-    if (jobType?.toLowerCase().includes('contract') || jobType?.toLowerCase().includes('travel')) {
+    // Contract and travel are separate landing pages; routing both to
+    // /jobs/travel left /jobs/contract with no inbound link from any job page
+    // and sent contract jobs to a page about a different kind of work.
+    if (jobType?.toLowerCase().includes('travel')) {
         links.push({
             href: '/jobs/travel',
             label: 'Explore Travel PMHNP Positions',
+            icon: <Briefcase style={{ width: '14px', height: '14px' }} />,
+        });
+    } else if (jobType?.toLowerCase().includes('contract')) {
+        links.push({
+            href: '/jobs/contract',
+            label: 'Browse Contract PMHNP Positions',
             icon: <Briefcase style={{ width: '14px', height: '14px' }} />,
         });
     }

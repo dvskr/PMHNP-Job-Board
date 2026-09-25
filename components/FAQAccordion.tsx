@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface FAQItem {
@@ -14,6 +14,11 @@ interface FAQAccordionProps {
 
 export default function FAQAccordion({ items }: FAQAccordionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  // /faq mounts six of these. Numbering panels `faq-answer-${index}` alone
+  // restarted the ids in every section, so 37 panels shared 8 ids and each
+  // aria-controls resolved to whichever duplicate came first in the DOM,
+  // i.e. an answer from a different section. useId scopes them per instance.
+  const panelIdPrefix = useId();
 
   const toggleItem = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
@@ -41,7 +46,7 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
               onKeyDown={(e) => handleKeyDown(e, index)}
               className="w-full flex items-center justify-between py-4 text-left font-medium text-gray-900 hover:text-primary-600 transition-colors duration-200 focus:text-primary-600"
               aria-expanded={isOpen}
-              aria-controls={`faq-answer-${index}`}
+              aria-controls={`${panelIdPrefix}-faq-answer-${index}`}
             >
               <span className="flex-1 pr-4">{item.question}</span>
               <ChevronDown
@@ -60,7 +65,7 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
                 and (b) prevents tab focus on any child. The visual transition
                 is preserved by only animating when open. */}
             <div
-              id={`faq-answer-${index}`}
+              id={`${panelIdPrefix}-faq-answer-${index}`}
               hidden={!isOpen}
               className={isOpen ? 'overflow-hidden transition-all duration-300 ease-in-out max-h-96 opacity-100' : ''}
             >

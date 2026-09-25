@@ -191,8 +191,11 @@ function EmailPreferencesContent() {
             This link is invalid or has expired. Please check your email for the correct link.
           </p>
           <div className="space-y-3">
+            {/* /#subscribe was a dead fragment: no element on the homepage
+                carries that id, so the CTA dropped the reader at the top of
+                the homepage instead of at an alert signup form. */}
             <Link
-              href="/#subscribe"
+              href="/job-alerts"
               className="block w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition-colors"
             >
               Sign Up for Alerts

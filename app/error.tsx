@@ -25,7 +25,10 @@ export default function Error({ error, reset }: ErrorProps) {
   }, [error]);
 
   return (
-    <main style={{ 
+  /* Wrapper is a div, not <main>: components/MainContent.tsx already wraps
+     every route in <main id="main-content">, and a nested <main> gives
+     assistive tech two "main" landmarks on the same page. */
+    <div style={{ 
         minHeight: '100vh', 
         background: 'linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%)',
         display: 'flex',
@@ -126,6 +129,6 @@ export default function Error({ error, reset }: ErrorProps) {
                 }
             `}</style>
         </div>
-    </main>
+    </div>
   );
 }

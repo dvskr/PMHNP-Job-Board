@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Clock, ArrowUpRight, Briefcase, DollarSign } from 'lucide-react';
-import { LazyMotion, domAnimation, m } from 'framer-motion';
+import { LazyMotion, MotionConfig, domAnimation, m } from 'framer-motion';
 import { trackJobListView, buildJobItem } from '@/lib/analytics';
 
 interface FeaturedJob {
@@ -225,6 +225,11 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
 
     return (
         <LazyMotion features={domAnimation}>
+        {/* reducedMotion="user" honours the OS "reduce motion" setting:
+                framer motion then skips transform and layout animations and keeps
+                only opacity. Nothing in the app set this, so these sections
+                animated regardless of the preference. */}
+        <MotionConfig reducedMotion="user">
         <section className="fjs-wrap">
             <style>{css}</style>
 
@@ -454,6 +459,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
             </div>
         </section>
 
+        </MotionConfig>
         </LazyMotion>
     );
 }

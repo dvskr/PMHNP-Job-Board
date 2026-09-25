@@ -218,6 +218,12 @@ export default function CandidateSearchClient() {
         // standard browse so the page never feels empty after toggling on.
         const hasJd = aiMode && !!jdSearchPostingId;
         const hasText = aiMode && query.trim().length >= 3;
+        // Tracked locally, not read back off aiState: setAiState below does not
+        // change the aiState captured by this closure, so the guard further
+        // down always saw the PREVIOUS status ('idle' on the first attempt) and
+        // never fired. aiState is not in the dependency list either, so the
+        // callback was never rebuilt with a fresher value.
+        let aiFellBackSilently = false;
         if (hasJd || hasText) {
             setAiState((s) => ({ ...s, status: 'loading' }));
             try {
@@ -242,6 +248,7 @@ export default function CandidateSearchClient() {
                     // distinct "disabled" state so the banner can be honest
                     // about why (vs a transient outage).
                     setAiState({ status: 'disabled', usesRemaining: null, limitMessage: null });
+                    aiFellBackSilently = hasText;
                 } else if (res.status === 429) {
                     const data = await res.json().catch(() => ({}));
                     setAiState({
@@ -275,9 +282,11 @@ export default function CandidateSearchClient() {
                     return;
                 } else {
                     setAiState({ status: 'unavailable', usesRemaining: null, limitMessage: null });
+                    aiFellBackSilently = hasText;
                 }
             } catch {
                 setAiState({ status: 'unavailable', usesRemaining: null, limitMessage: null });
+                aiFellBackSilently = hasText;
             }
             // Fall through to standard browse on unavailable — keep results visible.
         }
@@ -293,9 +302,7 @@ export default function CandidateSearchClient() {
         // (status='limit_reached'), we KEEP the query — the user is
         // still actively trying to search; they should be able to keep
         // working with keyword search the rest of the day.
-        const fallingBackFromAiSilently = aiMode
-            && query.trim().length >= 3
-            && (aiState.status === 'disabled' || aiState.status === 'unavailable');
+        const fallingBackFromAiSilently = aiFellBackSilently;
         const params = new URLSearchParams();
         if (query && !fallingBackFromAiSilently) params.set('q', query);
         if (experience) params.set('experience', experience);

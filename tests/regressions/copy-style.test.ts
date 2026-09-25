@@ -9,7 +9,10 @@
  * descriptions, email bodies, Stripe line items and pSEO narratives. A sweep
  * that covers only a few files is a rule that holds only on those files.
  *
- * This sweeps every .ts and .tsx under app/, components/ and lib/. Comments
+ * This sweeps every .ts and .tsx under app/, components/ and lib/, plus
+ * middleware.ts: its 410 and 503 responses are hand-written HTML pages with
+ * their own headings, body copy and <title>, served to readers and crawlers
+ * like any other page, and they sat outside the swept roots. Comments
  * are blanked first, because an engineering note is not copy and the rule
  * does not apply to it. A dash that has to survive as DATA (a regex character
  * class, a normalizer stripping dashes from scraped text) is written as its
@@ -21,6 +24,8 @@ import * as path from 'node:path';
 
 const ROOT = path.resolve(__dirname, '../../');
 const ROOTS = ['app', 'components', 'lib'];
+/** Copy that lives outside the swept roots, in a file rather than a folder. */
+const EXTRA_FILES = ['middleware.ts'];
 const DASH = /[\u2013\u2014]/;
 
 /** Every .ts/.tsx under the swept roots, repo-relative with forward slashes. */
@@ -34,6 +39,7 @@ function sourceFiles(): string[] {
     }
   };
   for (const root of ROOTS) walk(path.join(ROOT, root));
+  for (const file of EXTRA_FILES) out.push(file);
   return out;
 }
 
@@ -76,7 +82,7 @@ describe('no em dash or en dash reaches a reader', () => {
     expect(files.length).toBeGreaterThan(500);
   });
 
-  it('every app/, components/ and lib/ source is dash-free outside comments', () => {
+  it('every swept source is dash-free outside comments', () => {
     const offenders: string[] = [];
     for (const rel of files) {
       const body = blankComments(fs.readFileSync(path.join(ROOT, rel), 'utf8'));

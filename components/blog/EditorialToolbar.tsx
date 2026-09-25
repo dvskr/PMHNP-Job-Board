@@ -44,7 +44,11 @@ export default function EditorialToolbar({ slug, title, url }: EditorialToolbarP
   }, [url]);
 
   const handleCite = useCallback(async () => {
-    const citation = `PMHNP Hiring Editorial Team. "${title}". PMHNP Hiring, ${new Date().getFullYear()}. ${url}`;
+    // "PMHNP Hiring" alone, matching the visible byline, the BlogPosting
+    // schema and the salary guide's CopyCitation. The old "Editorial Team"
+    // form named an entity the page itself no longer claims, so every copied
+    // citation disagreed with the page it cited.
+    const citation = `PMHNP Hiring. "${title}". PMHNP Hiring, ${new Date().getFullYear()}. ${url}`;
     try {
       await navigator.clipboard.writeText(citation);
     } catch {

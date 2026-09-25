@@ -20,6 +20,13 @@ interface UserProfile {
     headline?: string | null;
 }
 
+/**
+ * Must match MAX_COVER_LETTER_LENGTH in app/api/applications/apply-direct,
+ * which silently slices anything longer. Capping the textarea means the
+ * candidate can never write past the cut and lose the tail without being told.
+ */
+const MAX_COVER_LETTER_LENGTH = 5000;
+
 interface ScreeningQuestion {
     id: string;
     questionText: string;
@@ -44,7 +51,15 @@ export default function InPlatformApplyForm({
     const [uploadingResume, setUploadingResume] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    // The server can accept an application and immediately reject it on a
+    // knockout screening answer. It reports that as `autoRejected`; showing the
+    // plain success panel in that case told the candidate the opposite of what
+    // was recorded against their application.
+    const [autoRejected, setAutoRejected] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    // Ids of required screening questions left blank, so the offending rows can
+    // be marked instead of only naming one of them in the banner.
+    const [missingAnswerIds, setMissingAnswerIds] = useState<string[]>([]);
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [consentGiven, setConsentGiven] = useState(false);
     const [similarJobs, setSimilarJobs] = useState<Array<{ id: string; title: string; employer: string; location: string; slug: string | null }>>([]);
@@ -182,6 +197,24 @@ export default function InPlatformApplyForm({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Mirror the server's required-answer gate client side. Without it the
+        // only feedback was a 400 rendered as a generic banner at the top of a
+        // scrolled modal, with nothing marking which question was blank.
+        const blankRequired = screeningQuestions
+            .filter(q => q.isRequired && !(screeningAnswers[q.id] || '').trim())
+            .map(q => q.id);
+        if (blankRequired.length > 0) {
+            setMissingAnswerIds(blankRequired);
+            setError(
+                blankRequired.length === 1
+                    ? 'Please answer the highlighted screening question.'
+                    : `Please answer the ${blankRequired.length} highlighted screening questions.`
+            );
+            return;
+        }
+        setMissingAnswerIds([]);
+
         setSubmitting(true);
         setError(null);
 
@@ -210,6 +243,7 @@ export default function InPlatformApplyForm({
                 throw new Error(data.error || 'Failed to submit application.');
             }
 
+            setAutoRejected(data.autoRejected === true);
             setSubmitted(true);
             onSuccess();
 
@@ -238,11 +272,31 @@ export default function InPlatformApplyForm({
                     <button onClick={onClose} className="absolute right-4 top-4 p-1.5 rounded-lg transition-colors hover:bg-black/5" aria-label="Close">
                         <X size={18} style={{ color: 'var(--text-muted)' }} />
                     </button>
-                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: 'rgba(34,197,94,0.15)' }}>
-                        <CheckCircle size={28} style={{ color: '#22C55E' }} />
+                    {/* The confirmation has to match what the server recorded.
+                        A knockout screening answer is stored as a rejection, so
+                        the green "sent to the employer" panel was telling the
+                        candidate the opposite of the truth. Nothing here claims
+                        the employer was emailed either: that depends on the
+                        employer's contact address and notification setting, and
+                        the response does not report whether it was attempted. */}
+                    <div
+                        className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
+                        style={{ backgroundColor: autoRejected ? 'rgba(148,163,184,0.2)' : 'rgba(34,197,94,0.15)' }}
+                    >
+                        {autoRejected
+                            ? <AlertCircle size={28} style={{ color: '#64748B' }} />
+                            : <CheckCircle size={28} style={{ color: '#22C55E' }} />}
                     </div>
-                    <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Application Submitted!</h3>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Your application for <strong>{jobTitle}</strong> has been sent to the employer. They&apos;ll be notified by email.</p>
+                    <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+                        {autoRejected ? 'Application Received' : 'Application Submitted!'}
+                    </h3>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        {autoRejected ? (
+                            <>Your answers to the screening questions for <strong>{jobTitle}</strong> did not meet this employer&apos;s stated requirements, so this application will not move forward. Your profile is unchanged and you can apply to other roles right away.</>
+                        ) : (
+                            <>Your application for <strong>{jobTitle}</strong> is now with the employer. You can track it any time from My Applications.</>
+                        )}
+                    </p>
                     {similarJobs.length > 0 && (
                         <div className="mt-6 text-left">
                             <p className="text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}><Briefcase size={14} /> Similar positions you might like</p>
@@ -406,12 +460,27 @@ export default function InPlatformApplyForm({
                             Screening Questions
                         </label>
                         <div className="space-y-3">
-                            {screeningQuestions.map((q) => (
-                                <div key={q.id} className="p-3 rounded-xl" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                            {screeningQuestions.map((q) => {
+                                // Derived rather than cleared in every onChange
+                                // handler, so the marker disappears the moment
+                                // the question is answered.
+                                const isMissing = missingAnswerIds.includes(q.id) && !(screeningAnswers[q.id] || '').trim();
+                                return (
+                                <div
+                                    key={q.id}
+                                    className="p-3 rounded-xl"
+                                    style={{
+                                        backgroundColor: 'var(--bg-primary)',
+                                        border: isMissing ? '1px solid #EF4444' : '1px solid var(--border-color)',
+                                    }}
+                                >
                                     <p className="text-sm mb-2" style={{ color: 'var(--text-primary)' }}>
                                         {q.questionText}
                                         {q.isRequired && <span className="text-red-500 ml-1">*</span>}
                                     </p>
+                                    {isMissing && (
+                                        <p className="text-xs mb-2" style={{ color: '#EF4444' }}>This question is required.</p>
+                                    )}
                                     {q.questionType === 'boolean' ? (
                                         <div className="flex gap-3">
                                             {['Yes', 'No'].map((opt) => (
@@ -462,7 +531,8 @@ export default function InPlatformApplyForm({
                                         />
                                     )}
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -508,6 +578,7 @@ export default function InPlatformApplyForm({
                                 onChange={(e) => setCoverLetter(e.target.value)}
                                 placeholder="Tell the employer why you're a great fit for this role..."
                                 rows={5}
+                                maxLength={MAX_COVER_LETTER_LENGTH}
                                 className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none"
                                 style={{
                                     backgroundColor: 'var(--bg-primary)',
@@ -524,7 +595,9 @@ export default function InPlatformApplyForm({
                                 }}
                             />
                             <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                                {coverLetter.length > 0 ? `${coverLetter.length} / 5,000 characters` : 'A brief note can help you stand out.'}
+                                {coverLetter.length > 0
+                                    ? `${coverLetter.length.toLocaleString('en-US')} / ${MAX_COVER_LETTER_LENGTH.toLocaleString('en-US')} characters`
+                                    : 'A brief note can help you stand out.'}
                             </p>
                         </>
                     ) : (
@@ -594,7 +667,11 @@ export default function InPlatformApplyForm({
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    disabled={submitting || uploadingResume || !consentGiven}
+                    // uploadingCoverLetter gates submit for the same reason
+                    // uploadingResume does: coverLetterUrl is only set once the
+                    // upload resolves, so submitting mid-upload posted
+                    // coverLetterUrl: null and dropped the letter silently.
+                    disabled={submitting || uploadingResume || uploadingCoverLetter || !consentGiven}
                     className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                         background: 'linear-gradient(135deg, #0d9488, #0f766e)',

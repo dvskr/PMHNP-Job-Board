@@ -22,19 +22,28 @@ import 'react-quill-new/dist/quill.snow.css';
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
 const jobPostingSchema = z.object({
-  title: z.string().min(10, 'Job title must be at least 10 characters'),
-  companyName: z.string().min(1, 'Company name is required'),
+  // .trim() before the length check: without it a title of ten spaces and a
+  // company name of one space both passed step 1, because min() counts
+  // whitespace. Trimming also normalises what gets stored.
+  title: z.string().trim().min(10, 'Job title must be at least 10 characters'),
+  companyName: z.string().trim().min(1, 'Company name is required'),
   companyWebsite: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   // Consumer email domains are accepted: the company-email rule existed to
   // protect the retired free post, and a solo practitioner paying full price
   // has no reason to be turned away.
   contactEmail: z.string().email('Must be a valid email address'),
   location: z.string().min(1, 'Location is required'),
-  mode: z.enum(['Remote', 'Hybrid', 'In-Person']),
-  jobType: z.enum(['Full-Time', 'Part-Time', 'Contract', 'Per Diem']),
-  salaryPeriod: z.enum(['hourly', 'weekly', 'monthly', 'annual']).optional(),
-  salaryMin: z.number().positive('Minimum salary must be a positive number').optional().nullable(),
-  salaryMax: z.number().positive('Maximum salary must be a positive number').optional().nullable(),
+  // Every message is declared explicitly. A bare z.enum()/z.number() renders
+  // Zod's internal wording to the employer ('Invalid option: expected one of
+  // "Remote"|"Hybrid"|"In-Person"', 'Invalid input: expected number, received
+  // NaN'), which is what the form used to show when a pill or a salary was
+  // left untouched. The edit form (app/jobs/edit/[token]) already phrases the
+  // identical enums this way.
+  mode: z.enum(['Remote', 'Hybrid', 'In-Person'], { message: 'Please select a work mode' }),
+  jobType: z.enum(['Full-Time', 'Part-Time', 'Contract', 'Per Diem'], { message: 'Please select a job type' }),
+  salaryPeriod: z.enum(['hourly', 'weekly', 'monthly', 'annual'], { message: 'Please select a pay period' }).optional(),
+  salaryMin: z.number({ message: 'Minimum salary is required' }).positive('Minimum salary must be a positive number').optional().nullable(),
+  salaryMax: z.number({ message: 'Maximum salary is required' }).positive('Maximum salary must be a positive number').optional().nullable(),
   salaryCompetitive: z.boolean().optional(),
   // Validation operates on visible-text length (HTML stripped) to match the
   // character counter shown in the UI. Quill stores formatted HTML, so a
@@ -63,9 +72,12 @@ const jobPostingSchema = z.object({
   // the EXPERIENCE_BUCKETS values; maxYearsExperience comes from the same
   // table (paired with the picked min). newGradFriendly is the independent
   // "we'll also consider exceptional new grads" flag.
+  // The type message matters as much as the refine message: with nothing
+  // picked the value is undefined, so the type check fails first and the
+  // refine never runs.
   minYearsExperience: z
-    .number()
-    .int()
+    .number({ message: 'Please select an experience level' })
+    .int('Please select an experience level')
     .refine((v) => EXPERIENCE_BUCKETS.some((b) => b.min === v), {
       message: 'Please select an experience level',
     }),
@@ -141,6 +153,14 @@ const clayInput: React.CSSProperties = {
   outline: 'none', fontFamily: 'inherit',
   transition: 'all 0.2s ease',
 };
+
+// Error text sits at 12px on white. #EF4444 is only 3.76:1 there, below the
+// 4.5:1 AA floor for body-size text; #DC2626 is 4.83:1 and reads as the same
+// red. The border keeps #EF4444, which is a non-text contrast case.
+const ERROR_TEXT = '#DC2626';
+
+/** Id of the error paragraph for a field, shared by aria-describedby and focus. */
+const errorId = (field: string) => `${field}-error`;
 
 const clayInputError: React.CSSProperties = {
   ...clayInput,
@@ -305,8 +325,17 @@ function StepProgressBar({ currentStep, onStepClick, completedSteps }: {
         return (
           <div key={step.id} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
             <button
+              type="button"
               onClick={() => isClickable && onStepClick(step.id)}
               className="step-btn"
+              // Below 640px the media query at the foot of this component
+              // hides .step-label, leaving a decorative icon as the button's
+              // only content: four unnamed buttons to a screen reader. The
+              // aria-label matches the visible label exactly, so it changes
+              // nothing above 640px.
+              aria-label={`Step ${step.id}: ${step.label}`}
+              aria-current={isActive ? 'step' : undefined}
+              aria-disabled={isClickable ? undefined : true}
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
                 padding: '8px 12px', borderRadius: '12px',
@@ -378,6 +407,7 @@ function PostJobContent() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
 
   const {
     register,
@@ -681,19 +711,30 @@ function PostJobContent() {
     if (file.size > 2 * 1024 * 1024) { alert('Logo must be under 2MB'); return; }
     if (!file.type.startsWith('image/')) { alert('Please upload an image file'); return; }
     setUploadingLogo(true);
+    setLogoError(null);
     try {
       const formData = new FormData();
       formData.append('file', file);
       const res = await fetch('/api/upload/company-logo', { method: 'POST', body: formData });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Upload failed'); }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({} as { error?: string }));
+        throw new Error(err.error || 'Upload failed. Please try a PNG, JPEG or WebP file.');
+      }
       const { url } = await res.json();
       setValue('companyLogoUrl', url);
       setLogoPreview(url);
     } catch (err) {
+      // The old fallback swapped in URL.createObjectURL(file), so a rejected
+      // file (the API refuses SVG, oversize and MIME-spoofed bytes with a 400)
+      // looked like a successful upload while companyLogoUrl still held the
+      // previously accepted logo. Show the reason and leave the accepted logo
+      // on screen instead.
       console.error('Logo upload failed:', err);
-      setLogoPreview(URL.createObjectURL(file));
+      setLogoError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
     } finally {
       setUploadingLogo(false);
+      // Clear the picker so re-selecting the same file fires onChange again.
+      e.target.value = '';
     }
   };
 
@@ -749,33 +790,60 @@ function PostJobContent() {
     if (checked) { setValue('salaryMin', null); setValue('salaryMax', null); }
   };
 
-  // Per-step validation
-  const validateCurrentStep = async (): Promise<boolean> => {
+  /** The fields this step validates, minus the ones the current toggles exempt. */
+  const currentStepFields = (): (keyof JobPostingFormData)[] => {
     const stepFields = STEPS[currentStep - 1].fields as (keyof JobPostingFormData)[];
-    // For step 4, skip salary validation if competitive is checked
-    if (currentStep === 4 && salaryCompetitive) {
-      const fieldsToValidate = stepFields.filter(f => !['salaryMin', 'salaryMax', 'salaryPeriod'].includes(f));
-      if (fieldsToValidate.length === 0) return true;
-      return await trigger(fieldsToValidate);
-    }
-    // For step 4, also skip applyUrl if using platform apply
-    if (currentStep === 4 && watch('applyOnPlatform')) {
-      const fieldsToValidate = stepFields.filter(f => f !== 'applyUrl');
-      if (fieldsToValidate.length === 0) return true;
-      return await trigger(fieldsToValidate);
-    }
-    const result = await trigger(stepFields);
-    return result;
+    if (currentStep !== 4) return stepFields;
+    return stepFields.filter(f => {
+      // Competitive salary hides the range, platform apply hides the URL.
+      if (salaryCompetitive && ['salaryMin', 'salaryMax', 'salaryPeriod'].includes(f)) return false;
+      if (watch('applyOnPlatform') && f === 'applyUrl') return false;
+      return true;
+    });
+  };
+
+  /**
+   * Per-step validation. Returns the invalid fields in step order rather than
+   * a bare boolean, because handleNext needs to know WHICH field to move focus
+   * to and reading formState.errors straight after trigger() gives the value
+   * from before this render. Triggering per field is what makes that list
+   * available; there are at most four.
+   */
+  const validateCurrentStep = async (): Promise<(keyof JobPostingFormData)[]> => {
+    const fieldsToValidate = currentStepFields();
+    if (fieldsToValidate.length === 0) return [];
+    const results = await Promise.all(fieldsToValidate.map(f => trigger(f)));
+    return fieldsToValidate.filter((_, i) => !results[i]);
+  };
+
+  /**
+   * Moves focus to the first field that failed. The work mode, job type and
+   * experience pickers hide their radio inputs, so there is nothing focusable
+   * to land on: for those we focus the error paragraph instead, which carries
+   * role="alert" and tabIndex={-1}.
+   */
+  const focusInvalidField = (field: keyof JobPostingFormData) => {
+    const control = document.getElementById(String(field));
+    const focusable = control instanceof HTMLElement && control.offsetParent !== null ? control : null;
+    const target = focusable ?? document.getElementById(errorId(String(field)));
+    if (!target) return;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: 'center', behavior: 'smooth' });
   };
 
   const handleNext = async () => {
-    const isValid = await validateCurrentStep();
-    if (isValid) {
-      setCompletedSteps(prev => new Set([...prev, currentStep]));
-      if (currentStep < 4) {
-        setCurrentStep(currentStep + 1);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+    const invalidFields = await validateCurrentStep();
+    if (invalidFields.length > 0) {
+      // Leaving focus on Continue with only a border colour change was the
+      // whole signal that the wizard had refused to advance. One frame of
+      // delay so the error paragraph we may focus has actually rendered.
+      requestAnimationFrame(() => focusInvalidField(invalidFields[0]));
+      return;
+    }
+    setCompletedSteps(prev => new Set([...prev, currentStep]));
+    if (currentStep < 4) {
+      setCurrentStep(currentStep + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -879,12 +947,39 @@ function PostJobContent() {
   /* ═══ Label Helper ═══ */
   const Label = ({ children, required, htmlFor }: { children: React.ReactNode; required?: boolean; htmlFor?: string }) => (
     <label htmlFor={htmlFor} style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#1A2E35', marginBottom: '8px' }}>
-      {children} {required && <span style={{ color: '#EF4444' }}>*</span>}
+      {children} {required && <span style={{ color: ERROR_TEXT }}>*</span>}
     </label>
   );
 
-  const ErrorMsg = ({ message }: { message?: string }) =>
-    message ? <p style={{ marginTop: '6px', fontSize: '12px', fontWeight: 500, color: '#EF4444' }}>{message}</p> : null;
+  /**
+   * `field` is the schema field this message belongs to. It gives the <p> the
+   * id that the control's aria-describedby points at, and gives handleNext a
+   * focus target for controls that have no focusable element of their own
+   * (the work mode / job type / experience pills hide their radios). role=
+   * alert announces the message; tabIndex=-1 makes it programmatically
+   * focusable without adding a tab stop.
+   */
+  const ErrorMsg = ({ message, field }: { message?: string; field?: keyof JobPostingFormData }) =>
+    message ? (
+      <p
+        id={field ? errorId(field) : undefined}
+        role="alert"
+        tabIndex={-1}
+        style={{ marginTop: '6px', fontSize: '12px', fontWeight: 500, color: ERROR_TEXT, outline: 'none' }}
+      >
+        {message}
+      </p>
+    ) : null;
+
+  /**
+   * Marks a control invalid and points it at its ErrorMsg. Without these the
+   * only signal that Continue refused to advance was a border colour change,
+   * which a screen-reader or zoomed user never sees.
+   */
+  const invalidProps = (field: keyof JobPostingFormData, hasError: boolean) => ({
+    'aria-invalid': hasError ? true : undefined,
+    'aria-describedby': hasError ? errorId(field) : undefined,
+  });
 
   const InfoBox = ({ emoji, children, color = 'blue' }: { emoji: string; children: React.ReactNode; color?: string }) => {
     const colors = {
@@ -955,9 +1050,10 @@ function PostJobContent() {
                   <Label required htmlFor="title">Job Title</Label>
                   <input type="text" id="title" placeholder="e.g. Remote PMHNP - Telepsychiatry"
                     {...register('title')}
+                    {...invalidProps('title', !!errors.title)}
                     style={errors.title ? clayInputError : clayInput}
                   />
-                  <ErrorMsg message={errors.title?.message} />
+                  <ErrorMsg message={errors.title?.message} field="title" />
                 </div>
 
                 {/* Company Name */}
@@ -965,9 +1061,10 @@ function PostJobContent() {
                   <Label required htmlFor="companyName">Company Name</Label>
                   <input type="text" id="companyName" placeholder="e.g. Mindful Health Partners"
                     {...register('companyName')}
+                    {...invalidProps('companyName', !!errors.companyName)}
                     style={errors.companyName ? clayInputError : clayInput}
                   />
-                  <ErrorMsg message={errors.companyName?.message} />
+                  <ErrorMsg message={errors.companyName?.message} field="companyName" />
                 </div>
 
                 {/* Company Website */}
@@ -975,9 +1072,10 @@ function PostJobContent() {
                   <Label htmlFor="companyWebsite">Company Website</Label>
                   <input type="url" id="companyWebsite" placeholder="https://www.example.com"
                     {...register('companyWebsite')}
+                    {...invalidProps('companyWebsite', !!errors.companyWebsite)}
                     style={errors.companyWebsite ? clayInputError : clayInput}
                   />
-                  <ErrorMsg message={errors.companyWebsite?.message} />
+                  <ErrorMsg message={errors.companyWebsite?.message} field="companyWebsite" />
                 </div>
 
                 {/* Contact Email */}
@@ -988,9 +1086,10 @@ function PostJobContent() {
                   </p>
                   <input type="email" id="contactEmail" placeholder="hiring@yourcompany.com"
                     {...register('contactEmail')}
+                    {...invalidProps('contactEmail', !!errors.contactEmail)}
                     style={errors.contactEmail ? clayInputError : clayInput}
                   />
-                  <ErrorMsg message={errors.contactEmail?.message} />
+                  <ErrorMsg message={errors.contactEmail?.message} field="contactEmail" />
                 </div>
 
                 {/* Company Logo */}
@@ -998,7 +1097,7 @@ function PostJobContent() {
                   <Label>Company Logo</Label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     {logoPreview && (
-                      /* Raw <img> on purpose: logoPreview can be a blob: object URL (upload-failure fallback in handleLogoUpload) or an arbitrary-host URL prefilled from the employer profile — neither is servable by next/image (blob:/unlisted hosts 400 against images.remotePatterns). */
+                      /* Raw <img> on purpose: logoPreview is an arbitrary-host URL, either the freshly uploaded asset or one prefilled from the employer profile, and hosts outside images.remotePatterns 400 against next/image. */
                       <img src={logoPreview} alt="Logo" style={{
                         width: '52px', height: '52px', borderRadius: '14px', objectFit: 'cover',
                         border: '1px solid rgba(0,0,0,0.06)',
@@ -1012,6 +1111,11 @@ function PostJobContent() {
                     </label>
                     <span style={{ fontSize: '11px', color: '#B0BEC5' }}>PNG or JPG, max 2MB</span>
                   </div>
+                  {logoError && (
+                    <p role="alert" style={{ marginTop: '8px', fontSize: '12px', fontWeight: 500, color: ERROR_TEXT }}>
+                      {logoError}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1031,9 +1135,10 @@ function PostJobContent() {
                   <Label required htmlFor="location">Location</Label>
                   <input type="text" id="location" placeholder="e.g. Remote, New York NY"
                     {...register('location')}
+                    {...invalidProps('location', !!errors.location)}
                     style={errors.location ? clayInputError : clayInput}
                   />
-                  <ErrorMsg message={errors.location?.message} />
+                  <ErrorMsg message={errors.location?.message} field="location" />
                 </div>
 
                 {/* Work Mode */}
@@ -1049,7 +1154,7 @@ function PostJobContent() {
                       </label>
                     ))}
                   </div>
-                  <ErrorMsg message={errors.mode?.message} />
+                  <ErrorMsg message={errors.mode?.message} field="mode" />
                 </div>
 
                 {/* Job Type */}
@@ -1065,7 +1170,7 @@ function PostJobContent() {
                       </label>
                     ))}
                   </div>
-                  <ErrorMsg message={errors.jobType?.message} />
+                  <ErrorMsg message={errors.jobType?.message} field="jobType" />
                 </div>
 
                 {/* Years of Experience */}
@@ -1091,7 +1196,7 @@ function PostJobContent() {
                       );
                     })}
                   </div>
-                  <ErrorMsg message={errors.minYearsExperience?.message} />
+                  <ErrorMsg message={errors.minYearsExperience?.message} field="minYearsExperience" />
                   {/* "Also open to new grads" — only shown when a non-zero
                       bucket is selected. The 0-min bucket already implies
                       new-grad-friendly. */}
@@ -1124,10 +1229,11 @@ function PostJobContent() {
                       maxLength={80}
                       placeholder="e.g. Prefer inpatient psychiatric background"
                       {...register('experienceQualifier')}
+                      {...invalidProps('experienceQualifier', !!errors.experienceQualifier)}
                       style={errors.experienceQualifier ? clayInputError : clayInput}
                     />
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                      <ErrorMsg message={errors.experienceQualifier?.message} />
+                      <ErrorMsg message={errors.experienceQualifier?.message} field="experienceQualifier" />
                       <span style={{ fontSize: '11px', color: '#8A9BA6' }}>
                         {(watch('experienceQualifier') || '').length}/80
                       </span>
@@ -1209,7 +1315,7 @@ function PostJobContent() {
                     )}
                   />
                 </div>
-                <ErrorMsg message={errors.description?.message} />
+                <ErrorMsg message={errors.description?.message} field="description" />
                 <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <p style={{ fontSize: '11px', color: '#B0BEC5', margin: 0 }}>Minimum 200 characters. Use the toolbar to format.</p>
                   <span style={{ fontSize: '11px', fontWeight: 600, color: (watch('description') || '').replace(/<[^>]*>/g, '').length > 25000 ? '#EF4444' : '#94A3B8' }}>
@@ -1252,21 +1358,23 @@ function PostJobContent() {
                   {/* Min / Max */}
                   <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
                     <div style={{ flex: 1 }}>
-                      <input type="number" inputMode="numeric" placeholder={`Min ${salaryPeriod === 'hourly' ? '$/hr' : '$ ' + (salaryPeriod || 'annual')}`}
+                      <input type="number" id="salaryMin" inputMode="numeric" aria-label="Minimum salary" placeholder={`Min ${salaryPeriod === 'hourly' ? '$/hr' : '$ ' + (salaryPeriod || 'annual')}`}
                         disabled={salaryCompetitive} {...register('salaryMin', { valueAsNumber: true })}
+                        {...invalidProps('salaryMin', !!errors.salaryMin)}
                         style={{ ...(salaryCompetitive ? { ...clayInput, opacity: 0.5, cursor: 'not-allowed' } : errors.salaryMin ? clayInputError : clayInput) }}
                       />
-                      <ErrorMsg message={errors.salaryMin?.message} />
+                      <ErrorMsg message={errors.salaryMin?.message} field="salaryMin" />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <input type="number" inputMode="numeric" placeholder={`Max ${salaryPeriod === 'hourly' ? '$/hr' : '$ ' + (salaryPeriod || 'annual')}`}
+                      <input type="number" id="salaryMax" inputMode="numeric" aria-label="Maximum salary" placeholder={`Max ${salaryPeriod === 'hourly' ? '$/hr' : '$ ' + (salaryPeriod || 'annual')}`}
                         disabled={salaryCompetitive} {...register('salaryMax', { valueAsNumber: true })}
+                        {...invalidProps('salaryMax', !!errors.salaryMax)}
                         style={{ ...(salaryCompetitive ? { ...clayInput, opacity: 0.5, cursor: 'not-allowed' } : errors.salaryMax ? clayInputError : clayInput) }}
                       />
-                      <ErrorMsg message={errors.salaryMax?.message} />
+                      <ErrorMsg message={errors.salaryMax?.message} field="salaryMax" />
                     </div>
                   </div>
-                  <ErrorMsg message={!salaryCompetitive ? errors.salaryPeriod?.message : undefined} />
+                  <ErrorMsg message={!salaryCompetitive ? errors.salaryPeriod?.message : undefined} field="salaryPeriod" />
 
                   {/* Competitive checkbox */}
                   <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '4px 0' }}>
@@ -1355,9 +1463,10 @@ function PostJobContent() {
                       <Label required htmlFor="applyUrl">Application URL</Label>
                       <input type="url" id="applyUrl" placeholder="https://www.example.com/careers/apply"
                         {...register('applyUrl')}
+                        {...invalidProps('applyUrl', !!errors.applyUrl)}
                         style={errors.applyUrl ? clayInputError : clayInput}
                       />
-                      <ErrorMsg message={errors.applyUrl?.message} />
+                      <ErrorMsg message={errors.applyUrl?.message} field="applyUrl" />
                       <InfoBox emoji="💡" color="amber">
                         This should be a direct link to your application page, <strong>not your company homepage</strong>.
                       </InfoBox>
@@ -1490,6 +1599,25 @@ export default function PostJobPage() {
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'Post a Job', url: 'https://pmhnphiring.com/post-job' },
       ]} />
+      {/* The h1 lives here, outside the Suspense boundary and outside the
+          auth branches inside PostJobContent, so it is in the server HTML and
+          present in every state: loading, signed out, wrong role and the
+          wizard itself. The route is indexable and listed in the sitemap, but
+          it used to ship zero h1 elements, leaving a step label ("Company
+          Information") as the first heading a crawler or a screen reader met
+          on the site's primary commercial page. Step headings stay h2. */}
+      <header style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 16px 0' }}>
+        <h1 style={{
+          fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 700,
+          fontFamily: 'var(--font-lora), Georgia, serif',
+          color: '#1A2E35', margin: '0 0 6px', lineHeight: 1.2,
+        }}>
+          Post a PMHNP Job
+        </h1>
+        <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0, lineHeight: 1.5 }}>
+          {`Reach psychiatric nurse practitioners actively looking. First post $${config.firstPostPrice}, then $${config.postingPrice}, and every listing runs ${config.durationDays} days.`}
+        </p>
+      </header>
       <Suspense fallback={<LoadingFallback />}>
         <PostJobContent />
       </Suspense>

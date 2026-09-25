@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { LazyMotion, domAnimation, m } from 'framer-motion';
+import { LazyMotion, MotionConfig, domAnimation, m } from 'framer-motion';
 
 const CLAY_COLORS = [
     '#6ee7b7', '#5eead4', '#67e8f9', '#a5b4fc', '#c4b5fd',
@@ -12,7 +12,14 @@ const CLAY_COLORS = [
 ];
 
 interface ClayDoughStripProps {
-    employers: { name: string; count: number }[];
+    /**
+     * `href` is set by EmployerTrustSection only for companies whose
+     * /companies/{slug} page exists and is indexable. Tiles without one render
+     * unlinked: the strip used to point every tile at /jobs?q={name}, a URL
+     * robots.txt disallows and /jobs noindexes, so the homepage spent its
+     * links on pages Googlebot must not fetch.
+     */
+    employers: { name: string; count: number; href?: string }[];
 }
 
 export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
@@ -31,6 +38,7 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
     const items = unique.map((emp, i) => ({
         name: emp.name,
         roles: emp.count,
+        href: emp.href,
         color: CLAY_COLORS[i % CLAY_COLORS.length],
     }));
 
@@ -40,6 +48,11 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
 
     return (
         <LazyMotion features={domAnimation}>
+        {/* reducedMotion="user" honours the OS "reduce motion" setting:
+                framer motion then skips transform and layout animations and keeps
+                only opacity. Nothing in the app set this, so these sections
+                animated regardless of the preference. */}
+        <MotionConfig reducedMotion="user">
         <section
             className="w-full flex flex-col items-center justify-center overflow-hidden relative py-16 lg:py-24"
             style={{
@@ -74,26 +87,20 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
                 >
                     {doubled.map((emp, i) => {
                         const isHovered = hoveredIdx === i;
-                        return (
-                            <Link
-                                key={i}
-                                href={`/jobs?q=${encodeURIComponent(emp.name)}`}
-                                onMouseEnter={() => setHoveredIdx(i)}
-                                onMouseLeave={() => setHoveredIdx(null)}
-                                className="px-7 py-3.5 flex items-center gap-3"
-                                style={{
-                                    background: `linear-gradient(145deg, ${emp.color}${isHovered ? 'ff' : 'cc'}, ${emp.color}${isHovered ? 'dd' : '99'})`,
-                                    borderRadius: '20px',
-                                    boxShadow: isHovered
-                                        ? `inset 3px 3px 6px rgba(255,255,255,0.5), inset -2px -2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.14)`
-                                        : 'inset 3px 3px 6px rgba(255,255,255,0.4), inset -2px -2px 4px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.08)',
-                                    flexShrink: 0,
-                                    cursor: 'pointer',
-                                    transform: isHovered ? 'translateY(-4px) scale(1.05)' : 'translateY(0) scale(1)',
-                                    transition: 'transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease',
-                                    textDecoration: 'none',
-                                }}
-                            >
+                        const tileStyle: React.CSSProperties = {
+                            background: `linear-gradient(145deg, ${emp.color}${isHovered ? 'ff' : 'cc'}, ${emp.color}${isHovered ? 'dd' : '99'})`,
+                            borderRadius: '20px',
+                            boxShadow: isHovered
+                                ? 'inset 3px 3px 6px rgba(255,255,255,0.5), inset -2px -2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.14)'
+                                : 'inset 3px 3px 6px rgba(255,255,255,0.4), inset -2px -2px 4px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.08)',
+                            flexShrink: 0,
+                            cursor: emp.href ? 'pointer' : 'default',
+                            transform: isHovered ? 'translateY(-4px) scale(1.05)' : 'translateY(0) scale(1)',
+                            transition: 'transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease',
+                            textDecoration: 'none',
+                        };
+                        const tileInner = (
+                            <>
                                 <div
                                     className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                                     style={{
@@ -116,14 +123,37 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
                                         transition: 'color 0.2s ease, font-weight 0.2s ease',
                                     }}
                                 >
-                                    {emp.roles} {isHovered ? 'jobs →' : ''}
+                                    {emp.roles} {isHovered && emp.href ? 'jobs →' : ''}
                                 </span>
+                            </>
+                        );
+                        return emp.href ? (
+                            <Link
+                                key={i}
+                                href={emp.href}
+                                onMouseEnter={() => setHoveredIdx(i)}
+                                onMouseLeave={() => setHoveredIdx(null)}
+                                className="px-7 py-3.5 flex items-center gap-3"
+                                style={tileStyle}
+                            >
+                                {tileInner}
                             </Link>
+                        ) : (
+                            <div
+                                key={i}
+                                onMouseEnter={() => setHoveredIdx(i)}
+                                onMouseLeave={() => setHoveredIdx(null)}
+                                className="px-7 py-3.5 flex items-center gap-3"
+                                style={tileStyle}
+                            >
+                                {tileInner}
+                            </div>
                         );
                     })}
                 </m.div>
             </div>
         </section>
+        </MotionConfig>
         </LazyMotion>
     );
 }

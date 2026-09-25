@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { hasLikelyAuthCookie } from '@/lib/auth-cookie';
 
 const STORAGE_KEY = 'appliedJobs';
 const API_PATH = '/api/applications';
@@ -126,17 +127,6 @@ function applyMap(next: AppliedJobsMap, persistLocal = true) {
   cachedMap = next;
   if (persistLocal) setStoredAppliedJobs(next);
   notify();
-}
-
-/**
- * Heuristic: if no Supabase auth cookie is present we are anonymous, and
- * `GET /api/applications` will return 401 -- which the browser logs to the
- * console even though we handle it. Skipping the call entirely keeps the
- * console clean on every anonymous page view.
- */
-function hasLikelyAuthCookie(): boolean {
-  if (typeof document === 'undefined') return false;
-  return /(?:^|;\s*)sb-[^=]+-auth-token=/.test(document.cookie);
 }
 
 async function syncFromServer(force = false): Promise<void> {

@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { XLogo, FacebookLogo, InstagramLogo, LinkedinLogo, YoutubeLogo } from '@phosphor-icons/react';
 import { reopenConsentBanner } from '@/lib/consent';
-import { brand } from '@/config/brand';
 /* ──────────────────────────────────────────────
  *  Footer — Dark, clean, professional
  *  Uses inline styles for background/color to
@@ -22,7 +21,13 @@ const linkColumns = [
     title: 'For Job Seekers',
     links: [
       { label: 'Browse PMHNP Jobs', href: '/jobs' },
-      { label: 'Saved Jobs', href: '/saved' },
+      // "Saved Jobs" is deliberately absent. /saved is a signed-in-only
+      // surface: middleware serves it noindex,nofollow and robots.txt
+      // disallows it again now that AUTH_REBLOCK_DATE has passed. A link in
+      // the sitewide footer is exactly how a robots-blocked URL earns an
+      // "Indexed, though blocked by robots.txt" entry in GSC. Signed-in
+      // seekers reach it from the header nav and the mobile bottom nav,
+      // both of which already switch on auth state.
       { label: 'Job Alerts', href: '/job-alerts' },
       { label: 'PMHNP Salary Guide', href: '/salary-guide' },
       { label: 'Free Career Tools', href: '/tools' },
@@ -131,7 +136,33 @@ const linkStyle: React.CSSProperties = {
   transition: 'color 0.15s ease',
 };
 
-export default function Footer() {
+/**
+ * Brand strings the footer prints, passed in from the server layout.
+ *
+ * They are props rather than an `import { brand } from '@/config/brand'`
+ * because Footer is a client component rendered on every page: importing the
+ * config object pulled the WHOLE literal into the shared client chunk,
+ * including `legal.founderName` — a private individual's legal name that the
+ * config itself marks as legal-context-only ("Do NOT render this in
+ * user-visible UI or schema"). Bundlers do not tree-shake individual
+ * properties off an imported object literal, so the only way the name stays
+ * out of the browser is for the client component not to import the module.
+ */
+interface FooterProps {
+  /** Display brand name, for the copyright line. */
+  siteName: string;
+  /** Registered legal entity that operates the brand. */
+  legalEntityName: string;
+  /** Legal mailing address, already split into its printable parts. */
+  address: {
+    line: string;
+    city: string;
+    region: string;
+    postalCode: string;
+  };
+}
+
+export default function Footer({ siteName, legalEntityName, address }: FooterProps) {
   const pathname = usePathname();
   const AUTH_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password', '/employer/login', '/employer/signup'];
   if (AUTH_ROUTES.some(r => pathname?.startsWith(r))) return null;
@@ -354,9 +385,9 @@ export default function Footer() {
                 (the previous darker gray sat at ~2.3:1). */}
             <div className="footer-bar-right" style={{ display: 'flex', alignItems: 'center' }}>
               <p style={{ fontSize: '13px', color: '#8a8580', margin: 0, lineHeight: 1.6, textAlign: 'right' }}>
-                © {new Date().getFullYear()} {brand.name} · operated by {brand.legal.entityName}
+                © {new Date().getFullYear()} {siteName} · operated by {legalEntityName}
                 <span className="footer-address-sep" style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
-                <span style={{ whiteSpace: 'nowrap' }}>{brand.legal.addressLine}, {brand.legal.addressCity}, {brand.legal.addressRegion} {brand.legal.addressPostalCode}</span>
+                <span style={{ whiteSpace: 'nowrap' }}>{address.line}, {address.city}, {address.region} {address.postalCode}</span>
               </p>
             </div>
           </div>

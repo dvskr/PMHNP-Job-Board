@@ -99,6 +99,9 @@ export default function SalaryGuideForm() {
           setEmail(e.target.value);
           if (status === 'error') setStatus('idle');
         }}
+        // aria-label, not placeholder: the pill layout has no room for a
+        // visible label and a placeholder is not an accessible name.
+        aria-label="Email address for the free PMHNP salary guide PDF"
         placeholder="Email for free PDF guide"
         style={{
           flex: 1,

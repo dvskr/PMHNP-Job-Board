@@ -119,6 +119,27 @@ describe('robots.txt crawler rosters', () => {
         expect(rule!.allow).toBeDefined();
     });
 
+    it('gives the Anthropic block the SAME disallow set as the catch-all', () => {
+        // The Anthropic block is special for exactly one reason: the explicit
+        // `Allow: /` that its parser needs. Its disallow list was a separate
+        // hand-written array, and it drifted -- most damagingly it never
+        // received POST_DEADLINE_AUTH_REBLOCK, so Anthropic's fetchers were
+        // the one crawler family still pointed at /login, /signup, /messages
+        // and /saved after the re-block date, plus the parameterized /jobs?
+        // URLs every other bot had been steered off.
+        //
+        // Pinning set equality (not a list of specific paths) is what keeps
+        // it from drifting again: any future addition to FULL_DISALLOW or to
+        // the post-deadline set lands in both places or fails here.
+        const claude = ruleFor('ClaudeBot');
+        const catchAll = ruleFor('*');
+        expect(claude).toBeDefined();
+        expect(catchAll).toBeDefined();
+        const asList = (v: string | string[] | undefined) =>
+            (Array.isArray(v) ? v : v ? [v] : []).slice().sort();
+        expect(asList(claude!.disallow)).toEqual(asList(catchAll!.disallow));
+    });
+
     it('still declares the sitemap entrypoints', () => {
         expect(robots.sitemap).toEqual(
             expect.arrayContaining([expect.stringContaining('/sitemap.xml')])

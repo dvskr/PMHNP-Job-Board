@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 // Known bot/crawler user-agent patterns to exclude from view counting
 const BOT_PATTERNS = [
@@ -26,6 +27,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // This GET is a WRITE: every non-bot hit increments Job.viewCount and inserts
+  // a JobViewEvent row that feeds employer reporting. middleware.ts throttles
+  // the `/jobs/...` PAGE path but nothing under `/api/`, so the counter was
+  // anonymously inflatable at unlimited rate by anyone sending an ordinary
+  // browser User-Agent. Same ceiling as the page it backs (publicDetail).
+  const rateLimitResult = await rateLimit(request, 'job-detail', RATE_LIMITS.publicDetail);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const resolvedParams = await params;
     const jobId = resolvedParams.id;

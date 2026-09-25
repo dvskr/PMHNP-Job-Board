@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
+import { buildWhereClause, parseFiltersFromParams, publicJobsWhere } from '@/lib/filters';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { buildJobsOrderBy, type JobSort } from '@/lib/utils/job-sort';
@@ -18,8 +18,14 @@ export async function GET(request: NextRequest) {
     if (idsParam) {
       const ids = idsParam.split(',').filter(Boolean);
       if (ids.length > 0) {
+        // Same liveness predicate as the browse listing and the detail route.
+        // This branch used to filter on `isPublished` alone, so an expired or
+        // globally-excluded posting still came back as a normal-looking card on
+        // /saved and the Applied tab while its detail page answered 410 — every
+        // click a dead end. publicJobsWhere() is the single public predicate;
+        // ids are an access pattern, not a reason to see hidden rows.
         const jobs = await prisma.job.findMany({
-          where: { id: { in: ids }, isPublished: true },
+          where: { ...publicJobsWhere(), id: { in: ids } },
           select: {
             id: true,
             title: true,

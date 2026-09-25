@@ -9,6 +9,7 @@ import {
   SAVED_JOBS_KEY,
   type SavedJobsMap,
 } from '@/lib/saved-jobs';
+import { hasLikelyAuthCookie } from '@/lib/auth-cookie';
 
 const STORAGE_KEY = SAVED_JOBS_KEY;
 const API_PATH = '/api/saved-jobs';
@@ -95,15 +96,6 @@ function applyMap(next: SavedJobsMap, persistLocal = true) {
   cachedMap = next;
   if (persistLocal) setStoredSavedJobs(next);
   notify();
-}
-
-/**
- * Heuristic: anonymous visitors have no Supabase auth cookie, so the GET
- * is guaranteed to 401. Skip it to keep the browser console clean.
- */
-function hasLikelyAuthCookie(): boolean {
-  if (typeof document === 'undefined') return false;
-  return /(?:^|;\s*)sb-[^=]+-auth-token=/.test(document.cookie);
 }
 
 async function syncFromServer(force = false): Promise<void> {

@@ -93,6 +93,8 @@ export default function SavedCandidatesTab() {
 
     // Tag editing
     const [editingTagsFor, setEditingTagsFor] = useState<string | null>(null);
+    // Why the last unsave / note / tag action did not take. Null when it did.
+    const [actionError, setActionError] = useState<string | null>(null);
 
     const effectiveUnlockUsage = (() => {
         if (filterPosting !== 'all' && filterPosting !== 'none') {
@@ -134,19 +136,43 @@ export default function SavedCandidatesTab() {
 
     useEffect(() => { fetchSaved(); }, [fetchSaved]);
 
+    /**
+     * Reads an error message off a failed response. A 5xx answers with an HTML
+     * page, so the parse has to be allowed to fail without becoming the message
+     * the employer sees.
+     */
+    const failureMessage = async (res: Response, fallback: string): Promise<string> => {
+        const data = await res.json().catch(() => ({} as { error?: string }));
+        console.error('Saved candidates action failed:', res.status, data);
+        return typeof data.error === 'string' && data.error ? data.error : fallback;
+    };
+
     const handleUnsave = async (candidateId: string, postingId: string | null) => {
+        setActionError(null);
+        // Optimistic removal. Every non-ok path re-fetches, because a row that
+        // only LOOKS unsaved is worse than one that never disappeared: the
+        // employer moves on believing the list is clean.
         setSaved(prev => prev.filter(s => !(s.candidate.id === candidateId && s.postingId === postingId)));
         try {
-            await fetch('/api/employer/saved-candidates', {
+            const res = await fetch('/api/employer/saved-candidates', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ candidateId, postingId: postingId || undefined }),
             });
-        } catch { fetchSaved(); }
+            if (!res.ok) {
+                setActionError(await failureMessage(res, 'Could not remove that candidate. Please try again.'));
+                fetchSaved();
+            }
+        } catch (err) {
+            console.error('Unsave failed:', err);
+            setActionError('Could not reach the server. Check your connection and try again.');
+            fetchSaved();
+        }
     };
 
     const handleSaveNote = async (entry: SavedCandidateEntry) => {
         setSavingNote(true);
+        setActionError(null);
         try {
             const res = await fetch('/api/employer/saved-candidates/note', {
                 method: 'PATCH',
@@ -161,8 +187,19 @@ export default function SavedCandidatesTab() {
                 setSaved(prev => prev.map(s =>
                     s.id === entry.id ? { ...s, note: noteText || null } : s
                 ));
+            } else {
+                // Leave the editor open with the typed text still in it, rather
+                // than closing as though the note had saved.
+                setActionError(await failureMessage(res, 'Could not save that note. Please try again.'));
+                setSavingNote(false);
+                return;
             }
-        } catch { /* silent */ }
+        } catch (err) {
+            console.error('Save note failed:', err);
+            setActionError('Could not reach the server. Check your connection and try again.');
+            setSavingNote(false);
+            return;
+        }
         setSavingNote(false);
         setEditingNoteFor(null);
     };
@@ -173,13 +210,18 @@ export default function SavedCandidatesTab() {
             ? currentTags.filter(t => t !== tagName)
             : [...currentTags, tagName];
 
+        setActionError(null);
         // Optimistic
         setSaved(prev => prev.map(s =>
             s.id === entry.id ? { ...s, tags: newTags } : s
         ));
 
+        const revert = () => setSaved(prev => prev.map(s =>
+            s.id === entry.id ? { ...s, tags: currentTags } : s
+        ));
+
         try {
-            await fetch('/api/employer/saved-candidates/note', {
+            const res = await fetch('/api/employer/saved-candidates/note', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -188,15 +230,20 @@ export default function SavedCandidatesTab() {
                     tags: newTags,
                 }),
             });
-        } catch {
-            setSaved(prev => prev.map(s =>
-                s.id === entry.id ? { ...s, tags: currentTags } : s
-            ));
+            if (!res.ok) {
+                setActionError(await failureMessage(res, 'Could not update those tags. Please try again.'));
+                revert();
+            }
+        } catch (err) {
+            console.error('Toggle tag failed:', err);
+            setActionError('Could not reach the server. Check your connection and try again.');
+            revert();
         }
     };
 
     const handleCreateTag = async () => {
         if (!newTagName.trim()) return;
+        setActionError(null);
         try {
             const res = await fetch('/api/employer/tags', {
                 method: 'POST',
@@ -208,19 +255,34 @@ export default function SavedCandidatesTab() {
                 setEmployerTags(prev => [...prev, data.tag]);
                 setNewTagName('');
                 setShowTagCreator(false);
+                return;
             }
-        } catch { /* silent */ }
+            // Without this the click was simply inert: no tag, no reason.
+            setActionError(await failureMessage(res, 'Could not create that tag. Please try again.'));
+        } catch (err) {
+            console.error('Create tag failed:', err);
+            setActionError('Could not reach the server. Check your connection and try again.');
+        }
     };
 
     const handleDeleteTag = async (tagId: string) => {
+        setActionError(null);
         setEmployerTags(prev => prev.filter(t => t.id !== tagId));
         try {
-            await fetch('/api/employer/tags', {
+            const res = await fetch('/api/employer/tags', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tagId }),
             });
-        } catch { fetchSaved(); }
+            if (!res.ok) {
+                setActionError(await failureMessage(res, 'Could not delete that tag. Please try again.'));
+                fetchSaved();
+            }
+        } catch (err) {
+            console.error('Delete tag failed:', err);
+            setActionError('Could not reach the server. Check your connection and try again.');
+            fetchSaved();
+        }
     };
 
     const postingOptions = Array.from(
@@ -265,6 +327,29 @@ export default function SavedCandidatesTab() {
 
     return (
         <div>
+            {actionError && (
+                <div
+                    role="alert"
+                    style={{
+                        ...cardBase, padding: '12px 16px', marginBottom: '14px',
+                        background: '#FEE2E2', border: '1px solid #FECACA',
+                        display: 'flex', alignItems: 'flex-start', gap: '10px',
+                    }}
+                >
+                    <p style={{ flex: 1, margin: 0, fontSize: '13px', fontWeight: 500, color: '#991B1B', lineHeight: 1.5 }}>
+                        {actionError}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => setActionError(null)}
+                        aria-label="Dismiss error"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#991B1B', padding: 0, lineHeight: 1 }}
+                    >
+                        <X size={16} />
+                    </button>
+                </div>
+            )}
+
             {/* Header + Filters */}
             <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',

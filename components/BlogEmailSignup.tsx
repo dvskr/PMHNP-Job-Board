@@ -33,9 +33,13 @@ export default function BlogEmailSignup({ source }: { source: string }) {
             }}
             style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}
         >
+            {/* The compact inline layout has no room for a visible label, so
+                the accessible name comes from aria-label: a placeholder is not
+                an accessible name and disappears as soon as the user types. */}
             <input
                 type="email"
                 required
+                aria-label="Email address for the PMHNP Hiring newsletter"
                 placeholder="you@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

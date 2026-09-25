@@ -242,7 +242,7 @@ export default function DataRequestPage() {
                             </select>
                             <p style={helpStyle}>
                                 {/* Inline glossary so users don't have to hunt through the policy. */}
-                                Not sure which fits? <Link href="/privacy#11" style={{ color: '#0D9488', textDecoration: 'underline' }}>See descriptions in the Privacy Policy</Link>.
+                                Not sure which fits? <Link href="/privacy#your-privacy-rights" style={{ color: '#0D9488', textDecoration: 'underline' }}>See descriptions in the Privacy Policy</Link>.
                             </p>
                         </div>
 
