@@ -76,7 +76,12 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
       <section><div className="ab-wrap">
         <div className="ab-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
           <div className="ab-stat"><div className="ico"><Briefcase size={24} /></div><div className="num">{totalJobs.toLocaleString()}<em>+</em></div><div className="lab">Active Jobs</div></div>
-          <div className="ab-stat"><div className="ico"><Users size={24} /></div><div className="num">{totalEmployers.toLocaleString()}</div><div className="lab">Verified Employers</div></div>
+          {/* "Verified Employers" was wrong: this is getSiteStats().totalCompanies,
+              the distinct employers behind publicJobsWhere() listings. Verified
+              is a paid status set in the Stripe webhook and shown as the blue
+              check on a job card, so labeling a scrape count "verified" cheapened
+              the badge employers actually pay for. */}
+          <div className="ab-stat"><div className="ico"><Users size={24} /></div><div className="num">{totalEmployers.toLocaleString()}</div><div className="lab">Employers Hiring</div></div>
           <div className="ab-stat"><div className="ico"><MapPin size={24} /></div><div className="num">50</div><div className="lab">States Covered</div></div>
         </div>
       </div></section>
@@ -140,12 +145,24 @@ export default function AboutClient({ totalJobs, totalEmployers, dioramaCounts }
         <div className="ab-method-head">
           <span className="ab-kicker lav"><Layers size={12} /> Our methodology</span>
           <h2 style={{ marginTop: 20 }}>Hard data. <em>No assumptions.</em></h2>
-          <p>Accuracy isn&apos;t optional. Our methodology relies on rigorous real-time scraping, algorithmic parity, and editorial audits across multiple authoritative healthcare indexes.</p>
+          <p>Here is exactly how a listing gets here and what happens to it. Nothing on this page describes a capability the pipeline does not have.</p>
         </div>
+        {/* These three cards previously claimed a Bureau of Labor Statistics
+            feed, "editorial audits across multiple authoritative healthcare
+            indexes", listings fact-checked "against state nursing boards", and
+            a strict 24-hour cycle. None of that exists: there is no BLS
+            ingestion anywhere in the codebase (BLS appears only as a cited
+            labor-market stat), nothing queries a board of nursing, and ingest
+            runs in two waves a day. This is the page raters and answer engines
+            read to decide whether the site is credible, and it sat forty lines
+            above a creator paragraph that says "my job here is the data
+            pipeline". Overclaiming here discounts the honest signals
+            everywhere else, so the copy now matches the pipeline. Keep it
+            aligned with the methodology block in app/llms-full.txt/route.ts. */}
         <div className="ab-method-grid">
-          <div className="ab-method-card featured"><span className="num-tag">01</span><div className="mi"><Layers size={28} /></div><h3>Multi-Vector Aggregation</h3><p>We synthesize endpoints from the Bureau of Labor Statistics, native ATS feeds, and direct employer postings into a single streamlined view.</p></div>
-          <div className="ab-method-card"><span className="num-tag">02</span><div className="mi" style={{ color: 'var(--coral)' }}><Shield size={28} /></div><h3>Editorial Integrity</h3><p>Parsing agents rigorously fact-check listings against state nursing boards. We never inflate salaries to artificially increase clicks.</p></div>
-          <div className="ab-method-card"><span className="num-tag">03</span><div className="mi" style={{ color: '#6F63C0' }}><RefreshCw size={28} /></div><h3>Continuous Sync</h3><p>Stale listings are useless. Our system automatically purges expired opportunities and fetches exact market data on a strict 24-hour cycle.</p></div>
+          <div className="ab-method-card featured"><span className="num-tag">01</span><div className="mi"><Layers size={28} /></div><h3>Where listings come from</h3><p>Applicant tracking feeds published by employers themselves (Greenhouse, Lever, Workday, SmartRecruiters, Ashby and others), public job APIs, and roles posted directly on this site.</p></div>
+          <div className="ab-method-card"><span className="num-tag">02</span><div className="mi" style={{ color: 'var(--coral)' }}><Shield size={28} /></div><h3>What gets filtered out</h3><p>A relevance classifier drops roles that are not psychiatric mental health NP work. Salary ranges that fail our parsing checks are quarantined rather than published, and pay figures are medians of advertised ranges shown with their sample size. We never invent a number to fill a gap.</p></div>
+          <div className="ab-method-card"><span className="num-tag">03</span><div className="mi" style={{ color: '#6F63C0' }}><RefreshCw size={28} /></div><h3>How often it refreshes</h3><p>Stale listings are useless. Ingest runs in two waves a day, expired and filled roles are removed automatically, and the salary figures recompute daily from whatever is live.</p></div>
         </div>
       </div></section>
 

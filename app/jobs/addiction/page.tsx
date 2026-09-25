@@ -326,8 +326,12 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
               <div key="01" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
                 <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>01</span>
-                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>DEA X-Waiver</h3>
-                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Ensure your DEA registration allows prescribing buprenorphine for opioid use disorder treatment.</p>
+                {/* The separate DEA X-waiver was eliminated by the Consolidated
+                    Appropriations Act of 2023. Copy that still tells clinicians
+                    to obtain one sends them after a credential that no longer
+                    exists, and this card sits on an indexable landing page. */}
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>DEA Registration</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>A standard DEA registration now covers buprenorphine for opioid use disorder. The separate X-waiver was eliminated in 2023.</p>
               </div>
               <div key="02" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
                 <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>02</span>
@@ -390,7 +394,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
           <div style={{ display: 'grid', gap: '16px' }}>
             {[
               { q: "What does an addiction PMHNP do?", a: "An addiction PMHNP specializes in treating substance use disorders (SUD) and co-occurring mental health conditions. They prescribe medications like buprenorphine and naltrexone for medication-assisted treatment (MAT), manage detox protocols, provide therapy, and coordinate comprehensive recovery plans." },
-              { q: "Do I need special certification for addiction PMHNP work?", a: "While not always required, the DEA X-waiver (now integrated into standard DEA registration) is essential for prescribing buprenorphine. ASAM certification or CARN (Certified Addictions Registered Nurse) credentials significantly strengthen your candidacy and are preferred by many employers." },
+              { q: "Do I need special certification for addiction PMHNP work?", a: "You need a standard DEA registration to prescribe buprenorphine. The separate X-waiver that used to be required was eliminated by the Consolidated Appropriations Act of 2023, so there is no longer a waiver to apply for. ASAM certification or CARN (Certified Addictions Registered Nurse) credentials are not required, but they strengthen your candidacy and are preferred by many employers." },
               { q: "How much do addiction PMHNPs earn?", a: "Pay varies by setting and location; listings on this page show the advertised range whenever the employer discloses one. Many roles include loan repayment programs, sign-on bonuses, and relocation assistance due to the critical shortage of addiction medicine providers." },
               { q: "Is addiction psychiatry a good PMHNP specialty?", a: "Yes. Addiction psychiatry is one of the fastest-growing PMHNP specialties. The opioid crisis has driven sustained growth in positions, and there's a severe shortage of qualified providers. The work is deeply meaningful, with high job security and competitive compensation." },
             ].map((faq, idx) => (

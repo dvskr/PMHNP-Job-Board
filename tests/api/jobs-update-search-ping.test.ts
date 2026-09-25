@@ -23,7 +23,13 @@ beforeAll(async () => {
 }, 120_000);
 
 const mockPing = vi.fn().mockResolvedValue([]);
-vi.mock('@/lib/search-indexing', () => ({
+// Only the network call is stubbed. jobIndexUrl stays REAL so these tests
+// actually exercise the canonical-URL rule (stored slug wins, slugify is the
+// legacy fallback) instead of asserting against a stand-in. A bare factory
+// mock here also silently made jobIndexUrl undefined the moment the route
+// started importing it, which surfaced as a 500.
+vi.mock('@/lib/search-indexing', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/search-indexing')>()),
   pingAllSearchEngines: mockPing,
 }));
 
@@ -100,7 +106,15 @@ describe('B3: employer edit re-pings search engines on material change', () => {
       title: 'PMHNP Old Title', ...materialFields,
     } as never);
     vi.mocked(prisma.job.update).mockResolvedValue({
-      id: 'job-abc', title: 'PMHNP Outpatient', isPublished: true, ...materialFields,
+      id: 'job-abc',
+      title: 'PMHNP Outpatient',
+      // The STORED slug, deliberately not what slugify(title, id) would
+      // produce. Admin-created rows mint their slug from title plus employer,
+      // and rows predating the 2026-07 slugify change keep the older shape, so
+      // a recompute pings a URL that canonicals elsewhere.
+      slug: 'pmhnp-outpatient-at-example-health-job-abc',
+      isPublished: true,
+      ...materialFields,
     } as never);
 
     const { POST } = await import('@/app/api/jobs/update/route');
@@ -108,6 +122,24 @@ describe('B3: employer edit re-pings search engines on material change', () => {
 
     expect(res.status).toBe(200);
     expect(mockPing).toHaveBeenCalledOnce();
+    const url = mockPing.mock.calls[0][0] as string;
+    expect(url).toBe('https://pmhnphiring.com/jobs/pmhnp-outpatient-at-example-health-job-abc');
+  });
+
+  it('falls back to a computed slug only when the row has none', async () => {
+    process.env.VERCEL_ENV = 'production';
+    vi.mocked(prisma.employerJob.findFirst).mockResolvedValue(employerJobRow as never);
+    vi.mocked(prisma.job.findUnique).mockResolvedValue({
+      title: 'PMHNP Old Title', ...materialFields,
+    } as never);
+    vi.mocked(prisma.job.update).mockResolvedValue({
+      id: 'job-abc', title: 'PMHNP Outpatient', slug: null, isPublished: true, ...materialFields,
+    } as never);
+
+    const { POST } = await import('@/app/api/jobs/update/route');
+    const res = await POST(makeUpdateRequest());
+
+    expect(res.status).toBe(200);
     const url = mockPing.mock.calls[0][0] as string;
     expect(url).toContain('https://pmhnphiring.com/jobs/');
     expect(url).toContain('job-abc');

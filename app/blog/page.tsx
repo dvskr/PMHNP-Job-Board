@@ -10,7 +10,6 @@ import {
     getPublishedCategoryCounts,
     BLOG_CATEGORIES,
 } from '@/lib/blog';
-import VideoJsonLd from '@/components/VideoJsonLd';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
 // ISR: blog index changes when posts publish/unpublish; 1-hour revalidate is
@@ -116,7 +115,6 @@ export default async function BlogIndexPage({
 
     return (
         <>
-            <VideoJsonLd pathname="/blog" />
             <BreadcrumbSchema items={[
                 { name: 'Home', url: 'https://pmhnphiring.com' },
                 { name: 'Blog', url: 'https://pmhnphiring.com/blog' },

@@ -89,7 +89,6 @@ const ALLOWLIST = [
   'components/FeaturedJobs.tsx',
   'components/HomepageHero.tsx',
   'components/LicensureChecker.tsx',
-  'components/VideoJsonLd.tsx',
   'lib/email-service.ts',
   'lib/env.ts',
   'lib/image-seo.ts',

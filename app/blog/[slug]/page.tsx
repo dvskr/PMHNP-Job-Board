@@ -296,18 +296,19 @@ export default async function BlogPostPage({ params }: Props) {
         url: currentUrl,
     };
 
-    // VideoObject schema when a YouTube video or Supabase video is associated
-    const videoSchema = post.youtube_video_id ? {
-        '@context': 'https://schema.org',
-        '@type': 'VideoObject',
-        name: post.title,
-        description: post.meta_description || post.title,
-        thumbnailUrl: `https://img.youtube.com/vi/${post.youtube_video_id}/maxresdefault.jpg`,
-        uploadDate: post.publish_date || post.created_at,
-        contentUrl: `https://www.youtube.com/watch?v=${post.youtube_video_id}`,
-        embedUrl: `https://www.youtube.com/embed/${post.youtube_video_id}`,
-        publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
-    } : post.video_url ? {
+    // VideoObject ONLY where the page actually renders a player.
+    //
+    // The removed branch emitted a YouTube VideoObject whenever a post carried
+    // a youtube_video_id, but nothing on this page ever renders a YouTube
+    // iframe: the only player is the VideoLightbox below, and it is wired to
+    // post.video_url. Google requires the video to be present on the page the
+    // markup describes, so that branch advertised a video a crawler could not
+    // find, the same defect just removed from the seven hub pages.
+    //
+    // If YouTube embeds are wanted later, render the iframe first and then
+    // restore this branch, in that order. Note the CSP in middleware.ts would
+    // also need a frame-src allowance for youtube.com.
+    const videoSchema = post.video_url ? {
         '@context': 'https://schema.org',
         '@type': 'VideoObject',
         name: post.title,

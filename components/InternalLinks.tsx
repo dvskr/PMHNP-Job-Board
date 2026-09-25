@@ -1,11 +1,19 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Briefcase, Wifi, Video, GraduationCap, Calendar } from 'lucide-react';
+import { STATE_CODES } from '@/lib/pseo/setting-state-config';
 
 interface InternalLinksProps {
+    /**
+     * Full US state name. Anything not in STATE_CODES is ignored rather than
+     * linked: the state value on a job row comes from a scraped posting, so it
+     * can be a non-US region, a free-text blob or a misspelling, and
+     * /jobs/state/<that> answers 404 or 410. Callers used to be responsible
+     * for validating this, which meant every future caller could reintroduce
+     * a dead link into the job detail page's internal link block.
+     */
     state?: string | null;
     stateCode?: string | null;
-    city?: string | null;
     isRemote?: boolean;
     isTelehealth?: boolean;
     jobType?: string | null;
@@ -23,7 +31,6 @@ const clayPebbleShadow = '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,
 export default function InternalLinks({
     state,
     stateCode,
-    city,
     isRemote,
     isTelehealth,
     jobType,
@@ -31,8 +38,10 @@ export default function InternalLinks({
 }: InternalLinksProps) {
     const links: { href: string; label: string; icon: React.ReactNode }[] = [];
 
-    // State page link
-    if (state) {
+    // State page link, gated on the registry that decides which state pages
+    // exist. Decision-tree rule 6: never emit an internal link to a pSEO URL
+    // without first checking the page is real.
+    if (state && Object.prototype.hasOwnProperty.call(STATE_CODES, state)) {
         const stateSlug = state.toLowerCase().replace(/\s+/g, '-');
         links.push({
             href: `/jobs/state/${stateSlug}`,

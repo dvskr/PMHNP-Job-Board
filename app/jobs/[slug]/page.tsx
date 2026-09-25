@@ -28,7 +28,11 @@ import { CareerPulseCard, ApplicationTipsCard } from '@/components/jobs/SidebarV
 import RoleSnapshot from '@/components/jobs/RoleSnapshot';
 import { getSiteStats } from '@/lib/site-stats';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { publicJobsWhere } from '@/lib/filters';
+import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
+import { cityLinkHref } from '@/lib/pseo/related-cities';
+import { STATE_CODES, stateToSlug } from '@/lib/pseo/setting-state-config';
 import { DEAD_LINK_MISS_THRESHOLD } from '@/lib/active-job-filter';
 import { getPostBySlug } from '@/lib/blog';
 import Link from 'next/link';
@@ -191,6 +195,34 @@ export async function getInternalLinkBuckets(params: {
     cityName: city ?? null,
     stateName: state ?? null,
   };
+}
+
+/**
+ * How many live jobs the /jobs/city/{slug} page for this job's city would show.
+ *
+ * The breadcrumb used to link that URL off the raw job fields, but the city
+ * page hard-404s below MIN_JOBS_FOR_CATEGORY_CITY. Job detail is the largest
+ * URL pool on the site, so every posting in a 1-job or 2-job city was both
+ * linking and marking up in BreadcrumbList a URL that answers 404. This
+ * mirrors the city page's own predicate exactly (publicJobsWhere + insensitive
+ * city match + state OR stateCode), so the crumb and the render gate agree.
+ */
+async function getCityPageJobCount(
+  city: string | null | undefined,
+  stateName: string | null | undefined,
+  stateCode: string | null | undefined,
+): Promise<number> {
+  if (!city || (!stateName && !stateCode)) return 0;
+  const scope: Prisma.JobWhereInput[] = [];
+  if (stateName) scope.push({ state: stateName });
+  if (stateCode) scope.push({ stateCode });
+  return prisma.job.count({
+    where: {
+      ...publicJobsWhere(),
+      city: { equals: city, mode: 'insensitive' },
+      OR: scope,
+    },
+  });
 }
 
 async function getRelatedJobs({
@@ -740,6 +772,7 @@ export default async function JobPage({ params }: JobPageProps) {
     relevantBlogPosts,
     internalLinkBuckets,
     siteStats,
+    cityPageJobCount,
   ] = await Promise.all([
     getRelatedJobs({
       currentJobId: job.id,
@@ -763,6 +796,9 @@ export default async function JobPage({ params }: JobPageProps) {
     // Cached SiteStat row read (single cheap query) — feeds the Career Pulse
     // "Active openings" pebble the same total every other surface shows.
     getSiteStats(),
+    // Decides whether the City breadcrumb gets an href at all — see
+    // getCityPageJobCount. Joins the fan-out so it costs no extra latency.
+    getCityPageJobCount(job.city, job.state, job.stateCode),
   ]);
   const employerUserId = (job as unknown as Record<string, unknown>).employerUserId as string | null | undefined;
 
@@ -789,33 +825,45 @@ export default async function JobPage({ params }: JobPageProps) {
     job.title.toLowerCase().includes('telehealth') ||
     job.description.toLowerCase().includes('telehealth');
 
-  // Build breadcrumb items
-  const breadcrumbItems = [
+  // Build breadcrumb items.
+  //
+  // <Breadcrumbs> also serializes this trail into BreadcrumbList JSON-LD, so
+  // an href here is both an internal link and a schema `item`. Decision-tree
+  // rule 6 applies to both: a crumb whose target does not answer 200 stays a
+  // plain label. Breadcrumbs treats a missing href exactly that way.
+  const breadcrumbItems: { label: string; href?: string }[] = [
     { label: 'Home', href: '/' },
     { label: 'Jobs', href: '/jobs' },
   ];
 
-  // Add state if available
+  // State crumb. /jobs/state/[state] resolves the slug through STATE_CODES and
+  // 404s (or 410s at the edge) on anything else, so a free-text or non-US
+  // `state` value gets a label with no link. A US state always has at least
+  // this job, so no count check is needed.
+  const crumbStateCode = job.state ? STATE_CODES[job.state] : undefined;
   if (job.state) {
-    breadcrumbItems.push({
-      label: job.state,
-      href: `/jobs/state/${job.state.toLowerCase().replace(/\s+/g, '-')}`,
-    });
+    breadcrumbItems.push(
+      crumbStateCode
+        ? { label: job.state, href: `/jobs/state/${stateToSlug(job.state)}` }
+        : { label: job.state },
+    );
   }
 
-  // Add city if available (with state code for proper routing)
-  if (job.city && job.stateCode) {
-    const citySlug = `${job.city.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}-${job.stateCode.toLowerCase()}`;
-    breadcrumbItems.push({
-      label: job.city,
-      href: `/jobs/city/${citySlug}`,
-    });
-  } else if (job.city) {
-    // Fallback: no state code, use resolveAmbiguousSlug-compatible format
-    breadcrumbItems.push({
-      label: job.city,
-      href: `/jobs/city/${job.city.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`,
-    });
+  // City crumb. Only linked when the city page clears its own render gate;
+  // curated metros are linked at /jobs/metro/{slug} so the crumb does not
+  // point at the 308.
+  if (job.city) {
+    const citySlugState = (job.stateCode || crumbStateCode || '').toLowerCase();
+    const citySlugBody = job.city.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const canLinkCity =
+      citySlugState.length > 0 &&
+      citySlugBody.length > 0 &&
+      cityPageJobCount >= MIN_JOBS_FOR_CATEGORY_CITY;
+    breadcrumbItems.push(
+      canLinkCity
+        ? { label: job.city, href: cityLinkHref(`${citySlugBody}-${citySlugState}`) }
+        : { label: job.city },
+    );
   }
 
   // Current page (no link)
@@ -1249,9 +1297,11 @@ export default async function JobPage({ params }: JobPageProps) {
               {/* Explore More — separate card */}
               <div className="hidden lg:block mt-4">
                 <InternalLinks
+                  // InternalLinks now gates `state` against STATE_CODES itself,
+                  // so a scraped non-US or free-text value drops the link
+                  // rather than pointing the sidebar at a 404. Passed raw.
                   state={job.state}
                   stateCode={job.stateCode}
-                  city={job.city}
                   isRemote={job.isRemote}
                   isTelehealth={isTelehealth}
                   jobType={job.jobType}

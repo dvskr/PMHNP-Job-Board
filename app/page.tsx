@@ -9,7 +9,6 @@ import EmployerTrustSection from '@/components/EmployerTrustSection';
 import FeaturedJobsSection from '@/components/FeaturedJobsSection';
 import TopStatesSection from '@/components/TopStatesSection';
 import HomepageHero from '@/components/HomepageHero';
-import VideoJsonLd from '@/components/VideoJsonLd';
 import HomepageBlogSection from '@/components/HomepageBlogSection';
 import EmployerHowItWorks from '@/components/EmployerHowItWorks';
 
@@ -144,7 +143,6 @@ export default async function Home() {
       {/* Structured data — outside content div to prevent hydration mismatch */}
       {/* Note: Organization schema is rendered site-wide in layout.tsx @graph.
           Removed standalone duplicate here to prevent conflicting signals in GSC. */}
-      <VideoJsonLd pathname="/" />
       {/* Single-item BreadcrumbList deliberately removed (audit 2026-08 C3):
           a homepage-only breadcrumb carries no trail and no rich-result value. */}
       {/* FAQPage schema mapped 1:1 from the SAME homepageFaqs array the

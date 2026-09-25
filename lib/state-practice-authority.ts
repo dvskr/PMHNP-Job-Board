@@ -7,10 +7,25 @@
  * - RESTRICTED: Requires physician supervision for practice
  * 
  * Source: American Association of Nurse Practitioners (AANP) State Practice Environment
- * Last updated: 2026
+ *
+ * OPERATOR: the classifications below have never been re-checked against the
+ * AANP source line by line. Massachusetts and New York in particular are
+ * carried here as 'reduced' and AANP may classify one or both as full. There
+ * is deliberately no `lastVerified` constant: stamping a date nobody actually
+ * verified on would be the same class of invented fact this file already
+ * caused once. Whoever does the AANP pass adds the date with the pass.
  */
 
 export type PracticeAuthority = 'full' | 'reduced' | 'restricted';
+
+/**
+ * Where these classifications come from. Exported so the citation travels
+ * with the number instead of being retyped beside it: lib/stats-sources.ts
+ * consumes both rather than declaring its own copy.
+ */
+export const PRACTICE_AUTHORITY_SOURCE = 'AANP State Practice Environment';
+export const PRACTICE_AUTHORITY_SOURCE_URL =
+    'https://www.aanp.org/advocacy/state/state-practice-environment';
 
 export interface StatePracticeInfo {
     authority: PracticeAuthority;

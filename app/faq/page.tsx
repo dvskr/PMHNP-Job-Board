@@ -7,10 +7,15 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import FAQAccordion from '@/components/FAQAccordion';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import VideoJsonLd from '@/components/VideoJsonLd';
 import { Mail, HelpCircle } from 'lucide-react';
 import { config } from '@/lib/config';
 import { FULL_PRACTICE_SUMMARY } from '@/lib/state-practice-authority';
+import { getOfferMarketData, getHubStateSummaries } from '@/lib/salary-report/market-data';
+import { summarizeMidpoints, roundDisplayDollars } from '@/lib/salary-report/stats';
+
+// The salary answers below query live postings, so this page is ISR daily on
+// the same cadence as /salary-guide rather than fully static.
+export const revalidate = 86400;
 
 const FAQ_OG_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-frequently-asked-questions.webp';
 
@@ -34,7 +39,26 @@ export const metadata: Metadata = {
   },
 };
 
-export default function FAQPage() {
+export default async function FAQPage() {
+  // Salary answers are computed, not written. Every dollar figure on this page
+  // comes from the same engine /salary-guide uses (medians of advertised
+  // ranges, quarantined and n-gated by lib/salary-report/stats.ts) and travels
+  // with its sample size. The previous versions of these answers hardcoded a
+  // national average, per-state averages, new-grad and top-decile bands,
+  // specialty and FPA "premium" percentages, locum ranges and sign-on bonus
+  // ranges. None of them could be reproduced from any source the codebase
+  // holds, and they disagreed with /salary-guide and /salary-guide/{state} on
+  // the same domain, inside FAQPage JSON-LD that llms.txt points answer
+  // engines at. Below the sample floor the answer says so instead of guessing.
+  const [market, hubStates] = await Promise.all([getOfferMarketData(), getHubStateSummaries()]);
+  const national = summarizeMidpoints(market.national);
+  const nationalFull = national.tier === 'full' ? national : null;
+  const nationalMedian = national.tier === 'full' || national.tier === 'median' ? national : null;
+  const topStates = hubStates.filter((s) => s.p25 != null).slice(0, 5);
+
+  const fmtK = (n: number) => `$${Math.round(roundDisplayDollars(n) / 1000)}K`;
+  const STANDARD_ANNUAL_HOURS = 2080;
+
   const jobSeekerFaqs = [
     {
       question: "Is PMHNP Hiring free to use?",
@@ -94,8 +118,11 @@ export default function FAQPage() {
       answer: "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, browse candidates, and manage all your job postings in one place. If you've lost the link, contact us at support@pmhnphiring.com."
     },
     {
+      // There is no refund guarantee. The old answer ("we'll work with you")
+      // read like one in structured data while the Terms say postings are
+      // generally non-refundable, so this now states the actual policy.
       question: "Do you offer refunds?",
-      answer: "Contact us at support@pmhnphiring.com within 7 days of posting if you're unsatisfied and we'll work with you. We want you to have a great experience and will do our best to resolve any issues."
+      answer: "Job posting and renewal fees are generally non-refundable. You can email support@pmhnphiring.com within 7 days of purchase with your order details and the reason, and we consider requests case by case at our discretion. The full policy is in our Terms of Service."
     },
   ];
 
@@ -129,7 +156,7 @@ export default function FAQPage() {
     },
     {
       question: "What is the difference between a PMHNP and a psychiatrist?",
-      answer: "PMHNPs hold a Master's or Doctoral degree in nursing (2 to 4 years of graduate school), while psychiatrists complete medical school plus a 4-year residency. Both can diagnose and prescribe. In full practice authority states, PMHNPs practice independently. PMHNPs earn $155,000 to $200,000+ versus psychiatrists' $250,000 to $350,000+."
+      answer: "PMHNPs hold a Master's or Doctoral degree in nursing (2 to 4 years of graduate school), while psychiatrists complete medical school plus a 4-year residency. Both can diagnose and prescribe. In full practice authority states, PMHNPs practice independently. Psychiatrists are paid more, though we only publish figures we can compute: our salary guide shows current advertised PMHNP medians, and we do not track psychiatrist pay."
     },
     {
       question: "What is the difference between a PMHNP and an FNP?",
@@ -141,7 +168,9 @@ export default function FAQPage() {
     },
     {
       question: "What is the ROI of a PMHNP degree?",
-      answer: "The ROI is excellent. Graduate school costs $35,000 to $80,000 for an MSN. PMHNPs earn an average of $155,000+, roughly $75,000 more per year than an RN. Most PMHNPs pay off their graduate degree investment within 2 to 3 years of working."
+      answer: nationalMedian
+        ? `Run it with real numbers rather than a rule of thumb. The current median advertised PMHNP salary across ${nationalMedian.n.toLocaleString()} live postings that disclose a range is ${fmtK(nationalMedian.median)} per year, which our salary guide keeps up to date with its sample size. Put that against your own program's tuition and against what you earn now: we do not publish a generic payback period because tuition, prior RN pay, and local market all move it.`
+        : "Run it with real numbers rather than a rule of thumb. Our salary guide publishes the current median advertised PMHNP salary from live postings with its sample size. Put that against your own program's tuition and against what you earn now: tuition, prior RN pay, and local market all move the payback period, so a single national figure would mislead."
     },
     {
       question: "What are the top 3 PMHNP jobs for new grads?",
@@ -152,15 +181,21 @@ export default function FAQPage() {
   const salaryFaqs = [
     {
       question: "What is the average salary of a psychiatric nurse practitioner in the United States?",
-      answer: "The average PMHNP salary in 2026 is $155,000 to $165,000 per year. New graduates start at $115,000 to $145,000, while experienced PMHNPs (7 to 15 years) earn $180,000 to $210,000. Private practice owners can earn $200,000 to $300,000+. The top 10% earn over $210,000 annually."
+      answer: nationalFull
+        ? `Across ${nationalFull.n.toLocaleString()} live postings on this site that disclose a salary range, the median advertised PMHNP salary is ${fmtK(nationalFull.median)} per year, and the middle 50% of those postings advertise between ${fmtK(nationalFull.p25)} and ${fmtK(nationalFull.p75)}. These are advertised figures from job postings, not self-reported earnings, and they move as postings turn over. The salary guide shows the current numbers with their sample size.`
+        : nationalMedian
+          ? `Across ${nationalMedian.n.toLocaleString()} live postings on this site that disclose a salary range, the median advertised PMHNP salary is ${fmtK(nationalMedian.median)} per year. That is an advertised figure from job postings, not self-reported earnings. We withhold the percentile range until enough postings disclose one.`
+          : "We publish pay only when enough live postings disclose a salary range to compute a median, and right now they do not. Rather than estimate, we withhold the figure. The salary guide shows whatever the current sample supports."
     },
     {
       question: "Which states pay the highest salaries for PMHNPs?",
-      answer: "The highest-paying states for PMHNPs include Idaho ($205,080 average), New Jersey ($182,022), California ($181,670), Rhode Island ($175,530), and Washington ($173,331). When adjusted for cost of living, Idaho, Louisiana, Pennsylvania, Arkansas, and Missouri offer the best value."
+      answer: topStates.length >= 3
+        ? `By median advertised pay in current postings, counting only states with at least 10 disclosed ranges: ${topStates.map((s, i) => `${i + 1}. ${s.state} (${fmtK(s.median)}, n=${s.n})`).join(', ')}. Rankings shift as postings turn over, and a high nominal median does not survive a high cost of living, so compare against where you would actually live.`
+        : "We rank states by the median advertised pay in current postings, and only for states with enough disclosed ranges to support a median. See the salary guide for the current ranking and each state's sample size."
     },
     {
       question: "How do psychiatric nurse practitioner salaries compare to other NP roles?",
-      answer: "PMHNPs are among the highest-paid NP specialties. They earn 10 to 20% more than Family NPs (average $120,000 to $135,000) and comparable to Acute Care NPs. This premium reflects the critical shortage of mental health providers and the specialized nature of psychiatric care."
+      answer: "PMHNPs are widely considered one of the better-paid NP specialties, which is usually attributed to the shortage of psychiatric prescribers. We do not publish a cross-specialty comparison, because this board only carries PMHNP postings and we will not quote a figure for a specialty we have no data on. Our PMHNP medians come from advertised ranges in live postings and ship with their sample size."
     },
     {
       question: "Does having a DNP versus an MSN affect a PMHNP's salary?",
@@ -168,11 +203,11 @@ export default function FAQPage() {
     },
     {
       question: "How can you make the most money as a PMHNP?",
-      answer: "Top strategies include: owning a private practice ($200K to $300K+), specializing in high-demand areas like addiction (+15 to 20% premium) or forensic psychiatry (+15 to 25%), practicing in Full Practice Authority states (+12 to 15% premium), working locum tenens ($150K to $250K), and always negotiating total compensation."
+      answer: "The levers most PMHNPs actually pull: practicing in a Full Practice Authority state, which opens independent and private practice; building depth in scarce areas like addiction, forensic, or child and adolescent psychiatry; weighing 1099 contract rates against W-2 packages honestly, including the tax and benefits difference; and negotiating total compensation rather than base alone. We do not attach a percentage premium to any of these, because we have no dataset that would support one. The Offer Analyzer shows where a specific offer sits against current advertised ranges."
     },
     {
       question: "What is the salary range for locum tenens PMHNP jobs?",
-      answer: "Locum tenens PMHNPs earn $150,000 to $250,000+ annually, with hourly rates of $85 to $150+. This includes housing stipends, travel allowances, and malpractice coverage. Locum tenens pay rates are typically 20 to 50% higher than permanent positions, making it one of the highest-earning PMHNP career paths."
+      answer: `Locum and travel contracts are usually quoted hourly and often look higher than a salaried role, but the quote typically excludes benefits and adds self-employment tax, so it is not a like-for-like comparison. Browse current locum tenens postings for real advertised rates, and use the salary converter to annualize an hourly quote over your actual schedule (a standard full-time year is ${STANDARD_ANNUAL_HOURS.toLocaleString()} hours).`
     },
   ];
 
@@ -183,11 +218,15 @@ export default function FAQPage() {
     },
     {
       question: "What are the certification requirements for PMHNP graduates?",
-      answer: "After graduating from an accredited PMHNP program, you must pass the ANCC PMHNP-BC exam ($395), apply for state APRN licensure, obtain an NPI number, register with the DEA for prescriptive authority ($888/3 years), and create a CAQH ProView profile for insurance credentialing. Board certification must be renewed every 5 years with 75 CE hours."
+      // Fee amounts removed: the ANCC exam fee and the DEA registration fee
+      // were quoted here as fixed dollar figures with no source and no review
+      // date, and both are set by bodies that change them. Check the current
+      // fee with the issuing body rather than with us.
+      answer: "After graduating from an accredited PMHNP program, you must pass the ANCC PMHNP-BC exam, apply for state APRN licensure, obtain an NPI number, register with the DEA for prescriptive authority, and create a CAQH ProView profile for insurance credentialing. Board certification is renewed on a 5-year cycle. Current fees are published by ANCC and the DEA; confirm them there, since they change."
     },
     {
       question: "What extra certifications can a PMHNP get?",
-      answer: "PMHNPs can pursue additional credentials including MAT/DATA waiver for addiction treatment, child and adolescent psychiatry specialization, addiction nursing certification (CARN-AP), forensic nursing certification, and geriatric psychiatry specialization. These certifications command 10 to 25% salary premiums."
+      answer: "PMHNPs can pursue additional credentials including child and adolescent psychiatry specialization, addiction nursing certification (CARN-AP), forensic nursing certification, and geriatric psychiatry specialization. These open roles in scarcer niches, which is where the stronger offers tend to sit. We do not quote a percentage premium for any of them, because we have no dataset that would support one."
     },
     {
       question: "Are there state licensure rules that affect demand for PMHNPs?",
@@ -199,13 +238,12 @@ export default function FAQPage() {
     },
     {
       question: "What negotiation strategies can enhance salary offers for PMHNPs?",
-      answer: "Key strategies include researching market rates by state and setting, negotiating total compensation (not just base salary), asking for sign-on bonuses ($5,000 to $30,000), requesting CME allowance ($2,000 to $5,000/year), student loan repayment assistance, additional PTO, and flexible scheduling. PMHNPs who negotiate typically secure 5 to 15% higher starting salaries."
+      answer: "Go in with the market rate for your state and setting rather than a national figure: our salary guide publishes advertised medians by state with the sample size behind each one, and the Offer Analyzer places a specific offer against current postings. Negotiate total compensation, not base alone, which means the sign-on, the CME allowance, loan repayment assistance, PTO, and scheduling. We do not publish typical bonus amounts or a typical negotiated uplift, because those are not figures this site can compute."
     },
   ];
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
-      <VideoJsonLd pathname="/faq" />
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'FAQ', url: 'https://pmhnphiring.com/faq' },
@@ -243,7 +281,7 @@ export default function FAQPage() {
                   </p>
               </div>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/clay_hero_faq.webp" alt="FAQ PMHNP Jobs" width={280} sizes="(max-width: 768px) 100vw, 280px" height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
+                  <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/clay_hero_faq.webp" alt="PMHNP Hiring FAQ" width={280} sizes="(max-width: 768px) 100vw, 280px" height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
               </div>
           </div>
       </section>

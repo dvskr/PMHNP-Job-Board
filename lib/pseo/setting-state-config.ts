@@ -319,11 +319,13 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     ),
     benefits: [
       { title: 'Critical Need', description: 'The opioid epidemic has created unprecedented demand for addiction-trained PMHNPs across every state.', iconName: 'AlertTriangle' },
-      { title: 'MAT Prescribing', description: 'PMHNPs can prescribe buprenorphine (Suboxone) and naltrexone, essential medications for opioid use disorder.', iconName: 'Shield' },
-      { title: 'Loan Repayment', description: 'Many addiction treatment centers qualify for NHSC loan repayment programs, offering up to $50K in student loan forgiveness.', iconName: 'DollarSign' },
+      { title: 'MAT Prescribing', description: 'PMHNPs can prescribe buprenorphine (Suboxone) and naltrexone for opioid use disorder under their standard DEA registration, with no separate waiver required.', iconName: 'Shield' },
+      // NHSC award amounts and service terms are reset by HRSA each cycle, so a
+      // fixed dollar figure here goes stale and contradicts the FAQ copy.
+      { title: 'Loan Repayment', description: 'Many addiction treatment centers qualify for NHSC loan repayment; award amounts and service terms are set by HRSA each cycle.', iconName: 'DollarSign' },
     ],
     tips: [
-      'Obtain X-waiver/DEA certification for MAT prescribing',
+      'Keep DEA registration current and add MAT or ASAM training; buprenorphine needs no separate waiver',
       'Build expertise in motivational interviewing (MI)',
       'Understand the continuum of care from detox to recovery',
       'Stay current on dual-diagnosis treatment approaches',

@@ -18,7 +18,12 @@
  * Never hardcode a salary / growth / shortage number anywhere else.
  */
 
-import { FULL_PRACTICE_STATE_COUNT, FULL_PRACTICE_SUMMARY } from './state-practice-authority';
+import {
+    FULL_PRACTICE_STATE_COUNT,
+    FULL_PRACTICE_SUMMARY,
+    PRACTICE_AUTHORITY_SOURCE,
+    PRACTICE_AUTHORITY_SOURCE_URL,
+} from './state-practice-authority';
 
 export interface StatSource {
     /** Raw numeric value used in JSON-LD or computations. */
@@ -106,8 +111,9 @@ export const STAT_SOURCES = {
     fullPracticeStates: {
         value: String(FULL_PRACTICE_STATE_COUNT),
         formatted: FULL_PRACTICE_SUMMARY,
-        source: 'AANP State Practice Environment',
-        sourceUrl: 'https://www.aanp.org/advocacy/state/state-practice-environment',
+        // Citation travels with the table, not retyped beside it.
+        source: PRACTICE_AUTHORITY_SOURCE,
+        sourceUrl: PRACTICE_AUTHORITY_SOURCE_URL,
         asOf: '2024',
     },
 } satisfies Record<string, StatSource>;

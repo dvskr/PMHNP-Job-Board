@@ -2,7 +2,6 @@ import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import { Prisma } from '@prisma/client';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import VideoJsonLd from '@/components/VideoJsonLd';
 import { prisma } from '@/lib/prisma';
 import { getSiteStats } from '@/lib/site-stats';
 import { newGradWhereClause, publicJobsWhere } from '@/lib/filters';
@@ -65,7 +64,6 @@ export default async function AboutPage() {
 
   return (
     <>
-      <VideoJsonLd pathname="/about" />
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'About', url: 'https://pmhnphiring.com/about' },
