@@ -130,6 +130,7 @@ model Job {
   healthChecks             JobHealthCheck[]
   embedding                JobEmbedding?
   recommendations          CandidateRecommendation[]
+  alertSends               AlertJobSend[]
 
   @@index([isPublished])
   @@index([isFeatured])
@@ -228,6 +229,48 @@ model EmailLead {
   @@map("email_leads")
 }
 
+/// One row per (recipient, job) that any alert chain has mailed.
+///
+/// JobAlert.lastSentAt is a CUTOFF, not a record: the next run asks for jobs
+/// created after that timestamp, and nothing anywhere stores which job ids
+/// went into which email. That is survivable with a single chain. It is not
+/// survivable with two, and both failure modes are bad:
+///
+///   - Separate cutoffs. The second chain's first window contains every job
+///     the digest already mailed, so day one sends everyone a duplicate.
+///   - A shared cutoff. Whichever cron runs first advances it past everything
+///     accumulated since the last send and the other finds nothing. This is
+///     exactly why lib/inngest/functions/employer-published.ts sends a whole
+///     digest instead of a single-job email.
+///
+/// So the chains coordinate through rows, not a timestamp. The unique index
+/// is the enforcement: a read-then-write cooldown degrades to "usually once"
+/// under concurrency, which is the reasoning MatchDigestEmail and
+/// LifecycleEmailSend already record for themselves.
+///
+/// Written claim-first, before the batch reaches Resend, so the failure mode
+/// is a missed email rather than a repeated one.
+model AlertJobSend {
+  id      String   @id @default(cuid())
+  /// Lowercased recipient address. Not a relation: alerts are grouped by
+  /// address across multiple JobAlert rows, and the ledger has to dedupe at
+  /// the level of the person, not the alert.
+  email   String
+  jobId   String   @map("job_id")
+  /// Which chain sent it: 'digest' or 'full_jd'. Diagnostic only. The unique
+  /// constraint deliberately ignores it, because the point is that a person
+  /// sees a given job once from either chain.
+  chain   String
+  sentAt  DateTime @default(now()) @map("sent_at")
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([email, jobId])
+  @@index([email, sentAt(sort: Desc)])
+  @@index([jobId])
+  @@map("alert_job_sends")
+}
+
 model JobAlert {
   id                 String    @id @default(cuid())
   email              String
@@ -244,6 +287,14 @@ model JobAlert {
   newGradFriendly    Boolean?  @map("new_grad_friendly")
   minYearsExperience Int?      @map("min_years_experience_filter")
   frequency          String    @default("weekly")
+  /// Which email this alert wants: "brief" (the digest of matches) or
+  /// "full_jd" (one employer posting, whole description). Per alert rather
+  /// than per person, so someone can keep a broad daily brief and also ask
+  /// for the full posting on a narrow, high-intent alert.
+  ///
+  /// Defaults to brief: the full posting is a heavier email and only fires
+  /// for employer-authored listings, so nobody is moved onto it silently.
+  deliveryFormat     String    @default("brief") @map("delivery_format")
   // Double opt-in (CASL / GDPR best practice). New rows start with
   // is_active = false and confirmed_at = null. The send-alerts cron
   // only fires for confirmed alerts. Flipped by /api/job-alerts/confirm.

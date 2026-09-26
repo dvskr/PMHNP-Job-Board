@@ -581,6 +581,40 @@ export function buildAlertEmailPayload(args: {
   }
 }
 
+/**
+ * Record which jobs went to which address.
+ *
+ * lastSentAt is a cutoff and says nothing about WHAT was sent, which is fine
+ * for one chain and breaks the moment there are two: a second chain reading
+ * its own cutoff would, on its first run, re-send every job this digest had
+ * already mailed. AlertJobSend is the shared record that prevents it, and its
+ * unique index on (email, jobId) is what makes that hold under two crons
+ * running at once.
+ *
+ * WRITE ONLY, for now. The digest does not yet filter on these rows, so this
+ * changes no behaviour here: it only starts accumulating the history that the
+ * full-description chain needs in order to be switched on without duplicating
+ * anything. Filtering the digest on the ledger is a separate change to the
+ * highest-volume sender on the platform and does not belong in the same step.
+ *
+ * Never allowed to fail a send. The email has already gone out by this point,
+ * so a ledger error is a reporting problem, not a delivery one.
+ */
+async function recordAlertJobSends(
+  batch: { email: string; jobIds: string[] }[],
+  chain: 'digest' | 'full_jd',
+): Promise<void> {
+  const rows = batch.flatMap(b =>
+    b.jobIds.map(jobId => ({ email: b.email.toLowerCase(), jobId, chain })),
+  )
+  if (!rows.length) return
+  try {
+    await prisma.alertJobSend.createMany({ data: rows, skipDuplicates: true })
+  } catch (err) {
+    logger.error('[Alerts] could not record sent jobs; the email already went out', err)
+  }
+}
+
 // ─── lastSentAt claim revert (claim-first send, see phase 2) ─────────────────
 // updateMany cannot write per-row values, so group ids by their previous
 // stamp. The `lastSentAt: claimValue` guard makes the revert a no-op for any
@@ -924,6 +958,8 @@ export async function sendJobAlerts(options: SendJobAlertsOptions = {}): Promise
     const emailPayloads: Array<{
       alertIds: string[]
       email: string
+      /** The jobs this email actually shows, for the AlertJobSend ledger. */
+      jobIds: string[]
       payload: AlertEmailPayload
     }> = []
 
@@ -1021,6 +1057,7 @@ export async function sendJobAlerts(options: SendJobAlertsOptions = {}): Promise
       emailPayloads.push({
         alertIds: group.map(r => r.alert.id),
         email: primary.email,
+        jobIds: displayJobs.map(j => j.id),
         payload: buildAlertEmailPayload({
           email: primary.email,
           alertToken: primary.token,
@@ -1118,6 +1155,7 @@ export async function sendJobAlerts(options: SendJobAlertsOptions = {}): Promise
       if (batchOutcome.ok) {
         results.sent += batch.length
         logger.info(`[Alerts] Batch ${batchNum} sent successfully (${batch.length} emails, covering ${alertIds.length} alerts)`)
+        await recordAlertJobSends(batch, 'digest')
       } else {
         for (const b of batch) {
           results.errors.push(`Alert(s) ${b.alertIds.join(',')} (${b.email}): ${batchOutcome.reason}`)
