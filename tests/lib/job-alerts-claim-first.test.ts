@@ -32,7 +32,12 @@ vi.mock('resend', () => ({
   },
 }));
 vi.mock('@/lib/prisma', () => ({ prisma: h.db }));
-vi.mock('@/lib/email-service', () => ({
+// Spread the real module: this file only needs the two network-touching
+// exports stubbed, and a mock that lists just those breaks the moment the
+// service under test reaches for a third (escapeHtml, when the digest began
+// escaping employer-supplied text).
+vi.mock('@/lib/email-service', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/email-service')>()),
   isEmailSuppressed: vi.fn(async () => false),
   getOrCreateUnsubToken: vi.fn(async () => 'unsub-token-fictional'),
 }));

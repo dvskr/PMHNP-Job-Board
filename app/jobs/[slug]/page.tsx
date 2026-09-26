@@ -508,7 +508,10 @@ export async function generateMetadata({ params }: JobPageProps) {
   // Build dynamic OG image URL
   const ogImageUrl = new URL('/api/og', BASE_URL);
   // v bump busts scraper caches when the OG design changes (see api/og tests).
-  ogImageUrl.searchParams.set('v', '3');
+  // 4 for the pay-slab job layout. Only the job branch of the route changed,
+  // so the page and category builders stay on 3 rather than throwing away
+  // thousands of correctly cached images for a layout that did not move.
+  ogImageUrl.searchParams.set('v', '4');
   ogImageUrl.searchParams.set('title', job.title);
   ogImageUrl.searchParams.set('company', job.employer);
 

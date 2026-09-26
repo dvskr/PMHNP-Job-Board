@@ -45,6 +45,21 @@ function titleFontSize(text: string): number {
   return 62;
 }
 
+/**
+ * Size for the pay slab.
+ *
+ * Satori does not wrap or hyphenate, and nothing clips the 1200px frame, so
+ * an over-long string walks off the card rather than reflowing. The strings
+ * that reach here are short and predictable ("$168k to $195k", "$168k+",
+ * "Up to $195k"), and these steps keep every one of them inside the 1072px
+ * content column.
+ */
+function salaryFontSize(text: string): number {
+  if (text.length > 18) return 76;
+  if (text.length > 14) return 92;
+  return 108;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
@@ -152,8 +167,58 @@ export async function GET(request: NextRequest) {
         </div>
       )}
     </div>
+  ) : hasSalary ? (
+    /* ===== JOB POST, pay published ===== */
+    /* The advertised range is the dominant element on the card. Two
+       reasons. It is the one fact a reader cannot get from the headline of
+       any competing board, and it is the only element that stays legible at
+       the ~180px a link preview gets in a feed, where a two-line role title
+       resolves to a grey smear.
+
+       Size and color carry the hierarchy here, never fontWeight. next/og
+       registers a single face (Noto Sans Regular, declared as weight 700),
+       and Satori does no synthetic emboldening, so 800 and 500 rasterise
+       identically. Asking for weight contrast would produce none. */
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          display: 'flex',
+          fontSize: salaryFontSize(salary),
+          color: INK,
+          lineHeight: 1,
+          letterSpacing: '-0.03em',
+        }}
+      >
+        {salary}
+      </div>
+      <div
+        style={{
+          display: 'block',
+          lineClamp: 2,
+          fontSize: 42,
+          color: INK,
+          lineHeight: 1.16,
+          letterSpacing: '-0.015em',
+          marginTop: 26,
+          maxWidth: 1010,
+        }}
+      >
+        {displayTitle}
+      </div>
+      <div style={{ display: 'flex', fontSize: 27, color: MUTED, marginTop: 14 }}>
+        at {displayCompany}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: 28 }}>
+        {hasLocation && chip(location)}
+        {jobType && chip(jobType)}
+        {experience && chip(experience)}
+      </div>
+    </div>
   ) : (
-    /* ===== JOB POST ===== */
+    /* ===== JOB POST, pay withheld ===== */
+    /* No slab to fall back on, so the title takes the dominant position and
+       the chips carry what is left. Inventing a placeholder figure here
+       would put a number on the card that the posting never published. */
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       <div
         style={{
@@ -173,7 +238,6 @@ export async function GET(request: NextRequest) {
         at {displayCompany}
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: 34 }}>
-        {hasSalary && chip(salary, true)}
         {hasLocation && chip(location)}
         {jobType && chip(jobType)}
         {experience && chip(experience)}

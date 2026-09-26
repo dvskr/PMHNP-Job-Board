@@ -57,7 +57,16 @@ describe('OG routes share the current visual system', () => {
   }
 });
 
-describe('og URL builders carry the v=3 cache buster', () => {
+/**
+ * The buster is versioned per layout, not site-wide.
+ *
+ * Scrapers cache by URL and the edge holds each render for 30 days, so a
+ * layout change only reaches Twitter, Slack and LinkedIn if its URLs change.
+ * The job branch moved to the pay slab and went to 4; the page branch did not
+ * move and stays at 3, which keeps thousands of still-correct page images in
+ * cache instead of re-rendering them for nothing.
+ */
+describe('og URL builders carry a cache buster matched to their layout', () => {
   it('app/layout.tsx site-wide og image', () => {
     expect(read('app/layout.tsx')).toContain('/api/og?v=3');
   });
@@ -66,5 +75,32 @@ describe('og URL builders carry the v=3 cache buster', () => {
   });
   it('lib/pseo/setting-state-template.tsx state og url', () => {
     expect(read('lib/pseo/setting-state-template.tsx')).toContain('&v=3');
+  });
+  it('the job page moved to 4 with the pay-slab layout', () => {
+    expect(read('app/jobs/[slug]/page.tsx')).toMatch(/searchParams\.set\('v', '4'\)/);
+  });
+});
+
+/**
+ * The pay slab is the reason the job layout changed, so pin the two things
+ * that make it work rather than its exact pixel sizes.
+ */
+describe('the job card leads with advertised pay when there is any', () => {
+  const src = read('app/api/og/route.tsx');
+
+  it('branches on hasSalary instead of rendering one job layout', () => {
+    expect(src).toMatch(/:\s*hasSalary\s*\?\s*\(/);
+  });
+
+  it('never invents a figure when the posting published none', () => {
+    // The old default put "Competitive Pay" on the card. hasSalary already
+    // treats that string as absent; this keeps it from coming back.
+    expect(src).not.toMatch(/salary\s*=\s*['"`]\$/);
+    expect(src).toMatch(/searchParams\.get\('salary'\) \|\| 'Competitive Pay'/);
+  });
+
+  it('sizes the slab so a long range cannot walk off the 1200px frame', () => {
+    // Satori does not wrap or clip, so this has to be computed, not hoped for.
+    expect(src).toMatch(/function salaryFontSize/);
   });
 });
