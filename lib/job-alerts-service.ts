@@ -2,6 +2,11 @@ import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import { slugify } from '@/lib/utils'
 import { isEmailSuppressed, getOrCreateUnsubToken } from '@/lib/email-service'
+// From sanitize, not email-service, which also exports one: tests/setup.ts
+// mocks @/lib/email-service globally, so importing a pure string helper from
+// there makes every suite that touches this service depend on that mock
+// listing it.
+import { escapeHtml } from '@/lib/sanitize'
 import {
   interpretResendBatch,
   buildJobAlertEmailRows,
@@ -20,7 +25,6 @@ import { CATEGORY_FILTERS, CATEGORY_EXCLUSIONS } from '@/lib/filters'
 import { logger } from '@/lib/logger'
 import { brand } from '@/config/brand'
 import { BEST_SORT_ORDER_BY, compareJobsBest } from '@/lib/utils/job-sort'
-import { renderJobCardHtml } from '@/lib/utils/render-job-card'
 import { classifyJob } from '@/lib/ai/job-classifier'
 import {
   ATS_HOST_SUBSTRINGS,
@@ -312,6 +316,132 @@ export interface AlertCardJob {
   createdAt: Date
 }
 
+/** Salary in thousands, or 0 when the posting publishes nothing usable. */
+function salaryK(primary?: number | null, fallback?: number | null): number {
+  const value = primary || fallback
+  return value && value > 0 ? Math.round(value / 1000) : 0
+}
+
+/** One chip. Kept tiny and border-based so Outlook renders it as a box, not a blob. */
+function briefChip(label: string, accent = false): string {
+  const bg = accent ? '#ECFDF5' : '#F3F6F4'
+  const fg = accent ? '#065F46' : '#374151'
+  const edge = accent ? '#A7F3D0' : '#E0E5E1'
+  return `<span style="font-family:${SANS_V2};font-size:11px;font-weight:600;color:${fg};background-color:${bg};border:1px solid ${edge};border-radius:10px;padding:2px 8px;white-space:nowrap;">${escapeHtml(label)}</span>`
+}
+
+/**
+ * One entry in the brief.
+ *
+ * A two-cell table, not the flex layout the design was drawn in: Outlook has
+ * no flexbox, and this row has to hold its two columns there as firmly as it
+ * does in Apple Mail. The rule between entries is a border on the cell rather
+ * than a spacer row, so the rhythm survives when a client drops empty rows.
+ *
+ * Numerals are set in the sans stack on purpose. The @import that loads Lora
+ * is stripped by Gmail and Outlook, so the serif resolves to Georgia, whose
+ * figures are old-style: $168k would sit lower than $155k and the pay column
+ * would read as ragged rather than aligned. Georgia is a fine face for the
+ * role titles above them, which is where the serif stays.
+ */
+function briefEntry(job: AlertCardJob, index: number, isLast: boolean): string {
+  const minK = salaryK(job.normalizedMinSalary, job.minSalary)
+  const maxK = salaryK(job.normalizedMaxSalary, job.maxSalary)
+
+  const pay = minK && maxK
+    ? `<div style="font-family:${SANS_V2};font-size:20px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;white-space:nowrap;">$${minK}k</div>
+       <div style="font-family:${SANS_V2};font-size:11px;color:${V2.textFaded};margin-top:2px;white-space:nowrap;">to $${maxK}k</div>`
+    : minK
+      ? `<div style="font-family:${SANS_V2};font-size:20px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;white-space:nowrap;">$${minK}k</div>
+         <div style="font-family:${SANS_V2};font-size:11px;color:${V2.textFaded};margin-top:2px;white-space:nowrap;">and up</div>`
+      : maxK
+        ? `<div style="font-family:${SANS_V2};font-size:20px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;white-space:nowrap;">$${maxK}k</div>
+           <div style="font-family:${SANS_V2};font-size:11px;color:${V2.textFaded};margin-top:2px;white-space:nowrap;">at most</div>`
+        // Named, not blank. A missing range is a fact about the posting, and
+        // an empty cell reads as a rendering fault. No <br>: the 96px column
+        // wraps it anyway, and htmlToPlainText turns a break into a newline,
+        // which split the phrase across two lines of the text/plain part.
+        : `<div style="font-family:${SANS_V2};font-size:12px;font-weight:600;color:${V2.textFaded};line-height:1.35;">Pay not published</div>`
+
+  const chips: string[] = []
+  if (job.mode) chips.push(briefChip(job.mode, job.mode.toLowerCase().includes('remote')))
+  if (job.jobType) chips.push(briefChip(job.jobType))
+
+  const jobUrl = `${BASE_URL}/jobs/${slugify(job.title, job.id)}`
+  const edge = isLast ? 'none' : `1px solid ${V2.borderLight}`
+  const num = String(index + 1).padStart(2, '0')
+
+  return `<tr><td class="content-pad" style="padding:0 40px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td valign="top" width="26" style="width:26px;padding:18px 0;border-bottom:${edge};font-family:${SANS_V2};font-size:13px;color:${V2.textFaded};">${num}</td>
+        <td valign="top" style="padding:18px 8px 18px 0;border-bottom:${edge};">
+          <a href="${jobUrl}" style="font-family:${SERIF_V2};font-size:17px;font-weight:600;color:${V2.textHeading};text-decoration:none;line-height:1.35;">${escapeHtml(job.title)}</a>
+          <div style="font-family:${SANS_V2};font-size:13px;color:${V2.textBody};margin-top:5px;">${escapeHtml(job.employer)} &middot; ${escapeHtml(job.location)}</div>
+          ${chips.length ? `<div style="margin-top:9px;">${chips.join('&nbsp;')}</div>` : ''}
+        </td>
+        <td valign="top" align="right" width="96" style="width:96px;padding:18px 0;border-bottom:${edge};text-align:right;">
+          ${pay}
+          <div style="font-family:${SANS_V2};font-size:11px;color:${V2.textFaded};margin-top:7px;white-space:nowrap;">${escapeHtml(timeAgo(job.createdAt))}</div>
+        </td>
+      </tr>
+    </table>
+  </td></tr>`
+}
+
+/**
+ * The subject line.
+ *
+ * Leads with the advertised range whenever the matches publish one, because
+ * that is the one thing in the email a reader cannot get from the competing
+ * alert in the same inbox. Falls back to a plain count when nothing in the
+ * set discloses pay: a subject promising a figure that the body then withholds
+ * is worse than no figure at all.
+ *
+ * Figures come from the same normalized columns the body renders, so the
+ * subject and the first entry can never disagree.
+ */
+export function buildAlertSubject(jobs: AlertCardJob[], totalCount: number): string {
+  const noun = totalCount === 1 ? 'PMHNP role' : 'PMHNP roles'
+  const lows: number[] = []
+  const highs: number[] = []
+  for (const job of jobs) {
+    const lo = salaryK(job.normalizedMinSalary, job.minSalary)
+    const hi = salaryK(job.normalizedMaxSalary, job.maxSalary)
+    if (lo) lows.push(lo)
+    if (hi || lo) highs.push(hi || lo)
+  }
+
+  if (!lows.length && !highs.length) {
+    return `${totalCount} new ${noun} matched your alert`
+  }
+
+  const floor = Math.min(...(lows.length ? lows : highs))
+  const ceiling = Math.max(...highs)
+
+  // One posting, or a set whose ends coincide: a range would be a fiction.
+  if (floor === ceiling) {
+    return `${totalCount} new ${noun} from $${floor}k`
+  }
+  return `$${floor}k to $${ceiling}k across ${totalCount} new ${noun}`
+}
+
+/**
+ * "The Brief": an editorial index rather than a stack of cards.
+ *
+ * The previous version rendered up to ten identical cards, so every role
+ * carried the same visual weight and there was nothing for the eye to follow.
+ * This sets the roles as numbered entries separated by rules, with pay in a
+ * right-hand column the reader can run straight down. It also degrades well:
+ * the design is type and rules, so Outlook and Gmail, which drop the shadow,
+ * the gradient and the radius that the card design depended on, lose nothing
+ * here.
+ *
+ * The opening line states how many of the matches publish a salary and how
+ * old the oldest one is. It replaces "Apply early for the best response
+ * rates", which was filler and, being the preheader, was the most-read
+ * sentence in the email.
+ */
 function buildAlertHtml(
   jobs: AlertCardJob[],
   alertToken: string,
@@ -321,56 +451,64 @@ function buildAlertHtml(
 ): string {
   const jobCount = totalCount || jobs.length
   const displayJobs = jobs.slice(0, 10)
-  const jobCardsHtml = displayJobs.map((job, index) => {
-    const minK = (job.normalizedMinSalary || job.minSalary) && (job.normalizedMinSalary || job.minSalary)! > 0 ? Math.round((job.normalizedMinSalary || job.minSalary)! / 1000) : 0
-    const maxK = (job.normalizedMaxSalary || job.maxSalary) && (job.normalizedMaxSalary || job.maxSalary)! > 0 ? Math.round((job.normalizedMaxSalary || job.maxSalary)! / 1000) : 0
-    const salaryText = minK && maxK ? `$${minK}k to $${maxK}k` : minK ? `$${minK}k+` : maxK ? `Up to $${maxK}k` : ''
-    return renderJobCardHtml({
-      title: job.title,
-      employer: job.employer,
-      location: job.location,
-      jobType: job.jobType ?? null,
-      mode: job.mode ?? null,
-      isFeatured: job.isFeatured ?? null,
-      applyOnPlatform: job.applyOnPlatform ?? null,
-      sourceType: job.sourceType ?? null,
-      salaryText,
-      postedText: timeAgo(job.createdAt),
-      jobUrl: `${BASE_URL}/jobs/${slugify(job.title, job.id)}`,
-    }, index, index === displayJobs.length - 1)
-  }).join('')
+  const plural = jobCount > 1
+
+  const withPay = displayJobs.filter(
+    (j) => salaryK(j.normalizedMinSalary, j.minSalary) || salaryK(j.normalizedMaxSalary, j.maxSalary)
+  ).length
+  const oldest = displayJobs.length
+    ? displayJobs.reduce((a, b) => (a.createdAt <= b.createdAt ? a : b)).createdAt
+    : null
+
+  // Every clause here is derived, never asserted. With no salary data the
+  // sentence simply drops that half rather than claiming something.
+  const payClause = withPay === 0
+    ? 'None of them publish a salary range'
+    : withPay === displayJobs.length
+      ? plural ? 'Every one publishes a salary range' : 'It publishes a salary range'
+      : `${withPay} of them publish a salary range`
+  const ageClause = oldest ? `, and the oldest went up ${timeAgo(oldest).toLowerCase()}` : ''
+  const summaryLine = `${payClause}${ageClause}.`
+
+  const headline = plural
+    ? `${jobCount} roles matched<br>your alert`
+    : 'One role matched<br>your alert'
 
   return emailShellV2(`
-      ${headerBlockV2(`${jobCount} New Job${jobCount > 1 ? 's' : ''} Match Your Alert`, '')}
-      ${spacerV2(12)}
-      ${bodyTextV2(`We found <strong>${jobCount} new position${jobCount > 1 ? 's' : ''}</strong> matching your preferences. Apply early for the best response rates.`)}
-      ${spacerV2(8)}
-      <tr><td style="padding:0 40px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${V2.bgCardAlt};border-radius:8px;border:1px solid ${V2.borderLight};">
-          <tr><td style="padding:12px 16px;">
-            <p style="margin:0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};text-transform:uppercase;letter-spacing:0.5px;font-weight:700;">Your Alert</p>
-            <p style="margin:4px 0 0;font-family:${SANS_V2};font-size:14px;color:${V2.textBody};">${criteriaText}</p>
-          </td></tr>
+      ${headerBlockV2('Your job brief', '')}
+      ${spacerV2(18)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <p style="margin:0;font-family:${SANS_V2};font-size:11px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:2px;">New since your last brief</p>
+        <h2 style="margin:9px 0 0;font-family:${SERIF_V2};font-size:28px;font-weight:600;color:${V2.textHeading};line-height:1.2;letter-spacing:-0.01em;">${headline}</h2>
+        <p style="margin:11px 0 0;font-family:${SANS_V2};font-size:14px;color:${V2.textBody};line-height:1.6;">${summaryLine}</p>
+      </td></tr>
+      ${spacerV2(22)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+          <tr><td style="border-top:2px solid ${V2.textHeading};font-size:1px;line-height:1px;">&nbsp;</td></tr>
         </table>
       </td></tr>
-      ${spacerV2(20)}
-      ${jobCardsHtml}
-      ${jobCount > displayJobs.length ? `${spacerV2(12)}
+      ${displayJobs.map((job, i) => briefEntry(job, i, i === displayJobs.length - 1)).join('')}
+      ${jobCount > displayJobs.length ? `${spacerV2(14)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
-        <p style="margin:0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};">+ ${jobCount - displayJobs.length} more matching jobs</p>
+        <p style="margin:0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};">${jobCount - displayJobs.length} more matched and are waiting on the site.</p>
       </td></tr>` : ''}
-      ${spacerV2(28)}
+      ${spacerV2(26)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
-        ${primaryButtonV2('View All Matching Jobs \u2192', filteredUrl)}
+        ${primaryButtonV2(plural ? `See all ${jobCount} roles` : 'See the role', filteredUrl)}
       </td></tr>
-      ${spacerV2(48)}
+      ${spacerV2(14)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        <p style="margin:0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.6;">Matching <strong style="color:${V2.textBody};">${escapeHtml(criteriaText)}</strong></p>
+      </td></tr>
+      ${spacerV2(44)}
       ${closeContentV2()}`,
     `<p style="margin:0 0 4px;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};">
       <a href="${BASE_URL}/job-alerts/manage?token=${alertToken}" style="color:${V2.textMuted};text-decoration:underline;">Manage alert</a>
       &nbsp;&middot;&nbsp;
       <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alertToken}" style="color:${V2.textMuted};text-decoration:underline;">Delete alert</a>
     </p>`,
-    `${jobCount} new PMHNP jobs matching your alert. View them before they are filled.`
+    `${summaryLine} ${plural ? `${jobCount} roles` : 'One role'} matching ${escapeHtml(criteriaText)}.`
   )
 }
 
@@ -873,8 +1011,12 @@ export async function sendJobAlerts(options: SendJobAlertsOptions = {}): Promise
       // E1 fix: the one-click endpoint looks up EmailLead.unsubscribeToken, NOT
       // JobAlert.token — feed it the right token or the machine POST 200s into a no-op.
       const oneClickToken = await getOrCreateUnsubToken(primary.email)
-      const alertWord = group.length > 1 ? 'Alerts' : 'Alert'
-      const subject = `${dedupedTotal} New PMHNP Job${dedupedTotal > 1 ? 's' : ''} Match Your ${alertWord}`
+      // Lead with the pay range when the matches actually publish one. The
+      // old subject was "N New PMHNP Jobs Match Your Alert", which is the
+      // same sentence every competitor sends and says nothing a reader could
+      // not guess. A range is specific, it is this board's whole argument,
+      // and it is true or it is absent.
+      const subject = buildAlertSubject(displayJobs, dedupedTotal)
 
       emailPayloads.push({
         alertIds: group.map(r => r.alert.id),
