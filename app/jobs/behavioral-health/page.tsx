@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -58,16 +59,18 @@ async function getBehavioralHealthStats() {
         where: categoryWhere(),
     });
 
-    const salaryData = await prisma.job.aggregate({
+    // One salary engine for the whole site. The old mean-of-two-column-means
+    // counted employer estimates and would publish a confident number off a
+    // single listing, so it disagreed with /salary-guide over these same
+    // postings. medianAdvertisedK quarantines the junk and returns 0 below
+    // five clean rows, which the `> 0` guards below already handle.
+    const salaryRows = await prisma.job.findMany({
         where: { ...categoryWhere(), normalizedMinSalary: { not: null },
             normalizedMaxSalary: { not: null },
         },
-        _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+        select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true },
     });
-
-    const avgMin = salaryData._avg.normalizedMinSalary || 0;
-    const avgMax = salaryData._avg.normalizedMaxSalary || 0;
-    const avgSalary = Math.round((avgMin + avgMax) / 2 / 1000);
+    const avgSalary = medianAdvertisedK(salaryRows);
 
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
@@ -95,7 +98,10 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
         // B3 (organic audit 2026-08): count dropped from titles below the
         // MIN_JOBS floor; sub-threshold landings render noindex,follow.
         title: `${categoryTitleCount(stats.totalJobs)}Behavioral Health PMHNP Jobs: Psych NP Positions`,
-        description: `Find ${categoryTitleCount(stats.totalJobs)}behavioral health nurse practitioner jobs. Positions across inpatient, outpatient, community mental health, telehealth, and residential settings. Average salary $${stats.avgSalary || 155}K+.`,
+        // The old copy fell back to a hardcoded "$155K+" whenever the sample
+        // was thin, which published a number no posting on this page supports.
+        // The median is now either real or absent.
+        description: `Find ${categoryTitleCount(stats.totalJobs)}behavioral health nurse practitioner jobs. Positions across inpatient, outpatient, community mental health, telehealth, and residential settings.${stats.avgSalary > 0 ? ` Median advertised salary $${stats.avgSalary}K.` : ''}`,
         keywords: ['behavioral health NP jobs', 'behavioral health nurse practitioner', 'mental health NP jobs', 'psychiatric NP positions', 'PMHNP behavioral health'],
         openGraph: {
             title: `${categoryTitleCount(stats.totalJobs)}Behavioral Health NP Jobs`,
@@ -152,7 +158,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
         headlineSub="jobs, whole-person care."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Psychiatric and mental health positions across inpatient, outpatient, telehealth, and community settings."
@@ -220,7 +226,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised, annual</div>
               </div>
             )}
           </div>
@@ -288,7 +294,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Career Growth</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  {stats.avgSalary > 0 ? `Behavioral health PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Strong benefits and loan repayment programs are common in underserved areas.
+                  {stats.avgSalary > 0 ? `The median behavioral health PMHNP listing here advertises $${stats.avgSalary}k annually. ` : ''}Strong benefits and loan repayment programs are common in underserved areas.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
@@ -377,8 +383,9 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
       <CategoryLocationsExplore categorySlug="behavioral-health" categoryLabel="Behavioral Health" />
 
       {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
-          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
-          live DB average (stored in $K, the FAQ copy expects dollars). */}
+          the shared lib/pseo/category-faq-data.ts source. avgSalary now holds
+          the tier-gated median advertised (in $K, the FAQ copy expects
+          dollars), so it is undefined rather than $0 on a thin sample. */}
       <CategoryFAQ category="behavioral-health" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
 
       {/* ═══ FAQ ═══ */}

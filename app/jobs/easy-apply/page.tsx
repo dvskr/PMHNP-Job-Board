@@ -15,6 +15,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import { slugify } from '@/lib/utils';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 
 /* ═══ Design Tokens — matched to employer page ═══ */
 const clayCard: React.CSSProperties = {
@@ -71,21 +72,25 @@ async function getEasyApplyStats() {
 
   // Live DB aggregate at request time (never hardcoded figures) — same
   // pattern as the /jobs/remote template.
-  const salaryData = await prisma.job.aggregate({
-    where: {
+  // Rows, not a SQL mean. medianAdvertisedK applies the one salary
+// engine: employer estimates dropped, implausible ranges quarantined,
+// and no figure at all below five clean rows. The old mean of two
+// column means counted estimates and could publish off a single
+// listing, which is how this page and /salary-guide disagreed about
+// pay for the same postings.
+const salaryRows = await prisma.job.findMany({
+  where: {
       ...where,
       normalizedMinSalary: { not: null },
-      normalizedMaxSalary: { not: null },
-    },
-    _avg: {
-      normalizedMinSalary: true,
-      normalizedMaxSalary: true,
-    },
-  });
+      normalizedMaxSalary: { not: null },},
+  select: {
+    normalizedMinSalary: true,
+    normalizedMaxSalary: true,
+    salaryIsEstimated: true,
+  },
+});
 
-  const avgMinSalary = salaryData._avg.normalizedMinSalary || 0;
-  const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
-  const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
+const avgSalary = medianAdvertisedK(salaryRows);
 
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
@@ -309,7 +314,7 @@ export default async function EasyApplyJobsPage({ searchParams }: PageProps) {
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised, annual</div>
                 <p style={{ fontSize: '11px', color: '#A09080', marginTop: '12px' }}>Based on direct employer PMHNP positions with salary data.</p>
               </div>
             )}

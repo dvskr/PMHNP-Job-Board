@@ -17,6 +17,7 @@ import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 import CategoryFAQ from '@/components/CategoryFAQ';
 import { slugify } from '@/lib/utils';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 
 // Force dynamic rendering - don't try to statically generate during build
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
@@ -69,22 +70,26 @@ async function getNewGradStats() {
     // Total new grad jobs
     const totalJobs = await prisma.job.count({ where: categoryWhere() });
 
-    // Average salary for new grad positions
-    const salaryData = await prisma.job.aggregate({
-        where: {
+    // Median advertised pay for new grad positions
+    // Rows, not a SQL mean. medianAdvertisedK applies the one salary
+// engine: employer estimates dropped, implausible ranges quarantined,
+// and no figure at all below five clean rows. The old mean of two
+// column means counted estimates and could publish off a single
+// listing, which is how this page and /salary-guide disagreed about
+// pay for the same postings.
+const salaryRows = await prisma.job.findMany({
+  where: {
             ...categoryWhere(),
             normalizedMinSalary: { not: null },
-            normalizedMaxSalary: { not: null },
-        },
-        _avg: {
-            normalizedMinSalary: true,
-            normalizedMaxSalary: true,
-        },
-    });
+            normalizedMaxSalary: { not: null },},
+  select: {
+    normalizedMinSalary: true,
+    normalizedMaxSalary: true,
+    salaryIsEstimated: true,
+  },
+});
 
-    const avgMinSalary = salaryData._avg.normalizedMinSalary || 0;
-    const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
-    const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
+const avgSalary = medianAdvertisedK(salaryRows);
 
     // Companies hiring new grads
     const topEmployers = await prisma.job.groupBy({
@@ -190,7 +195,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, launch your career."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Entry-level positions with structured mentorship, clinical supervision, fellowships, and clear paths to independent practice."
@@ -241,7 +246,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
               <div style={{ ...clayCard, padding: '24px' }}>
                 <TrendingUp size={20} style={{ color: '#34D399', marginBottom: '8px' }} />
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35' }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62' }}>Average salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62' }}>Median advertised</div>
               </div>
             )}
           </div>
@@ -298,7 +303,16 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                 <div>
                   <TrendingUp size={24} style={{ color: '#0D9488', marginBottom: '10px' }} />
                   <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Starting Salary</h3>
-                  <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.65, margin: 0 }}>New grad PMHNPs typically earn ${stats.avgSalary}k+ with rapid salary growth after year one. Many roles include signing bonuses and loan repayment.</p>
+                  {/* Gated, because the figure is a tier-gated median now and
+                      is withheld below five clean rows. Ungated, this line
+                      read "typically earn $0k+" the moment that happened.
+                      "Advertise" rather than "earn": these are listings, not
+                      earnings data. */}
+                  <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.65, margin: 0 }}>
+                    {stats.avgSalary > 0
+                      ? `The median new grad PMHNP listing here advertises $${stats.avgSalary}k, with rapid growth after year one. Many roles include signing bonuses and loan repayment.`
+                      : 'Too few current new grad postings disclose a range for a median, so each listing shows its own. Many roles include signing bonuses and loan repayment.'}
+                  </p>
                 </div>
                 <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_newgrad_salary.webp" alt="New grad PMHNP salary" width={280} sizes="(max-width: 768px) 100vw, 280px" height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
               </div>

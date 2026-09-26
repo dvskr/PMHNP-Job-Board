@@ -74,6 +74,62 @@ function blankComments(src: string): string {
   return out;
 }
 
+/**
+ * The blog and resource posts under content/ were never swept.
+ *
+ * The rule was enforced repo-wide on .ts and .tsx in 2026-09, and the sweep
+ * above is that enforcement, but it only ever looked at app/, components/ and
+ * lib/. The 87 MDX files that make up the published blog sat outside it with
+ * 1,999 dashes in them, which is more than the whole code surface had when
+ * the rule was introduced. A house style that stops at the file extension is
+ * not a house style.
+ *
+ * No comment-blanking here: in MDX effectively everything is copy. A fenced
+ * code block is the one exception and is stripped, since a dash inside a
+ * sample command is data, not prose.
+ */
+describe('published content is dash-free too', () => {
+  const CONTENT_ROOT = path.join(ROOT, 'content');
+
+  function contentFiles(dir: string, out: string[] = []): string[] {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) contentFiles(full, out);
+      else if (/\.mdx?$/.test(entry.name)) out.push(full);
+    }
+    return out;
+  }
+
+  /** Blank fenced code blocks, preserving line positions. */
+  function blankFences(src: string): string {
+    return src.replace(/```[\s\S]*?```/g, (m) => m.replace(/[^\n]/g, ' '));
+  }
+
+  const files = contentFiles(CONTENT_ROOT);
+
+  it('sweeps the whole content tree, not a sample', () => {
+    expect(files.length).toBeGreaterThan(50);
+  });
+
+  it('every published post is dash-free outside code fences', () => {
+    const offenders: string[] = [];
+    for (const file of files) {
+      const rel = path.relative(ROOT, file).replace(/\\/g, '/');
+      blankFences(fs.readFileSync(file, 'utf8'))
+        .split('\n')
+        .forEach((line, i) => {
+          if (DASH.test(line)) offenders.push(`${rel}:${i + 1}  ${line.trim().slice(0, 90)}`);
+        });
+    }
+    expect(
+      offenders,
+      `${offenders.length} em/en dash(es) in published content. Rewrite with a colon, comma, period ` +
+        `or "X to Y":\n  ${offenders.slice(0, 40).join('\n  ')}` +
+        (offenders.length > 40 ? `\n  ... and ${offenders.length - 40} more` : ''),
+    ).toEqual([]);
+  });
+});
+
 describe('no em dash or en dash reaches a reader', () => {
   const files = sourceFiles();
 

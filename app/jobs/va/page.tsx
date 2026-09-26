@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -64,14 +65,17 @@ async function getVAJobs(skip: number = 0, take: number = 20) {
 async function getVAStats() {
   const totalJobs = await prisma.job.count({ where: categoryWhere() });
 
-  const salaryData = await prisma.job.aggregate({
+  // One salary engine for the whole site. The old mean of two column means
+  // counted employer estimates and could publish a confident number off a
+  // single listing, disagreeing with /salary-guide over these same postings.
+  // medianAdvertisedK returns 0 below five clean rows, which the `> 0` guards
+  // downstream already handle.
+  const salaryRows = await prisma.job.findMany({
     where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
-    _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+    select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true },
   });
 
-  const avgMinSalary = salaryData._avg.normalizedMinSalary || 0;
-  const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
-  const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
+  const avgSalary = medianAdvertisedK(salaryRows);
 
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
@@ -183,7 +187,7 @@ export default async function VAJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, federal benefits."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Federal benefits, EDRP loan repayment up to $200K, pension, and full practice authority nationwide."
@@ -253,7 +257,7 @@ export default async function VAJobsPage({ searchParams }: PageProps) {
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised, annual</div>
               </div>
             )}
           </div>

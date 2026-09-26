@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -39,8 +40,13 @@ async function getJobs(skip = 0, take = 20) {
 
 async function getStats() {
   const totalJobs = await prisma.job.count({ where: categoryWhere() });
-  const salaryData = await prisma.job.aggregate({ where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, _avg: { normalizedMinSalary: true, normalizedMaxSalary: true } });
-  const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
+  // One salary engine for the whole site. The old mean of two column means
+  // counted employer estimates and could publish a confident number off a
+  // single listing, disagreeing with /salary-guide over these same postings.
+  // medianAdvertisedK returns 0 below five clean rows, which the `> 0` guards
+  // downstream already handle.
+  const salaryRows = await prisma.job.findMany({ where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true } });
+  const avgSalary = medianAdvertisedK(salaryRows);
   const topEmployers = await prisma.job.groupBy({ by: ['employer'], where: categoryWhere(), _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8 });
   return { totalJobs, avgSalary, topEmployers: topEmployers.map((e: EmployerGroupResult) => ({ name: e.employer, count: e._count.employer })) };
 }
@@ -120,7 +126,7 @@ export default async function SeniorPage({ searchParams }: PageProps) {
         headlineSub="jobs, leadership roles."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Senior-level PMHNP positions with clinical leadership, program development, and executive compensation."
@@ -171,7 +177,7 @@ export default async function SeniorPage({ searchParams }: PageProps) {
               <div style={{ ...clayCard, padding: '24px' }}>
                 <TrendingUp size={20} style={{ color: '#34D399', marginBottom: '8px' }} />
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35' }}>${`${stats.avgSalary}k`}</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62' }}>Average salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62' }}>Median advertised</div>
               </div>
             )}
           </div>
@@ -225,8 +231,17 @@ export default async function SeniorPage({ searchParams }: PageProps) {
                   <TrendingUp size={20} style={{ color: '#34D399' }} />
                   <span style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35' }}>Salary + Benefits</span>
                 </div>
-                <div style={{ fontSize: '36px', fontWeight: 800, color: '#1A2E35', marginBottom: '6px' }}>${`${stats.avgSalary}k`}</div>
-                <p style={{ fontSize: '13px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Average senior PMHNP salary with executive bonuses, equity packages, and comprehensive benefits.</p>
+                {/* Gated on the same `> 0` the sidebar uses: the median is
+                    withheld below five clean listings, and "$0k" is worse
+                    than saying nothing. */}
+                {stats.avgSalary > 0 ? (
+                  <>
+                    <div style={{ fontSize: '36px', fontWeight: 800, color: '#1A2E35', marginBottom: '6px' }}>${`${stats.avgSalary}k`}</div>
+                    <p style={{ fontSize: '13px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Median advertised senior PMHNP salary, before executive bonuses, equity packages, and comprehensive benefits.</p>
+                  </>
+                ) : (
+                  <p style={{ fontSize: '13px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Too few senior postings disclose a salary range for us to publish a median. Leadership roles usually add executive bonuses, equity, and comprehensive benefits on top of base pay.</p>
+                )}
               </div>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_senior_compensation.webp" alt="Senior compensation diorama" width={280} sizes="(max-width: 768px) 100vw, 280px" height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
             </div>

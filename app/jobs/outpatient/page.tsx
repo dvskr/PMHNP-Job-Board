@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -55,11 +56,13 @@ async function getOutpatientJobs(skip: number = 0, take: number = 20) {
 
 async function getOutpatientStats() {
     const totalJobs = await prisma.job.count({ where: categoryWhere() });
-    const salaryData = await prisma.job.aggregate({
+    // Pay goes through the shared salary engine: the same medians-only pipeline
+    // the salary guide runs over these postings, so the two cannot disagree.
+    const salaryRows = await prisma.job.findMany({
         where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
-        _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+        select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true },
     });
-    const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
+    const avgSalary = medianAdvertisedK(salaryRows);
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
         where: categoryWhere(),
@@ -133,7 +136,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, clinic & practice."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Clinic and private practice positions with M-F schedules and long-term patient relationships."
@@ -203,7 +206,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised, annual</div>
               </div>
             )}
           </div>
@@ -260,8 +263,14 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
               <div>
                 <TrendingUp size={28} style={{ color: '#34D399', marginBottom: '12px' }} />
                 <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Salary & Benefits</h3>
-                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Average outpatient PMHNP salary:</p>
-                <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
+                {stats.avgSalary > 0 ? (
+                  <>
+                    <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Median advertised outpatient PMHNP salary:</p>
+                    <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
+                  </>
+                ) : (
+                  <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>Too few outpatient postings disclose a salary range for us to publish a median, so we withhold the figure rather than estimate it.</p>
+                )}
               </div>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_outpatient_salary.webp" alt="Outpatient PMHNP salary" width={280} sizes="(max-width: 768px) 100vw, 280px" height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
             </div>
@@ -334,8 +343,9 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
       <CategoryLocationsExplore categorySlug="outpatient" categoryLabel="Outpatient" />
 
       {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
-          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
-          live DB average (stored in $K, the FAQ copy expects dollars). */}
+          the shared lib/pseo/category-faq-data.ts source. avgSalary carries the
+          tier-gated median advertised figure from lib/salary-report/stats.ts
+          (held here in $K, the FAQ copy expects dollars). */}
       <CategoryFAQ category="outpatient" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
 
 

@@ -18,6 +18,7 @@ import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 import { slugify } from '@/lib/utils';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 
 /* ═══ Design Tokens — matched to employer page ═══ */
 const clayCard: React.CSSProperties = {
@@ -79,22 +80,26 @@ async function getRemoteStats() {
     where: remoteFilter(),
   });
 
-  // Average salary for remote positions
-  const salaryData = await prisma.job.aggregate({
-    where: {
+  // Median advertised pay for remote positions
+  // Rows, not a SQL mean. medianAdvertisedK applies the one salary
+// engine: employer estimates dropped, implausible ranges quarantined,
+// and no figure at all below five clean rows. The old mean of two
+// column means counted estimates and could publish off a single
+// listing, which is how this page and /salary-guide disagreed about
+// pay for the same postings.
+const salaryRows = await prisma.job.findMany({
+  where: {
       ...remoteFilter(),
       normalizedMinSalary: { not: null },
-      normalizedMaxSalary: { not: null },
-    },
-    _avg: {
-      normalizedMinSalary: true,
-      normalizedMaxSalary: true,
-    },
-  });
+      normalizedMaxSalary: { not: null },},
+  select: {
+    normalizedMinSalary: true,
+    normalizedMaxSalary: true,
+    salaryIsEstimated: true,
+  },
+});
 
-  const avgMinSalary = salaryData._avg.normalizedMinSalary || 0;
-  const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
-  const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
+const avgSalary = medianAdvertisedK(salaryRows);
 
   // Companies hiring remotely
   const topEmployers = await prisma.job.groupBy({
@@ -228,7 +233,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs. Work from anywhere."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'companies' },
         ]}
         description="Telehealth and remote positions with competitive pay, flexible schedules, and multi-state reach."
@@ -350,7 +355,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
                     <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                   </div>
                   <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                  <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                  <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised, annual</div>
                   <p style={{ fontSize: '11px', color: '#A09080', marginTop: '12px' }}>Based on remote PMHNP positions with salary data.</p>
                 </div>
               )}
@@ -426,7 +431,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary Parity</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  {stats.avgSalary > 0 ? `Remote PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Advertised ranges appear on each listing whenever the employer discloses them.
+                  {stats.avgSalary > 0 ? `The median remote PMHNP listing here advertises $${stats.avgSalary}k annually. ` : ''}Advertised ranges appear on each listing whenever the employer discloses them.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>

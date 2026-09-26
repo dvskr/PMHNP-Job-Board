@@ -30,12 +30,7 @@
  * the same state, and a mean off two listings was published as confidently
  * as one off two hundred.
  */
-import {
-  cleanSalaryRows,
-  summarizeMidpoints,
-  roundDisplayDollars,
-  type SalaryRow,
-} from '@/lib/salary-report/stats';
+import { medianAdvertisedK, type SalaryRow } from '@/lib/salary-report/stats';
 
 export interface CityCountGroup {
   city: string | null;
@@ -213,13 +208,8 @@ export function salaryFor(
   costOfLivingIndex: number,
 ): { rawAvgSalary: number; colAdjustedSalary: number } {
   // CitySalaryRow is SalaryRow plus city/state, so the slice is safe; the
-  // copy exists only because cleanSalaryRows takes a mutable array.
-  const { midpoints } = cleanSalaryRows(rows.slice() as SalaryRow[]);
-  const summary = summarizeMidpoints(midpoints);
-  if (summary.tier !== 'full' && summary.tier !== 'median') {
-    return { rawAvgSalary: 0, colAdjustedSalary: 0 };
-  }
-  const rawAvgSalary = Math.round(roundDisplayDollars(summary.median) / 1000);
+  // copy exists only because medianAdvertisedK takes a mutable array.
+  const rawAvgSalary = medianAdvertisedK(rows.slice() as SalaryRow[]);
   if (rawAvgSalary <= 0) return { rawAvgSalary: 0, colAdjustedSalary: 0 };
   return {
     rawAvgSalary,

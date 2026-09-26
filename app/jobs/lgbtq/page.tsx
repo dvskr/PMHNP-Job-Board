@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import { categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -31,8 +32,10 @@ const categoryWhere = () => buildCategoryWhereClause('lgbtq');
 async function getJobs(skip = 0, take = 20) { return prisma.job.findMany({ where: categoryWhere(), orderBy: BEST_SORT_ORDER_BY, skip, take }); }
 async function getStats() {
   const totalJobs = await prisma.job.count({ where: categoryWhere() });
-  const salaryData = await prisma.job.aggregate({ where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, _avg: { normalizedMinSalary: true, normalizedMaxSalary: true } });
-  const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
+  // Pay goes through the shared salary engine: the same medians-only pipeline
+  // the salary guide runs over these postings, so the two cannot disagree.
+  const salaryRows = await prisma.job.findMany({ where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true } });
+  const avgSalary = medianAdvertisedK(salaryRows);
   const topEmployers = await prisma.job.groupBy({ by: ['employer'], where: categoryWhere(), _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8 });
   return { totalJobs, avgSalary, topEmployers: topEmployers.map((e: EmployerGroupResult) => ({ name: e.employer, count: e._count.employer })) };
 }
@@ -78,7 +81,7 @@ export default async function LgbtqPage({ searchParams }: PageProps) {
         headlineSub="jobs, affirming care."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Gender-affirming and LGBTQ+-focused psychiatric positions with inclusive, culturally competent care."

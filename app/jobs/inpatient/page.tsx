@@ -7,6 +7,7 @@ import { Building, Briefcase, DollarSign, Shield, TrendingUp, Building2, Bell, A
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -53,11 +54,13 @@ async function getJobs(skip: number = 0, take: number = 20) {
 
 async function getStats() {
   const totalJobs = await prisma.job.count({ where: categoryWhere() });
-  const salaryData = await prisma.job.aggregate({
+  // Pay goes through the shared salary engine: the same medians-only pipeline
+  // the salary guide runs over these postings, so the two cannot disagree.
+  const salaryRows = await prisma.job.findMany({
     where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
-    _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+    select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true },
   });
-  const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
+  const avgSalary = medianAdvertisedK(salaryRows);
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'], where: categoryWhere(),
     _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8,
@@ -119,7 +122,7 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, hospital & acute care."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'hospitals' },
         ]}
         description="Hospital-based and acute care positions with structured schedules, competitive pay, and multidisciplinary team support."
@@ -190,7 +193,7 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised, annual</div>
                 <p style={{ fontSize: '11px', color: '#A09080', marginTop: '12px' }}>Includes shift differentials and sign-on bonuses.</p>
               </div>
             )}
@@ -259,7 +262,7 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary + Benefits</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  {stats.avgSalary > 0 ? `Inpatient PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Full benefits, malpractice coverage, and retirement plans are standard.
+                  {stats.avgSalary > 0 ? `The median inpatient PMHNP listing here advertises $${stats.avgSalary}k annually. ` : ''}Full benefits, malpractice coverage, and retirement plans are standard.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>

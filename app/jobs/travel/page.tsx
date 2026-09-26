@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -32,8 +33,13 @@ const categoryWhere = () => buildCategoryWhereClause('travel');
 async function getJobs(skip = 0, take = 20) { return prisma.job.findMany({ where: categoryWhere(), orderBy: BEST_SORT_ORDER_BY, skip, take }); }
 async function getStats() {
   const totalJobs = await prisma.job.count({ where: categoryWhere() });
-  const salaryData = await prisma.job.aggregate({ where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, _avg: { normalizedMinSalary: true, normalizedMaxSalary: true } });
-  const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
+  // One salary engine for the whole site. The old mean of two column means
+  // counted employer estimates and could publish a confident number off a
+  // single listing, disagreeing with /salary-guide over these same postings.
+  // medianAdvertisedK returns 0 below five clean rows, which the `> 0` guards
+  // downstream already handle.
+  const salaryRows = await prisma.job.findMany({ where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true } });
+  const avgSalary = medianAdvertisedK(salaryRows);
   const topEmployers = await prisma.job.groupBy({ by: ['employer'], where: categoryWhere(), _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8 });
   return { totalJobs, avgSalary, topEmployers: topEmployers.map((e: EmployerGroupResult) => ({ name: e.employer, count: e._count.employer })) };
 }
@@ -86,7 +92,7 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, explore the country."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'agencies' },
         ]}
         description="Travel assignments with premium pay, furnished housing, and the freedom to explore new locations nationwide."
@@ -107,7 +113,7 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
           <div className="lg:col-span-1">
             <div style={{ ...clayCard, padding: '24px', marginBottom: '20px', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}><Bell size={28} style={{ color: '#0D9488', marginBottom: '12px' }} /><h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 8px' }}>Travel Alerts</h3><p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px' }}>New travel assignments daily.</p><Link href="/job-alerts" style={{ display: 'block', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', background: '#0D9488', color: '#fff', textDecoration: 'none' }}>Create Alert</Link></div>
             {stats.topEmployers.length > 0 && (<div style={{ ...clayCard, padding: '24px', marginBottom: '20px' }}><Building2 size={20} style={{ color: '#0D9488', marginBottom: '8px' }} /><h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: '0 0 12px' }}>Top Employers</h3><ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>{stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (<li key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: index < stats.topEmployers.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}><span style={{ fontSize: '13px', color: '#5A4A42', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{employer.name}</span><span style={{ fontSize: '12px', fontWeight: 700, color: '#0D9488', marginLeft: '8px' }}>{employer.count}</span></li>))}</ul></div>)}
-            {stats.avgSalary > 0 && (<div style={{ ...clayCard, padding: '24px' }}><TrendingUp size={20} style={{ color: '#34D399', marginBottom: '8px' }} /><div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35' }}>${stats.avgSalary}k</div><div style={{ fontSize: '13px', color: '#7A6A62' }}>Average salary</div></div>)}
+            {stats.avgSalary > 0 && (<div style={{ ...clayCard, padding: '24px' }}><TrendingUp size={20} style={{ color: '#34D399', marginBottom: '8px' }} /><div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35' }}>${stats.avgSalary}k</div><div style={{ fontSize: '13px', color: '#7A6A62' }}>Median advertised</div></div>)}
           </div>
         </div>
       </div>
@@ -132,7 +138,10 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}><Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_travel_housing.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} /><h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Stipends</h3><p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Tax-free housing, meals, and travel reimbursements.</p></div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}><Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_travel_dollar.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} /><h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Premium Pay</h3><p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Earn 20-50% more than permanent positions.</p></div>
             <div className="cat-bento-hero-3" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
-              <div><TrendingUp size={28} style={{ color: '#34D399', marginBottom: '12px' }} /><h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Travel Pay</h3><p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Average travel PMHNP salary:</p><p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p></div>
+              {/* Pay copy gated on the same `> 0` the sidebar uses: the median
+                  is withheld below five clean listings, and "$0k" is worse
+                  than saying nothing. */}
+              <div><TrendingUp size={28} style={{ color: '#34D399', marginBottom: '12px' }} /><h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Travel Pay</h3>{stats.avgSalary > 0 ? (<><p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Median advertised travel PMHNP salary:</p><p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p></>) : (<p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>Too few travel postings disclose a salary range for us to publish a median. Agency packages also bundle stipends that base pay does not show.</p>)}</div>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_travel_compensation.webp" alt="Travel PMHNP compensation" width={280} sizes="(max-width: 768px) 100vw, 280px" height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
             </div>
             <div className="cat-bento-cta" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)' }}>
@@ -174,8 +183,9 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
       <CategoryLocationsExplore categorySlug="travel" categoryLabel="Travel" />
 
       {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
-          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
-          live DB average (stored in $K, the FAQ copy expects dollars). */}
+          the shared lib/pseo/category-faq-data.ts source. The figure is the
+          tier-gated median advertised (held in $K, the FAQ copy expects
+          dollars), and it is omitted entirely when the sample is too thin. */}
       <CategoryFAQ category="travel" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
 
 

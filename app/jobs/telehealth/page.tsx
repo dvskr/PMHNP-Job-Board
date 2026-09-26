@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -59,11 +60,16 @@ async function getTelehealthJobs(skip: number = 0, take: number = 10) {
 
 async function getTelehealthStats() {
     const totalJobs = await prisma.job.count({ where: thFilter() });
-    const salaryData = await prisma.job.aggregate({
+    // One salary engine for the whole site. The old mean-of-two-column-means
+    // counted employer estimates and would publish a confident number off a
+    // single listing, so it disagreed with /salary-guide over these same
+    // postings. medianAdvertisedK quarantines the junk and returns 0 below
+    // five clean rows, which the `> 0` guards below already handle.
+    const salaryRows = await prisma.job.findMany({
         where: { ...thFilter(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
-        _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+        select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true },
     });
-    const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
+    const avgSalary = medianAdvertisedK(salaryRows);
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'], where: thFilter(),
         _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8,
@@ -167,7 +173,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, virtual care."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'companies' },
         ]}
         description="Virtual psychiatric care positions with flexible hours, no commute, and multi-state practice opportunities."
@@ -235,7 +241,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised, annual</div>
               </div>
             )}
           </div>
@@ -295,8 +301,17 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
               <div>
                 <TrendingUp size={28} style={{ color: '#34D399', marginBottom: '12px' }} />
                 <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Salary & Benefits</h3>
-                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Average telehealth PMHNP salary:</p>
-                <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
+                {/* Gated on the same `> 0` the sidebar uses: the median is
+                    withheld below five clean listings, and "$0k" is worse
+                    than saying nothing. */}
+                {stats.avgSalary > 0 ? (
+                  <>
+                    <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Median advertised telehealth PMHNP salary:</p>
+                    <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
+                  </>
+                ) : (
+                  <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>Too few telehealth postings disclose a salary range for us to publish a median right now.</p>
+                )}
               </div>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_th_salary.webp" alt="Telehealth PMHNP salary" width={280} sizes="(max-width: 768px) 100vw, 280px" height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
             </div>
@@ -369,8 +384,9 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
       <CategoryLocationsExplore categorySlug="telehealth" categoryLabel="Telehealth" />
 
       {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
-          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
-          live DB average (stored in $K, the FAQ copy expects dollars). */}
+          the shared lib/pseo/category-faq-data.ts source. The figure is the
+          tier-gated median advertised (held in $K, the FAQ copy expects
+          dollars), and it is omitted entirely when the sample is too thin. */}
       <CategoryFAQ category="telehealth" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
 
 

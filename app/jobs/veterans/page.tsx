@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -40,8 +41,13 @@ async function getJobs(skip = 0, take = 20) {
 
 async function getStats() {
   const totalJobs = await prisma.job.count({ where: categoryWhere() });
-  const salaryData = await prisma.job.aggregate({ where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, _avg: { normalizedMinSalary: true, normalizedMaxSalary: true } });
-  const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
+  // One salary engine for the whole site. The old mean of two column means
+  // counted employer estimates and could publish a confident number off a
+  // single listing, disagreeing with /salary-guide over these same postings.
+  // medianAdvertisedK returns 0 below five clean rows, which the `> 0` guards
+  // downstream already handle.
+  const salaryRows = await prisma.job.findMany({ where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true } });
+  const avgSalary = medianAdvertisedK(salaryRows);
   const topEmployers = await prisma.job.groupBy({ by: ['employer'], where: categoryWhere(), _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8 });
   return { totalJobs, avgSalary, topEmployers: topEmployers.map((e: EmployerGroupResult) => ({ name: e.employer, count: e._count.employer })) };
 }
@@ -128,7 +134,7 @@ export default async function VeteransPage({ searchParams }: PageProps) {
         headlineSub="jobs, veteran mental health."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Serve veterans with specialized psychiatric care for PTSD, TBI, MST, and combat-related conditions."
@@ -179,7 +185,7 @@ export default async function VeteransPage({ searchParams }: PageProps) {
               <div style={{ ...clayCard, padding: '24px' }}>
                 <TrendingUp size={20} style={{ color: '#34D399', marginBottom: '8px' }} />
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35' }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62' }}>Average salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62' }}>Median advertised</div>
               </div>
             )}
           </div>

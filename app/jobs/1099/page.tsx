@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -54,14 +55,16 @@ async function getICJobs(skip: number = 0, take: number = 20) {
 async function getICStats() {
   const totalJobs = await prisma.job.count({ where: categoryWhere() });
 
-  const salaryData = await prisma.job.aggregate({
+  // One salary engine for the whole site. The old mean-of-two-column-means
+  // counted employer estimates and would publish a confident number off a
+  // single listing, so it disagreed with /salary-guide over these same
+  // postings. medianAdvertisedK quarantines the junk and returns 0 below
+  // five clean rows, which the `> 0` guards below already handle.
+  const salaryRows = await prisma.job.findMany({
     where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
-    _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+    select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true },
   });
-
-  const avgMinSalary = salaryData._avg.normalizedMinSalary || 0;
-  const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
-  const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
+  const avgSalary = medianAdvertisedK(salaryRows);
 
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
@@ -200,7 +203,7 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
         photoTagBody="New 1099 postings across telehealth, group, and private practice."
         stats={[
           { value: 'Varies', label: 'hourly rate' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.totalJobs}+`, label: 'positions' },
         ]}
         description="Independent contractor PMHNP roles with Schedule C deductions, flexible caseloads, and no non-compete clauses."
@@ -268,7 +271,7 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised, annual</div>
                 <p style={{ fontSize: '11px', color: '#A09080', marginTop: '12px' }}>1099 gross rates before self-employment tax.</p>
               </div>
             )}
@@ -337,7 +340,7 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary Comparison</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  {stats.avgSalary > 0 ? `1099 PMHNP listings here average $${stats.avgSalary}k gross. ` : ''}Gross contractor rates typically run above W2 equivalents because they exclude benefits and employer-paid taxes.
+                  {stats.avgSalary > 0 ? `The median 1099 PMHNP listing here advertises $${stats.avgSalary}k gross. ` : ''}Gross contractor rates typically run above W2 equivalents because they exclude benefits and employer-paid taxes.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>

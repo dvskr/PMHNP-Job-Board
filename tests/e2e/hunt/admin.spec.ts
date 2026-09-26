@@ -827,7 +827,9 @@ test.describe('admin jobs', () => {
       const after = await adminFetch(page, 'GET', `/api/admin/jobs/${job.id}`);
       expect(after.json.job.title).toBe(`${job.title} renamed`);
       assertClean(c, 'jobs edit nulls');
-      test.fail(true, 'edit modal writes "" into null jobType/mode/displaySalary');
+      // Fixed 2026-09: collectAdminFields maps a blank nullable text field to
+      // null instead of writing an empty string over the column
+      // (app/api/admin/_lib/field-validation.ts).
       expect(after.json.job.jobType, 'jobType should stay null').toBeNull();
       expect(after.json.job.mode, 'mode should stay null').toBeNull();
       expect(after.json.job.displaySalary, 'displaySalary should stay null').toBeNull();
@@ -1381,9 +1383,11 @@ test.describe('admin rate limit', () => {
     await waitSettled(page);
     const text = await bodyText(page);
     assertClean(c, 'rate limited jobs page');
-    test.fail(status === 429, 'UI shows "No jobs found" on 429 with no error state');
+    // Fixed 2026-09: /admin/jobs goes through lib/admin/admin-fetch, which
+    // turns a 429 into a persistent banner with a retry instead of rendering
+    // the empty state as though the catalogue were gone.
     if (status === 429) {
-      expect(text).toMatch(/too many requests|rate limit|try again/i);
+      expect(text).toMatch(/too many requests|rate limit|try again|retry/i);
     }
   });
 });

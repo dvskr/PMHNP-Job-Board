@@ -31,6 +31,7 @@ import { getSiteStats } from '@/lib/site-stats';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import { publicJobsWhere } from '@/lib/filters';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 import { cityLinkHref } from '@/lib/pseo/related-cities';
 import { STATE_CODES, stateToSlug } from '@/lib/pseo/setting-state-config';
@@ -373,7 +374,12 @@ async function getStateSalaryAverage(stateName: string | null, stateCode: string
   // (state name vs state code) does not collide with it. The average has to
   // come from the same population the state page lists, or the widget quotes
   // a market rate built partly on expired and off-specialty rows.
-  const salaryData = await prisma.job.aggregate({
+  // Rows, not a SQL mean. medianAdvertisedK is the shared salary engine, so
+  // the comparison figure on a job page matches what /salary-guide publishes
+  // for the same state instead of being a mean of two column means over a
+  // set that included employer estimates. It returns 0 below five clean
+  // rows, which the caller already treats as "no comparison to draw".
+  const salaryRows = await prisma.job.findMany({
     where: {
       ...publicJobsWhere(),
       OR: [
@@ -383,18 +389,14 @@ async function getStateSalaryAverage(stateName: string | null, stateCode: string
       normalizedMinSalary: { not: null, gte: 30000 },
       normalizedMaxSalary: { not: null, gte: 30000 },
     },
-    _avg: {
+    select: {
       normalizedMinSalary: true,
       normalizedMaxSalary: true,
+      salaryIsEstimated: true,
     },
   });
 
-  const avgMin = salaryData._avg.normalizedMinSalary || 0;
-  const avgMax = salaryData._avg.normalizedMaxSalary || 0;
-
-  if (avgMin === 0 && avgMax === 0) return 0;
-
-  return Math.round((avgMin + avgMax) / 2 / 1000);
+  return medianAdvertisedK(salaryRows);
 }
 
 /**
