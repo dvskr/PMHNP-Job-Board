@@ -427,7 +427,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
           // split a hand-written range on a character that string never
           // contained, so the whole range rendered under an "avg salary"
           // label whenever the aggregate came back empty.
-          ...(stats.avgSalary > 0 ? [{ value: `$${stats.avgSalary}k`, label: 'avg salary' }] : []),
+          ...(stats.avgSalary > 0 ? [{ value: `$${stats.avgSalary}k`, label: 'median advertised' }] : []),
           { value: `${stats.topEmployers.length}`, label: 'employers' },
         ]}
         description={`${config.label} psychiatric NP positions in ${stateName}. ${config.heroSubtitle}.`}
@@ -619,8 +619,8 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                   </h3>
                   <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
                     {stats.avgSalary > 0
-                      ? `${config.label} PMHNP listings in ${stateName} advertise about $${stats.avgSalary}k a year on average.`
-                      : `Too few ${config.label.toLowerCase()} employers in ${stateName} disclose a range to average, so each listing shows its own.`}
+                      ? `The median ${config.label.toLowerCase()} PMHNP listing in ${stateName} advertises about $${stats.avgSalary}k a year.`
+                      : `Too few ${config.label.toLowerCase()} employers in ${stateName} disclose a range for a median to mean anything, so each listing shows its own.`}
                   </p>
                 </div>
               </div>

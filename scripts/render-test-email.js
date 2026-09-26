@@ -1,4 +1,17 @@
-// Render "Your Alerts Are Live" email — exact match to production email-templates-v2.ts
+/**
+ * Local preview render of the "Your Alerts Are Live" email.
+ *
+ * NOT production-identical, despite what this header used to claim. Every
+ * helper below is a hand-copy of lib/email-templates-v2.ts frozen at the time
+ * it was written, and the original has moved since: the real
+ * unsubscribeFooterV2 takes the recipient's token and the email type, and
+ * renders a one-click Unsubscribe for marketing mail. unsubFooter() here
+ * cannot, so this preview shows a footer no marketing recipient receives.
+ *
+ * For an accurate render of what is actually sent, use /api/email-preview,
+ * which calls the real templates. Keep this only for offline tinkering on
+ * layout, and do not trust it for anything about opt-out or deliverability.
+ */
 const BASE_URL = 'https://pmhnphiring.com';
 const IMG = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/email-assets';
 const SERIF = "'Lora', Georgia, 'Times New Roman', serif";

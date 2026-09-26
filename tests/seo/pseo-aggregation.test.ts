@@ -132,10 +132,18 @@ describe('aggregate-pseo cron shape (source lock)', () => {
     expect(src).not.toMatch(/offset \+ BATCH_SIZE/);
   });
 
-  it('uses one groupBy(city, state) per category via the pure fold', () => {
-    expect(src).toMatch(/groupBy\(\{\s*by: \['city', 'state'\]/);
-    expect(src).toMatch(/foldCategoryCityAggregates\(/);
+  it('queries once per category and folds in memory, never once per city', () => {
+    // The B1 defect was one count plus one aggregate per (category, city)
+    // combo, which is why 3,935 of 4,135 cities sat frozen for months. The
+    // invariant is the shape, not the fold's name: group or select once per
+    // category, strip the location keys, and hand the result to the pure
+    // module. Pinning `foldCategoryCityAggregates(` by name broke when the
+    // cron correctly moved to the median fold.
+    expect(src).toMatch(/by: \['city', 'state'\]/);
     expect(src).toMatch(/stripLocationFromWhere\(/);
+    expect(src).toMatch(/fold[A-Za-z]*\(/);
+    // No database call inside a loop over the city registry.
+    expect(src).not.toMatch(/for\s*\([^)]*\bCITIES\b[^)]*\)\s*\{[\s\S]{0,400}?await prisma\./);
   });
 
   it('keeps contentChangedAt semantics: stamped only when values change', () => {

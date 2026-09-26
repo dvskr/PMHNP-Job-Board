@@ -12,6 +12,7 @@ import {
     CITY_ELIGIBLE_CATEGORY_SLUGS,
 } from '@/lib/pseo/jobs-segments-edge';
 import { FIRST_PARTY_ORIGINS } from '@/lib/origins';
+import { enforceApiCsrf } from '@/lib/csrf';
 
 // ── pSEO Taxonomy Allowlists (P1.2) ────────────────────────────────
 // Used to detect structurally invalid pSEO URLs and return 410 instead of 404.
@@ -423,6 +424,15 @@ export async function middleware(request: NextRequest) {
      * their handler.
      */
     const isApiPath = pathname.startsWith('/api/');
+
+    // ── CSRF: one check for the whole /api namespace ──────────────────
+    // Wiring lib/csrf.ts route by route left 83 mutating handlers open,
+    // every admin write among them, and each audit closed only the few it
+    // happened to inspect. The exemptions (webhooks, cron, the RFC 8058
+    // opt-out endpoints, the token routes) are listed in lib/csrf.ts with
+    // the reason each one is exempt.
+    const csrfBlocked = enforceApiCsrf(request, pathname);
+    if (csrfBlocked) return csrfBlocked;
 
     // ── IndexNow Key Verification ─────────────────────────────────────
     // IndexNow requires the key to be readable at /{key}.txt on the bare

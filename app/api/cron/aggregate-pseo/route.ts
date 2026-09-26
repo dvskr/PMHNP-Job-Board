@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { CITIES } from '@/lib/pseo/city-data/cities'
 import { ALL_CATEGORY_CONFIGS } from '@/lib/pseo/category-city-template'
 import { SETTING_CONFIGS, getAllStateSlugs, resolveStateSlug } from '@/lib/pseo/setting-state-config'
-import { foldCategoryCityAggregates, stripLocationFromWhere } from '@/lib/pseo/aggregate-fold'
+import { foldCategoryCityMedians, salaryFor, stripLocationFromWhere } from '@/lib/pseo/aggregate-fold'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
@@ -86,25 +86,30 @@ export async function GET(request: NextRequest) {
 
             let rawAvg = 0
             if (totalJobs > 0) {
-              // salaryIsEstimated rows are excluded. The pages render this
-              // as what listings ADVERTISE, and lib/salary-report/stats.ts
-              // (which produces the salary guide's figures for the same
-              // postings) quarantines estimates for exactly that reason.
-              // Without the filter the two surfaces described the same state
-              // differently, and the pSEO one was counting numbers no
-              // employer published.
-              const salaryData = await prisma.job.aggregate({
+              // Rows, not a SQL mean. salaryFor runs them through
+              // lib/salary-report/stats.ts, the one salary engine, so this
+              // page and /salary-guide/{state} answer the same question the
+              // same way for the same postings: estimates dropped,
+              // implausible ranges quarantined, and no dollar figure at all
+              // below five clean rows.
+              const salaryRows = await prisma.job.findMany({
                 where: {
                   ...where,
                   normalizedMinSalary: { not: null },
                   normalizedMaxSalary: { not: null },
-                  salaryIsEstimated: false,
                 },
-                _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+                select: {
+                  normalizedMinSalary: true,
+                  normalizedMaxSalary: true,
+                  salaryIsEstimated: true,
+                },
               })
-              rawAvg = Math.round(
-                ((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000
-              )
+              // colAdjustedSalary stays 0 for a whole state: the
+              // cost-of-living index is a city-level figure.
+              rawAvg = salaryFor(
+                salaryRows.map(r => ({ ...r, city: null, state: null })),
+                0,
+              ).rawAvgSalary
             }
 
             const prev = existingSSMap.get(`${config.slug}|${stateSlug}`)
@@ -165,24 +170,30 @@ export async function GET(request: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const groupedWhere = { ...categoryWhere, city: { not: null }, state: { not: null } } as any
 
-        const [countGroups, salaryGroups, existingRows] = await Promise.all([
+        const [countGroups, salaryRows, existingRows] = await Promise.all([
           prisma.job.groupBy({
             by: ['city', 'state'],
             where: groupedWhere,
             _count: { _all: true },
           }),
-          // Estimates excluded, as in the setting-state branch above: this
-          // number is published as advertised pay.
-          prisma.job.groupBy({
-            by: ['city', 'state'],
+          // Rows rather than a grouped mean, for the same reason as the
+          // setting-state branch: a median cannot be computed in SQL here,
+          // and the figure has to come from the one salary engine. Four
+          // columns over the priced subset of one category, folded in
+          // memory by foldCategoryCityMedians.
+          prisma.job.findMany({
             where: {
               ...groupedWhere,
               normalizedMinSalary: { not: null },
               normalizedMaxSalary: { not: null },
-              salaryIsEstimated: false,
             },
-            _count: { _all: true },
-            _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+            select: {
+              city: true,
+              state: true,
+              normalizedMinSalary: true,
+              normalizedMaxSalary: true,
+              salaryIsEstimated: true,
+            },
           }),
           // Only previously-positive rows matter: they are the ones that can
           // go stale (rows at 0 that stay 0 need no write at all).
@@ -192,7 +203,7 @@ export async function GET(request: NextRequest) {
           }),
         ])
 
-        const desired = foldCategoryCityAggregates(countGroups, salaryGroups, CITIES)
+        const desired = foldCategoryCityMedians(countGroups, salaryRows, CITIES)
         const prevMap = new Map(existingRows.map(r => [r.locationSlug, r]))
 
         for (const [locationSlug, values] of desired) {

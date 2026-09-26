@@ -26,6 +26,7 @@ import { withTagFallback } from './category-tagger';
 import { categoryCanonicalTarget, CITY_SITEMAP_CATEGORIES } from './jobs-segments-edge';
 import { shouldRenderCategoryCity, MIN_JOBS_FOR_CATEGORY_CITY } from './render-gate';
 import { PSEO_STALENESS_HOURS, pseoFreshnessCutoff } from './sitemap-thresholds';
+import { salaryFor } from './aggregate-fold';
 import { hasLicensePost } from './license-posts';
 import { JOB_LISTING_OMIT } from './job-listing-omit';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
@@ -791,15 +792,21 @@ const getCityStats = cache(async function getCityStats(config: CategoryConfig, c
     const where = config.buildWhere(city.state, city.name) as any;
     const liveCount = await prisma.job.count({ where });
     if (liveCount > 0) {
-      // Compute rough avg salary from live data
-      const salaryAgg = await prisma.job.aggregate({
-        where,
-        _avg: { normalizedMaxSalary: true, normalizedMinSalary: true },
+      // Same statistic the cron stores, through the same engine. This branch
+      // used to compute a bare SQL mean with no estimate filter, no
+      // quarantine and no sample-size gate, so a city served from the live
+      // fallback published a different kind of number from the identical
+      // city served from cache, under the same label.
+      const salaryRows = await prisma.job.findMany({
+        where: { ...where, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+        select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true },
       });
-      const rawAvg = Math.round(((salaryAgg._avg.normalizedMinSalary ?? 0) + (salaryAgg._avg.normalizedMaxSalary ?? 0)) / 2 / 1000);
-      const colAdj = Math.round(rawAvg * (100 / (city.costOfLivingIndex || 100)));
+      const { rawAvgSalary, colAdjustedSalary } = salaryFor(
+        salaryRows.map(r => ({ ...r, city: null, state: null })),
+        city.costOfLivingIndex || 100,
+      );
       // Live count computed just now, so "now" is the honest refresh time.
-      return { totalJobs: liveCount, rawAvgSalary: rawAvg, colAdjustedSalary: colAdj, updatedAt: new Date() as Date | null };
+      return { totalJobs: liveCount, rawAvgSalary, colAdjustedSalary, updatedAt: new Date() as Date | null };
     }
 
     return EMPTY_STATS;
@@ -1195,12 +1202,12 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
     {
       q: `What do ${config.label.toLowerCase()} PMHNP jobs in ${city!.name} pay?`,
       a: stats.rawAvgSalary > 0
-        ? `The average ${config.label.toLowerCase()} PMHNP salary in ${city!.name} is approximately $${stats.rawAvgSalary}K per year across the listings on this page. Adjusted for the local cost of living (index: ${city!.costOfLivingIndex}), that equates to about $${stats.colAdjustedSalary}K in purchasing power.`
+        ? `The median advertised ${config.label.toLowerCase()} PMHNP salary in ${city!.name} is about $${stats.rawAvgSalary}K per year across the listings on this page that disclose a range. Adjusted for the local cost of living (index: ${city!.costOfLivingIndex}), that equates to about $${stats.colAdjustedSalary}K in purchasing power.`
         // No hand-written range here. The figure that used to sit in this
         // branch was the same for every city carrying the category and
         // disagreed with the median the state salary guide computes from the
         // same postings.
-        : `Too few ${config.label.toLowerCase()} employers in ${city!.name} disclose a range for an average to mean anything, so this page does not publish one; each listing shows its advertised pay when the employer includes it. Compensation depends on experience, employer type, and whether the role includes benefits, and ${city!.name}'s cost of living index is ${city!.costOfLivingIndex} (national average = 100).`,
+        : `Too few ${config.label.toLowerCase()} employers in ${city!.name} disclose a range for a median to mean anything, so this page does not publish one; each listing shows its advertised pay when the employer includes it. Compensation depends on experience, employer type, and whether the role includes benefits, and ${city!.name}'s cost of living index is ${city!.costOfLivingIndex} (national average = 100).`,
     },
     {
       q: `Does ${city!.state} grant PMHNPs full practice authority, and does it apply to ${config.label.toLowerCase()} roles?`,
@@ -1313,7 +1320,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
           // split a hand-written range on an en dash the value never
           // contained, so the whole range rendered under an "avg salary"
           // label whenever the aggregate came back empty.
-          ...(stats.rawAvgSalary > 0 ? [{ value: `$${stats.rawAvgSalary}k`, label: 'avg salary' }] : []),
+          ...(stats.rawAvgSalary > 0 ? [{ value: `$${stats.rawAvgSalary}k`, label: 'median advertised' }] : []),
           { value: demand.label, label: 'demand' },
         ]}
         description={`${config.label} psychiatric NP positions in ${city!.name}. ${config.heroSubtitle}.`}
@@ -1526,8 +1533,8 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                       <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary & Compensation</h3>
                       <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
                         {stats.rawAvgSalary > 0
-                          ? `${config.label} PMHNP listings in ${city!.name} advertise about $${stats.rawAvgSalary}k a year on average.`
-                          : `Too few ${config.label.toLowerCase()} employers in ${city!.name} disclose a range to average, so each listing shows its own.`}
+                          ? `The median ${config.label.toLowerCase()} PMHNP listing in ${city!.name} advertises about $${stats.rawAvgSalary}k a year.`
+                          : `Too few ${config.label.toLowerCase()} employers in ${city!.name} disclose a range for a median to mean anything, so each listing shows its own.`}
                       </p>
                     </div>
                     <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>

@@ -447,12 +447,23 @@ export function unsubscribeFooterV2(
   emailType: EmailType,
 ): string {
   const hasToken = !!unsubscribeToken && unsubscribeToken !== PREVIEW_UNSUB_TOKEN;
+  const token = hasToken ? encodeURIComponent(unsubscribeToken) : '';
   const unsubscribeLink = hasToken && isMarketingEmailType(emailType)
-    ? `<a href="${BASE_URL}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}" style="color:#A0AEC0;text-decoration:underline;">Unsubscribe</a> &nbsp;&middot;&nbsp;
+    ? `<a href="${BASE_URL}/unsubscribe?token=${token}" style="color:#A0AEC0;text-decoration:underline;">Unsubscribe</a> &nbsp;&middot;&nbsp;
                 `
     : '';
+  // Where "Manage preferences" goes depends on whether we can identify the
+  // reader. /email-preferences resolves an EmailLead from this token alone,
+  // so a recipient with no account lands on their actual settings.
+  // /job-alerts/manage needs a session, so for most of a marketing audience
+  // it was a sign-in wall where a preferences link should have been. Without
+  // a token that page is still the right destination: it is the one that can
+  // work out who you are from your session.
+  const preferencesHref = hasToken
+    ? `${BASE_URL}/email-preferences?token=${token}`
+    : `${BASE_URL}/job-alerts/manage`;
   return `<p style="margin:0 0 4px;font-family:${SANS};font-size:12px;color:#A0AEC0;">
-                ${unsubscribeLink}<a href="${BASE_URL}/job-alerts/manage" style="color:#A0AEC0;text-decoration:underline;">Manage preferences</a>
+                ${unsubscribeLink}<a href="${preferencesHref}" style="color:#A0AEC0;text-decoration:underline;">Manage preferences</a>
               </p>`;
 }
 

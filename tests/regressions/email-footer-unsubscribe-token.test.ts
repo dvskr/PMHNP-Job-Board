@@ -68,6 +68,19 @@ function anyTokenLinkCount(html: string): number {
   return hrefs(html).filter((href) => /[?&]token=/.test(href)).length;
 }
 
+/**
+ * Links to the one-click opt-out route specifically.
+ *
+ * Distinct from anyTokenLinkCount: the "Manage preferences" link is also
+ * token-bearing now, because /email-preferences is the only settings page
+ * that can identify a recipient who has no account. That link is a page, not
+ * a switch, so it belongs on transactional mail. A /unsubscribe link does
+ * not: one click there clears isSubscribed.
+ */
+function oneClickOptOutCount(html: string): number {
+  return hrefs(html).filter((href) => href.includes('/unsubscribe?')).length;
+}
+
 /** The sign-in-walled page the footer used to send everyone to. */
 const SIGN_IN_WALLED_PATH = '/job-alerts/manage';
 
@@ -125,18 +138,21 @@ describe('the opt-out row appears only on mail the recipient can opt out of', ()
     'employer_message',
   ];
 
-  it.each(TRANSACTIONAL)('%s renders no unsubscribe link even with a real token', (emailType) => {
-    expect(anyTokenLinkCount(unsubscribeFooterV2(RECIPIENT_TOKEN, emailType))).toBe(0);
+  it.each(TRANSACTIONAL)('%s offers no one-click opt-out even with a real token', (emailType) => {
+    expect(oneClickOptOutCount(unsubscribeFooterV2(RECIPIENT_TOKEN, emailType))).toBe(0);
   });
 
-  it.each([...MARKETING_EMAIL_TYPES])('%s does render one', (emailType) => {
-    const links = tokenLinks(unsubscribeFooterV2(RECIPIENT_TOKEN, emailType), RECIPIENT_TOKEN);
-    expect(links.length).toBeGreaterThan(0);
+  it.each([...MARKETING_EMAIL_TYPES])('%s does offer one', (emailType) => {
+    expect(oneClickOptOutCount(unsubscribeFooterV2(RECIPIENT_TOKEN, emailType))).toBeGreaterThan(0);
   });
 
-  it('still offers transactional mail the preferences page, which is a page and not a switch', () => {
+  it('still offers transactional mail a preferences page, which is a page and not a switch', () => {
     const html = unsubscribeFooterV2(RECIPIENT_TOKEN, 'refund_confirmation');
-    expect(hrefs(html).some((h) => h.includes(SIGN_IN_WALLED_PATH))).toBe(true);
+    const prefs = hrefs(html).filter((h) => h.includes('/email-preferences?'));
+    expect(prefs.length, 'transactional mail lost its preferences link').toBeGreaterThan(0);
+    for (const href of prefs) {
+      expect(new URL(href).searchParams.get('token')).toBe(RECIPIENT_TOKEN);
+    }
   });
 
   it('every transactional type is genuinely outside the marketing set', () => {
