@@ -27,11 +27,13 @@ import { getCityBySlug } from '@/lib/pseo/city-data/cities';
 import { CODE_TO_STATE } from '@/lib/pseo/setting-state-config';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 import { CITY_SITEMAP_CATEGORIES } from '@/lib/pseo/jobs-segments-edge';
+// The shared threshold, not a local copy of the number. A forked copy is
+// exactly the drift the B7 note says must never happen: this file read 36
+// under a comment promising it mirrored the sitemap routes, which would have
+// stayed silently false the moment the real value moved.
+import { pseoFreshnessCutoff } from '@/lib/pseo/sitemap-thresholds';
 
 const CITY_SITEMAP_CATEGORY_SET = new Set<string>(CITY_SITEMAP_CATEGORIES);
-// Mirrors PSEO_STALENESS_HOURS in the sitemap routes — stale aggregator rows
-// must not keep links alive for pages whose jobs already expired.
-const PSEO_STALENESS_HOURS = 36;
 
 interface CategoryLocationsExploreProps {
     /** The category slug, matching pseoStats.categorySlug (e.g. 'full-time'). */
@@ -75,7 +77,7 @@ export default async function CategoryLocationsExplore({
     // page that 404s (category-city below 3) or noindexes (setting-state
     // below 3). Retired categories get no city links at all — their city
     // pages render noindex (P2.3).
-    const freshnessThreshold = new Date(Date.now() - PSEO_STALENESS_HOURS * 60 * 60 * 1000);
+    const freshnessThreshold = pseoFreshnessCutoff();
     let stateRows: Array<{ locationSlug: string; totalJobs: number }> = [];
     let cityRows: Array<{ locationSlug: string; totalJobs: number }> = [];
     try {

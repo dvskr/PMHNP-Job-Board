@@ -22,35 +22,12 @@
  * the very strings being banned.
  */
 import { describe, it, expect } from 'vitest';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+import { readCode, sourceFilesUnder } from '../helpers/source';
 
-const ROOT = path.resolve(__dirname, '../../');
 const ROOTS = ['app', 'components'];
 
-/** Blank comments, preserving every character position so line numbers stay real. */
-function blankComments(src: string): string {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
-    .split('\n')
-    .map((line) => line.replace(/(^|[^:])\/\/.*$/, (_m, lead) => lead + ' '.repeat(line.length - lead.length)))
-    .join('\n');
-}
-
-function sourceFiles(): string[] {
-  const out: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (/\.tsx?$/.test(entry.name)) out.push(path.relative(ROOT, full).replace(/\\/g, '/'));
-    }
-  };
-  for (const root of ROOTS) walk(path.join(ROOT, root));
-  return out;
-}
-
-const code = (rel: string): string => blankComments(fs.readFileSync(path.join(ROOT, rel), 'utf8'));
+const sourceFiles = (): string[] => sourceFilesUnder(ROOTS);
+const code = (rel: string): string => readCode(rel);
 
 describe('no invented person is presented as a real one', () => {
   it('AuthLayout offers no slot named for an endorsement', () => {

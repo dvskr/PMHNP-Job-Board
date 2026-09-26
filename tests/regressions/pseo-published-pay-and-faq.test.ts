@@ -33,6 +33,7 @@ import { buildSettingStateFaqs, buildSettingStateNarrative } from '@/lib/pseo/st
 import { getCategoryFaqs, CATEGORY_LABELS, isCategorySlug, type CategorySlug } from '@/lib/pseo/category-faq-data';
 import { getTaxonomyLead, buildCityFacts, TAXONOMY_LEAD_KEYS } from '@/lib/pseo/city-narrative';
 import type { CityData } from '@/lib/pseo/city-data/types';
+import { readCode, sourceFilesUnder } from '../helpers/source';
 
 const ROOT = path.resolve(__dirname, '../../');
 const read = (rel: string): string => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -137,6 +138,37 @@ describe('the pSEO FAQ never offers PSYPACT as a nurse practitioner licensure pa
         expect(faq.answer, `${slug}: ${faq.question}`).not.toMatch(/practice across state lines/i);
       }
     }
+  });
+});
+
+/**
+ * The pSEO FAQ was only where the claim was first caught. /jobs/telehealth is
+ * a hand-written page that offered PSYPACT as a multi-state path four times,
+ * once inside its own FAQPage JSON-LD, so search engines were being handed
+ * the wrong answer about what licence a nurse practitioner needs.
+ *
+ * Sweeping the tree rather than that one page: the failure mode is a fifth
+ * surface repeating it, and the claim is about someone's licence.
+ */
+describe('no page anywhere offers PSYPACT as a nurse practitioner licensure path', () => {
+  const files = sourceFilesUnder(['app', 'components', 'lib']);
+
+  it('sweeps the rendered surface, not a sample', () => {
+    expect(files.length).toBeGreaterThan(500);
+  });
+
+  it('mentions the psychologist compact nowhere a reader can see it', () => {
+    const offenders: string[] = [];
+    for (const rel of files) {
+      readCode(rel).split('\n').forEach((line, i) => {
+        if (/PSYPACT/i.test(line)) offenders.push(`${rel}:${i + 1}`);
+      });
+    }
+    expect(
+      offenders,
+      'PSYPACT is the psychologist compact and grants a nurse practitioner nothing. ' +
+        `Say a licence is needed in each state:\n  ${offenders.join('\n  ')}`,
+    ).toEqual([]);
   });
 });
 

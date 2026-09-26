@@ -26,13 +26,20 @@ const ROOT = path.resolve(__dirname, '../../');
  * therefore JSX `{/* *\/}` comments too. Deliberately simple: it does not
  * track string or regex literals, so a comment marker inside a string is
  * blanked as well. That is the safe direction for these assertions.
+ *
+ * The line pattern is `[^\n]*`, not `.*`. This tree is mixed CRLF and LF, and
+ * JavaScript's `.` does not match \r, so `.*$` could never reach the end of a
+ * CRLF line and no `//` comment in such a file was blanked at all. That made
+ * the helper quietly useless on exactly the files it mattered for: the first
+ * sweep written against it reported a comment explaining a bug as an instance
+ * of the bug.
  */
 export function blankComments(src: string): string {
   return src
     .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
     .split('\n')
     .map((line) =>
-      line.replace(/(^|[^:])\/\/.*$/, (_m, lead: string) =>
+      line.replace(/(^|[^:])\/\/[^\n]*$/, (_m, lead: string) =>
         lead + ' '.repeat(line.length - lead.length),
       ),
     )

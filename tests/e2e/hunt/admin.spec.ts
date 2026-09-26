@@ -22,11 +22,24 @@ import {
  * bug are marked test.fail() so the suite stays green; each carries a comment
  * naming the bug and the file that causes it.
  *
- * Rate limiting: every /api/admin/* route shares ONE 20 req/min per-IP bucket
- * (lib/auth/require-api-admin.ts + lib/rate-limit.ts). adminFetch() paces
- * direct API calls and waits out a 429 so pacing, not the product, decides
- * pass/fail. The last test deliberately exhausts the bucket.
+ * Rate limiting: /api/admin/* has two budgets (lib/auth/require-api-admin.ts
+ * + lib/rate-limit.ts). A loose pre-auth guard of 120 req/min per IP across
+ * the whole namespace bounds anonymous hammering, and a real budget of
+ * 60 req/min per admin per route group means a burst on one screen can no
+ * longer lock the rest of the console. It replaced a single shared 20 req/min
+ * per-IP bucket. adminFetch() paces direct API calls and waits out a 429 so
+ * pacing, not the product, decides pass/fail. The last test deliberately
+ * exhausts the per-route budget.
  */
+
+/**
+ * Calls needed to trip the per-admin-per-route budget, which is
+ * RATE_LIMITS.admin = 60/min in lib/rate-limit.ts. Kept a little above it so
+ * the burst still trips when a few calls are lost to timeouts. If that limit
+ * changes, this is the constant to change with it.
+ */
+const ADMIN_ROUTE_BUDGET = 60;
+const BURST = ADMIN_ROUTE_BUDGET + 12;
 
 const AGAINST_PROD =
   !!process.env.PLAYWRIGHT_BASE_URL && process.env.PLAYWRIGHT_BASE_URL.includes('pmhnphiring.com');
@@ -1344,10 +1357,11 @@ test.describe('admin rate limit', () => {
     test.setTimeout(240_000);
     const c = attach(page);
     // Fired concurrently: on this dev box a single admin call takes seconds,
-    // so a sequential loop of 26 spans more than the 60s window and never
-    // trips the limiter.
+    // so a sequential loop spans more than the 60s window and never trips
+    // the limiter. Every call goes to the SAME route, because the budget is
+    // now per route group rather than one bucket for the whole namespace.
     const statuses = await Promise.all(
-      Array.from({ length: 30 }, () =>
+      Array.from({ length: BURST }, () =>
         page.request
           .get('/api/admin/ai/stats?days=1', { timeout: 60_000 })
           .then((r) => r.status())
@@ -1355,7 +1369,11 @@ test.describe('admin rate limit', () => {
       ),
     );
     const sawLimit = statuses.includes(429);
-    expect(sawLimit, `admin bucket should trip within 30 concurrent calls, saw: ${[...new Set(statuses)].join(',')}`).toBe(true);
+    expect(
+      sawLimit,
+      `the per-admin budget of ${ADMIN_ROUTE_BUDGET}/min should trip within ${BURST} concurrent calls to one route, ` +
+        `saw: ${[...new Set(statuses)].join(',')}`,
+    ).toBe(true);
 
     const listRes = page.waitForResponse((r) => r.url().includes('/api/admin/jobs?'), { timeout: 90_000 });
     await page.goto('/admin/jobs', { waitUntil: 'domcontentloaded' });

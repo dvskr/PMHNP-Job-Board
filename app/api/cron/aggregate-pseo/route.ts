@@ -86,8 +86,20 @@ export async function GET(request: NextRequest) {
 
             let rawAvg = 0
             if (totalJobs > 0) {
+              // salaryIsEstimated rows are excluded. The pages render this
+              // as what listings ADVERTISE, and lib/salary-report/stats.ts
+              // (which produces the salary guide's figures for the same
+              // postings) quarantines estimates for exactly that reason.
+              // Without the filter the two surfaces described the same state
+              // differently, and the pSEO one was counting numbers no
+              // employer published.
               const salaryData = await prisma.job.aggregate({
-                where: { ...where, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+                where: {
+                  ...where,
+                  normalizedMinSalary: { not: null },
+                  normalizedMaxSalary: { not: null },
+                  salaryIsEstimated: false,
+                },
                 _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
               })
               rawAvg = Math.round(
@@ -159,9 +171,16 @@ export async function GET(request: NextRequest) {
             where: groupedWhere,
             _count: { _all: true },
           }),
+          // Estimates excluded, as in the setting-state branch above: this
+          // number is published as advertised pay.
           prisma.job.groupBy({
             by: ['city', 'state'],
-            where: { ...groupedWhere, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+            where: {
+              ...groupedWhere,
+              normalizedMinSalary: { not: null },
+              normalizedMaxSalary: { not: null },
+              salaryIsEstimated: false,
+            },
             _count: { _all: true },
             _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
           }),

@@ -15,6 +15,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { stateToSlug } from '@/lib/pseo/setting-state-config';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
+import { pseoFreshnessCutoff } from '@/lib/pseo/sitemap-thresholds';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import { cityLinkHref } from '@/lib/pseo/related-cities';
 import { Job } from '@/lib/types';
@@ -507,6 +508,11 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
         type: 'setting-state',
         locationSlug: stateSlugForLookup,
         totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
+        // The count has to be recent as well as high enough. Without this,
+        // an aggregator outage freezes the rows and the page keeps linking
+        // to setting x state cells whose live count has since fallen under
+        // the gate, so Googlebot is fed pages that now noindex themselves.
+        updatedAt: { gte: pseoFreshnessCutoff() },
       },
       select: { categorySlug: true },
     });

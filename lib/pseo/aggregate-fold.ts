@@ -12,8 +12,18 @@
  * Semantics replicate the old per-combo queries exactly:
  *   - totalJobs   = count of ALL matching jobs in the (city, state)
  *   - rawAvgSalary = Math.round((avgMin + avgMax) / 2 / 1000) over the subset
- *     with BOTH normalized bounds present; 0 when no such rows
+ *     with BOTH normalized bounds present and salaryIsEstimated false;
+ *     0 when no such rows
  *   - colAdjustedSalary = rawAvg > 0 ? Math.round(rawAvg * 100 / COL) : 0
+ *
+ * KNOWN DIVERGENCE, not closed here. This is a mean of the two column means,
+ * while /salary-guide/{state} publishes a tier-gated MEDIAN of clean
+ * midpoints from lib/salary-report/stats.ts over the same postings, whose
+ * stated house rule is "medians only, never means". The two surfaces
+ * therefore report different pay for the same state. Reconciling them means
+ * changing the statistic behind a number published on every pSEO city page,
+ * and the surrounding copy that calls it an average, so it wants its own
+ * pass rather than a drive-by.
  *
  * The old queries matched city/state with `equals, mode: 'insensitive'`, so
  * groups that differ only by casing are merged case-insensitively; salary
