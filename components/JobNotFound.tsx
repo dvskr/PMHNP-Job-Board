@@ -1,16 +1,15 @@
-'use client';
-
+/**
+ * Server component. It was 'use client' only for a window.location handler on
+ * the alert button, which is now a Link, and neither Button nor Card is a
+ * client component. This page is mostly seen by readers following a stale link
+ * and by crawlers, so shipping it as static markup costs them nothing.
+ */
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { Search, Bell, Briefcase, TrendingUp } from 'lucide-react';
 
 export default function JobNotFound() {
-  const handleAlertClick = () => {
-    // Scroll to alert section on homepage
-    window.location.href = '/#subscribe';
-  };
-
   return (
     <div className="max-w-4xl mx-auto px-4 py-16">
       {/* Main Card */}
@@ -63,14 +62,15 @@ export default function JobNotFound() {
               Browse All Jobs
             </Button>
           </Link>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={handleAlertClick}
-          >
-            <Bell size={20} />
-            Create Job Alert
-          </Button>
+          {/* /job-alerts, not /#subscribe: no element on the homepage carries
+              that id, so this button used to dump a reader who had just lost
+              the job they came for at the top of the homepage. */}
+          <Link href="/job-alerts">
+            <Button variant="outline" size="lg">
+              <Bell size={20} />
+              Create Job Alert
+            </Button>
+          </Link>
         </div>
       </Card>
 

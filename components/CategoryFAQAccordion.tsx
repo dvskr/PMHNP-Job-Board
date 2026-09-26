@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { FAQItem } from '@/lib/pseo/category-faq-data';
 
@@ -11,6 +11,10 @@ interface CategoryFAQAccordionProps {
 
 export default function CategoryFAQAccordion({ faqs, categoryLabel }: CategoryFAQAccordionProps) {
     const [openIndex, setOpenIndex] = useState<number | null>(0);
+    // Panel ids must be unique per mounted accordion, not per index: a page
+    // that renders more than one instance would otherwise emit duplicate ids
+    // and every aria-controls would resolve to the first one in the DOM.
+    const panelIdPrefix = useId();
 
     if (faqs.length === 0) return null;
 
@@ -25,7 +29,10 @@ export default function CategoryFAQAccordion({ faqs, categoryLabel }: CategoryFA
                 </h2>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {faqs.map((faq, index) => (
+                    {faqs.map((faq, index) => {
+                        const isOpen = openIndex === index;
+                        const panelId = `${panelIdPrefix}-faq-answer-${index}`;
+                        return (
                         <div
                             key={index}
                             style={{
@@ -40,7 +47,10 @@ export default function CategoryFAQAccordion({ faqs, categoryLabel }: CategoryFA
                             }}
                         >
                             <button
-                                onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                                type="button"
+                                onClick={() => setOpenIndex(isOpen ? null : index)}
+                                aria-expanded={isOpen}
+                                aria-controls={panelId}
                                 style={{
                                     width: '100%',
                                     display: 'flex',
@@ -60,20 +70,22 @@ export default function CategoryFAQAccordion({ faqs, categoryLabel }: CategoryFA
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     flexShrink: 0, transition: 'background 0.2s ease',
                                 }}>
-                                    {openIndex === index ? (
-                                        <ChevronUp size={16} style={{ color: '#fff' }} />
+                                    {isOpen ? (
+                                        <ChevronUp size={16} aria-hidden="true" style={{ color: '#fff' }} />
                                     ) : (
-                                        <ChevronDown size={16} style={{ color: '#0D9488' }} />
+                                        <ChevronDown size={16} aria-hidden="true" style={{ color: '#0D9488' }} />
                                     )}
                                 </span>
                             </button>
-                            {openIndex === index && (
-                                <div style={{ padding: '0 24px 20px', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
-                                    <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '16px 0 0' }}>{faq.answer}</p>
-                                </div>
-                            )}
+                            {/* Always rendered so aria-controls resolves to a real
+                                node; `hidden` removes it from the a11y tree and
+                                the tab order while collapsed. */}
+                            <div id={panelId} hidden={!isOpen} style={{ padding: '0 24px 20px', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+                                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '16px 0 0' }}>{faq.answer}</p>
+                            </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </section>
         </div>

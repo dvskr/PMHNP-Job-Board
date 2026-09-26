@@ -13,6 +13,23 @@
  * contractor must self-fund. The UI restates this limitation verbatim.
  */
 
+/**
+ * The tax year every constant below belongs to.
+ *
+ * Exported so the page badge, the methodology block and the calculator
+ * footnote interpolate it instead of each hard-coding "2025" in prose: three
+ * copies of a year is three places to miss when it moves.
+ *
+ * OPERATOR: this is a PRIOR tax year. Only SOCIAL_SECURITY_WAGE_BASE is
+ * year-specific (the rates and the 92.35% factor are stable tax law), so
+ * rolling forward means reading the current taxable maximum off the SSA COLA
+ * fact sheet, updating that one number, and bumping TAX_YEAR. No number is
+ * guessed here: a wrong wage base silently skews every self-employment-tax
+ * figure this public calculator produces, which is worse than a correctly
+ * labelled prior-year one.
+ */
+export const TAX_YEAR = 2025;
+
 export const TAX_CONSTANTS_2025 = {
   /**
    * Portion of net self-employment profit subject to SE tax.
@@ -52,6 +69,12 @@ export const TAX_CONSTANTS_2025 = {
    */
   WORKDAYS_PER_YEAR: 260,
 } as const;
+
+/**
+ * Year-agnostic alias. Call sites should import this, so a future roll-forward
+ * changes one constant name in one file rather than every consumer.
+ */
+export const TAX_CONSTANTS = TAX_CONSTANTS_2025;
 
 /* ── Input shapes ─────────────────────────────────────────────────── */
 

@@ -98,6 +98,14 @@ describe('P4.1: sitemap budget guard', () => {
         expect(sitemap.length).toBeGreaterThan(100);
         expect(sitemap.length).toBeLessThan(45_000);
 
+        // No URL may appear twice. /jobs/new-grad did: it was hard-coded in
+        // staticPages AND emitted by categoryLandingPages (the taxonomy marks
+        // it inPrimarySitemap), so one file carried two <url> blocks for one
+        // <loc> with contradicting changefreq and priority. Set equality is
+        // the invariant, so it catches the next duplicate too, whichever
+        // section mints it.
+        expect(new Set(urls).size).toBe(urls.length);
+
         // Every URL must be HTTPS + canonical-shaped (no query strings).
         // Homepage may render as bare host without trailing slash; everything
         // else must be under /...
@@ -126,6 +134,10 @@ describe('P4.1: sitemap budget guard', () => {
         const urls = sitemap.map((s) => s.url);
         // Homepage (bare host) — accept either "https://...com" or with trailing slash.
         expect(urls.some((u) => u === 'https://pmhnphiring.com' || u === 'https://pmhnphiring.com/')).toBe(true);
+        // The degraded path spreads the ungated section defaults, which is
+        // where the /jobs/new-grad duplicate was unconditional rather than
+        // intermittent. No duplicates here either.
+        expect(new Set(urls).size).toBe(urls.length);
     });
 
     it('robots.txt declares the expected sitemap entrypoints', () => {

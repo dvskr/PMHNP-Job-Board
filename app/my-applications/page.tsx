@@ -72,17 +72,30 @@ export default function MyApplicationsPage() {
     const [applications, setApplications] = useState<Application[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [needsSignIn, setNeedsSignIn] = useState(false);
     const [withdrawing, setWithdrawing] = useState<string | null>(null);
     const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
+    // Only a 401 means "not signed in". Every other failure (the route answers
+    // 500 on any Prisma error) used to land in the same catch and tell a
+    // signed-in user to sign in, so they re-authenticated and still saw
+    // nothing. Keep the two apart: the sign-in CTA is rendered only for 401.
     useEffect(() => {
         fetch('/api/applications')
-            .then(r => {
-                if (!r.ok) throw new Error('Failed to load');
+            .then(async r => {
+                if (r.status === 401) {
+                    setNeedsSignIn(true);
+                    throw new Error('unauthenticated');
+                }
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 return r.json();
             })
             .then(data => setApplications(data))
-            .catch(() => setError('Please sign in to view your applications.'))
+            .catch(err => setError(
+                err instanceof Error && err.message === 'unauthenticated'
+                    ? 'Please sign in to view your applications.'
+                    : 'We could not load your applications. Please refresh and try again.',
+            ))
             .finally(() => setLoading(false));
     }, []);
 
@@ -137,7 +150,7 @@ export default function MyApplicationsPage() {
                     }}>
                         My Applications
                     </h1>
-                    <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0 }}>
+                    <p style={{ fontSize: '14px', color: '#4B5E68', margin: 0 }}>
                         Track and manage your job applications
                     </p>
                 </div>
@@ -185,19 +198,21 @@ export default function MyApplicationsPage() {
                             fontSize: '18px', fontWeight: 700,
                             fontFamily: 'var(--font-lora), Georgia, serif',
                             color: '#1A2E35', marginBottom: '8px',
-                        }}>Sign in required</h2>
-                        <p style={{ color: '#8A9BA6', fontSize: '14px', marginBottom: '24px', lineHeight: 1.6 }}>{error}</p>
-                        <Link href="/login?redirectTo=/my-applications" style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '8px',
-                            padding: '10px 20px', borderRadius: '12px',
-                            background: 'linear-gradient(145deg, #10B981, #0D9488)',
-                            color: '#fff', fontSize: '13px', fontWeight: 600,
-                            textDecoration: 'none',
-                            boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
-                        }}>
-                            Sign In
-                            <ArrowRight size={14} />
-                        </Link>
+                        }}>{needsSignIn ? 'Sign in required' : 'Something went wrong'}</h2>
+                        <p style={{ color: '#6B7280', fontSize: '14px', marginBottom: '24px', lineHeight: 1.6 }}>{error}</p>
+                        {needsSignIn && (
+                            <Link href="/login?redirectTo=/my-applications" style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                padding: '10px 20px', borderRadius: '12px',
+                                background: 'linear-gradient(145deg, #10B981, #0D9488)',
+                                color: '#fff', fontSize: '13px', fontWeight: 600,
+                                textDecoration: 'none',
+                                boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+                            }}>
+                                Sign In
+                                <ArrowRight size={14} />
+                            </Link>
+                        )}
                     </div>
                 )}
 
@@ -211,7 +226,7 @@ export default function MyApplicationsPage() {
                             color: '#1A2E35', marginBottom: '8px',
                         }}>No applications yet</h2>
                         <p style={{
-                            color: '#8A9BA6', fontSize: '14px', marginBottom: '24px',
+                            color: '#4B5E68', fontSize: '14px', marginBottom: '24px',
                             maxWidth: '340px', marginInline: 'auto', lineHeight: 1.6,
                         }}>
                             Find your next PMHNP role and apply today.
@@ -268,7 +283,7 @@ export default function MyApplicationsPage() {
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             fontSize: '14px', fontWeight: 700,
                                             background: isActive ? conf.bg : '#EDF5F0',
-                                            color: isActive ? conf.color : '#B0C4BC',
+                                            color: isActive ? conf.color : '#4B5E68',
                                             border: `2px solid ${isActive ? conf.color : '#D5E8E0'}`,
                                             boxShadow: isActive
                                                 ? '3px 3px 8px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8)'
@@ -279,7 +294,7 @@ export default function MyApplicationsPage() {
                                         </div>
                                         <span style={{
                                             fontSize: '10px', fontWeight: 600,
-                                            color: isActive ? conf.color : '#B0C4BC',
+                                            color: isActive ? conf.color : '#4B5E68',
                                             textTransform: 'uppercase', letterSpacing: '0.04em',
                                         }}>
                                             {conf.label}
@@ -340,16 +355,16 @@ export default function MyApplicationsPage() {
                                             </Link>
 
                                             {/* Employer + Location */}
-                                            <p style={{ fontSize: '13px', color: '#6B7F8A', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <p style={{ fontSize: '13px', color: '#4B5E68', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                 {app.job.employer}
-                                                <span style={{ color: '#B0C4BC' }}>·</span>
+                                                <span style={{ color: '#4B5E68' }}>·</span>
                                                 <MapPin size={12} style={{ color: '#0D9488' }} />
                                                 {app.job.location}
                                             </p>
 
                                             {/* Meta pills */}
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
-                                                <span style={{ ...cardRecessed, padding: '3px 10px', fontSize: '11px', fontWeight: 600, color: '#6B7F8A', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                <span style={{ ...cardRecessed, padding: '3px 10px', fontSize: '11px', fontWeight: 600, color: '#4B5E68', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                                     <Clock size={11} />
                                                     {formatDate(app.appliedAt)}
                                                 </span>
@@ -359,7 +374,7 @@ export default function MyApplicationsPage() {
                                                     </span>
                                                 )}
                                                 {app.job.mode && (
-                                                    <span style={{ ...cardRecessed, padding: '3px 10px', fontSize: '11px', fontWeight: 600, color: '#6B7F8A' }}>
+                                                    <span style={{ ...cardRecessed, padding: '3px 10px', fontSize: '11px', fontWeight: 600, color: '#4B5E68' }}>
                                                         {app.job.mode}
                                                     </span>
                                                 )}
@@ -442,7 +457,7 @@ export default function MyApplicationsPage() {
                         ...cardRecessed,
                         padding: '14px 20px', marginTop: '20px',
                         display: 'flex', justifyContent: 'center', gap: '16px',
-                        fontSize: '12px', fontWeight: 600, color: '#6B7F8A',
+                        fontSize: '12px', fontWeight: 600, color: '#4B5E68',
                     }}>
                         <span>{applications.length} application{applications.length !== 1 ? 's' : ''}</span>
                         <span style={{ color: '#D5E8E0' }}>·</span>

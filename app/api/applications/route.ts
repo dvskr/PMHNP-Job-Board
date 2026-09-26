@@ -27,12 +27,34 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'jobId is required' }, { status: 400 })
         }
 
+        // A previously withdrawn row has to come back to life when the
+        // candidate clicks through again. The update block used to be a literal
+        // no-op, so a withdrawn external application could never be re-logged:
+        // /api/applications/check kept answering applied:false and the job card
+        // kept offering Apply while the row sat there permanently withdrawn.
+        // Only the withdrawal is reversed — a row in any other status is left
+        // exactly as the employer's pipeline set it.
+        const existing = await prisma.jobApplication.findUnique({
+            where: { userId_jobId: { userId: user.id, jobId } },
+            select: { status: true, withdrawnAt: true },
+        })
+        const wasWithdrawn =
+            !!existing && (existing.withdrawnAt !== null || existing.status === 'withdrawn')
+
         // Upsert — don't duplicate if user already applied
         const application = await prisma.jobApplication.upsert({
             where: {
                 userId_jobId: { userId: user.id, jobId },
             },
-            update: {}, // no-op if exists
+            update: wasWithdrawn
+                ? {
+                    withdrawnAt: null,
+                    status: 'applied',
+                    statusUpdatedAt: new Date(),
+                    appliedAt: new Date(),
+                    sourceUrl: sourceUrl || null,
+                }
+                : {},
             create: {
                 userId: user.id,
                 jobId,
@@ -132,7 +154,23 @@ export async function DELETE(request: NextRequest) {
 }
 
 /**
+ * Ceiling on the rows GET /api/applications returns.
+ *
+ * useAppliedJobs REPLACES its whole local map with this response, so anything
+ * truncated away silently loses its "Applied" badge on job cards and drops out
+ * of the local cache. The previous ceiling was 50, which a serious job search
+ * passes in a few weeks. 500 covers a realistic history while still bounding
+ * the payload; a candidate past it needs the paginated client the handoff note
+ * on this finding describes, not a bigger number here.
+ */
+const MAX_APPLICATIONS_RETURNED = 500
+
+/**
  * GET /api/applications — Fetch user's applications with job details
+ *
+ * Rows carry `status` and `withdrawnAt`. A consumer that renders an "applied"
+ * state MUST honour them: /api/applications/check treats a withdrawn row as
+ * not applied, and a list view that ignores the fields contradicts it.
  */
 export async function GET() {
     try {
@@ -146,7 +184,7 @@ export async function GET() {
         const applications = await prisma.jobApplication.findMany({
             where: { userId: user.id },
             orderBy: { appliedAt: 'desc' },
-            take: 50,
+            take: MAX_APPLICATIONS_RETURNED,
             include: {
                 job: {
                     select: {

@@ -39,11 +39,16 @@ describe('getSiteStats', () => {
     expect(stats).toEqual({ totalJobs: 500, totalCompanies: 2, totalSubscribers: 99 });
   });
 
-  it('returns safe defaults if the DB throws', async () => {
+  // The fallback used to be { totalJobs: 200, totalCompanies: 500 }. Every
+  // consumer guards on `> 0` before rendering, so those placeholders sailed
+  // through the guards and the job detail page shipped "200 Active openings
+  // nationwide" as a live count while the DB was down. Zeros mean "unknown"
+  // and let the existing guards hide the stat.
+  it('returns zeros, never fabricated placeholder counts, if the DB throws', async () => {
     vi.mocked(prisma.siteStat.findFirst).mockRejectedValue(new Error('db down'));
     const { getSiteStats } = await import('@/lib/site-stats');
     const stats = await getSiteStats();
-    expect(stats.totalJobs).toBeGreaterThan(0);
+    expect(stats).toEqual({ totalJobs: 0, totalCompanies: 0, totalSubscribers: 0 });
   });
 });
 
@@ -122,6 +127,27 @@ describe('getExtendedSiteStats', () => {
     const second = await getExtendedSiteStats();
     expect(prisma.job.count).not.toHaveBeenCalled();
     expect(second?.salaryTransparencyPct).toBe(40);
+  });
+
+  // The homepage prints the job total and the salary percentage in one
+  // sentence, so both have to come from the SAME population. A bare
+  // { isPublished: true } denominator counted expired and globally-excluded
+  // rows the advertised total does not include.
+  it('counts engagement stats with publicJobsWhere, not a bare isPublished', async () => {
+    const { publicJobsWhere } = await import('@/lib/filters');
+    vi.mocked(prisma.siteStat.findFirst).mockResolvedValue({ id: 's1', totalJobs: 10, totalCompanies: 2, totalSubscribers: 1 } as never);
+    vi.mocked(prisma.job.count).mockResolvedValue(5 as never);
+    const { getExtendedSiteStats } = await import('@/lib/site-stats');
+    await getExtendedSiteStats({ forceRefresh: true });
+
+    const expectedExclusions = (publicJobsWhere().AND as unknown[]).length;
+    const calls = vi.mocked(prisma.job.count).mock.calls;
+    expect(calls).toHaveLength(3);
+    for (const [arg] of calls) {
+      const where = (arg as { where: { isPublished?: boolean; AND?: unknown[] } }).where;
+      expect(where.isPublished).toBe(true);
+      expect(where.AND).toHaveLength(expectedExclusions);
+    }
   });
 
   it('returns null instead of fabricated numbers when the DB is down', async () => {

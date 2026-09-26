@@ -193,9 +193,26 @@ export function extractSalary(text: string): { min: number | null; max: number |
 
 // Order matters: more specific signals first. detectJobType returns the
 // FIRST match (the single primary facet); detectAllJobTypes returns every
-// match in the same priority order so multi-schedule postings keep all
-// their schedules in the jobTypes array.
-const JOB_TYPE_DETECTORS: ReadonlyArray<{ type: string; matches: (lowerText: string) => boolean }> = [
+// SCHEDULE match in the same priority order so multi-schedule postings keep
+// all their schedules in the jobTypes array.
+//
+// `payStructureOnly` detectors are the tail of the list and are a LAST RESORT
+// (hunt 2026-09-03). "1099", "fee for service" and "W-2" describe how a role
+// PAYS, not whether it is full-time or part-time, but they used to sit inside
+// the ordinary Contract and Full-Time matchers. Because detectAllJobTypes
+// returns every match, a posting whose aggregator type was Full-Time and whose
+// title said "Fee For Service" came out as jobTypes ['Full-Time','Contract'],
+// which the Role Snapshot renders as "Schedule: Full-Time, Contract" and
+// JobStructuredData emits as employmentType ['FULL_TIME','CONTRACTOR']: two
+// mutually exclusive schedules advertised for one job, to readers and to
+// Google. They still supply a type when the text says nothing else, so a title
+// that only says "1099" is not left unclassified.
+const JOB_TYPE_DETECTORS: ReadonlyArray<{
+  type: string;
+  /** Consulted only when no schedule detector matched. */
+  payStructureOnly?: boolean;
+  matches: (lowerText: string) => boolean;
+}> = [
   {
     type: 'Locum Tenens',
     matches: (lowerText) =>
@@ -209,12 +226,9 @@ const JOB_TYPE_DETECTORS: ReadonlyArray<{ type: string; matches: (lowerText: str
   {
     type: 'Contract',
     matches: (lowerText) =>
-      lowerText.includes('1099') ||
       lowerText.includes('independent contractor') ||
       lowerText.includes('contract') ||
-      lowerText.includes('contractor') ||
-      /\bffs\b/.test(lowerText) ||                            // fee-for-service
-      /\bfee[\s-]for[\s-]service\b/.test(lowerText),
+      lowerText.includes('contractor'),
   },
   {
     type: 'Part-Time',
@@ -230,23 +244,52 @@ const JOB_TYPE_DETECTORS: ReadonlyArray<{ type: string; matches: (lowerText: str
       lowerText.includes('full-time') ||
       lowerText.includes('full time') ||
       lowerText.includes('permanent') ||
-      /\bw[\s-]?2\b/.test(lowerText) ||                         // W-2 employment
       /\bf\/?t\b/.test(lowerText),                              // F/T abbreviation
+  },
+  {
+    type: 'Contract',
+    payStructureOnly: true,
+    matches: (lowerText) =>
+      lowerText.includes('1099') ||
+      /\bffs\b/.test(lowerText) ||                            // fee-for-service
+      /\bfee[\s-]for[\s-]service\b/.test(lowerText),
+  },
+  {
+    type: 'Full-Time',
+    payStructureOnly: true,
+    matches: (lowerText) => /\bw[\s-]?2\b/.test(lowerText),    // W-2 employment
   },
 ];
 
-export function detectJobType(text: string): string | null {
-  const lowerText = text.toLowerCase();
-  for (const detector of JOB_TYPE_DETECTORS) {
-    if (detector.matches(lowerText)) return detector.type;
-  }
-  return null;
+const SCHEDULE_DETECTORS = JOB_TYPE_DETECTORS.filter((d) => !d.payStructureOnly);
+const PAY_STRUCTURE_DETECTORS = JOB_TYPE_DETECTORS.filter((d) => d.payStructureOnly);
+
+/** The one type a pay-structure marker implies, or null. Last resort only. */
+function detectPayStructureType(lowerText: string): string | null {
+  return PAY_STRUCTURE_DETECTORS.find((d) => d.matches(lowerText))?.type ?? null;
 }
 
-/** Every canonical job type the text signals, in detector priority order. */
+export function detectJobType(text: string): string | null {
+  const lowerText = text.toLowerCase();
+  for (const detector of SCHEDULE_DETECTORS) {
+    if (detector.matches(lowerText)) return detector.type;
+  }
+  // Nothing said what the schedule is, so a pay-structure marker is the best
+  // signal available and beats leaving the facet empty.
+  return detectPayStructureType(lowerText);
+}
+
+/**
+ * Every canonical job type the text signals, in detector priority order.
+ * Schedule signals only, unless there are none, in which case a pay-structure
+ * marker supplies the single fallback type.
+ */
 export function detectAllJobTypes(text: string): string[] {
   const lowerText = text.toLowerCase();
-  return JOB_TYPE_DETECTORS.filter((d) => d.matches(lowerText)).map((d) => d.type);
+  const schedules = SCHEDULE_DETECTORS.filter((d) => d.matches(lowerText)).map((d) => d.type);
+  if (schedules.length > 0) return schedules;
+  const fallback = detectPayStructureType(lowerText);
+  return fallback ? [fallback] : [];
 }
 
 /**
@@ -259,9 +302,13 @@ export function detectAllJobTypes(text: string): string[] {
  * and the shared rule keeps re-runs idempotent against fresh ingests.
  */
 export function collectJobTypes(primaryJobType: string | null, text: string): string[] {
-  const detected = detectAllJobTypes(text);
-  if (!primaryJobType) return detected;
-  return [primaryJobType, ...detected.filter((t) => t !== primaryJobType)];
+  if (!primaryJobType) return detectAllJobTypes(text);
+  // A known primary IS the schedule answer, so only genuine schedule signals in
+  // the title may add to it. Letting a pay-structure marker through here is
+  // what produced ['Full-Time','Contract'] for a full-time fee-for-service role.
+  const lowerText = text.toLowerCase();
+  const schedules = SCHEDULE_DETECTORS.filter((d) => d.matches(lowerText)).map((d) => d.type);
+  return [primaryJobType, ...schedules.filter((t) => t !== primaryJobType)];
 }
 
 /**

@@ -9,6 +9,7 @@ import {
   SAVED_JOBS_KEY,
   type SavedJobsMap,
 } from '@/lib/saved-jobs';
+import { hasLikelyAuthCookie } from '@/lib/auth-cookie';
 
 const STORAGE_KEY = SAVED_JOBS_KEY;
 const API_PATH = '/api/saved-jobs';
@@ -49,19 +50,52 @@ function notify() {
   for (const cb of subscribers) cb();
 }
 
-function applyMap(next: SavedJobsMap, persistLocal = true) {
-  cachedMap = next;
-  if (persistLocal) setStoredSavedJobs(next);
+/**
+ * Drop every trace of the signed-in user's saved jobs from this browser.
+ *
+ * Sign-out used to leave `savedJobs` in localStorage and `migrated` true in
+ * this module. When the NEXT account signed in on the same device, the first
+ * sync saw migrated=false on a fresh page load, read the previous user's
+ * leftover map, treated their ids as "local only", and POSTed them into the
+ * new account. Call this from the sign-out handler, before the session goes
+ * away, so B never inherits A's list.
+ */
+export function resetSavedJobsForSignOut(): void {
+  cachedMap = {};
+  lastSyncAt = 0;
+  isAuth = false;
+  migrated = false;
+  inflight = null;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      // Private mode / quota: the in-memory cache is already cleared, but a
+      // stale on-disk copy would survive the next reload, so say so.
+      console.error('useSavedJobs: could not clear saved jobs from localStorage', error);
+    }
+  }
   notify();
 }
 
 /**
- * Heuristic: anonymous visitors have no Supabase auth cookie, so the GET
- * is guaranteed to 401. Skip it to keep the browser console clean.
+ * Undo an optimistic mutation the server refused.
+ *
+ * These calls used to end in `.catch(() => {})`. The bookmark stayed filled
+ * in, localStorage recorded it, and then the next sync (tab focus, or past the
+ * 30s freshness window) replaced the whole local map with the server's, so the
+ * job silently disappeared with no explanation. Rolling back at the point of
+ * failure keeps the UI honest about what the server actually holds.
  */
-function hasLikelyAuthCookie(): boolean {
-  if (typeof document === 'undefined') return false;
-  return /(?:^|;\s*)sb-[^=]+-auth-token=/.test(document.cookie);
+function rollback(restore: SavedJobsMap): void {
+  console.error('useSavedJobs: server rejected the change, restoring previous state');
+  applyMap(restore);
+}
+
+function applyMap(next: SavedJobsMap, persistLocal = true) {
+  cachedMap = next;
+  if (persistLocal) setStoredSavedJobs(next);
+  notify();
 }
 
 async function syncFromServer(force = false): Promise<void> {
@@ -82,7 +116,14 @@ async function syncFromServer(force = false): Promise<void> {
         isAuth = false;
         return;
       }
-      if (!res.ok) return;
+      if (!res.ok) {
+        // Not "no saved jobs" and not "not signed in": an actual server-side
+        // failure. Leave isAuth as it was, log it, and clear the freshness
+        // stamp so the next mount retries instead of caching the failure.
+        console.error(`useSavedJobs: GET ${API_PATH} failed with ${res.status}`);
+        lastSyncAt = 0;
+        return;
+      }
       const data = (await res.json()) as { savedJobs?: Array<{ jobId: string; savedAt: string }> };
       const serverMap: SavedJobsMap = Object.fromEntries(
         (data.savedJobs ?? []).map((r) => [r.jobId, r.savedAt]),
@@ -113,8 +154,12 @@ async function syncFromServer(force = false): Promise<void> {
         }
       }
       applyMap(serverMap);
-    } catch {
-      // Network down / parse error — stay on whatever the local cache holds.
+    } catch (error) {
+      // Network down / parse error — stay on whatever the local cache holds,
+      // but never silently: a sync that never succeeds is why a save can look
+      // applied locally and be absent from the account.
+      console.error('useSavedJobs: sync failed, keeping the local cache', error);
+      lastSyncAt = 0;
     } finally {
       inflight = null;
     }
@@ -194,7 +239,11 @@ export default function useSavedJobs(): UseSavedJobsReturn {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ jobId }),
-      }).catch(() => {});
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`POST ${API_PATH} returned ${res.status}`);
+        })
+        .catch(() => rollback(current));
     }
   }, []);
 
@@ -210,12 +259,17 @@ export default function useSavedJobs(): UseSavedJobsReturn {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ jobId }),
-      }).catch(() => {});
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`DELETE ${API_PATH} returned ${res.status}`);
+        })
+        .catch(() => rollback(current));
     }
   }, []);
 
   const clearAll = useCallback((): void => {
-    const ids = Object.keys(cachedMap ?? {});
+    const snapshot = cachedMap ?? {};
+    const ids = Object.keys(snapshot);
     applyMap({});
     if (isAuth && ids.length > 0) {
       Promise.allSettled(
@@ -227,7 +281,18 @@ export default function useSavedJobs(): UseSavedJobsReturn {
             body: JSON.stringify({ jobId }),
           }),
         ),
-      ).catch(() => {});
+      ).then((results) => {
+        const failed = results.filter(
+          (r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok),
+        ).length;
+        if (failed > 0) {
+          // Partial clears leave the account and this browser disagreeing, and
+          // the next sync will bring the survivors back. Restore the full list
+          // so what is on screen is what the server still holds.
+          console.error(`useSavedJobs: ${failed} of ${ids.length} deletes failed during clearAll`);
+          rollback(snapshot);
+        }
+      });
     }
   }, []);
 

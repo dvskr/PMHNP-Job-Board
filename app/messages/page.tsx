@@ -177,7 +177,10 @@ export default function MessagesPage() {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                router.push('/login?redirect=/messages');
+                // ?redirectTo= is the name LoginContent actually reads
+                // (alongside ?next=). The old ?redirect= looked implemented
+                // but was inert, so signing in dropped the user on /dashboard.
+                router.push('/login?redirectTo=/messages');
             }
         })();
     }, [router]);
@@ -453,7 +456,7 @@ export default function MessagesPage() {
                     <h2 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 8px' }}>
                         No messages yet
                     </h2>
-                    <p style={{ fontSize: '14px', color: '#6B7F8A', maxWidth: '380px', margin: '0 auto' }}>
+                    <p style={{ fontSize: '14px', color: '#4B5E68', maxWidth: '380px', margin: '0 auto' }}>
                         Conversations with employers and candidates will appear here.
                     </p>
                 </div>
@@ -515,6 +518,8 @@ export default function MessagesPage() {
                                                     {formatMessageDate(conv.lastMessageAt)}
                                                 </span>
                                                 <button
+                                                    aria-label="Conversation options"
+                                                    aria-expanded={convMenuId === conv.id}
                                                     onClick={(e) => { e.stopPropagation(); setConvMenuId(convMenuId === conv.id ? null : conv.id); }}
                                                     style={{
                                                         background: 'none', border: 'none',
@@ -640,6 +645,7 @@ export default function MessagesPage() {
                                     flexShrink: 0,
                                 }}>
                                     <button
+                                        aria-label="Back to conversations"
                                         onClick={() => { setActiveConvId(null); setConvDetail(null); setThread([]); }}
                                         style={{
                                             background: 'none', border: 'none', cursor: 'pointer',
@@ -973,6 +979,7 @@ export default function MessagesPage() {
                                                 {pendingAttachment.name}
                                             </span>
                                             <button
+                                                aria-label="Remove attachment"
                                                 onClick={() => setPendingAttachment(null)}
                                                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: 'var(--text-tertiary)', flexShrink: 0 }}
                                             >
@@ -1041,12 +1048,16 @@ export default function MessagesPage() {
                                         <button
                                             onClick={handleSendReply}
                                             disabled={(!replyText.trim() && !pendingAttachment) || sending}
+                                            // Icon-only control: without this the send button was
+                                            // the one unnamed button in the thread view.
+                                            aria-label="Send message"
+                                            title="Send message"
                                             style={{
                                                 width: '44px', height: '44px',
                                                 borderRadius: '50%',
                                                 border: '1px solid rgba(255,255,255,0.3)',
                                                 backgroundColor: (replyText.trim() || pendingAttachment) ? '#0D9488' : '#E8F0EB',
-                                                color: (replyText.trim() || pendingAttachment) ? '#fff' : '#8A9BA6',
+                                                color: (replyText.trim() || pendingAttachment) ? '#fff' : '#4B5E68',
                                                 cursor: (replyText.trim() || pendingAttachment) ? 'pointer' : 'not-allowed',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 transition: 'all 0.2s',

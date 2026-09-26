@@ -6,6 +6,11 @@ const BASE_URL = 'https://pmhnphiring.com';
 export const dynamic = 'force-dynamic';
 export const revalidate = 86400; // daily
 
+/** YouTube video ids are exactly 11 url-safe characters. */
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+/** W3C date, the only shape <video:publication_date> accepts. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 /**
  * Generates a video sitemap following Google's video sitemap extension.
  *
@@ -32,19 +37,42 @@ export async function GET() {
             .not('youtube_video_id', 'is', null);
 
         if (posts && posts.length > 0) {
-            blogEntries = posts.map(
-                (post) => `  <url>
-    <loc>${BASE_URL}/blog/${post.slug}</loc>
+            // A video id that is not a YouTube id cannot produce a working
+            // player_loc, and an unescaped one ("abc&def") makes the whole
+            // document malformed, so Google rejects the SITEMAP, not just the
+            // entry. /api/blog stores the value unvalidated, so the shape is
+            // checked here at the point of use. Dropped rows are named in the
+            // log: a post silently missing from the video sitemap is otherwise
+            // invisible until Search Console reports it.
+            const malformed = posts.filter((post) => !YOUTUBE_ID.test(post.youtube_video_id ?? ''));
+            if (malformed.length > 0) {
+                console.error(
+                    '[video-sitemap] skipped posts with a malformed youtube_video_id:',
+                    malformed.map((post) => `${post.slug}=${post.youtube_video_id}`).join(', '),
+                );
+            }
+            blogEntries = posts
+                .filter((post) => YOUTUBE_ID.test(post.youtube_video_id ?? ''))
+                .map((post) => {
+                    // publication_date must be a W3C datetime. Emitting an
+                    // empty element (both dates null) invalidates the entry for
+                    // Google's video parser, so omit it instead.
+                    const publishedOn = (post.publish_date || post.created_at || '').split('T')[0];
+                    const publicationDate = ISO_DATE.test(publishedOn)
+                        ? `
+      <video:publication_date>${publishedOn}</video:publication_date>`
+                        : '';
+                    return `  <url>
+    <loc>${BASE_URL}/blog/${escapeXml(post.slug)}</loc>
     <video:video>
       <video:thumbnail_loc>https://img.youtube.com/vi/${post.youtube_video_id}/maxresdefault.jpg</video:thumbnail_loc>
       <video:title>${escapeXml(post.title)}</video:title>
       <video:description>${escapeXml(post.meta_description || post.title)}</video:description>
-      <video:player_loc allow_embed="yes">https://www.youtube.com/embed/${post.youtube_video_id}</video:player_loc>
-      <video:publication_date>${(post.publish_date || post.created_at || '').split('T')[0]}</video:publication_date>
+      <video:player_loc allow_embed="yes">https://www.youtube.com/embed/${post.youtube_video_id}</video:player_loc>${publicationDate}
       <video:family_friendly>yes</video:family_friendly>
     </video:video>
-  </url>`
-            );
+  </url>`;
+                });
         }
     } catch (e) {
         console.error('[video-sitemap] Error fetching blog videos:', e);

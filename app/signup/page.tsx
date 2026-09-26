@@ -4,6 +4,7 @@ import AuthLayout from '@/components/auth/AuthLayout'
 import { getCurrentUser } from '@/lib/auth/protect'
 import { safeInternalPath } from '@/lib/auth/safe-redirect'
 import { prisma } from '@/lib/prisma'
+import { publicJobsWhere } from '@/lib/filters'
 import { config } from '@/lib/config'
 import { Suspense } from 'react'
 
@@ -24,9 +25,14 @@ export const metadata = {
 // numbers-free value prop instead of rendering "0 organizations".
 async function getEmployerStats() {
   try {
+    // publicJobsWhere() is the only predicate allowed to produce a site-wide
+    // job count. A bare { isPublished: true } counted expired postings and the
+    // globally excluded ones, so this panel advertised a larger catalog than
+    // the homepage and than /jobs will actually show.
+    const where = publicJobsWhere()
     const [totalJobs, totalCompanies] = await Promise.all([
-      prisma.job.count({ where: { isPublished: true } }),
-      prisma.job.groupBy({ by: ['employer'], where: { isPublished: true } }).then((r) => r.length),
+      prisma.job.count({ where }),
+      prisma.job.groupBy({ by: ['employer'], where }).then((r) => r.length),
     ])
     return { totalJobs, totalCompanies }
   } catch {
@@ -49,31 +55,31 @@ export default async function SignUpPage({
   const isEmployer = params.role === 'employer'
   const stats = isEmployer ? await getEmployerStats() : null
 
-  // Side-panel copy — real value props only. Employer requests get live
+  // Side-panel copy: real value props only. Employer requests get live
   // platform numbers when the DB answered; everything else gets a
   // non-fabricated product statement attributed to the platform itself.
   const panel = isEmployer
     ? stats && stats.totalJobs > 0 && stats.totalCompanies > 0
       ? {
-          quote: `Join ${stats.totalCompanies.toLocaleString()} organizations hiring ${stats.totalJobs.toLocaleString()}+ PMHNPs on PMHNP Hiring.`,
-          name: 'PMHNP Hiring',
-          title: 'Live platform numbers',
+          message: `Join ${stats.totalCompanies.toLocaleString()} organizations hiring ${stats.totalJobs.toLocaleString()}+ PMHNPs on PMHNP Hiring.`,
+          source: 'PMHNP Hiring',
+          detail: 'Live platform numbers',
         }
       : {
-          quote: `Your first job post is half price at $${config.firstPostPrice}, and every listing reaches a dedicated psychiatric-NP audience.`,
-          name: 'PMHNP Hiring',
-          title: 'Built for hiring PMHNPs',
+          message: `Your first job post is half price at $${config.firstPostPrice}, and every listing reaches a dedicated psychiatric-NP audience.`,
+          source: 'PMHNP Hiring',
+          detail: 'Built for hiring PMHNPs',
         }
     : {
-        quote: 'Every listing here is a psychiatric mental health NP role. No sifting through generic nursing boards.',
-        name: 'PMHNP Hiring',
-        title: 'Built exclusively for PMHNPs',
+        message: 'Every listing here is a psychiatric mental health NP role. No sifting through generic nursing boards.',
+        source: 'PMHNP Hiring',
+        detail: 'Built exclusively for PMHNPs',
       }
 
   return (
     <AuthLayout
       illustration="/illustrations/auth-signup.png"
-      testimonial={panel}
+      note={panel}
     >
       <Suspense
         fallback={

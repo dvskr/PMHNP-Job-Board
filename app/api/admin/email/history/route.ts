@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 
@@ -6,8 +6,8 @@ import { requireApiAdmin } from '@/lib/auth/require-api-admin';
  * GET /api/admin/email/history
  * Returns a paginated list of past broadcasts.
  */
-export async function GET(req: Request) {
-    const authError = await requireApiAdmin();
+export async function GET(req: NextRequest) {
+    const authError = await requireApiAdmin(req);
     if (authError) return authError;
 
     const { searchParams } = new URL(req.url);

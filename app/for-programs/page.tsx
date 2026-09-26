@@ -20,7 +20,10 @@ import {
 export const revalidate = 3600
 
 export const metadata: Metadata = {
-  title: 'For Program Directors: Free PMHNP Jobs Widget | PMHNP Hiring',
+  // Bare title: app/layout.tsx defines title.template `%s | PMHNP Hiring`,
+  // which Next appends to every plain-string child title. Repeating the
+  // brand here rendered it twice in the SERP and the browser tab.
+  title: 'For Program Directors: Free PMHNP Jobs Widget',
   description:
     'Help your PMHNP students land their first job. Free embeddable jobs widget for your career services page, plus quarterly placement reports for your accreditation file.',
   alternates: { canonical: `${brand.baseUrl}/for-programs` },

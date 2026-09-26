@@ -14,6 +14,8 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import { slugify } from '@/lib/utils';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 
 // Force dynamic rendering - don't try to statically generate during build
 /* Design Tokens */
@@ -53,21 +55,25 @@ async function getLocumJobs(skip: number = 0, take: number = 20) {
 async function getLocumStats() {
   const totalJobs = await prisma.job.count({ where: categoryWhere() });
 
-  const salaryData = await prisma.job.aggregate({
-    where: {
+  // Rows, not a SQL mean. medianAdvertisedK applies the one salary
+// engine: employer estimates dropped, implausible ranges quarantined,
+// and no figure at all below five clean rows. The old mean of two
+// column means counted estimates and could publish off a single
+// listing, which is how this page and /salary-guide disagreed about
+// pay for the same postings.
+const salaryRows = await prisma.job.findMany({
+  where: {
       ...categoryWhere(),
       normalizedMinSalary: { not: null },
-      normalizedMaxSalary: { not: null },
-    },
-    _avg: {
-      normalizedMinSalary: true,
-      normalizedMaxSalary: true,
-    },
-  });
+      normalizedMaxSalary: { not: null },},
+  select: {
+    normalizedMinSalary: true,
+    normalizedMaxSalary: true,
+    salaryIsEstimated: true,
+  },
+});
 
-  const avgMinSalary = salaryData._avg.normalizedMinSalary || 0;
-  const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
-  const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
+const avgSalary = medianAdvertisedK(salaryRows);
 
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
@@ -198,7 +204,7 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
                 '@type': 'ListItem',
                 position: idx + 1,
                 name: job.title,
-                url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+                url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}`,
               })),
             }),
           }}
@@ -218,7 +224,7 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, travel & flexibility."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'agencies' },
         ]}
         description="Travel assignments with premium hourly rates, housing stipends, and schedule flexibility."
@@ -357,7 +363,7 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Compensation</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  {stats.avgSalary > 0 ? `Locum PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Assignments commonly include tax-free housing stipends and malpractice coverage.
+                  {stats.avgSalary > 0 ? `The median locum PMHNP listing here advertises $${stats.avgSalary}k annually. ` : ''}Assignments commonly include tax-free housing stipends and malpractice coverage.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>

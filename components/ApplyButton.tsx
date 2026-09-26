@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ExternalLink, LogIn, Zap, Loader2 } from 'lucide-react';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import { shouldLabelDirectApply } from '@/lib/direct-apply';
+import { hasLikelyAuthCookie } from '@/lib/auth-cookie';
 
 import InPlatformApplyForm from '@/components/InPlatformApplyForm';
 import CreateAlertForm from '@/components/CreateAlertForm';
@@ -104,6 +105,15 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
       authPromiseRef.current = Promise.resolve(isAuthenticated);
       authResolvedRef.current = true;
       return; // caller supplied it
+    }
+    // No session cookie means the call can only 401, and this component mounts
+    // twice per job page (sidebar + sticky bar). Skip the round trip entirely
+    // for anonymous visitors rather than paying for two guaranteed 401s.
+    if (!hasLikelyAuthCookie()) {
+      authPromiseRef.current = Promise.resolve(false);
+      authResolvedRef.current = true;
+      setAuthed(false);
+      return;
     }
     let active = true;
     authPromiseRef.current = fetch('/api/auth/me')

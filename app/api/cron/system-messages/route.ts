@@ -4,6 +4,7 @@ import { withCronTracking } from '@/lib/cron/track';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { logger } from '@/lib/logger';
 import { isSystemMessagesEnabled, runSystemMessages } from '@/lib/system-messages';
+import { OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
 
 export const maxDuration = 120; // 2 minutes: DB writes plus optional employer email piggybacks
 
@@ -15,14 +16,22 @@ export const maxDuration = 120; // 2 minutes: DB writes plus optional employer e
  * their live posts, candidates get up to 3 picked jobs. Rides the existing
  * Conversation + EmployerMessage models, so everything lands in /messages.
  *
- * OPERATOR GATE: real sends require ENABLE_SYSTEM_MESSAGES=1 (default off).
- * Without the flag the route only runs in ?dryRun=1 mode (counts + previews,
- * zero writes) so the operator can inspect exactly what WOULD go out before
- * enabling. The flag is enforced again inside sendSystemMessage, so this
- * route cannot be the only thing standing between "off" and a bulk send.
+ * OPERATOR GATE: in-platform messages send BY DEFAULT. There is no per-feature
+ * enable flag; isSystemMessagesEnabled() is the shared emergency brake
+ * (lib/outbound-kill-switch), so the only thing that stops a real run is
+ * OUTBOUND_MESSAGING_PAUSED=1. The brake is checked again inside
+ * sendSystemMessage, so this route is not the only thing standing between
+ * "paused" and a bulk send. ?dryRun=1 still works while paused (counts +
+ * previews, zero writes) so the operator can inspect what WOULD go out.
+ *
+ * This docblock and the skip reason below both used to name a per-feature
+ * enable flag that no code anywhere reads. An operator hitting the skip
+ * response would set that variable, see no change, and believe these nudges
+ * were off while they were messaging users. The static test in
+ * tests/regressions/system-messages-static.test.ts now refuses the old name.
  *
  * Query params:
- *   ?dryRun=1                  preview only, no writes (works without the flag)
+ *   ?dryRun=1                  preview only, no writes (works while paused)
  *   ?side=employer|candidate   restrict to one side (default: both)
  *
  * Protected by CRON_SECRET (or an admin session via /admin/cron).
@@ -39,7 +48,8 @@ export async function GET(req: NextRequest) {
     if (!isSystemMessagesEnabled() && !dryRun) {
         return NextResponse.json({
             skipped: true,
-            reason: 'ENABLE_SYSTEM_MESSAGES is not enabled',
+            enabled: false,
+            reason: OUTBOUND_PAUSED_MESSAGE,
         });
     }
 

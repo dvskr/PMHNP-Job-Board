@@ -59,6 +59,9 @@ describe('professional summary limit', () => {
         expect(settingsSrc).toContain('if (e.target.value.length <= 1000)');
         expect(settingsSrc).toContain('/1000');
         expect(routeSrc).toContain('const BIO_MAX_LENGTH = 1000');
-        expect(routeSrc).toContain('sanitizeText(body.bio, BIO_MAX_LENGTH)');
+        // The route must cap the summary at that constant, whichever sanitizing
+        // helper it routes the field through. Pinning the exact call shape broke
+        // the moment the field handling was factored into a shared helper.
+        expect(routeSrc).toMatch(/\bbio\b[^\n]*BIO_MAX_LENGTH/);
     });
 });

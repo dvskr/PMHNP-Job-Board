@@ -19,6 +19,7 @@ import type { Prisma } from '@prisma/client';
 import {
   buildWhereClause,
   jobTypeClause,
+  FACETED_JOB_TYPES,
   salaryAtLeastClause,
   specialtyClause,
   workModeClause,
@@ -53,23 +54,42 @@ describe('workModeClause', () => {
 });
 
 describe('jobTypeClause', () => {
-  it('named types → exact-match IN on the structured column', () => {
+  const insensitive = (t: string) => ({ jobType: { equals: t, mode: 'insensitive' } });
+  // "Other" is the complement of the four faceted options: NULL, or a stored
+  // value outside them ('PRN', 'Locum Tenens', 'Internship', and legacy case
+  // variants). Before the fix it meant NULL only, which left those postings
+  // unreachable by every combination of the five checkboxes.
+  const otherClause = {
+    OR: [
+      { jobType: null },
+      { NOT: { OR: FACETED_JOB_TYPES.map(insensitive) } },
+    ],
+  };
+
+  it('named types match case-insensitively, so legacy "Full-time" is reachable', () => {
     expect(jobTypeClause(['Full-Time', 'Contract'])).toEqual({
-      jobType: { in: ['Full-Time', 'Contract'] },
+      OR: [insensitive('Full-Time'), insensitive('Contract')],
     });
   });
 
-  it('"Other" alone → NULL jobType (unnormalized/unstated rows)', () => {
-    expect(jobTypeClause(['Other'])).toEqual({ jobType: null });
+  it('"Other" alone → NULL or anything outside the faceted four', () => {
+    expect(jobTypeClause(['Other'])).toEqual(otherClause);
   });
 
-  it('named + "Other" → OR of IN and NULL', () => {
+  it('named + "Other" → OR of the named clause and the complement', () => {
     expect(jobTypeClause(['Per Diem', 'Other'])).toEqual({
-      OR: [
-        { jobType: { in: ['Per Diem'] } },
-        { jobType: null },
-      ],
+      OR: [{ OR: [insensitive('Per Diem')] }, otherClause],
     });
+  });
+
+  it('selecting every option leaves nothing unreachable', () => {
+    // The union of the five options has to be the whole catalogue: any stored
+    // jobType is either one of the four (case-insensitively) or caught by the
+    // complement branch of "Other".
+    const all = jobTypeClause([...FACETED_JOB_TYPES, 'Other']);
+    const branches = all.OR as Array<Record<string, unknown>>;
+    expect(branches).toHaveLength(2);
+    expect(branches[1]).toEqual(otherClause);
   });
 
   it('buildWhereClause embeds the identical clause for a jobType filter', () => {

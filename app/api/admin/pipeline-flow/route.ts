@@ -8,7 +8,7 @@
  * Single endpoint so the client can render the whole pipeline view in
  * one fetch.
  */
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 import { ALL_SOURCES, type JobSource } from '@/lib/ingestion-service';
@@ -79,8 +79,8 @@ function summarize(rows: Array<{
     return [...bySource.values()].sort((a, b) => b.fetched - a.fetched);
 }
 
-export async function GET() {
-    const authError = await requireApiAdmin();
+export async function GET(req: NextRequest) {
+    const authError = await requireApiAdmin(req);
     if (authError) return authError;
 
     try {

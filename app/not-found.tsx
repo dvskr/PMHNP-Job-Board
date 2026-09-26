@@ -3,7 +3,10 @@ import { Search, Home, Briefcase, ChevronRight } from 'lucide-react';
 
 export default function NotFound() {
   return (
-    <main style={{ 
+  /* Wrapper is a div, not <main>: components/MainContent.tsx already wraps
+     every route in <main id="main-content">, and a nested <main> gives
+     assistive tech two "main" landmarks on the same page. */
+    <div style={{ 
         minHeight: '100vh', 
         background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
         display: 'flex',
@@ -124,6 +127,6 @@ export default function NotFound() {
                 </Link>
             </div>
         </div>
-    </main>
+    </div>
   );
 }

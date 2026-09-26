@@ -15,6 +15,8 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { stateToSlug } from '@/lib/pseo/setting-state-config';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
+import { pseoFreshnessCutoff } from '@/lib/pseo/sitemap-thresholds';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import { cityLinkHref } from '@/lib/pseo/related-cities';
 import { Job } from '@/lib/types';
 import {
@@ -23,6 +25,7 @@ import {
   PracticeAuthority
 } from '@/lib/state-practice-authority';
 import { cleanSalaryRows, summarizeMidpoints, roundDisplayDollars } from '@/lib/salary-report/stats';
+import { slugify } from '@/lib/utils';
 
 // Force dynamic rendering - don't try to statically generate during build
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
@@ -361,7 +364,8 @@ async function getCitiesWithJobs(stateName: string, stateCode: string): Promise<
 export async function generateMetadata({ params, searchParams }: StatePageProps): Promise<Metadata> {
   try {
     const [{ state: stateParam }, sp] = await Promise.all([params, searchParams]);
-    const page = Math.max(1, parseInt(sp.page || '1'));
+    const rawPage = parseInt(sp.page || '1', 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
     const stateInfo = parseStateParam(stateParam);
 
     if (!stateInfo) {
@@ -373,24 +377,34 @@ export async function generateMetadata({ params, searchParams }: StatePageProps)
     const { name: stateName, code: stateCode } = stateInfo;
     const stats = await getStateStats(stateName, stateCode);
 
+    // A sub-threshold count never reaches a SERP title. Every other pSEO
+    // family already routes through categoryTitleCount: a state hub with two
+    // live jobs was advertising "2 PMHNP Jobs in Wyoming (WY)" as index,follow,
+    // and one job rendered the ungrammatical "1 PMHNP Jobs" that invites a
+    // Google title rewrite. Below the floor the page keeps its 200 and its
+    // links, and drops the number plus the index directive.
+    const countPrefix = categoryTitleCount(stats.totalJobs);
     // "Median advertised", never "average": the figure is a median of the
     // ranges postings disclose, and it is omitted entirely below the sample
     // floor rather than softened.
     const title = stats.salary
-      ? `${stats.totalJobs} PMHNP Jobs in ${stateName} (${stateCode}): $${stats.salary.medianK}K Median Advertised`
-      : `${stats.totalJobs} PMHNP Jobs in ${stateName} (${stateCode}): Apply Today`;
+      ? `${countPrefix}PMHNP Jobs in ${stateName} (${stateCode}): $${stats.salary.medianK}K Median Advertised`
+      : `${countPrefix}PMHNP Jobs in ${stateName} (${stateCode}): Apply Today`;
 
+    const jobsPhrase = countPrefix
+      ? `${stats.totalJobs} psychiatric nurse practitioner jobs`
+      : 'psychiatric nurse practitioner jobs';
     const description = stats.salary
-      ? `Find ${stats.totalJobs} psychiatric nurse practitioner jobs in ${stateName}. Median advertised PMHNP salary: $${stats.salary.medianK}K across ${stats.salary.n} postings that disclose a range. Telehealth, inpatient, outpatient, and private practice positions. New jobs added daily.`
-      : `Find ${stats.totalJobs} psychiatric nurse practitioner jobs in ${stateName}. Telehealth, inpatient, outpatient, and private practice PMHNP positions. New jobs added daily.`;
+      ? `Find ${jobsPhrase} in ${stateName}. Median advertised PMHNP salary: $${stats.salary.medianK}K across ${stats.salary.n} postings that disclose a range. Telehealth, inpatient, outpatient, and private practice positions. New jobs added daily.`
+      : `Find ${jobsPhrase} in ${stateName}. Telehealth, inpatient, outpatient, and private practice PMHNP positions. New jobs added daily.`;
 
     return {
       title,
       description,
       openGraph: {
         title: stats.salary
-          ? `${stats.totalJobs} PMHNP Jobs in ${stateName} | $${stats.salary.medianK}k Median Advertised`
-          : `${stats.totalJobs} PMHNP Jobs in ${stateName}`,
+          ? `${countPrefix}PMHNP Jobs in ${stateName} | $${stats.salary.medianK}k Median Advertised`
+          : `${countPrefix}PMHNP Jobs in ${stateName}`,
         description,
         type: 'website',
         images: [{
@@ -409,14 +423,12 @@ export async function generateMetadata({ params, searchParams }: StatePageProps)
         // the raw param — splintering the indexed forms.
         canonical: `https://pmhnphiring.com/jobs/state/${stateToSlug(stateName)}`,
       },
-      // GSC Fix (P3.1 + P3.5): noindex empty-state pages AND any paginated view.
-      // Empty state → soft 404 risk; paginated view → duplicate-canonical risk.
-      ...((stats.totalJobs === 0 || page > 1) && {
-        robots: {
-          index: false,
-          follow: true,
-        },
-      }),
+      // GSC Fix (P3.1 + P3.5): noindex any paginated view (duplicate-canonical
+      // risk). categoryLandingRobotsMeta extends that to sub-threshold hubs,
+      // so a 1 or 2 job state stops competing in the index as thin content,
+      // on the same MIN_JOBS constant every other pSEO family gates on. A
+      // 0-job state never reaches metadata anyway: the page notFound()s.
+      ...categoryLandingRobotsMeta(stats.totalJobs, page),
     };
   } catch (error) {
     console.error('Error generating metadata:', error);
@@ -449,7 +461,10 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
     const qs = new URLSearchParams(sp as Record<string, string>).toString();
     permanentRedirect(`/jobs/state/${canonicalStateSlug}${qs ? `?${qs}` : ''}`);
   }
-  const page = Math.max(1, parseInt(sp.page || '1'));
+  // Math.max(1, NaN) is NaN, which would flow into `skip` and make Prisma
+  // reject the query, so parse defensively.
+  const rawPage = parseInt(sp.page || '1', 10);
+  const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
   const limit = 10;
   const skip = (page - 1) * limit;
 
@@ -470,6 +485,16 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
     notFound();
   }
 
+  // Deep pagination past the last page used to answer 200 with an empty list,
+  // a page-1 canonical and a noindex header. Google recrawls a noindexed 200
+  // far longer than a 404, so legacy ?page=N URLs from when the catalogue was
+  // larger (and any guessed ?page=999) sat in Crawled, currently not indexed
+  // burning budget on the highest-value hubs. Same guard the category x city
+  // template already applies.
+  if (page > 1 && jobs.length === 0) {
+    notFound();
+  }
+
   // GSC Fix (P1.5 + 2026-07 audit): only render setting pills for
   // setting×state combos clearing the render gate — those pages noindex
   // below 3 and the sitemap now gates them at 3 (P2.4), so a ≥1 link gate
@@ -483,6 +508,11 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
         type: 'setting-state',
         locationSlug: stateSlugForLookup,
         totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
+        // The count has to be recent as well as high enough. Without this,
+        // an aggregator outage freezes the rows and the page keeps linking
+        // to setting x state cells whose live count has since fallen under
+        // the gate, so Googlebot is fed pages that now noindex themselves.
+        updatedAt: { gte: pseoFreshnessCutoff() },
       },
       select: { categorySlug: true },
     });
@@ -535,7 +565,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
           name: `PMHNP Jobs in ${stateName}`, numberOfItems: stats.totalJobs,
           itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({
             '@type': 'ListItem', position: idx + 1, name: job.title,
-            url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+            url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}`,
           })),
         }) }} />
       )}

@@ -234,6 +234,26 @@ export async function POST(request: NextRequest) {
         }
 
         // 5b. Upsert the application (don't duplicate if user already applied)
+
+        // Re-applying used to clear `withdrawnAt` but leave `status` frozen at
+        // 'withdrawn', so a live re-submission still rendered as a dimmed
+        // "Withdrawn" card on /my-applications and as the grey Withdrawn pill
+        // in the employer's Applicants tab, while /api/applications/check
+        // reported applied:true. Both halves of the withdrawal have to clear
+        // together.
+        //
+        // The reset is conditional on the row actually being withdrawn: a
+        // candidate who re-submits an application already in 'screening' or
+        // 'interview' must not be knocked back to 'applied', and `notes` is
+        // private employer text that only the withdrawal scrub may clear.
+        const existingApplication = await prisma.jobApplication.findUnique({
+            where: { userId_jobId: { userId: user.id, jobId } },
+            select: { status: true, withdrawnAt: true },
+        });
+        const wasWithdrawn =
+            !!existingApplication
+            && (existingApplication.withdrawnAt !== null || existingApplication.status === 'withdrawn');
+
         const application = await prisma.jobApplication.upsert({
             where: {
                 userId_jobId: { userId: user.id, jobId },
@@ -245,6 +265,7 @@ export async function POST(request: NextRequest) {
                 consentGiven: true,
                 consentGivenAt: new Date(),
                 withdrawnAt: null, // un-withdraw if re-applying
+                ...(wasWithdrawn && { status: 'applied', statusUpdatedAt: new Date() }),
                 ...(validatedAnswers && { screeningAnswers: validatedAnswers }),
                 ...(autoReject && {
                     status: 'rejected',

@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
+import { LOGO_DATA_URI } from './_logo';
 
 export const runtime = 'edge';
 
@@ -55,7 +56,13 @@ export async function GET(request: NextRequest) {
   const company = searchParams.get('company') || 'PMHNP Hiring';
   const salary = searchParams.get('salary') || 'Competitive Pay';
   const location = searchParams.get('location') || 'Remote / On-site';
-  const jobType = searchParams.get('jobType') || 'Full-time';
+  // No default. The JD page only forwards jobType when the column is set
+  // (app/jobs/[slug]/page.tsx), so a missing param means "schedule unknown",
+  // not "full time". The old `|| 'Full-time'` printed a schedule chip on
+  // every PRN, per diem and locum posting whose jobType is null, contradicting
+  // the page body and the JSON-LD on the same URL. components/JobStructuredData.tsx
+  // already made the matching decision for employmentType: omit, never guess.
+  const jobType = searchParams.get('jobType') || '';
   const isNew = searchParams.get('isNew') === 'true';
   // Optional experience chip ("New grad welcome", "5+ yrs") forwarded by the
   // JD page metadata.
@@ -74,19 +81,8 @@ export async function GET(request: NextRequest) {
   const hasSalary = salary !== '0' && salary !== 'Hidden' && salary !== 'Competitive Pay';
   const hasLocation = location !== 'Remote / On-site';
 
-  // Fetch Logo
-  let logoSrc = '';
-  try {
-    // Fixed origin — never the request Host header (attacker-controlled; using
-    // it makes this OG route an SSRF proxy). The logo is a stable public asset.
-    const logoRes = await fetch('https://pmhnphiring.com/pmhnp_logo.png');
-    if (logoRes.ok) {
-      const logoBuf = await logoRes.arrayBuffer();
-      logoSrc = `data:image/png;base64,${Buffer.from(logoBuf).toString('base64')}`;
-    }
-  } catch (e) {
-    console.error('Failed to fetch logo:', e);
-  }
+  // Bundled with the function, not fetched. See app/api/og/_logo.ts.
+  const logoSrc = LOGO_DATA_URI;
 
   const middle = isHomepage ? (
     /* ===== HOMEPAGE ===== */
@@ -179,7 +175,7 @@ export async function GET(request: NextRequest) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: 34 }}>
         {hasSalary && chip(salary, true)}
         {hasLocation && chip(location)}
-        {chip(jobType)}
+        {jobType && chip(jobType)}
         {experience && chip(experience)}
       </div>
     </div>
@@ -207,6 +203,11 @@ export async function GET(request: NextRequest) {
             <div style={{ display: 'flex', fontSize: 22, fontWeight: 700, letterSpacing: '0.24em', color: TEAL }}>
               PMHNP HIRING
             </div>
+            {/* Badge text tracks the flag it renders. The caller sets isNew
+                from createdAt being under 7 days old; it said "Featured",
+                which on this board is a paid and editorial placement, so
+                every freshly ingested aggregator job advertised a promotion
+                it had not been given. */}
             {!isHomepage && !isPageType && isNew && (
               <div
                 style={{
@@ -221,7 +222,7 @@ export async function GET(request: NextRequest) {
                   letterSpacing: '0.04em',
                 }}
               >
-                Featured
+                New
               </div>
             )}
           </div>

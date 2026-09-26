@@ -104,8 +104,12 @@ describe('app/sitemap.ts gates the landing + metro entries (source lock)', () =>
   });
 
   it('metro entries are gated on live counts via the shared metro builder', () => {
+    // Floor moved from > 0 to the shared MIN_JOBS_FOR_CATEGORY_CITY when the
+    // metro page adopted categoryLandingRobotsMeta. Both ends must use the
+    // same number or the sitemap submits URLs the page marks noindex; that
+    // pairing is asserted in tests/seo/sitemap-honesty-b.test.ts.
     expect(src).toContain('buildMetroJobsWhere');
-    expect(src).toMatch(/\.filter\(m => m\.count > 0\)/);
+    expect(src).toMatch(/\.filter\(m => m\.count >= MIN_JOBS_FOR_CATEGORY_CITY\)/);
   });
 
   it('metro entries no longer stamp the sitewide latestJobDate in the gated path', () => {

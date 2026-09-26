@@ -1,6 +1,6 @@
 'use client';
 
-import { LazyMotion, domAnimation, m } from 'framer-motion';
+import { LazyMotion, MotionConfig, domAnimation, m } from 'framer-motion';
 import Link from 'next/link';
 import StateImage from './StateImage';
 
@@ -37,6 +37,11 @@ export default function TopStatesList({ states }: TopStatesProps) {
 
     return (
         <LazyMotion features={domAnimation}>
+        {/* reducedMotion="user" honours the OS "reduce motion" setting:
+                framer motion then skips transform and layout animations and keeps
+                only opacity. Nothing in the app set this, so these sections
+                animated regardless of the preference. */}
+        <MotionConfig reducedMotion="user">
         <section className="py-8 lg:py-12">
             <div className="max-w-7xl mx-auto px-6">
                 {/* Header */}
@@ -145,6 +150,7 @@ export default function TopStatesList({ states }: TopStatesProps) {
             </div>
         </section>
 
+        </MotionConfig>
         </LazyMotion>
     );
 }

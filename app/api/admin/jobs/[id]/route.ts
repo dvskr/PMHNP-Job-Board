@@ -3,6 +3,58 @@ import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 import { inngest } from '@/lib/inngest/client';
 import { logger } from '@/lib/logger';
+import {
+    collectAdminFields,
+    isRecordNotFound,
+    type AdminFieldSpec,
+} from '../../_lib/field-validation';
+
+/**
+ * The editable surface of a Job, with the type each column actually holds.
+ *
+ * This replaces a bare list of field NAMES. Names alone let
+ * `{"isPublished":"yes"}` through to Prisma (a 500 the caller could do nothing
+ * with) and stored `{"title":"   "}` verbatim, which put a blank title on a
+ * live listing. `expiresAt` stays 'raw' because it has its own range check
+ * further down, which is stricter than any generic date rule.
+ */
+const JOB_FIELD_SPECS: Record<string, AdminFieldSpec> = {
+    // NOT NULL columns the public listing renders directly.
+    title: { kind: 'requiredText' },
+    employer: { kind: 'requiredText' },
+    location: { kind: 'requiredText' },
+    description: { kind: 'requiredText' },
+
+    descriptionSummary: { kind: 'text', nullable: true },
+    applyLink: { kind: 'text', nullable: true },
+    jobType: { kind: 'text', nullable: true },
+    mode: { kind: 'text', nullable: true },
+    city: { kind: 'text', nullable: true },
+    state: { kind: 'text', nullable: true },
+    stateCode: { kind: 'text', nullable: true },
+    country: { kind: 'text', nullable: true },
+    salaryRange: { kind: 'text', nullable: true },
+    salaryPeriod: { kind: 'text', nullable: true },
+    displaySalary: { kind: 'text', nullable: true },
+    setting: { kind: 'text', nullable: true },
+    population: { kind: 'text', nullable: true },
+
+    isRemote: { kind: 'boolean' },
+    isHybrid: { kind: 'boolean' },
+    isPublished: { kind: 'boolean' },
+    isFeatured: { kind: 'boolean' },
+    isVerifiedEmployer: { kind: 'boolean' },
+
+    minSalary: { kind: 'int', nullable: true },
+    maxSalary: { kind: 'int', nullable: true },
+    normalizedMinSalary: { kind: 'int', nullable: true },
+    normalizedMaxSalary: { kind: 'int', nullable: true },
+    qualityScore: { kind: 'int' },
+
+    benefits: { kind: 'stringArray' },
+
+    expiresAt: { kind: 'raw' },
+};
 
 /**
  * GET /api/admin/jobs/:id
@@ -59,22 +111,14 @@ export async function PATCH(
     try {
         const body = await request.json();
 
-        // Only allow known fields
-        const allowedFields = [
-            'title', 'employer', 'location', 'description', 'descriptionSummary',
-            'applyLink', 'jobType', 'mode', 'city', 'state', 'stateCode', 'country',
-            'isRemote', 'isHybrid', 'salaryRange', 'minSalary', 'maxSalary',
-            'salaryPeriod', 'displaySalary', 'normalizedMinSalary', 'normalizedMaxSalary',
-            'isPublished', 'isFeatured', 'isVerifiedEmployer',
-            'benefits', 'setting', 'population', 'qualityScore', 'expiresAt',
-        ];
-
-        const data: Record<string, unknown> = {};
-        for (const field of allowedFields) {
-            if (field in body) {
-                data[field] = body[field];
-            }
+        const collected = collectAdminFields(body, JOB_FIELD_SPECS);
+        if (!collected.ok) {
+            return NextResponse.json(
+                { success: false, error: collected.error },
+                { status: 400 },
+            );
         }
+        const data = collected.data;
 
         if (Object.keys(data).length === 0) {
             return NextResponse.json(
@@ -179,6 +223,11 @@ export async function PATCH(
 
         return NextResponse.json({ success: true, job });
     } catch (error) {
+        // An id that does not exist is a client mistake. Reporting it as 500
+        // made a typo'd id indistinguishable from a database outage.
+        if (isRecordNotFound(error)) {
+            return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
+        }
         console.error('[Admin Jobs] PATCH error:', error);
         return NextResponse.json({ success: false, error: 'Failed to update job' }, { status: 500 });
     }
@@ -235,6 +284,9 @@ export async function DELETE(
 
         return NextResponse.json({ success: true, action: 'soft_deleted' });
     } catch (error) {
+        if (isRecordNotFound(error)) {
+            return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
+        }
         console.error('[Admin Jobs] DELETE error:', error);
         return NextResponse.json({ success: false, error: 'Failed to delete job' }, { status: 500 });
     }

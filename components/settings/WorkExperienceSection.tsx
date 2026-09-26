@@ -152,10 +152,13 @@ export default function WorkExperienceSection({ showMsg }: Props) {
 
     const cancelForm = () => { setShowForm(false); setEditingId(null); setForm({ ...emptyForm }) }
 
-    const RadioPill = ({ current, onChange, labels }: { value: boolean | null; current: boolean | null; onChange: (v: boolean) => void; labels: [string, string] }) => (
-        <div style={{ display: 'flex', gap: '6px' }}>
+    // labelledBy points at the visible question so the pair is announced as a
+    // named group; aria-pressed carries the answer, which was otherwise only a
+    // border colour.
+    const RadioPill = ({ current, onChange, labels, labelledBy }: { value: boolean | null; current: boolean | null; onChange: (v: boolean) => void; labels: [string, string]; labelledBy?: string }) => (
+        <div role="group" aria-labelledby={labelledBy} style={{ display: 'flex', gap: '6px' }}>
             {[true, false].map((v, i) => (
-                <button key={String(v)} type="button" onClick={() => onChange(v)} style={{
+                <button key={String(v)} type="button" aria-pressed={current === v} onClick={() => onChange(v)} style={{
                     padding: '6px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s',
                     border: current === v ? `1.5px solid ${clayPalette.accentLight}` : `1.5px solid ${clayPalette.border}`,
                     background: current === v ? 'rgba(45,212,191,0.12)' : clayPalette.inputFill,
@@ -174,26 +177,26 @@ export default function WorkExperienceSection({ showMsg }: Props) {
         <div style={clayFormPanel}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h4 style={claySubTitle}>{editingId ? 'Edit Work Experience' : 'Add Work Experience'}</h4>
-                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}><X size={18} /></button>
+                <button onClick={cancelForm} aria-label="Close work experience form" style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}><X size={18} /></button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                    <div><label style={labelStyle}>Job Title *</label><input type="text" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder="Psychiatric NP" style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Employer *</label><input type="text" value={form.employerName} onChange={(e) => setForm({ ...form, employerName: e.target.value })} placeholder="ABC Health System" style={inputStyle} /></div>
+                    <div><label htmlFor="work-job-title" style={labelStyle}>Job Title *</label><input id="work-job-title" type="text" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder="Psychiatric NP" style={inputStyle} /></div>
+                    <div><label htmlFor="work-employer" style={labelStyle}>Employer *</label><input id="work-employer" type="text" value={form.employerName} onChange={(e) => setForm({ ...form, employerName: e.target.value })} placeholder="ABC Health System" style={inputStyle} /></div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr', gap: '14px' }}>
-                    <div><label style={labelStyle}>City</label><input type="text" value={form.employerCity} onChange={(e) => setForm({ ...form, employerCity: e.target.value })} style={inputStyle} /></div>
+                    <div><label htmlFor="work-city" style={labelStyle}>City</label><input id="work-city" type="text" value={form.employerCity} onChange={(e) => setForm({ ...form, employerCity: e.target.value })} style={inputStyle} /></div>
                     <div>
-                        <label style={labelStyle}>State</label>
-                        <select value={form.employerState} onChange={(e) => setForm({ ...form, employerState: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
+                        <label htmlFor="work-state" style={labelStyle}>State</label>
+                        <select id="work-state" value={form.employerState} onChange={(e) => setForm({ ...form, employerState: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
                             <option value="">Select</option>
                             {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label style={labelStyle}>Practice Setting</label>
-                        <select value={form.practiceSetting} onChange={(e) => setForm({ ...form, practiceSetting: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
+                        <label htmlFor="work-practice-setting" style={labelStyle}>Practice Setting</label>
+                        <select id="work-practice-setting" value={form.practiceSetting} onChange={(e) => setForm({ ...form, practiceSetting: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
                             <option value="">Select setting</option>
                             {PRACTICE_SETTINGS.map((s) => <option key={s} value={s}>{s}</option>)}
                         </select>
@@ -203,26 +206,26 @@ export default function WorkExperienceSection({ showMsg }: Props) {
                 {/* Dates */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                     <div>
-                        <label style={labelStyle}>Start Date *</label>
+                        <label id="work-start-date-label" style={labelStyle}>Start Date *</label>
                         <div style={{ display: 'flex', gap: '6px' }}>
-                            <select value={form.startMonth} onChange={(e) => setForm({ ...form, startMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
+                            <select aria-label="Start Date month" value={form.startMonth} onChange={(e) => setForm({ ...form, startMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
                                 <option value="">Month</option>
                                 {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
                             </select>
-                            <select value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
+                            <select aria-label="Start Date year" value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
                                 <option value="">Year</option>
                                 {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label style={labelStyle}>End Date</label>
+                        <label id="work-end-date-label" style={labelStyle}>End Date</label>
                         <div style={{ display: 'flex', gap: '6px' }}>
-                            <select value={form.endMonth} onChange={(e) => setForm({ ...form, endMonth: e.target.value })} disabled={form.isCurrent} style={{ ...inputStyle, cursor: form.isCurrent ? 'not-allowed' : 'pointer', opacity: form.isCurrent ? 0.5 : 1, flex: 1 }}>
+                            <select aria-label="End Date month" value={form.endMonth} onChange={(e) => setForm({ ...form, endMonth: e.target.value })} disabled={form.isCurrent} style={{ ...inputStyle, cursor: form.isCurrent ? 'not-allowed' : 'pointer', opacity: form.isCurrent ? 0.5 : 1, flex: 1 }}>
                                 <option value="">Month</option>
                                 {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
                             </select>
-                            <select value={form.endYear} onChange={(e) => setForm({ ...form, endYear: e.target.value })} disabled={form.isCurrent} style={{ ...inputStyle, cursor: form.isCurrent ? 'not-allowed' : 'pointer', opacity: form.isCurrent ? 0.5 : 1, flex: 1 }}>
+                            <select aria-label="End Date year" value={form.endYear} onChange={(e) => setForm({ ...form, endYear: e.target.value })} disabled={form.isCurrent} style={{ ...inputStyle, cursor: form.isCurrent ? 'not-allowed' : 'pointer', opacity: form.isCurrent ? 0.5 : 1, flex: 1 }}>
                                 <option value="">Year</option>
                                 {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
                             </select>
@@ -252,20 +255,20 @@ export default function WorkExperienceSection({ showMsg }: Props) {
 
                 {/* Supervisor Info */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
-                    <div><label style={labelStyle}>Supervisor Name</label><input type="text" value={form.supervisorName} onChange={(e) => setForm({ ...form, supervisorName: e.target.value })} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Supervisor Phone</label><input type="tel" value={form.supervisorPhone} onChange={(e) => setForm({ ...form, supervisorPhone: e.target.value })} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Supervisor Email</label><input type="email" value={form.supervisorEmail} onChange={(e) => setForm({ ...form, supervisorEmail: e.target.value })} style={inputStyle} /></div>
+                    <div><label htmlFor="work-supervisor-name" style={labelStyle}>Supervisor Name</label><input id="work-supervisor-name" type="text" value={form.supervisorName} onChange={(e) => setForm({ ...form, supervisorName: e.target.value })} style={inputStyle} /></div>
+                    <div><label htmlFor="work-supervisor-phone" style={labelStyle}>Supervisor Phone</label><input id="work-supervisor-phone" type="tel" value={form.supervisorPhone} onChange={(e) => setForm({ ...form, supervisorPhone: e.target.value })} style={inputStyle} /></div>
+                    <div><label htmlFor="work-supervisor-email" style={labelStyle}>Supervisor Email</label><input id="work-supervisor-email" type="email" value={form.supervisorEmail} onChange={(e) => setForm({ ...form, supervisorEmail: e.target.value })} style={inputStyle} /></div>
                 </div>
 
-                <div><label style={labelStyle}>May we contact this supervisor?</label><RadioPill value={form.mayContact} current={form.mayContact} onChange={(v) => setForm({ ...form, mayContact: v })} labels={['Yes', 'No']} /></div>
+                <div><label id="work-may-contact-label" style={labelStyle}>May we contact this supervisor?</label><RadioPill value={form.mayContact} current={form.mayContact} onChange={(v) => setForm({ ...form, mayContact: v })} labels={['Yes', 'No']} labelledBy="work-may-contact-label" /></div>
 
                 {!form.isCurrent && (
-                    <div><label style={labelStyle}>Reason for Leaving</label><input type="text" value={form.reasonForLeaving} onChange={(e) => setForm({ ...form, reasonForLeaving: e.target.value })} style={inputStyle} /></div>
+                    <div><label htmlFor="work-reason-for-leaving" style={labelStyle}>Reason for Leaving</label><input id="work-reason-for-leaving" type="text" value={form.reasonForLeaving} onChange={(e) => setForm({ ...form, reasonForLeaving: e.target.value })} style={inputStyle} /></div>
                 )}
 
                 <div>
-                    <label style={labelStyle}>Job Duties & Responsibilities</label>
-                    <textarea value={form.description} onChange={(e) => { if (e.target.value.length <= 2000) setForm({ ...form, description: e.target.value }) }}
+                    <label htmlFor="work-job-duties-responsibilities" style={labelStyle}>Job Duties & Responsibilities</label>
+                    <textarea id="work-job-duties-responsibilities" value={form.description} onChange={(e) => { if (e.target.value.length <= 2000) setForm({ ...form, description: e.target.value }) }}
                         rows={4} placeholder="Describe your duties and responsibilities..." style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
                     <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>{form.description.length}/2000</div>
                 </div>

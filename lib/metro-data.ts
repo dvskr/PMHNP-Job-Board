@@ -30,6 +30,18 @@
  *    approximately $X" answers that used to live in the FAQs below could not
  *    be reproduced by that engine and disagreed with /salary-guide/{state}
  *    for the same state. Salary questions link to the live surface instead.
+ *
+ * 3. No board processing times. licensureNote and the FAQs used to carry
+ *    specific, checkable claims ("the NY Board of Nursing processes licenses
+ *    in 4 to 8 weeks", "Arizona is one of the fastest processors in the
+ *    country"). This file has no source or asOf field, unlike
+ *    lib/stats-sources.ts, and these answers ship as FAQPage JSON-LD that
+ *    answer engines quote directly, so an out-of-date queue length made the
+ *    site the cited source of a wrong licensure fact on YMYL content with no
+ *    date a reader could discount it by. Board queues move with budget and
+ *    backlog; point at the board instead of pinning a number here. If a
+ *    figure is ever wanted back, it goes through the stats-sources pattern
+ *    (source URL plus asOf) and renders its source phrase next to the claim.
  */
 
 import { getStatePracticeAuthority, type PracticeAuthority } from './state-practice-authority';
@@ -83,7 +95,7 @@ const METRO_SEEDS: MetroCitySeed[] = [
       'Thriving private practice market with strong insurance reimbursement rates',
     ],
     costOfLivingNote: 'NYC cost of living is 37% above the national average. Manhattan is most expensive; Brooklyn, Queens, and NJ suburbs offer better value. Many employers offer housing stipends or loan repayment.',
-    licensureNote: 'New York is a Reduced Practice Authority state: NPs must maintain a collaborative agreement with a physician for the first 3,600 hours. After that, PMHNPs can practice independently. The NY Board of Nursing processes licenses in 4-8 weeks.',
+    licensureNote: 'New York is a Reduced Practice Authority state: NPs must maintain a collaborative agreement with a physician for the first 3,600 hours. After that, PMHNPs can practice independently. Check the New York State Board of Nursing for current license processing times.',
     mentalHealthContext: 'NYC has one of the highest rates of mental health need in the nation, with 1 in 5 adults reporting a mental illness. Post-pandemic demand has surged, particularly for anxiety, depression, and substance use disorders. The city\'s diverse population requires culturally competent psychiatric care.',
     topSettings: ['Outpatient clinics', 'Community mental health centers', 'Private practice', 'Telehealth', 'Academic medical centers', 'Inpatient psychiatry'],
     faqs: [
@@ -110,7 +122,7 @@ const METRO_SEEDS: MetroCitySeed[] = [
       'Kaiser Permanente, Cedars-Sinai, UCLA, and major health systems actively recruiting',
     ],
     costOfLivingNote: 'LA is 43% above the national average for cost of living, driven primarily by housing. Many PMHNPs offset costs by living in suburbs like Pasadena, Long Beach, or the Inland Empire while working in central LA or via telehealth. California\'s high salaries help balance the premium.',
-    licensureNote: 'California has Restricted Practice Authority: PMHNPs must practice under standardized procedures with physician oversight. However, legislation is actively being pursued to expand NP autonomy. The BRN processes applications in 8-12 weeks. DEA registration is required for prescribing.',
+    licensureNote: 'California has Restricted Practice Authority: PMHNPs must practice under standardized procedures with physician oversight. However, legislation is actively being pursued to expand NP autonomy. Check the California Board of Registered Nursing for current application processing times. DEA registration is required for prescribing.',
     mentalHealthContext: 'LA County has over 10 million residents but a severe shortage of mental health providers. Homelessness, substance use, and trauma are significant drivers of psychiatric need. The county\'s Mental Health Services Act (MHSA) funds extensive community programs that employ PMHNPs.',
     topSettings: ['Community mental health centers', 'Outpatient clinics', 'Telehealth', 'Correctional facilities', 'VA medical centers', 'Private group practices'],
     faqs: [
@@ -141,7 +153,7 @@ const METRO_SEEDS: MetroCitySeed[] = [
     // narrower than the APRN license itself. Asserting that a psychiatric role
     // qualifies is a licensure statement to a clinician, so this points at the
     // board instead of answering for it.
-    licensureNote: 'Florida has Restricted Practice Authority: PMHNPs practice under a supervisory protocol with a physician. Florida created a separate autonomous-practice registration for advanced practice registered nurses in 2020, but its eligibility rules are narrower than the license itself, so confirm with the Florida Board of Nursing whether a psychiatric role qualifies before counting on it. The Florida Board of Nursing processes licenses in 4-6 weeks.',
+    licensureNote: 'Florida has Restricted Practice Authority: PMHNPs practice under a supervisory protocol with a physician. Florida created a separate autonomous-practice registration for advanced practice registered nurses in 2020, but its eligibility rules are narrower than the license itself, so confirm with the Florida Board of Nursing whether a psychiatric role qualifies before counting on it. Check the Florida Board of Nursing for current license processing times.',
     mentalHealthContext: 'Florida has one of the highest rates of unmet mental health need in the US, with only 55% of adults with mental illness receiving treatment. Jacksonville\'s rapid population growth (particularly retirees and military families from Naval Station Mayport) is increasing demand for psychiatric services across all age groups.',
     topSettings: ['Outpatient clinics', 'Telehealth', 'Hospital systems', 'VA medical center', 'Private practice', 'Substance abuse treatment'],
     faqs: [
@@ -168,7 +180,7 @@ const METRO_SEEDS: MetroCitySeed[] = [
       'Growing tech sector driving population growth and mental health demand',
     ],
     costOfLivingNote: 'Columbus offers a cost of living 7% below average, with housing costs roughly 15% below the national median. The city\'s growing tech sector (Intel\'s new fab plant, Amazon HQ2 runner-up) is driving economic growth without the cost spikes seen in coastal cities. PMHNPs enjoy strong purchasing power here.',
-    licensureNote: 'Ohio has Reduced Practice Authority: PMHNPs must hold a standard care arrangement with a collaborating physician. Most employers put that arrangement in place as part of onboarding, and it does not change day-to-day scope for an employed role. Ohio Board of Nursing processes applications in 2-4 weeks.',
+    licensureNote: 'Ohio has Reduced Practice Authority: PMHNPs must hold a standard care arrangement with a collaborating physician. Most employers put that arrangement in place as part of onboarding, and it does not change day-to-day scope for an employed role. Check the Ohio Board of Nursing for current application processing times.',
     mentalHealthContext: 'Ohio has been heavily impacted by the opioid crisis, creating significant demand for psychiatric providers specializing in substance use disorders and co-occurring conditions. Columbus\'s growing and increasingly diverse population adds demand across the full spectrum of psychiatric care.',
     topSettings: ['Community mental health centers', 'Outpatient clinics', 'Academic medical centers', 'Private practice', 'Substance abuse treatment', 'Telehealth'],
     faqs: [
@@ -201,7 +213,7 @@ const METRO_SEEDS: MetroCitySeed[] = [
     faqs: [
       { question: 'What is the average PMHNP salary in Tampa, FL?', answer: 'We do not publish a hand-written average. Pay figures on this site are medians of the salary ranges live postings disclose, published with their sample size, so the current Florida figure lives at pmhnphiring.com/salary-guide/florida. Florida charges no state income tax, so the same nominal figure takes home more here than it would in California or New York.' },
       { question: 'What is the job market like for PMHNPs in Tampa?', answer: 'The Tampa Bay PMHNP job market is strong and growing. Major employers include BayCare Health System, AdventHealth, Tampa General Hospital, and the James A. Haley VA Medical Center. The telehealth sector is also booming, with several national companies headquartered or operating heavily in the Tampa area.' },
-      { question: 'Is Tampa a good city for PMHNPs relocating from out of state?', answer: 'Tampa is one of the top relocation destinations for PMHNPs. Zero state income tax, affordable cost of living, year-round warm weather, and abundant job opportunities make it extremely attractive. Florida Board of Nursing processes out-of-state license endorsements in 4-6 weeks.' },
+      { question: 'Is Tampa a good city for PMHNPs relocating from out of state?', answer: 'Tampa is one of the top relocation destinations for PMHNPs. Zero state income tax, affordable cost of living, year-round warm weather, and abundant job opportunities make it extremely attractive. Check the Florida Board of Nursing for current endorsement processing times.' },
     ],
   },
   {
@@ -222,7 +234,7 @@ const METRO_SEEDS: MetroCitySeed[] = [
       'Massive population growth (5th largest US city) outpacing provider supply',
     ],
     costOfLivingNote: 'Phoenix\'s cost of living is only 3% above the national average, making it remarkably affordable for a major metro. Housing is significantly cheaper than California (where many Phoenix transplants originate). No state income tax on retirement income adds appeal for semi-retired practitioners.',
-    licensureNote: 'Arizona has Full Practice Authority for PMHNPs: no physician supervision or collaborative agreement needed. PMHNPs can prescribe controlled substances independently and open their own practices. Arizona Board of Nursing is one of the fastest processors in the country (2-3 weeks).',
+    licensureNote: 'Arizona has Full Practice Authority for PMHNPs: no physician supervision or collaborative agreement needed. PMHNPs can prescribe controlled substances independently and open their own practices. Check the Arizona State Board of Nursing for current license processing times.',
     mentalHealthContext: 'Arizona faces a critical mental health workforce shortage: the state has only 65% of the psychiatrists needed. The rapid population growth (primarily from California, Illinois, and the Midwest) is creating demand that far outpaces supply. Rural areas surrounding Phoenix metro have Health Professional Shortage Area (HPSA) designations with loan repayment eligibility.',
     topSettings: ['Outpatient clinics', 'Telehealth', 'Community mental health', 'VA medical centers', 'Private practice', 'Integrated behavioral health'],
     faqs: [
@@ -249,7 +261,7 @@ const METRO_SEEDS: MetroCitySeed[] = [
       'Strong private practice market with growing telehealth sector',
     ],
     costOfLivingNote: 'DFW cost of living sits 2% below the national average, with housing particularly affordable in suburbs like Frisco, McKinney, Plano, and Arlington. Combined with zero state income tax, the same salary takes home more in Dallas than in a coastal metro.',
-    licensureNote: 'Texas has Restricted Practice Authority: PMHNPs practice under physician supervision through a written prescriptive authority agreement. Most employers arrange and maintain the agreement, so it rarely changes day-to-day work in an employed role. Texas Board of Nursing processes licenses in 4-6 weeks.',
+    licensureNote: 'Texas has Restricted Practice Authority: PMHNPs practice under physician supervision through a written prescriptive authority agreement. Most employers arrange and maintain the agreement, so it rarely changes day-to-day work in an employed role. Check the Texas Board of Nursing for current license processing times.',
     mentalHealthContext: 'Texas has one of the lowest ratios of mental health providers to residents in the country, creating massive demand. The DFW metroplex\'s rapid corporate growth (Toyota, Goldman Sachs, Charles Schwab HQs) is bringing in professionals who need mental health services. Rural areas surrounding DFW have critical shortages.',
     topSettings: ['Outpatient clinics', 'Private practice', 'Community mental health', 'Telehealth', 'Hospital systems', 'Correctional facilities'],
     faqs: [
@@ -276,7 +288,7 @@ const METRO_SEEDS: MetroCitySeed[] = [
       'More affordable than NYC, Boston, or LA while remaining a major pay market',
     ],
     costOfLivingNote: 'Chicago\'s cost of living is 7% above the national average, driven by housing in popular neighborhoods. Suburbs like Naperville, Schaumburg, and Oak Park offer significantly more affordable options. Compared to NYC (37% above) or LA (43% above), Chicago costs far less for a metro of its size.',
-    licensureNote: 'Illinois has Reduced Practice Authority: PMHNPs practice under a written collaborative agreement with a physician. Employers in the Chicago systems normally set the agreement up during onboarding. Illinois Board of Nursing processes licenses in 4-6 weeks.',
+    licensureNote: 'Illinois has Reduced Practice Authority: PMHNPs practice under a written collaborative agreement with a physician. Employers in the Chicago systems normally set the agreement up during onboarding. Check the Illinois Board of Nursing for current license processing times.',
     mentalHealthContext: 'Chicago faces significant mental health disparities, with South and West side communities having dramatically less access to psychiatric care than affluent areas. Gun violence trauma, substance use, and generational poverty create intense demand for psychiatric services. The city\'s large immigrant population also requires culturally competent mental health care.',
     topSettings: ['Community mental health centers', 'Academic medical centers', 'Outpatient clinics', 'Private practice', 'VA medical center', 'Telehealth'],
     faqs: [
@@ -330,7 +342,7 @@ const METRO_SEEDS: MetroCitySeed[] = [
       'Cost of living only 3% above average: excellent value for the Southeast',
     ],
     costOfLivingNote: 'Atlanta\'s cost of living is only 3% above the national average, dramatically more affordable than other major metros of similar size. Suburbs like Marietta, Decatur, Alpharetta, and Kennesaw offer excellent value. Georgia has a moderate state income tax (5.49% flat rate as of 2024).',
-    licensureNote: 'Georgia has Restricted Practice Authority: PMHNPs practice under physician supervision through a protocol agreement. Georgia Board of Nursing processes licenses in 4-8 weeks. Georgia is in the Nurse Licensure Compact (NLC).',
+    licensureNote: 'Georgia has Restricted Practice Authority: PMHNPs practice under physician supervision through a protocol agreement. Check the Georgia Board of Nursing for current license processing times. Georgia is in the Nurse Licensure Compact (NLC).',
     mentalHealthContext: 'Georgia ranks among the bottom 10 states for mental health workforce adequacy. Atlanta\'s underserved communities, particularly South Atlanta and surrounding rural counties, have critical psychiatric provider shortages. The city\'s large refugee and immigrant population adds cultural competency requirements to mental health care.',
     topSettings: ['Community mental health centers', 'Hospital systems', 'Outpatient clinics', 'Telehealth', 'VA medical center', 'Private practice'],
     faqs: [

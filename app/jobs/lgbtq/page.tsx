@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import { categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -14,6 +15,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import { slugify } from '@/lib/utils';
 
 const clayCard: React.CSSProperties = { background: '#FFFFFF', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)' };
 export const revalidate = 3600;
@@ -30,8 +32,10 @@ const categoryWhere = () => buildCategoryWhereClause('lgbtq');
 async function getJobs(skip = 0, take = 20) { return prisma.job.findMany({ where: categoryWhere(), orderBy: BEST_SORT_ORDER_BY, skip, take }); }
 async function getStats() {
   const totalJobs = await prisma.job.count({ where: categoryWhere() });
-  const salaryData = await prisma.job.aggregate({ where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, _avg: { normalizedMinSalary: true, normalizedMaxSalary: true } });
-  const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
+  // Pay goes through the shared salary engine: the same medians-only pipeline
+  // the salary guide runs over these postings, so the two cannot disagree.
+  const salaryRows = await prisma.job.findMany({ where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true } });
+  const avgSalary = medianAdvertisedK(salaryRows);
   const topEmployers = await prisma.job.groupBy({ by: ['employer'], where: categoryWhere(), _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8 });
   return { totalJobs, avgSalary, topEmployers: topEmployers.map((e: EmployerGroupResult) => ({ name: e.employer, count: e._count.employer })) };
 }
@@ -61,7 +65,7 @@ export default async function LgbtqPage({ searchParams }: PageProps) {
       <BreadcrumbSchema items={[{ name: "Home", url: "https://pmhnphiring.com" }, { name: "Jobs", url: "https://pmhnphiring.com/jobs" }, { name: "LGBTQ+", url: "https://pmhnphiring.com/jobs/lgbtq" }]} />
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="LGBTQ+ Jobs" />
       {jobs.length > 0 && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'LGBTQ+ Affirming PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'LGBTQ+ Affirming PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}` })) }) }} />
       )}
 
             {/* HERO */}
@@ -77,7 +81,7 @@ export default async function LgbtqPage({ searchParams }: PageProps) {
         headlineSub="jobs, affirming care."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Gender-affirming and LGBTQ+-focused psychiatric positions with inclusive, culturally competent care."

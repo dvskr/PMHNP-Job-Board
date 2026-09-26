@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 import { requireEmployerApi } from '@/lib/auth/require-employer-api';
+import { verifyCsrf } from '@/lib/csrf';
 
 /**
  * POST /api/employer/testimonials
@@ -26,6 +27,14 @@ import { requireEmployerApi } from '@/lib/auth/require-employer-api';
  * before featuring.
  */
 export async function POST(request: NextRequest) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(request);
+    if (csrfError) return csrfError;
+
   const rateLimitResult = await rateLimit(request, 'testimonial', RATE_LIMITS.feedback);
   if (rateLimitResult) return rateLimitResult;
 

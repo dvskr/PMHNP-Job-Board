@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { TOP_EMPLOYERS } from '@/lib/aggregators/constants';
+import { jobTypeClause, publicJobsWhere } from '@/lib/filters';
 import { Prisma } from '@prisma/client';
 
 // ─── State name lookup ───────────────────────────────────────────────────────
@@ -139,7 +140,11 @@ function mapJob(job: any) {
 // ─── Query builders per category ─────────────────────────────────────────────
 
 function buildQuery(category: Category, state: string | null, limit: number) {
-    const baseWhere: Prisma.JobWhereInput = { isPublished: true };
+    // Every category used to start from a bare `{ isPublished: true }`, so this
+    // feed served expired postings and rows the rest of the site excludes
+    // globally (off-specialty, dual-role, NP-substring). publicJobsWhere() is
+    // the one public listing predicate; a syndicated feed is no exception.
+    const baseWhere: Prisma.JobWhereInput = publicJobsWhere();
 
     switch (category) {
         case 'highest_paying':
@@ -176,8 +181,17 @@ function buildQuery(category: Category, state: string | null, limit: number) {
             };
 
         case 'part_time':
+            // The stored jobType column holds display-cased labels
+            // ('Part-Time', 'Per Diem', 'PRN', 'Contract') written by
+            // lib/job-normalizer canonicalizeJobType. This filtered on
+            // lowercase snake_case values with a case-SENSITIVE Prisma `in`,
+            // so the feed matched zero rows and always answered with an empty
+            // list under the "Part-Time & PRN" label. jobTypeClause matches
+            // case-insensitively, the same way the /jobs facet does.
             return {
-                where: { ...baseWhere, jobType: { in: ['part_time', 'per_diem', 'prn', 'contract'] } },
+                where: {
+                    AND: [baseWhere, jobTypeClause(['Part-Time', 'Per Diem', 'PRN', 'Contract'])],
+                },
                 orderBy: { normalizedMaxSalary: 'desc' as const },
             };
 

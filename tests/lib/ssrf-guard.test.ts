@@ -24,6 +24,31 @@ describe('isPrivateOrInternalHost', () => {
         '169.254.0.1',
         'k8s.cluster.internal',
         'something.local',
+        // Regression (hunt 2026-09-03): the guard used to hold a literal
+        // '127.0.0.1' string and no 127.* branch at all, so the rest of the
+        // loopback /8 was probed.
+        '127.0.0.2',
+        '127.1.2.3',
+        '127.255.255.254',
+        // new URL('http://[::1]/').hostname keeps the brackets, so the old
+        // literal '::1' entry could never match.
+        '[::1]',
+        '::1',
+        '[::]',
+        '[fd00::1]',                 // fc00::/7 unique local
+        '[fc00::abcd]',
+        '[fe80::1]',                 // fe80::/10 link local
+        '[febf::1]',
+        '[::ffff:7f00:1]',           // what the parser makes of ::ffff:127.0.0.1
+        '[::ffff:127.0.0.1]',
+        '[::ffff:a00:1]',            // ::ffff:10.0.0.1
+        '[::ffff:169.254.169.254]',  // metadata via IPv4-mapped v6
+        '100.64.0.1',                // RFC6598 CGNAT
+        '100.127.255.255',
+        '0.0.0.0',
+        '2130706433',                // bare-integer 127.0.0.1
+        'localhost.',                // trailing-dot FQDN form
+        'anything.localhost',
     ])('blocks %s', (host) => {
         expect(isPrivateOrInternalHost(host)).toBe(true);
     });
@@ -38,6 +63,12 @@ describe('isPrivateOrInternalHost', () => {
         // 172.32 onward is public (out of the 172.16/12 block)
         '172.32.0.1',
         '11.0.0.1',
+        // 100.0/8 outside the 100.64/10 CGNAT block is ordinary public space
+        '100.63.255.255',
+        '100.128.0.1',
+        '[2606:4700:4700::1111]',    // Cloudflare public resolver
+        '[2001:4860:4860::8888]',    // Google public resolver
+        '[::ffff:8.8.8.8]',          // IPv4-mapped PUBLIC address
     ])('allows %s', (host) => {
         expect(isPrivateOrInternalHost(host)).toBe(false);
     });

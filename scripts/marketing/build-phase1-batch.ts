@@ -11,6 +11,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { normalizeCompanyName } from '../../lib/company-normalizer';
+import { activeIndexableJobWhere } from '../../lib/active-job-filter';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
@@ -66,6 +67,14 @@ async function main() {
     slug: string | null; liveJobs: number; topCity: string | null; matched: 'company' | 'employer' | 'none';
   }>();
 
+  // Count with the SAME predicate /companies/[slug] renders from
+  // (activeIndexableJobWhere: published, not expired, not a repeatedly dead
+  // link, not off-specialty). A bare `isPublished: true` counted jobs that
+  // page filters out, so a company whose only postings were expired or
+  // dead-linked was routed to sequence A/B, whose copy claims "your company
+  // page exists" and links to a URL that answers 404. One `now` for the run.
+  const activeWhere = activeIndexableJobWhere();
+
   for (const name of companies) {
     const norm = normalizeCompanyName(name);
     const kebab = norm.replace(/\s+/g, '-');
@@ -77,17 +86,21 @@ async function main() {
     let matched: 'company' | 'employer' | 'none' = 'none';
     if (company) {
       jobs = await prisma.job.findMany({
-        where: { companyId: company.id, isPublished: true },
+        where: { ...activeWhere, companyId: company.id },
         select: { city: true },
       });
       matched = 'company';
     }
     if (jobs.length === 0) {
       const byEmployer = await prisma.job.findMany({
-        where: { employer: { equals: name, mode: 'insensitive' }, isPublished: true },
+        where: { ...activeWhere, employer: { equals: name, mode: 'insensitive' } },
         select: { city: true },
       });
-      if (byEmployer.length > 0) { jobs = byEmployer; matched = company ? 'company' : 'employer'; }
+      // The jobs came from the employer-name query, so that is the match
+      // source the review CSV must report, whether or not a Company row with
+      // this name also exists (it did, and reporting 'company' hid exactly the
+      // slug-matching failures an operator reads this column to catch).
+      if (byEmployer.length > 0) { jobs = byEmployer; matched = 'employer'; }
     }
     const cityCounts = new Map<string, number>();
     for (const j of jobs) if (j.city) cityCounts.set(j.city, (cityCounts.get(j.city) ?? 0) + 1);
@@ -100,9 +113,22 @@ async function main() {
     });
   }
 
+  // Park provider-network contacts BEFORE balancing personas: they are never
+  // enrolled, so letting them count toward persona load left the contacts that
+  // ARE enrolled unevenly spread across the sender inboxes.
+  const parked: Array<Record<string, string>> = [];
+  const eligible: Array<Record<string, string>> = [];
+  for (const r of rows) {
+    if (PROVIDER_NETWORKS.test(r.company)) {
+      parked.push({ email: r.email, company: r.company, reason: 'provider-network, hand-adjust copy' });
+    } else {
+      eligible.push(r);
+    }
+  }
+
   // Persona assignment: one persona per company, balanced by contact count.
   const contactsPerCompany = new Map<string, number>();
-  for (const r of rows) contactsPerCompany.set(r.company, (contactsPerCompany.get(r.company) ?? 0) + 1);
+  for (const r of eligible) contactsPerCompany.set(r.company, (contactsPerCompany.get(r.company) ?? 0) + 1);
   const load = PERSONAS.map(() => 0);
   const personaByCompany = new Map<string, typeof PERSONAS[number]>();
   for (const [name, count] of [...contactsPerCompany.entries()].sort((a, b) => b[1] - a[1])) {
@@ -112,13 +138,8 @@ async function main() {
   }
 
   const batch: Array<Record<string, unknown>> = [];
-  const parked: Array<Record<string, string>> = [];
-  for (const r of rows) {
+  for (const r of eligible) {
     const info = companyInfo.get(r.company)!;
-    if (PROVIDER_NETWORKS.test(r.company)) {
-      parked.push({ email: r.email, company: r.company, reason: 'provider-network, hand-adjust copy' });
-      continue;
-    }
     const live = info.liveJobs > 0;
     // A/B need the company page + city merge data; a live company that
     // failed slug matching cannot honestly claim "your page exists": route C.
@@ -145,6 +166,11 @@ async function main() {
     });
   }
 
+  // Parked contacts get their own file: a console.log of the first five is
+  // not a record the operator can review or re-import.
+  const parkedOut = path.join(process.cwd(), 'tmp', 'marketing', 'phase1-parked.json');
+  fs.writeFileSync(parkedOut, JSON.stringify(parked, null, 2));
+
   const out = path.join(process.cwd(), 'tmp', 'marketing', 'phase1-batch.json');
   fs.writeFileSync(out, JSON.stringify(batch, null, 2));
   const csvOut = path.join(process.cwd(), 'tmp', 'marketing', 'phase1-batch-review.csv');
@@ -162,7 +188,7 @@ async function main() {
   console.log('Live companies:', [...companyInfo.values()].filter((i) => i.liveJobs > 0).length, 'of', companies.length);
   console.log('Unmatched-in-DB companies:', [...companyInfo.values()].filter((i) => i.matched === 'none').length);
   console.log('Big-system contacts (batch late):', batch.filter((b) => b.big_system).length);
-  console.log('Parked provider-network contacts:', parked.length, JSON.stringify(parked.slice(0, 5)));
+  console.log('Parked provider-network contacts:', parked.length, `(full list: ${parkedOut})`);
   console.log(`Wrote ${batch.length} rows to ${out}`);
   await prisma.$disconnect();
 }

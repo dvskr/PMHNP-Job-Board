@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
+import { verifyCsrf } from '@/lib/csrf';
 import { rateLimit } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 
@@ -11,6 +12,15 @@ import { logger } from '@/lib/logger';
  * Server-side only — prevents client-side storage access with anon key.
  */
 export async function DELETE(request: NextRequest) {
+    // Defence in depth on a cross-origin write. Every other mutating surface
+    // calls this (PATCH /api/auth/profile, the message routes); the profile
+    // sub-resources did not, so a Supabase cookie's SameSite policy was the
+    // only thing standing between a cross-site page and a write to this
+    // candidate's licences, education, EEO answers or federal registrations.
+    // verifyCsrf is a no-op for Bearer callers, so the extension is unaffected.
+    const csrfError = verifyCsrf(request);
+    if (csrfError) return csrfError;
+
     // Rate limiting — 5 deletions per hour
     const rateLimitResult = await rateLimit(request, 'resume-delete', { limit: 5, windowSeconds: 3600 });
     if (rateLimitResult) return rateLimitResult;

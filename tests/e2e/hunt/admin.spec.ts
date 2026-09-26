@@ -22,11 +22,24 @@ import {
  * bug are marked test.fail() so the suite stays green; each carries a comment
  * naming the bug and the file that causes it.
  *
- * Rate limiting: every /api/admin/* route shares ONE 20 req/min per-IP bucket
- * (lib/auth/require-api-admin.ts + lib/rate-limit.ts). adminFetch() paces
- * direct API calls and waits out a 429 so pacing, not the product, decides
- * pass/fail. The last test deliberately exhausts the bucket.
+ * Rate limiting: /api/admin/* has two budgets (lib/auth/require-api-admin.ts
+ * + lib/rate-limit.ts). A loose pre-auth guard of 120 req/min per IP across
+ * the whole namespace bounds anonymous hammering, and a real budget of
+ * 60 req/min per admin per route group means a burst on one screen can no
+ * longer lock the rest of the console. It replaced a single shared 20 req/min
+ * per-IP bucket. adminFetch() paces direct API calls and waits out a 429 so
+ * pacing, not the product, decides pass/fail. The last test deliberately
+ * exhausts the per-route budget.
  */
+
+/**
+ * Calls needed to trip the per-admin-per-route budget, which is
+ * RATE_LIMITS.admin = 60/min in lib/rate-limit.ts. Kept a little above it so
+ * the burst still trips when a few calls are lost to timeouts. If that limit
+ * changes, this is the constant to change with it.
+ */
+const ADMIN_ROUTE_BUDGET = 60;
+const BURST = ADMIN_ROUTE_BUDGET + 12;
 
 const AGAINST_PROD =
   !!process.env.PLAYWRIGHT_BASE_URL && process.env.PLAYWRIGHT_BASE_URL.includes('pmhnphiring.com');
@@ -347,7 +360,8 @@ test.describe('admin pages render', () => {
     await waitSettled(page);
     await expect(page.getByRole('button', { name: /Trigger Manually/ })).toHaveCount(cronCount);
     assertClean(c, '/admin/cron');
-    test.fail(true, '/admin/cron renders no last-run information for any cron');
+    // Fixed 2026-09: the page joins each route to its withCronTracking name
+    // and renders the last outcome, so this is now an ordinary assertion.
     expect(await bodyText(page)).toMatch(/last run|last ran|ran at|succeeded|failed at/i);
   });
 
@@ -359,9 +373,11 @@ test.describe('admin pages render', () => {
     const c = attach(page);
     await gotoAdmin(page, '/admin/settings');
     await expect(page.getByRole('heading', { level: 1, name: /^Settings$/ })).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText(/Job Aggregators/)).toBeVisible();
+    // "Job Aggregators" was a hard-coded badge on the old client component.
+    // The server rewrite groups integrations by INTEGRATION_SECTIONS, whose
+    // first section is "Job ingestion".
+    await expect(page.getByRole('heading', { name: /Job ingestion/ })).toBeVisible();
     assertClean(c, '/admin/settings');
-    test.fail(true, 'settings page is static: no live flag state, no AI flag controls');
     expect(await bodyText(page)).toMatch(/feature flag|ai\.candidate|ai\.employer/i);
   });
 });
@@ -612,7 +628,7 @@ test.describe('admin users', () => {
     await expect(page.getByRole('heading', { level: 1, name: /Users & Subscribers/ })).toBeVisible({ timeout: 60_000 });
     await waitSettled(page);
     assertClean(c, '/admin/users');
-    test.fail(true, 'no restore / reactivate control on /admin/users');
+    // Fixed 2026-09: a soft-deleted row now offers the PATCH that reverses it.
     await expect(page.getByRole('button', { name: /restore|reactivate|unhide/i }).first()).toBeVisible({ timeout: 5_000 });
   });
 
@@ -811,7 +827,9 @@ test.describe('admin jobs', () => {
       const after = await adminFetch(page, 'GET', `/api/admin/jobs/${job.id}`);
       expect(after.json.job.title).toBe(`${job.title} renamed`);
       assertClean(c, 'jobs edit nulls');
-      test.fail(true, 'edit modal writes "" into null jobType/mode/displaySalary');
+      // Fixed 2026-09: collectAdminFields maps a blank nullable text field to
+      // null instead of writing an empty string over the column
+      // (app/api/admin/_lib/field-validation.ts).
       expect(after.json.job.jobType, 'jobType should stay null').toBeNull();
       expect(after.json.job.mode, 'mode should stay null').toBeNull();
       expect(after.json.job.displaySalary, 'displaySalary should stay null').toBeNull();
@@ -1074,8 +1092,11 @@ test.describe('admin blog', () => {
       const row = page.locator('tbody tr', { hasText: post.title });
       await expect(row).toHaveCount(1, { timeout: 30_000 });
       const href = await row.locator('a[title="Preview"]').getAttribute('href');
-      expect(href).toBe(`/blog/${post.slug}`);
-      test.fail(true, 'draft preview link resolves to 404');
+      // A draft is not at its public URL: /blog/<slug> filters on
+      // status='published', so previewing used to be a guaranteed 404. The
+      // control now points at the admin-only preview route, which looks the
+      // post up by id and renders it whatever its status.
+      expect(href).toBe(`/admin/blog/preview/${post.id}`);
       const res = await page.request.get(href!, { maxRedirects: 0 });
       expect(res.status()).toBe(200);
     } finally {
@@ -1338,10 +1359,11 @@ test.describe('admin rate limit', () => {
     test.setTimeout(240_000);
     const c = attach(page);
     // Fired concurrently: on this dev box a single admin call takes seconds,
-    // so a sequential loop of 26 spans more than the 60s window and never
-    // trips the limiter.
+    // so a sequential loop spans more than the 60s window and never trips
+    // the limiter. Every call goes to the SAME route, because the budget is
+    // now per route group rather than one bucket for the whole namespace.
     const statuses = await Promise.all(
-      Array.from({ length: 30 }, () =>
+      Array.from({ length: BURST }, () =>
         page.request
           .get('/api/admin/ai/stats?days=1', { timeout: 60_000 })
           .then((r) => r.status())
@@ -1349,7 +1371,11 @@ test.describe('admin rate limit', () => {
       ),
     );
     const sawLimit = statuses.includes(429);
-    expect(sawLimit, `admin bucket should trip within 30 concurrent calls, saw: ${[...new Set(statuses)].join(',')}`).toBe(true);
+    expect(
+      sawLimit,
+      `the per-admin budget of ${ADMIN_ROUTE_BUDGET}/min should trip within ${BURST} concurrent calls to one route, ` +
+        `saw: ${[...new Set(statuses)].join(',')}`,
+    ).toBe(true);
 
     const listRes = page.waitForResponse((r) => r.url().includes('/api/admin/jobs?'), { timeout: 90_000 });
     await page.goto('/admin/jobs', { waitUntil: 'domcontentloaded' });
@@ -1357,9 +1383,11 @@ test.describe('admin rate limit', () => {
     await waitSettled(page);
     const text = await bodyText(page);
     assertClean(c, 'rate limited jobs page');
-    test.fail(status === 429, 'UI shows "No jobs found" on 429 with no error state');
+    // Fixed 2026-09: /admin/jobs goes through lib/admin/admin-fetch, which
+    // turns a 429 into a persistent banner with a retry instead of rendering
+    // the empty state as though the catalogue were gone.
     if (status === 429) {
-      expect(text).toMatch(/too many requests|rate limit|try again/i);
+      expect(text).toMatch(/too many requests|rate limit|try again|retry/i);
     }
   });
 });
@@ -1400,7 +1428,8 @@ test.describe('admin silent failures', () => {
     await expect(row.locator('select')).toHaveValue('job_seeker');
     // The 500 here is injected by this test, so only page-level errors matter.
     expect(c.pageErrors, `page errors: ${c.pageErrors.join(' | ')}`).toEqual([]);
-    test.fail(true, 'no error banner when PATCH /api/admin/users/:id fails');
+    // Fixed 2026-09: the console routes every call through adminFetch, which
+    // turns a 500 into a message instead of a silently reverted <select>.
     await expect(page.getByText(/failed|error|could not/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
@@ -1434,7 +1463,8 @@ test.describe('admin silent failures', () => {
     await expect(page.getByRole('heading', { name: /Edit Job/ })).toBeVisible();
     // The 500 here is injected by this test, so only page-level errors matter.
     expect(c.pageErrors, `page errors: ${c.pageErrors.join(' | ')}`).toEqual([]);
-    test.fail(true, 'no error banner when PATCH /api/admin/jobs/:id fails');
+    // Fixed 2026-09: same adminFetch route, and the edit modal deliberately
+    // stays open on failure so the admin's unsaved edits survive.
     await expect(page.getByText(/failed|error|could not/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
@@ -1495,7 +1525,10 @@ test.describe('admin API canonicalisation', () => {
     // latent rather than exploitable, but any future case-sensitive token in
     // an API path segment would be corrupted before the route ever sees it.
     const res = await request.get('/api/admin/Jobs?limit=5', { maxRedirects: 0 });
-    test.fail(res.status() >= 300 && res.status() < 400, 'API pathnames are 301-lowercased by middleware');
+    // Fixed 2026-09: the trailing-slash and case-fold 301s now carry the same
+    // /api/ exclusion their ?page=1 and utm siblings already had. SEO
+    // canonicalization does not apply to an API, and a 301 on a non-GET call
+    // is downgraded to GET with the body dropped.
     expect(res.status(), `Location: ${res.headers()['location'] ?? ''}`).toBeLessThan(300);
   });
 });

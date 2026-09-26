@@ -9,6 +9,8 @@ import ResourceDownloadGate from '@/components/ResourceDownloadGate';
 import LicensureChecker from '@/components/LicensureChecker';
 import StateImage from '@/components/StateImage';
 import { prisma } from '@/lib/prisma';
+import { publicJobsWhere } from '@/lib/filters';
+import { cleanSalaryRows, medianAdvertisedK, type SalaryRow } from '@/lib/salary-report/stats';
 import { STATE_PRACTICE_AUTHORITY } from '@/lib/state-practice-authority';
 
 export const revalidate = 86400;
@@ -96,31 +98,62 @@ const featuredGuides = [
 ];
 
 export default async function ResourcesPage() {
-  const [blogPosts, stateSalaryData] = await Promise.all([
+  const [blogPosts, salaryRows] = await Promise.all([
     prisma.blogPost.findMany({
       where: { status: 'published' },
       select: { slug: true, title: true, category: true, metaDescription: true, imageUrl: true, publishDate: true },
       orderBy: { publishDate: 'desc' },
     }),
-    prisma.job.groupBy({
-      by: ['state'],
-      where: { isPublished: true, state: { not: null }, normalizedMinSalary: { not: null } },
-      _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
-      _min: { normalizedMinSalary: true },
-      _max: { normalizedMaxSalary: true },
-      _count: { id: true },
+    // publicJobsWhere(), not a bare isPublished: these figures are read as
+    // "PMHNP pay in state X", and the unscoped predicate pulled in the expired
+    // rows and the MD-Psychiatrist / off-specialty postings that
+    // GLOBAL_EXCLUSIONS hides from /jobs, pushing the advertised minimum well
+    // above anything a reader can actually find on the board.
+    //
+    // Rows rather than a groupBy _avg: the old per-state mean of two column
+    // means counted employer estimates, quarantined nothing, and would publish
+    // a confident state figure off a single listing, so this table disagreed
+    // with /salary-guide about the very same postings. Both now read through
+    // lib/salary-report/stats.
+    prisma.job.findMany({
+      where: {
+        ...publicJobsWhere(),
+        state: { not: null },
+        normalizedMinSalary: { not: null },
+        normalizedMaxSalary: { not: null },
+      },
+      select: { state: true, normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true },
     }),
   ]);
 
-  const stateSalaries = stateSalaryData
-    .filter(s => s.state && s._avg.normalizedMinSalary)
-    .map(s => ({
-      state: s.state!,
-      avgSalary: Math.round(((s._avg.normalizedMinSalary || 0) + (s._avg.normalizedMaxSalary || 0)) / 2),
-      minSalary: Math.round(s._min.normalizedMinSalary || 0),
-      maxSalary: Math.round(s._max.normalizedMaxSalary || 0),
-      jobCount: s._count.id,
-    }))
+  const rowsByState = new Map<string, SalaryRow[]>();
+  for (const row of salaryRows) {
+    if (!row.state) continue;
+    const bucket = rowsByState.get(row.state);
+    if (bucket) bucket.push(row);
+    else rowsByState.set(row.state, [row]);
+  }
+
+  // A state below the engine's five-clean-row floor drops out of the table
+  // entirely instead of publishing a thin figure; LicensureChecker already
+  // hides its salary card for a state it has no entry for. The range and the
+  // count come off the same quarantined sample as the headline number, so a
+  // single mis-annualized posting can no longer stretch the range past a
+  // median it had no part in.
+  const stateSalaries = Array.from(rowsByState.entries())
+    .map(([state, rows]) => {
+      const medianK = medianAdvertisedK(rows);
+      if (medianK <= 0) return null;
+      const { midpoints } = cleanSalaryRows(rows);
+      return {
+        state,
+        avgSalary: medianK * 1000,
+        minSalary: Math.round(midpoints[0]),
+        maxSalary: Math.round(midpoints[midpoints.length - 1]),
+        jobCount: midpoints.length,
+      };
+    })
+    .filter((s): s is NonNullable<typeof s> => s !== null)
     .sort((a, b) => b.avgSalary - a.avgSalary);
 
   // Split state_spotlight from other articles

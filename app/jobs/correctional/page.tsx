@@ -7,6 +7,7 @@ import { Shield, TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -14,6 +15,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import { slugify } from '@/lib/utils';
 
 /* Design Tokens */
 const clayCard: React.CSSProperties = {
@@ -53,14 +55,15 @@ async function getCorrectionalJobs(skip: number = 0, take: number = 20) {
 async function getCorrectionalStats() {
   const totalJobs = await prisma.job.count({ where: categoryWhere() });
 
-  const salaryData = await prisma.job.aggregate({
+  // Pay comes from the shared stats engine so this page and the salary guide
+  // cannot quote two different figures over the same postings. It returns a
+  // tier-gated median in thousands, or 0 when the sample is too thin to say.
+  const salaryRows = await prisma.job.findMany({
     where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
-    _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+    select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true },
   });
 
-  const avgMinSalary = salaryData._avg.normalizedMinSalary || 0;
-  const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
-  const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
+  const avgSalary = medianAdvertisedK(salaryRows);
 
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
@@ -173,7 +176,7 @@ export default async function CorrectionalJobsPage({ searchParams }: PageProps) 
                 '@type': 'ListItem',
                 position: idx + 1,
                 name: job.title,
-                url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+                url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}`,
               })),
             }),
           }}
@@ -194,7 +197,7 @@ export default async function CorrectionalJobsPage({ searchParams }: PageProps) 
         headlineSub="jobs, forensic psych."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Forensic psychiatric positions with premium pay, high autonomy, and federal loan forgiveness eligibility."
@@ -265,7 +268,7 @@ export default async function CorrectionalJobsPage({ searchParams }: PageProps) 
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised annual salary</div>
                 <p style={{ fontSize: '11px', color: '#A09080', marginTop: '12px' }}>Advertised pay often includes a correctional premium.</p>
               </div>
             )}
@@ -334,7 +337,7 @@ export default async function CorrectionalJobsPage({ searchParams }: PageProps) 
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary + Benefits</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  {stats.avgSalary > 0 ? `Correctional PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Federal roles add pension, health insurance, and loan repayment programs.
+                  {stats.avgSalary > 0 ? `The median correctional PMHNP listing here advertises $${stats.avgSalary}k annually. ` : ''}Federal roles add pension, health insurance, and loan repayment programs.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>

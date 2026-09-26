@@ -99,7 +99,9 @@ export const ctaButtonStyle = (loading: boolean): React.CSSProperties => ({
   padding: '13px 24px',
   borderRadius: '14px',
   border: 'none',
-  background: 'linear-gradient(145deg, #0D9488, #0F766E)',
+  // A11y: white 15px/700 over the old #0D9488 stop was 3.74:1. Both stops now
+  // clear 4.5:1 (#0F766E is 5.47:1, #115E59 darker still).
+  background: 'linear-gradient(145deg, #0F766E, #115E59)',
   color: '#fff',
   fontWeight: 700,
   fontSize: '15px',
@@ -136,7 +138,8 @@ export const toggleActiveStyle: React.CSSProperties = {
   cursor: 'pointer',
   transition: 'all 0.2s',
   background: '#FFFFFF',
-  color: '#0D9488',
+  // A11y: #0D9488 is 3.74:1 on white; #0F766E is 5.47:1.
+  color: '#0F766E',
   boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
 };
 
@@ -154,7 +157,9 @@ export const toggleInactiveStyle: React.CSSProperties = {
   cursor: 'pointer',
   transition: 'all 0.2s',
   background: 'transparent',
-  color: '#94A3B0',
+  // A11y: #94A3B0 was 2.35:1 on the toggle track. #4B5E68 is ~5.9:1 on white
+  // and still reads as the quieter half next to the 700-weight active label.
+  color: '#4B5E68',
   boxShadow: 'none',
 };
 
@@ -175,7 +180,7 @@ export const dividerLineStyle: React.CSSProperties = {
 
 export const dividerTextStyle: React.CSSProperties = {
   background: '#FFFFFF',
-  color: '#94A3B0',
+  color: '#4B5E68',
   fontSize: '12px',
   fontWeight: 600,
   letterSpacing: '0.05em',
@@ -204,13 +209,15 @@ export const googleBtnStyle: React.CSSProperties = {
 /* ─── Link text ─── */
 export const linkStyle: React.CSSProperties = {
   fontWeight: 600,
-  color: '#0D9488',
+  // A11y: link text on white needs 4.5:1; #0D9488 is 3.74:1.
+  color: '#0F766E',
   textDecoration: 'none',
 };
 
 export const secondaryTextStyle: React.CSSProperties = {
   fontSize: '14px',
-  color: '#6B7F8A',
+  // Same fix helperStyle already carries: #6B7F8A is ~3.92:1 on white.
+  color: '#4B5E68',
   margin: 0,
   textAlign: 'center',
 };

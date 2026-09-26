@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getEmployerTier, getEmployerActivePostings } from '@/lib/tier-limits';
 import { PricingTier } from '@/lib/config';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { verifyCsrf } from '@/lib/csrf';
 
 /**
  * GET /api/employer/saved-candidates
@@ -153,6 +154,14 @@ export async function GET(req: NextRequest) {
  * Save a candidate. Body: { candidateId: string, note?: string }
  */
 export async function POST(req: NextRequest) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -212,6 +221,14 @@ export async function POST(req: NextRequest) {
  * Unsave a candidate. Body: { candidateId: string }
  */
 export async function DELETE(req: NextRequest) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 

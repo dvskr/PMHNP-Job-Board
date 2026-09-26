@@ -46,8 +46,23 @@ export const RATE_LIMITS = {
     profile: { limit: 20, windowSeconds: 60 },
     /** Track/telemetry: 60 req/min */
     telemetry: { limit: 60, windowSeconds: 60 },
-    /** Admin endpoints: 20 req/min */
-    admin: { limit: 20, windowSeconds: 60 },
+    /**
+     * Admin console, per signed-in admin per route group: 60 req/min.
+     *
+     * This used to be 20 req/min shared by every /api/admin/* route and keyed
+     * on IP alone, which an operator exhausted just by walking through the
+     * console (jobs + users + analytics in the same minute, or a debounced
+     * search). The budget is per admin per route group now, so a burst on one
+     * screen cannot lock the rest of the console.
+     */
+    admin: { limit: 60, windowSeconds: 60 },
+    /**
+     * Pre-auth guard on /api/admin/*: 120 req/min per IP across every admin
+     * route. It runs before the session is known, so it has to stay loose
+     * enough for a real console session; its job is only to bound anonymous
+     * hammering, which costs a Supabase round trip per call.
+     */
+    adminIp: { limit: 120, windowSeconds: 60 },
     /** Employer endpoints: 30 req/min */
     employer: { limit: 30, windowSeconds: 60 },
     /** Candidate messaging: 10 messages per 24h */
@@ -182,6 +197,26 @@ export async function checkRateLimit(key: string, config: RateLimitConfig): Prom
 }
 
 /**
+ * Rate limit against a caller-built key.
+ *
+ * Use this when the identity that should own the budget is not the client IP:
+ * an admin console session belongs to the signed-in admin, not to the office
+ * network everyone shares.
+ */
+export async function rateLimitByKey(
+    key: string,
+    config: RateLimitConfig
+): Promise<NextResponse | null> {
+    const { success, reset } = await checkRateLimit(key, config);
+
+    if (!success) {
+        return rateLimitExceeded(reset);
+    }
+
+    return null;
+}
+
+/**
  * Rate limit middleware function to use in API routes
  */
 export async function rateLimit(
@@ -190,15 +225,7 @@ export async function rateLimit(
     config: RateLimitConfig
 ): Promise<NextResponse | null> {
     const ip = getClientIp(request);
-    const key = `ratelimit:${endpointKey}:${ip}`;
-
-    const { success, reset } = await checkRateLimit(key, config);
-
-    if (!success) {
-        return rateLimitExceeded(reset);
-    }
-
-    return null;
+    return rateLimitByKey(`ratelimit:${endpointKey}:${ip}`, config);
 }
 
 export { rateLimit as default };

@@ -26,6 +26,25 @@ const ALLOWED_IMAGE_TYPES = [
   'image/webp',
 ];
 
+/**
+ * Storage-key extension per validated MIME type.
+ *
+ * uploadAvatar used to build its object key from `fileName.split('.').pop()`,
+ * which returns everything after the LAST dot of a client-supplied multipart
+ * filename: `a.png/../../otheruser/evil` yielded the extension
+ * `png/../../otheruser/evil` and spliced it straight into the key, a path
+ * traversal into a PUBLIC bucket. A filename with no dot yielded the literal
+ * key `<prefix>/<uid>/<ts>.undefined`. The MIME type is already validated
+ * against ALLOWED_IMAGE_TYPES above, so deriving the extension from it means
+ * nothing the client names can reach the key at all.
+ */
+const IMAGE_EXTENSION_BY_TYPE: Readonly<Record<string, string>> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+
 // Max file sizes (in bytes)
 const MAX_RESUME_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;  // 2MB
@@ -116,9 +135,30 @@ export async function uploadAvatar(
     throw new Error(`File size exceeds maximum of ${MAX_IMAGE_SIZE / 1024 / 1024}MB`);
   }
 
-  // Generate unique path
+  // Virus scan BEFORE writing to storage — same gate uploadResume applies.
+  // Avatars land in a PUBLIC bucket, so an image with a valid PNG/RIFF header
+  // and arbitrary trailing bytes was the one unscanned path into a URL anyone
+  // could fetch.
+  const scan = await scanFileForViruses(file, fileName);
+  if (!scan.clean) {
+    logger.warn('uploadAvatar: rejected by virus scanner', {
+      userId,
+      fileName,
+      threats: scan.threats,
+      contentRisks: scan.contentRisks,
+    });
+    throw new Error(scan.message || 'File rejected by virus scanner.');
+  }
+
+  // Generate unique path. The extension comes from the validated MIME type,
+  // never from the client-supplied filename — see IMAGE_EXTENSION_BY_TYPE.
   const timestamp = Date.now();
-  const extension = fileName.split('.').pop();
+  const extension = IMAGE_EXTENSION_BY_TYPE[fileType];
+  if (!extension) {
+    // Unreachable while ALLOWED_IMAGE_TYPES and IMAGE_EXTENSION_BY_TYPE agree;
+    // an explicit throw keeps them from drifting into an `undefined` key.
+    throw new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
+  }
   const path = `${UPLOAD_PREFIX}/${userId}/${timestamp}.${extension}`;
 
   // Upload to Supabase Storage (public bucket)

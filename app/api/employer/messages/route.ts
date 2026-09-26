@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma';
 import { sendEmployerMessageNotification } from '@/lib/email-service';
 import { canSendInMail, getEmployerTier } from '@/lib/tier-limits';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { sanitizeText } from '@/lib/sanitize';
+import { readJsonBody } from '@/app/api/_lib/json-body';
+import { verifyCsrf } from '@/lib/csrf';
 
 /**
  * GET /api/employer/messages — List sent messages for the employer
@@ -63,6 +66,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     try {
         const rateLimitResponse = await rateLimit(req, 'employer:messages', RATE_LIMITS.employer);
         if (rateLimitResponse) return rateLimitResponse;
@@ -84,21 +95,46 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        const body = await req.json();
-        const { recipientId, subject, body: messageBody, jobId } = body;
+        // Everything below arrives as raw JSON, so each field can be any type or
+        // the body can fail to parse at all. Untyped, a numeric `body` skipped
+        // the length guard (numbers have no .length) and an object
+        // `recipientId` reached Prisma, both surfacing as a 500 on what is
+        // plainly a malformed request.
+        const parsedBody = await readJsonBody(req);
+        if (!parsedBody.ok) return parsedBody.response;
+        const { recipientId, subject, body: messageBody, jobId } = parsedBody.body as {
+            recipientId?: unknown; subject?: unknown; body?: unknown; jobId?: unknown;
+        };
 
-        if (!recipientId || !subject || !messageBody) {
-            return NextResponse.json({ error: 'recipientId, subject, and body are required' }, { status: 400 });
+        if (typeof recipientId !== 'string' || typeof subject !== 'string' || typeof messageBody !== 'string'
+            || !recipientId.trim() || !subject.trim() || !messageBody.trim()) {
+            return NextResponse.json({ error: 'recipientId, subject, and body are required and must be text' }, { status: 400 });
         }
+
+        if (jobId !== undefined && jobId !== null && typeof jobId !== 'string') {
+            return NextResponse.json({ error: 'jobId must be a job ID string' }, { status: 400 });
+        }
+        const requestedJobId: string | null = typeof jobId === 'string' && jobId ? jobId : null;
 
         if (messageBody.length > 2000) {
             return NextResponse.json({ error: 'Message body must be under 2000 characters' }, { status: 400 });
         }
 
+        // Same caps and stripping the reply path applies
+        // (app/api/conversations/[id]/route.ts). Stored raw, an employer's
+        // subject had no cap at all and neither field went through the shared
+        // sanitizer, so the two halves of one thread were stored under
+        // different rules.
+        const cleanSubject = sanitizeText(subject.trim(), 200);
+        const cleanBody = sanitizeText(messageBody.trim(), 2000);
+        if (!cleanSubject || !cleanBody) {
+            return NextResponse.json({ error: 'Subject and body must contain readable text' }, { status: 400 });
+        }
+
         // Look up recipient first (needed for conversation check)
         const recipient = await prisma.userProfile.findUnique({
             where: { supabaseId: recipientId },
-            select: { id: true, email: true, firstName: true },
+            select: { id: true, email: true, firstName: true, role: true, profileVisible: true, openToOffers: true },
         });
 
         if (!recipient) {
@@ -110,10 +146,10 @@ export async function POST(req: NextRequest) {
         // into the notification email, so an unowned id let an employer put
         // someone else's posting in front of a candidate.
         let ownedJobId: string | null = null;
-        if (jobId) {
+        if (requestedJobId) {
             const owned = await prisma.job.findFirst({
                 where: {
-                    id: jobId,
+                    id: requestedJobId,
                     employerJobs: {
                         OR: [
                             { userId: user.id },
@@ -154,6 +190,26 @@ export async function POST(req: NextRequest) {
             : ownedJobId;
 
         if (!existingConversation) {
+            // Candidate privacy gate, same one the unlock endpoints enforce
+            // (app/api/employer/candidates/[id]/route.ts and
+            // profiles/unlock-bulk). New outreach is the moment a candidate's
+            // opt-out has to be honored: without this, a seeker who set
+            // openToOffers=false or profileVisible=false still received cold
+            // InMail and its notification email, and an employer could message
+            // another employer or an admin by supabaseId. Replies inside an
+            // existing thread are unaffected: a conversation the candidate is
+            // already in is not new contact. Admins are exempt, as they are on
+            // the unlock paths.
+            const senderIsAdmin = senderProfile.role === 'admin';
+            const recipientAcceptsOutreach =
+                recipient.role === 'job_seeker' && recipient.profileVisible && recipient.openToOffers;
+            if (!senderIsAdmin && !recipientAcceptsOutreach) {
+                return NextResponse.json(
+                    { error: 'This candidate is not currently accepting messages from employers.' },
+                    { status: 403 },
+                );
+            }
+
             // NEW outreach — requires an ACTIVE featured job posting + InMail
             // credit. "Active" = featured AND published AND not expired,
             // mirroring app/api/employer/candidates/[id]/route.ts and the
@@ -237,7 +293,7 @@ export async function POST(req: NextRequest) {
                     participantA: senderProfile.id,
                     participantB: recipient.id,
                     jobId: conversationJobId,
-                    subject,
+                    subject: cleanSubject,
                 },
             });
         }
@@ -248,8 +304,8 @@ export async function POST(req: NextRequest) {
                 senderId: senderProfile.id,
                 recipientId: recipient.id,
                 conversationId: conversation.id,
-                subject,
-                body: messageBody,
+                subject: cleanSubject,
+                body: cleanBody,
                 ...(conversationJobId && { jobId: conversationJobId }),
             },
         });
@@ -269,8 +325,8 @@ export async function POST(req: NextRequest) {
                 recipient.firstName,
                 senderName,
                 senderProfile.company,
-                subject,
-                messageBody,
+                cleanSubject,
+                cleanBody,
                 jobTitle
             ).catch(err => console.error('Email notification error:', err));
         }

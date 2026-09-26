@@ -2,8 +2,8 @@
   "schema_version": "v1",
   "name_for_human": "PMHNP Hiring",
   "name_for_model": "pmhnp_hiring",
-  "description_for_human": "Find psychiatric mental health nurse practitioner (PMHNP) jobs across all 50 US states with salary transparency.",
-  "description_for_model": "PMHNP Hiring is a specialized job board for Psychiatric Mental Health Nurse Practitioners. Use this to search PMHNP jobs by location, setting (remote, telehealth, inpatient, outpatient), specialty (addiction, child-adolescent, geriatric, crisis), job type (full-time, part-time, contract), experience level (entry-level, mid-career, senior), and employer type (hospital, private practice, community health, VA). The site covers thousands of US cities with local salary data, cost of living adjustments, and mental health shortage area designations. Listings are refreshed daily. A plain-text overview for LLMs is available at https://pmhnphiring.com/llms-full.txt.",
+  "description_for_human": "Find psychiatric mental health nurse practitioner (PMHNP) jobs across the United States, with advertised-pay data drawn from live postings.",
+  "description_for_model": "PMHNP Hiring is a specialized job board for Psychiatric Mental Health Nurse Practitioners (PMHNPs) in the United States: aggregated and employer-posted PMHNP jobs, live advertised-pay data, licensure guides, and free career tools. Jobs can be browsed by location, setting (remote, telehealth, in-person), specialty, and job type. State and city pages exist where there are enough live postings to be useful. Salary figures are medians of advertised ranges in live postings, published with their sample size and withheld below a minimum sample. A plain-text overview for LLMs is at https://pmhnphiring.com/llms.txt, with live computed figures at https://pmhnphiring.com/llms-full.txt.",
   "auth": {
     "type": "none"
   },

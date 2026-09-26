@@ -80,6 +80,13 @@ export interface LifecycleEmailContext {
   jobTitle?: string | null;
   jobId?: string | null;
   expiredAt?: Date | null;
+  /**
+   * EmailLead.unsubscribeToken for this recipient, so the footer can offer a
+   * real opt-out. Lifecycle mail is marketing sent to people who never asked
+   * for this specific list, so the visible unsubscribe is the only consent
+   * control they have. Absent on previews and test renders.
+   */
+  unsubscribeToken?: string | null;
 }
 
 export interface LifecycleTarget {
@@ -199,10 +206,15 @@ function textLink(html: string): string {
   return `<tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textMuted};line-height:1.6;">${html}</p></td></tr>`;
 }
 
-function lifecycleShell(title: string, inner: string, preheader: string): string {
+function lifecycleShell(
+  title: string,
+  inner: string,
+  preheader: string,
+  unsubscribeToken?: string | null,
+): string {
   return emailShellV2(
     `${headerBlockV2(title, '')}${spacerV2(12)}${inner}${spacerV2(48)}${closeContentV2()}`,
-    unsubscribeFooterV2('sample'),
+    unsubscribeFooterV2(unsubscribeToken, 'lifecycle'),
     preheader,
   );
 }
@@ -280,6 +292,7 @@ export const LIFECYCLE_EMAILS: LifecycleEmailDef[] = [
           ctaBlock('Update Your Posting', `${BASE_URL}/employer/dashboard`),
         ].join(''),
         'Add screening questions and Easy Apply to your live posting.',
+        ctx.unsubscribeToken,
       ),
     findEligible: async (now) => {
       const window = LIFECYCLE_WINDOWS.employer_day2_screening;
@@ -323,6 +336,7 @@ export const LIFECYCLE_EMAILS: LifecycleEmailDef[] = [
           ),
         ].join(''),
         'Browse the candidate database and AI talent search while your posting is active.',
+        ctx.unsubscribeToken,
       ),
     findEligible: async (now) => {
       const window = LIFECYCLE_WINDOWS.employer_day7_talent;
@@ -389,6 +403,7 @@ export const LIFECYCLE_EMAILS: LifecycleEmailDef[] = [
           ctaBlock('Renew Your Listing', renewUrl),
         ].join(''),
         'Your posting expired. Renewing puts it back in front of candidates.',
+        ctx.unsubscribeToken,
       );
     },
     findEligible: async (now) => {
@@ -476,6 +491,7 @@ export const LIFECYCLE_EMAILS: LifecycleEmailDef[] = [
           ctaBlock('Set Up Your Alert', `${BASE_URL}/job-alerts`),
         ].join(''),
         'Set a job alert with your filters and cadence.',
+        ctx.unsubscribeToken,
       ),
     findEligible: async (now) => {
       const window = LIFECYCLE_WINDOWS.candidate_day2_alert;
@@ -548,6 +564,7 @@ export const LIFECYCLE_EMAILS: LifecycleEmailDef[] = [
           ctaBlock('Open Resume Studio', `${BASE_URL}/dashboard/resume-studio`),
         ].join(''),
         'Build, score, and tailor your PMHNP resume in Resume Studio.',
+        ctx.unsubscribeToken,
       ),
     findEligible: async (now) => {
       const window = LIFECYCLE_WINDOWS.candidate_day7_resume;
@@ -603,6 +620,7 @@ export const LIFECYCLE_EMAILS: LifecycleEmailDef[] = [
           ctaBlock('Review Visibility Settings', `${BASE_URL}/settings`),
         ].join(''),
         'Turn on profile visibility so matching employers can find you.',
+        ctx.unsubscribeToken,
       ),
     findEligible: async (now) => {
       const window = LIFECYCLE_WINDOWS.candidate_day14_visibility;

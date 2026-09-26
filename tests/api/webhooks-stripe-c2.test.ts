@@ -12,6 +12,11 @@
  * outer catch must delete by the captured `dedupedEventId`.
  *
  * These tests assert the dedupe row is deleted before any 500 response.
+ *
+ * Session fixtures carry `payment_status: 'paid'` because the handler now
+ * refuses to publish a completed session whose payment has not settled, the
+ * same gate /api/verify-checkout-session applies. The last case here pins that
+ * refusal.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prisma } from '@/lib/prisma';
@@ -62,7 +67,7 @@ describe('Stripe webhook C2 — idempotency rollback', () => {
         const res = await POST(makeRequest({
             id: 'evt_1',
             type: 'checkout.session.completed',
-            data: { object: { id: 'cs_1', metadata: { jobId: 'job1' }, payment_intent: null, amount_total: 19900, currency: 'usd' } },
+            data: { object: { id: 'cs_1', payment_status: 'paid', metadata: { jobId: 'job1' }, payment_intent: null, amount_total: 19900, currency: 'usd' } },
         }) as never);
 
         expect(res.status).toBe(500);
@@ -77,7 +82,7 @@ describe('Stripe webhook C2 — idempotency rollback', () => {
         const res = await POST(makeRequest({
             id: 'evt_2',
             type: 'checkout.session.completed',
-            data: { object: { id: 'cs_2', metadata: { jobId: 'job2' }, payment_intent: null, amount_total: 19900, currency: 'usd' } },
+            data: { object: { id: 'cs_2', payment_status: 'paid', metadata: { jobId: 'job2' }, payment_intent: null, amount_total: 19900, currency: 'usd' } },
         }) as never);
 
         expect(res.status).toBe(500);
@@ -98,7 +103,7 @@ describe('Stripe webhook C2 — idempotency rollback', () => {
         const res = await POST(makeRequest({
             id: 'evt_3',
             type: 'checkout.session.completed',
-            data: { object: { id: 'cs_3', metadata: { jobId: 'job3', pricing: 'pro' }, payment_intent: null, amount_total: 19900, currency: 'usd' } },
+            data: { object: { id: 'cs_3', payment_status: 'paid', metadata: { jobId: 'job3', pricing: 'pro' }, payment_intent: null, amount_total: 19900, currency: 'usd' } },
         }) as never);
 
         expect(res.status).toBe(200);
@@ -122,5 +127,22 @@ describe('Stripe webhook C2 — idempotency rollback', () => {
         expect(json.deduped).toBe(true);
         expect(prisma.processedStripeEvent.delete).not.toHaveBeenCalled();
         expect(prisma.job.update).not.toHaveBeenCalled();
+    });
+
+    it('does NOT publish a completed session whose payment has not settled', async () => {
+        vi.mocked(prisma.processedStripeEvent.create).mockResolvedValue({} as never);
+
+        const { POST } = await import('@/app/api/webhooks/stripe/route');
+        const res = await POST(makeRequest({
+            id: 'evt_5',
+            type: 'checkout.session.completed',
+            data: { object: { id: 'cs_5', payment_status: 'unpaid', metadata: { jobId: 'job5' }, payment_intent: null, amount_total: 19900, currency: 'usd' } },
+        }) as never);
+
+        // 200 so Stripe stops retrying an event that will never settle here;
+        // a delayed method settles through checkout.session.async_payment_succeeded.
+        expect(res.status).toBe(200);
+        expect(prisma.job.update).not.toHaveBeenCalled();
+        expect(prisma.jobCharge.create).not.toHaveBeenCalled();
     });
 });

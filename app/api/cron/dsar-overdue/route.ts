@@ -21,6 +21,40 @@ export const maxDuration = 60;
  */
 const DUE_SOON_DAYS = 3;
 
+/**
+ * Discord rejects a webhook whose `content` exceeds 2000 characters. Left
+ * unguarded, 30 open requests (up to 33 lines of ~90 characters) pushed the
+ * joined message past the cap, the webhook answered 400, sendDiscordMessage
+ * logged and returned false, and this cron still reported success: the loudest
+ * regulatory alarm in the system went silent exactly when it had the most to
+ * say. 1900 leaves room for the chunk counter suffix.
+ */
+const DISCORD_CONTENT_LIMIT = 1900;
+
+/**
+ * Split pre-formatted lines into messages that fit Discord's content cap.
+ *
+ * Splits on line boundaries so an entry is never cut in half. A single line
+ * longer than the cap (not possible with the formatter below, but cheap to
+ * defend) is hard-truncated rather than dropped.
+ */
+function chunkLines(lines: string[], limit: number): string[] {
+    const chunks: string[] = [];
+    let current = '';
+    for (const line of lines) {
+        const safeLine = line.length > limit ? `${line.slice(0, limit - 3)}...` : line;
+        const candidate = current ? `${current}\n${safeLine}` : safeLine;
+        if (candidate.length > limit) {
+            if (current) chunks.push(current);
+            current = safeLine;
+        } else {
+            current = candidate;
+        }
+    }
+    if (current) chunks.push(current);
+    return chunks;
+}
+
 export async function GET(request: NextRequest) {
     const authError = await verifyCronOrAdmin(request);
     if (authError) return authError;
@@ -41,6 +75,8 @@ export async function GET(request: NextRequest) {
 
             // Only ping Discord when there's something a human must act on —
             // don't post a "0 open" message every day.
+            let chunksSent = 0;
+            let chunksTotal = 0;
             if (overdue.length > 0 || dueSoon.length > 0) {
                 const fmt = (r: typeof open[number]) =>
                     `• \`${r.type}\` (${r.jurisdiction ?? 'n/a'}): due ${r.dueBy.toISOString().slice(0, 10)}, status ${r.status}, id ${r.id.slice(0, 8)}`;
@@ -54,7 +90,28 @@ export async function GET(request: NextRequest) {
                     lines.push(...dueSoon.slice(0, 15).map(fmt));
                 }
                 lines.push(`(${open.length} total open requests. Review them in the data_requests table.)`);
-                await sendDiscordMessage(lines.join('\n'));
+
+                const chunks = chunkLines(lines, DISCORD_CONTENT_LIMIT);
+                chunksTotal = chunks.length;
+                for (const [i, chunk] of chunks.entries()) {
+                    const suffix = chunks.length > 1 ? `\n_(${i + 1}/${chunks.length})_` : '';
+                    // sendDiscordMessage answers false on a webhook rejection
+                    // instead of throwing. Discarding that boolean is what made
+                    // this watchdog fail silently.
+                    if (await sendDiscordMessage(`${chunk}${suffix}`)) chunksSent++;
+                }
+
+                if (chunksSent < chunksTotal) {
+                    // Deliberately not thrown: a throw routes to
+                    // sendCronFailureAlert, which is the same Discord webhook
+                    // that just refused us. Log it and record the shortfall on
+                    // the cron_run row so the gap is visible after the fact.
+                    logger.error(
+                        'dsar-overdue: Discord did not accept the full alert',
+                        new Error(`delivered ${chunksSent} of ${chunksTotal} chunks`),
+                        { open: open.length, overdue: overdue.length, dueSoon: dueSoon.length },
+                    );
+                }
             }
 
             logger.info('dsar-overdue complete', { open: open.length, overdue: overdue.length, dueSoon: dueSoon.length });
@@ -65,9 +122,18 @@ export async function GET(request: NextRequest) {
                     open: open.length,
                     overdue: overdue.length,
                     dueSoon: dueSoon.length,
+                    alertChunksSent: chunksSent,
+                    alertChunksTotal: chunksTotal,
+                    alertDelivered: chunksSent === chunksTotal,
                     timestamp: now.toISOString(),
                 }),
-                metrics: { open: open.length, overdue: overdue.length, dueSoon: dueSoon.length },
+                metrics: {
+                    open: open.length,
+                    overdue: overdue.length,
+                    dueSoon: dueSoon.length,
+                    alertChunksSent: chunksSent,
+                    alertChunksTotal: chunksTotal,
+                },
             };
         });
     } catch (err) {

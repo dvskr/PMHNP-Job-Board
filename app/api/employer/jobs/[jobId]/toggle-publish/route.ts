@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { inngest } from '@/lib/inngest/client';
+import { verifyCsrf } from '@/lib/csrf';
 
 /**
  * PATCH /api/employer/jobs/[jobId]/toggle-publish
@@ -14,6 +15,14 @@ export async function PATCH(
     req: NextRequest,
     { params }: { params: Promise<{ jobId: string }> }
 ) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     const rateLimitResponse = await rateLimit(req, 'employer:toggle-publish', RATE_LIMITS.employer);
     if (rateLimitResponse) return rateLimitResponse;
 
@@ -65,7 +74,7 @@ export async function PATCH(
                 ],
             },
             include: {
-                job: { select: { id: true, title: true, isPublished: true, expiresAt: true } },
+                job: { select: { id: true, title: true, isPublished: true, expiresAt: true, archivedAt: true } },
             },
         });
 
@@ -101,10 +110,32 @@ export async function PATCH(
         // For admin, fetch job directly
         const job = employerJob
             ? employerJob.job
-            : await prisma.job.findUnique({ where: { id: jobId }, select: { id: true, title: true, isPublished: true, expiresAt: true } });
+            : await prisma.job.findUnique({ where: { id: jobId }, select: { id: true, title: true, isPublished: true, expiresAt: true, archivedAt: true } });
 
         if (!job) {
             return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+        }
+
+        // Archived is a separate axis from published, and archiving force-sets
+        // isPublished=false (app/api/employer/jobs/[jobId]/archive/route.ts:
+        // "you can't have a live archived listing"). Without this guard the API
+        // happily flipped isPublished back to true while archivedAt stayed set,
+        // and the surfaces then disagreed: /jobs and the sitemaps list the row
+        // because they filter on isPublished only, while AI search, the partner
+        // widget, match digests and embedding refresh all filter archivedAt:
+        // null, and the dashboard files it under "Archived". Restoring from the
+        // archive is the deliberate first step, exactly as the archive route
+        // documents; this refuses rather than clearing archivedAt behind the
+        // employer's back.
+        if (!job.isPublished && job.archivedAt) {
+            return NextResponse.json(
+                {
+                    error: 'Archived',
+                    message: 'This posting is archived. Restore it from the archive first, then publish it.',
+                    archivedAt: job.archivedAt.toISOString(),
+                },
+                { status: 409 },
+            );
         }
 
         // Check if expired — can't unpublish an expired job (it's already effectively off)

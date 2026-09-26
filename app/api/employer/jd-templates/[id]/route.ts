@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
+import { verifyCsrf } from '@/lib/csrf';
 
 const renameSchema = z.object({
   label: z.string().min(2, 'Label must be at least 2 characters').max(120),
@@ -40,6 +41,14 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
   const rateLimitResult = await rateLimit(req, 'jd-templates:rename', RATE_LIMITS.employer);
   if (rateLimitResult) return rateLimitResult;
 
@@ -87,6 +96,14 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
   const rateLimitResult = await rateLimit(req, 'jd-templates:delete', RATE_LIMITS.employer);
   if (rateLimitResult) return rateLimitResult;
 

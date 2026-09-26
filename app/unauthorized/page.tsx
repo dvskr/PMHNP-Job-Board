@@ -12,12 +12,18 @@ const clayCard = {
 };
 
 export const metadata = {
-  title: 'Unauthorized Access | PMHNP Hiring',
+  // Bare title: app/layout.tsx defines title.template `%s | PMHNP Hiring`,
+  // which Next appends to every plain-string child title. Repeating the
+  // brand here rendered it twice in the SERP and the browser tab.
+  title: 'Unauthorized Access',
 };
 
 export default function UnauthorizedPage() {
   return (
-    <main style={{ 
+  /* Wrapper is a div, not <main>: components/MainContent.tsx already wraps
+     every route in <main id="main-content">, and a nested <main> gives
+     assistive tech two "main" landmarks on the same page. */
+    <div style={{ 
         minHeight: '100vh', 
         background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
         display: 'flex',
@@ -92,6 +98,6 @@ export default function UnauthorizedPage() {
                 }
             `}</style>
         </div>
-    </main>
+    </div>
   );
 }

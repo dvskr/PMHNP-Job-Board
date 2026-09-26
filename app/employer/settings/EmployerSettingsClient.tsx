@@ -165,6 +165,9 @@ export default function EmployerSettingsClient() {
     }
     const [notifPrefs, setNotifPrefs] = useState<NotifPref[]>([]);
     const [notifLoading, setNotifLoading] = useState<string | null>(null);
+    // Why a notification or newsletter toggle snapped back. Null when the last
+    // change landed.
+    const [prefsError, setPrefsError] = useState<string | null>(null);
 
     useEffect(() => {
         // Fetch newsletter status once profile email is known
@@ -183,18 +186,39 @@ export default function EmployerSettingsClient() {
             .catch(() => {});
     }, []);
 
+    /**
+     * fetch resolves for 401, 403, 404 and 500 alike, so a try/catch that only
+     * reverts in the catch left an optimistic toggle showing the new position
+     * after the server had refused it. Every caller here checks res.ok, reverts
+     * and says why: a notification preference the employer believes is off
+     * while the server still has it on keeps sending mail they turned off.
+     */
+    const rejectionMessage = async (res: Response, fallback: string): Promise<string> => {
+        if (res.status === 401) return 'Your session has expired. Please sign in again.';
+        const data = await res.json().catch(() => ({} as { error?: string }));
+        console.error('Preference update failed:', res.status, data);
+        return typeof data.error === 'string' && data.error ? data.error : fallback;
+    };
+
     const handleNewsletterToggle = async () => {
         if (!profile?.email) return;
         setNewsletterLoading(true);
+        setPrefsError(null);
         const newState = !newsletterOptIn;
         setNewsletterOptIn(newState);
         try {
-            await fetch('/api/newsletter', {
+            const res = await fetch('/api/newsletter', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: profile.email, optIn: newState, source: 'employer_newsletter' }),
             });
-        } catch {
+            if (!res.ok) {
+                setPrefsError(await rejectionMessage(res, 'Could not update your newsletter preference. Please try again.'));
+                setNewsletterOptIn(!newState);
+            }
+        } catch (err) {
+            console.error('Newsletter toggle failed:', err);
+            setPrefsError('Could not reach the server. Check your connection and try again.');
             setNewsletterOptIn(!newState);
         } finally {
             setNewsletterLoading(false);
@@ -204,19 +228,27 @@ export default function EmployerSettingsClient() {
     const handleNotifToggle = async (employerJobId: string, current: boolean) => {
         const newState = !current;
         setNotifLoading(employerJobId);
+        setPrefsError(null);
         setNotifPrefs(prev => prev.map(p =>
             p.employerJobId === employerJobId ? { ...p, notifyOnApplication: newState } : p
         ));
+        const revert = () => setNotifPrefs(prev => prev.map(p =>
+            p.employerJobId === employerJobId ? { ...p, notifyOnApplication: !newState } : p
+        ));
         try {
-            await fetch('/api/employer/settings/notifications', {
+            const res = await fetch('/api/employer/settings/notifications', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employerJobId, notifyOnApplication: newState }),
             });
-        } catch {
-            setNotifPrefs(prev => prev.map(p =>
-                p.employerJobId === employerJobId ? { ...p, notifyOnApplication: !newState } : p
-            ));
+            if (!res.ok) {
+                setPrefsError(await rejectionMessage(res, 'Could not update that notification setting. Please try again.'));
+                revert();
+            }
+        } catch (err) {
+            console.error('Notification toggle failed:', err);
+            setPrefsError('Could not reach the server. Check your connection and try again.');
+            revert();
         } finally {
             setNotifLoading(null);
         }
@@ -829,6 +861,20 @@ export default function EmployerSettingsClient() {
             {/* ═══ Notifications Section — Newsletter + per-job application alerts ═══ */}
             {activeSection === 'notifications' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {prefsError && (
+                        <div
+                            role="alert"
+                            style={{
+                                padding: '12px 16px', borderRadius: '14px',
+                                background: '#FEE2E2', border: '1px solid #FECACA',
+                            }}
+                        >
+                            <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: '#991B1B', lineHeight: 1.5 }}>
+                                {prefsError}
+                            </p>
+                        </div>
+                    )}
+
                     {/* Employer Newsletter */}
                     <div style={clayCard}>
                         <div style={{ marginBottom: '20px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '16px' }}>

@@ -7,6 +7,7 @@ import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -14,6 +15,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
+import { slugify } from '@/lib/utils';
 
 const clayCard: React.CSSProperties = {
   background: '#FFFFFF', borderRadius: '20px',
@@ -39,8 +41,11 @@ async function getJobs(skip = 0, take = 20) {
 
 async function getStats() {
   const totalJobs = await prisma.job.count({ where: categoryWhere() });
-  const salaryData = await prisma.job.aggregate({ where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, _avg: { normalizedMinSalary: true, normalizedMaxSalary: true } });
-  const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
+  // Pay comes from the shared stats engine so this page and the salary guide
+  // cannot quote two different figures over the same postings. It returns a
+  // tier-gated median in thousands, or 0 when the sample is too thin to say.
+  const salaryRows = await prisma.job.findMany({ where: { ...categoryWhere(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true } });
+  const avgSalary = medianAdvertisedK(salaryRows);
   const topEmployers = await prisma.job.groupBy({ by: ['employer'], where: categoryWhere(), _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8 });
   return { totalJobs, avgSalary, topEmployers: topEmployers.map((e: EmployerGroupResult) => ({ name: e.employer, count: e._count.employer })) };
 }
@@ -82,7 +87,7 @@ export default async function ContractPage({ searchParams }: PageProps) {
       ]} />
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Contract Jobs" />
       {jobs.length > 0 && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Contract PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Contract PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}` })) }) }} />
       )}
 
       {/* ═══ HERO ═══ */}
@@ -98,7 +103,7 @@ export default async function ContractPage({ searchParams }: PageProps) {
         headlineSub="jobs, fixed-term roles."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Fixed-term assignments with premium rates, diverse settings, and geographic flexibility."
@@ -149,7 +154,7 @@ export default async function ContractPage({ searchParams }: PageProps) {
               <div style={{ ...clayCard, padding: '24px' }}>
                 <TrendingUp size={20} style={{ color: '#34D399', marginBottom: '8px' }} />
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35' }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62' }}>Average salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62' }}>Median advertised</div>
               </div>
             )}
           </div>
@@ -201,8 +206,14 @@ export default async function ContractPage({ searchParams }: PageProps) {
               <div>
                 <TrendingUp size={28} style={{ color: '#34D399', marginBottom: '12px' }} />
                 <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Premium Rates</h3>
-                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Average contract PMHNP salary:</p>
-                <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
+                {stats.avgSalary > 0 ? (
+                  <>
+                    <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Median advertised contract PMHNP salary:</p>
+                    <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
+                  </>
+                ) : (
+                  <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>Too few postings here disclose a salary range for us to publish a median.</p>
+                )}
               </div>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_ct_salary.webp" alt="Contract PMHNP pay" width={280} sizes="(max-width: 768px) 100vw, 280px" height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
             </div>

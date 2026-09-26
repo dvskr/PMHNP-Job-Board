@@ -5,6 +5,7 @@ import {
 } from '@/lib/email-templates-v2'
 import { sendAndLog, isEmailSuppressed, getOrCreateUnsubToken, escapeHtml } from '@/lib/email-service'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { readJsonBody } from '@/app/api/_lib/json-body';
 
 const BASE_URL = 'https://pmhnphiring.com'
 
@@ -32,8 +33,11 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await rateLimit(request, 'email-job', RATE_LIMITS.contact);
     if (rateLimitResult) return rateLimitResult;
 
+  const parsed = await readJsonBody(request)
+  if (!parsed.ok) return parsed.response
+
   try {
-    const { email, jobTitle, jobUrl } = await request.json()
+    const { email, jobTitle, jobUrl } = parsed.body as { email?: string; jobTitle?: string; jobUrl?: unknown }
 
     if (!email || !jobTitle) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })

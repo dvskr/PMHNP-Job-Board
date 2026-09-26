@@ -22,13 +22,13 @@ test.use({ navigationTimeout: 150_000, actionTimeout: 60_000 });
 test.describe('authz hunt', () => {
   test.describe.configure({ mode: 'serial' });
 
-  test('A: write-once company name is editable through /api/auth/profile', async ({ page }) => {
+  test('A: the write-once company name is refused by every writer, not just settings', async ({ page }) => {
     test.skip(!getEmployerCreds(), 'employer creds missing');
     await loginAsEmployer(page);
 
     const before = await getProfile(page);
     const original: string | null = before.company ?? null;
-    const spoofed = 'Talkiatry Behavioral Group';
+    const spoofed = 'Fictional Behavioral Group';
 
     // The documented lock: employer settings refuses the rename.
     const locked = await page.request.patch('/api/employer/settings', {
@@ -37,23 +37,17 @@ test.describe('authz hunt', () => {
     console.log('[A] PATCH /api/employer/settings ->', locked.status(), (await locked.text()).slice(0, 200));
     expect(locked.status(), 'settings route enforces the write-once lock').toBe(409);
 
-    // The unguarded path.
-    const bypass = await page.request.patch('/api/auth/profile', {
+    // The generic profile writer used to sit wide open behind that strict one.
+    const viaProfile = await page.request.patch('/api/auth/profile', {
       data: { company: spoofed },
     });
-    const bypassBody = await bypass.json().catch(() => ({}));
-    console.log('[A] PATCH /api/auth/profile ->', bypass.status(), 'company =', bypassBody.company);
+    console.log('[A] PATCH /api/auth/profile ->', viaProfile.status(), (await viaProfile.text()).slice(0, 200));
 
     const after = await getProfile(page);
-    console.log('[A] profile.company after bypass =', after.company);
+    console.log('[A] profile.company after the attempt =', after.company);
 
-    // Restore before asserting so a failure never leaves the account dirty.
-    await page.request.patch('/api/auth/profile', { data: { company: original } });
-    const restored = await getProfile(page);
-    expect(restored.company, 'company restored').toBe(original);
-
-    expect(bypass.status()).toBe(200);
-    expect(after.company, 'company name changed despite the write-once lock').toBe(spoofed);
+    expect(viaProfile.status(), 'profile route enforces the same lock').toBe(409);
+    expect(after.company, 'company name unchanged').toBe(original);
   });
 
   test('B: resumeUrl is client-writable -> cross-user resume read', async ({ browser }) => {
@@ -162,7 +156,7 @@ test.describe('authz hunt', () => {
     expect(last, 'read a count').toBeGreaterThanOrEqual(startCount);
   });
 
-  test('D: CSRF origin check is applied to some mutating routes and not others', async ({ page }) => {
+  test('D: the CSRF origin check covers both profile writers, not just one', async ({ page }) => {
     test.skip(!getEmployerCreds(), 'employer creds missing');
     await loginAsEmployer(page);
     const before = await getProfile(page);
@@ -170,26 +164,26 @@ test.describe('authz hunt', () => {
 
     const evil = { origin: 'https://evil.example.com', referer: 'https://evil.example.com/x' };
 
-    const guarded = await page.request.patch('/api/auth/profile', {
+    const viaProfile = await page.request.patch('/api/auth/profile', {
       headers: evil,
       data: { phone: '5550001111' },
     });
-    console.log('[D] PATCH /api/auth/profile (cross-origin) ->', guarded.status());
+    console.log('[D] PATCH /api/auth/profile (cross-origin) ->', viaProfile.status());
 
-    const unguarded = await page.request.patch('/api/employer/settings', {
+    // The employer settings route wrote the same column with no origin check,
+    // so the strict endpoint sat next to a wide-open one.
+    const viaSettings = await page.request.patch('/api/employer/settings', {
       headers: evil,
       data: { phone: '5550002222' },
     });
-    console.log('[D] PATCH /api/employer/settings (cross-origin) ->', unguarded.status(),
-      (await unguarded.text()).slice(0, 160));
+    console.log('[D] PATCH /api/employer/settings (cross-origin) ->', viaSettings.status(),
+      (await viaSettings.text()).slice(0, 160));
 
     const after = await getProfile(page);
-    console.log('[D] phone after cross-origin writes =', after.phone);
+    console.log('[D] phone after the cross-origin attempts =', after.phone);
 
-    await page.request.patch('/api/auth/profile', { data: { phone: originalPhone } });
-
-    expect(guarded.status(), '/api/auth/profile blocks cross-origin').toBe(403);
-    expect(unguarded.status(), '/api/employer/settings accepts cross-origin').toBe(200);
-    expect(after.phone, 'cross-origin write persisted').toBe('5550002222');
+    expect(viaProfile.status(), '/api/auth/profile blocks cross-origin').toBe(403);
+    expect(viaSettings.status(), '/api/employer/settings blocks cross-origin').toBe(403);
+    expect(after.phone, 'no cross-origin write persisted').toBe(originalPhone);
   });
 });

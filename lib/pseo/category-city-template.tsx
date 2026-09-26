@@ -25,7 +25,8 @@ import { cache } from 'react';
 import { withTagFallback } from './category-tagger';
 import { categoryCanonicalTarget, CITY_SITEMAP_CATEGORIES } from './jobs-segments-edge';
 import { shouldRenderCategoryCity, MIN_JOBS_FOR_CATEGORY_CITY } from './render-gate';
-import { PSEO_STALENESS_HOURS } from './sitemap-thresholds';
+import { PSEO_STALENESS_HOURS, pseoFreshnessCutoff } from './sitemap-thresholds';
+import { salaryFor } from './aggregate-fold';
 import { hasLicensePost } from './license-posts';
 import { JOB_LISTING_OMIT } from './job-listing-omit';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
@@ -37,6 +38,7 @@ import { Job } from '@/lib/types';
 import { CityData } from './city-data/types';
 import { getCityBySlug } from './city-data/cities';
 import { SETTING_CONFIGS, SettingConfig, stateToSlug } from './setting-state-config';
+import { buildMetaDescription } from './meta-description';
 import { CATEGORY_ASSET_REGISTRY } from './category-asset-registry';
 import { siteAsset } from '@/lib/asset-url';
 import {
@@ -56,7 +58,6 @@ export interface CategoryConfig {
   label: string;
   fullLabel: string;
   heroSubtitle: string;
-  salaryRange: string;
   keywords: string[];
   faqCategory: string;
   buildWhere: (stateName: string, cityName?: string) => Record<string, unknown>;
@@ -75,7 +76,6 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Addiction',
     fullLabel: 'Addiction PMHNP',
     heroSubtitle: 'Substance abuse & addiction treatment positions',
-    salaryRange: '$120K-180K',
     keywords: ['addiction pmhnp', 'substance abuse pmhnp', 'MAT pmhnp', 'suboxone pmhnp'],
     faqCategory: 'substance-abuse',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -109,7 +109,6 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Child & Adolescent',
     fullLabel: 'Child & Adolescent PMHNP',
     heroSubtitle: 'Pediatric & youth psychiatric positions',
-    salaryRange: '$125K-185K',
     keywords: ['child pmhnp', 'adolescent pmhnp', 'pediatric psychiatric NP', 'youth mental health'],
     faqCategory: 'child-adolescent',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -136,7 +135,6 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Substance Abuse',
     fullLabel: 'Substance Abuse PMHNP',
     heroSubtitle: 'Substance use disorder treatment positions',
-    salaryRange: '$120K-180K',
     keywords: ['substance abuse pmhnp', 'SUD pmhnp', 'detox pmhnp', 'rehab pmhnp'],
     faqCategory: 'substance-abuse',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -163,7 +161,6 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     label: 'New Grad',
     fullLabel: 'New Graduate PMHNP',
     heroSubtitle: 'Entry-level & new graduate positions',
-    salaryRange: '$115K-160K',
     keywords: ['new grad pmhnp', 'entry level pmhnp', 'new graduate pmhnp', 'pmhnp fellowship'],
     faqCategory: 'new-grad',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -190,7 +187,6 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Per Diem',
     fullLabel: 'Per Diem PMHNP',
     heroSubtitle: 'PRN & flexible schedule positions',
-    salaryRange: '$80-150/hr',
     keywords: ['per diem pmhnp', 'PRN pmhnp', 'part time pmhnp', 'flexible pmhnp'],
     faqCategory: 'per-diem',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -201,7 +197,7 @@ export const SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     }),
     benefits: [
       { title: 'Maximum Flexibility', description: 'Set your own schedule and work as many or as few shifts as you want, when you want.', iconName: 'Activity' },
-      { title: 'Higher Hourly Rate', description: 'Per diem roles pay $80-$150+/hr, often 20-40% more than the hourly equivalent of full-time work.', iconName: 'DollarSign' },
+      { title: 'Higher Hourly Rate', description: 'Per diem roles are booked hourly, and the rate runs above the hourly equivalent of full-time work because no benefits are bundled.', iconName: 'DollarSign' },
       { title: 'Income Supplement', description: 'Perfect for supplementing a full-time position or private practice while maintaining clinical variety.', iconName: 'TrendingUp' },
     ],
     tips: [
@@ -221,7 +217,6 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Full-Time',
     fullLabel: 'Full-Time PMHNP',
     heroSubtitle: 'Permanent full-time psychiatric NP positions with benefits',
-    salaryRange: '$120K-190K',
     keywords: ['full time pmhnp', 'permanent pmhnp', 'salaried pmhnp'],
     faqCategory: 'remote', // Use remote FAQ as closest match
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -233,10 +228,10 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     benefits: [
       { title: 'Comprehensive Benefits', description: 'Full health insurance, dental, vision, retirement plans, and PTO, typically 20-30 days off.', iconName: 'Heart' },
       { title: 'Job Security', description: 'Stable employment with consistent income, malpractice coverage, and professional development support.', iconName: 'Shield' },
-      { title: 'Career Growth', description: 'Access to leadership tracks, CME funding ($2,000-$5,000/year), and promotion opportunities.', iconName: 'TrendingUp' },
+      { title: 'Career Growth', description: 'Access to leadership tracks, an annual CME allowance, and promotion opportunities.', iconName: 'TrendingUp' },
     ],
     tips: [
-      'Negotiate sign-on bonuses (often $10K-$25K)',
+      'Negotiate the sign-on bonus, not just the base',
       'Ask about panel size and aim for 14-18 patients per day',
       'Clarify on-call requirements before accepting',
       'Review non-compete clauses carefully',
@@ -248,7 +243,6 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Part-Time',
     fullLabel: 'Part-Time PMHNP',
     heroSubtitle: 'Flexible part-time psychiatric NP positions',
-    salaryRange: '$55-95/hr',
     keywords: ['part time pmhnp', 'half time pmhnp', 'flexible pmhnp'],
     faqCategory: 'per-diem',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -275,7 +269,6 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Contract',
     fullLabel: 'Contract PMHNP',
     heroSubtitle: 'Contract & locum tenens psychiatric NP assignments',
-    salaryRange: '$85-160/hr',
     keywords: ['contract pmhnp', 'locum tenens pmhnp', '1099 pmhnp', 'temp pmhnp'],
     faqCategory: 'travel',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -285,7 +278,7 @@ export const JOB_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('contract'),
     }),
     benefits: [
-      { title: 'Premium Pay', description: 'Contract rates are typically 30-60% higher than permanent positions: $85-$160+/hour.', iconName: 'DollarSign' },
+      { title: 'Premium Pay', description: 'Contract rates are quoted hourly and run above the permanent-position equivalent, because no benefits are bundled.', iconName: 'DollarSign' },
       { title: 'Tax Advantages', description: '1099 contractors can deduct travel, housing, CME, malpractice insurance, and home office expenses.', iconName: 'TrendingUp' },
       { title: 'Geographic Freedom', description: 'Try different cities, practice settings, and patient populations before committing long-term.', iconName: 'MapPin' },
     ],
@@ -306,7 +299,6 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Entry-Level',
     fullLabel: 'Entry-Level PMHNP',
     heroSubtitle: 'New graduate & early-career psychiatric NP positions with mentorship',
-    salaryRange: '$105K-145K',
     keywords: ['entry level pmhnp', 'new grad pmhnp', 'junior pmhnp', '0-2 years pmhnp'],
     faqCategory: 'new-grad',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -317,13 +309,13 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
     }),
     benefits: [
       { title: 'Structured Mentorship', description: 'Most entry-level positions include 6-12 months of supervised practice with experienced psychiatrists or PMHNPs.', iconName: 'Users' },
-      { title: 'Competitive Starting Pay', description: 'PMHNP shortage means entry-level pay starts at $105K-$145K, higher than most other NP specialties.', iconName: 'DollarSign' },
+      { title: 'Competitive Starting Pay', description: 'PMHNP shortage means entry-level pay starts higher than in most other NP specialties.', iconName: 'DollarSign' },
       { title: 'Career Launchpad', description: 'Build your clinical foundation with manageable caseloads (8-12 patients/day) before scaling up.', iconName: 'TrendingUp' },
     ],
     tips: [
       'Prioritize positions offering structured supervision',
       'Start with collaborative practice models when possible',
-      'Negotiate sign-on bonuses ($5K-$15K common for new grads)',
+      'Negotiate the sign-on bonus, which is common at the new-grad level',
       'Ask about ramp-up period and initial caseload expectations',
       'Join ISPN or AANP for networking and CE opportunities',
     ],
@@ -333,7 +325,6 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Mid-Career',
     fullLabel: 'Mid-Career PMHNP',
     heroSubtitle: 'Experienced PMHNP positions for 3-7 years of practice',
-    salaryRange: '$135K-175K',
     keywords: ['experienced pmhnp', 'mid career pmhnp', '3-5 years pmhnp', 'senior pmhnp positions'],
     faqCategory: 'remote',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -343,12 +334,12 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('mid-career'),
     }),
     benefits: [
-      { title: 'Higher Compensation', description: 'Mid-career PMHNPs earn $135K-$175K with premium benefits, CME budgets, and leadership bonuses.', iconName: 'DollarSign' },
+      { title: 'Higher Compensation', description: 'Mid-career PMHNPs command a step up in base pay alongside premium benefits, CME budgets, and leadership bonuses.', iconName: 'DollarSign' },
       { title: 'Autonomy & Flexibility', description: 'With proven experience, choose between independent practice, hybrid schedules, or specialized roles.', iconName: 'Activity' },
       { title: 'Specialization Options', description: 'Pivot into addiction medicine, child/adolescent, forensic psych, or private practice consulting.', iconName: 'Shield' },
     ],
     tips: [
-      'Leverage experience for higher base salary (benchmark $150K+)',
+      'Leverage experience for a higher base, benchmarked against the state salary guide',
       'Negotiate productivity bonuses or profit-sharing',
       'Consider adding niche certifications (CARN, BCBA, forensic)',
       'Explore leadership tracks (clinical director, program manager)',
@@ -360,7 +351,6 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Senior',
     fullLabel: 'Senior PMHNP',
     heroSubtitle: 'Leadership & advanced practice positions for 7+ years of experience',
-    salaryRange: '$160K-220K+',
     keywords: ['senior pmhnp', 'lead pmhnp', 'director pmhnp', 'advanced practice pmhnp'],
     faqCategory: 'remote',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -370,12 +360,12 @@ export const EXPERIENCE_LEVEL_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('senior'),
     }),
     benefits: [
-      { title: 'Top-Tier Compensation', description: 'Senior PMHNPs earn $160K-$220K+ with equity, executive benefits, and performance bonuses.', iconName: 'DollarSign' },
+      { title: 'Top-Tier Compensation', description: 'Senior PMHNPs sit at the top of the base-pay band, often with equity, executive benefits, and performance bonuses.', iconName: 'DollarSign' },
       { title: 'Leadership Impact', description: 'Shape clinical programs, mentor junior providers, and influence organizational mental health strategy.', iconName: 'Users' },
       { title: 'Private Practice Ready', description: 'Your reputation and network support a thriving independent or group practice transition.', iconName: 'TrendingUp' },
     ],
     tips: [
-      'Target clinical director or VP-level roles ($180K-$220K+)',
+      'Target clinical director or VP-level roles',
       'Negotiate equity or partnership opportunities',
       'Consider building your own private practice or telehealth group',
       'Pursue board certification in subspecialties for premium positioning',
@@ -391,7 +381,6 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Hospital',
     fullLabel: 'Hospital PMHNP',
     heroSubtitle: 'Hospital-based psychiatric NP positions with full benefits',
-    salaryRange: '$125K-180K',
     keywords: ['hospital pmhnp', 'inpatient hospital pmhnp', 'academic medical center pmhnp'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -418,7 +407,6 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Private Practice',
     fullLabel: 'Private Practice PMHNP',
     heroSubtitle: 'Independent & group practice psychiatric NP opportunities',
-    salaryRange: '$140K-250K+',
     keywords: ['private practice pmhnp', 'independent pmhnp', 'group practice pmhnp', 'own practice pmhnp'],
     faqCategory: 'outpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -428,7 +416,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('private-practice'),
     }),
     benefits: [
-      { title: 'Highest Earning Potential', description: 'Private practice PMHNPs can earn $200K-$250K+ with autonomy over fee schedules and patient volume.', iconName: 'DollarSign' },
+      { title: 'Highest Earning Potential', description: 'Private practice carries the highest earning ceiling in the specialty, with autonomy over fee schedules and patient volume.', iconName: 'DollarSign' },
       { title: 'Schedule Control', description: 'Set your own hours, choose your patient mix, and build a practice that fits your lifestyle.', iconName: 'Activity' },
       { title: 'Clinical Autonomy', description: 'Full control over treatment plans, medication management, and therapy integration without corporate protocols.', iconName: 'Shield' },
     ],
@@ -445,7 +433,6 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Community Health',
     fullLabel: 'Community Health PMHNP',
     heroSubtitle: 'FQHC, community mental health & public health positions',
-    salaryRange: '$110K-160K',
     keywords: ['community health pmhnp', 'FQHC pmhnp', 'community mental health pmhnp', 'public health pmhnp'],
     faqCategory: 'outpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -472,7 +459,6 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     label: 'VA',
     fullLabel: 'VA PMHNP',
     heroSubtitle: 'Veterans Affairs psychiatric NP positions with federal benefits',
-    salaryRange: '$120K-170K',
     keywords: ['VA pmhnp', 'veterans affairs pmhnp', 'military pmhnp', 'federal pmhnp'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -484,7 +470,7 @@ export const EMPLOYER_TYPE_CONFIGS: Record<string, CategoryConfig> = {
     benefits: [
       { title: 'Federal Benefits', description: 'Federal pension (FERS), TSP retirement matching, FEHB health insurance, and 26 days of PTO to start.', iconName: 'Shield' },
       { title: 'Full Practice Authority', description: 'VA grants PMHNPs full practice authority nationwide regardless of state laws, so you can prescribe independently.', iconName: 'Heart' },
-      { title: 'Student Loan Repayment', description: 'EDRP offers up to $200K in student loan repayment for qualifying VA positions.', iconName: 'DollarSign' },
+      { title: 'Student Loan Repayment', description: 'The VA Education Debt Reduction Program (EDRP) repays student loans for qualifying positions; the VA sets the cap and the service terms.', iconName: 'DollarSign' },
     ],
     tips: [
       'VA applications go through USAJobs.gov, so create your profile early',
@@ -503,7 +489,6 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Geriatric',
     fullLabel: 'Geriatric PMHNP',
     heroSubtitle: 'Older adult & geriatric psychiatric NP positions',
-    salaryRange: '$125K-180K',
     keywords: ['geriatric pmhnp', 'geropsych pmhnp', 'elderly psychiatric NP', 'older adult mental health'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -522,7 +507,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       'Understand polypharmacy risks and Beers Criteria medications',
       'Learn dementia assessment tools (MoCA, MMSE, GDS)',
       'Build relationships with geriatricians for collaborative care',
-      'SNF consultant roles can pay $150-$200/hour',
+      'SNF consultant work is among the best-paid hourly roles in the specialty',
     ],
   },
   veterans: {
@@ -530,7 +515,6 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Veterans',
     fullLabel: 'Veterans Mental Health PMHNP',
     heroSubtitle: 'Military & veteran-focused psychiatric NP positions',
-    salaryRange: '$120K-175K',
     keywords: ['veterans pmhnp', 'military mental health pmhnp', 'PTSD pmhnp', 'combat veteran psychiatric NP'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -542,7 +526,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     benefits: [
       { title: 'Critical Mission', description: '22 veterans die by suicide daily, and veteran-focused PMHNPs directly save lives through expert care.', iconName: 'Heart' },
       { title: 'Specialized Training', description: 'Access to VA-funded CPT, PE, and EMDR training: gold-standard trauma therapies at no cost.', iconName: 'Shield' },
-      { title: 'Federal Benefits', description: 'VA positions include federal pension, TSP matching, 26+ days PTO, and up to $200K loan repayment.', iconName: 'DollarSign' },
+      { title: 'Federal Benefits', description: 'VA positions include a federal pension, TSP matching, 26+ days PTO, and EDRP loan repayment.', iconName: 'DollarSign' },
     ],
     tips: [
       'PTSD and TBI expertise is the most in-demand skill set',
@@ -557,7 +541,6 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     label: 'LGBTQ+',
     fullLabel: 'LGBTQ+ Affirming PMHNP',
     heroSubtitle: 'LGBTQ+ affirming psychiatric NP positions',
-    salaryRange: '$120K-175K',
     keywords: ['lgbtq pmhnp', 'gender affirming pmhnp', 'transgender mental health', 'queer affirming psychiatric NP'],
     faqCategory: 'outpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -584,7 +567,6 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Crisis',
     fullLabel: 'Crisis PMHNP',
     heroSubtitle: 'Psychiatric emergency & crisis intervention positions',
-    salaryRange: '$130K-195K',
     keywords: ['crisis pmhnp', 'psychiatric emergency pmhnp', '988 suicide hotline pmhnp', 'crisis intervention NP'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -594,7 +576,7 @@ export const POPULATION_SPECIALTY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('crisis'),
     }),
     benefits: [
-      { title: 'Premium Compensation', description: 'Crisis roles pay 15-30% more than standard positions: $130K-$195K with shift differentials for nights/weekends.', iconName: 'DollarSign' },
+      { title: 'Premium Compensation', description: 'Crisis roles pay above standard positions, with shift differentials for nights and weekends on top.', iconName: 'DollarSign' },
       { title: 'High-Impact Work', description: 'Stabilize patients in their most vulnerable moments; every shift makes a life-or-death difference.', iconName: 'Heart' },
       { title: 'Funded by 988', description: 'The 988 Suicide & Crisis Lifeline expansion is creating thousands of new positions with dedicated federal funding.', iconName: 'TrendingUp' },
     ],
@@ -645,7 +627,6 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     label: '1099',
     fullLabel: '1099 / Independent Contractor PMHNP',
     heroSubtitle: 'Independent contractor & 1099 psychiatric NP positions',
-    salaryRange: '$75-150/hr',
     keywords: ['1099 pmhnp', 'independent contractor pmhnp', '1099 psychiatric nurse practitioner', 'contract psych NP'],
     faqCategory: 'outpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -655,13 +636,13 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('1099'),
     }),
     benefits: [
-      { title: 'Higher Gross Pay', description: '1099 PMHNPs earn $75-$150+/hr, 20-40% higher than W-2 rates with significant tax deduction opportunities.', iconName: 'DollarSign' },
+      { title: 'Higher Gross Pay', description: '1099 PMHNPs bill an hourly rate above the W-2 equivalent, with significant tax deduction opportunities.', iconName: 'DollarSign' },
       { title: 'Schedule Control', description: 'Set your own hours, work with multiple clients, and control your patient volume and caseload.', iconName: 'Clock' },
-      { title: 'Tax Advantages', description: 'Deduct business expenses, contribute $66K/year to SEP-IRA, and write off home office and mileage.', iconName: 'DollarSign' },
+      { title: 'Tax Advantages', description: 'Deduct business expenses, contribute to a SEP-IRA up to the annual IRS limit, and write off home office and mileage.', iconName: 'DollarSign' },
     ],
     tips: [
       'Form an LLC or PLLC before signing your first contract',
-      'Get individual malpractice insurance ($1.5-3K/year)',
+      'Carry your own individual malpractice insurance',
       'Set up quarterly estimated tax payments with the IRS',
       'Open a SEP-IRA or Solo 401(k) for retirement savings',
       'Keep detailed records of all business expenses for deductions',
@@ -672,7 +653,6 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Behavioral Health',
     fullLabel: 'Behavioral Health PMHNP',
     heroSubtitle: 'Behavioral health facility & integrated care positions',
-    salaryRange: '$120K-180K',
     keywords: ['behavioral health pmhnp', 'behavioral health NP', 'integrated behavioral health', 'mental health facility NP'],
     faqCategory: 'outpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -699,7 +679,6 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Correctional',
     fullLabel: 'Correctional PMHNP',
     heroSubtitle: 'Prison, jail & forensic psychiatric NP positions',
-    salaryRange: '$130K-190K',
     keywords: ['correctional pmhnp', 'prison pmhnp', 'forensic psychiatric NP', 'jail mental health NP'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -709,7 +688,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('correctional'),
     }),
     benefits: [
-      { title: 'Premium Pay', description: 'Correctional PMHNPs earn $130K-$190K+ due to the challenging environment and high demand for mental health providers.', iconName: 'DollarSign' },
+      { title: 'Premium Pay', description: 'Correctional PMHNPs earn a premium over comparable outpatient roles, given the environment and the demand for mental health providers.', iconName: 'DollarSign' },
       { title: 'Loan Repayment', description: 'Many correctional facilities qualify for NHSC and state loan repayment programs; award amounts and service terms are set by HRSA and the state each cycle.', iconName: 'DollarSign' },
       { title: 'Unique Clinical Skills', description: 'Develop expertise in forensic psychiatry, crisis intervention, and managing complex comorbidities in underserved populations.', iconName: 'Shield' },
     ],
@@ -726,7 +705,6 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     label: 'Locum Tenens',
     fullLabel: 'Locum Tenens PMHNP',
     heroSubtitle: 'Temporary assignment & locum tenens psychiatric NP positions',
-    salaryRange: '$80-160/hr',
     keywords: ['locum tenens pmhnp', 'locum psych NP', 'temporary assignment pmhnp', 'locum psychiatric nurse practitioner'],
     faqCategory: 'travel',
     buildWhere: (stateName: string, cityName?: string) => ({
@@ -736,7 +714,7 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       ...withTagFallback('locum-tenens'),
     }),
     benefits: [
-      { title: 'Highest Hourly Rates', description: 'Locum tenens PMHNPs earn $80-$160/hr, the highest hourly rates in psychiatric nursing with full travel expenses covered.', iconName: 'DollarSign' },
+      { title: 'Highest Hourly Rates', description: 'Locum tenens PMHNPs command the highest hourly rates in psychiatric nursing, with full travel expenses covered.', iconName: 'DollarSign' },
       { title: 'No Long-Term Commitment', description: 'Assignments from 2 weeks to 6+ months. Take breaks between assignments and maintain complete career flexibility.', iconName: 'Calendar' },
       { title: 'Nationwide Opportunities', description: 'Work across multiple states, experience different healthcare systems, and build a diverse clinical portfolio.', iconName: 'MapPin' },
     ],
@@ -814,15 +792,21 @@ const getCityStats = cache(async function getCityStats(config: CategoryConfig, c
     const where = config.buildWhere(city.state, city.name) as any;
     const liveCount = await prisma.job.count({ where });
     if (liveCount > 0) {
-      // Compute rough avg salary from live data
-      const salaryAgg = await prisma.job.aggregate({
-        where,
-        _avg: { normalizedMaxSalary: true, normalizedMinSalary: true },
+      // Same statistic the cron stores, through the same engine. This branch
+      // used to compute a bare SQL mean with no estimate filter, no
+      // quarantine and no sample-size gate, so a city served from the live
+      // fallback published a different kind of number from the identical
+      // city served from cache, under the same label.
+      const salaryRows = await prisma.job.findMany({
+        where: { ...where, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+        select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true },
       });
-      const rawAvg = Math.round(((salaryAgg._avg.normalizedMinSalary ?? 0) + (salaryAgg._avg.normalizedMaxSalary ?? 0)) / 2 / 1000);
-      const colAdj = Math.round(rawAvg * (100 / (city.costOfLivingIndex || 100)));
+      const { rawAvgSalary, colAdjustedSalary } = salaryFor(
+        salaryRows.map(r => ({ ...r, city: null, state: null })),
+        city.costOfLivingIndex || 100,
+      );
       // Live count computed just now, so "now" is the honest refresh time.
-      return { totalJobs: liveCount, rawAvgSalary: rawAvg, colAdjustedSalary: colAdj, updatedAt: new Date() as Date | null };
+      return { totalJobs: liveCount, rawAvgSalary, colAdjustedSalary, updatedAt: new Date() as Date | null };
     }
 
     return EMPTY_STATS;
@@ -975,7 +959,16 @@ export async function buildCategoryCityMetadata(
 
   return {
     title: `${config.label} PMHNP Jobs in ${city.name}, ${city.stateCode} (${stats.totalJobs} Open)`,
-    description: `Find ${stats.totalJobs} ${config.label.toLowerCase()} PMHNP jobs in ${city.name}, ${city.stateCode}. ${config.heroSubtitle}. Population: ${city.population.toLocaleString()}. COL index: ${city.costOfLivingIndex}. ${city.mentalHealthShortage ? 'Mental health professional shortage area.' : ''}`,
+    // The tail used to spend the snippet on census figures ("Population:
+    // 478,961. COL index: 105.") that no searcher types and that Google cut
+    // mid-sentence anyway. Those facts stay in the body and the FAQ; the
+    // description leads with the query and only adds what still fits.
+    description: buildMetaDescription(
+      `${stats.totalJobs} ${config.label.toLowerCase()} PMHNP jobs in ${city.name}, ${city.stateCode}.`,
+      `${config.heroSubtitle}.`,
+      ...(city.mentalHealthShortage ? ['Federally designated mental health shortage area.'] : []),
+      'Updated daily.',
+    ),
     keywords: [
       `${config.label.toLowerCase()} pmhnp jobs ${city.name}`,
       `${city.name} ${config.label.toLowerCase()} psychiatric nurse practitioner`,
@@ -1075,6 +1068,12 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
   // (inCitySitemaps: false) are excluded outright — their pages render
   // noindex (P2.3), so linking them only wastes crawl. Lookups are guarded:
   // a pseoStats hiccup degrades to "no cross-links", never a page 500.
+  //
+  // The gate is count AND freshness, the same pair getCityStats applies to
+  // this page's own row. Count alone trusted a row the aggregator stopped
+  // updating, so through an outage every cell kept advertising siblings whose
+  // live count had already fallen under the render gate and now 404.
+  const crossLinkFreshnessCutoff = pseoFreshnessCutoff();
   const allOtherCategoryConfigs = Object.values(ALL_CATEGORY_CONFIGS).filter(
     (c) => c.slug !== config.slug && CITY_SITEMAP_CATEGORY_SET.has(c.slug)
   );
@@ -1085,6 +1084,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
         type: 'category-city',
         locationSlug: citySlug,
         totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
+        updatedAt: { gte: crossLinkFreshnessCutoff },
         categorySlug: { in: allOtherCategoryConfigs.map(c => c.slug) },
       },
       select: { categorySlug: true },
@@ -1123,6 +1123,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
           categorySlug: config.slug,
           locationSlug: { in: candidateNearby.map(c => c.slug) },
           totalJobs: { gte: MIN_JOBS_FOR_CATEGORY_CITY },
+          updatedAt: { gte: crossLinkFreshnessCutoff },
         },
         select: { locationSlug: true },
       });
@@ -1138,7 +1139,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
   // taxonomies are city-only and never have a state page; others may have a
   // state page but with 0 jobs right now).
   const cityStateSlug = stateToSlug(city!.state);
-  let stateLinkRow: { totalJobs: number } | null = null;
+  let stateLinkRow: { totalJobs: number; updatedAt: Date } | null = null;
   try {
     stateLinkRow = await prisma.pseoStats.findUnique({
       where: {
@@ -1148,14 +1149,19 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
           locationSlug: cityStateSlug,
         },
       },
-      select: { totalJobs: true },
+      select: { totalJobs: true, updatedAt: true },
     });
   } catch (err) {
     console.error('[category-city] state-link lookup failed; omitting link:', err);
   }
   // ≥ render-gate (2026-07 audit): setting-state pages noindex below 3 and
   // the sitemap now gates them at 3 (P2.4) — don't link what we won't index.
-  const showStateLink = (stateLinkRow?.totalJobs ?? 0) >= MIN_JOBS_FOR_CATEGORY_CITY;
+  // Freshness is part of the gate: a row the aggregator stopped updating is
+  // not evidence the target still clears it.
+  const showStateLink =
+    !!stateLinkRow &&
+    stateLinkRow.totalJobs >= MIN_JOBS_FOR_CATEGORY_CITY &&
+    stateLinkRow.updatedAt.getTime() >= crossLinkFreshnessCutoff.getTime();
 
   // P3.4: per-(taxonomy, city) narrative. DB override wins; otherwise the
   // deterministic builder produces unique-per-(city,taxonomy,jobcount) text.
@@ -1196,8 +1202,12 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
     {
       q: `What do ${config.label.toLowerCase()} PMHNP jobs in ${city!.name} pay?`,
       a: stats.rawAvgSalary > 0
-        ? `The average ${config.label.toLowerCase()} PMHNP salary in ${city!.name} is approximately $${stats.rawAvgSalary}K per year across the listings on this page. Adjusted for the local cost of living (index: ${city!.costOfLivingIndex}), that equates to about $${stats.colAdjustedSalary}K in purchasing power. The typical advertised range for ${config.label.toLowerCase()} positions is ${config.salaryRange}.`
-        : `${config.label} PMHNP positions in ${city!.name} typically pay ${config.salaryRange}. Actual compensation depends on experience, employer type, and whether the role includes benefits. ${city!.name}'s cost of living index is ${city!.costOfLivingIndex} (national average = 100).`,
+        ? `The median advertised ${config.label.toLowerCase()} PMHNP salary in ${city!.name} is about $${stats.rawAvgSalary}K per year across the listings on this page that disclose a range. Adjusted for the local cost of living (index: ${city!.costOfLivingIndex}), that equates to about $${stats.colAdjustedSalary}K in purchasing power.`
+        // No hand-written range here. The figure that used to sit in this
+        // branch was the same for every city carrying the category and
+        // disagreed with the median the state salary guide computes from the
+        // same postings.
+        : `Too few ${config.label.toLowerCase()} employers in ${city!.name} disclose a range for a median to mean anything, so this page does not publish one; each listing shows its advertised pay when the employer includes it. Compensation depends on experience, employer type, and whether the role includes benefits, and ${city!.name}'s cost of living index is ${city!.costOfLivingIndex} (national average = 100).`,
     },
     {
       q: `Does ${city!.state} grant PMHNPs full practice authority, and does it apply to ${config.label.toLowerCase()} roles?`,
@@ -1306,7 +1316,11 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
         headlineSub={`jobs in ${city!.name}, ${city!.stateCode}.`}
         stats={[
           { value: `${stats.totalJobs}`, label: 'positions' },
-          { value: stats.rawAvgSalary > 0 ? `$${stats.rawAvgSalary}k` : config.salaryRange.split('\u2013')[0] || '$130K+', label: 'avg salary' },
+          // Only publish a pay stat the live listings back. The old fallback
+          // split a hand-written range on an en dash the value never
+          // contained, so the whole range rendered under an "avg salary"
+          // label whenever the aggregate came back empty.
+          ...(stats.rawAvgSalary > 0 ? [{ value: `$${stats.rawAvgSalary}k`, label: 'median advertised' }] : []),
           { value: demand.label, label: 'demand' },
         ]}
         description={`${config.label} psychiatric NP positions in ${city!.name}. ${config.heroSubtitle}.`}
@@ -1518,7 +1532,9 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                       <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                       <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary & Compensation</h3>
                       <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                        {config.label} PMHNPs in {city!.name} earn {stats.rawAvgSalary > 0 ? `$${stats.rawAvgSalary}k` : config.salaryRange} annually.
+                        {stats.rawAvgSalary > 0
+                          ? `The median ${config.label.toLowerCase()} PMHNP listing in ${city!.name} advertises about $${stats.rawAvgSalary}k a year.`
+                          : `Too few ${config.label.toLowerCase()} employers in ${city!.name} disclose a range for a median to mean anything, so each listing shows its own.`}
                       </p>
                     </div>
                     <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
@@ -1685,11 +1701,17 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                 Other PMHNP Job Types in {city!.name}
               </h2>
               <div className="pseo-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                {/* The card label alone ("Crisis", "Contract") was the whole
+                    anchor, so the query each target page is built for never
+                    appeared in its strongest internal link. The card stays
+                    compact; the noun phrase rides along for crawlers and
+                    screen readers, the same move the footer links made. */}
                 {gatedExploreCards.length > 0 ? (
                   gatedExploreCards.map(c => (
                     <Link key={c.href} href={`${c.href}/city/${citySlug}`} className="pseo-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
                       <Image src={c.icon} alt="" width={48} height={48} sizes="48px" style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                       <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
+                      <span className="sr-only"> PMHNP jobs in {city!.name}, {city!.stateCode}</span>
                       <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
                     </Link>
                   ))
@@ -1698,6 +1720,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                     <Link key={cat.slug} href={`/jobs/${cat.slug}/city/${citySlug}`}
                       className="pseo-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
                       <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{cat.label}</span>
+                      <span className="sr-only"> PMHNP jobs</span>
                       <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>in {city!.name}</span>
                     </Link>
                   ))

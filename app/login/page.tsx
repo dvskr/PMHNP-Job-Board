@@ -30,15 +30,14 @@ export default async function LoginPage({
     redirect(safeRedirect)
   }
 
+  // No side note on the panel. The card that used to sit there was written
+  // copy attributed to a named clinician with a credential and a city, who
+  // does not exist. Signup's note is a statement the platform makes about
+  // itself, which is the only kind this slot now takes; there is nothing
+  // equivalent to say to a returning user, so the panel is the illustration
+  // alone.
   return (
-    <AuthLayout
-      illustration="/illustrations/auth-login.png"
-      testimonial={{
-        quote: '"I found my dream remote PMHNP position in less than a week. The job matching was incredibly accurate."',
-        name: 'Sarah M., PMHNP-BC',
-        title: 'Austin, TX',
-      }}
-    >
+    <AuthLayout illustration="/illustrations/auth-login.png">
       <Suspense
         fallback={
           <div className="space-y-4">

@@ -9,6 +9,20 @@ import { formatBlogContent } from '@/lib/blog-formatter';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { rateLimit } from '@/lib/rate-limit';
 import { timingSafeEqual } from 'crypto';
+import { readJsonBody } from '@/app/api/_lib/json-body';
+
+/** YouTube video ids are exactly 11 chars of [A-Za-z0-9_-]. */
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+
+/** http(s) only: the value ends up in an <img src> and in feed markup. */
+function isHttpUrl(value: string): boolean {
+    try {
+        const u = new URL(value);
+        return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
 
 const VALID_CATEGORIES: BlogCategory[] = [
     'job_seeker_attraction',
@@ -28,6 +42,61 @@ const VALID_CATEGORIES: BlogCategory[] = [
 
 const VALID_STATUSES = ['draft', 'published'] as const;
 
+/**
+ * Shape the n8n pipeline posts. Declared, not enforced: every field below is
+ * still range-checked at runtime (category against VALID_CATEGORIES, status
+ * against VALID_STATUSES, title/content for presence). The interface exists so
+ * the handler stops being implicitly `any` now that the body is parsed up
+ * front, not as a substitute for those checks.
+ */
+interface BlogCreateBody {
+    title?: string;
+    content?: string;
+    meta_description?: string;
+    target_keyword?: string;
+    category?: BlogCategory;
+    status?: (typeof VALID_STATUSES)[number];
+    publish_date?: string;
+    format?: boolean;
+    image_url?: string;
+    youtube_video_id?: string;
+}
+
+/**
+ * Constant-time bearer-key check, shared by POST and PATCH.
+ *
+ * It lived inline in POST only, so PATCH compared the same shared secret with
+ * `providedKey !== apiKey`, which short-circuits on the first differing byte.
+ * Two handlers guarding one secret should not disagree about how they compare
+ * it, and the copy that got it wrong was also the unthrottled one.
+ *
+ * Returns a NextResponse to send immediately, or null when the key is good.
+ */
+function verifyBlogApiKey(request: NextRequest): NextResponse | null {
+    const apiKey = process.env.BLOG_API_KEY;
+    if (!apiKey) {
+        return NextResponse.json(
+            { error: 'BLOG_API_KEY not configured on server' },
+            { status: 500 }
+        );
+    }
+
+    const providedKey = request.headers.get('Authorization')?.replace('Bearer ', '') || '';
+    // Length is compared first because timingSafeEqual throws on unequal
+    // buffer lengths. Key length is not the secret.
+    const keysMatch = providedKey.length === apiKey.length &&
+        timingSafeEqual(Buffer.from(providedKey), Buffer.from(apiKey));
+
+    if (!keysMatch) {
+        return NextResponse.json(
+            { error: 'Unauthorized: invalid or missing API key' },
+            { status: 401 }
+        );
+    }
+
+    return null;
+}
+
 // ─── POST /api/blog ──────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
@@ -39,33 +108,16 @@ export async function POST(request: NextRequest) {
     if (rateLimitResult) return rateLimitResult;
 
     // Verify API key (timing-safe comparison)
-    const authHeader = request.headers.get('Authorization');
-    const apiKey = process.env.BLOG_API_KEY;
+    const authError = verifyBlogApiKey(request);
+    if (authError) return authError;
 
-    if (!apiKey) {
-        return NextResponse.json(
-            { error: 'BLOG_API_KEY not configured on server' },
-            { status: 500 }
-        );
-    }
-
-    const providedKey = authHeader?.replace('Bearer ', '') || '';
-    const keysMatch = providedKey.length === apiKey.length &&
-        timingSafeEqual(Buffer.from(providedKey), Buffer.from(apiKey));
-
-    if (!keysMatch) {
-        return NextResponse.json(
-            { error: 'Unauthorized: invalid or missing API key' },
-            { status: 401 }
-        );
-    }
+    const parsed = await readJsonBody(request);
+    if (!parsed.ok) return parsed.response;
 
     try {
-        const body = await request.json();
-
         // Validate required fields
         const { title, content, meta_description, target_keyword, category, status, publish_date, format, image_url, youtube_video_id } =
-            body;
+            parsed.body as BlogCreateBody;
 
         if (!title || !content) {
             return NextResponse.json(
@@ -163,10 +215,12 @@ export async function POST(request: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
+        // Logged in full, returned generic: the underlying message names
+        // tables, columns and constraints to whoever holds the key.
         const message = error instanceof Error ? error.message : String(error);
         console.error('[Blog API] Error creating post:', message);
         return NextResponse.json(
-            { error: `Failed to create blog post: ${message}` },
+            { error: 'Failed to create blog post' },
             { status: 500 }
         );
     }
@@ -175,16 +229,29 @@ export async function POST(request: NextRequest) {
 // ─── PATCH /api/blog ─────────────────────────────────────────────────────────
 
 export async function PATCH(request: NextRequest) {
-    const authHeader = request.headers.get('Authorization');
-    const apiKey = process.env.BLOG_API_KEY;
-    if (!apiKey) return NextResponse.json({ error: 'BLOG_API_KEY not configured' }, { status: 500 });
-    const providedKey = authHeader?.replace('Bearer ', '');
-    if (!providedKey || providedKey !== apiKey) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Same throttle as POST: this handler guards the same shared secret, so
+    // leaving it unthrottled made it the cheaper of the two to attack.
+    const rateLimitResult = await rateLimit(request, 'blog-api', {
+        limit: 5,
+        windowSeconds: 60,
+    });
+    if (rateLimitResult) return rateLimitResult;
+
+    const authError = verifyBlogApiKey(request);
+    if (authError) return authError;
+
+    const parsed = await readJsonBody(request);
+    if (!parsed.ok) return parsed.response;
 
     try {
-        const body = await request.json();
-        const { slug, youtube_video_id, image_url } = body;
-        if (!slug) return NextResponse.json({ error: 'Missing slug' }, { status: 400 });
+        const { slug, youtube_video_id, image_url } = parsed.body as {
+            slug?: unknown;
+            youtube_video_id?: unknown;
+            image_url?: unknown;
+        };
+        if (!slug || typeof slug !== 'string') {
+            return NextResponse.json({ error: 'Missing slug' }, { status: 400 });
+        }
 
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(
@@ -192,9 +259,38 @@ export async function PATCH(request: NextRequest) {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
+        // Both columns are rendered later without escaping: youtube_video_id
+        // is interpolated into the <video:player_loc> URL in
+        // app/video-sitemap.xml/route.ts, and image_url into post markup.
+        // Validate the shape here, at the boundary, rather than trusting the
+        // automation that holds the key.
         const updates: Record<string, string | null> = {};
-        if (youtube_video_id !== undefined) updates.youtube_video_id = youtube_video_id;
-        if (image_url !== undefined) updates.image_url = image_url;
+
+        if (youtube_video_id !== undefined) {
+            if (youtube_video_id === null || youtube_video_id === '') {
+                updates.youtube_video_id = null;
+            } else if (typeof youtube_video_id === 'string' && YOUTUBE_ID.test(youtube_video_id)) {
+                updates.youtube_video_id = youtube_video_id;
+            } else {
+                return NextResponse.json(
+                    { error: 'youtube_video_id must be an 11-character YouTube id, or null to clear it' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        if (image_url !== undefined) {
+            if (image_url === null || image_url === '') {
+                updates.image_url = null;
+            } else if (typeof image_url === 'string' && isHttpUrl(image_url)) {
+                updates.image_url = image_url;
+            } else {
+                return NextResponse.json(
+                    { error: 'image_url must be an http(s) URL, or null to clear it' },
+                    { status: 400 }
+                );
+            }
+        }
 
         if (Object.keys(updates).length === 0) {
             return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
@@ -210,7 +306,10 @@ export async function PATCH(request: NextRequest) {
         if (error) throw error;
         return NextResponse.json({ success: true, post: data });
     } catch (error) {
+        // Log the detail, return a generic body: the raw Supabase/Prisma
+        // message names tables, columns and constraints to whoever called.
         const message = error instanceof Error ? error.message : String(error);
-        return NextResponse.json({ error: message }, { status: 500 });
+        console.error('[Blog API] Error updating post:', message);
+        return NextResponse.json({ error: 'Failed to update blog post' }, { status: 500 });
     }
 }

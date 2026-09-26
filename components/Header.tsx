@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X, Bell, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search, HelpCircle, Info, Mail, PenSquare, GraduationCap, UserCheck, Users, Bookmark, FileText, Activity, Workflow, Plus } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
+import { requestAlertModal } from '@/components/HeaderAlertRequest';
 // SEO Fix H5: use LazyMotion + the lightweight `m` namespace instead of the
 // full `motion` import. Header renders on every page, so importing the full
 // framer-motion namespace bloats every page's JS bundle. LazyMotion ships
@@ -31,26 +33,37 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Body + html scroll lock + ESC + route-change reset, all in one effect so
-  // the cleanup ALWAYS restores whatever overflow values existed before this
-  // overlay locked the page. globals.css sets `html { overflow-y: scroll }`,
-  // so locking only `body.overflow` lets the html element keep scrolling
-  // underneath the menu -- which is the bug the user spotted ("contents are
-  // visible and scrollable when the menu is open"). We lock html.overflow
-  // too. The previous version blindly wrote `''` on cleanup -- if another
-  // overlay had also locked the page, that overlay's lock got stomped when
-  // this menu closed during its 0.15s exit animation; we now restore the
-  // exact prior values instead.
+  const closeMenu = useCallback(() => setIsMenuOpen(false), []);
+
+  // The mobile menu is a role="dialog" aria-modal="true" overlay, so it owes
+  // keyboard users the three behaviours that claim implies: focus moves into
+  // the dialog on open, Tab cycles inside it, and focus returns to the
+  // trigger on close. It used to promise all three and deliver none -- Tab
+  // walked straight out into the hero search and the employer cards behind
+  // the overlay, and Escape left focus on a link that had just unmounted.
+  // useFocusTrap is the same hook MobileFilterDrawer, ReportJobButton and
+  // ComposeMessageModal use, so every dialog in the app behaves alike. It
+  // also owns the Escape handler now; `closeMenu` is memoised because the
+  // hook re-runs its effect (re-focusing the first element) whenever the
+  // callback identity changes.
+  const menuRef = useFocusTrap<HTMLDivElement>({ isOpen: isMenuOpen, onEscape: closeMenu });
+
+  // Body + html scroll lock, in one effect so the cleanup ALWAYS restores
+  // whatever overflow values existed before this overlay locked the page.
+  // globals.css sets `html { overflow-y: scroll }`, so locking only
+  // `body.overflow` lets the html element keep scrolling underneath the menu
+  // -- which is the bug the user spotted ("contents are visible and
+  // scrollable when the menu is open"). We lock html.overflow too. The
+  // previous version blindly wrote `''` on cleanup -- if another overlay had
+  // also locked the page, that overlay's lock got stomped when this menu
+  // closed during its 0.15s exit animation; we now restore the exact prior
+  // values instead.
   useEffect(() => {
     if (!isMenuOpen) return;
     const prevBody = document.body.style.overflow;
     const prevHtml = document.documentElement.style.overflow;
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsMenuOpen(false);
-    };
-    document.addEventListener('keydown', onKey);
     return () => {
       if (document.body.style.overflow === 'hidden') {
         document.body.style.overflow = prevBody;
@@ -58,7 +71,6 @@ export default function Header() {
       if (document.documentElement.style.overflow === 'hidden') {
         document.documentElement.style.overflow = prevHtml;
       }
-      document.removeEventListener('keydown', onKey);
     };
   }, [isMenuOpen]);
 
@@ -113,7 +125,9 @@ export default function Header() {
   // Mobile-only extra links for public users (pages not in top nav)
   const mobileExtraLinks = [
     { href: '/for-job-seekers', label: 'For Job Seekers', icon: UserCheck },
-    { href: '/new-grad', label: 'New Grad Guide', icon: GraduationCap },
+    // /jobs/new-grad, not /new-grad: next.config.ts 301s the bare slug here,
+    // and a sitewide nav link should never spend a redirect hop on every page.
+    { href: '/jobs/new-grad', label: 'New Grad Guide', icon: GraduationCap },
     { href: '/blog', label: 'Blog', icon: PenSquare },
     { href: '/faq', label: 'FAQ', icon: HelpCircle },
     { href: '/about', label: 'About', icon: Info },
@@ -214,15 +228,21 @@ export default function Header() {
 
             <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
               {/* SEO Fix L8: next/image automatically picks the right format
-                  (avif/webp), generates a srcset, and sets fetchpriority on
-                  the LCP-relevant header logo. priority=true since this is
-                  above the fold on every page. */}
+                  (avif/webp) and generates a srcset.
+                  `priority` was dropped: the header renders from the root
+                  layout, so it emitted a fetchpriority=high preload for a
+                  56px logo on EVERY route, competing with the real LCP image
+                  (the hero / category / blog cover, which are priority too).
+                  Next.js guidance is one priority image per page, the LCP
+                  element. `loading="eager"` keeps the logo out of the lazy
+                  queue -- it is above the fold -- without claiming the
+                  high-priority slot the LCP image needs. */}
               <Image
                 src="/logo.png"
                 alt="PMHNP Hiring"
                 width={56}
                 height={56}
-                priority
+                loading="eager"
                 // Without `sizes`, next/image defaults to 100vw and the browser
                 // downloads a 1080px+ srcset candidate for a 56px logo on every
                 // page. `56px` lets it pick the smallest matching candidate.
@@ -308,11 +328,15 @@ export default function Header() {
             {/* Job-alert pill, browse surface only. The modal (and the filter
                 capture that makes "Create Alert for This Search" possible)
                 lives in JobsPageClient, so this button just asks that page to
-                open it via a window event rather than duplicating the form. */}
+                open it rather than duplicating the form. requestAlertModal
+                records the request durably as well as dispatching the event:
+                a bare event fired before the /jobs subtree hydrates has no
+                listener, which read to the user as a dead click. See
+                components/HeaderAlertRequest.ts. */}
             {pathname === '/jobs' && (
               <button
                 type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent('pmhnp:open-alert-modal'))}
+                onClick={requestAlertModal}
                 title="Get new jobs by email"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '7px',
@@ -344,6 +368,7 @@ export default function Header() {
       <AnimatePresence>
         {isMenuOpen && (
           <m.div
+            ref={menuRef}
             id="mobile-nav-menu"
             role="dialog"
             aria-modal="true"

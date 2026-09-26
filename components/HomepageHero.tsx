@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Search, MapPin, Globe, Monitor, Clock, Clock3, GraduationCap } from 'lucide-react';
-import { LazyMotion, domAnimation, m } from 'framer-motion';
 
 interface HomepageHeroProps {
     jobCountDisplay: string;
@@ -17,25 +16,19 @@ interface HomepageHeroProps {
     salaryTransparencyPct?: number;
 }
 
+// Every chip points at its canonical landing page, never at /jobs?q=.
+// robots.ts disallows /jobs?*q= and /jobs/page.tsx noindexes any filtered
+// view, so the four query chips spent the site's highest-authority links on
+// URLs Googlebot must not fetch while the real hubs got no homepage vote.
+// The landing pages also count with their own where-clauses, so the results
+// match the page a visitor lands on.
 const quickFilters = [
-    { label: 'Remote', query: 'Remote', icon: Globe },
-    { label: 'Telehealth', query: 'Telehealth', icon: Monitor },
-    { label: 'Full-Time', query: 'Full-Time', icon: Clock },
-    { label: 'Part-Time', query: 'Part-Time', icon: Clock3 },
-    // Direct href: the canonical /jobs/new-grad landing counts with
-    // newGradWhereClause; a free-text "New Grad Friendly" search matches a
-    // different (smaller) set, so its count disagreed with the badge.
+    { label: 'Remote', href: '/jobs/remote', icon: Globe },
+    { label: 'Telehealth', href: '/jobs/telehealth', icon: Monitor },
+    { label: 'Full-Time', href: '/jobs/full-time', icon: Clock },
+    { label: 'Part-Time', href: '/jobs/part-time', icon: Clock3 },
     { label: 'New Grad', href: '/jobs/new-grad', icon: GraduationCap },
 ] as const;
-
-const container = {
-    hidden: {},
-    show: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
-};
-const fadeUp = {
-    hidden: { opacity: 0, y: 12 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] } },
-};
 
 export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTransparencyPct }: HomepageHeroProps) {
     const router = useRouter();
@@ -55,12 +48,11 @@ export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTr
         router.push(queryString ? `/jobs?${queryString}` : '/jobs');
     };
 
+    // minHeight 85vh (not a fixed 100vh) + statically-positioned content:
+    // the section can GROW when the content is taller than the viewport
+    // (short/mobile screens) instead of clipping behind overflow:hidden,
+    // and jobs below start closer to the fold on desktop.
     return (
-        <LazyMotion features={domAnimation}>
-        {/* minHeight 85vh (not a fixed 100vh) + statically-positioned content:
-            the section can GROW when the content is taller than the viewport
-            (short/mobile screens) instead of clipping behind overflow:hidden,
-            and jobs below start closer to the fold on desktop. */}
         <section
             style={{
                 position: 'relative',
@@ -104,10 +96,14 @@ export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTr
 
             {/* ── Centered content — in normal flow so the section grows with
                    it; only the background image/gradient stay absolute ── */}
-            <m.div
-                variants={container}
-                initial="hidden"
-                animate="show"
+            {/* Audit: the whole content column used to be a framer-motion
+                subtree with initial="hidden" (opacity 0). framer-motion
+                serialises the initial variant into the SSR markup, so the h1,
+                the subtitle and the search form shipped invisible and only
+                appeared once the client bundle downloaded and hydrated: the
+                text LCP candidate and the primary conversion control were both
+                gated behind hydration. Plain elements paint with the HTML. */}
+            <div
                 style={{
                     position: 'relative',
                     display: 'flex',
@@ -119,8 +115,7 @@ export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTr
                 }}
             >
                 {/* ── Eyebrow ── */}
-                <m.p
-                    variants={fadeUp}
+                <p
                     style={{
                         fontSize: '12px',
                         fontWeight: 600,
@@ -131,11 +126,10 @@ export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTr
                     }}
                 >
                     The PMHNP-Only Job Board
-                </m.p>
+                </p>
 
                 {/* ── Headline ── */}
-                <m.h1
-                    variants={fadeUp}
+                <h1
                     className="font-heading"
                     style={{
                         fontSize: 'clamp(2.4rem, 5vw, 3.6rem)',
@@ -147,11 +141,10 @@ export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTr
                 >
                     Find Your Next{' '}
                     <span style={{ color: '#0D9488' }}>PMHNP Role</span>
-                </m.h1>
+                </h1>
 
                 {/* ── Subtitle ── */}
-                <m.p
-                    variants={fadeUp}
+                <p
                     style={{
                         fontSize: '17px',
                         lineHeight: 1.6,
@@ -163,11 +156,10 @@ export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTr
                     {hasRealStats
                         ? `${jobCountDisplay} open roles · ${totalCompanies} employers · ${salaryTransparencyPct}% show salary.`
                         : `${jobCountDisplay} open positions across all 50 states.`}
-                </m.p>
+                </p>
 
                 {/* ── Search bar ── */}
-                <m.form
-                    variants={fadeUp}
+                <form
                     onSubmit={handleSubmit}
                     style={{ width: '100%', maxWidth: '580px', marginBottom: '20px' }}
                 >
@@ -250,11 +242,10 @@ export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTr
                             }
                         }
                     `}</style>
-                </m.form>
+                </form>
 
                 {/* ── Quick filters ── */}
-                <m.div
-                    variants={fadeUp}
+                <div
                     style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '28px' }}
                 >
                     {quickFilters.map((filter) => {
@@ -262,7 +253,7 @@ export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTr
                         return (
                             <Link
                                 key={filter.label}
-                                href={'href' in filter ? filter.href : `/jobs?q=${encodeURIComponent(filter.query)}`}
+                                href={filter.href}
                                 className="hero-filter-badge"
                                 style={{
                                     // SEO Fix M13: padding 8px 18px → 12px 20px
@@ -300,11 +291,10 @@ export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTr
                             </Link>
                         );
                     })}
-                </m.div>
+                </div>
 
                 {/* ── Clay CTA buttons ── */}
-                <m.div
-                    variants={fadeUp}
+                <div
                     className="hero-cta-row"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}
                 >
@@ -362,11 +352,10 @@ export default function HomepageHero({ jobCountDisplay, totalCompanies, salaryTr
                     >
                         Post a Job →
                     </Link>
-                </m.div>
+                </div>
 
 
-            </m.div>
+            </div>
         </section>
-        </LazyMotion>
     );
 }

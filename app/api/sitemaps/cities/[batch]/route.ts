@@ -154,9 +154,12 @@ export async function GET(
 
   // DB-driven: only emit URLs where jobs actually exist
   const allUrls = await getActiveCategoryCityUrls();
-  const totalBatches = Math.ceil(allUrls.length / BATCH_SIZE) || 1;
+  // `|| 1` used to floor this at one batch, so with no qualifying URLs
+  // /api/sitemaps/cities/0 answered 200 with an empty <urlset>. Zero URLs is
+  // zero batches, and the index route no longer lists any.
+  const totalBatches = Math.ceil(allUrls.length / BATCH_SIZE);
 
-  if (batchIndex >= totalBatches) {
+  if (totalBatches === 0 || batchIndex >= totalBatches) {
     return NextResponse.json({ error: 'Invalid batch index' }, { status: 404 });
   }
 

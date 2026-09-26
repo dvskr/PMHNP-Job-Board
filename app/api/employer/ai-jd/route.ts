@@ -47,6 +47,7 @@ import { AiGatewayError } from '@/lib/ai/types';
 import { checkJdGuardrails } from '@/lib/jd-guardrails';
 import { sanitizeText } from '@/lib/sanitize';
 import { AI_DAILY_CAPS, getEmployerAiUsage } from '@/lib/ai-usage';
+import { verifyCsrf } from '@/lib/csrf';
 
 const requestSchema = z.object({
   role: z.string().min(3, 'Role must be at least 3 characters').max(120),
@@ -145,6 +146,14 @@ function buildUserMessage(input: ParsedRequest, sanitized: { role: string; setti
 }
 
 export async function POST(request: NextRequest) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(request);
+    if (csrfError) return csrfError;
+
   const rateLimitResult = await rateLimit(request, 'ai-jd', RATE_LIMITS.general);
   if (rateLimitResult) return rateLimitResult;
 

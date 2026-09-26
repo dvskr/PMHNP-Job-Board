@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronDown, User, Clock, FileText, X, Mail, Download, Eye, EyeOff, CheckSquare, Square } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import ComposeMessageModal from './ComposeMessageModal';
+import { toCsv } from './csv';
 
 const STATUSES = [
     { value: 'applied', label: 'Applied', color: '#6B7280', bg: '#F3F4F6' },
@@ -110,6 +111,9 @@ export default function ApplicantsTab() {
     const [expandedInsights, setExpandedInsights] = useState<string | null>(null);
     const [expandedScreening, setExpandedScreening] = useState<string | null>(null);
     const [expandedProfile, setExpandedProfile] = useState<string | null>(null);
+    // Surfaces a failed mutation or export to the employer. Null when the
+    // last action succeeded.
+    const [actionError, setActionError] = useState<string | null>(null);
 
     const fetchApplicants = useCallback(async () => {
         setLoading(true);
@@ -138,47 +142,64 @@ export default function ApplicantsTab() {
         fetchApplicants();
     }, [fetchApplicants]);
 
-    const handleStatusChange = async (applicationId: string, newStatus: string) => {
+    /**
+     * One PATCH against the applicants endpoint. Returns whether it landed so
+     * callers can surface a failure: a non-2xx (403 on a posting this employer
+     * no longer owns, 429 when rate limited, 401 after the session expired in
+     * another tab) used to fall through the `if (res.ok)` with no else, which
+     * left the control snapping back to its old value and the employer
+     * concluding the click had simply been missed.
+     */
+    const patchApplicant = async (body: Record<string, unknown>): Promise<boolean> => {
         try {
             const res = await fetch('/api/employer/applicants', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ applicationId, status: newStatus }),
+                body: JSON.stringify(body),
             });
-
-            if (res.ok) {
-                setApplicants(prev =>
-                    prev.map(a => a.id === applicationId
-                        ? { ...a, status: newStatus, statusUpdatedAt: new Date().toISOString() }
-                        : a
-                    )
-                );
-            }
+            if (res.ok) return true;
+            // A 500 usually answers with an HTML error page, so parsing has to
+            // be allowed to fail without becoming the error the user sees.
+            const data = await res.json().catch(() => ({} as { error?: string }));
+            console.error('Applicant update failed:', res.status, data);
+            setActionError(
+                typeof data.error === 'string' && data.error
+                    ? data.error
+                    : 'Could not save that change. Please try again.'
+            );
+            return false;
         } catch (err) {
-            console.error('Error updating status:', err);
+            console.error('Error updating applicant:', err);
+            setActionError('Could not reach the server. Check your connection and try again.');
+            return false;
         }
     };
 
-    const handleSaveNotes = async (applicationId: string) => {
-        try {
-            const res = await fetch('/api/employer/applicants', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ applicationId, notes: notesValue }),
-            });
-
-            if (res.ok) {
-                setApplicants(prev =>
-                    prev.map(a => a.id === applicationId
-                        ? { ...a, notes: notesValue }
-                        : a
-                    )
-                );
-                setEditingNotes(null);
-            }
-        } catch (err) {
-            console.error('Error saving notes:', err);
+    const handleStatusChange = async (applicationId: string, newStatus: string): Promise<boolean> => {
+        setActionError(null);
+        const ok = await patchApplicant({ applicationId, status: newStatus });
+        if (ok) {
+            setApplicants(prev =>
+                prev.map(a => a.id === applicationId
+                    ? { ...a, status: newStatus, statusUpdatedAt: new Date().toISOString() }
+                    : a
+                )
+            );
         }
+        return ok;
+    };
+
+    const handleSaveNotes = async (applicationId: string) => {
+        setActionError(null);
+        const ok = await patchApplicant({ applicationId, notes: notesValue });
+        if (!ok) return; // Keep the editor open with the text still in it.
+        setApplicants(prev =>
+            prev.map(a => a.id === applicationId
+                ? { ...a, notes: notesValue }
+                : a
+            )
+        );
+        setEditingNotes(null);
     };
 
     const getStatusInfo = (status: string) => {
@@ -189,10 +210,18 @@ export default function ApplicantsTab() {
     const handleBulkStatusChange = async (newStatus: string) => {
         if (selectedIds.size === 0) return;
         setBulkUpdating(true);
+        setActionError(null);
         try {
-            await Promise.all(
-                Array.from(selectedIds).map(id => handleStatusChange(id, newStatus))
-            );
+            const ids = Array.from(selectedIds);
+            const results = await Promise.all(ids.map(id => handleStatusChange(id, newStatus)));
+            const failed = results.filter(ok => !ok).length;
+            if (failed > 0) {
+                // Keep the failures selected so a retry does not have to
+                // re-find them among the rows that did update.
+                setSelectedIds(new Set(ids.filter((_, i) => !results[i])));
+                setActionError(`${failed} of ${ids.length} applicants could not be updated. They are still selected, try again.`);
+                return;
+            }
             setSelectedIds(new Set());
         } finally {
             setBulkUpdating(false);
@@ -215,7 +244,10 @@ export default function ApplicantsTab() {
         }
     };
 
-    // CSV export
+    // CSV export. Quoting and formula-prefix neutralisation live in ./csv so
+    // they are testable without mounting this component: the values below are
+    // candidate-supplied, so an embedded quote used to shift every later
+    // column and a leading "=" was executed as a spreadsheet formula.
     const handleExportCsv = () => {
         const rows = applicants.map(app => ({
             Name: app.candidate.name,
@@ -226,12 +258,12 @@ export default function ApplicantsTab() {
             'Has Resume': app.resumeUrl ? 'Yes' : 'No',
             'Has Cover Letter PDF': app.coverLetterUrl ? 'Yes' : 'No',
         }));
-        const headers = Object.keys(rows[0] || {});
-        const csv = [
-            headers.join(','),
-            ...rows.map(r => headers.map(h => `"${(r as Record<string, string>)[h] || ''}"`).join(','))
-        ].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
+        const csv = toCsv(rows);
+        if (!csv) {
+            setActionError('There are no applicants to export.');
+            return;
+        }
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -261,6 +293,29 @@ export default function ApplicantsTab() {
     return (
         <>
             <div>
+                {actionError && (
+                    <div
+                        role="alert"
+                        style={{
+                            display: 'flex', alignItems: 'flex-start', gap: '10px',
+                            marginBottom: '16px', padding: '12px 14px', borderRadius: '14px',
+                            background: '#FEE2E2', border: '1px solid #FECACA',
+                        }}
+                    >
+                        <p style={{ flex: 1, margin: 0, fontSize: '13px', fontWeight: 500, color: '#991B1B', lineHeight: 1.5 }}>
+                            {actionError}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setActionError(null)}
+                            aria-label="Dismiss error"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#991B1B', padding: 0, lineHeight: 1 }}
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                )}
+
                 {/* Pipeline Summary — Clay Recessed Pills */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
                     {STATUSES.map(s => (

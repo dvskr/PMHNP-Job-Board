@@ -102,13 +102,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // sitemap entry look 2+ months old and signaled "this site isn't being
   // maintained" to Google. The outer try/catch at the bottom of this function
   // still catches DB-wide failure and returns a static-only sitemap.
+  //
+  // createdAt, NOT updatedAt. lib/ingestion-service.ts writes updatedAt on
+  // every re-seen job, two or three times a day per source, so a max over it
+  // is "when ingest last ran", not "when anything changed" — the same noise
+  // that made the job batches drop <lastmod> entirely (B6). max(createdAt) is
+  // the newest job ADDED, which is a real content change for any listing
+  // page. It under-reports one case (a job expiring off a page moves no
+  // createdAt), and under-reporting is the safe direction: Google ignores
+  // lastmod on sites where it is consistently too fresh.
   let latestJobDate = new Date();
   const latestJob = await prisma.job.findFirst({
     where: { isPublished: true },
-    orderBy: { updatedAt: 'desc' },
-    select: { updatedAt: true },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true },
   });
-  if (latestJob) latestJobDate = latestJob.updatedAt;
+  if (latestJob) latestJobDate = latestJob.createdAt;
 
   const STATIC_CONTENT_DATE = new Date('2026-05-04');
   // The /tools suite shipped later than the last sitewide static-content
@@ -138,12 +147,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/terms`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${baseUrl}/privacy`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${baseUrl}/pricing`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.7 },
-    // Content hub pages
-    // Sitemap submits the canonical destination directly. Previously /new-grad
-    // was advertised here but next.config.ts permanently redirects it to
-    // /jobs/new-grad — Google logs that as "Submitted URL redirected" in GSC
-    // and burns crawl budget on a hop that yields no new content.
-    { url: `${baseUrl}/jobs/new-grad`, lastModified: latestJobDate, changeFrequency: 'weekly', priority: 0.9 },
+    // /jobs/new-grad is NOT listed here. It is a member of the category
+    // taxonomy (inPrimarySitemap: true in lib/pseo/jobs-segments-edge.ts), so
+    // categoryLandingPages below already emits it — with the gate that keeps
+    // it out when it drops under MIN_JOBS. Listing it here too put the same
+    // <loc> in the file twice with contradicting changefreq and priority,
+    // which is the very thing the categoryStatePages note below explains we
+    // avoid. (The reason the hard-coded entry existed was to submit the
+    // canonical destination rather than the /new-grad slug that
+    // next.config.ts 301s here; the taxonomy entry is that same URL.)
+    // Indexable public pages that had no sitemap entry and relied on footer
+    // links alone for discovery.
+    { url: `${baseUrl}/companies`, lastModified: latestJobDate, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${baseUrl}/for-programs`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${baseUrl}/security`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${baseUrl}/sub-processors`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'yearly', priority: 0.3 },
   ]
 
   // Metro landing pages — DB-gated in the try block (B4, organic audit
@@ -254,9 +272,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }));
 
     // B4: metro entries are gated on each metro's own live count (shared
-    // where-builder with the metro page, which noindexes at 0 jobs) and
-    // carry the metro's own latest-job date — omitted when unknown rather
-    // than stamped with the sitewide date.
+    // where-builder with the metro page) and carry the metro's own latest-job
+    // date, omitted when unknown rather than stamped with the sitewide date.
+    //
+    // The floor is MIN_JOBS_FOR_CATEGORY_CITY, matching the metro page's own
+    // robots gate. It was `> 0` while the page noindexed at 0, and when the
+    // page moved to the shared floor the two disagreed: the sitemap would have
+    // advertised a 1 or 2 job metro that the page marks noindex, which is the
+    // exact "submitted URL marked noindex" pattern in GSC this file exists to
+    // avoid. The gate is only honest if both ends use the same number.
     const metroAggregates = await Promise.all(
       METRO_SLUGS.map(async (slug) => {
         const metro = getMetroCity(slug);
@@ -267,13 +291,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           // honest if the sitemap and the page count the same rows.
           where: { ...buildMetroJobsWhere(metro), ...publicJobsWhere() },
           _count: { _all: true },
-          _max: { updatedAt: true },
+          _max: { createdAt: true },
         });
-        return { slug, count: agg._count._all, latest: agg._max.updatedAt };
+        return { slug, count: agg._count._all, latest: agg._max.createdAt };
       })
     );
     metroPages = metroAggregates
-      .filter(m => m.count > 0)
+      .filter(m => m.count >= MIN_JOBS_FOR_CATEGORY_CITY)
       .map(m => ({
         url: `${baseUrl}/jobs/metro/${m.slug}`,
         ...(m.latest && { lastModified: m.latest }),
@@ -291,7 +315,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       by: ['state'],
       where: { ...ACTIVE_JOB_WHERE, state: { not: null }, AND: NOT_EXCLUDED },
       _count: { state: true },
-      _max: { updatedAt: true },
+      _max: { createdAt: true },
     });
     // Mirrors the /salary-guide/[state] gate: the page notFound()s below 3
     // clean disclosed-salary rows, so the sitemap must not advertise states
@@ -308,7 +332,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         salaryIsEstimated: false,
       },
       _count: { state: true },
-      _max: { updatedAt: true },
+      _max: { createdAt: true },
     });
     const slugify = (s: string) => s.toLowerCase().replace(/\s+/g, '-');
     const statesWithJobs = new Set(stateJobCounts.map(r => slugify((r.state || '').trim())));
@@ -322,26 +346,40 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // lastmod exactly where it matters most (the churning job-detail
     // sitemaps). High-churn listing hubs (homepage, /jobs, category landings,
     // metros) keep latestJobDate: they genuinely change with every ingest.
+    //
+    // Two things changed here versus the original P2.5 work: the signal is
+    // max(createdAt) rather than max(updatedAt) (see the latestJobDate note
+    // at the top of this function for why updatedAt is ingest noise), and an
+    // entity with no signal now emits NO lastmod instead of falling back to
+    // the sitewide date. The fallback quietly undid the whole point: a state
+    // whose per-entity date was missing still claimed the freshest date on
+    // the site.
     const stateLastMod = new Map<string, Date>();
     for (const r of stateJobCounts) {
-      if (r._max?.updatedAt) stateLastMod.set(slugify((r.state || '').trim()), r._max.updatedAt);
+      if (r._max?.createdAt) stateLastMod.set(slugify((r.state || '').trim()), r._max.createdAt);
     }
     const stateSalaryLastMod = new Map<string, Date>();
     for (const r of stateSalaryCounts) {
-      if (r._max?.updatedAt) stateSalaryLastMod.set(slugify((r.state || '').trim()), r._max.updatedAt);
+      if (r._max?.createdAt) stateSalaryLastMod.set(slugify((r.state || '').trim()), r._max.createdAt);
     }
-    statePages = US_STATES.filter(s => statesWithJobs.has(s)).map(state => ({
-      url: `${baseUrl}/jobs/state/${state}`,
-      lastModified: stateLastMod.get(state) ?? latestJobDate,
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    }));
-    salaryGuideStatePages = US_STATES.filter(s => statesWithSalary.has(s)).map(state => ({
-      url: `${baseUrl}/salary-guide/${state}`,
-      lastModified: stateSalaryLastMod.get(state) ?? latestJobDate,
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    }));
+    statePages = US_STATES.filter(s => statesWithJobs.has(s)).map(state => {
+      const lastMod = stateLastMod.get(state);
+      return {
+        url: `${baseUrl}/jobs/state/${state}`,
+        ...(lastMod && { lastModified: lastMod }),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+      };
+    });
+    salaryGuideStatePages = US_STATES.filter(s => statesWithSalary.has(s)).map(state => {
+      const lastMod = stateSalaryLastMod.get(state);
+      return {
+        url: `${baseUrl}/salary-guide/${state}`,
+        ...(lastMod && { lastModified: lastMod }),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+      };
+    });
 
     // Top city pages (DB-driven, only active non-expired jobs).
     //
@@ -360,7 +398,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         AND: NOT_EXCLUDED,
       },
       _count: { city: true },
-      _max: { updatedAt: true },
+      _max: { createdAt: true },
       orderBy: { _count: { city: 'desc' } },
       take: 2000,
     })
@@ -386,7 +424,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         if (population === undefined || population < MIN_SITEMAP_POPULATION) return null;
         return {
           url: `${baseUrl}/jobs/city/${slug}`,
-          lastModified: c._max?.updatedAt ?? latestJobDate,
+          ...(c._max?.createdAt && { lastModified: c._max.createdAt }),
           changeFrequency: 'weekly' as const,
           priority: 0.7,
         };
@@ -413,12 +451,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             },
           },
         },
-        // P2.5: latest active job per company drives that company's lastmod.
+        // P2.5: newest active job per company drives that company's lastmod.
         jobs: {
           where: ACTIVE_JOB_WHERE,
-          orderBy: { updatedAt: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: 1,
-          select: { updatedAt: true },
+          select: { createdAt: true },
         },
       },
     });
@@ -427,12 +465,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // pages). Mirrors MIN_COMPANY_JOBS_FOR_INDEX in app/companies/[slug]/
       // page.tsx (noindex below 8) — keep the two in lockstep.
       .filter(c => c._count.jobs >= 8)
-      .map(c => ({
-        url: `${baseUrl}/companies/${c.normalizedName}`,
-        lastModified: c.jobs?.[0]?.updatedAt ?? latestJobDate,
-        changeFrequency: 'weekly' as const,
-        priority: 0.6,
-      }))
+      .map(c => {
+        const lastMod = c.jobs?.[0]?.createdAt;
+        return {
+          url: `${baseUrl}/companies/${c.normalizedName}`,
+          ...(lastMod && { lastModified: lastMod }),
+          changeFrequency: 'weekly' as const,
+          priority: 0.6,
+        };
+      })
 
     const all = [
       ...staticPages,

@@ -192,7 +192,7 @@ export function buildMatchDigestHtml(args: MatchDigestEmailArgs): string {
     </td></tr>
     ${spacerV2(48)}
     ${closeContentV2()}`,
-    unsubscribeFooterV2(unsubscribeToken),
+    unsubscribeFooterV2(unsubscribeToken, 'employer_match_digest'),
     // The preheader is interpolated into the shell's HTML exactly like the
     // body is, so it MUST use the escaped title. Using the raw one here was
     // a live HTML-injection hole: an employer controls their own job title.

@@ -50,7 +50,59 @@ export const FREE_EMAIL_DOMAINS: readonly string[] = [
   'icloud.com', 'mail.com', 'protonmail.com', 'ymail.com', 'live.com',
   'msn.com', 'googlemail.com', 'proton.me', 'gmx.com', 'yandex.com',
   'zoho.com', 'hey.com', 'fastmail.com', 'me.com', 'mac.com',
+  // ISP mailboxes. These were the widest hole in the exact-match list: they
+  // are consumer addresses, so the free post was granted, AND the domain then
+  // became a shared quota key, so the NEXT unrelated employer on the same ISP
+  // was refused with "the domain comcast.net has already used its free post".
+  'comcast.net', 'att.net', 'verizon.net', 'sbcglobal.net', 'bellsouth.net',
+  'cox.net', 'charter.net', 'earthlink.net', 'optonline.net', 'juno.com',
+  'roadrunner.com', 'rr.com', 'frontier.com', 'windstream.net',
+  // Other consumer providers with no country-code family to key off.
+  'tutanota.com', 'tuta.com', 'tutamail.com', 'hushmail.com', 'inbox.com',
+  'mail.ru', 'qq.com', '163.com', '126.com', 'naver.com', 'daum.net',
+  'seznam.cz', 'rediffmail.com', 'duck.com', 'pm.me', 'protonmail.ch',
+  'aim.com', 'rocketmail.com', 'lycos.com', 'yopmail.com',
+  // Non-English consumer portals whose brand word is an ordinary noun, so they
+  // are listed exactly rather than added to CONSUMER_MAIL_BRANDS below: a real
+  // employer could plausibly own "live.io" or "terra.com".
+  'web.de', 'freenet.de', 'libero.it', 'virgilio.it', 'orange.fr',
+  'laposte.net', 'wanadoo.fr', 'sfr.fr', 'wp.pl', 'onet.pl', 'interia.pl',
+  'uol.com.br', 'bol.com.br', 'terra.com.br', 'sapo.pt', 'abv.bg',
+  'live.com.au', 'live.co.uk', 'live.ca', 'live.nl', 'live.fr', 'live.de',
+  'live.it', 'live.se', 'live.cn',
 ];
+
+/**
+ * Consumer mail brands that publish country-code variants of one mailbox
+ * product: hotmail.co.uk, yahoo.co.uk, outlook.de, gmx.net, yandex.ru and so
+ * on. Enumerating every TLD by hand is how the exact-match list fell behind;
+ * matching the registrable base instead covers the whole family.
+ *
+ * Only distinctive brand words belong here. Anything that is also an ordinary
+ * noun (live, web, orange, terra) stays in the exact list above, because a
+ * real employer could own it. Matching is on the FIRST label only, never a
+ * substring, so "yahoo-consulting.com" is untouched.
+ */
+const CONSUMER_MAIL_BRANDS: readonly string[] = [
+  'gmail', 'googlemail', 'yahoo', 'ymail', 'hotmail', 'outlook',
+  'msn', 'aol', 'gmx', 'yandex', 'icloud', 'protonmail',
+];
+
+/**
+ * True when the domain is a country-code variant of a consumer mail brand,
+ * e.g. hotmail.co.uk, yahoo.com.au, gmx.de. Public-suffix labels are short and
+ * alphabetic, which is what separates "yahoo.co.uk" from "yahoo-consulting.com"
+ * or a real company that happens to start with a brand word.
+ */
+function isConsumerBrandVariant(domain: string): boolean {
+  const labels = domain.split('.');
+  if (labels.length < 2) return false;
+  const [base, ...suffix] = labels;
+  if (!CONSUMER_MAIL_BRANDS.includes(base)) return false;
+  // At most two suffix labels ("co.uk", "com.au", "de"), each 2 to 3 letters.
+  if (suffix.length > 2) return false;
+  return suffix.every((part) => /^[a-z]{2,3}$/.test(part));
+}
 
 /** Session-proven identity. Nothing here comes from the posting form. */
 export interface QuotaIdentity {
@@ -167,7 +219,9 @@ export function rawDomainFromEmail(email: string | null | undefined): string | n
 export function domainFromEmail(email: string | null | undefined): string | null {
   const domain = rawDomainFromEmail(email);
   if (!domain) return null;
-  return FREE_EMAIL_DOMAINS.includes(domain) ? null : domain;
+  if (FREE_EMAIL_DOMAINS.includes(domain)) return null;
+  if (isConsumerBrandVariant(domain)) return null;
+  return domain;
 }
 
 /**

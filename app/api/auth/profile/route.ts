@@ -17,6 +17,11 @@ import { ensureProfileFromAuth } from '@/lib/auth/ensure-profile'
 // lost its last paragraphs. Keep the two numbers equal.
 const BIO_MAX_LENGTH = 1000
 
+// Mirrors the maxLength the settings form puts on both name inputs, for the
+// same reason as the summary above: a server cap below the one the UI advertises
+// truncates silently behind a success toast.
+const NAME_MAX_LENGTH = 50
+
 // The rate type decides whether the desired-salary numbers mean an hourly or
 // an annual range. Every reader falls back to 'yearly', so an unrecognised
 // value would silently misprice a candidate to employers.
@@ -121,8 +126,8 @@ export async function POST(request: NextRequest) {
       newsletterOptIn
     } = body
 
-    const firstName = rawFirstName ? sanitizeText(rawFirstName, 50) : null
-    const lastName = rawLastName ? sanitizeText(rawLastName, 50) : null
+    const firstName = rawFirstName ? sanitizeText(rawFirstName, NAME_MAX_LENGTH) : null
+    const lastName = rawLastName ? sanitizeText(rawLastName, NAME_MAX_LENGTH) : null
     const company = rawCompany ? sanitizeText(rawCompany, 100) : null
     const phone = rawPhone ? sanitizeText(rawPhone, 20) : null
 
@@ -312,10 +317,30 @@ export async function PATCH(request: NextRequest) {
     // `undefined` as "field omitted" — so clearing a field in the settings
     // form never persisted, and the response refilled the user's edit with
     // the stale DB value.
-    const firstName = body.firstName !== undefined ? (body.firstName ? sanitizeText(body.firstName, 50) : null) : undefined
-    const lastName = body.lastName !== undefined ? (body.lastName ? sanitizeText(body.lastName, 50) : null) : undefined
-    const phone = body.phone !== undefined ? (body.phone ? sanitizeText(body.phone, 20) : null) : undefined
-    const company = body.company !== undefined ? (body.company ? sanitizeText(body.company, 100) : null) : undefined
+    //
+    // A fourth state hid inside the third: sanitizeText() trims and strips
+    // scripts, so "     " and "<script>…</script>" both reach the column as an
+    // empty string. A whitespace-only first name therefore wiped the
+    // candidate's display name under a "Profile updated!" toast. Input that
+    // survives sanitizing as nothing is refused instead — clearing a field is
+    // still possible, it just has to be explicit (send '' or null).
+    const blankedFields: string[] = []
+    const text = (key: string, maxLength: number): string | null | undefined => {
+      const raw = body[key]
+      if (raw === undefined) return undefined
+      if (!raw) return null
+      const cleaned = sanitizeText(raw, maxLength)
+      if (!cleaned) {
+        blankedFields.push(key)
+        return undefined
+      }
+      return cleaned
+    }
+
+    const firstName = text('firstName', NAME_MAX_LENGTH)
+    const lastName = text('lastName', NAME_MAX_LENGTH)
+    const phone = text('phone', 20)
+    const company = text('company', 100)
     const avatarUrl = body.avatarUrl !== undefined ? (body.avatarUrl ? sanitizeUrl(body.avatarUrl) : null) : undefined
     // SECURITY / DATA LOSS: `resumeUrl` is deliberately NOT accepted here.
     //
@@ -334,13 +359,13 @@ export async function PATCH(request: NextRequest) {
     // upload, and DELETE /api/profile/resume to clear it.
 
     // Sanitize new PMHNP fields
-    const headline = body.headline !== undefined ? (body.headline ? sanitizeText(body.headline, 120) : null) : undefined
-    const bio = body.bio !== undefined ? (body.bio ? sanitizeText(body.bio, BIO_MAX_LENGTH) : null) : undefined
-    const certifications = body.certifications !== undefined ? (body.certifications ? sanitizeText(body.certifications, 500) : null) : undefined
-    const licenseStates = body.licenseStates !== undefined ? (body.licenseStates ? sanitizeText(body.licenseStates, 500) : null) : undefined
-    const specialties = body.specialties !== undefined ? (body.specialties ? sanitizeText(body.specialties, 500) : null) : undefined
-    const preferredWorkMode = body.preferredWorkMode !== undefined ? (body.preferredWorkMode ? sanitizeText(body.preferredWorkMode, 30) : null) : undefined
-    const preferredJobType = body.preferredJobType !== undefined ? (body.preferredJobType ? sanitizeText(body.preferredJobType, 30) : null) : undefined
+    const headline = text('headline', 120)
+    const bio = text('bio', BIO_MAX_LENGTH)
+    const certifications = text('certifications', 500)
+    const licenseStates = text('licenseStates', 500)
+    const specialties = text('specialties', 500)
+    const preferredWorkMode = text('preferredWorkMode', 30)
+    const preferredJobType = text('preferredJobType', 30)
     const linkedinUrl = body.linkedinUrl !== undefined ? (body.linkedinUrl ? sanitizeUrl(body.linkedinUrl) : null) : undefined
 
     // Integer fields. 0 is a real answer here ("New Grad"), so parsing goes
@@ -355,9 +380,27 @@ export async function PATCH(request: NextRequest) {
       ? (body.desiredSalaryMax !== null ? toIntOrNull(body.desiredSalaryMax) : null)
       : undefined
 
-    const desiredSalaryType = body.desiredSalaryType !== undefined
-      ? (body.desiredSalaryType ? sanitizeText(body.desiredSalaryType, 20).toLowerCase() : null)
-      : undefined
+    const rawSalaryType = text('desiredSalaryType', 20)
+    const desiredSalaryType = typeof rawSalaryType === 'string' ? rawSalaryType.toLowerCase() : rawSalaryType
+
+    // Nothing has been written yet, so one 400 can name every field that would
+    // have landed blank. The label is derived rather than mapped so a new field
+    // cannot be added without one.
+    if (blankedFields.length > 0) {
+      const labels = blankedFields.map((key) => {
+        const spaced = key.replace(/([A-Z])/g, ' $1').toLowerCase()
+        return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+      })
+      return NextResponse.json(
+        {
+          error: `${labels.join(', ')} cannot be saved as blank. Enter a value, or clear the field to remove it.`,
+          code: 'FIELD_BLANK_AFTER_SANITIZE',
+          fields: blankedFields,
+        },
+        { status: 400 },
+      )
+    }
+
     // Reject an unknown rate type instead of storing it: readers fall back to
     // 'yearly', so a typo would present an hourly range as an annual salary.
     if (typeof desiredSalaryType === 'string' && !SALARY_RATE_TYPES.has(desiredSalaryType)) {
@@ -393,7 +436,7 @@ export async function PATCH(request: NextRequest) {
     // saving an unrelated field would 409.
     const existing = await prisma.userProfile.findUnique({
       where: { supabaseId: user.id },
-      select: { company: true },
+      select: { company: true, desiredSalaryMin: true, desiredSalaryMax: true },
     })
     if (!existing) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
@@ -407,6 +450,38 @@ export async function PATCH(request: NextRequest) {
           currentName: existing.company,
         },
         { status: 409 },
+      )
+    }
+
+    // An inverted range is a typo, not a preference: it advertises an
+    // impossible expectation to employers and makes every `min <= X <= max`
+    // reader (matching, the salary filters) return nothing for the candidate.
+    // Compared against the stored values too, because a PATCH that raises only
+    // the minimum past an untouched maximum inverts the range just as surely as
+    // one that sends both.
+    //
+    // Only when the request actually touches a salary field. This endpoint
+    // takes partial patches from screens that have no salary inputs at all:
+    // the avatar upload in /settings sends { avatarUrl } alone, and
+    // onboarding sends headline and specialties. Validating the merged range
+    // on those turned an account that already held an inverted range into one
+    // that could not change its avatar or finish onboarding, and the error it
+    // got named fields the screen does not show.
+    const touchesSalary = desiredSalaryMin !== undefined || desiredSalaryMax !== undefined
+    const effectiveSalaryMin = desiredSalaryMin !== undefined ? desiredSalaryMin : (existing.desiredSalaryMin ?? null)
+    const effectiveSalaryMax = desiredSalaryMax !== undefined ? desiredSalaryMax : (existing.desiredSalaryMax ?? null)
+    if (
+      touchesSalary &&
+      effectiveSalaryMin !== null &&
+      effectiveSalaryMax !== null &&
+      effectiveSalaryMin > effectiveSalaryMax
+    ) {
+      return NextResponse.json(
+        {
+          error: 'Desired salary minimum cannot be higher than the maximum.',
+          code: 'SALARY_RANGE_INVERTED',
+        },
+        { status: 400 },
       )
     }
 

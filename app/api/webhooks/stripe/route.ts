@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendConfirmationEmail, sendRenewalConfirmationEmail, sendRefundConfirmationEmail, getOrCreateUnsubToken } from '@/lib/email-service';
 import { config, PricingTier, PostPriceKind } from '@/lib/config';
-import { renewalExpiresAt } from '@/lib/expires-at';
+import { renewalExpiresAt, expiresFromNow } from '@/lib/expires-at';
 import { logger } from '@/lib/logger';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { anonymizeEmail } from '@/lib/server-utils';
@@ -139,6 +139,25 @@ export async function POST(request: NextRequest) {
       const priceKind: PostPriceKind =
         session.metadata?.priceKind === 'first' ? 'first' : 'standard';
 
+      // checkout.session.completed fires when the customer finishes the flow,
+      // which is not the same as the money having arrived. Both checkout
+      // creators pin payment_method_types to card, so today every completed
+      // session is already paid, but nothing in this handler said so: it
+      // published, featured and booked a JobCharge on the event type alone.
+      // /api/verify-checkout-session already refuses a session whose
+      // payment_status is not 'paid'; this is the same gate on the webhook
+      // side. A delayed-notification method would settle later via
+      // checkout.session.async_payment_succeeded, which this endpoint does not
+      // subscribe to, so skipping here is the safe direction.
+      if (session.payment_status !== 'paid') {
+        logger.warn('checkout.session.completed with unpaid session; not publishing', {
+          sessionId: session.id,
+          paymentStatus: session.payment_status,
+          jobId,
+        });
+        return NextResponse.json({ received: true, skipped: 'payment not completed' });
+      }
+
       if (!jobId) {
         logger.error('No job ID in session metadata', null, { sessionId: session.id });
         // 400 is intentional — bad payload won't get better on retry.
@@ -182,7 +201,7 @@ export async function POST(request: NextRequest) {
 
           const existingJob = await prisma.job.findUnique({
             where: { id: jobId },
-            select: { expiresAt: true, createdAt: true },
+            select: { expiresAt: true, createdAt: true, archivedAt: true, isManuallyUnpublished: true },
           });
           const newExpiresAt = renewalExpiresAt({
             currentExpiry: existingJob?.expiresAt ?? null,
@@ -190,19 +209,40 @@ export async function POST(request: NextRequest) {
             durationDays: config.getDurationDays(renewalTier),
           });
 
+          // A renewal buys time, not a reversal of the employer's own
+          // decision. This branch used to write isPublished:true
+          // unconditionally, so paying to extend a posting the employer had
+          // paused as "filled" put the filled role back on the public board,
+          // and paying on an archived one produced isPublished=true with
+          // archivedAt still set: live on /jobs and in the sitemaps, invisible
+          // to AI search, the widget, digests and embeddings, filed under
+          // "Archived" in the employer's own dashboard. The expiry extension
+          // they paid for still applies in both cases; going live again is the
+          // employer's separate, existing action (unpause, or restore from the
+          // archive and then publish).
+          const honorsExistingHold = !existingJob?.archivedAt && !existingJob?.isManuallyUnpublished;
+          if (!honorsExistingHold) {
+            logger.info('Renewal extended a paused or archived posting without republishing it', {
+              jobId,
+              sessionId: session.id,
+              archived: !!existingJob?.archivedAt,
+              manuallyUnpublished: !!existingJob?.isManuallyUnpublished,
+            });
+          }
+
           // Update job
           const job = await prisma.job.update({
             where: { id: jobId },
             data: {
               expiresAt: newExpiresAt,
-              isPublished: true,
+              ...(honorsExistingHold && { isPublished: true }),
               isVerifiedEmployer: true,
               // Distribution audit A3: stamp the renewal so the daily alert
               // pool's freshness gate (buildJobFreshnessOr in
               // lib/job-alerts-service.ts) re-admits this posting. A renewal
               // is a paid re-promotion, not just an expiry extension.
               lastRenewedAt: new Date(),
-              ...(config.isFeaturedTier(renewalTier) && { isFeatured: true }),
+              ...(honorsExistingHold && config.isFeaturedTier(renewalTier) && { isFeatured: true }),
             },
           });
 
@@ -365,11 +405,21 @@ export async function POST(request: NextRequest) {
           // because free posts publish immediately). create-checkout leaves
           // pending drafts isFeatured:false so unpaid rows never satisfy the
           // messaging gate.
+          // The paid window starts at PAYMENT, not at draft creation.
+          // create-checkout stamps a provisional expiresAt when it writes the
+          // pending row, and a Stripe Checkout session stays payable for 24
+          // hours, so an employer who paid the next morning silently lost a day
+          // of the term they bought. Recomputing here also puts the paid path
+          // on the same UTC arithmetic as every other call site
+          // (lib/expires-at.ts), instead of local-time setDate() which drifts
+          // an hour either way across a DST boundary.
+          const paidTierForDuration = (session.metadata?.pricing || 'pro') as PricingTier;
           const job = await prisma.job.update({
             where: { id: jobId },
             data: {
               isPublished: true,
               isVerifiedEmployer: true,
+              expiresAt: expiresFromNow(config.getDurationDays(paidTierForDuration)),
               ...(config.isFeaturedTier(session.metadata?.pricing || 'pro') && { isFeatured: true }),
             },
           });
@@ -638,7 +688,22 @@ export async function POST(request: NextRequest) {
           // live job but permanently loses invoice/receipt downloads (those
           // 400 unless 'paid') and can never republish. The ledger row above
           // already records refundedAmountCents for accounting either way.
-          if (isFullRefund) {
+          // A posting can carry several charges: the original post plus one
+          // renewal per extension. The revocation test was "is THIS charge
+          // fully refunded", so refunding a single renewal (a duplicate, a
+          // goodwill reversal) pulled down a posting whose original payment was
+          // never touched, and left it permanently unrenewable. Entitlement
+          // belongs to the posting, so it survives while any charge on it is
+          // still unrefunded, and is revoked only when the last one goes.
+          const siblingCharges = await prisma.jobCharge.findMany({
+            where: { employerJobId: jobCharge.employerJobId, id: { not: jobCharge.id } },
+            select: { id: true, type: true, amountCents: true, refundedAmountCents: true },
+          });
+          const stillPaidElsewhere = siblingCharges.some(
+            (c) => (c.refundedAmountCents ?? 0) < c.amountCents,
+          );
+
+          if (isFullRefund && !stillPaidElsewhere) {
             await prisma.employerJob.update({
               where: { id: employerJob.id },
               data: { paymentStatus: 'refunded' },
@@ -649,6 +714,22 @@ export async function POST(request: NextRequest) {
             await prisma.job.update({
               where: { id: employerJob.jobId },
               data: { isPublished: false, isFeatured: false },
+            });
+          } else if (isFullRefund) {
+            // Deliberately loud rather than silent. The posting stays live on
+            // the charges that were not refunded, but if the refunded charge
+            // was a renewal, the runway that renewal bought is still on
+            // Job.expiresAt: the pre-renewal expiry is not stored anywhere, so
+            // it cannot be unwound here without guessing. An operator who wants
+            // the time removed has to set expiresAt by hand.
+            logger.warn('charge.refunded: one charge refunded, posting stays live on its other charges', {
+              employerJobId: employerJob.id,
+              refundedChargeId: jobCharge.id,
+              refundedChargeType: jobCharge.type,
+              unrefundedSiblings: siblingCharges.filter(
+                (c) => (c.refundedAmountCents ?? 0) < c.amountCents,
+              ).length,
+              expiryNotRolledBack: jobCharge.type === 'renewal',
             });
           } else if (isPartial) {
             logger.info('charge.refunded: partial refund, entitlement retained', {
@@ -741,6 +822,88 @@ export async function POST(request: NextRequest) {
         logger.error('Error handling charge.dispute.created webhook', disputeErr);
         await cleanupDedupe();  // C2
         return NextResponse.json({ error: 'Failed to handle dispute' }, { status: 500 });
+      }
+    }
+
+    // Dispute resolved in our favour. charge.dispute.created was the only
+    // dispute event handled, so a posting revoked by a chargeback stayed
+    // 'disputed' for ever even after the bank found for us: republish was a
+    // 402, the invoice and receipt endpoints a 400, the renewal checkout a 409,
+    // and no admin API writes paymentStatus. The only exit was editing the row
+    // by hand.
+    //
+    // 'won' means the funds came back. 'warning_closed' is the early-warning
+    // lifecycle closing with no dispute ever raised. Every other closure status
+    // ('lost', and an unexpected value) leaves the revocation in place.
+    //
+    // Payment status is restored; the posting is NOT auto-republished. It came
+    // down during a dispute and whether it should go back up is the employer's
+    // call, which unpause already gives them once the status is 'paid' again.
+    //
+    // NOTE: requires `charge.dispute.closed` to be enabled on the Stripe
+    // webhook endpoint's event list, alongside `charge.dispute.created`.
+    if (event.type === 'charge.dispute.closed') {
+      try {
+        const dispute = event.data.object as Stripe.Dispute;
+        const paymentIntentId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : null;
+        if (!paymentIntentId) {
+          logger.warn('charge.dispute.closed with no payment_intent; cannot match to JobCharge', { disputeId: dispute.id });
+          return NextResponse.json({ received: true, note: 'no payment_intent' });
+        }
+
+        const jobCharge = await prisma.jobCharge.findUnique({
+          where: { stripePaymentIntentId: paymentIntentId },
+        });
+        if (!jobCharge) {
+          logger.warn('charge.dispute.closed: no matching JobCharge', { paymentIntentId, disputeId: dispute.id });
+          return NextResponse.json({ received: true, note: 'no matching JobCharge' });
+        }
+
+        const merchantKeptTheFunds = dispute.status === 'won' || dispute.status === 'warning_closed';
+        if (!merchantKeptTheFunds) {
+          logger.info('charge.dispute.closed: revocation stands', {
+            jobChargeId: jobCharge.id,
+            disputeId: dispute.id,
+            status: dispute.status,
+          });
+          return NextResponse.json({ received: true, note: 'dispute not resolved in our favour' });
+        }
+
+        const employerJob = await prisma.employerJob.findUnique({
+          where: { id: jobCharge.employerJobId },
+          select: { id: true, paymentStatus: true },
+        });
+
+        if (!employerJob) {
+          logger.warn('charge.dispute.closed: JobCharge has no matching EmployerJob', { jobChargeId: jobCharge.id });
+          return NextResponse.json({ received: true, note: 'no matching EmployerJob' });
+        }
+
+        // Only a row this dispute actually revoked is restored. A posting that
+        // was refunded after the chargeback is a separate revocation and must
+        // keep its own status.
+        if (employerJob.paymentStatus !== 'disputed') {
+          logger.info('charge.dispute.closed: posting is not in the disputed state, leaving it alone', {
+            employerJobId: employerJob.id,
+            disputeId: dispute.id,
+            paymentStatus: employerJob.paymentStatus,
+          });
+          return NextResponse.json({ received: true, note: 'posting not disputed' });
+        }
+
+        await prisma.employerJob.update({
+          where: { id: employerJob.id },
+          data: { paymentStatus: 'paid' },
+        });
+        logger.info('Dispute closed in our favour: payment status restored, posting left unpublished for the employer to relist', {
+          employerJobId: employerJob.id,
+          disputeId: dispute.id,
+          status: dispute.status,
+        });
+      } catch (disputeErr) {
+        logger.error('Error handling charge.dispute.closed webhook', disputeErr);
+        await cleanupDedupe();  // C2
+        return NextResponse.json({ error: 'Failed to handle dispute closure' }, { status: 500 });
       }
     }
 

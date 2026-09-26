@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { logAudit } from '@/lib/audit-log';
@@ -103,10 +104,18 @@ export async function GET(request: NextRequest) {
                 // Step 3: anonymize email_sends so downstream funnel queries
                 // still work but the email address is gone. Bulk update —
                 // these are append-only metric rows, not domain entities.
+                //
+                // Prisma.DbNull, not `undefined`. An `undefined` field in a
+                // Prisma update payload means "leave this column alone", so
+                // the version of this write that read `metadata: undefined`
+                // renamed the address and kept the JSON blob beside it: the
+                // erased user's supabaseId, job ids and titles survived on
+                // rows that now looked anonymised. DbNull writes a real SQL
+                // NULL, which is what "anonymize" has to mean here.
                 try {
                     await prisma.emailSend.updateMany({
                         where: { to: u.email },
-                        data: { to: 'redacted+purged@pmhnphiring.invalid', metadata: undefined },
+                        data: { to: 'redacted+purged@pmhnphiring.invalid', metadata: Prisma.DbNull },
                     });
                 } catch (emailErr) {
                     logger.error('purge-soft-deleted: failed to anonymize email_sends', emailErr, { userId: u.id });

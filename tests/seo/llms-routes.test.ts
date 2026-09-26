@@ -64,6 +64,14 @@ describe('llms-full.txt route (computed from lib/salary-report)', () => {
         expect(read('app/llms-full.txt/route.ts')).not.toMatch(HARDCODED_DOLLAR);
     });
 
+    it('lists links in the same llmstxt.org form as llms.txt', () => {
+        const src = read('app/llms-full.txt/route.ts');
+        // `- [Name](url): description`, not a bare `url : description` line.
+        expect(src).toMatch(/- \[Job Board\]\(\$\{BASE_URL\}\/jobs\):/);
+        expect(src).toMatch(/- \[Jobs RSS Feed\]\(\$\{BASE_URL\}\/feed\.xml\):/);
+        expect(src).not.toMatch(/\$\{BASE_URL\}\/jobs : /);
+    });
+
     it('imports the stats engine and revalidates daily', () => {
         const src = read('app/llms-full.txt/route.ts');
         expect(src).toMatch(/@\/lib\/salary-report\/market-data/);
@@ -99,6 +107,11 @@ describe('llms-full.txt route (computed from lib/salary-report)', () => {
         // issue separate scans with different selects over the same table.
         vi.mocked(prisma.job.findMany).mockResolvedValue([...caRows, ...txRows] as never);
         vi.mocked(prisma.job.count).mockResolvedValue(1234 as never);
+        // The "data as of" stamp reads the newest posting/renewal, the same
+        // change signal the salary hub uses for dateModified.
+        vi.mocked(prisma.job.aggregate).mockResolvedValue({
+            _max: { createdAt: new Date('2026-09-20T10:00:00.000Z'), lastRenewedAt: new Date('2026-09-22T10:00:00.000Z') },
+        } as never);
 
         const res = await llmsFullGet();
         expect(res.headers.get('Content-Type')).toContain('text/plain');
@@ -109,6 +122,8 @@ describe('llms-full.txt route (computed from lib/salary-report)', () => {
         expect(body).toContain('Texas | $130,000');      // median of 6 x mid-130k
         expect(body).toContain('Telehealth: $140,000');  // setting median, n=6
         expect(body).toContain('1,234');                 // live posting count
+        // Dated from real data movement, not from render time.
+        expect(body).toContain('Data as of: 2026-09-22');
         expect(body).toContain('n=');                    // every figure ships with n
         expect(body).not.toContain('NaN');
         expect(body).toContain('advertised');            // framing rule
@@ -118,6 +133,7 @@ describe('llms-full.txt route (computed from lib/salary-report)', () => {
     it('omits figures instead of inventing them when the DB is degraded', async () => {
         vi.mocked(prisma.job.findMany).mockRejectedValue(new Error('db down') as never);
         vi.mocked(prisma.job.count).mockRejectedValue(new Error('db down') as never);
+        vi.mocked(prisma.job.aggregate).mockRejectedValue(new Error('db down') as never);
 
         const res = await llmsFullGet();
         const body = await res.text();
@@ -127,5 +143,55 @@ describe('llms-full.txt route (computed from lib/salary-report)', () => {
         // methodology's engine-constant quarantine bounds ($50k / $500k).
         const dollarMatches = body.match(/\$\d[\dk,]*/g) || [];
         expect(dollarMatches.every((m) => m === '$50k' || m === '$500k')).toBe(true);
+    });
+});
+/**
+ * The same no-fabrication rule, applied to the static entity files.
+ *
+ * public/humans.txt is linked from every page as <link rel="author">, and
+ * public/.well-known/ai-plugin.json is the manifest a model reads to decide
+ * what this site is. They claimed "4,135+ cities", "100,000+ indexed content
+ * pages" and per-city "cost of living adjustments" while the sitemap was
+ * deliberately gated down and those features do not exist. The guard existed
+ * but only covered the two route handlers, so the static files drifted.
+ */
+describe('static entity files carry no invented counts or coverage', () => {
+    const HUMANS = 'public/humans.txt';
+    const PLUGIN = 'public/.well-known/ai-plugin.json';
+    const AI_TXT = 'public/ai.txt';
+
+    // "4,135+", "100,000+", "24 job categories": a bare quantity attached to a
+    // coverage noun. Version numbers (Next.js 15, React 19, ES2024) and the
+    // "50 US states" constant are not coverage claims.
+    const COUNT_CLAIM = /\d{1,3}(,\d{3})+\+?|\d+\+\s*(cities|pages|categories|jobs|employers|states)/i;
+
+    it('humans.txt makes no numeric coverage claim and no dollar figure', () => {
+        const body = read(HUMANS);
+        expect(body).not.toMatch(COUNT_CLAIM);
+        expect(body).not.toMatch(HARDCODED_DOLLAR);
+        expect(body).not.toMatch(/[–—]/);
+    });
+
+    it('humans.txt drops the superlative positioning llms.txt refuses to make', () => {
+        expect(read(HUMANS)).not.toMatch(/most comprehensive/i);
+    });
+
+    it('ai-plugin.json promises only capabilities the site actually exposes', () => {
+        const json = JSON.parse(read(PLUGIN));
+        const model: string = json.description_for_model;
+        expect(model).not.toMatch(COUNT_CLAIM);
+        expect(model).not.toMatch(/cost of living/i);
+        expect(model).not.toMatch(/shortage area/i);
+        // The positioning line stays anchored to the one in llms.txt.
+        expect(model).toMatch(/specialized job board for Psychiatric Mental Health Nurse Practitioners/);
+    });
+
+    it('ai.txt names no data source the site does not attribute, and no stale date', () => {
+        const body = read(AI_TXT);
+        expect(body).not.toMatch(/Census/i);
+        expect(body).not.toMatch(/Last updated:/i);
+        // Path rules live in robots.txt only: a second hand-kept copy drifts.
+        expect(body).not.toMatch(/^Disallow:/m);
+        expect(body).toMatch(/robots\.txt/);
     });
 });

@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -15,6 +16,7 @@ import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 import CategoryFAQ from '@/components/CategoryFAQ';
+import { slugify } from '@/lib/utils';
 
 // Force dynamic rendering - don't try to statically generate during build
 /* Design Tokens */
@@ -58,11 +60,16 @@ async function getTelehealthJobs(skip: number = 0, take: number = 10) {
 
 async function getTelehealthStats() {
     const totalJobs = await prisma.job.count({ where: thFilter() });
-    const salaryData = await prisma.job.aggregate({
+    // One salary engine for the whole site. The old mean-of-two-column-means
+    // counted employer estimates and would publish a confident number off a
+    // single listing, so it disagreed with /salary-guide over these same
+    // postings. medianAdvertisedK quarantines the junk and returns 0 below
+    // five clean rows, which the `> 0` guards below already handle.
+    const salaryRows = await prisma.job.findMany({
         where: { ...thFilter(), normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
-        _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+        select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true },
     });
-    const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
+    const avgSalary = medianAdvertisedK(salaryRows);
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'], where: thFilter(),
         _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8,
@@ -146,7 +153,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
                                 '@type': 'ListItem',
                                 position: idx + 1,
                                 name: job.title,
-                                url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+                                url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}`,
                             })),
                         }),
                     }}
@@ -166,7 +173,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, virtual care."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'companies' },
         ]}
         description="Virtual psychiatric care positions with flexible hours, no commute, and multi-state practice opportunities."
@@ -234,7 +241,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised, annual</div>
               </div>
             )}
           </div>
@@ -261,7 +268,12 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
             <div className="cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_th_multistate.webp" alt="Multi-state telehealth reach" width={200} sizes="(max-width: 768px) 100vw, 200px" height={140} style={{ width: '100%', maxWidth: '180px', height: 'auto', borderRadius: '12px', marginBottom: '16px' }} />
               <h3 className="font-lora" style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>Multi-State Licensure</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Practice across state lines with PSYPACT or compact licensure.</p>
+              {/* Not PSYPACT: that is the psychologist compact and carries no
+                  APRN authority. The Nurse Licensure Compact covers RN
+                  practice only, and the APRN Compact is not implemented, so
+                  the honest version of this claim is "a license in each
+                  state", which is what /resources/multi-state-licensure says. */}
+              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Practice across state lines by holding an APRN license in each state you serve.</p>
             </div>
             {/* ROW 2: Icons */}
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
@@ -272,7 +284,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_telehealth_home.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Multi-State Reach</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>See patients across multiple states with PSYPACT or multi-state licensure.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>See patients in several states by licensing in each one. Many employers reimburse the cost.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_telehealth_reach.webp" alt="" width={48} sizes="48px" height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
@@ -289,8 +301,17 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
               <div>
                 <TrendingUp size={28} style={{ color: '#34D399', marginBottom: '12px' }} />
                 <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Salary & Benefits</h3>
-                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Average telehealth PMHNP salary:</p>
-                <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
+                {/* Gated on the same `> 0` the sidebar uses: the median is
+                    withheld below five clean listings, and "$0k" is worse
+                    than saying nothing. */}
+                {stats.avgSalary > 0 ? (
+                  <>
+                    <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Median advertised telehealth PMHNP salary:</p>
+                    <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
+                  </>
+                ) : (
+                  <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>Too few telehealth postings disclose a salary range for us to publish a median right now.</p>
+                )}
               </div>
               <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_th_salary.webp" alt="Telehealth PMHNP salary" width={280} sizes="(max-width: 768px) 100vw, 280px" height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
             </div>
@@ -318,7 +339,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
               <div key="02" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
                 <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>02</span>
                 <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>State Licenses</h3>
-                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Obtain licenses in states where your patients reside or join PSYPACT for telepsych.</p>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Obtain an APRN license in every state where your patients reside. Licensure follows the patient, not the clinician.</p>
               </div>
               <div key="03" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
                 <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>03</span>
@@ -363,8 +384,9 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
       <CategoryLocationsExplore categorySlug="telehealth" categoryLabel="Telehealth" />
 
       {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
-          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
-          live DB average (stored in $K, the FAQ copy expects dollars). */}
+          the shared lib/pseo/category-faq-data.ts source. The figure is the
+          tier-gated median advertised (held in $K, the FAQ copy expects
+          dollars), and it is omitted entirely when the sample is too thin. */}
       <CategoryFAQ category="telehealth" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
 
 
@@ -375,7 +397,11 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>Telehealth PMHNP Questions</h2>
           <div style={{ display: 'grid', gap: '16px' }}>
             {[
-              { q: 'Do I need special licensure for telehealth?', a: 'You need an active NP license in the state where your patient is located. PSYPACT and the Nurse Licensure Compact can streamline multi-state practice.' },
+              // Ships as FAQPage JSON-LD, so a wrong licensure claim here is
+              // the version search engines quote back. PSYPACT is the
+              // psychologist compact, and the NLC multistate license covers
+              // RN practice only.
+              { q: 'Do I need special licensure for telehealth?', a: 'You need an active APRN license in the state where your patient is located, because licensure follows the patient. A Nurse Licensure Compact multistate license covers RN practice only and does not extend to APRN practice, and the separate APRN Compact has not been implemented, so multi-state telehealth means holding a license in each state. Many employers reimburse those costs.' },
               { q: 'What technology do I need for telehealth?', a: 'A HIPAA-compliant video platform, reliable high-speed internet, dual monitors, a private workspace, and EPCS-enabled e-prescribing software.' },
               { q: 'What is the salary range for telehealth PMHNPs?', a: 'Telehealth PMHNP pay varies by patient volume, state, and whether the role is W-2 or 1099 contract; listings show the advertised range whenever the employer discloses one.' },
               { q: 'Can I prescribe controlled substances via telehealth?', a: 'Yes, with proper DEA registration and EPCS setup. The DEA now permits initial prescriptions via telehealth in many circumstances.' },

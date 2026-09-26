@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { headers, cookies } from 'next/headers';
 import { CONSENT_COOKIE, parseConsentCookie } from '@/lib/consent';
 import { brand } from '@/config/brand';
+import { ASSET_BASE } from '@/lib/asset-url';
 // Newsreader is loaded only in app/blog/layout.tsx (scoped to /blog/*) so
 // non-blog pages don't pay the cost of a font that's only used by editorial
 // body typography.
@@ -55,11 +56,29 @@ const lora = Lora({
 // UIs -- those now fall back to system monospace, saving a network roundtrip
 // + ~30 KB of font payload on every page load.
 
+/**
+ * Origin of the public asset CDN, for the preconnect hint below. Null when
+ * ASSET_BASE is not a parseable absolute URL: the hint is then skipped rather
+ * than emitted against a guessed host.
+ */
+const assetOrigin: string | null = (() => {
+  try {
+    return new URL(ASSET_BASE).origin;
+  } catch {
+    return null;
+  }
+})();
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || brand.baseUrl),
 
+  // House style: colon, never a spaced hyphen or a dash. This default is the
+  // title every page without its own inherits, so its separator sets the tone
+  // for the whole title set; "Job Board" was also dropped because "Jobs"
+  // already says it and the string was running past the ~60 characters Google
+  // renders before truncating.
   title: {
-    default: `${brand.name} - ${brand.niche.long} Job Board`,
+    default: `${brand.name}: ${brand.niche.long} Jobs`,
     template: `%s | ${brand.name}`,
   },
 
@@ -89,21 +108,21 @@ export const metadata: Metadata = {
     // cached image across unrelated pages.
     url: brand.baseUrl,
     siteName: brand.name,
-    title: `${brand.name} - Find ${brand.niche.long} Positions`,
+    title: `${brand.name}: Find ${brand.niche.long} Positions`,
     description: `The dedicated job board for ${brand.niche.short}s. Browse remote and in-person ${brand.niche.descriptor} jobs across all 50 states.`,
     images: [
       {
         url: '/api/og?v=3',
         width: 1200,
         height: 630,
-        alt: `${brand.name} - ${brand.niche.long} Job Board`,
+        alt: `${brand.name}: ${brand.niche.long} Job Board`,
       },
     ],
   },
 
   twitter: {
     card: 'summary_large_image',
-    title: `${brand.name} - ${brand.niche.long} Job Board`,
+    title: `${brand.name}: ${brand.niche.long} Jobs`,
     description: `Find your next ${brand.niche.short} position. Remote and in-person jobs across 50 states, updated daily.`,
     images: ['/api/og?v=3'],
   },
@@ -177,11 +196,23 @@ export default async function RootLayout({
         {/* Performance: Preconnect to external domains */}
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* Preconnect to Supabase CDN for hero/LCP image */}
-        <link rel="preconnect" href="https://sggccmqjzuimwlahocmy.supabase.co" crossOrigin="" />
-        <link rel="dns-prefetch" href="https://sggccmqjzuimwlahocmy.supabase.co" />
+        {/* No fonts.googleapis.com / fonts.gstatic.com hints: Inter and Lora
+            (here) and Newsreader (app/blog/layout.tsx) are loaded through
+            next/font/google, which downloads the files at build time and
+            self-hosts them under /_next/static/media. No page ever opens a
+            connection to either Google host, so the hints were two wasted TLS
+            handshakes in the critical window on every page load. */}
+        {/* Preconnect to the asset CDN that serves the hero/LCP image.
+            Derived from ASSET_BASE so it follows NEXT_PUBLIC_ASSET_BASE_URL
+            instead of going stale the moment the bucket or project moves;
+            omitted entirely if that value is not a parseable URL, which is
+            the honest degradation (a wrong preconnect is worse than none). */}
+        {assetOrigin && (
+          <>
+            <link rel="preconnect" href={assetOrigin} crossOrigin="" />
+            <link rel="dns-prefetch" href={assetOrigin} />
+          </>
+        )}
         {/* AI & GEO Discovery Links */}
         <link rel="author" href="/humans.txt" />
         <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM Site Information" />
@@ -205,8 +236,14 @@ export default async function RootLayout({
                   "alternateName": [`${brand.niche.short} Jobs`, brand.legal.entityName],
                   "legalName": brand.legal.entityName,
                   "url": brand.baseUrl,
+                  // One canonical logo URL everywhere. The graph used to give
+                  // `logo` and `image` two different files, and other
+                  // publisher blocks around the site a third, which is three
+                  // Organization signals for an entity reconciler to
+                  // reconcile instead of one. /logo.png is the square 512px
+                  // mark, the shape Google wants for Organization.logo.
                   "logo": `${brand.baseUrl}/logo.png`,
-                  "image": `${brand.baseUrl}/pmhnp_logo.png`,
+                  "image": `${brand.baseUrl}/logo.png`,
                   "description": `The dedicated job board for ${brand.niche.long}s`,
                   "foundingDate": brand.legal.foundingYear,
                   // Per attribution rules: do NOT emit a `founder` Person on
@@ -247,6 +284,32 @@ export default async function RootLayout({
                   // its urlTemplate pointed at /jobs?q= — a URL pattern
                   // robots.txt now deliberately disallows (P1.2). Dead markup
                   // advertising a blocked URL is worse than no markup.
+                },
+                {
+                  // The creator is the byline on the salary guide and its
+                  // state pages, the site's most-cited content. Until now
+                  // that byline was an inline Person with no @id and no page
+                  // behind it, so an entity reconciler saw a name string
+                  // rather than an entity and the experience signals attached
+                  // to nothing. A stable @id here gives every author field on
+                  // the site one node to point at.
+                  //
+                  // Deliberately NOT a `founder` on the Organization, and
+                  // deliberately not the registered LLC member:
+                  // brand.legal.creatorName is the public attribution name;
+                  // founderName is legal-context-only and never rendered.
+                  //
+                  // No `sameAs`: no verified external profile for this person
+                  // exists in the codebase, and a guessed one would poison
+                  // the reconciliation this node exists to fix.
+                  "@type": "Person",
+                  "@id": `${brand.baseUrl}/about#creator`,
+                  "name": brand.legal.creatorName,
+                  "jobTitle": `${brand.legal.creatorTitle}, ${brand.name}`,
+                  "url": `${brand.baseUrl}/about`,
+                  "worksFor": {
+                    "@id": `${brand.baseUrl}/#organization`
+                  }
                 }
               ]
             })
@@ -294,7 +357,21 @@ export default async function RootLayout({
               <MainContent>{children}</MainContent>
               <LayoutShell>
                 <MobileHideOnAppRoutes>
-                  <Footer />
+                  {/* Brand strings are passed down rather than imported by
+                      Footer itself: Footer is a client component on every
+                      page, and importing config/brand.ts there shipped the
+                      whole object literal — including the legal-only
+                      founderName — into the client bundle. See FooterProps. */}
+                  <Footer
+                    siteName={brand.name}
+                    legalEntityName={brand.legal.entityName}
+                    address={{
+                      line: brand.legal.addressLine,
+                      city: brand.legal.addressCity,
+                      region: brand.legal.addressRegion,
+                      postalCode: brand.legal.addressPostalCode,
+                    }}
+                  />
                 </MobileHideOnAppRoutes>
                 <BottomNav />
                 <ScrollIndicator />

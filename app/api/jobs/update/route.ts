@@ -177,6 +177,27 @@ export async function POST(request: NextRequest) {
     // scripts/backfill-structured-fields.ts, so a posting that switches from
     // remote to on-site drops its stale state-eligibility list instead of
     // advertising licences it no longer needs.
+    // benefits/setting/population were written straight from the request body.
+    // A non-string element in `benefits` reached Prisma as a type error and came
+    // back as a 500, and setting/population were stored raw while the sibling
+    // post routes sanitize the same fields. Everything here is edit-token
+    // authenticated, so the body is no more trusted than any other public input.
+    const benefits = Array.isArray(rawJobData.benefits)
+      ? rawJobData.benefits
+          .filter((b): b is string => typeof b === 'string')
+          .map((b) => sanitizeText(b, 100))
+          .filter((b) => b.length > 0)
+          .slice(0, 30)
+      : undefined;
+    const sanitizeOptionalField = (value: unknown): string | null | undefined => {
+      if (value === undefined) return undefined;
+      if (value === null || value === '') return null;
+      if (typeof value !== 'string') return null;
+      return sanitizeText(value, 100) || null;
+    };
+    const setting = sanitizeOptionalField(rawJobData.setting);
+    const population = sanitizeOptionalField(rawJobData.population);
+
     const jobTypes = collectJobTypes(jobData.jobType || null, jobData.title);
     const eligibleStateCodes = parsedLoc.isRemote && !parsedLoc.isHybrid
       ? extractEligibleStates(jobData.description)
@@ -226,9 +247,9 @@ export async function POST(request: NextRequest) {
         displaySalary,
         jobTypes,
         eligibleStateCodes,
-        benefits: Array.isArray(rawJobData.benefits) ? rawJobData.benefits : undefined,
-        setting: rawJobData.setting !== undefined ? (rawJobData.setting || null) : undefined,
-        population: rawJobData.population !== undefined ? (rawJobData.population || null) : undefined,
+        benefits,
+        setting,
+        population,
         updatedAt: new Date(),
       },
     });

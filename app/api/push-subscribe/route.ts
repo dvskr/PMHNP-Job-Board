@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { readJsonBody } from '@/app/api/_lib/json-body';
 
 // POST: Subscribe to push notifications
 export async function POST(request: NextRequest) {
@@ -9,8 +10,13 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await rateLimit(request, 'push-sub', RATE_LIMITS.general);
     if (rateLimitResult) return rateLimitResult;
 
+    const parsed = await readJsonBody(request)
+    if (!parsed.ok) return parsed.response
+
     try {
-        const { subscription } = await request.json()
+        const { subscription } = parsed.body as {
+            subscription?: { endpoint?: string; keys?: { p256dh?: string; auth?: string } }
+        }
         if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
             return NextResponse.json({ error: 'Invalid subscription data' }, { status: 400 })
         }
@@ -50,8 +56,11 @@ export async function DELETE(request: NextRequest) {
     const rateLimitResult = await rateLimit(request, 'push-unsub', RATE_LIMITS.general);
     if (rateLimitResult) return rateLimitResult;
 
+    const parsed = await readJsonBody(request)
+    if (!parsed.ok) return parsed.response
+
     try {
-        const { endpoint } = await request.json()
+        const { endpoint } = parsed.body as { endpoint?: string }
         if (!endpoint) return NextResponse.json({ error: 'Endpoint required' }, { status: 400 })
 
         const sub = await prisma.pushSubscription.findUnique({

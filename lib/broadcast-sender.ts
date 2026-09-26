@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { sendBroadcastEmail, buildBroadcastHtml, isMarketingOptedOut } from '@/lib/email-service';
+import { sendBroadcastEmail, isMarketingOptedOut } from '@/lib/email-service';
 import { logger } from '@/lib/logger';
 import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
 
@@ -123,12 +123,12 @@ export async function executeBroadcast(broadcastId: string): Promise<BroadcastPr
                 firstName: recipient.firstName,
             });
 
-            const html = buildBroadcastHtml(personalizedBody, personalizedSubject);
-
-            // Send with retry
+            // The shell (and its unsubscribe footer) is rendered by
+            // sendBroadcastEmail, which is where the recipient's token is
+            // minted. Only the personalized body travels from here.
             let success = false;
             for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-                const result = await sendBroadcastEmail(recipient.email, personalizedSubject, html);
+                const result = await sendBroadcastEmail(recipient.email, personalizedSubject, personalizedBody);
 
                 if (result.success) {
                     success = true;

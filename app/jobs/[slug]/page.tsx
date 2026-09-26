@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import { formatSalary, slugify, getJobFreshness, getExpiryStatus, expandInlineBullets, splitAtSectionMarkers } from '@/lib/utils';
 import { jobSalaryText } from '@/lib/salary-display';
@@ -30,6 +31,7 @@ import { getSiteStats } from '@/lib/site-stats';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import { publicJobsWhere } from '@/lib/filters';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 import { cityLinkHref } from '@/lib/pseo/related-cities';
 import { STATE_CODES, stateToSlug } from '@/lib/pseo/setting-state-config';
@@ -372,7 +374,12 @@ async function getStateSalaryAverage(stateName: string | null, stateCode: string
   // (state name vs state code) does not collide with it. The average has to
   // come from the same population the state page lists, or the widget quotes
   // a market rate built partly on expired and off-specialty rows.
-  const salaryData = await prisma.job.aggregate({
+  // Rows, not a SQL mean. medianAdvertisedK is the shared salary engine, so
+  // the comparison figure on a job page matches what /salary-guide publishes
+  // for the same state instead of being a mean of two column means over a
+  // set that included employer estimates. It returns 0 below five clean
+  // rows, which the caller already treats as "no comparison to draw".
+  const salaryRows = await prisma.job.findMany({
     where: {
       ...publicJobsWhere(),
       OR: [
@@ -382,18 +389,14 @@ async function getStateSalaryAverage(stateName: string | null, stateCode: string
       normalizedMinSalary: { not: null, gte: 30000 },
       normalizedMaxSalary: { not: null, gte: 30000 },
     },
-    _avg: {
+    select: {
       normalizedMinSalary: true,
       normalizedMaxSalary: true,
+      salaryIsEstimated: true,
     },
   });
 
-  const avgMin = salaryData._avg.normalizedMinSalary || 0;
-  const avgMax = salaryData._avg.normalizedMaxSalary || 0;
-
-  if (avgMin === 0 && avgMax === 0) return 0;
-
-  return Math.round((avgMin + avgMax) / 2 / 1000);
+  return medianAdvertisedK(salaryRows);
 }
 
 /**
@@ -547,12 +550,25 @@ export async function generateMetadata({ params }: JobPageProps) {
   const titleLocation = job.isRemote
     ? 'Remote'
     : (job.city && job.stateCode ? `${job.city}, ${job.stateCode}` : (job.state || ''));
-  const fullTitle = titleLocation
-    ? `${job.title} at ${job.employer}, ${titleLocation}`
-    : `${job.title} at ${job.employer}`;
-  const titleWithLocation = fullTitle.length > 65
-    ? `${job.title}, ${titleLocation || job.employer}`.slice(0, 65)
-    : fullTitle;
+  // Rank whole phrases and take the first that fits, instead of slicing
+  // characters. The old `.slice(0, 65)` cut scraped titles mid-token
+  // ("... Full Time, Colorado Spr") and dropped the employer entirely, which
+  // is the shape Google rewrites a title for. Budget is 60 because the root
+  // metadata template appends " | PMHNP Hiring" to whatever we return.
+  const SERP_TITLE_BUDGET = 60;
+  const titleCandidates = [
+    titleLocation ? `${job.title} at ${job.employer}, ${titleLocation}` : null,
+    `${job.title} at ${job.employer}`,
+    titleLocation ? `${job.title}, ${titleLocation}` : null,
+  ].filter((c): c is string => c !== null);
+  const fittingTitle = titleCandidates.find((c) => c.length <= SERP_TITLE_BUDGET) ?? null;
+  // Plenty of aggregated titles blow the budget on their own. Emit those as an
+  // absolute title so the brand suffix does not push a complete phrase further
+  // past what Google will display, and so nothing is ever cut mid-word.
+  const metadataTitle: Metadata['title'] = fittingTitle ?? { absolute: job.title };
+  // Share cards have far more room than a SERP line, so they always carry the
+  // employer.
+  const socialTitle = `${job.title} at ${job.employer}`;
 
   // B5 (organic audit 2026-08): jobs whose source listing has been missing
   // for DEAD_LINK_MISS_THRESHOLD consecutive health checks are excluded from
@@ -566,10 +582,10 @@ export async function generateMetadata({ params }: JobPageProps) {
   const isDeadLinkGated = missingStreak >= DEAD_LINK_MISS_THRESHOLD;
 
   return {
-    title: titleWithLocation,
+    title: metadataTitle,
     description,
     openGraph: {
-      title: titleWithLocation,
+      title: socialTitle,
       description,
       type: 'article',
       url: canonicalUrl,
@@ -586,7 +602,7 @@ export async function generateMetadata({ params }: JobPageProps) {
     },
     twitter: {
       card: 'summary_large_image',
-      title: titleWithLocation,
+      title: socialTitle,
       description,
       images: [ogImageUrl.toString()],
     },
@@ -1198,9 +1214,18 @@ export default async function JobPage({ params }: JobPageProps) {
             {/* Footer Info */}
             <div className="text-sm px-1 mt-6" style={{ color: 'var(--text-tertiary)' }}>
               <p>{freshness}</p>
-              {job.updatedAt && (
+              {/* "Last updated: {job.updatedAt}" used to live here. The view
+                  counter no longer touches updatedAt (see getJob), but
+                  lib/ingestion-service.ts still stamps it every time a source
+                  feed re-sights a job, whether or not a single field changed,
+                  so the line said "updated today" about a posting nothing had
+                  changed. Job has no contentChangedAt column (PseoStats does,
+                  stamped only on a real value change); until it does, the
+                  honest signals are the posted date above and the renewal
+                  date, so that is all we print. */}
+              {job.lastRenewedAt && (
                 <p className="mt-1">
-                  Last updated: {new Date(job.updatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  Renewed: {new Date(job.lastRenewedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </p>
               )}
               {job.sourceType === 'external' && job.sourceProvider && (

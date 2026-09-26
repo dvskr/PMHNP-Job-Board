@@ -32,6 +32,12 @@ export default function AnimatedContainer({
   const style: React.CSSProperties = {
     animationDelay: delay > 0 ? `${delay}ms` : undefined,
     animationDuration: duration > 0 ? `${duration}ms` : undefined,
+    // Every keyframe here starts at opacity 0, and none of the .animate-*
+    // rules set a fill-mode. Without `both` the element renders in its natural
+    // visible state during animationDelay, jumps to opacity 0 the instant the
+    // animation starts, then fades back in: the job description flashed
+    // visible, invisible, visible inside the first half second.
+    animationFillMode: 'both',
   };
 
   return (

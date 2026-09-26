@@ -84,7 +84,13 @@ export default function SalaryConverter({ nationalMedian, nationalN }: Props) {
   const [hoursPerWeek, setHoursPerWeek] = useState<string>('40');
   const [weeksPerYear, setWeeksPerYear] = useState<string>('52');
 
+  // The strip keeps '$', ',' and stray letters out of Number(), but it also
+  // ate the minus sign, so "-50" converted as if the user had typed 50 and
+  // the panel confidently reported a full breakdown for a negative wage.
+  // Reject the input instead: negative pay is not a typo we can guess at.
+  const amountIsNegative = /-/.test(amount);
   const amountValid = (() => {
+    if (amountIsNegative) return false;
     const raw = Number(amount.replace(/[^0-9.]/g, ''));
     return Number.isFinite(raw) && raw > 0;
   })();
@@ -153,6 +159,11 @@ export default function SalaryConverter({ nationalMedian, nationalN }: Props) {
           </label>
         </div>
         {/* Say WHY nothing renders instead of silently vanishing the results. */}
+        {amountIsNegative && (
+          <p className="mt-3 text-xs text-red-600" role="status">
+            Enter a positive pay amount.
+          </p>
+        )}
         {amountValid && (!hrsValid || !wksValid) && (
           <p className="mt-3 text-xs text-red-600" role="status">
             {!hrsValid ? 'Enter hours between 1 and 100. ' : ''}

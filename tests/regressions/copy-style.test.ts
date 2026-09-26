@@ -9,7 +9,10 @@
  * descriptions, email bodies, Stripe line items and pSEO narratives. A sweep
  * that covers only a few files is a rule that holds only on those files.
  *
- * This sweeps every .ts and .tsx under app/, components/ and lib/. Comments
+ * This sweeps every .ts and .tsx under app/, components/ and lib/, plus
+ * middleware.ts: its 410 and 503 responses are hand-written HTML pages with
+ * their own headings, body copy and <title>, served to readers and crawlers
+ * like any other page, and they sat outside the swept roots. Comments
  * are blanked first, because an engineering note is not copy and the rule
  * does not apply to it. A dash that has to survive as DATA (a regex character
  * class, a normalizer stripping dashes from scraped text) is written as its
@@ -21,6 +24,8 @@ import * as path from 'node:path';
 
 const ROOT = path.resolve(__dirname, '../../');
 const ROOTS = ['app', 'components', 'lib'];
+/** Copy that lives outside the swept roots, in a file rather than a folder. */
+const EXTRA_FILES = ['middleware.ts'];
 const DASH = /[\u2013\u2014]/;
 
 /** Every .ts/.tsx under the swept roots, repo-relative with forward slashes. */
@@ -34,6 +39,7 @@ function sourceFiles(): string[] {
     }
   };
   for (const root of ROOTS) walk(path.join(ROOT, root));
+  for (const file of EXTRA_FILES) out.push(file);
   return out;
 }
 
@@ -68,6 +74,62 @@ function blankComments(src: string): string {
   return out;
 }
 
+/**
+ * The blog and resource posts under content/ were never swept.
+ *
+ * The rule was enforced repo-wide on .ts and .tsx in 2026-09, and the sweep
+ * above is that enforcement, but it only ever looked at app/, components/ and
+ * lib/. The 87 MDX files that make up the published blog sat outside it with
+ * 1,999 dashes in them, which is more than the whole code surface had when
+ * the rule was introduced. A house style that stops at the file extension is
+ * not a house style.
+ *
+ * No comment-blanking here: in MDX effectively everything is copy. A fenced
+ * code block is the one exception and is stripped, since a dash inside a
+ * sample command is data, not prose.
+ */
+describe('published content is dash-free too', () => {
+  const CONTENT_ROOT = path.join(ROOT, 'content');
+
+  function contentFiles(dir: string, out: string[] = []): string[] {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) contentFiles(full, out);
+      else if (/\.mdx?$/.test(entry.name)) out.push(full);
+    }
+    return out;
+  }
+
+  /** Blank fenced code blocks, preserving line positions. */
+  function blankFences(src: string): string {
+    return src.replace(/```[\s\S]*?```/g, (m) => m.replace(/[^\n]/g, ' '));
+  }
+
+  const files = contentFiles(CONTENT_ROOT);
+
+  it('sweeps the whole content tree, not a sample', () => {
+    expect(files.length).toBeGreaterThan(50);
+  });
+
+  it('every published post is dash-free outside code fences', () => {
+    const offenders: string[] = [];
+    for (const file of files) {
+      const rel = path.relative(ROOT, file).replace(/\\/g, '/');
+      blankFences(fs.readFileSync(file, 'utf8'))
+        .split('\n')
+        .forEach((line, i) => {
+          if (DASH.test(line)) offenders.push(`${rel}:${i + 1}  ${line.trim().slice(0, 90)}`);
+        });
+    }
+    expect(
+      offenders,
+      `${offenders.length} em/en dash(es) in published content. Rewrite with a colon, comma, period ` +
+        `or "X to Y":\n  ${offenders.slice(0, 40).join('\n  ')}` +
+        (offenders.length > 40 ? `\n  ... and ${offenders.length - 40} more` : ''),
+    ).toEqual([]);
+  });
+});
+
 describe('no em dash or en dash reaches a reader', () => {
   const files = sourceFiles();
 
@@ -76,7 +138,7 @@ describe('no em dash or en dash reaches a reader', () => {
     expect(files.length).toBeGreaterThan(500);
   });
 
-  it('every app/, components/ and lib/ source is dash-free outside comments', () => {
+  it('every swept source is dash-free outside comments', () => {
     const offenders: string[] = [];
     for (const rel of files) {
       const body = blankComments(fs.readFileSync(path.join(ROOT, rel), 'utf8'));

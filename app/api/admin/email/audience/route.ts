@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 
@@ -33,8 +33,8 @@ async function loadOptedOutEmails(): Promise<Set<string>> {
  * GET /api/admin/email/audience?segment=all|job_seekers|employers|subscribers|newsletter
  * Returns the count and a sample of users matching the given segment.
  */
-export async function GET(req: Request) {
-    const authError = await requireApiAdmin();
+export async function GET(req: NextRequest) {
+    const authError = await requireApiAdmin(req);
     if (authError) return authError;
 
     const { searchParams } = new URL(req.url);

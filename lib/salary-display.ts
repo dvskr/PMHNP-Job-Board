@@ -83,6 +83,42 @@ export interface ResolvedJobSalary {
 }
 
 /**
+ * A stored displaySalary whose two bounds are the same amount, e.g.
+ * "$350k - $350k/yr" or "$150k-$150k/yr".
+ *
+ * These exist in the catalogue because the write path that produced them
+ * predates formatDisplaySalary's min === max collapse. They matter because
+ * JobStructuredData derives `isRange` from the NUMERIC pair
+ * (min != null && max != null && min !== max), so for these rows the page
+ * shows a range while the JobPosting markup emits a single QuantitativeValue
+ * value: markup that contradicts the page it annotates, which Google demotes.
+ */
+// The en dash is written as its escape: this one is DATA (some stored values
+// use it as the range separator), and the repo-wide copy-style sweep rejects a
+// literal en/em dash in source.
+const DEGENERATE_RANGE_RE = /^\s*(\$[\d.,]+\s*[km]?)\s*[-\u2013]\s*(\$[\d.,]+\s*[km]?)\s*(\/(?:yr|hr|mo))?\s*$/i;
+
+/**
+ * Collapse a stored "X to X" range to the single value it means, but ONLY when
+ * the numeric pair agrees that there is one value. When min and max genuinely
+ * differ and merely round to the same label, the markup emits a real range and
+ * collapsing the text would invert the mismatch instead of fixing it.
+ */
+function collapseDegenerateRange(job: JobSalaryTextFields, stored: string): string {
+  const match = DEGENERATE_RANGE_RE.exec(stored);
+  if (!match) return stored;
+
+  const [, low, high, period = ''] = match;
+  if (low.replace(/\s+/g, '').toLowerCase() !== high.replace(/\s+/g, '').toLowerCase()) return stored;
+
+  const { normalizedMinSalary: min, normalizedMaxSalary: max } = job;
+  const pairDisagrees = min != null && max != null && min !== max;
+  if (pairDisagrees) return stored;
+
+  return `${low.replace(/\s+/g, '')}${period}`;
+}
+
+/**
  * The ONE salary string every surface shows for a job (card, detail
  * header, OG image), plus the column it came from. Precedence:
  *   1. stored displaySalary
@@ -108,7 +144,8 @@ export function resolveJobSalary(job: JobSalaryTextFields): ResolvedJobSalary {
   const withDollarPrefix = (text: string): string => (text.startsWith('$') ? text : `$${text}`);
 
   if (job.displaySalary) {
-    return { text: withDollarPrefix(job.displaySalary), source: 'displaySalary' };
+    const stored = collapseDegenerateRange(job, job.displaySalary);
+    return { text: withDollarPrefix(stored), source: 'displaySalary' };
   }
 
   const fromNormalized = formatDisplaySalary(

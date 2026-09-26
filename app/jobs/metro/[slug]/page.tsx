@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { getMetroCity, getAllMetroSlugs, buildMetroJobsWhere, type MetroCity } from '@/lib/metro-data';
 import { publicJobsWhere } from '@/lib/filters';
+import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
 import { cleanSalaryRows, summarizeMidpoints, roundDisplayDollars } from '@/lib/salary-report/stats';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -14,6 +15,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryFAQ from '@/components/CategoryFAQ';
 import { notFound } from 'next/navigation';
+import { slugify } from '@/lib/utils';
 
 /* ═══ Design Tokens — V2 Warm Diorama ═══ */
 const clayCard: React.CSSProperties = {
@@ -132,7 +134,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // Title trimmed to <60 chars for SERP display. Salary/licensure/employer
   // detail moved to the description; longer "Top Employers (YYYY)" suffix
   // was reliably truncated mid-phrase.
-  const title = `${stats.totalJobs > 0 ? `${stats.totalJobs} ` : ''}PMHNP Jobs in ${metro.city}, ${metro.stateCode} (${new Date().getFullYear()})`;
+  // categoryTitleCount, not a bare `> 0` check: a metro with one or two live
+  // roles was advertising "2 PMHNP Jobs in ..." as index,follow while every
+  // other pSEO family drops the number below MIN_JOBS_FOR_CATEGORY_CITY.
+  const title = `${categoryTitleCount(stats.totalJobs)}PMHNP Jobs in ${metro.city}, ${metro.stateCode} (${new Date().getFullYear()})`;
   // Description capped at ~155 chars to avoid SERP truncation. Full hero
   // copy still renders on the page for users.
   const description = [
@@ -164,13 +169,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://pmhnphiring.com/jobs/metro/${slug}`,
     },
-    // B4 (organic audit 2026-08): a 0-job metro renders its full editorial
+    // B4 (organic audit 2026-08): a thin metro renders its full editorial
     // content at 200 (hub page, real internal-link value) but must not be
-    // indexed as an empty listings page. The sitemap stops advertising it
-    // via the same live count (app/sitemap.ts metro gate).
-    ...(stats.totalJobs === 0 && {
-      robots: { index: false, follow: true },
-    }),
+    // indexed as an empty listings page. The floor is now the shared
+    // MIN_JOBS_FOR_CATEGORY_CITY rather than 0, so a 1 or 2 job metro stops
+    // competing in the index with the same doorway signal the category
+    // families had removed. NOTE: app/sitemap.ts still advertises every metro
+    // with count > 0, so its gate has to move to match (owner: shell).
+    ...categoryLandingRobotsMeta(stats.totalJobs),
   };
 }
 
@@ -209,7 +215,7 @@ export default async function MetroLandingPage({ params }: PageProps) {
           numberOfItems: stats.totalJobs,
           itemListElement: stats.recentJobs.slice(0, 6).map((job: Job, idx: number) => ({
             '@type': 'ListItem', position: idx + 1, name: job.title,
-            url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+            url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}`,
           })),
         }) }} />
       )}
@@ -218,13 +224,15 @@ export default async function MetroLandingPage({ params }: PageProps) {
         bgColor={metro.practiceAuthority === 'Full' ? '#86c1a8' : metro.practiceAuthority === 'Reduced' ? '#c1a886' : '#c1868a'}
         heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_states.webp"
         heroAlt={`PMHNP jobs in ${metro.city}, ${metro.stateCode}`}
-        badgeText={`${stats.totalJobs} live roles`}
+        badgeText={stats.totalJobs === 1 ? '1 live role' : `${stats.totalJobs} live roles`}
         breadcrumbs={['Careers', metro.state, metro.city]}
         headlineLine1={metro.city}
         headlineLine2="PMHNP"
         headlineSub={`jobs in ${metro.stateCode}. Find your fit.`}
         stats={[
-          { value: `${stats.totalJobs}+`, label: 'positions' },
+          // The trailing "+" read as an understatement of a bigger number on a
+          // metro with one job ("1+ positions"). Print the count as it is.
+          { value: `${stats.totalJobs}`, label: stats.totalJobs === 1 ? 'position' : 'positions' },
           // No invented fallback. "$130K+" was a number nothing in the codebase
           // could reproduce, printed as a stat whenever the sample was too thin
           // to publish a real one.
@@ -481,7 +489,7 @@ export default async function MetroLandingPage({ params }: PageProps) {
               { step: '01', title: 'Licensure', text: `${metro.state} has ${metro.practiceAuthority} Practice Authority. ${metro.licensureNote.split('.')[0]}.` },
               { step: '02', title: 'Cost of Living', text: `${metro.city} cost of living is ${metro.avgCostOfLiving}. ${metro.costOfLivingNote.split('.')[0]}.` },
               { step: '03', title: 'Top Settings', text: `Popular settings include ${metro.topSettings.slice(0, 3).join(', ')}. Explore all options.` },
-              { step: '04', title: 'Apply', text: `Browse ${stats.totalJobs}+ positions in ${metro.city} and set up job alerts to be first to apply.` },
+              { step: '04', title: 'Apply', text: `Browse ${stats.totalJobs} ${stats.totalJobs === 1 ? 'position' : 'positions'} in ${metro.city} and set up job alerts to be first to apply.` },
             ].map(r => (
               <div key={r.step} className="metro-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
                 <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px', fontFamily: 'var(--font-mono)' }}>{r.step}</span>

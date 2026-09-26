@@ -42,6 +42,14 @@ export const metadata: Metadata = {
       'Instant score across the 8 dimensions PMHNP employers screen for. Free with an account, scored in memory and never stored.',
     type: 'website',
     url: `${BASE_URL}/tools/resume-checker`,
+    // Without `images` Next.js drops the root layout's og:image: a page-level
+    // openGraph object replaces the parent rather than merging with it.
+    images: [{
+      url: `/api/og?type=page&v=3&title=${encodeURIComponent('Free PMHNP Resume Checker')}&subtitle=${encodeURIComponent('Instant ATS-style score across 8 screening dimensions')}`,
+      width: 1200,
+      height: 630,
+      alt: 'Free PMHNP Resume Checker',
+    }],
   },
 };
 

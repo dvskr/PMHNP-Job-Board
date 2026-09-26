@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { verifyCsrf } from '@/lib/csrf';
 
 /**
  * GET /api/employer/settings/notifications
@@ -17,6 +18,19 @@ export async function GET(req: NextRequest) {
 
     if (authError || !user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Role gate, matching every other /api/employer/* route. The query below is
+    // already scoped to the caller so a seeker leaked nothing, but it answered
+    // 200 with an empty list where the rest of the namespace answers 403, and a
+    // probe that maps the API by status code should not see one route disagree.
+    const profile = await prisma.userProfile.findUnique({
+        where: { supabaseId: user.id },
+        select: { role: true },
+    });
+
+    if (!profile || !['employer', 'admin'].includes(profile.role)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const employerJobs = await prisma.employerJob.findMany({
@@ -47,6 +61,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 

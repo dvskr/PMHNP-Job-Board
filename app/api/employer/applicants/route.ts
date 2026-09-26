@@ -5,6 +5,9 @@ import { logger } from '@/lib/logger';
 import { mintResumeReadUrl, extractRequestContext } from '@/lib/resume-storage';
 import { mintDocReadUrl } from '@/lib/document-storage';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { sanitizeText } from '@/lib/sanitize';
+import { readJsonBody } from '@/app/api/_lib/json-body';
+import { verifyCsrf } from '@/lib/csrf';
 
 /**
  * GET /api/employer/applicants
@@ -213,6 +216,14 @@ export async function GET(req: NextRequest) {
  * Update an applicant's status and/or notes.
  */
 export async function PATCH(req: NextRequest) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     const rateLimitResponse = await rateLimit(req, 'employer:applicants', RATE_LIMITS.employer);
     if (rateLimitResponse) return rateLimitResponse;
     const supabase = await createClient();
@@ -231,12 +242,34 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { applicationId, status, notes } = body;
+    // The body is raw JSON, so every field can be any type. Unchecked, an
+    // unparseable body and a non-string applicationId (which went straight into
+    // the Prisma `where`) both came back as an empty 500 rather than the 400
+    // the missing-field and invalid-status branches below already return.
+    const parsedBody = await readJsonBody(req);
+    if (!parsedBody.ok) return parsedBody.response;
+    const { applicationId, status, notes } = parsedBody.body as {
+        applicationId?: unknown; status?: unknown; notes?: unknown;
+    };
 
-    if (!applicationId) {
+    if (typeof applicationId !== 'string' || !applicationId.trim()) {
         return NextResponse.json({ error: 'applicationId is required' }, { status: 400 });
     }
+
+    if (status !== undefined && typeof status !== 'string') {
+        return NextResponse.json({ error: 'status must be a string' }, { status: 400 });
+    }
+    const nextStatus: string | undefined = typeof status === 'string' ? status : undefined;
+
+    // `notes` is a String column and was written verbatim: a number threw at
+    // the driver, and any length was accepted. Private recruiter notes, so the
+    // bound is generous, but it is a bound.
+    const NOTES_MAX_LENGTH = 5000;
+    if (notes !== undefined && notes !== null && typeof notes !== 'string') {
+        return NextResponse.json({ error: 'notes must be text' }, { status: 400 });
+    }
+    const nextNotes: string | null | undefined =
+        notes === undefined ? undefined : (typeof notes === 'string' ? notes : null);
 
     // Verify the application belongs to one of this employer's jobs
     const application = await prisma.jobApplication.findUnique({
@@ -272,18 +305,18 @@ export async function PATCH(req: NextRequest) {
 
     // Validate status
     const validStatuses = ['applied', 'screening', 'interview', 'offered', 'hired', 'rejected', 'withdrawn'];
-    if (status && !validStatuses.includes(status)) {
+    if (nextStatus && !validStatuses.includes(nextStatus)) {
         return NextResponse.json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }, { status: 400 });
     }
 
     // Update
     const updateData: Record<string, unknown> = {};
-    if (status !== undefined) {
-        updateData.status = status;
+    if (nextStatus !== undefined) {
+        updateData.status = nextStatus;
         updateData.statusUpdatedAt = new Date();
     }
-    if (notes !== undefined) {
-        updateData.notes = notes;
+    if (nextNotes !== undefined) {
+        updateData.notes = nextNotes === null ? null : sanitizeText(nextNotes, NOTES_MAX_LENGTH);
     }
 
     const updated = await prisma.jobApplication.update({
@@ -292,7 +325,7 @@ export async function PATCH(req: NextRequest) {
     });
 
     // Send status change notification email to the candidate (fire-and-forget)
-    if (status && status !== application.status) {
+    if (nextStatus && nextStatus !== application.status) {
         try {
             const candidateProfile = await prisma.userProfile.findUnique({
                 where: { supabaseId: application.userId },
@@ -306,7 +339,7 @@ export async function PATCH(req: NextRequest) {
                     candidateName: [candidateProfile.firstName, candidateProfile.lastName].filter(Boolean).join(' ') || 'there',
                     jobTitle: application.job.title,
                     employerName: application.job.employer,
-                    newStatus: status,
+                    newStatus: nextStatus,
                 }).catch(err => logger.error('Failed to send status update email', err));
             }
         } catch (err) {

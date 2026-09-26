@@ -21,6 +21,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { mintResumeReadUrl, extractRequestContext } from '@/lib/resume-storage';
+import { logger } from '@/lib/logger';
 
 // Employer-side: extra-short TTL because the URL goes through a 302
 // redirect and never lives in the browser address bar for long. 60s is
@@ -28,7 +29,25 @@ import { mintResumeReadUrl, extractRequestContext } from '@/lib/resume-storage';
 // shoulder-surf or screenshot leak window is bounded.
 const SIGNED_URL_TTL_SECONDS = 60;
 
+/**
+ * Top-level handler guard. Supabase auth, Prisma and the storage signer can all
+ * throw transiently, and with no catch the failure came back as Next's default
+ * unhandled-exception response: an empty 500, nothing logged, an employer
+ * looking at a download that silently did nothing.
+ */
 export async function GET(
+    req: NextRequest,
+    ctx: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+    try {
+        return await handleGet(req, ctx);
+    } catch (error) {
+        logger.error('Employer candidate resume download failed', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
+
+async function handleGet(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {

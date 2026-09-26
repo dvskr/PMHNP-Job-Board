@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { verifyCsrf } from '@/lib/csrf';
 
 /**
  * PATCH /api/employer/jobs/[jobId]/archive
@@ -21,6 +22,14 @@ export async function PATCH(
     req: NextRequest,
     { params }: { params: Promise<{ jobId: string }> }
 ) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     const rateLimitResponse = await rateLimit(req, 'employer:archive', RATE_LIMITS.employer);
     if (rateLimitResponse) return rateLimitResponse;
 

@@ -179,7 +179,7 @@ export default function LicensesSection({ showMsg }: Props) {
                 <h4 style={claySubTitle}>
                     {editingId ? 'Edit License' : 'Add License'}
                 </h4>
-                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}>
+                <button onClick={cancelForm} aria-label="Close license form" style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}>
                     <X size={18} />
                 </button>
             </div>
@@ -187,8 +187,8 @@ export default function LicensesSection({ showMsg }: Props) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                     <div>
-                        <label style={labelStyle}>License Type *</label>
-                        <select
+                        <label htmlFor="lic-license-type" style={labelStyle}>License Type *</label>
+                        <select id="lic-license-type"
                             value={form.licenseType}
                             onChange={(e) => setForm({ ...form, licenseType: e.target.value })}
                             style={{ ...inputStyle, cursor: 'pointer' }}
@@ -200,8 +200,8 @@ export default function LicensesSection({ showMsg }: Props) {
                         </select>
                     </div>
                     <div>
-                        <label style={labelStyle}>License State *</label>
-                        <select
+                        <label htmlFor="lic-license-state" style={labelStyle}>License State *</label>
+                        <select id="lic-license-state"
                             value={form.licenseState}
                             onChange={(e) => setForm({ ...form, licenseState: e.target.value })}
                             style={{ ...inputStyle, cursor: 'pointer' }}
@@ -215,8 +215,8 @@ export default function LicensesSection({ showMsg }: Props) {
                 </div>
 
                 <div>
-                    <label style={labelStyle}>License Number *</label>
-                    <input
+                    <label htmlFor="lic-license-number" style={labelStyle}>License Number *</label>
+                    <input id="lic-license-number"
                         type="text"
                         value={form.licenseNumber}
                         onChange={(e) => setForm({ ...form, licenseNumber: e.target.value })}
@@ -227,8 +227,8 @@ export default function LicensesSection({ showMsg }: Props) {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                     <div>
-                        <label style={labelStyle}>Expiration Date</label>
-                        <input
+                        <label htmlFor="lic-expiration-date" style={labelStyle}>Expiration Date</label>
+                        <input id="lic-expiration-date"
                             type="date"
                             value={form.expirationDate || ''}
                             onChange={(e) => setForm({ ...form, expirationDate: e.target.value })}
@@ -236,8 +236,8 @@ export default function LicensesSection({ showMsg }: Props) {
                         />
                     </div>
                     <div>
-                        <label style={labelStyle}>Status</label>
-                        <select
+                        <label htmlFor="lic-status" style={labelStyle}>Status</label>
+                        <select id="lic-status"
                             value={form.status}
                             onChange={(e) => setForm({ ...form, status: e.target.value })}
                             style={{ ...inputStyle, cursor: 'pointer' }}

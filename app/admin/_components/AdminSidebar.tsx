@@ -191,12 +191,13 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="lg:pl-64 pt-16 lg:pt-0">
+      {/* Main Content. A div, not <main>: the root layout's MainContent
+          already renders <main id="main-content"> around every route. */}
+      <div className="lg:pl-64 pt-16 lg:pt-0">
         <div style={{ minHeight: '100vh' }}>
           {children}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

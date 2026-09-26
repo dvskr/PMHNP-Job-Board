@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 import { logger } from '@/lib/logger';
@@ -21,8 +21,11 @@ export const revalidate = 0;
  * Heavy queries are scoped to small windows (24h / 7d) and grouped on the
  * DB side so the payload stays small and the page stays snappy.
  */
-export async function GET() {
-    const authError = await requireApiAdmin();
+export async function GET(request: NextRequest) {
+    // The request is what gives this route its own rate-limit bucket and the
+    // pre-auth per-IP guard; requireApiAdmin() bare shares a fallback bucket
+    // with every other handler that omits it.
+    const authError = await requireApiAdmin(request);
     if (authError) return authError;
 
     try {

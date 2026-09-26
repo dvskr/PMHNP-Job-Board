@@ -249,13 +249,22 @@ describe('digest template rendering', () => {
     }
   });
 
-  it('renders the unsubscribe footer', () => {
-    // unsubscribeFooterV2 ignores its token argument house-wide and renders a
-    // generic preferences link; the real compliance surface is the
-    // List-Unsubscribe header, which sendAndLog builds from the unsubscribe
-    // URL the service passes. Pin what the template actually guarantees.
-    expect(html).toContain('/job-alerts/manage');
+  it('renders an opt-out footer the recipient can actually use', () => {
+    // The old comment here recorded that unsubscribeFooterV2 "ignores its
+    // token argument house-wide and renders a generic preferences link", and
+    // pinned /job-alerts/manage as the destination. That was a description of
+    // the bug. The footer now honours the token: the digest is marketing, so
+    // it carries a one-click Unsubscribe, and the preferences link goes
+    // somewhere that can identify a recipient with no account.
     expect(html).toContain('Manage preferences');
+    expect(html).not.toContain('/job-alerts/manage');
+
+    const hrefs = [...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1].replace(/&amp;/g, '&'));
+    const optOut = hrefs.filter((h) => /\/unsubscribe\?|\/email-preferences\?/.test(h));
+    expect(optOut.length, 'no token-bearing opt-out link in the footer').toBeGreaterThan(0);
+    for (const href of optOut) {
+      expect(new URL(href).searchParams.get('token')).toBeTruthy();
+    }
   });
 
   it('no em or en dashes in any rendered copy outside the shared stylesheet', () => {

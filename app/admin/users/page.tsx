@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { formatCT } from '@/lib/format-ct';
+import { adminFetch } from '@/lib/admin/admin-fetch';
 import {
     Users, Mail, Bell, Shield, Briefcase, UserCheck, Building2,
-    Search, X, ChevronDown, Trash2,
+    Search, X, ChevronDown, Trash2, Undo2,
 } from 'lucide-react';
 
 /* ─── Types ─── */
@@ -89,21 +90,28 @@ export default function AdminUsersPage() {
 
     // Action states
     const [actionMsg, setActionMsg] = useState<{ text: string; isError: boolean } | null>(null);
+    // A failed list load is kept separately from actionMsg, which self-clears
+    // after three seconds. An operator who looks away during a 429 would
+    // otherwise come back to an empty table that reads as "no users".
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     useEffect(() => { fetchData(); }, []);
 
     const fetchData = async () => {
-        try {
-            const res = await fetch('/api/admin/users');
-            const data = await res.json();
-            if (data.success) {
-                setUsers(data.users);
-                setEmailLeads(data.emailLeads);
-                setEmployerLeads(data.employerLeads || []);
-                setSummary(data.summary);
-            }
-        } catch (err) { console.error('Error:', err); }
-        finally { setLoading(false); }
+        const result = await adminFetch<{
+            users: UserProfile[]; emailLeads: EmailLead[];
+            employerLeads?: EmployerLead[]; summary: Summary;
+        }>('/api/admin/users');
+        if (result.ok) {
+            setUsers(result.data.users);
+            setEmailLeads(result.data.emailLeads);
+            setEmployerLeads(result.data.employerLeads || []);
+            setSummary(result.data.summary);
+            setLoadError(null);
+        } else {
+            setLoadError(result.error);
+        }
+        setLoading(false);
     };
 
     const showMsg = (text: string, isError: boolean) => {
@@ -112,38 +120,50 @@ export default function AdminUsersPage() {
     };
 
     const changeRole = async (userId: string, newRole: string) => {
-        try {
-            const res = await fetch(`/api/admin/users/${userId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ role: newRole }),
-            });
-            if (res.ok) {
-                setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-                showMsg(`Role updated to ${newRole}`, false);
-            }
-        } catch { showMsg('Failed to update role', true); }
+        const result = await adminFetch(`/api/admin/users/${userId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: newRole }),
+        });
+        if (!result.ok) { showMsg(`Role not changed. ${result.error}`, true); return; }
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+        showMsg(`Role updated to ${newRole}`, false);
     };
 
     const deactivateUser = async (userId: string) => {
         if (!confirm('Deactivate this user? Their profile will be hidden.')) return;
-        try {
-            const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
-            if (res.ok) {
-                setUsers(prev => prev.map(u => u.id === userId ? { ...u, profileVisible: false, openToOffers: false } : u));
-                showMsg('User deactivated', false);
-            }
-        } catch { showMsg('Failed to deactivate', true); }
+        const result = await adminFetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
+        if (!result.ok) { showMsg(`User not deactivated. ${result.error}`, true); return; }
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, profileVisible: false, openToOffers: false } : u));
+        showMsg('User deactivated', false);
+    };
+
+    // Deactivation is a soft delete (profileVisible=false), so the way back is
+    // the same PATCH the role dropdown uses. openToOffers stays off: that one
+    // is the member's own preference, not ours to switch back on for them.
+    //
+    // The confirm is not ceremony. profileVisible is also the member's own
+    // privacy toggle in /settings, so "Hidden" does not always mean "an admin
+    // deactivated this row", and unhiding someone who hid themselves would
+    // override a privacy choice.
+    const restoreUser = async (userId: string) => {
+        if (!confirm('Make this profile visible to employers again? If the member hid it themselves in their own settings, this overrides that choice.')) return;
+        const result = await adminFetch(`/api/admin/users/${userId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profileVisible: true }),
+        });
+        if (!result.ok) { showMsg(`User not restored. ${result.error}`, true); return; }
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, profileVisible: true } : u));
+        showMsg('User restored. They can switch "open to offers" back on themselves.', false);
     };
 
     const viewProfile = async (userId: string) => {
-        try {
-            setDetailLoading(true);
-            const res = await fetch(`/api/admin/users/${userId}`);
-            const data = await res.json();
-            if (data.success) setSelectedUser(data.user);
-        } catch { showMsg('Failed to load profile', true); }
-        finally { setDetailLoading(false); }
+        setDetailLoading(true);
+        const result = await adminFetch<{ user: UserDetail }>(`/api/admin/users/${userId}`);
+        setDetailLoading(false);
+        if (!result.ok) { showMsg(`Could not open the profile. ${result.error}`, true); return; }
+        setSelectedUser(result.data.user);
     };
 
     // Filtered lists
@@ -201,6 +221,20 @@ export default function AdminUsersPage() {
                     backgroundColor: actionMsg.isError ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
                     color: actionMsg.isError ? '#F87171' : '#22C55E',
                 }}>{actionMsg.text}</div>
+            )}
+
+            {loadError && (
+                <div role="alert" style={{
+                    marginBottom: 16, padding: '12px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+                    backgroundColor: 'rgba(239,68,68,0.1)', color: '#B91C1C',
+                }}>
+                    <span>This list could not be loaded, so the counts below are not the real ones. {loadError}</span>
+                    <button onClick={() => { setLoading(true); fetchData(); }}
+                        style={{ ...inputStyle, cursor: 'pointer', fontWeight: 600 }}>
+                        Retry
+                    </button>
+                </div>
             )}
 
             {/* Summary Cards */}
@@ -304,10 +338,17 @@ export default function AdminUsersPage() {
                                         </td>
                                         <td style={td}>{formatCT(user.createdAt, 'date')}</td>
                                         <td style={{ ...td, textAlign: 'center' }}>
-                                            <button onClick={() => deactivateUser(user.id)} title="Deactivate"
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#EF4444' }}>
-                                                <Trash2 size={14} />
-                                            </button>
+                                            {user.profileVisible ? (
+                                                <button onClick={() => deactivateUser(user.id)} title="Deactivate"
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#EF4444' }}>
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            ) : (
+                                                <button onClick={() => restoreUser(user.id)} title="Restore this profile"
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#22C55E' }}>
+                                                    <Undo2 size={14} />
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

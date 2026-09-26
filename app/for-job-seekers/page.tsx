@@ -16,7 +16,10 @@ import {
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'For Job Seekers: Find Your Next PMHNP Role | PMHNP Hiring',
+  // Bare title: app/layout.tsx defines title.template `%s | PMHNP Hiring`,
+  // which Next appends to every plain-string child title. Repeating the
+  // brand here rendered it twice in the SERP and the browser tab.
+  title: 'For Job Seekers: Find Your Next PMHNP Role',
   // Removed the hardcoded "9,000+" job count (audit 09 M-21) — the actual
   // count drifts and a stale figure in metadata that doesn't match the
   // live UI is a credibility hit. Description now describes the platform

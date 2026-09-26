@@ -128,3 +128,25 @@ export function summarizeMidpoints(sortedAsc: number[]): SalaryTierSummary {
 export function roundDisplayDollars(v: number): number {
   return Math.round(v / 500) * 500;
 }
+
+/**
+ * The whole pipeline in one call: raw rows in, tier-gated median in
+ * THOUSANDS out, or 0 when the sample is too thin to say anything.
+ *
+ * Exists because roughly thirty listing pages each hand-rolled the same
+ * figure as `prisma.job.aggregate({ _avg: { normalizedMinSalary,
+ * normalizedMaxSalary } })` and then `(min + max) / 2 / 1000`. That is a mean
+ * of two column means, it counted employer-estimated rows, it quarantined
+ * nothing, and it published a confident number off a single listing. Every
+ * one of those pages rendered it as "avg salary" beside a salary guide that,
+ * over the same postings, published a tier-gated median.
+ *
+ * Returning 0 rather than a small-sample number is deliberate: the callers
+ * all already branch on `> 0` to decide whether to mention pay at all.
+ */
+export function medianAdvertisedK(rows: SalaryRow[]): number {
+  const { midpoints } = cleanSalaryRows(rows);
+  const summary = summarizeMidpoints(midpoints);
+  if (summary.tier !== 'full' && summary.tier !== 'median') return 0;
+  return Math.round(roundDisplayDollars(summary.median) / 1000);
+}

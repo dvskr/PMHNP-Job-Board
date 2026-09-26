@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 import { buildBroadcastHtml } from '@/lib/email-service';
 
@@ -6,8 +6,8 @@ import { buildBroadcastHtml } from '@/lib/email-service';
  * POST /api/admin/email/preview
  * Renders the email HTML with sample data for preview.
  */
-export async function POST(req: Request) {
-    const authError = await requireApiAdmin();
+export async function POST(req: NextRequest) {
+    const authError = await requireApiAdmin(req);
     if (authError) return authError;
 
     try {

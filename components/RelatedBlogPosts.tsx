@@ -28,12 +28,33 @@ const categoryEmoji: Record<string, string> = {
     interview: '🎤',
 };
 
+/**
+ * The salary guide is a standalone page, not a blog post, so it cannot come
+ * through getPostBySlug. Pinning it here links /salary-guide directly with a
+ * descriptive anchor instead of routing job pages through the
+ * /blog/pmhnp-salary-guide-2026 -> /salary-guide redirect.
+ */
+const SALARY_GUIDE_LINK = {
+    slug: '/salary-guide',
+    title: 'PMHNP Salary Guide',
+    description: 'Current PMHNP pay by state, setting and experience level.',
+    category: 'salary',
+};
+
 export default function RelatedBlogPosts({
     posts,
     title = 'Career Resources',
     context = 'job',
 }: RelatedBlogPostsProps) {
-    if (posts.length === 0) return null;
+    // On job pages the block always has at least the salary guide to show.
+    const entries = context === 'job'
+        ? [
+            { ...SALARY_GUIDE_LINK, href: SALARY_GUIDE_LINK.slug },
+            ...posts.map(p => ({ ...p, href: `/blog/${p.slug}` })),
+        ]
+        : posts.map(p => ({ ...p, href: `/blog/${p.slug}` }));
+
+    if (entries.length === 0) return null;
 
     return (
         <section style={{
@@ -65,10 +86,10 @@ export default function RelatedBlogPosts({
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {posts.slice(0, 3).map((post) => (
+                    {entries.slice(0, 3).map((post) => (
                         <Link
-                            key={post.slug}
-                            href={`/blog/${post.slug}`}
+                            key={post.href}
+                            href={post.href}
                             className="rbp-card"
                             style={{
                                 display: 'flex',
@@ -164,8 +185,12 @@ export function getRelevantBlogSlugs(options: {
 }): string[] {
     const slugs: string[] = [];
 
-    // Always include salary guide
-    slugs.push('pmhnp-salary-guide-2026');
+    // NOTE: every slug returned here must resolve to a live /blog/<slug>.
+    // 'pmhnp-salary-guide-2026' used to be pushed first, but next.config.ts
+    // 301s it to /salary-guide, so every job page sent its strongest salary
+    // vote through a redirect. The salary money page is now linked directly by
+    // the component below (SALARY_GUIDE_LINK), with a descriptive anchor.
+    // tests/regressions/related-blog-slugs.test.ts pins the invariant.
 
     if (options.isRemote || options.isTelehealth) {
         slugs.push('telehealth-pmhnp-guide');
@@ -177,9 +202,10 @@ export function getRelevantBlogSlugs(options: {
         slugs.push('5-tips-new-grad-pmhnp-job-market');
     }
 
-    // General career guides
+    // General career guides. The interview article was consolidated: the bare
+    // '-questions' slug 301s to the '-2026' one, so link the destination.
     if (slugs.length < 3) {
-        slugs.push('pmhnp-interview-questions');
+        slugs.push('pmhnp-interview-questions-2026');
         slugs.push('pmhnp-salary-negotiation');
     }
 

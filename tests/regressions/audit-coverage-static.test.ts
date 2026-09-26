@@ -129,7 +129,13 @@ describe('pSEO crawler edge-caching', () => {
   it('middleware edge-caches public /jobs listing pages for crawlers and skips the consent cookie for them', () => {
     const src = read('middleware.ts');
     // Consent cookie skipped for crawlers (so the response is CDN-cacheable).
-    expect(src).toMatch(/if \(!isCrawler\)\s*\{\s*response\.cookies\.set\('pmhnp_consent_region'/);
+    // Pinned as the rule, not as one spelling of the condition: the guard now
+    // also skips the write when the browser already carries the same region,
+    // so an unchanged value no longer makes every human page view
+    // un-cacheable either.
+    const cookieWrite = src.match(/if \(([^)]*)\)\s*\{\s*response\.cookies\.set\('pmhnp_consent_region'/);
+    expect(cookieWrite, 'the consent-region cookie must be written behind a guard').not.toBeNull();
+    expect(cookieWrite?.[1]).toContain('!isCrawler');
     // Edge cache directive set for crawler GETs on listing paths.
     expect(src).toContain("response.headers.set('CDN-Cache-Control'");
     expect(src).toMatch(/isCrawler &&[\s\S]*isJobDetailUrl/);
@@ -137,11 +143,17 @@ describe('pSEO crawler edge-caching', () => {
 });
 
 describe('OG routes are not SSRF proxies', () => {
+  // Originally this asserted the logo was fetched from a FIXED origin rather
+  // than from the request Host header, which is attacker-controlled. The logo
+  // is now inlined (app/api/og/_logo.ts) and no fetch runs at all, which is
+  // the same guarantee without the round trip, so the assertion moved from
+  // "fetch this exact URL" to "do not build a fetch out of request input".
   for (const f of ['app/api/og/route.tsx', 'app/api/og/city/route.tsx']) {
-    it(`${f} fetches the logo from a fixed origin`, () => {
+    it(`${f} never fetches a URL derived from the request`, () => {
       const src = read(f);
-      expect(src).toContain("fetch('https://pmhnphiring.com/pmhnp_logo.png')");
       expect(src).not.toMatch(/fetch\(`\$\{protocol\}:\/\/\$\{host\}/);
+      expect(src).not.toMatch(/fetch\([^)]*host/i);
+      expect(src).toContain('LOGO_DATA_URI');
     });
   }
 });

@@ -143,8 +143,13 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
   const filters = parseFiltersFromParams(urlParams);
   const where = buildWhereClause(filters);
 
-  // Get page and sort from params
-  const page = parseInt((params.page as string) || '1');
+  // Get page and sort from params. `?page=0`, `?page=-1` and `?page=abc` used
+  // to flow straight into `skip`, producing a negative or NaN offset that
+  // Prisma rejects; the catch below then rendered the empty "No jobs found"
+  // body at HTTP 200. Clamp the way /api/jobs and generateMetadata already do,
+  // so a malformed page falls back to page 1 with real results.
+  const rawPage = parseInt((params.page as string) || '1', 10);
+  const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
   const sort = (params.sort as string) || 'best';
   const limit = 50;
   const skip = (page - 1) * limit;

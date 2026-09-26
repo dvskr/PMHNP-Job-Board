@@ -11,6 +11,10 @@ interface RenewalData {
   jobSlug: string;
   dashboardToken: string;
   tier: string;
+  /** True while the Stripe webhook has not yet recorded the renewal charge. */
+  processing?: boolean;
+  /** The expiry the webhook actually wrote, ISO 8601, or null for legacy rows. */
+  expiresAt?: string | null;
 }
 
 function RenewalSuccessContent() {
@@ -40,26 +44,44 @@ function RenewalSuccessContent() {
       return () => clearTimeout(timer);
     }
 
-    // Fetch session details
-    const fetchData = async () => {
+    // Stripe reporting the session as paid is not the renewal having been
+    // applied: the webhook is what extends expiresAt, and it can be delayed or
+    // retried. The endpoint answers `processing: true` until it has recorded
+    // the charge, so poll for it the way /success does for a new post rather
+    // than asserting success the moment the first 200 comes back.
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 6; // roughly 12 seconds
+
+    const tick = async () => {
       try {
-        const res = await fetch(`/api/verify-renewal-session?session_id=${sessionId}`);
+        const res = await fetch(`/api/verify-renewal-session?session_id=${encodeURIComponent(sessionId)}`);
         const data = await res.json();
 
+        if (cancelled) return;
+
         if (data.error) {
-          setState({
-            loading: false,
-            error: data.error,
-            renewalData: null,
-          });
-        } else {
-          setState({
-            loading: false,
-            error: null,
-            renewalData: data,
-          });
+          setState({ loading: false, error: data.error, renewalData: null });
+          return;
         }
+
+        if (data.processing) {
+          attempts += 1;
+          if (attempts >= maxAttempts) {
+            setState({
+              loading: false,
+              error: 'Payment received, but the renewal is still being applied. Refresh in a moment, or check your email for the confirmation.',
+              renewalData: null,
+            });
+            return;
+          }
+          setTimeout(tick, 2000);
+          return;
+        }
+
+        setState({ loading: false, error: null, renewalData: data });
       } catch {
+        if (cancelled) return;
         setState({
           loading: false,
           error: 'Failed to verify renewal',
@@ -68,8 +90,8 @@ function RenewalSuccessContent() {
       }
     };
 
-    fetchData();
-    return () => { }; // Explicit cleanup function for all paths
+    tick();
+    return () => { cancelled = true; };
   }, [sessionId]);
 
   const { loading, error, renewalData } = state;
@@ -105,7 +127,13 @@ function RenewalSuccessContent() {
     );
   }
 
-  const daysExtended = config.durationDays;
+  // The real expiry the webhook wrote, not a fixed term. The 365-day cap can
+  // truncate a renewal to less than a full cycle, in which case "extended for
+  // another 60 days" would simply be untrue.
+  const expiresAt = renewalData.expiresAt ? new Date(renewalData.expiresAt) : null;
+  const expiryLabel = expiresAt && !Number.isNaN(expiresAt.getTime())
+    ? expiresAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 via-white to-teal-50 flex items-center justify-center p-4">
@@ -129,16 +157,21 @@ function RenewalSuccessContent() {
 
         {/* Description */}
         <p className="text-lg text-gray-600 mb-8">
-          Your job posting has been extended for another {daysExtended} days.
+          {expiryLabel
+            ? `Your renewal is confirmed. This listing now runs through ${expiryLabel}.`
+            : `Your renewal is confirmed and this listing has been extended by up to ${config.durationDays} days.`}
           <span className="block mt-2 text-green-700 font-semibold">
             ✨ Featured placement re-activated.
           </span>
         </p>
 
-        {/* Success Badge */}
+        {/* Success Badge. Deliberately does not assert that the listing is
+            live: this endpoint reports the charge and the expiry, not the
+            publish state, and a paused posting stays paused through a
+            renewal. The dashboard below is where that is visible. */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-8">
           <p className="text-green-800 text-sm">
-            ✓ Your job is now live and visible to candidates.
+            ✓ Payment received and applied to this posting.
           </p>
         </div>
 

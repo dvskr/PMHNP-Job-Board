@@ -50,12 +50,25 @@ import { POST } from '@/app/api/upload/route';
 const PDF = 'application/pdf';
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
-/** Minimal stand-in for a Next request: the route only reads formData(). */
-function uploadRequest(type: string, fileName: string, fileType: string): NextRequest {
+/**
+ * Stand-in for a Next request. It carries real Headers as well as formData:
+ * the route reads content-length to refuse an oversized body BEFORE
+ * formData() buffers it, and a stand-in without headers made all six cases
+ * here fail with "Cannot read properties of undefined" rather than testing
+ * anything. `contentLength` is optional so a case can exercise that guard.
+ */
+function uploadRequest(
+    type: string,
+    fileName: string,
+    fileType: string,
+    contentLength?: number,
+): NextRequest {
     const form = new FormData();
     form.append('file', new File(['%PDF-1.7 fixture'], fileName, { type: fileType }));
     form.append('type', type);
-    return { formData: async () => form } as unknown as NextRequest;
+    const headers = new Headers();
+    if (contentLength !== undefined) headers.set('content-length', String(contentLength));
+    return { headers, formData: async () => form } as unknown as NextRequest;
 }
 
 beforeEach(() => {

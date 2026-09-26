@@ -5,6 +5,27 @@ import { canUnlockCandidate, getEmployerTier } from '@/lib/tier-limits'
 import { PricingTier } from '@/lib/config'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { mintResumeReadUrl, extractRequestContext } from '@/lib/resume-storage'
+import { logger } from '@/lib/logger'
+import { postingUnlockHeadroom } from '../../_lib/posting-headroom'
+
+/**
+ * Top-level handler guard. The body below talks to Supabase, Prisma and
+ * Supabase Storage; any of them can throw transiently (a pool blip, a
+ * statement timeout), and with no catch that surfaced as Next's default
+ * unhandled-exception response: an empty 500 with nothing in the log. The rest
+ * of the API answers with a JSON envelope and a logged error, so this does too.
+ */
+export async function GET(
+    req: NextRequest,
+    ctx: { params: Promise<{ id: string }> }
+) {
+    try {
+        return await handleGet(req, ctx)
+    } catch (error) {
+        logger.error('Employer candidate detail failed', error)
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+}
 
 /**
  * Check whether an employer has at least one active FEATURED job posting.
@@ -26,7 +47,7 @@ async function hasActiveFeaturedPost(supabaseId: string): Promise<boolean> {
     return count > 0
 }
 
-export async function GET(
+async function handleGet(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -121,6 +142,12 @@ export async function GET(
         // this employer AND currently active. Otherwise fall through to
         // the auto-picker — never trust a client-supplied posting id
         // unverified.
+        //
+        // Ownership is not enough on its own: the requested posting must also
+        // still have credits. The global cap spans every active posting, so
+        // pinning unlocks to an already-full posting over-attributed them and
+        // handed out a fresh bucket once that posting expired. See
+        // app/api/employer/_lib/posting-headroom.ts.
         const requestedPostingId = req.nextUrl.searchParams.get('postingId') || null;
         if (requestedPostingId) {
             const ownsPosting = await prisma.employerJob.findFirst({
@@ -132,9 +159,12 @@ export async function GET(
                     ],
                     job: { isPublished: true, expiresAt: { gt: new Date() } },
                 },
-                select: { id: true },
+                select: { id: true, pricingTier: true },
             });
-            chargePostingId = ownsPosting ? requestedPostingId : unlockCheck.postingId;
+            const hasHeadroom = ownsPosting
+                ? (await postingUnlockHeadroom(ownsPosting.id, ownsPosting.pricingTier)) > 0
+                : false;
+            chargePostingId = hasHeadroom ? requestedPostingId : unlockCheck.postingId;
         } else {
             chargePostingId = unlockCheck.postingId;
         }

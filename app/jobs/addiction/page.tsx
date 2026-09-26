@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import { buildCategoryWhereClause } from '@/lib/filters';
 import { categoryTitleCount, categoryLandingRobotsMeta } from '@/lib/pseo/category-landing-gate';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -15,6 +16,7 @@ import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryLocationsExplore from '@/components/seo/CategoryLocationsExplore';
 import CategoryFAQ from '@/components/CategoryFAQ';
+import { slugify } from '@/lib/utils';
 
 // Force dynamic rendering
 /* Design Tokens */
@@ -57,18 +59,20 @@ async function getAddictionStats() {
         where: categoryWhere(),
     });
 
-    const salaryData = await prisma.job.aggregate({
+    // One salary engine for the whole site. The old mean-of-two-column-means
+    // counted employer estimates and would publish a confident number off a
+    // single listing, so it disagreed with /salary-guide over these same
+    // postings. medianAdvertisedK quarantines the junk and returns 0 below
+    // five clean rows, which the `> 0` guards below already handle.
+    const salaryRows = await prisma.job.findMany({
         where: {
             ...categoryWhere(),
             normalizedMinSalary: { not: null },
             normalizedMaxSalary: { not: null },
         },
-        _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+        select: { normalizedMinSalary: true, normalizedMaxSalary: true, salaryIsEstimated: true },
     });
-
-    const avgMin = salaryData._avg.normalizedMinSalary || 0;
-    const avgMax = salaryData._avg.normalizedMaxSalary || 0;
-    const avgSalary = Math.round((avgMin + avgMax) / 2 / 1000);
+    const avgSalary = medianAdvertisedK(salaryRows);
 
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
@@ -94,7 +98,10 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
     return {
         title: `${categoryTitleCount(stats.totalJobs)}Addiction PMHNP Jobs: Substance Use & MAT Psych NP Positions`,
-        description: `Find ${categoryTitleCount(stats.totalJobs)}addiction & substance use disorder PMHNP jobs. MAT programs, opioid treatment, detox, and recovery centers. Avg $${stats.avgSalary || 155}K+.`,
+        // The old copy fell back to a hardcoded "$155K+" whenever the sample
+        // was thin, which published a number no posting on this page supports.
+        // The median is now either real or absent.
+        description: `Find ${categoryTitleCount(stats.totalJobs)}addiction & substance use disorder PMHNP jobs. MAT programs, opioid treatment, detox, and recovery centers.${stats.avgSalary > 0 ? ` Median advertised $${stats.avgSalary}K.` : ''}`,
         keywords: ['addiction pmhnp jobs', 'substance use pmhnp', 'MAT pmhnp', 'suboxone prescriber jobs', 'addiction psychiatry NP'],
         openGraph: {
             title: `${categoryTitleCount(stats.totalJobs)}Addiction PMHNP Jobs - Substance Use & MAT Positions`,
@@ -135,7 +142,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
                 { name: "Addiction", url: "https://pmhnphiring.com/jobs/addiction" }
             ]} />
             {jobs.length > 0 && (
-              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Addiction PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Addiction PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}` })) }) }} />
             )}
 
             {/* ═══ HERO ═══ */}
@@ -151,7 +158,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
         headlineSub="jobs, SUD & MAT roles."
         stats={[
           { value: `${stats.totalJobs}+`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'avg salary' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : 'Varies', label: 'median advertised' },
           { value: `${stats.topEmployers.length}+`, label: 'employers' },
         ]}
         description="Substance use disorder and MAT positions with high demand, competitive pay, and life-changing patient impact."
@@ -219,7 +226,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
-                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised, annual</div>
               </div>
             )}
           </div>
@@ -287,7 +294,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary + Benefits</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                  {stats.avgSalary > 0 ? `Addiction PMHNP listings here average $${stats.avgSalary}k annually. ` : ''}Loan repayment programs and sign-on bonuses are common at many facilities.
+                  {stats.avgSalary > 0 ? `The median addiction PMHNP listing here advertises $${stats.avgSalary}k annually. ` : ''}Loan repayment programs and sign-on bonuses are common at many facilities.
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
@@ -381,8 +388,9 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
       <CategoryLocationsExplore categorySlug="addiction" categoryLabel="Addiction" />
 
       {/* FAQ (audit 2026-08 C8): visible accordion + FAQPage schema from
-          the shared lib/pseo/category-faq-data.ts source. avgSalary is the
-          live DB average (stored in $K, the FAQ copy expects dollars). */}
+          the shared lib/pseo/category-faq-data.ts source. avgSalary now holds
+          the tier-gated median advertised (in $K, the FAQ copy expects
+          dollars), so it is undefined rather than $0 on a thin sample. */}
       <CategoryFAQ category="addiction" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary > 0 ? stats.avgSalary * 1000 : undefined} />
 
 

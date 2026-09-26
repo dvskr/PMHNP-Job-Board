@@ -50,7 +50,26 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const formData = await req.formData();
+        // The file.size guard below only runs once the body has already been
+        // buffered, and request.formData() throws on a body far past the cap —
+        // which fell to the outer catch and surfaced as a generic 500 "Internal
+        // server error" instead of telling the user the file is too big. Refuse
+        // on the declared length first, and treat an unparseable body as the
+        // client error it is. The 64KB allowance covers multipart framing.
+        const declaredLength = Number(req.headers.get('content-length') ?? '');
+        if (Number.isFinite(declaredLength) && declaredLength > MAX_SIZE + 64 * 1024) {
+            return NextResponse.json({ error: 'File must be under 5MB' }, { status: 413 });
+        }
+
+        let formData: FormData;
+        try {
+            formData = await req.formData();
+        } catch {
+            return NextResponse.json(
+                { error: 'Could not read the uploaded file. Please try again.' },
+                { status: 400 },
+            );
+        }
         const file = formData.get('file') as File | null;
 
         if (!file) {

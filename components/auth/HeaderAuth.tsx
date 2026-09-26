@@ -49,7 +49,10 @@ const clayPrimaryPill: React.CSSProperties = {
   borderRadius: '14px',
   fontSize: '15px',
   fontWeight: 600,
-  backgroundColor: '#0D9488',
+  // A11y: white on #0D9488 is 3.74:1, under the 4.5:1 WCAG AA floor for this
+  // 15px label. #0F766E is 5.47:1 and is already the repo's compliant teal
+  // (components/auth/authTokens.ts linkStyle).
+  backgroundColor: '#0F766E',
   color: '#FFFFFF',
   border: '1px solid rgba(255,255,255,0.3)',
   boxShadow: '5px 5px 14px rgba(13,148,136,0.25), -3px -3px 8px rgba(255,255,255,0.2), inset 2px 2px 4px rgba(255,255,255,0.2), inset -1px -1px 2px rgba(0,0,0,0.06)',
@@ -60,10 +63,15 @@ const clayPrimaryPill: React.CSSProperties = {
 
 const handleHoverIn = (e: React.MouseEvent<HTMLElement>) => {
   e.currentTarget.style.transform = 'translateY(-2px)';
-  const isTeal = e.currentTarget.style.backgroundColor === 'rgb(13, 148, 136)';
+  // Match on the data attribute, not on a hardcoded rgb() string: the latter
+  // silently stopped identifying the primary pill the moment its background
+  // changed, which would have given the teal CTA the pale hover treatment.
+  // handleHoverOut already keys off the same attribute.
+  const isTeal = e.currentTarget.dataset.variant === 'primary';
   if (!isTeal) {
     e.currentTarget.style.backgroundColor = '#E6FAF8';
-    e.currentTarget.style.color = '#0D9488';
+    // #0D9488 on #E6FAF8 is ~3.5:1; #0F766E clears 4.5:1.
+    e.currentTarget.style.color = '#0F766E';
     e.currentTarget.style.boxShadow = '5px 5px 14px rgba(13,148,136,0.12), -3px -3px 8px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)';
   }
 }

@@ -1,9 +1,10 @@
 import {
   emailShellV2, headerBlockV2,
   primaryButtonV2, spacerV2, closeContentV2,
-  unsubscribeFooterV2,
+  unsubscribeFooterV2, PREVIEW_UNSUB_TOKEN,
   V2, SANS, SERIF,
 } from '@/lib/email-templates-v2';
+import type { EmailType } from '@/lib/email/email-types';
 import { config } from '@/lib/config';
 
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
@@ -51,7 +52,7 @@ function applyButton(url: string, label: string): string {
   <!--[if !mso]><!-- --><a href="${url}" style="display:inline-block;box-sizing:border-box;padding:11px 26px;border-radius:18px;font-family:${SANS};font-size:14px;font-weight:700;color:#fff;-webkit-text-fill-color:#fff;background:#0d9488;background-image:linear-gradient(135deg,#2DD4BF,#0D9488);text-decoration:none;border:1px solid rgba(255,255,255,0.3);box-shadow:0 4px 12px rgba(13,148,136,0.30);mso-hide:all;">${label}</a><!--<![endif]-->`;
 }
 
-function simple(iconFile: string, heading: string, body: string, cta: string, ctaUrl: string, preheader: string, extra?: string): string {
+function simple(emailType: EmailType, iconFile: string, heading: string, body: string, cta: string, ctaUrl: string, preheader: string, extra?: string): string {
   return emailShellV2(`
     ${headerBlockV2(heading, '')}
     ${spacerV2(12)}
@@ -62,7 +63,7 @@ function simple(iconFile: string, heading: string, body: string, cta: string, ct
     ${centeredCta(cta, ctaUrl)}
     ${extra || ''}
     ${spacerV2(48)}
-    ${closeContentV2()}`, unsubscribeFooterV2('sample'), preheader);
+    ${closeContentV2()}`, unsubscribeFooterV2(PREVIEW_UNSUB_TOKEN, emailType), preheader);
 }
 
 /** Teal callout used for the offer and guarantee blocks. Mirrors lib/email-service.ts. */
@@ -99,7 +100,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   welcome: {
     label: 'Welcome (Alert Subscription)',
     desc: 'Sent immediately when a user subscribes \u2014 alerts active',
-    fn: () => simple('hero-alert-subscription.png', 'Your Alerts Are Live',
+    fn: () => simple('welcome_alert', 'hero-alert-subscription.png', 'Your Alerts Are Live',
       'Your job alerts are now active. We scan thousands of PMHNP positions daily and deliver matches straight to your inbox \u2014 so you never miss the right opportunity.',
       'Browse Open Positions', `${BASE_URL}/jobs`,
       'Your PMHNP job alerts are active.'),
@@ -126,7 +127,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${spacerV2(16)}
       ${secondary(`Want the data first? <a href="${BASE_URL}/salary-guide" style="color:${V2.teal};text-decoration:underline;">Download the 2026 Salary Guide</a>.`)}
       ${spacerV2(48)}
-      ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+      ${closeContentV2()}`, unsubscribeFooterV2('sample', 'welcome_signup'),
       'Welcome to PMHNP Hiring \u2014 find your perfect PMHNP role.'),
   },
 
@@ -154,7 +155,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${spacerV2(32)}
       ${centeredCta('Post Your First Job', `${BASE_URL}/post-job`)}
       ${spacerV2(48)}
-      ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+      ${closeContentV2()}`, unsubscribeFooterV2('sample', 'welcome_signup'),
       `Your employer account is ready. Your first post is half price at $${config.firstPostPrice}.`),
   },
 
@@ -226,7 +227,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
         ${spacerV2(20)}
         ${centeredCta('View All Matching Jobs', `${BASE_URL}/jobs`)}
         ${spacerV2(48)}
-        ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+        ${closeContentV2()}`, unsubscribeFooterV2('sample', 'job_alert'),
         '3 new PMHNP jobs matching your alert.');
     },
   },
@@ -235,7 +236,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   'job-confirmation': {
     label: 'Job Post Confirmation',
     desc: 'Sent to employers after a job is published',
-    fn: () => simple('hero-job-post.png', 'Your Listing Is Live',
+    fn: () => simple('job_confirmation', 'hero-job-post.png', 'Your Listing Is Live',
       `Your posting is now visible to thousands of PMHNPs actively searching for their next role. The listing will remain active for ${config.durationDays} days.`,
       'View Your Listing', `${BASE_URL}/jobs`, 'Your job posting is now live.',
       `${spacerV2(16)}${secondary(`Need to edit? <a href="${BASE_URL}/employer/dashboard" style="color:${V2.teal};text-decoration:underline;">Open your dashboard</a>.`)}`),
@@ -259,7 +260,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${spacerV2(24)}
       ${centeredCta('Renew Your Listing', `${BASE_URL}/employer/dashboard`)}
       ${spacerV2(48)}
-      ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+      ${closeContentV2()}`, unsubscribeFooterV2('sample', 'expiry_warning'),
       'Your listing expires in 3 days \u2014 renew now.'),
   },
 
@@ -267,7 +268,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   'draft-saved': {
     label: 'Draft Saved',
     desc: 'Sent when an employer saves a job posting draft',
-    fn: () => simple('hero-draft-saved.png', 'Your Draft Is Saved',
+    fn: () => simple('draft_saved', 'hero-draft-saved.png', 'Your Draft Is Saved',
       'We saved your progress. Your draft is ready whenever you are \u2014 pick up right where you left off. This link expires in 30 days.',
       'Continue Your Posting', `${BASE_URL}/post-job?resume=abc123`,
       'Your job posting draft has been saved.'),
@@ -277,7 +278,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   renewal: {
     label: 'Renewal Confirmation',
     desc: 'Sent after an employer renews their job posting',
-    fn: () => simple('hero-renewal.png', 'Listing Renewed Successfully',
+    fn: () => simple('renewal_confirmation', 'hero-renewal.png', 'Listing Renewed Successfully',
       'Your posting for <strong>Remote PMHNP \u2014 Telehealth Platform</strong> has been renewed and will remain active until Wednesday, April 15, 2026.',
       'View Your Dashboard', `${BASE_URL}/employer/dashboard`,
       'Your job listing has been renewed.'),
@@ -314,7 +315,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${spacerV2(28)}
       ${centeredCta('Browse Jobs While You Wait', `${BASE_URL}/jobs`)}
       ${spacerV2(48)}
-      ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+      ${closeContentV2()}`, unsubscribeFooterV2('sample', 'contact_confirmation'),
       'We received your message.'),
   },
 
@@ -365,7 +366,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
           </tr></table>
         </td></tr>
         ${spacerV2(48)}
-        ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+        ${closeContentV2()}`, unsubscribeFooterV2('sample', 'contact_internal'),
         'New contact form submission from Sarah Johnson.');
     },
   },
@@ -374,7 +375,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   'salary-guide': {
     label: 'Salary Guide Delivery',
     desc: 'Sent when a user requests the salary guide',
-    fn: () => simple('hero-salary-guide.png', 'Your 2026 Salary Guide',
+    fn: () => simple('salary_guide', 'hero-salary-guide.png', 'Your 2026 Salary Guide',
       'Your comprehensive PMHNP compensation report is ready. It includes salary ranges across all 50 states, remote versus in-person pay differentials, and negotiation strategies.',
       'Download Salary Guide (PDF)', 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf',
       'Your 2026 PMHNP Salary Guide is ready.',
@@ -433,7 +434,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
           </table>
         </td></tr>
         ${spacerV2(48)}
-        ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+        ${closeContentV2()}`, unsubscribeFooterV2('sample', 'email_job'),
         'You saved a job for later review.');
     },
   },
@@ -483,7 +484,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
         </tr></table>
       </td></tr>
       ${spacerV2(48)}
-      ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+      ${closeContentV2()}`, unsubscribeFooterV2('sample', 'employer_message'),
       'New message from Jessica Martinez regarding your listing.'),
   },
 
@@ -531,7 +532,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
         </tr></table>
       </td></tr>
       ${spacerV2(48)}
-      ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+      ${closeContentV2()}`, unsubscribeFooterV2('sample', 'candidate_inquiry'),
       'Valley Behavioral Health has a question about your application.'),
   },
 
@@ -539,7 +540,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   'new-application': {
     label: 'New Application Received',
     desc: 'Sent to employers when a candidate applies',
-    fn: () => simple('hero-new-application.png', 'New Application Received',
+    fn: () => simple('application_notification', 'hero-new-application.png', 'New Application Received',
       'A new application has been submitted for <strong>Remote PMHNP \u2014 Telehealth Platform</strong>. The candidate holds a DNP with board certification in psychiatric mental health nursing.',
       'Review Application', `${BASE_URL}/employer/applications`,
       'New application received for your job posting.'),
@@ -549,7 +550,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   'application-confirmation': {
     label: 'Application Confirmation',
     desc: 'Sent to candidates after they apply',
-    fn: () => simple('hero-app-confirm.png', 'Application Submitted',
+    fn: () => simple('application_confirmation', 'hero-app-confirm.png', 'Application Submitted',
       'Your application for <strong>Remote PMHNP \u2014 Telehealth Platform</strong> at MindPath Health has been submitted successfully. The employer will review your profile and respond if there is a match.',
       'Track Your Applications', `${BASE_URL}/applications`,
       'Your application has been submitted successfully.'),
@@ -559,7 +560,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   'status-update': {
     label: 'Application Status Update',
     desc: 'Sent when an application status changes',
-    fn: () => simple('hero-status-update.png', 'Application Status Update',
+    fn: () => simple('status_update', 'hero-status-update.png', 'Application Status Update',
       'There is an update on your application for <strong>Remote PMHNP \u2014 Telehealth Platform</strong>. Your application has moved to the <strong>interview stage</strong>. The hiring manager will reach out to schedule a conversation.',
       'View Application Details', `${BASE_URL}/applications`,
       'Update on your application \u2014 moved to interview stage.'),
@@ -569,7 +570,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   'new-candidate': {
     label: 'New Candidate Alert',
     desc: 'Sent when a matching candidate joins',
-    fn: () => simple('hero-new-candidate.png', 'New Candidate Match',
+    fn: () => simple('candidate_alert', 'hero-new-candidate.png', 'New Candidate Match',
       'A new candidate matching your hiring criteria has joined the platform. They specialize in adult and geriatric psychiatry with 5 years of experience and are open to remote positions.',
       'View Candidate Profile', `${BASE_URL}/employer/candidates`,
       'A new candidate matching your criteria just joined.'),
@@ -621,7 +622,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
         ${spacerV2(28)}
         ${centeredCta('View All Saved \u2192', `${BASE_URL}/saved`)}
         ${spacerV2(48)}
-        ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+        ${closeContentV2()}`, unsubscribeFooterV2('sample', 'saved_job_reminder'),
         'The job you saved is still open.');
     },
   },
@@ -648,7 +649,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${spacerV2(28)}
       ${centeredCta('View Full Report', `${BASE_URL}/employer/dashboard`)}
       ${spacerV2(48)}
-      ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+      ${closeContentV2()}`, unsubscribeFooterV2('sample', 'performance_report'),
       'Your monthly hiring performance report is ready.'),
   },
 

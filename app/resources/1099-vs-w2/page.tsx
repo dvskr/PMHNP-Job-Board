@@ -42,7 +42,7 @@ export default function CompensationGuidePage() {
     },
     {
       question: "What tax deductions can 1099 PMHNPs claim?",
-      answer: "Key deductions include: home office (dedicated space), mileage/travel, health insurance premiums (100% deductible), SEP-IRA/Solo 401k contributions (up to $66K/year), CME and professional development, malpractice insurance, professional memberships (AANP, APNA), technology/equipment, phone and internet, and professional attire like scrubs."
+      answer: "Key deductions include: home office (dedicated space), mileage/travel, health insurance premiums (100% deductible), SEP-IRA or Solo 401k contributions up to the current IRS annual limit, CME and professional development, malpractice insurance, professional memberships (AANP, APNA), technology/equipment, phone and internet, and professional attire like scrubs."
     },
     {
       question: "Should new grad PMHNPs take 1099 positions?",
@@ -54,7 +54,11 @@ export default function CompensationGuidePage() {
     },
     {
       question: "What retirement accounts should 1099 PMHNPs use?",
-      answer: "1099 PMHNPs have access to powerful retirement options: SEP-IRA (contribute up to 25% of net earnings, max $66,000/year in 2024), Solo 401k ($23,000 employee + 25% employer contributions = up to $69,000 total), or Traditional/Roth IRA ($7,000/year). The Solo 401k offers the most flexibility with both employee and employer contribution tiers."
+      // Dollar caps deliberately absent: the IRS indexes every one of these
+      // limits annually, and the figures that used to sit here were two years
+      // stale on a page whose own title says 2026. The structural comparison
+      // is what stays true year to year.
+      answer: "1099 PMHNPs have access to powerful retirement options: SEP-IRA (contribute up to 25% of net earnings, capped at the IRS annual additions limit), Solo 401k (an employee deferral plus employer contributions of up to 25% of compensation, reaching the same annual cap), or Traditional/Roth IRA. The Solo 401k offers the most flexibility with both employee and employer contribution tiers. Every one of these caps is indexed for inflation, so check the current year's figures on irs.gov before you plan around them."
     },
   ];
 
@@ -106,8 +110,13 @@ export default function CompensationGuidePage() {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               1099 vs W2 for PMHNPs
             </h1>
+            {/* LAST_REVIEWED, never render time: the old `new Date()` here
+                claimed the current month on copy nobody had looked at since
+                the constant below, which is the fabricated-freshness pattern
+                the 2026-08 organic audit stripped out of the salary pages.
+                Matches the Article.dateModified emitted above. */}
             <p className="text-sm text-blue-200 text-center mt-2 mb-4">
-              Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | Complete compensation comparison
+              Last Reviewed: {new Date(LAST_REVIEWED + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })} | Complete compensation comparison
             </p>
             <p className="text-lg md:text-xl text-blue-100 mb-6">
               Which pays more? Independent contractor vs employee: taxes, benefits, and take-home pay compared.
@@ -243,7 +252,7 @@ export default function CompensationGuidePage() {
                   <h3 className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Common Deductions</h3>
                   <ul className="space-y-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
                     <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>Home office (dedicated space = $1,500 simplified deduction)</span></li>
-                    <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>Mileage ($0.67/mile for 2024) or actual vehicle expenses</span></li>
+                    <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>Mileage at the current IRS standard rate, or actual vehicle expenses</span></li>
                     <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>Health insurance premiums (100% deductible)</span></li>
                     <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>Professional liability/malpractice insurance</span></li>
                     <li className="flex gap-2"><CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" /><span>CME courses, conferences, and subscriptions</span></li>
@@ -257,15 +266,15 @@ export default function CompensationGuidePage() {
                   <div className="space-y-3">
                     <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                       <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>SEP-IRA</div>
-                      <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>Up to 25% of net earnings (max $66,000/yr). Simple to set up. One contribution tier.</div>
+                      <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>Up to 25% of net earnings, capped at the IRS annual additions limit. Simple to set up. One contribution tier.</div>
                     </div>
                     <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                       <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Solo 401(k) ⭐</div>
-                      <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>$23,000 employee + 25% employer = up to $69,000 total. Roth option available. Best for maximizing contributions.</div>
+                      <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>Employee deferral plus up to 25% employer contribution, to the IRS annual additions cap. Roth option available. Best for maximizing contributions.</div>
                     </div>
                     <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                       <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>W2 Employer 401(k)</div>
-                      <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>$23,000 employee + 3-6% employer match. Less total capacity, but a guaranteed match is free money.</div>
+                      <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>Employee deferral up to the IRS limit, plus a 3% to 6% employer match. Less total capacity, but a guaranteed match is free money.</div>
                     </div>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import { syncToBeehiiv } from '@/lib/beehiiv';
 import { logger } from '@/lib/logger';
 import { sendWelcomeEmail } from '@/lib/email-service';
 import { buildCriteriaSummary, buildFilteredJobsUrl } from '@/lib/job-alerts-service';
+import { readJsonBody } from '@/app/api/_lib/json-body';
 
 interface CreateAlertBody {
   email: string;
@@ -26,8 +27,11 @@ export async function POST(request: NextRequest) {
   const rateLimitResult = await rateLimit(request, 'jobAlerts', RATE_LIMITS.jobAlerts);
   if (rateLimitResult) return rateLimitResult;
 
+  const parsed = await readJsonBody(request);
+  if (!parsed.ok) return parsed.response;
+
   try {
-    const body: CreateAlertBody = await request.json();
+    const body = parsed.body as unknown as CreateAlertBody;
 
     // Sanitize inputs
     const sanitized = sanitizeJobAlert(body);
@@ -159,14 +163,28 @@ export async function POST(request: NextRequest) {
     // Only send for newly confirmed alerts to avoid spamming on every form submit.
     const isNewlyConfirmed = !existing || !existing.confirmedAt;
     if (isNewlyConfirmed) {
-      // Personalized welcome: echo the alert's criteria + frequency back to the
-      // subscriber and deep-link the CTA to the matching /jobs search.
-      await sendWelcomeEmail(normalizedEmail, jobAlert.token, {
-        criteriaSummary: buildCriteriaSummary(jobAlert),
-        filteredJobsUrl: buildFilteredJobsUrl(jobAlert),
-        frequency: jobAlert.frequency,
-        location: jobAlert.location,
-      });
+      // The alert row is already committed above, so a mail failure must not
+      // be reported as a creation failure. Unwrapped, a Resend outage let the
+      // throw reach the handler catch and answer 500 "Failed to create job
+      // alert" over an alert that exists and is active; the user then
+      // resubmitted, hit the dedupe branch, and got a success message for
+      // the same state. Log it, keep the 200.
+      try {
+        // Personalized welcome: echo the alert's criteria + frequency back to the
+        // subscriber and deep-link the CTA to the matching /jobs search.
+        // No token argument: jobAlert.token is not an unsubscribe token, and
+        // sendWelcomeEmail resolves the EmailLead one itself.
+        await sendWelcomeEmail(normalizedEmail, {
+          criteriaSummary: buildCriteriaSummary(jobAlert),
+          filteredJobsUrl: buildFilteredJobsUrl(jobAlert),
+          frequency: jobAlert.frequency,
+          location: jobAlert.location,
+        });
+      } catch (emailError) {
+        logger.error('Job alert created but welcome email failed', emailError, {
+          alertId: jobAlert.id,
+        });
+      }
     }
 
     return NextResponse.json({

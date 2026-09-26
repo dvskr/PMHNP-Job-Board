@@ -199,15 +199,15 @@ export default function CertificationsSection({ showMsg }: Props) {
                 <h4 style={claySubTitle}>
                     {editingId ? 'Edit Certification' : 'Add Certification'}
                 </h4>
-                <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}>
+                <button onClick={cancelForm} aria-label="Close certification form" style={{ background: 'none', border: 'none', cursor: 'pointer', color: clayPalette.textMuted }}>
                     <X size={18} />
                 </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
-                    <label style={labelStyle}>Certification Name *</label>
-                    <select
+                    <label id="cert-certification-name-label" style={labelStyle}>Certification Name *</label>
+                    <select aria-label="Certification Name"
                         value={form.certificationName}
                         onChange={(e) => setForm({ ...form, certificationName: e.target.value, certificationNameOther: '' })}
                         style={{ ...inputStyle, cursor: 'pointer' }}
@@ -218,7 +218,7 @@ export default function CertificationsSection({ showMsg }: Props) {
                         ))}
                     </select>
                     {form.certificationName === 'Other' && (
-                        <input
+                        <input aria-label="Other certification name"
                             type="text"
                             value={form.certificationNameOther}
                             onChange={(e) => setForm({ ...form, certificationNameOther: e.target.value })}
@@ -229,8 +229,8 @@ export default function CertificationsSection({ showMsg }: Props) {
                 </div>
 
                 <div>
-                    <label style={labelStyle}>Certifying Body</label>
-                    <select
+                    <label id="cert-certifying-body-label" style={labelStyle}>Certifying Body</label>
+                    <select aria-label="Certifying Body"
                         value={form.certifyingBody}
                         onChange={(e) => setForm({ ...form, certifyingBody: e.target.value, certifyingBodyOther: '' })}
                         style={{ ...inputStyle, cursor: 'pointer' }}
@@ -241,7 +241,7 @@ export default function CertificationsSection({ showMsg }: Props) {
                         ))}
                     </select>
                     {form.certifyingBody === 'Other' && (
-                        <input
+                        <input aria-label="Other certifying body"
                             type="text"
                             value={form.certifyingBodyOther}
                             onChange={(e) => setForm({ ...form, certifyingBodyOther: e.target.value })}
@@ -253,8 +253,8 @@ export default function CertificationsSection({ showMsg }: Props) {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                     <div>
-                        <label style={labelStyle}>Certification Number</label>
-                        <input
+                        <label htmlFor="cert-certification-number" style={labelStyle}>Certification Number</label>
+                        <input id="cert-certification-number"
                             type="text"
                             value={form.certificationNumber}
                             onChange={(e) => setForm({ ...form, certificationNumber: e.target.value })}
@@ -263,8 +263,8 @@ export default function CertificationsSection({ showMsg }: Props) {
                         />
                     </div>
                     <div>
-                        <label style={labelStyle}>Expiration Date</label>
-                        <input
+                        <label htmlFor="cert-expiration-date" style={labelStyle}>Expiration Date</label>
+                        <input id="cert-expiration-date"
                             type="date"
                             value={form.expirationDate}
                             onChange={(e) => setForm({ ...form, expirationDate: e.target.value })}

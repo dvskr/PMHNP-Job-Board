@@ -113,7 +113,17 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     setAiConstraints(null);
   }, []);
 
+  // Every filter/sort/page change starts a new /api/jobs request. Without a
+  // guard the responses land in whatever order the network returns them, so a
+  // slow earlier query can overwrite the results of the filter the user is
+  // actually looking at. Abort the previous request and ignore any state write
+  // from a request that is no longer the current one.
+  const inFlightRef = useRef<AbortController | null>(null);
+
   const fetchJobs = useCallback(async (filters: FilterState, page: number = 1, sort: string = 'best') => {
+    inFlightRef.current?.abort();
+    const controller = new AbortController();
+    inFlightRef.current = controller;
     try {
       setLoading(true);
       setError(null);
@@ -137,12 +147,14 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
 
       const url = `/api/jobs?${params.toString()}`;
 
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: controller.signal });
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
         throw new Error(`Failed to fetch jobs (${response.status}): ${errorText}`);
       }
       const data: { jobs: Job[]; total: number; totalPages: number; page: number } = await response.json();
+      // A superseded response must not repaint the list the newer query owns.
+      if (inFlightRef.current !== controller) return;
       setJobs(data.jobs);
       setTotal(data.total);
       setTotalPages(data.totalPages);
@@ -153,16 +165,21 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     } catch (err) {
+      // An abort is this component superseding itself, not a failure: the
+      // newer request owns the loading state and will report its own outcome.
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (inFlightRef.current !== controller) return;
       // Full technical detail goes to the console only — users get plain copy
       // plus a Retry button (rendered in the error block below).
       console.error('[fetchJobs] Error:', err);
       setError("We couldn't load jobs. Check your connection and try again.");
     } finally {
-      setLoading(false);
+      if (inFlightRef.current === controller) setLoading(false);
     }
   }, []);
 
-  // Defined after fetchJobs so the keyword-fallback path can call it (TDZ-safe).
+  // The keyword-fallback branch writes the query to the URL and lets the
+  // searchParams effect below own the fetch, so this no longer calls fetchJobs.
   const handleAiSearch = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     const q = aiQuery.trim();
@@ -219,9 +236,16 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
       setAiDegraded(false);
       setAiError(null);
       setAiLoading(false);
+      // Write the fallback query to the URL instead of fetching behind the
+      // URL's back. The sidebar, the active-filter chips and the "Clear
+      // filters" link all read the URL, so a query that only lived in local
+      // state was invisible and unremovable: the chip never appeared and
+      // "Clear filters" (href /jobs) pointed at the page you were already on.
+      // The searchParams effect below owns the fetch from here.
       const nextFilters = { ...currentFilters, search: outcome.query };
-      setCurrentFilters(nextFilters);
-      fetchJobs(nextFilters, 1, sortOption);
+      const params = filtersToParams(nextFilters);
+      if (sortOption && sortOption !== 'best') params.set('sort', sortOption);
+      router.push(`/jobs?${params.toString()}`, { scroll: false });
       return;
     }
 
@@ -229,14 +253,23 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     setAiConstraints(constraints);
     setAiDegraded(degraded);
     setAiLoading(false);
-  }, [aiQuery, currentFilters, fetchJobs, sortOption]);
+  }, [aiQuery, currentFilters, router, sortOption]);
 
   // Fetch jobs when filters change
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
     const filters = parseFiltersFromParams(params);
-    const pageFromUrl = Math.max(1, parseInt(params.get('page') || '1'));
+    // Math.max(1, NaN) is NaN, so `?page=abc` used to be serialized straight
+    // back out as `page=NaN`. Parse defensively instead.
+    const rawPage = parseInt(params.get('page') || '1', 10);
+    const pageFromUrl = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    // The URL is the source of truth for sort too. sortOption was seeded from
+    // the URL once at mount and never re-synced, so pressing Back after a sort
+    // change (or any filter push, which rebuilds the query string without
+    // ?sort) left the dropdown and the fetched order disagreeing with the URL.
+    const sortFromUrl = params.get('sort') || 'best';
     setCurrentFilters(filters);
+    setSortOption(sortFromUrl);
 
     // Skip fetch on initial load - we already have server-rendered data
     if (isInitialLoad) {
@@ -244,10 +277,16 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
       return;
     }
 
+    // A filter, sort or page change means the user is back in browse mode.
+    // Leaving the AI results mounted made every one of those controls a
+    // silent no-op: the URL changed, a fetch ran, and the rendered list kept
+    // showing the unchanged semantic hits.
+    clearAiSearch();
+
     // URL is the single source of truth for page. Page-change clicks now write
     // ?page=N via router.push, which lands here and drives the fetch.
     setCurrentPage(pageFromUrl);
-    fetchJobs(filters, pageFromUrl, sortOption);
+    fetchJobs(filters, pageFromUrl, sortFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only depend on searchParams, not fetchJobs
 
@@ -283,14 +322,26 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   // Chips for every hard constraint the semantic parser understood.
   const aiChips = aiConstraintChipLabels(aiConstraints);
 
-  // Count active filters (including search)
+  // Count active filters. This drives the zero-result recovery link and the
+  // mobile Filters badge, so it has to count every filter the sidebar can set:
+  // it previously skipped specialty, experience, newGrad, minYears, easyApply,
+  // employer and category, which meant a zero-result combination of only those
+  // filters showed the no-filter "Set up a job alert" copy and no way back.
+  // Kept in step with the sidebar's own count in components/jobs/LinkedInFilters.tsx.
   const activeFilterCount =
     currentFilters.workMode.length +
     currentFilters.jobType.length +
+    (currentFilters.specialty?.length || 0) +
+    (currentFilters.experienceLevel?.length || 0) +
+    (currentFilters.newGradFriendly === true ? 1 : 0) +
+    (typeof currentFilters.minYearsExperience === 'number' ? 1 : 0) +
+    (currentFilters.easyApply === true ? 1 : 0) +
     (currentFilters.salaryMin ? 1 : 0) +
     (currentFilters.postedWithin ? 1 : 0) +
     (currentFilters.location ? 1 : 0) +
     (currentFilters.cityExact ? 1 : 0) +
+    (currentFilters.employer ? 1 : 0) +
+    (currentFilters.category ? 1 : 0) +
     (currentFilters.search ? 1 : 0);
 
   // Handle alert creation success
@@ -505,6 +556,8 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                       value={sortOption}
                       onChange={(e) => handleSortChange(e.target.value)}
                       className="jp-sort-select"
+                      aria-label="Sort jobs"
+                      title="Sort jobs"
                       disabled={loading}
                       style={{
                         appearance: 'none', WebkitAppearance: 'none',

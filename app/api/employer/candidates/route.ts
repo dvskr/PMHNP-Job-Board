@@ -42,8 +42,15 @@ export async function GET(req: NextRequest) {
     const states = searchParams.get('states') // comma-separated
     const workMode = searchParams.get('workMode')
     const hasResume = searchParams.get('hasResume') // "true" or "false"
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20')))
+    // Pagination params are attacker-controlled and must be clamped before they
+    // reach Prisma. `Math.max(1, parseInt('abc'))` is NaN, not 1, so `skip`
+    // became NaN and Prisma rejected the query with an unhandled 500. Same
+    // clamp the public listing uses (app/api/jobs/route.ts): junk falls back to
+    // the default instead of propagating.
+    const rawPage = parseInt(searchParams.get('page') || '1', 10)
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1
+    const rawLimit = parseInt(searchParams.get('limit') || '20', 10)
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(1, rawLimit), 50) : 20
     const skip = (page - 1) * limit
 
     // Build WHERE clause

@@ -6,7 +6,14 @@ import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
 import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
 
-export const maxDuration = 60
+// 5 minutes, matching every other bulk sender (lifecycle-emails,
+// weekly-newsletter, purge-inactive-users). This is the highest-volume sender
+// on the platform: sendJobAlerts runs a suppression lookup plus a job-matching
+// query per due alert BEFORE composing anything, and only then claims
+// lastSentAt per batch. At 60s a growing alert base gets killed mid-run, and a
+// hard timeout skips revertLastSentAtClaim, so alerts whose claim was already
+// stamped silently lose a whole cycle.
+export const maxDuration = 300
 
 export async function GET(request: NextRequest) {
   // Verify cron secret

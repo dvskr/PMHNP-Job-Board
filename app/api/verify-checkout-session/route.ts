@@ -10,6 +10,33 @@ function getStripe(): Stripe | null {
 }
 
 /**
+ * Retrieve a checkout session, treating an id Stripe does not recognise as a
+ * client error rather than a server one.
+ *
+ * session_id comes straight off the query string, so a stale, truncated or
+ * hand-edited link is an ordinary event: Stripe answers with
+ * StripeInvalidRequestError, and mapping that to 500 booked every expired
+ * confirmation link as a server error in logs and alerting while showing the
+ * visitor a generic failure. Anything that is NOT "no such session" is still
+ * a real fault and is rethrown.
+ */
+async function retrieveSessionOrNull(
+  stripe: Stripe,
+  sessionId: string,
+): Promise<Stripe.Checkout.Session | null> {
+  try {
+    return await stripe.checkout.sessions.retrieve(sessionId);
+  } catch (err) {
+    const type = (err as { type?: string })?.type;
+    const code = (err as { code?: string })?.code;
+    if (type === 'StripeInvalidRequestError' || code === 'resource_missing') {
+      return null;
+    }
+    throw err;
+  }
+}
+
+/**
  * GET /api/verify-checkout-session?session_id=cs_xxx
  *
  * Verifies a Stripe checkout session for a NEW job post (not renewal — that has
@@ -35,7 +62,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing session_id' }, { status: 400 });
     }
 
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await retrieveSessionOrNull(stripe, sessionId);
 
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });

@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
 import { buildSalaryGuideHtml, sendAndLog, isEmailSuppressed } from '@/lib/email-service';
 import { rateLimit } from '@/lib/rate-limit';
+import { readJsonBody } from '@/app/api/_lib/json-body';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
@@ -16,8 +17,9 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await rateLimit(request, 'salary-guide', { limit: 5, windowSeconds: 60 });
     if (rateLimitResult) return rateLimitResult;
 
-    const body = await request.json();
-    const { email } = body;
+    const parsed = await readJsonBody(request);
+    if (!parsed.ok) return parsed.response;
+    const { email } = parsed.body as { email?: string };
 
     logger.info('Salary guide request received', { email });
 

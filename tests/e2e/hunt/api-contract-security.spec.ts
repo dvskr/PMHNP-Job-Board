@@ -36,9 +36,10 @@ import {
  *   - `maxRedirects: 0` everywhere: some routes 302 to NEXT_PUBLIC_BASE_URL,
  *     which in a local .env can point at a different port / product.
  *   - /api/cron/* is probed ONLY with a method the handlers never export.
- *     lib/auth/verify-cron-or-admin.ts skips auth entirely when
- *     NODE_ENV=development, so a GET against the dev server would actually
- *     run the cron (ingest, purge, email sends). Never do that from a test.
+ *     lib/auth/verify-cron-or-admin.ts skips auth on a local checkout that has
+ *     no CRON_SECRET configured, so against such a dev server a GET would
+ *     actually run the cron (ingest, purge, email sends). Never do that from a
+ *     test.
  *   - lib/origins.ts builds FIRST_PARTY_ORIGINS from NEXT_PUBLIC_BASE_URL plus
  *     hard-coded localhost:3000/3001. When the dev server runs on any other
  *     port the six verifyCsrf-gated routes reject the app's OWN browser
@@ -1150,6 +1151,22 @@ test.describe('CSRF origin gating (local only)', () => {
     const profile = await call(seeker.req, 'PATCH', '/api/auth/profile', { headers: evil, data: {} });
     if (profile.status !== 403) problems.push(describeResult('PATCH', '/api/auth/profile', profile));
 
+    // Session-authenticated mutations wired to lib/csrf.ts later: the bookmark
+    // list, the irreversible application withdrawal, and the employer settings
+    // writer that shares its columns with the profile route above. Garbage ids
+    // throughout, since the origin is rejected before the body is read.
+    const save = await call(seeker.req, 'POST', '/api/saved-jobs', { headers: evil, data: { jobId: GARBAGE_ID } });
+    if (save.status !== 403) problems.push(describeResult('POST', '/api/saved-jobs', save));
+
+    const unsave = await call(seeker.req, 'DELETE', '/api/saved-jobs', { headers: evil, data: { jobId: GARBAGE_ID } });
+    if (unsave.status !== 403) problems.push(describeResult('DELETE', '/api/saved-jobs', unsave));
+
+    const withdraw = await call(seeker.req, 'DELETE', '/api/applications/withdraw', { headers: evil, data: { applicationId: GARBAGE_ID } });
+    if (withdraw.status !== 403) problems.push(describeResult('DELETE', '/api/applications/withdraw', withdraw));
+
+    const settings = await call(employer.req, 'PATCH', '/api/employer/settings', { headers: evil, data: {} });
+    if (settings.status !== 403) problems.push(describeResult('PATCH', '/api/employer/settings', settings));
+
     // Referer-only variant (no Origin header) must also be caught.
     const refererOnly = await call(seeker.req, 'POST', '/api/auth/restore-account', { headers: { referer: `${EVIL_ORIGIN}/x` }, data: {} });
     if (refererOnly.status !== 403) problems.push(describeResult('POST (referer only)', '/api/auth/restore-account', refererOnly));
@@ -1157,35 +1174,33 @@ test.describe('CSRF origin gating (local only)', () => {
     expect(problems, `CSRF-gated routes accepted a foreign origin:\n  ${problems.join('\n  ')}`).toEqual([]);
   });
 
-  test('state-changing routes without verifyCsrf accept a foreign Origin (known gap)', async ({ browser, request }) => {
-    // Only lib/csrf.ts callers gate on Origin. Every other mutation relies
-    // solely on SameSite=Lax cookies. This test documents the surface; it is
-    // expected to FAIL until those routes call verifyCsrf.
-    test.fail(true, 'saved-jobs, message edit, job-alerts PATCH and friends do not call verifyCsrf (lib/csrf.ts)');
+  test('session-authenticated mutations refuse a foreign Origin', async ({ browser }) => {
+    // Was an expected-failure documenting the uncovered surface. Closed in
+    // three passes: the conversation and profile mutations, then every
+    // mutating handler under /api/employer, which had been left open while
+    // three routes named in a bug report were fixed.
+    //
+    // Deliberately not probed: /api/job-alerts/[token]. It authenticates on a
+    // token in the URL rather than on a session cookie, so there is no
+    // ambient authority for a foreign page to borrow. Anyone who can form the
+    // request already holds the credential, and an Origin check would add
+    // nothing while breaking the emailed links the route exists to serve.
     const seeker = await session(browser, 'seeker');
     const evil = { origin: EVIL_ORIGIN, referer: `${EVIL_ORIGIN}/attack` };
     const accepted: string[] = [];
-
-    const list = await call(request, 'GET', '/api/jobs?limit=1');
-    const jobId = ((list.json() as { jobs?: Array<{ id: string }> })?.jobs ?? [])[0]?.id;
-    expect(jobId, 'need one public job id').toBeTruthy();
-
-    const save = await call(seeker.req, 'POST', '/api/saved-jobs', { headers: evil, data: { jobId } });
-    if (save.status === 200) {
-      accepted.push(describeResult('POST', '/api/saved-jobs', save));
-      const unsave = await call(seeker.req, 'DELETE', '/api/saved-jobs', { headers: evil, data: { jobId } });
-      if (unsave.status === 200) accepted.push(describeResult('DELETE', '/api/saved-jobs', unsave));
-    }
 
     // These target garbage ids so nothing is mutated; anything other than 403
     // proves the Origin was not consulted before the handler ran.
     const probes: Array<{ method: Method; path: string; data: unknown }> = [
       { method: 'PATCH', path: `/api/conversations/${GARBAGE_ID}/messages/${GARBAGE_ID}/edit`, data: { body: 'x' } },
       { method: 'DELETE', path: `/api/conversations/${GARBAGE_ID}/messages/${GARBAGE_ID}`, data: {} },
-      { method: 'DELETE', path: '/api/applications/withdraw', data: { applicationId: GARBAGE_ID } },
-      { method: 'PATCH', path: `/api/job-alerts/${GARBAGE_TOKEN}`, data: { frequency: 'daily' } },
       { method: 'PATCH', path: `/api/employer/jobs/${GARBAGE_ID}/toggle-publish`, data: {} },
       { method: 'PUT', path: `/api/profile/education/${GARBAGE_ID}`, data: {} },
+      // The two that stayed open longest, and the two worth the most to an
+      // attacker: one spends paid unlock credits, the other takes a paid
+      // listing off the site.
+      { method: 'POST', path: '/api/employer/profiles/unlock-bulk', data: { profileIds: [GARBAGE_ID] } },
+      { method: 'PATCH', path: '/api/employer/applicants', data: { applicationId: GARBAGE_ID, status: 'rejected' } },
     ];
     for (const p of probes) {
       const r = await call(seeker.req, p.method, p.path, { headers: evil, data: p.data });

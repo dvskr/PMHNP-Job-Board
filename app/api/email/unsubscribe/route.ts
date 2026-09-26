@@ -2,9 +2,17 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { readJsonBody } from '@/app/api/_lib/json-body';
 
 // GET - Unsubscribe
 export async function GET(request: NextRequest) {
+  // The POST sibling has always been rate limited and this one was not, even
+  // though it performs the destructive half of the pair. Tokens are cuids so
+  // guessing is not the real threat; an unthrottled write endpoint reachable
+  // by GET is.
+  const rateLimitResult = await rateLimit(request, 'email-unsub', RATE_LIMITS.general);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
@@ -53,9 +61,11 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await rateLimit(request, 'email-unsub', RATE_LIMITS.general);
     if (rateLimitResult) return rateLimitResult;
 
+  const parsed = await readJsonBody(request);
+  if (!parsed.ok) return parsed.response;
+
   try {
-    const body = await request.json();
-    const { token } = body;
+    const { token } = parsed.body as { token?: string };
 
     if (!token) {
       return NextResponse.json(

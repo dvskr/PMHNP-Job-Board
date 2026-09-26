@@ -202,6 +202,12 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   // mount-guard as `freshness` so it never runs during SSR / first client render.
   const ageIndicator = isHydrated ? getJobAgeIndicator() : null;
 
+  // `''.charCodeAt(0)` is NaN, and `hsl(NaN, ...)` is an invalid declaration
+  // the browser drops entirely, leaving the initial-letter circle transparent.
+  // employer is a non-null String column, so the empty string is reachable.
+  const avatarInitial = (job.employer || '?')[0].toUpperCase();
+  const avatarHue = (avatarInitial.charCodeAt(0) * 7) % 360;
+
   // Derive correct display mode from boolean fields (mode field can be stale/wrong)
   const displayMode = job.isRemote ? 'Remote' : job.isHybrid ? 'Hybrid' : (job.mode || 'In-Person');
 
@@ -216,6 +222,11 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     metaParts.push(freshness);
 
     return (
+      // The message modal is a SIBLING of the Link, never a child. React
+      // synthetic events from a portal still bubble through the React tree, so
+      // while it was nested the modal backdrop's close click reached the Link's
+      // handler and navigated the user off the results list.
+      <>
       <Link href={jobUrl} aria-label={cardAriaLabel} className="block touch-manipulation w-full" onClick={handleCardClick}>
         <div
           // jc-list-card is the hook for the mobile media query in globals.css
@@ -264,11 +275,11 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             ) : (
               <div style={{
                 width: '48px', height: '48px', borderRadius: '50%',
-                background: `hsl(${(job.employer || '').charCodeAt(0) * 7 % 360}, 40%, 50%)`,
+                background: `hsl(${avatarHue}, 40%, 50%)`,
                 color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '18px', fontWeight: 700,
               }}>
-                {(job.employer || '?')[0].toUpperCase()}
+                {avatarInitial}
               </div>
             )}
             {job.isVerifiedEmployer && (
@@ -423,16 +434,6 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </div>
         </div>
 
-        {canMessageEmployer && (
-          <MessageEmployerModal
-            isOpen={showMessageModal}
-            jobId={job.id}
-            jobTitle={job.title}
-            employerName={job.employer}
-            onClose={() => setShowMessageModal(false)}
-          />
-        )}
-
         <style>{`
           .jc-save-btn:hover {
             color: var(--color-primary) !important;
@@ -450,11 +451,24 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           }
         `}</style>
       </Link>
+
+      {canMessageEmployer && (
+        <MessageEmployerModal
+          isOpen={showMessageModal}
+          jobId={job.id}
+          jobTitle={job.title}
+          employerName={job.employer}
+          onClose={() => setShowMessageModal(false)}
+        />
+      )}
+      </>
     );
   }
 
   // Grid view - default vertical card layout
+  // Same sibling-not-child rule as the list view above.
   return (
+    <>
     <Link href={jobUrl} aria-label={cardAriaLabel} className="block touch-manipulation h-full" onClick={handleCardClick}>
       <div
         className="jc-card"
@@ -503,11 +517,11 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             ) : (
               <div style={{
                 width: '44px', height: '44px', borderRadius: '50%',
-                background: `hsl(${(job.employer || '').charCodeAt(0) * 7 % 360}, 40%, 50%)`,
+                background: `hsl(${avatarHue}, 40%, 50%)`,
                 color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '17px', fontWeight: 700,
               }}>
-                {(job.employer || '?')[0].toUpperCase()}
+                {avatarInitial}
               </div>
             )}
             {job.isVerifiedEmployer && (
@@ -719,15 +733,6 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </div>
         </div>
 
-        {canMessageEmployer && (
-          <MessageEmployerModal
-            isOpen={showMessageModal}
-            jobId={job.id}
-            jobTitle={job.title}
-            employerName={job.employer}
-            onClose={() => setShowMessageModal(false)}
-          />
-        )}
       </div>
 
       <style>{`
@@ -769,6 +774,17 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         }
       `}</style>
     </Link>
+
+    {canMessageEmployer && (
+      <MessageEmployerModal
+        isOpen={showMessageModal}
+        jobId={job.id}
+        jobTitle={job.title}
+        employerName={job.employer}
+        onClose={() => setShowMessageModal(false)}
+      />
+    )}
+    </>
   );
 }
 

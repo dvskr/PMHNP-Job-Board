@@ -3,13 +3,32 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
+/**
+ * A first-party statement shown beside the form: a product fact or a live
+ * platform number, said by the platform.
+ *
+ * Deliberately not called a testimonial. This prop WAS `testimonial`, and the
+ * login page duly filled it with a quote attributed to a named clinician with
+ * a credential and a city, who does not exist. A slot named for an endorsement
+ * gets an endorsement written for it. This one can only hold something we can
+ * stand behind.
+ */
+interface AuthPanelNote {
+  /** The statement itself. */
+  message: string;
+  /** Who is saying it: the platform, never an individual we invented. */
+  source: string;
+  /** Short qualifier under the source, e.g. what kind of claim this is. */
+  detail: string;
+}
+
 interface AuthLayoutProps {
   children: React.ReactNode;
   illustration?: string;
-  testimonial?: { quote: string; name: string; title: string } | null;
+  note?: AuthPanelNote | null;
 }
 
-export default function AuthLayout({ children, illustration, testimonial }: AuthLayoutProps) {
+export default function AuthLayout({ children, illustration, note }: AuthLayoutProps) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: '#F5F6F8' }}>
 
@@ -89,7 +108,7 @@ export default function AuthLayout({ children, illustration, testimonial }: Auth
         </p>
       </div>
 
-      {/* ═══ RIGHT — Social Proof (hidden mobile) ═══ */}
+      {/* ═══ RIGHT — Illustration and first-party note (hidden mobile) ═══ */}
       <div
         className="hidden lg:flex"
         style={{
@@ -115,18 +134,21 @@ export default function AuthLayout({ children, illustration, testimonial }: Auth
           </div>
         )}
 
-        {testimonial && (
+        {note && (
           <div style={{
             background: 'rgba(255,255,255,0.6)', borderRadius: '16px',
             border: '1px solid rgba(255,255,255,0.5)',
             maxWidth: '420px', marginTop: '24px', padding: '20px 24px',
           }}>
+            {/* Not italicised: italic serif in a card with an avatar beside it
+                is the visual grammar of a personal endorsement, which is how a
+                product statement ends up being read as one. */}
             <p style={{
               fontSize: '15px', fontWeight: 500, color: '#2A4A5A',
-              lineHeight: 1.65, fontStyle: 'italic',
+              lineHeight: 1.65,
               fontFamily: 'var(--font-lora), Georgia, serif', margin: '0 0 12px',
             }}>
-              {testimonial.quote}
+              {note.message}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
@@ -135,11 +157,11 @@ export default function AuthLayout({ children, illustration, testimonial }: Auth
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '13px', fontWeight: 700, color: '#fff', flexShrink: 0,
               }}>
-                {testimonial.name.charAt(0)}
+                {note.source.charAt(0)}
               </div>
               <div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35' }}>{testimonial.name}</div>
-                <div style={{ fontSize: '11px', color: '#6B7F8A' }}>{testimonial.title}</div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35' }}>{note.source}</div>
+                <div style={{ fontSize: '11px', color: '#4B5E68' }}>{note.detail}</div>
               </div>
             </div>
           </div>

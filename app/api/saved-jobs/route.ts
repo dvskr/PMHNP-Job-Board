@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { verifyCsrf } from '@/lib/csrf'
 
 // GET: List saved jobs for current user
 export async function GET() {
@@ -24,6 +25,12 @@ export async function GET() {
 
 // POST: Save a job
 export async function POST(request: NextRequest) {
+    // Both mutations here run on the session cookie alone, so a foreign page
+    // could otherwise fill or empty a candidate's bookmark list from their own
+    // browser. Same origin check the other session-authenticated mutations use.
+    const csrfError = verifyCsrf(request)
+    if (csrfError) return csrfError
+
     // Rate limiting
     const rateLimitResult = await rateLimit(request, 'saved-jobs', RATE_LIMITS.general);
     if (rateLimitResult) return rateLimitResult;
@@ -51,6 +58,9 @@ export async function POST(request: NextRequest) {
 
 // DELETE: Unsave a job
 export async function DELETE(request: NextRequest) {
+    const csrfError = verifyCsrf(request)
+    if (csrfError) return csrfError
+
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()

@@ -109,11 +109,22 @@ describe('POST /api/job-alerts — newsletter consent is explicit opt-in only', 
     const res = await post({ email: 'nurse@example.com', keyword: 'psych', location: 'Texas' });
     expect(res.status).toBe(200);
     expect(sendWelcomeEmail).toHaveBeenCalledTimes(1);
-    expect(sendWelcomeEmail).toHaveBeenCalledWith('nurse@example.com', 'tok-alert-1', {
+    // No token argument. The route used to pass jobAlert.token here, which
+    // neither /unsubscribe nor /api/one-click-unsubscribe can resolve;
+    // sendWelcomeEmail now looks up the EmailLead token itself.
+    expect(sendWelcomeEmail).toHaveBeenCalledWith('nurse@example.com', {
       criteriaSummary: '"psych" · in Texas',
       filteredJobsUrl: 'https://pmhnphiring.com/jobs?q=psych&location=Texas',
       frequency: 'daily',
       location: 'Texas',
     });
+  });
+
+  it('never hands the alert token to the mailer as if it were an unsubscribe token', () => {
+    // The two are both cuids on the same row, so a mix-up type-checks and
+    // only shows up as a dead opt-out link in a delivered email.
+    for (const call of (sendWelcomeEmail as unknown as { mock: { calls: unknown[][] } }).mock.calls) {
+      expect(call).not.toContain('tok-alert-1');
+    }
   });
 });

@@ -3,11 +3,13 @@ import { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { selectEligibleCities } from '@/lib/pseo/related-cities';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
+import { MIN_SITEMAP_POPULATION } from '@/lib/pseo/sitemap-thresholds';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, TrendingUp, Building2, Bell, MapPinned, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { publicJobsWhere } from '@/lib/filters';
+import { medianAdvertisedK } from '@/lib/salary-report/stats';
 import { JOB_LISTING_OMIT } from '@/lib/pseo/job-listing-omit';
 import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 import JobCard from '@/components/JobCard';
@@ -19,6 +21,7 @@ import CategoryHero from '@/components/CategoryHero';
 import CategoryFAQ from '@/components/CategoryFAQ';
 import { getCityBySlug } from '@/lib/pseo/city-data/cities';
 import { buildCityFacts, buildCityNarrative } from '@/lib/pseo/city-narrative';
+import { slugify } from '@/lib/utils';
 
 // Force dynamic rendering - don't try to statically generate during build
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
@@ -71,6 +74,50 @@ function parseCitySlug(slug: string): { cityName: string; stateName: string; sta
         .join(' ');
 
     return { cityName, stateName, stateCode };
+}
+
+/**
+ * Resolve a slug to the display name plus every stored spelling to match on.
+ *
+ * parseCitySlug rebuilds a name by title-casing the hyphen segments, which
+ * mangles any city whose stored name carries punctuation: "st-louis-mo" came
+ * back as "St Louis" and "winston-salem-nc" as "Winston Salem". Neither
+ * matches the stored "St. Louis" / "Winston-Salem", so the count was 0 and the
+ * page 404d on a URL app/sitemap.ts and the state hub both advertise, while
+ * the category x city pages for the same city (which read the CITIES registry)
+ * worked. The registry holds the real name, so prefer it for display and query
+ * on both spellings, since rows can be ingested either way.
+ */
+function resolveCityFromSlug(
+    slug: string,
+): { cityName: string; stateName: string; stateCode: string; matchNames: string[] } | null {
+    const parsed = parseCitySlug(slug);
+    const registry = getCityBySlug(slug.toLowerCase().trim());
+    if (!parsed && !registry) return null;
+
+    const cityName = registry?.name ?? parsed!.cityName;
+    const stateName = registry?.state ?? parsed!.stateName;
+    const stateCode = registry?.stateCode ?? parsed!.stateCode;
+    const matchNames = Array.from(
+        new Set([cityName, parsed?.cityName].filter((n): n is string => !!n)),
+    );
+    return { cityName, stateName, stateCode, matchNames };
+}
+
+/**
+ * Whether this city page may ask to be indexed.
+ *
+ * Mirrors the sitemap gate exactly (app/sitemap.ts, /api/sitemaps/cities):
+ * the slug must be a real registry city of at least MIN_SITEMAP_POPULATION
+ * people, and the page must clear the shared job floor. Anything else stays a
+ * 200 with noindex,follow rather than a page the sitemap refuses to advertise
+ * while the page itself invites indexing.
+ */
+function isCityIndexable(slug: string, totalJobs: number): boolean {
+    if (totalJobs < MIN_JOBS_FOR_CATEGORY_CITY) return false;
+    const registry = getCityBySlug(slug.toLowerCase().trim());
+    if (!registry) return false;
+    return registry.population >= MIN_SITEMAP_POPULATION;
 }
 
 /**
@@ -135,11 +182,11 @@ interface ProcessedEmployer {
  * all computed on jobs a visitor can never see. The city clauses only use
  * top-level `city` / `OR`, which do not collide with publicJobsWhere's `AND`.
  */
-async function getCityJobs(cityName: string, stateName: string, stateCode: string) {
+async function getCityJobs(cityNames: string[], stateName: string, stateCode: string) {
     const jobs = await prisma.job.findMany({
         where: {
             ...publicJobsWhere(),
-            city: { equals: cityName, mode: 'insensitive' },
+            city: { in: cityNames, mode: 'insensitive' },
             OR: [
                 { state: stateName },
                 { stateCode: stateCode },
@@ -153,11 +200,11 @@ async function getCityJobs(cityName: string, stateName: string, stateCode: strin
     return jobs;
 }
 
-async function getCityStats(cityName: string, stateName: string, stateCode: string) {
+async function getCityStats(cityNames: string[], stateName: string, stateCode: string) {
     const totalJobs = await prisma.job.count({
         where: {
             ...publicJobsWhere(),
-            city: { equals: cityName, mode: 'insensitive' },
+            city: { in: cityNames, mode: 'insensitive' },
             OR: [
                 { state: stateName },
                 { stateCode: stateCode },
@@ -165,10 +212,20 @@ async function getCityStats(cityName: string, stateName: string, stateCode: stri
         },
     });
 
-    const salaryData = await prisma.job.aggregate({
+    // One row fetch, three figures, all describing the same postings.
+    //
+    // This was an aggregate computing a mean of two column means for the
+    // headline figure and raw _min/_max for the advertised range, over every
+    // priced row including employer estimates. So the headline disagreed with
+    // /salary-guide for the same city, and the "from $Xk" end of the range
+    // could be set by a single estimated outlier nobody had published.
+    // medianAdvertisedK is the shared engine; the range is now taken from the
+    // same non-estimated rows it uses, so the two cannot describe different
+    // populations.
+    const salaryRows = await prisma.job.findMany({
         where: {
             ...publicJobsWhere(),
-            city: { equals: cityName, mode: 'insensitive' },
+            city: { in: cityNames, mode: 'insensitive' },
             OR: [
                 { state: stateName },
                 { stateCode: stateCode },
@@ -176,33 +233,33 @@ async function getCityStats(cityName: string, stateName: string, stateCode: stri
             normalizedMinSalary: { not: null },
             normalizedMaxSalary: { not: null },
         },
-        _avg: {
+        select: {
             normalizedMinSalary: true,
             normalizedMaxSalary: true,
-        },
-        _min: {
-            normalizedMinSalary: true,
-        },
-        _max: {
-            normalizedMaxSalary: true,
+            salaryIsEstimated: true,
         },
     });
 
-    const avgMinSalary = salaryData._avg.normalizedMinSalary || 0;
-    const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
-    const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
-    const minSalary = salaryData._min.normalizedMinSalary
-        ? Math.round(salaryData._min.normalizedMinSalary / 1000)
+    const avgSalary = medianAdvertisedK(salaryRows);
+    const advertisedRows = salaryRows.filter((r) => !r.salaryIsEstimated);
+    const lowestAdvertised = advertisedRows.length
+        ? Math.min(...advertisedRows.map((r) => r.normalizedMinSalary ?? Infinity))
         : 0;
-    const maxSalary = salaryData._max.normalizedMaxSalary
-        ? Math.round(salaryData._max.normalizedMaxSalary / 1000)
+    const highestAdvertised = advertisedRows.length
+        ? Math.max(...advertisedRows.map((r) => r.normalizedMaxSalary ?? 0))
+        : 0;
+    const minSalary = Number.isFinite(lowestAdvertised) && lowestAdvertised > 0
+        ? Math.round(lowestAdvertised / 1000)
+        : 0;
+    const maxSalary = highestAdvertised > 0
+        ? Math.round(highestAdvertised / 1000)
         : 0;
 
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
         where: {
             ...publicJobsWhere(),
-            city: { equals: cityName, mode: 'insensitive' },
+            city: { in: cityNames, mode: 'insensitive' },
             OR: [
                 { state: stateName },
                 { stateCode: stateCode },
@@ -228,7 +285,7 @@ async function getCityStats(cityName: string, stateName: string, stateCode: stri
     const uniqueEmployerRows = await prisma.job.findMany({
         where: {
             ...publicJobsWhere(),
-            city: { equals: cityName, mode: 'insensitive' },
+            city: { in: cityNames, mode: 'insensitive' },
             OR: [
                 { state: stateName },
                 { stateCode: stateCode },
@@ -314,24 +371,28 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
         const metroMatch = getMetroCity(slug);
         if (metroMatch) return { title: `PMHNP Jobs in ${metroMatch.city}` };
 
-        let parsed = parseCitySlug(slug);
+        let parsed = resolveCityFromSlug(slug);
+        let effectiveSlug = slug.toLowerCase().trim();
 
         if (!parsed) {
             // Try resolving slug without state code
             const canonical = await resolveAmbiguousSlug(slug);
-            if (canonical) parsed = parseCitySlug(canonical);
+            if (canonical) {
+                parsed = resolveCityFromSlug(canonical);
+                effectiveSlug = canonical;
+            }
             if (!parsed) return { title: 'City Not Found' };
         }
 
-        const { cityName, stateName, stateCode } = parsed;
-        const stats = await getCityStats(cityName, stateName, stateCode);
+        const { cityName, stateName, stateCode, matchNames } = parsed;
+        const stats = await getCityStats(matchNames, stateName, stateCode);
 
         // Title prioritizes count + city so SERP truncation lands in the salary
         // suffix rather than the city name (long names like "Colorado Springs"
         // were pushing the title past 60 chars and cutting "Avg" mid-phrase).
         // Salary appended only if there's room.
         const baseTitle = `${stats.totalJobs} PMHNP Jobs in ${cityName}, ${stateCode}`;
-        const salarySuffix = stats.avgSalary > 0 ? `: $${stats.avgSalary}k Avg` : '';
+        const salarySuffix = stats.avgSalary > 0 ? `: $${stats.avgSalary}k Median` : '';
         const title = (baseTitle + salarySuffix).length <= 60
             ? baseTitle + salarySuffix
             : baseTitle;
@@ -354,8 +415,17 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
             alternates: {
                 canonical: `https://pmhnphiring.com/jobs/city/${slug}`,
             },
-            // Noindex for empty city pages with zero jobs
-            ...(stats.totalJobs === 0 && {
+            // Index eligibility has to agree with the sitemap gate. app/sitemap.ts
+            // and /api/sitemaps/cities/[batch] deliberately refuse to advertise a
+            // slug that is absent from the CITIES registry (location-parse noise)
+            // or whose population is under MIN_SITEMAP_POPULATION, because those
+            // pages churn into crawled-not-indexed. The page was still emitting
+            // index,follow for exactly those slugs, so the site was asking Google
+            // to index what its own sitemap disowned. Keep the 200 (the links
+            // still pass equity), drop the index directive. The 0-job case is
+            // moot below (the page notFound()s under MIN_JOBS) but is kept here
+            // because generateMetadata runs independently of the page body.
+            ...(isCityIndexable(effectiveSlug, stats.totalJobs) ? {} : {
                 robots: {
                     index: false,
                     follow: true,
@@ -382,7 +452,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
     const metroMatch = getMetroCity(slug);
     if (metroMatch) permanentRedirect(`/jobs/metro/${slug}`);
 
-    const parsed = parseCitySlug(slug);
+    const parsed = resolveCityFromSlug(slug);
 
     if (!parsed) {
         // Try resolving slug without state code → canonical URL (permanent: 308).
@@ -393,12 +463,12 @@ export default async function CityJobsPage({ params }: CityPageProps) {
         notFound();
     }
 
-    const { cityName, stateName, stateCode } = parsed;
+    const { cityName, stateName, stateCode, matchNames } = parsed;
 
     // Fetch all data in parallel
     const [jobs, stats, relatedCities] = await Promise.all([
-        getCityJobs(cityName, stateName, stateCode),
-        getCityStats(cityName, stateName, stateCode),
+        getCityJobs(matchNames, stateName, stateCode),
+        getCityStats(matchNames, stateName, stateCode),
         getRelatedCities(stateName, stateCode, cityName),
     ]);
 
@@ -470,7 +540,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                                 '@type': 'ListItem',
                                 position: idx + 1,
                                 name: job.title,
-                                url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+                                url: `https://pmhnphiring.com/jobs/${job.slug || slugify(job.title, job.id)}`,
                             })),
                         }),
                     }}
@@ -507,7 +577,11 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                 headlineSub={`jobs in ${stateCode}. Find your fit.`}
                 stats={[
                     { value: `${stats.totalJobs}`, label: 'positions' },
-                    { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+                    // No "$130K+" fallback: an invented floor is worse than an
+                    // absent stat, and /salary-guide/{state} refuses to print a
+                    // figure it cannot compute from the same postings. Same
+                    // rule the state hub already follows.
+                    ...(stats.avgSalary > 0 ? [{ value: `$${stats.avgSalary}k`, label: 'median advertised' }] : []),
                     { value: `${stats.uniqueEmployerCount}+`, label: 'employers' },
                 ]}
                 description={`Browse ${stats.totalJobs} PMHNP positions in ${cityName}, ${stateName}. ${salaryRange ? `Salary range: ${salaryRange}/yr.` : ''} Remote, telehealth, inpatient, and outpatient roles updated daily.`}
@@ -595,7 +669,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                             <div style={{ background: '#FFF', borderRadius: '18px', padding: '24px', boxShadow: '6px 6px 20px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
                                 <TrendingUp size={20} style={{ color: '#34D399', marginBottom: '12px' }} />
                                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35' }}>${stats.avgSalary}k</div>
-                                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Median advertised, annual</div>
                                 {salaryRange && <div style={{ fontSize: '15px', fontWeight: 700, color: '#5A4A42', marginTop: '12px' }}>{salaryRange} range</div>}
                             </div>
                         )}
@@ -678,7 +752,10 @@ export default async function CityJobsPage({ params }: CityPageProps) {
 
                         {/* ROW 2: 4 compact cards */}
                         {[
-                            { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_salary.webp', text: `Average salary ${stats.avgSalary > 0 ? `$${stats.avgSalary}k/yr` : '$130K+'} for PMHNPs in ${cityName}.` },
+                            // Salary card states the figure the postings support, or says
+                            // plainly that too few disclose one. The old "$130K+" fallback
+                            // was a number nothing in the codebase could reproduce.
+                            { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_salary.webp', text: stats.avgSalary > 0 ? `Median advertised salary $${stats.avgSalary}k/yr for PMHNPs in ${cityName}.` : `Too few current ${cityName} postings disclose a salary range for us to publish a median.` },
                             { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_hospital.webp', text: `${stats.uniqueEmployerCount}+ healthcare employers actively hiring in ${cityName}.` },
                             { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_community.webp', text: `Inpatient, outpatient, community health, and private practice settings available.` },
                             { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_telehealth.webp', text: `Telehealth and remote opportunities expanding in ${stateName}.` },
@@ -695,7 +772,10 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                                 <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
                                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary Outlook</h3>
                                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                                    {cityName} PMHNPs earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K to $200K'} annually. {salaryRange ? `Range: ${salaryRange}/yr.` : 'Competitive compensation with benefits.'}
+                                    {stats.avgSalary > 0
+                                        ? `The median ${cityName} PMHNP posting that discloses a range advertises $${stats.avgSalary}k annually.`
+                                        : `Too few current ${cityName} postings disclose a salary range for us to publish a median, so we withhold the figure rather than estimate it.`}{' '}
+                                    {salaryRange ? `Range: ${salaryRange}/yr.` : 'Listings below show the advertised range whenever the employer discloses one.'}
                                 </p>
                             </div>
                             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
@@ -739,7 +819,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                         {[
                             { step: '01', title: 'Check Licensure', text: `Verify your ${stateName} PMHNP licensure requirements. Each state has different scope-of-practice regulations.` },
-                            { step: '02', title: 'Research Salary', text: `${cityName} PMHNPs earn ${stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+'} on average. Check our salary guide for ${stateName}.` },
+                            { step: '02', title: 'Research Salary', text: stats.avgSalary > 0 ? `The median ${cityName} posting that discloses a range advertises $${stats.avgSalary}k. Check our salary guide for ${stateName}.` : `Too few current ${cityName} postings disclose a range for a median. Check our salary guide for ${stateName}.` },
                             { step: '03', title: 'Explore Settings', text: `Popular settings in ${cityName} include outpatient clinics, hospitals, telehealth, and community health centers.` },
                             { step: '04', title: 'Apply', text: `Browse ${stats.totalJobs}+ positions in ${cityName} and set up job alerts to be the first to apply.` },
                         ].map(r => (
@@ -872,7 +952,11 @@ export default async function CityJobsPage({ params }: CityPageProps) {
             {/* ═══ FAQ ═══ */}
             <CategoryFAQ category="remote" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary} customFaqs={[
                 { question: `How many PMHNP jobs are in ${cityName}?`, answer: `There are currently ${stats.totalJobs} active PMHNP positions in ${cityName}, ${stateName}. New roles are added daily across outpatient, inpatient, telehealth, and community health settings.` },
-                { question: `What is the average PMHNP salary in ${cityName}?`, answer: stats.avgSalary > 0 ? `PMHNPs in ${cityName} earn an average salary of $${stats.avgSalary}k per year.${salaryRange ? ` The range is ${salaryRange}/yr depending on experience, setting, and whether the position is W-2 or 1099.` : ''}` : `PMHNP salaries in ${cityName} typically range from $130,000 to $200,000+ per year, depending on experience, practice setting, and employment type.` },
+                // Ships as FAQPage JSON-LD, so this wording is what a search
+                // engine quotes. Two corrections: it is a median, not an
+                // average, and it describes what listings ADVERTISE, not what
+                // people in the city earn. We have no earnings data.
+                { question: `What do PMHNP jobs in ${cityName} pay?`, answer: stats.avgSalary > 0 ? `The median ${cityName} PMHNP posting that discloses a salary advertises $${stats.avgSalary}k per year.${salaryRange ? ` Advertised ranges run ${salaryRange}/yr depending on experience, setting, and whether the position is W-2 or 1099.` : ''}` : `Too few current ${cityName} postings disclose a salary range to publish a median, so we withhold the figure rather than estimate it. Pay varies by experience, practice setting, and whether the role is W-2 or 1099.` },
                 { question: `What types of PMHNP jobs are available in ${cityName}?`, answer: `${cityName} offers a variety of PMHNP positions including outpatient clinics, inpatient psychiatric units, community health centers, private practices, telehealth roles, and substance abuse treatment facilities. Both full-time and part-time options are available.` },
                 { question: `Who are the top PMHNP employers in ${cityName}?`, answer: `Top employers hiring PMHNPs in ${cityName} include ${stats.topEmployers.slice(0, 5).map(e => e.name).join(', ')}. These organizations offer competitive salaries, benefits, and growth opportunities.` },
                 { question: `Do I need a ${stateName} license to work as a PMHNP in ${cityName}?`, answer: `Yes, you need an active ${stateName} nursing license and PMHNP certification to practice in ${cityName}. Requirements vary by state, so check our ${stateName} licensure guide for specific details on scope of practice, prescriptive authority, and continuing education requirements.` },

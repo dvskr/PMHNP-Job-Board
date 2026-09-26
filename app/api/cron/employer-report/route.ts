@@ -5,6 +5,7 @@ import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
 import { withCronTracking } from '@/lib/cron/track';
 import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
+import { resolveManagementRecipient } from '../_lib/employer-recipient';
 
 export const maxDuration = 120 // 2 minutes — employer report emails
 
@@ -39,10 +40,12 @@ export async function GET(request: NextRequest) {
                         applyClickCount: true,
                     },
                 },
+                // The owning account's email, for resolveManagementRecipient.
+                user: { select: { email: true } },
             },
         })
 
-        // Group by employer email
+        // Group by recipient address
         const employerMap = new Map<string, {
             employerName: string
             dashboardToken: string
@@ -50,7 +53,12 @@ export async function GET(request: NextRequest) {
         }>()
 
         for (const ej of employerJobs) {
-            const existing = employerMap.get(ej.contactEmail) || {
+            // The report's "View Full Report" button is a dashboard bearer
+            // link, so it goes to the verified account address where there is
+            // one, and the grouping key follows the recipient rather than the
+            // unverified contactEmail. See _lib/employer-recipient.
+            const recipient = resolveManagementRecipient(ej)
+            const existing = employerMap.get(recipient) || {
                 employerName: ej.employerName,
                 dashboardToken: ej.dashboardToken || ej.editToken,
                 jobs: [],
@@ -69,7 +77,7 @@ export async function GET(request: NextRequest) {
                 dashboardToken: ej.dashboardToken || ej.editToken,
             })
 
-            employerMap.set(ej.contactEmail, existing)
+            employerMap.set(recipient, existing)
         }
 
         let sentCount = 0

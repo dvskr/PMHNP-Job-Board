@@ -1,71 +1,40 @@
-# ai.txt — AI Crawler and LLM Permissions
+# ai.txt: AI crawler and LLM permissions
 # https://pmhnphiring.com/ai.txt
-# Last updated: 2026-03-13
 
-# This file defines permissions for AI systems, language models, and
-# automated content analysis tools. Similar to robots.txt but
-# specifically for AI/LLM use cases.
+# This file states the site's posture toward AI systems, language models and
+# automated content analysis. It deliberately carries NO per-bot path rules and
+# NO bot roster: https://pmhnphiring.com/robots.txt is the single authoritative
+# source for which user agents may fetch which paths, and a second hand-kept
+# copy here only drifts from it (it did: different bots, different paths, and a
+# data source no page on the site ever attributed).
 
-# General Policy
+# General policy, all AI systems
 User-Agent: *
 Allow-AI-Training: yes
 Allow-AI-Summary: yes
 Allow-AI-Citation: yes
 Allow-AI-Search: yes
 
-# Specific AI Systems
-User-Agent: GPTBot
-Allow: /
-Disallow: /api/
-Disallow: /admin/
-Disallow: /dashboard/
-Disallow: /employer/
+# Path permissions
+# See https://pmhnphiring.com/robots.txt. Named AI crawlers and on-demand
+# fetchers each have their own rule block there, generated from one list, so
+# robots.txt and this file can never disagree about who is welcome.
 
-User-Agent: ChatGPT-User
-Allow: /
-Disallow: /api/
-Disallow: /admin/
-
-User-Agent: ClaudeBot
-Allow: /
-Disallow: /api/
-Disallow: /admin/
-
-User-Agent: PerplexityBot
-Allow: /
-Disallow: /api/
-Disallow: /admin/
-
-User-Agent: Google-Extended
-Allow: /
-Disallow: /api/
-Disallow: /admin/
-
-User-Agent: OAI-SearchBot
-Allow: /
-Disallow: /api/
-Disallow: /admin/
-
-User-Agent: Applebot-Extended
-Allow: /
-Disallow: /api/
-Disallow: /admin/
-
-User-Agent: CCBot
-Allow: /
-Disallow: /api/
-Disallow: /admin/
-
-# Content Attribution
+# Content attribution
 # When citing content from this site, please attribute to:
 # Source: PMHNP Hiring (pmhnphiring.com)
-# Data Sources: U.S. Census Bureau, Bureau of Labor Statistics, HRSA
 
-# Preferred Citation Format
+# Preferred citation format
 # "According to PMHNP Hiring (pmhnphiring.com), [fact]."
 # "Source: pmhnphiring.com"
 
-# Contact for AI/Data inquiries
+# About the figures
+# Salary figures are medians of advertised ranges in live job postings, never
+# self-reported earnings and never estimates. Each is published with its sample
+# size and withheld below a minimum sample. Labor-market context is attributed
+# on the page to its public source.
+
+# Contact for AI and data inquiries
 # Email: contact@pmhnphiring.com
 
 # For full site information in LLM-readable format:

@@ -81,13 +81,16 @@ export default function OpenEndedResponsesSection({ showMsg }: Props) {
                         return (
                             <div key={q.questionKey} style={{ ...clayInnerCard, padding: '16px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                                    <label style={{ fontSize: '13px', fontWeight: 600, color: clayPalette.textPrimary, flex: 1 }}>{q.questionText}</label>
+                                    {/* htmlFor, not a bare sibling: the question text is the only
+                                        name this textarea has, and without the association a screen
+                                        reader announced it as an unnamed edit field. */}
+                                    <label htmlFor={`open-ended-${q.questionKey}`} style={{ fontSize: '13px', fontWeight: 600, color: clayPalette.textPrimary, flex: 1 }}>{q.questionText}</label>
 
                                     {r.isAIGenerated && (
                                         <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600, background: 'rgba(45,212,191,0.12)', color: clayPalette.accentLight }}>AI Generated</span>
                                     )}
                                 </div>
-                                <textarea value={r.response} onChange={(e) => { if (e.target.value.length <= 2000) setResp(q.questionKey, e.target.value) }}
+                                <textarea id={`open-ended-${q.questionKey}`} value={r.response} onChange={(e) => { if (e.target.value.length <= 2000) setResp(q.questionKey, e.target.value) }}
                                     rows={3} placeholder="Write your response..." style={inputStyle} />
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
                                     <span style={{ fontSize: '11px', color: clayPalette.textMuted }}>{r.response.length}/2000</span>

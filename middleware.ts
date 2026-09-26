@@ -12,6 +12,7 @@ import {
     CITY_ELIGIBLE_CATEGORY_SLUGS,
 } from '@/lib/pseo/jobs-segments-edge';
 import { FIRST_PARTY_ORIGINS } from '@/lib/origins';
+import { enforceApiCsrf } from '@/lib/csrf';
 
 // ── pSEO Taxonomy Allowlists (P1.2) ────────────────────────────────
 // Used to detect structurally invalid pSEO URLs and return 410 instead of 404.
@@ -43,7 +44,7 @@ function styled410(opts: {
     subtext: string;
     title?: string; // browser tab title
 }): NextResponse {
-    const tabTitle = opts.title ?? `${opts.badge} — PMHNP Hiring`;
+    const tabTitle = opts.title ?? `${opts.badge} | PMHNP Hiring`;
     const safe = (s: string) => s
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -242,7 +243,7 @@ function gone410(reason: string): NextResponse {
         badge: 'Page Removed',
         heading: 'This page is no longer available',
         subtext: reason,
-        title: 'Page Permanently Removed — PMHNP Hiring',
+        title: 'Page Permanently Removed | PMHNP Hiring',
     });
 }
 
@@ -412,6 +413,27 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     const pathname = url.pathname;
 
+    /**
+     * SEO canonicalization is for pages a crawler indexes. None of it applies
+     * to /api/*, and applying it there is actively harmful: a 301 on a non-GET
+     * call is downgraded to GET by browsers and fetch, which drops the request
+     * body and the route's CORS headers. The ?page=1 and utm rules below
+     * already carried this exclusion; the trailing-slash and case-fold
+     * redirects that run first did not, so `POST /api/anything/` and
+     * `GET /api/admin/Jobs` were answered with a redirect instead of reaching
+     * their handler.
+     */
+    const isApiPath = pathname.startsWith('/api/');
+
+    // ── CSRF: one check for the whole /api namespace ──────────────────
+    // Wiring lib/csrf.ts route by route left 83 mutating handlers open,
+    // every admin write among them, and each audit closed only the few it
+    // happened to inspect. The exemptions (webhooks, cron, the RFC 8058
+    // opt-out endpoints, the token routes) are listed in lib/csrf.ts with
+    // the reason each one is exempt.
+    const csrfBlocked = enforceApiCsrf(request, pathname);
+    if (csrfBlocked) return csrfBlocked;
+
     // ── IndexNow Key Verification ─────────────────────────────────────
     // IndexNow requires the key to be readable at /{key}.txt on the bare
     // domain. This used to be served by app/[indexnow]/route.ts, but a
@@ -452,7 +474,7 @@ export async function middleware(request: NextRequest) {
     // incoming path and re-appends the slash when it formats href, so
     // assigning `url.pathname` here redirected the request straight back to
     // itself: an infinite 301 loop, not a canonicalization.
-    if (pathname !== '/' && pathname.endsWith('/')) {
+    if (!isApiPath && pathname !== '/' && pathname.endsWith('/')) {
         const target = new URL(request.url);
         target.pathname = pathname.replace(/\/+$/, '');
         return NextResponse.redirect(target, 301);
@@ -460,7 +482,7 @@ export async function middleware(request: NextRequest) {
 
     // Case: /jobs/Remote and /jobs/remote are likewise distinct URLs.
     // Excludes /_next/* so client-side navigation data fetches are untouched.
-    if (/[A-Z]/.test(pathname) && !pathname.startsWith('/_next')) {
+    if (!isApiPath && /[A-Z]/.test(pathname) && !pathname.startsWith('/_next')) {
         url.pathname = pathname.toLowerCase();
         return NextResponse.redirect(url, 301);
     }
@@ -482,8 +504,8 @@ export async function middleware(request: NextRequest) {
                 return styled410({
                     badge: 'Position Removed',
                     heading: 'This position is no longer available',
-                    subtext: "This job listing has been permanently removed. Don't worry — we have hundreds of similar PMHNP positions open right now.",
-                    title: 'Position Removed — PMHNP Hiring',
+                    subtext: "This job listing has been permanently removed. Don't worry, we have hundreds of similar PMHNP positions open right now.",
+                    title: 'Position Removed | PMHNP Hiring',
                 });
             }
             // Cached "live" result short-circuits the DB call entirely.
@@ -495,7 +517,7 @@ export async function middleware(request: NextRequest) {
                 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.PROD_SUPABASE_SERVICE_ROLE_KEY;
                 if (supabaseUrl && supabaseKey) {
                     const res = await fetch(
-                        `${supabaseUrl}/rest/v1/jobs?id=eq.${jobId}&select=id,is_published,expires_at`,
+                        `${supabaseUrl}/rest/v1/jobs?id=eq.${jobId}&select=id,is_published,expires_at,original_posted_at,created_at`,
                         {
                             headers: {
                                 'apikey': supabaseKey,
@@ -512,14 +534,28 @@ export async function middleware(request: NextRequest) {
                         // Filled" body). Listings/sitemaps already exclude expired
                         // jobs, so a 410 on the detail URL is consistent.
                         const row = rows[0];
-                        const dateExpired = !!row?.expires_at && new Date(row.expires_at).getTime() < Date.now();
+                        // A null expires_at is not "never expires". app/jobs/[slug]
+                        // treats it as originalPostedAt (or createdAt) + 60 days and
+                        // 404s past that, mirroring the validThrough its own
+                        // JobPosting markup advertises. Reading it as "live" here
+                        // left those URLs answering 404 forever instead of the 410
+                        // the decision tree prescribes, so Google kept recrawling
+                        // them. Same rule, same horizon, both surfaces.
+                        const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
+                        const fallbackBase = row?.original_posted_at ?? row?.created_at;
+                        const effectiveExpiry = row?.expires_at
+                            ? new Date(row.expires_at).getTime()
+                            : fallbackBase
+                                ? new Date(fallbackBase).getTime() + SIXTY_DAYS_MS
+                                : null;
+                        const dateExpired = effectiveExpiry != null && effectiveExpiry < Date.now();
                         if (rows.length === 0 || !row.is_published || dateExpired) {
                             cacheLookupSet(cacheKey, true);
                             return styled410({
                                 badge: 'Position Removed',
                                 heading: 'This position is no longer available',
-                                subtext: "This job listing has been permanently removed. Don't worry — we have hundreds of similar PMHNP positions open right now.",
-                                title: 'Position Removed — PMHNP Hiring',
+                                subtext: "This job listing has been permanently removed. Don't worry, we have hundreds of similar PMHNP positions open right now.",
+                                title: 'Position Removed | PMHNP Hiring',
                             });
                         }
                         // Live — cache the negative so subsequent requests skip the round-trip.
@@ -567,8 +603,8 @@ export async function middleware(request: NextRequest) {
             return styled410({
                 badge: 'Page Not Found',
                 heading: 'This page doesn’t exist',
-                subtext: 'The page you’re looking for isn’t here — it may have moved or never existed. Browse current PMHNP openings instead.',
-                title: 'Page Not Found — PMHNP Hiring',
+                subtext: 'The page you’re looking for isn’t here: it may have moved or never existed. Browse current PMHNP openings instead.',
+                title: 'Page Not Found | PMHNP Hiring',
             });
         }
     }
@@ -642,7 +678,7 @@ export async function middleware(request: NextRequest) {
                                         badge: 'No Open Positions',
                                         heading: 'This employer has no current openings',
                                         subtext: "This company doesn't have any active PMHNP openings right now. Browse positions from other employers below.",
-                                        title: 'No Open Positions — PMHNP Hiring',
+                                        title: 'No Open Positions | PMHNP Hiring',
                                     });
                                 }
                                 // Live company with jobs — cache so the next
@@ -789,7 +825,13 @@ export async function middleware(request: NextRequest) {
     // ── Page=1 Stripping ─────────────────────────────────────────────
     // GSC Fix: /jobs/remote?page=1 is a duplicate of /jobs/remote.
     // Strip ?page=1 to consolidate canonical authority.
-    if (url.searchParams.get('page') === '1') {
+    //
+    // Both this and the UTM strip below are CANONICALIZATION of crawlable HTML
+    // URLs, so they skip /api/*: a JSON endpoint has no canonical to
+    // consolidate, the 301 costs every caller an extra round trip (the talent
+    // pool's first fetch is ?page=1&limit=20), and a 301 on a non-GET call
+    // downgrades it to GET and drops its body.
+    if (!isApiPath && url.searchParams.get('page') === '1') {
         url.searchParams.delete('page');
         return NextResponse.redirect(url, 301);
     }
@@ -806,7 +848,7 @@ export async function middleware(request: NextRequest) {
         }
     });
 
-    if (paramsToRemove.length > 0) {
+    if (!isApiPath && paramsToRemove.length > 0) {
         // Capture attribution BEFORE we strip it from the URL. The widget appends
         // utm_source=widget&utm_campaign=pd-{program} for Program-Director
         // attribution, but the SEO strip+301 would destroy it before any client
@@ -953,7 +995,12 @@ export async function middleware(request: NextRequest) {
     // re-rendering (and re-running ~10+ DB queries) on every URL. Safe because
     // the region is read CLIENT-SIDE from this cookie (lib/consent.ts
     // getConsentRegion) and the SSR HTML itself is geo-neutral.
-    if (!isCrawler) {
+    // Only WRITE the cookie when it is missing or has changed: an unchanged
+    // value re-sent on every response makes every human page view
+    // un-cacheable at the CDN for no benefit. lib/consent.ts defaults to
+    // 'strict' when the cookie is absent, so a skipped write is always safe.
+    const currentRegionCookie = request.cookies.get('pmhnp_consent_region')?.value;
+    if (!isCrawler && currentRegionCookie !== region) {
         response.cookies.set('pmhnp_consent_region', region, {
             path: '/',
             sameSite: 'lax',
@@ -1016,6 +1063,10 @@ export async function middleware(request: NextRequest) {
         '/post-job/checkout', '/post-job/preview',
         '/job-alerts/manage', '/job-alerts/unsubscribe',
         '/unauthorized', '/unsubscribe', '/messages', '/my-applications',
+        // CCPA/DSAR forms: utility surfaces with no search intent. They were
+        // indexable and inherited the ROOT title/description/og:url, so they
+        // read to a crawler as duplicates of the homepage.
+        '/data-request', '/do-not-sell',
     ];
     // SEO Fix: include the BARE prefix as well as `prefix/`. Previously
     // `pathname.startsWith('/dashboard/')` failed to match `/dashboard` exactly,

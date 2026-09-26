@@ -281,31 +281,17 @@ export default function robots(): MetadataRoute.Robots {
         // PUBLIC_ALLOW carve-outs here. Longest-match wins, so these
         // specific Allows beat the '/api/' Disallow.
         allow: ['/', ...PUBLIC_ALLOW],
-        disallow: [
-          '/api/',
-          '/admin',
-          '/dashboard',
-          '/auth',
-          '/onboarding',
-          '/employer/dashboard',
-          '/employer/candidates',
-          '/employer/applicants',
-          '/employer/talent-search',
-          '/employer/settings',
-          '/settings',
-          '/my-applications',
-          // Token-bearing paths this block's policy comment always promised
-          // ("must never be crawled or trained on") but never listed —
-          // organic audit 2026-08 D6. Mirrors FULL_DISALLOW's token set.
-          '/jobs/edit/',
-          '/post-job/checkout',
-          '/post-job/preview',
-          '/job-alerts/unsubscribe',
-          '/email-preferences',
-          '/unsubscribe',
-          '/reset-password',
-          '/forgot-password',
-        ],
+        // The disallow list is the SAME effectiveFullDisallow every other
+        // rule block gets, never a hand-maintained copy. The copy had
+        // drifted: it was missing /_next/data/, /videos/, /employer/signup,
+        // /employer/renewal-success, /success, /unauthorized, the five
+        // parameterized /jobs? crawl-waste rules, and — the part that
+        // actually mattered — POST_DEADLINE_AUTH_REBLOCK, so Anthropic's
+        // fetchers were the one crawler family still being pointed at
+        // /login, /signup, /messages and /saved after the re-block date.
+        // What makes this block special is the explicit `Allow: /` above
+        // (Anthropic's parser needs it); the disallow set never was.
+        disallow: effectiveFullDisallow,
       },
       // Catch-all rule (Googlebot, Bingbot, anyone unlisted). Implicit
       // "Allow: /" semantics — everything not matched by a Disallow is
