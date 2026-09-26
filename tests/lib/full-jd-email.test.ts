@@ -168,6 +168,13 @@ describe('the message holds together', () => {
     expect(subject).toContain('Cascade Behavioral Health');
   });
 
+  it('does not repeat a fact the location already carried', () => {
+    // A remote Texas role has location "Remote, TX" and mode "Remote", and
+    // the first version read "Remote, TX, Full-time, Remote" in the inbox.
+    expect(preheader).toBe('Remote, TX, Full-time. Full description inside.');
+    expect((preheader.match(/Remote/g) || []).length).toBe(1);
+  });
+
   it('uses no em or en dash anywhere a reader sees', () => {
     const withoutStyle = html.replace(/<style>[\s\S]*?<\/style>/g, '');
     expect(withoutStyle).not.toMatch(/[–—]/);

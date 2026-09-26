@@ -149,10 +149,19 @@ export function buildFullJdEmail(args: {
     ? `${job.title} at ${job.employer}, ${pay}`
     : `${job.title} at ${job.employer}`;
 
-  const preheader = [job.location, job.jobType, job.mode]
-    .filter(Boolean)
-    .map((s) => String(s))
-    .join(', ') + '. Full description inside.';
+  // Deduped, because location and mode overlap constantly: a remote Texas
+  // role has location "Remote, TX" and mode "Remote", and the naive join
+  // read "Remote, TX, Full-time, Remote" in the inbox listing.
+  const parts: string[] = [];
+  for (const raw of [job.location, job.jobType, job.mode]) {
+    const part = (raw ?? '').trim();
+    if (!part) continue;
+    const seen = parts.some(
+      (p) => p.toLowerCase() === part.toLowerCase() || p.toLowerCase().includes(part.toLowerCase()),
+    );
+    if (!seen) parts.push(part);
+  }
+  const preheader = `${parts.join(', ')}. Full description inside.`;
 
   const html = emailShellV2(`
       ${headerBlockV2('A role worth reading', '')}
