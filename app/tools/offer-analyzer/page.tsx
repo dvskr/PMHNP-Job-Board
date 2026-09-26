@@ -33,6 +33,14 @@ export const metadata: Metadata = {
       'See where your offer lands against advertised pay in live PMHNP postings. Free, in your browser.',
     type: 'website',
     url: `${BASE_URL}/tools/offer-analyzer`,
+    // Without `images` Next.js drops the root layout's og:image: a page-level
+    // openGraph object replaces the parent rather than merging with it.
+    images: [{
+      url: `/api/og?type=page&v=3&title=${encodeURIComponent('PMHNP Offer Analyzer')}&subtitle=${encodeURIComponent('See where your offer lands against live advertised pay')}`,
+      width: 1200,
+      height: 630,
+      alt: 'PMHNP Offer Analyzer',
+    }],
   },
 };
 

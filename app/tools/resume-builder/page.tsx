@@ -38,6 +38,14 @@ export const metadata: Metadata = {
       'Resume sections PMHNP employers actually screen for, instant rubric scoring, AI review, and PDF export. Free to start.',
     type: 'website',
     url: `${BASE_URL}/tools/resume-builder`,
+    // Without `images` Next.js drops the root layout's og:image: a page-level
+    // openGraph object replaces the parent rather than merging with it.
+    images: [{
+      url: `/api/og?type=page&v=3&title=${encodeURIComponent('PMHNP Resume Builder')}&subtitle=${encodeURIComponent('Licensure-first templates, rubric scoring, AI review')}`,
+      width: 1200,
+      height: 630,
+      alt: 'PMHNP Resume Builder',
+    }],
   },
 };
 

@@ -1,8 +1,15 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { publicJobsWhere } from '@/lib/filters';
+import {
+    STATE_CODES,
+    getAllStateSlugs,
+    resolveStateSlug,
+    stateToSlug,
+} from '@/lib/pseo/setting-state-config';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 import { cityLinkHref } from '@/lib/pseo/related-cities';
 import { hasLicensePost } from '@/lib/pseo/license-posts';
@@ -31,32 +38,33 @@ export const revalidate = 86400; // ISR daily
 
 // ── State mappings ──────────────────────────────────────────────────────────
 
-const STATE_CODES: Record<string, string> = {
-    'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
-    'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
-    'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
-    'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
-    'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
-    'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
-    'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
-    'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
-    'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
-    'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
-    'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
-    'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
-    'Wisconsin': 'WI', 'Wyoming': 'WY', 'District of Columbia': 'DC',
-};
-
-const SLUG_TO_STATE: Record<string, string> = {};
-Object.keys(STATE_CODES).forEach((name) => {
-    SLUG_TO_STATE[name.toLowerCase().replace(/\s+/g, '-')] = name;
-});
-
-const ALL_STATE_SLUGS = Object.keys(SLUG_TO_STATE);
+// STATE_CODES / slug resolution come from lib/pseo/setting-state-config, the
+// same module /jobs/state and the setting-state template use. This route used
+// to carry its own copy of the table and a name-only slug map, which is why it
+// alone among the state routes 404'd on the /salary-guide/ca code alias.
+const ALL_STATE_SLUGS = getAllStateSlugs();
 
 // ── Data fetching ───────────────────────────────────────────────────────────
 
 const SETTINGS = ['Telehealth', 'Outpatient', 'Inpatient', 'Remote'] as const;
+
+/**
+ * Shared predicate for every state-scoped query on this page, mirroring
+ * stateScopedWhere in app/jobs/state/[state]/page.tsx. Matching on the state
+ * name alone counted a strictly smaller row set than the hub one click away,
+ * so the two pages published different "live positions in {state}" numbers
+ * for the same state. The state OR sits beside publicJobsWhere's AND array,
+ * so neither clause overwrites the other.
+ */
+function stateScopedWhere(stateName: string): Prisma.JobWhereInput {
+    return {
+        ...publicJobsWhere(),
+        OR: [
+            { state: stateName },
+            { stateCode: STATE_CODES[stateName] },
+        ],
+    };
+}
 
 interface SettingStat {
     setting: string;
@@ -73,13 +81,13 @@ async function getStateData(stateName: string) {
     const [rows, totalOpen, changeAgg] = await Promise.all([
         prisma.job.findMany({
             where: {
-                // publicJobsWhere(), not a bare isPublished. /jobs/state/{state}
-                // computes its median over the same postings minus the
-                // GLOBAL_EXCLUSIONS non-PMHNP rows, so counting a different row
-                // set here made the two pages publish different medians for the
-                // same state, on the same domain, one click apart.
-                ...publicJobsWhere(),
-                state: stateName,
+                // stateScopedWhere, not a bare isPublished and not a name-only
+                // match. /jobs/state/{state} computes its median over the same
+                // postings minus the GLOBAL_EXCLUSIONS non-PMHNP rows and
+                // resolves the state by name OR code, so any other row set here
+                // makes the two pages publish different medians for the same
+                // state, on the same domain, one click apart.
+                ...stateScopedWhere(stateName),
                 normalizedMinSalary: { not: null },
                 normalizedMaxSalary: { not: null },
                 salaryIsEstimated: false,
@@ -92,14 +100,14 @@ async function getStateData(stateName: string) {
                 jobType: true,
             },
         }),
-        prisma.job.count({ where: { ...publicJobsWhere(), state: stateName } }),
+        prisma.job.count({ where: stateScopedWhere(stateName) }),
         // Real change signal for dateModified / the visible Updated line:
         // the newest posting to enter this state's dataset, or the newest
         // employer renewal. NEVER job.updatedAt (it churns daily on view
         // counts) and never render time (organic audit 2026-08 D1: the old
         // new Date().toISOString() here was a fabricated freshness signal).
         prisma.job.aggregate({
-            where: { isPublished: true, state: stateName },
+            where: stateScopedWhere(stateName),
             _max: { createdAt: true, lastRenewedAt: true },
         }),
     ]);
@@ -136,7 +144,9 @@ async function getStateData(stateName: string) {
 async function getTopEmployers(stateName: string) {
     const employers = await prisma.job.groupBy({
         by: ['employer'],
-        where: { isPublished: true, state: stateName },
+        // Same scope as the counts above: an employer whose only rows here are
+        // expired or off-specialty is not one of the state's top employers.
+        where: stateScopedWhere(stateName),
         _count: { id: true },
         orderBy: { _count: { id: 'desc' } },
         take: 10,
@@ -159,7 +169,7 @@ async function getTopEmployers(stateName: string) {
 async function getTopCities(stateName: string) {
     const cities = await prisma.job.groupBy({
         by: ['city'],
-        where: { ...publicJobsWhere(), state: stateName, city: { not: null } },
+        where: { ...stateScopedWhere(stateName), city: { not: null } },
         _count: { id: true },
         orderBy: { _count: { id: 'desc' } },
         take: 10,
@@ -192,9 +202,12 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { state: slug } = await params;
-    const stateName = SLUG_TO_STATE[slug];
+    const stateName = resolveStateSlug(slug);
     if (!stateName) return { title: 'State Not Found' };
 
+    // Self-reference the hyphenated name even when the visitor arrived on the
+    // two-letter alias; the page handler redirects that alias anyway.
+    const canonicalSlug = stateToSlug(stateName);
     const code = STATE_CODES[stateName];
     const year = new Date().getFullYear();
 
@@ -235,14 +248,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
         title,
         description,
-        alternates: { canonical: `https://pmhnphiring.com/salary-guide/${slug}` },
+        alternates: { canonical: `https://pmhnphiring.com/salary-guide/${canonicalSlug}` },
         openGraph: {
             title: medK != null
                 ? `PMHNP Salary in ${stateName}: $${medK}K Median Advertised Pay`
                 : `PMHNP Salary in ${stateName} (${code}): ${year} Data`,
             description: `Median advertised PMHNP pay in ${stateName} by practice setting, top employers, and open positions.`,
             type: 'website',
-            url: `https://pmhnphiring.com/salary-guide/${slug}`,
+            url: `https://pmhnphiring.com/salary-guide/${canonicalSlug}`,
             siteName: 'PMHNP Hiring',
             images: [{ url: ogImage, width: 1280, height: 900, alt: `PMHNP Salary in ${stateName} ${year}` }],
         },
@@ -282,11 +295,16 @@ const loraHeading: React.CSSProperties = {
 
 export default async function StateSalaryPage({ params }: PageProps) {
     const { state: slug } = await params;
-    const stateName = SLUG_TO_STATE[slug];
+    const stateName = resolveStateSlug(slug);
     if (!stateName) notFound();
 
     const stateCode = STATE_CODES[stateName];
-    const stateSlug = slug;
+    const stateSlug = stateToSlug(stateName);
+    // /salary-guide/ca used to 404 while /jobs/state/ca and the setting-state
+    // template both 308 the two-letter alias onto the hyphenated name. An
+    // external or AI-generated link in that shape now consolidates onto the
+    // canonical page instead of dead-ending.
+    if (slug !== stateSlug) permanentRedirect(`/salary-guide/${stateSlug}`);
 
     const [stateData, topEmployers, topCities, market] = await Promise.all([
         getStateData(stateName),

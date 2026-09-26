@@ -41,6 +41,14 @@ export const metadata: Metadata = {
         type: 'website',
         url: `${brand.baseUrl}/contact`,
         siteName: 'PMHNP Hiring',
+        // Without `images` Next.js drops the root layout's og:image: a
+        // page-level openGraph object replaces the parent, it does not merge.
+        images: [{
+            url: `/api/og?type=page&v=3&title=${encodeURIComponent('Contact PMHNP Hiring')}&subtitle=${encodeURIComponent('Support, employer and partnership inquiries')}`,
+            width: 1200,
+            height: 630,
+            alt: 'Contact PMHNP Hiring',
+        }],
     },
     twitter: { card: 'summary_large_image', title: 'Contact PMHNP Hiring', description: 'Get in touch with the team: support, employer, and partnership inquiries.' },
 };

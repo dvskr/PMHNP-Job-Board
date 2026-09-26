@@ -121,8 +121,6 @@ export interface SettingConfig {
   fullLabel: string;
   /** Hero subtitle for the state page */
   heroSubtitle: string;
-  /** Target salary range for metadata */
-  salaryRange: string;
   /** SEO keywords for metadata */
   keywords: string[];
   /** FAQ category key passed to CategoryFAQ component */
@@ -172,7 +170,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: 'Remote',
     fullLabel: 'Remote PMHNP',
     heroSubtitle: 'Work from home psychiatric NP positions',
-    salaryRange: '$130K-200K',
     keywords: ['remote pmhnp', 'work from home pmhnp', 'remote psychiatric nurse practitioner', 'telehealth pmhnp'],
     faqCategory: 'remote',
     buildWhere: (stateName: string) => ({
@@ -198,7 +195,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: 'Telehealth',
     fullLabel: 'Telehealth PMHNP',
     heroSubtitle: 'Virtual psychiatric care positions',
-    salaryRange: '$130K-200K',
     keywords: ['telehealth pmhnp', 'telemedicine pmhnp', 'virtual psychiatry', 'telepsychiatry nurse practitioner'],
     faqCategory: 'telehealth',
     buildWhere: (stateName: string) => ({
@@ -224,7 +220,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: 'Inpatient',
     fullLabel: 'Inpatient PMHNP',
     heroSubtitle: 'Hospital & acute care psychiatric positions',
-    salaryRange: '$140K-200K',
     keywords: ['inpatient pmhnp', 'hospital pmhnp', 'acute care pmhnp', 'inpatient psychiatric nurse practitioner'],
     faqCategory: 'inpatient',
     buildWhere: (stateName: string) => ({
@@ -233,7 +228,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
       ...withTagFallback('inpatient'),
     }),
     benefits: [
-      { title: 'Higher Base Pay', description: 'Inpatient PMHNPs earn $140K-$200K+ due to the demanding nature of acute psychiatric care.', iconName: 'DollarSign' },
+      { title: 'Higher Base Pay', description: 'Inpatient PMHNPs earn a premium over comparable outpatient roles, given the demands of acute psychiatric care.', iconName: 'DollarSign' },
       { title: 'Structured Environment', description: 'Hospital settings offer built-in support teams, protocols, and multidisciplinary care teams.', iconName: 'Shield' },
       { title: 'Defined Schedules', description: 'Many inpatient roles offer shift-based schedules (7-on/7-off, 3x12s) with no after-hours calls.', iconName: 'Clock' },
     ],
@@ -250,7 +245,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: 'Outpatient',
     fullLabel: 'Outpatient PMHNP',
     heroSubtitle: 'Clinic & private practice positions',
-    salaryRange: '$130K-190K',
     keywords: ['outpatient pmhnp', 'clinic pmhnp', 'private practice pmhnp', 'outpatient psychiatric nurse practitioner'],
     faqCategory: 'outpatient',
     buildWhere: (stateName: string) => ({
@@ -261,7 +255,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     benefits: [
       { title: 'Work-Life Balance', description: 'Most outpatient positions offer Monday to Friday schedules with no nights, weekends, or on-call requirements.', iconName: 'Clock' },
       { title: 'Long-Term Relationships', description: 'Build meaningful therapeutic relationships through ongoing medication management and therapy.', iconName: 'Heart' },
-      { title: 'Private Practice Path', description: 'Outpatient experience is the foundation for starting your own practice earning $200K+ with full autonomy.', iconName: 'DollarSign' },
+      { title: 'Private Practice Path', description: 'Outpatient experience is the foundation for starting your own practice, where the earning ceiling and the autonomy are both highest.', iconName: 'DollarSign' },
     ],
     tips: [
       'Start with structured clinic work before private practice',
@@ -276,7 +270,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: 'Travel',
     fullLabel: 'Travel PMHNP',
     heroSubtitle: 'Locum tenens & travel assignment positions',
-    salaryRange: '$80-150/hr',
     keywords: ['travel pmhnp', 'locum tenens pmhnp', 'travel psychiatric nurse practitioner', 'locum psych np'],
     faqCategory: 'travel',
     buildWhere: (stateName: string) => ({
@@ -309,7 +302,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: 'Addiction',
     fullLabel: 'Addiction PMHNP',
     heroSubtitle: 'Substance abuse & addiction treatment positions',
-    salaryRange: '$120K-180K',
     keywords: ['addiction pmhnp', 'substance abuse pmhnp', 'addiction psychiatry', 'MAT provider', 'suboxone prescriber'],
     faqCategory: 'addiction',
     buildWhere: (stateName: string) => buildKeywordWhere(
@@ -337,7 +329,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: 'Full-Time',
     fullLabel: 'Full-Time PMHNP',
     heroSubtitle: 'Permanent full-time psychiatric NP positions',
-    salaryRange: '$130K-200K',
     keywords: ['full-time pmhnp', 'permanent pmhnp', 'full time psychiatric nurse practitioner', 'W-2 pmhnp'],
     faqCategory: 'full-time',
     buildWhere: (stateName: string) => ({
@@ -363,7 +354,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: 'Part-Time',
     fullLabel: 'Part-Time PMHNP',
     heroSubtitle: 'Flexible part-time psychiatric NP positions',
-    salaryRange: '$60-100/hr',
     keywords: ['part-time pmhnp', 'part time pmhnp', 'flexible pmhnp', 'PRN pmhnp'],
     faqCategory: 'part-time',
     buildWhere: (stateName: string) => ({
@@ -373,7 +363,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     }),
     benefits: [
       { title: 'Schedule Flexibility', description: 'Work 2-3 days per week, freeing time for private practice, family, or other commitments.', iconName: 'Clock' },
-      { title: 'Higher Hourly Rates', description: 'Part-time PMHNPs often earn $60-100+/hr, higher per hour than full-time equivalents.', iconName: 'DollarSign' },
+      { title: 'Higher Hourly Rates', description: 'Part-time PMHNPs are paid hourly, and the rate runs higher per hour than the full-time equivalent.', iconName: 'DollarSign' },
       { title: 'Stack Multiple Roles', description: 'Combine part-time positions across different settings to maximize income and clinical variety.', iconName: 'Activity' },
     ],
     tips: [
@@ -389,7 +379,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: 'Contract',
     fullLabel: 'Contract PMHNP',
     heroSubtitle: 'Contract & temp-to-perm psychiatric NP positions',
-    salaryRange: '$70-130/hr',
     keywords: ['contract pmhnp', 'temp pmhnp', 'contract psychiatric nurse practitioner', 'temp to perm pmhnp'],
     faqCategory: 'contract',
     buildWhere: (stateName: string) => ({
@@ -398,7 +387,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
       ...withTagFallback('contract'),
     }),
     benefits: [
-      { title: 'Premium Rates', description: 'Contract PMHNPs earn 20-50% more per hour than permanent staff, with rates of $70-130+/hr.', iconName: 'DollarSign' },
+      { title: 'Premium Rates', description: 'Contract PMHNPs are paid hourly at rates above permanent staff, because no benefits are bundled.', iconName: 'DollarSign' },
       { title: 'Try Before You Commit', description: 'Contract roles let you evaluate an employer, location, and patient population before converting to permanent.', iconName: 'Lightbulb' },
       { title: 'Tax Advantages', description: 'As a contract worker, deduct home office, travel, equipment, and continuing education from your taxes.', iconName: 'Shield' },
     ],
@@ -415,7 +404,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: 'New Grad',
     fullLabel: 'New Grad PMHNP',
     heroSubtitle: 'Entry-level positions for new PMHNP graduates',
-    salaryRange: '$110K-160K',
     keywords: ['new grad pmhnp', 'entry level pmhnp', 'new graduate pmhnp', 'pmhnp residency', 'pmhnp fellowship'],
     faqCategory: 'new-grad',
     buildWhere: (stateName: string) => buildKeywordWhere(
@@ -425,7 +413,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     ),
     benefits: [
       { title: 'Mentorship Programs', description: 'Many new grad positions include structured mentorship with experienced psychiatrists and PMHNPs.', iconName: 'Users' },
-      { title: 'Competitive Starting Pay', description: 'New grad PMHNPs start at $110K-160K+ with full benefits, signing bonuses, and loan repayment.', iconName: 'DollarSign' },
+      { title: 'Competitive Starting Pay', description: 'New grad PMHNPs start with full benefits, signing bonuses, and loan repayment eligibility.', iconName: 'DollarSign' },
       { title: 'Clinical Growth', description: 'First roles build your clinical foundation, so choose settings that offer diverse patient populations and supervision.', iconName: 'TrendingUp' },
     ],
     tips: [
@@ -441,7 +429,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: '1099',
     fullLabel: '1099 PMHNP',
     heroSubtitle: 'Independent contractor psychiatric NP positions',
-    salaryRange: '$75-150+/hr',
     keywords: ['1099 pmhnp', 'independent contractor pmhnp', 'self-employed pmhnp', 'IC psychiatric nurse practitioner'],
     faqCategory: '1099',
     buildWhere: (stateName: string) => buildKeywordWhere(
@@ -450,9 +437,9 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
       '1099',
     ),
     benefits: [
-      { title: 'Higher Gross Pay', description: '1099 PMHNPs earn $75-150+/hr, 20-40% higher than W-2 rates with significant tax deduction opportunities.', iconName: 'DollarSign' },
+      { title: 'Higher Gross Pay', description: '1099 PMHNPs bill an hourly rate above the W-2 equivalent, with significant tax deduction opportunities.', iconName: 'DollarSign' },
       { title: 'Schedule Control', description: 'Set your own hours, work with multiple clients, and control your patient volume and caseload.', iconName: 'Clock' },
-      { title: 'Tax Advantages', description: 'Deduct business expenses, contribute $66K/year to SEP-IRA, and write off home office and mileage.', iconName: 'Shield' },
+      { title: 'Tax Advantages', description: 'Deduct business expenses, contribute to a SEP-IRA up to the annual IRS limit, and write off home office and mileage.', iconName: 'Shield' },
     ],
     tips: [
       'Form an LLC or PLLC before signing your first contract',
@@ -467,7 +454,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: 'Behavioral Health',
     fullLabel: 'Behavioral Health PMHNP',
     heroSubtitle: 'Integrated behavioral health positions',
-    salaryRange: '$120K-185K',
     keywords: ['behavioral health pmhnp', 'integrated behavioral health', 'behavioral health nurse practitioner'],
     faqCategory: 'behavioral-health',
     buildWhere: (stateName: string) => buildKeywordWhere(
@@ -493,7 +479,6 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
     label: 'Correctional',
     fullLabel: 'Correctional PMHNP',
     heroSubtitle: 'Forensic & correctional psychiatric positions',
-    salaryRange: '$130K-200K',
     keywords: ['correctional pmhnp', 'forensic pmhnp', 'prison pmhnp', 'jail psychiatric nurse practitioner'],
     faqCategory: 'correctional',
     buildWhere: (stateName: string) => buildKeywordWhere(
@@ -502,7 +487,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
       'correctional',
     ),
     benefits: [
-      { title: 'Premium Compensation', description: 'Correctional PMHNPs earn $130K-200K+ with government benefits, pension, and loan repayment programs.', iconName: 'DollarSign' },
+      { title: 'Premium Compensation', description: 'Correctional PMHNPs earn a premium alongside government benefits, a pension, and loan repayment programs.', iconName: 'DollarSign' },
       { title: 'Loan Forgiveness', description: 'Federal and state correctional facilities qualify for PSLF (Public Service Loan Forgiveness) after 120 payments.', iconName: 'Shield' },
       { title: 'Unique Clinical Skills', description: 'Develop expertise in forensic psychiatry, competency evaluations, and complex dual-diagnosis populations.', iconName: 'Lightbulb' },
     ],

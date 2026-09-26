@@ -17,6 +17,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { MARKETING_EMAIL_TYPES } from '@/lib/email/email-types';
 
 const read = (rel: string): string =>
   fs.readFileSync(path.resolve(__dirname, '../../', rel), 'utf8');
@@ -206,12 +207,12 @@ describe('eligibility guards', () => {
 });
 
 describe('email-type wiring', () => {
-  it("email-service knows 'lifecycle' and routes it via the marketing sender", () => {
-    const src = read('lib/email-service.ts');
-    expect(src).toMatch(/\| 'lifecycle'/);
-    const setStart = src.indexOf('MARKETING_EMAIL_TYPES = new Set');
-    const setBlock = src.slice(setStart, src.indexOf(']);', setStart));
-    expect(setBlock).toContain("'lifecycle'");
+  it("'lifecycle' is a marketing type, so it routes via the marketing sender", () => {
+    // Asserts the set, not the text of whichever file declares it. The old
+    // version sliced the Set literal out of lib/email-service.ts and broke
+    // when the classification moved to lib/email/email-types.ts, with the
+    // membership unchanged.
+    expect(MARKETING_EMAIL_TYPES.has('lifecycle')).toBe(true);
   });
 
   it("the shared connect-feature cap list includes 'lifecycle'", () => {

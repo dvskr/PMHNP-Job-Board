@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { prisma } from '@/lib/prisma';
 import { STATE_PRACTICE_AUTHORITY } from '@/lib/state-practice-authority';
+import { publicJobsWhere } from '@/lib/filters';
 import { cleanSalaryRows, summarizeMidpoints, TIER_MEDIAN_MIN_N } from './stats';
 
 /**
@@ -38,7 +39,13 @@ const roundK = (v: number) => Math.round(v / 1000) * 1000;
 export const getOfferMarketData = cache(async function getOfferMarketData(): Promise<OfferMarketData> {
   const rows = await prisma.job.findMany({
     where: {
-      isPublished: true,
+      // publicJobsWhere(), not a bare isPublished: these are the national and
+      // per-state medians the salary hub, the state pages, the offer analyzer
+      // and the public CSV all quote. The unscoped predicate computed them
+      // over expired postings and the MD-Psychiatrist / off-specialty rows
+      // GLOBAL_EXCLUSIONS hides from every browse surface, so the published
+      // figure described a job set no visitor can reach from the listings.
+      ...publicJobsWhere(),
       normalizedMinSalary: { not: null },
       normalizedMaxSalary: { not: null },
       salaryIsEstimated: false,
@@ -127,7 +134,7 @@ export interface SettingMedian {
 export const getNationalSettingMedians = cache(async function getNationalSettingMedians(): Promise<SettingMedian[]> {
   const rows = await prisma.job.findMany({
     where: {
-      isPublished: true,
+      ...publicJobsWhere(),
       normalizedMinSalary: { not: null },
       normalizedMaxSalary: { not: null },
       salaryIsEstimated: false,

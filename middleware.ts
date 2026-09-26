@@ -412,6 +412,18 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     const pathname = url.pathname;
 
+    /**
+     * SEO canonicalization is for pages a crawler indexes. None of it applies
+     * to /api/*, and applying it there is actively harmful: a 301 on a non-GET
+     * call is downgraded to GET by browsers and fetch, which drops the request
+     * body and the route's CORS headers. The ?page=1 and utm rules below
+     * already carried this exclusion; the trailing-slash and case-fold
+     * redirects that run first did not, so `POST /api/anything/` and
+     * `GET /api/admin/Jobs` were answered with a redirect instead of reaching
+     * their handler.
+     */
+    const isApiPath = pathname.startsWith('/api/');
+
     // ── IndexNow Key Verification ─────────────────────────────────────
     // IndexNow requires the key to be readable at /{key}.txt on the bare
     // domain. This used to be served by app/[indexnow]/route.ts, but a
@@ -452,7 +464,7 @@ export async function middleware(request: NextRequest) {
     // incoming path and re-appends the slash when it formats href, so
     // assigning `url.pathname` here redirected the request straight back to
     // itself: an infinite 301 loop, not a canonicalization.
-    if (pathname !== '/' && pathname.endsWith('/')) {
+    if (!isApiPath && pathname !== '/' && pathname.endsWith('/')) {
         const target = new URL(request.url);
         target.pathname = pathname.replace(/\/+$/, '');
         return NextResponse.redirect(target, 301);
@@ -460,7 +472,7 @@ export async function middleware(request: NextRequest) {
 
     // Case: /jobs/Remote and /jobs/remote are likewise distinct URLs.
     // Excludes /_next/* so client-side navigation data fetches are untouched.
-    if (/[A-Z]/.test(pathname) && !pathname.startsWith('/_next')) {
+    if (!isApiPath && /[A-Z]/.test(pathname) && !pathname.startsWith('/_next')) {
         url.pathname = pathname.toLowerCase();
         return NextResponse.redirect(url, 301);
     }
@@ -809,8 +821,6 @@ export async function middleware(request: NextRequest) {
     // consolidate, the 301 costs every caller an extra round trip (the talent
     // pool's first fetch is ?page=1&limit=20), and a 301 on a non-GET call
     // downgrades it to GET and drops its body.
-    const isApiPath = pathname.startsWith('/api/');
-
     if (!isApiPath && url.searchParams.get('page') === '1') {
         url.searchParams.delete('page');
         return NextResponse.redirect(url, 301);

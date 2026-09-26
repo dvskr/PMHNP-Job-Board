@@ -60,7 +60,20 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     description: `Browse ${categoryTitleCount(stats.totalJobs)}senior PMHNP leadership positions. Clinical Director, Program Director, Medical Director, and Lead PMHNP roles.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/senior` },
     keywords: ['senior PMHNP jobs', 'PMHNP director', 'PMHNP leadership', 'clinical director psychiatric', 'PMHNP supervisor'],
-    openGraph: { title: `Senior PMHNP Jobs: ${categoryTitleCount(stats.totalJobs)}Leadership Positions`, description: `Find ${categoryTitleCount(stats.totalJobs)}senior psychiatric NP roles.`, url: 'https://pmhnphiring.com/jobs/senior', type: 'website' },
+    // `images` is not optional here: a page-level openGraph object replaces
+    // the root layout's rather than merging, so omitting it strips og:image.
+    openGraph: {
+      title: `Senior PMHNP Jobs: ${categoryTitleCount(stats.totalJobs)}Leadership Positions`,
+      description: `Find ${categoryTitleCount(stats.totalJobs)}senior psychiatric NP roles.`,
+      url: 'https://pmhnphiring.com/jobs/senior',
+      type: 'website',
+      images: [{
+        url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Senior PMHNP Jobs`)}&subtitle=${encodeURIComponent('Leadership and senior psychiatric NP positions')}`,
+        width: 1200,
+        height: 630,
+        alt: 'Senior PMHNP Jobs',
+      }],
+    },
     ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }

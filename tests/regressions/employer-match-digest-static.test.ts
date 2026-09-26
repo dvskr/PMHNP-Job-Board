@@ -22,6 +22,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { MARKETING_EMAIL_TYPES } from '@/lib/email/email-types';
 
 const read = (rel: string): string =>
   fs.readFileSync(path.resolve(__dirname, '../../', rel), 'utf8');
@@ -319,15 +320,13 @@ describe('persistence and wiring', () => {
     expect(sql).toMatch(/ON DELETE CASCADE/);
   });
 
-  it('the email type is registered as a marketing type in email-service', () => {
-    const svc = read('lib/email-service.ts');
-    expect(svc).toMatch(/\| 'employer_match_digest'/);
-    // Anchor on the DECLARATION: the identifier is also named in a comment
-    // above it, and slicing from that comment misses the Set literal.
-    const declIdx = svc.indexOf('const MARKETING_EMAIL_TYPES = new Set');
-    expect(declIdx).toBeGreaterThan(-1);
-    const marketingBlock = svc.slice(declIdx, svc.indexOf(']);', declIdx));
-    expect(marketingBlock).toContain("'employer_match_digest'");
+  it('the email type is registered as a marketing type', () => {
+    // Asserts the set itself rather than the text of the file that used to
+    // hold it. This previously sliced a Set literal out of
+    // lib/email-service.ts and went red when the classification moved to
+    // lib/email/email-types.ts so the template layer could share it, even
+    // though the membership was unchanged.
+    expect(MARKETING_EMAIL_TYPES.has('employer_match_digest')).toBe(true);
   });
 
   it('the cron is registered in vercel.json on its own slot', () => {

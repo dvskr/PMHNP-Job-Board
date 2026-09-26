@@ -35,6 +35,14 @@ export const metadata: Metadata = {
             'Interactive state-by-state map of PMHNP practice authority. Click any state to see its classification, jobs, and salary data.',
         type: 'website',
         url: `${brand.baseUrl}/tools/practice-authority-map`,
+        // Without `images` Next.js drops the root layout's og:image: a
+        // page-level openGraph object replaces the parent, it does not merge.
+        images: [{
+            url: `/api/og?type=page&v=3&title=${encodeURIComponent('PMHNP Practice Authority Map')}&subtitle=${encodeURIComponent('Full, reduced and restricted states at a glance')}`,
+            width: 1200,
+            height: 630,
+            alt: 'PMHNP Practice Authority Map',
+        }],
     },
     twitter: {
         card: 'summary',

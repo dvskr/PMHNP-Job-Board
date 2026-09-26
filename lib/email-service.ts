@@ -15,6 +15,7 @@ import {
 import { buildFinalNoticeCopy } from '@/lib/expiry-final-notice';
 import { renderJobCardHtml } from '@/lib/utils/render-job-card';
 import { buildListUnsubscribeHeaders } from '@/lib/email/list-unsubscribe';
+import { type EmailType, MARKETING_EMAIL_TYPES } from '@/lib/email/email-types';
 import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -64,66 +65,19 @@ const EMAIL_FROM_PD_OUTREACH =
 const EMAIL_FROM = EMAIL_FROM_TRANSACTIONAL; // backward compat
 const EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO || brand.email.replyTo;
 
-// Canonical EmailType union — every value the platform sends should be in this list.
-// Drives MARKETING_EMAIL_TYPES below and is the type for `sendAndLog`'s emailType param,
-// so a typo or new type added without thinking gets caught at compile time.
-export type EmailType =
-  | 'welcome_alert'
-  | 'welcome_signup'
-  | 'job_confirmation'
-  | 'job_alert'
-  | 'renewal_confirmation'
-  | 'refund_confirmation'
-  | 'expiry_warning'
-  // Second and final email of the expiry sequence, sent ON the expiry date by
-  // the same cron. Distinct from 'expiry_warning' so the two are countable
-  // apart and a dedupe bug in one can never be read as the other.
-  | 'expiry_final_notice'
-  | 'draft_saved'
-  | 'employer_message'
-  | 'candidate_inquiry'
-  | 'candidate_alert'
-  | 'broadcast'
-  | 'application_notification'
-  | 'application_confirmation'
-  | 'status_update'
-  | 'performance_report'
-  | 'saved_job_reminder'
-  | 'salary_guide'
-  | 'contact_confirmation'
-  | 'contact_internal'
-  | 'employer_outreach'
-  | 'email_job'
-  | 'auth_confirm'
-  | 'recommendation_digest'
-  | 'account_purge_warning'
-  | 'pd_outreach'
-  | 'employer_match_digest'
-  | 'lifecycle'
-  // Email piggyback for the weekly in-platform system nudge
-  // (lib/system-messages.ts). Deliberately DISTINCT from 'employer_message':
-  // a human-to-human message notification must never count against the
-  // connect-feature frequency cap, and this automated nudge must.
-  | 'system_message_nudge';
+// The EmailType union and the marketing/transactional split live in
+// lib/email/email-types.ts, which imports nothing, so the template layer can
+// share the classification instead of keeping its own copy. Re-exported here
+// because this module is where the rest of the codebase imports EmailType
+// from.
+export type { EmailType };
 
-// Marketing email types — these use the marketing sender address
 /**
  * Domains used exclusively for debugging fixtures. Mail to these always
  * hard-bounces (nothing receives for them), so sendAndLog refuses them
  * outright. Add any future fixture domain here BEFORE creating accounts on it.
  */
 const FIXTURE_RECIPIENT_DOMAINS = new Set(['acmepsych-fixtures.org', 'acmepsych.org', 'example.com', 'example.org', 'pmhnptest.com']);
-
-const MARKETING_EMAIL_TYPES = new Set<EmailType>([
-  'welcome_alert', 'job_alert', 'salary_guide', 'broadcast',
-  'performance_report', 'saved_job_reminder',
-  'candidate_alert',
-  'recommendation_digest',
-  'pd_outreach',
-  'employer_match_digest',
-  'lifecycle',
-  'system_message_nudge',
-]);
 
 /**
  * The named exemption from the marketing gates in sendAndLog.
@@ -407,12 +361,22 @@ export interface WelcomeAlertDetails {
   location?: string | null;
 }
 
+/**
+ * Takes no token. Its one caller had `JobAlert.token` in hand and passed it,
+ * but /unsubscribe and /api/one-click-unsubscribe both resolve
+ * EmailLead.unsubscribeToken, so the alert token 404s at both. That made the
+ * List-Unsubscribe header on the highest-volume marketing mail a no-op, and
+ * once the footer started honouring its token it would have put a visibly
+ * broken Unsubscribe in front of every new subscriber. The same confusion is
+ * on the record in docs/AUDIT_RUNBOOK.md for the one-click URL; resolving the
+ * right token in here is what stops it recurring at the third call site.
+ */
 export async function sendWelcomeEmail(
   email: string,
-  unsubscribeToken: string,
   alert?: WelcomeAlertDetails
 ): Promise<EmailResult> {
   try {
+    const unsubscribeToken = await getOrCreateUnsubToken(email);
     const frequencyLabel = alert?.frequency === 'weekly' ? 'weekly digest' : 'daily digest';
     const criteriaSummary = alert?.criteriaSummary || 'All PMHNP jobs';
     const ctaUrl = alert?.filteredJobsUrl || `${BASE_URL}/jobs`;
@@ -442,7 +406,7 @@ export async function sendWelcomeEmail(
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2(unsubscribeToken),
+      unsubscribeFooterV2(unsubscribeToken, 'welcome_alert'),
       `Your PMHNP job alert is active: ${criteriaSummary}.`
     );
 
@@ -478,6 +442,8 @@ export async function sendSignupWelcomeEmail(
 ): Promise<EmailResult> {
   try {
     const isEmployer = role === 'employer';
+    // Resolved before the render so the footer link and the header agree.
+    const unsubToken = await getOrCreateUnsubToken(email);
 
     let html: string;
     if (isEmployer) {
@@ -506,7 +472,7 @@ export async function sendSignupWelcomeEmail(
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-        unsubscribeFooterV2('sample'),
+        unsubscribeFooterV2(unsubToken, 'welcome_signup'),
         `Your employer account is ready. Your first post is half price at $${config.firstPostPrice}.`
       );
     } else {
@@ -528,12 +494,11 @@ export async function sendSignupWelcomeEmail(
             <tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.6;">Want the data first? <a href="${BASE_URL}/salary-guide" style="color:${V2.teal};text-decoration:underline;">Download the 2026 Salary Guide</a>.</p></td></tr>
             ${spacerV2(48)}
             ${closeContentV2()}`,
-          unsubscribeFooterV2('sample'),
+          unsubscribeFooterV2(unsubToken, 'welcome_signup'),
           `Welcome${firstName ? ` ${firstName}` : ''}. Find your perfect PMHNP role.`
       );
     }
 
-    const unsubToken = await getOrCreateUnsubToken(email);
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
@@ -583,6 +548,9 @@ export async function sendConfirmationEmail(
 ): Promise<EmailResult> {
   try {
     const jobSlug = slugify(jobTitle, jobId);
+    // Resolved before the render so the footer link and the header agree, and
+    // so the caller-supplied token (if any) is the one both of them use.
+    const unsubToken = unsubscribeToken ?? await getOrCreateUnsubToken(employerEmail);
     // Token-based dashboard URL when available so employers without an account
     // can still access their listing/analytics from this email.
     const dashboardUrl = dashboardToken
@@ -650,11 +618,10 @@ export async function sendConfirmationEmail(
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.6;">Manage your posting from your <a href="${dashboardUrl}" style="color:${V2.teal};text-decoration:underline;">dashboard</a>.</p></td></tr>${shareKitBlock}
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2('sample'),
+      unsubscribeFooterV2(unsubToken, 'job_confirmation'),
       'Your job posting is now live.'
     );
 
-    const unsubToken = await getOrCreateUnsubToken(employerEmail);
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: employerEmail,
@@ -725,7 +692,7 @@ export async function sendRenewalConfirmationEmail(
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2(unsubscribeToken),
+      unsubscribeFooterV2(unsubscribeToken, 'renewal_confirmation'),
       'Your job listing has been renewed.'
     );
 
@@ -805,6 +772,10 @@ export async function sendExpiryWarningEmail(
     const dashboardUrl = buildRenewCtaUrl(jobId);
     const discountPct = Math.round((1 - config.renewalPrice / config.postingPrice) * 100);
 
+    // Always a real unsubscribe token; mint one if the caller didn't. Resolved
+    // before the render so the footer link and the header agree.
+    const unsubToken = unsubscribeToken ?? await getOrCreateUnsubToken(email);
+
     const html = emailShellV2(`
       ${headerBlockV2(`Your Listing Expires in ${daysUntilExpiry} Days`, '')}
       ${spacerV2(12)}
@@ -825,12 +796,10 @@ export async function sendExpiryWarningEmail(
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2(unsubscribeToken || 'sample'),
+      unsubscribeFooterV2(unsubToken, 'expiry_warning'),
       `Your listing expires in ${daysUntilExpiry} days: renew for $${config.renewalPrice} (save ${discountPct}%).`
     );
 
-    // Always pass a real unsubscribe token; mint one if the caller didn't.
-    const unsubToken = unsubscribeToken ?? await getOrCreateUnsubToken(email);
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
@@ -910,6 +879,10 @@ export async function sendExpiryFinalNoticeEmail(params: {
     const renewUrl = buildRenewCtaUrl(jobId);
     const discountPct = Math.round((1 - config.renewalPrice / config.postingPrice) * 100);
 
+    // Always a real unsubscribe token; mint one if the caller didn't. Resolved
+    // before the render so the footer link and the header agree.
+    const unsubToken = params.unsubscribeToken ?? await getOrCreateUnsubToken(email);
+
     const html = emailShellV2(`
       ${headerBlockV2(copy.heading, '')}
       ${spacerV2(12)}
@@ -932,12 +905,10 @@ export async function sendExpiryFinalNoticeEmail(params: {
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2(params.unsubscribeToken || 'sample'),
+      unsubscribeFooterV2(unsubToken, 'expiry_final_notice'),
       copy.preheader,
     );
 
-    // Always pass a real unsubscribe token; mint one if the caller didn't.
-    const unsubToken = params.unsubscribeToken ?? await getOrCreateUnsubToken(email);
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
@@ -979,6 +950,8 @@ export async function sendRefundConfirmationEmail(
   try {
     const formattedAmount = `$${(amountCents / 100).toFixed(2)}`;
     const refundType = isPartial ? 'Partial refund' : 'Refund';
+    // Resolved before the render so the footer link and the header agree.
+    const unsubToken = unsubscribeToken ?? await getOrCreateUnsubToken(email);
 
     const html = emailShellV2(
       `
@@ -997,11 +970,10 @@ export async function sendRefundConfirmationEmail(
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.6;">Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color:${V2.teal};text-decoration:underline;">support@pmhnphiring.com</a>.</p></td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2(unsubscribeToken || 'sample'),
+      unsubscribeFooterV2(unsubToken, 'refund_confirmation'),
       `${refundType} of ${formattedAmount} processed. It appears in 5 to 10 business days.`,
     );
 
-    const unsubToken = unsubscribeToken ?? await getOrCreateUnsubToken(email);
     const sendResult = await sendAndLog(
       {
         from: EMAIL_FROM,
@@ -1047,7 +1019,7 @@ export async function sendDraftSavedEmail(
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2('sample'),
+      unsubscribeFooterV2('sample', 'draft_saved'),
       'Your job posting draft has been saved.'
     );
 
@@ -1104,7 +1076,7 @@ export function buildContactConfirmationHtml(name: string, subject: string): str
     </td></tr>
     ${spacerV2(48)}
     ${closeContentV2()}`,
-    unsubscribeFooterV2('sample'),
+    unsubscribeFooterV2('sample', 'contact_confirmation'),
     'We received your message.'
   );
 }
@@ -1158,7 +1130,7 @@ export function buildContactNotificationHtml(name: string, email: string, subjec
     </td></tr>
     ${spacerV2(48)}
     ${closeContentV2()}`,
-    unsubscribeFooterV2('sample'),
+    unsubscribeFooterV2('sample', 'contact_internal'),
     `New contact form submission from ${safeName}.`
   );
 }
@@ -1180,7 +1152,7 @@ export function buildSalaryGuideHtml(pdfUrl: string, unsubscribeToken: string): 
     <tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.6;">Looking for opportunities? <a href="${BASE_URL}/jobs" style="color:${V2.teal};text-decoration:underline;">Browse open positions</a>.</p></td></tr>
     ${spacerV2(48)}
     ${closeContentV2()}`,
-    unsubscribeFooterV2(unsubscribeToken),
+    unsubscribeFooterV2(unsubscribeToken, 'salary_guide'),
     'Your 2026 PMHNP Salary Guide is ready.'
   );
 }
@@ -1231,6 +1203,13 @@ export async function sendEmployerMessageNotification(
 
     const initial = escapeHtml(senderName.charAt(0).toUpperCase());
 
+    // The automated nudge variant hands in the unsubscribe URL it already
+    // minted; reuse its token so the visible footer opts the recipient out of
+    // the same list the List-Unsubscribe header does. A human message carries
+    // no URL and keeps the plain preferences link: there is nothing to
+    // unsubscribe from.
+    const footerToken = options.unsubscribeUrl?.match(/[?&]token=([^&]+)/)?.[1];
+
     const html = emailShellV2(`
       ${headerBlockV2('New Message Received', '')}
       ${spacerV2(12)}
@@ -1270,7 +1249,7 @@ export async function sendEmployerMessageNotification(
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2('sample'),
+      unsubscribeFooterV2(footerToken, 'system_message_nudge'),
       // House copy rule: no em/en dashes in anything a recipient reads.
       `${fromLine} sent you a message${jobTitle ? ` about "${escapeHtml(jobTitle)}"` : ''}: view it now!`
     );
@@ -1351,7 +1330,7 @@ export async function sendCandidateInquiryNotification(
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2('sample'),
+      unsubscribeFooterV2('sample', 'candidate_inquiry'),
       `${escapeHtml(candidateName)} has a question about your "${escapeHtml(jobTitle || 'job')}" posting. Reply now.`
     );
 
@@ -1415,7 +1394,7 @@ export async function sendNewCandidateAlertEmail(
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2(unsubToken),
+      unsubscribeFooterV2(unsubToken, 'candidate_alert'),
       `A new candidate matching your criteria just joined.`
     );
 
@@ -1453,15 +1432,25 @@ export function buildBroadcastHtml(body: string, preheaderText: string = '', uns
     </td></tr>
     ${spacerV2(48)}
     ${closeContentV2()}`,
-    unsubscribeFooterV2(unsubscribeToken || 'sample'),
+    unsubscribeFooterV2(unsubscribeToken || 'sample', 'broadcast'),
     preheaderText || 'A message from PMHNP Hiring'
   );
 }
 
+/**
+ * Renders and sends one broadcast. `bodyHtml` is the personalized message
+ * body; the V2 shell goes around it here.
+ *
+ * The shell used to be built by the caller, which had no unsubscribe token to
+ * give it, so every broadcast left with a footer that only offered a
+ * sign-in-walled preferences page while the List-Unsubscribe header carried a
+ * working token. Wrapping here means the one place that already mints the
+ * token is the place that renders the footer.
+ */
 export async function sendBroadcastEmail(
   to: string,
   subject: string,
-  htmlBody: string
+  bodyHtml: string
 ): Promise<EmailResult> {
   try {
     const unsubToken = await getOrCreateUnsubToken(to);
@@ -1469,7 +1458,7 @@ export async function sendBroadcastEmail(
       from: EMAIL_FROM,
       to,
       subject,
-      html: htmlBody,
+      html: buildBroadcastHtml(bodyHtml, subject, unsubToken),
     }, 'broadcast', undefined, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
     if (sendResult?.error) return providerRejected(sendResult.error);
     return { success: true };
@@ -1520,7 +1509,7 @@ export async function sendNewApplicationEmail(params: NewApplicationEmailParams)
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2('sample'),
+      unsubscribeFooterV2('sample', 'application_notification'),
       `New application received for your job posting.`
     );
 
@@ -1580,7 +1569,7 @@ export async function sendApplicationConfirmationEmail(params: ApplicationConfir
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2('sample'),
+      unsubscribeFooterV2('sample', 'application_confirmation'),
       `Your application has been submitted successfully.`
     );
 
@@ -1651,7 +1640,7 @@ export async function sendStatusUpdateEmail(params: StatusUpdateEmailParams): Pr
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2('sample'),
+      unsubscribeFooterV2('sample', 'status_update'),
       `Update on your application: moved to ${statusInfo.label.toLowerCase()} stage.`
     );
 
@@ -1733,7 +1722,7 @@ export async function sendPerformanceReportEmail(
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2(unsubToken),
+      unsubscribeFooterV2(unsubToken, 'performance_report'),
       `Your ${periodLabel.toLowerCase()} report: ${totalViews} views, ${totalClicks} clicks, ${totalApps} applications`
     );
 
@@ -1822,7 +1811,7 @@ export async function sendSavedJobReminderEmail(
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
-      unsubscribeFooterV2(unsubToken),
+      unsubscribeFooterV2(unsubToken, 'saved_job_reminder'),
       jobs.length === 1 ? `The job you saved is still open.` : `${jobs.length} saved jobs are still open.`
     );
 

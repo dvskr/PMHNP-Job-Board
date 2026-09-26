@@ -50,6 +50,16 @@ export const CATEGORY_LABELS: Record<CategorySlug, string> = {
     metro: 'Metro',
 };
 
+/**
+ * Narrows an arbitrary config string (SettingConfig.faqCategory carries slugs
+ * like 'full-time' that are not FAQ categories) before it is used as a key.
+ * CATEGORY_LABELS is the label source for the accordion heading, so an
+ * unchecked cast renders "undefined PMHNP Jobs: FAQ".
+ */
+export function isCategorySlug(value: string): value is CategorySlug {
+    return Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, value);
+}
+
 // Partial — categories without a built-in (e.g. 'metro') always pass customFaqs.
 const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => FAQItem[]>> = {
     remote: ({ totalJobs, avgSalary }) => [
@@ -65,7 +75,11 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
         },
         {
             question: 'Do remote PMHNP jobs require multi-state licensure?',
-            answer: 'It depends on the employer. Some telehealth companies require you to be licensed in the states where your patients reside, while others work within the PSYPACT compact or only serve patients in states where you hold an active license. Many employers assist with multi-state licensure costs.',
+            // PSYPACT is the psychologist compact; it carries no nurse
+            // practitioner authority, and the Nurse Licensure Compact covers
+            // the RN layer only. /resources/multi-state-licensure says both,
+            // and this answer used to contradict it inside FAQPage markup.
+            answer: 'It depends on how many states the employer serves. Licensure follows the patient, so you need an active APRN license in every state where your patients are located. A Nurse Licensure Compact multistate license covers RN practice only and does not extend to APRN practice, and the separate APRN Compact has not been implemented. Many employers reimburse the cost of additional state licenses.',
         },
         {
             question: 'What platforms do remote PMHNPs use for telehealth?',
@@ -107,7 +121,7 @@ const CATEGORY_FAQS: Partial<Record<CategorySlug, (props: CategoryFaqInput) => F
         },
         {
             question: 'Do I need experience for travel PMHNP positions?',
-            answer: 'Most travel PMHNP positions require 1-2 years of clinical experience, as you\'ll be expected to practice independently with minimal orientation. However, some agencies offer "first-time traveler" programs with additional support. Having an active compact nursing license (NLC) can expand your opportunities.',
+            answer: 'Most travel PMHNP positions require 1-2 years of clinical experience, as you\'ll be expected to practice independently with minimal orientation. However, some agencies offer "first-time traveler" programs with additional support. A Nurse Licensure Compact multistate license speeds up the RN layer of credentialing, but each assignment state still needs its own APRN license.',
         },
     ],
     'new-grad': ({ totalJobs }) => [

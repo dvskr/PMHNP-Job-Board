@@ -19,12 +19,28 @@ export const metadata: Metadata = {
     'pmhnp practice authority map',
   ],
   alternates: { canonical: `${BASE_URL}/tools` },
+  // `images` is mandatory on any page-level openGraph object: Next.js replaces
+  // the parent object wholesale rather than merging it, so declaring openGraph
+  // without images silently deletes the root layout's og:image and the share
+  // card loses its picture entirely.
   openGraph: {
     title: 'Free PMHNP Career Tools',
     description:
       'Offer analyzer, 1099 vs W-2 calculator, salary converter, and practice authority map. Free, no signup.',
     type: 'website',
     url: `${BASE_URL}/tools`,
+    images: [{
+      url: `/api/og?type=page&v=3&title=${encodeURIComponent('Free PMHNP Career Tools')}&subtitle=${encodeURIComponent('Offer analyzer, calculators, and practice authority map')}`,
+      width: 1200,
+      height: 630,
+      alt: 'Free PMHNP Career Tools',
+    }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Free PMHNP Career Tools',
+    description:
+      'Offer analyzer, 1099 vs W-2 calculator, salary converter, and practice authority map. Free, no signup.',
   },
 };
 

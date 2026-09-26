@@ -1,6 +1,6 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
 /**
- * Setting Ã— State pSEO Template Factory
+ * Setting × State pSEO Template Factory
  * 
  * Shared server component used by all /jobs/[setting]/[state] pages.
  * Each setting page just provides the setting key and state slug;
@@ -37,9 +37,11 @@ import {
 } from './setting-state-config';
 import { CATEGORY_ASSET_REGISTRY } from './category-asset-registry';
 import { getStatePracticeAuthority, getAuthorityLabel } from '@/lib/state-practice-authority';
-import { buildSettingStateNarrative } from './state-narrative';
+import { buildSettingStateNarrative, buildSettingStateFaqs } from './state-narrative';
+import { isCategorySlug } from './category-faq-data';
+import { buildMetaDescription, settingStateTitle } from './meta-description';
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface EmployerGroupResult {
   employer: string;
@@ -57,7 +59,7 @@ interface Stats {
   topEmployers: ProcessedEmployer[];
 }
 
-// â”€â”€â”€ Data Fetching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Data Fetching ─────────────────────────────────────────────────────────────
 
 async function getJobs(config: SettingConfig, stateName: string, skip = 0, take = 20) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -138,7 +140,7 @@ const getStats = cache(async function getStats(config: SettingConfig, stateName:
   };
 });
 
-// â”€â”€â”€ Metadata Generator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Metadata Generator ────────────────────────────────────────────────────────
 
 export async function buildSettingStateMetadata(
   settingKey: string,
@@ -160,19 +162,29 @@ export async function buildSettingStateMetadata(
   const basePath = `/jobs/${config.slug}/${canonicalStateSlug}`;
 
   return {
-    title: `${stats.totalJobs} ${config.label} PMHNP Jobs in ${stateName} (${config.salaryRange})`,
-    description: `Find ${stats.totalJobs} ${config.label.toLowerCase()} PMHNP jobs in ${stateName} paying ${config.salaryRange}. ${config.heroSubtitle}. Browse ${config.label.toLowerCase()} psychiatric nurse practitioner positions in ${stateName} updated daily.`,
+    // The title carried a "($120K-180K)" suffix that pushed the longest
+    // state x setting combination past the SERP cap once the root template
+    // adds the brand, so Google truncated the state out of the one place it
+    // has to appear. The description carries the differentiators instead,
+    // clamped so it is never cut mid-sentence.
+    title: settingStateTitle(stats.totalJobs, config.label, stateName),
+    description: buildMetaDescription(
+      `${stats.totalJobs} ${config.label.toLowerCase()} PMHNP jobs in ${stateName}.`,
+      `${config.heroSubtitle}.`,
+      'Practice authority, top employers and pay from live listings.',
+      'Updated daily.',
+    ),
     keywords: [
       ...config.keywords,
       `${config.label.toLowerCase()} pmhnp jobs ${stateName.toLowerCase()}`,
       `${stateName.toLowerCase()} ${config.label.toLowerCase()} psychiatric nurse practitioner`,
     ],
     openGraph: {
-      title: `${stats.totalJobs} ${config.label} PMHNP Jobs in ${stateName}`,
+      title: settingStateTitle(stats.totalJobs, config.label, stateName),
       description: `Browse ${config.label.toLowerCase()} psychiatric nurse practitioner positions in ${stateName}. ${config.heroSubtitle}.`,
       type: 'website',
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} ${config.label} PMHNP Jobs in ${stateName}`)}&subtitle=${encodeURIComponent(config.heroSubtitle)}&v=3`,
+        url: `/api/og?type=page&title=${encodeURIComponent(settingStateTitle(stats.totalJobs, config.label, stateName))}&subtitle=${encodeURIComponent(config.heroSubtitle)}&v=3`,
         width: 1200,
         height: 630,
         alt: `${config.label} PMHNP Jobs in ${stateName}`,
@@ -193,13 +205,13 @@ export async function buildSettingStateMetadata(
   };
 }
 
-// â”€â”€â”€ Static Params Generator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Static Params Generator ───────────────────────────────────────────────────
 
 export function buildSettingStateStaticParams() {
   return getAllStateSlugs().map((slug) => ({ state: slug }));
 }
 
-// â”€â”€â”€ Page Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Page Component ────────────────────────────────────────────────────────────
 
 interface SettingStatePageProps {
   settingKey: string;
@@ -235,7 +247,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
   // 1. Fetch fast pre-calculated stats
   const stats = await getStats(config, stateName!, canonicalStateSlug);
 
-  // SEO Fix: Return real 404 for categoryÃ—state combos with no matching jobs.
+  // SEO Fix: Return real 404 for category×state combos with no matching jobs.
   // Stops the server from trying to fetch jobs that don't exist.
   if (stats.totalJobs === 0) {
     const { notFound: notFoundFn } = await import('next/navigation');
@@ -346,7 +358,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
     : 100;
   const shortageCount = topCities.filter(c => c.mentalHealthShortage).length;
 
-  /* Design Tokens â€” matched to category-city-template */
+  /* Design Tokens: matched to category-city-template */
   const clayCard: React.CSSProperties = {
     background: '#FFFFFF', borderRadius: '20px',
     border: '1px solid rgba(255,255,255,0.5)',
@@ -411,7 +423,11 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
         headlineSub={`jobs in ${stateName}.`}
         stats={[
           { value: `${stats.totalJobs}`, label: 'positions' },
-          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : config.salaryRange.split('â€“')[0] || '$130K+', label: 'avg salary' },
+          // Only publish a pay stat the live listings back. The old fallback
+          // split a hand-written range on a character that string never
+          // contained, so the whole range rendered under an "avg salary"
+          // label whenever the aggregate came back empty.
+          ...(stats.avgSalary > 0 ? [{ value: `$${stats.avgSalary}k`, label: 'avg salary' }] : []),
           { value: `${stats.topEmployers.length}`, label: 'employers' },
         ]}
         description={`${config.label} psychiatric NP positions in ${stateName}. ${config.heroSubtitle}.`}
@@ -431,7 +447,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                   {config.label} Positions in {stateName} ({stats.totalJobs})
                 </h2>
                 <Link href={`/jobs/${config.slug}`} style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textDecoration: 'none' }}>
-                  View All Jobs â†’
+                  View All Jobs
                 </Link>
               </div>
 
@@ -470,18 +486,18 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                         // literal ?page=1 href gets 301-stripped by middleware on every
                         // crawl, perpetually feeding GSC's redirect bucket.
                         <Link href={page - 1 === 1 ? basePath : `${basePath}?page=${page - 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ ...clayCard, color: '#1A2E35', padding: '8px 16px' }}>
-                          â† Previous
+                          Previous
                         </Link>
                       ) : (
-                        <span className="px-4 py-2 text-sm rounded-lg cursor-not-allowed" style={{ color: '#7A6A62', backgroundColor: '#F5F0EB' }}>â† Previous</span>
+                        <span className="px-4 py-2 text-sm rounded-lg cursor-not-allowed" style={{ color: '#7A6A62', backgroundColor: '#F5F0EB' }}>Previous</span>
                       )}
                       <span className="text-sm" style={{ color: '#5A4A42' }}>Page {page} of {totalPages}</span>
                       {page < totalPages ? (
                         <Link href={`${basePath}?page=${page + 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ ...clayCard, color: '#1A2E35', padding: '8px 16px' }}>
-                          Next â†’
+                          Next
                         </Link>
                       ) : (
-                        <span className="px-4 py-2 text-sm rounded-lg cursor-not-allowed" style={{ color: '#7A6A62', backgroundColor: '#F5F0EB' }}>Next â†’</span>
+                        <span className="px-4 py-2 text-sm rounded-lg cursor-not-allowed" style={{ color: '#7A6A62', backgroundColor: '#F5F0EB' }}>Next</span>
                       )}
                     </div>
                   )}
@@ -499,7 +515,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                     {config.label} Alerts
                   </h3>
                   <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px', lineHeight: 1.6, fontWeight: 500 }}>
-                    New {config.label.toLowerCase()} PMHNP positions in {stateName} â€” delivered daily.
+                    New {config.label.toLowerCase()} PMHNP positions in {stateName}, delivered daily.
                   </p>
                   <Link href="/job-alerts" style={{
                     display: 'block', width: '100%', textAlign: 'center',
@@ -539,7 +555,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                   {config.tips.map((tip, i) => (
                     <li key={i} style={{ display: 'flex', gap: '8px', padding: '6px 0', borderBottom: i < config.tips.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none', fontSize: '13px', color: '#5A4A42', lineHeight: 1.5 }}>
-                      <span style={{ color: '#0D9488', fontWeight: 700 }}>â€¢</span>
+                      <span style={{ color: '#0D9488', fontWeight: 700 }}>•</span>
                       <span>{tip}</span>
                     </li>
                   ))}
@@ -602,7 +618,9 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                     Salary & Compensation
                   </h3>
                   <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
-                    {config.label} PMHNPs in {stateName} earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : config.salaryRange} annually.
+                    {stats.avgSalary > 0
+                      ? `${config.label} PMHNP listings in ${stateName} advertise about $${stats.avgSalary}k a year on average.`
+                      : `Too few ${config.label.toLowerCase()} employers in ${stateName} disclose a range to average, so each listing shows its own.`}
                   </p>
                 </div>
               </div>
@@ -636,7 +654,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                 <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>{config.label} Alerts</h3>
                 <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
-                  New {config.label.toLowerCase()} listings in {stateName} â€” delivered daily.
+                  New {config.label.toLowerCase()} listings in {stateName}, delivered daily.
                 </p>
                 <Link href="/job-alerts" style={{
                   padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',
@@ -675,14 +693,18 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
               textAlign: 'center',
             }}
           >
-            {buildSettingStateNarrative(
-              config.slug,
-              stateName!,
-              stateCode || '',
+            {buildSettingStateNarrative({
+              settingKey: config.slug,
+              stateName: stateName!,
+              stateCode: stateCode || '',
               avgCOL,
-              shortageCount,
-              stats.totalJobs,
-            )}
+              shortageCityCount: shortageCount,
+              totalJobs: stats.totalJobs,
+              // Already fetched for the sidebar; the narrative used to ignore
+              // both, which left the lead varying only by state name.
+              topEmployers: stats.topEmployers.map((e) => e.name),
+              topCities: topCities.map((c) => c.name),
+            })}
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
@@ -838,8 +860,28 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
 
 
 
-      {/* FAQ */}
-      <CategoryFAQ category={config.faqCategory as 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent' | 'addiction'} totalJobs={stats.totalJobs} />
+      {/* FAQ — state-scoped. The national CategoryFAQ set answered "how many
+          remote PMHNP jobs are available?" with THIS state's count and no
+          state named, so every state page published a wrong national figure
+          and 51 FAQPage blocks that differed only by that number. customFaqs
+          is the single source the component uses for both the schema and the
+          visible accordion. */}
+      {isCategorySlug(config.faqCategory) && (
+        <CategoryFAQ
+          category={config.faqCategory}
+          totalJobs={stats.totalJobs}
+          customFaqs={buildSettingStateFaqs({
+            settingLabel: config.label,
+            stateName: stateName!,
+            stateCode: stateCode || '',
+            totalJobs: stats.totalJobs,
+            avgSalary: stats.avgSalary,
+            topEmployers: stats.topEmployers.map((e) => e.name),
+            topCities: topCities.map((c) => c.name),
+            shortageCityCount: shortageCount,
+          })}
+        />
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { mintDocReadUrl } from '@/lib/document-storage';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeText } from '@/lib/sanitize';
 import { readJsonBody } from '@/app/api/_lib/json-body';
+import { verifyCsrf } from '@/lib/csrf';
 
 /**
  * GET /api/employer/applicants
@@ -215,6 +216,14 @@ export async function GET(req: NextRequest) {
  * Update an applicant's status and/or notes.
  */
 export async function PATCH(req: NextRequest) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     const rateLimitResponse = await rateLimit(req, 'employer:applicants', RATE_LIMITS.employer);
     if (rateLimitResponse) return rateLimitResponse;
     const supabase = await createClient();

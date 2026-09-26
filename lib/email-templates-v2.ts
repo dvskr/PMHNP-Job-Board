@@ -17,6 +17,7 @@
 //   - CTA button: #4DB6AC, 14px/40px padding, 8px radius, 16px font
 
 import { brand } from '@/config/brand';
+import { type EmailType, isMarketingEmailType } from '@/lib/email/email-types';
 
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || brand.baseUrl).replace(/\/$/, '');
 const IMG = process.env.EMAIL_ASSETS_URL || `${BASE_URL}/images/email`;
@@ -408,9 +409,50 @@ export function dividerV2(): string {
 // FOOTER HELPERS V2
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function unsubscribeFooterV2(unsubscribeToken: string): string {
+/**
+ * The literal every preview and fixture render passes in place of a real
+ * token. Named so the footer can tell "nobody has a token here" apart from
+ * "the caller forgot to thread one through".
+ */
+export const PREVIEW_UNSUB_TOKEN = 'sample';
+
+/**
+ * Footer opt-out row.
+ *
+ * `unsubscribeToken` is EmailLead.unsubscribeToken, the same value sendAndLog
+ * puts in the List-Unsubscribe header. It used to be accepted and then
+ * dropped: every footer rendered the bare /job-alerts/manage link, which asks
+ * a recipient with no account to sign in before they can opt out, so the only
+ * working unsubscribe in a marketing email was the machine-only header.
+ *
+ * The one-click Unsubscribe row renders only for marketing mail, and only
+ * with a real token. Both halves of that matter:
+ *
+ *  - Marketing only, because unsubscribing clears EmailLead.isSubscribed,
+ *    which switches off every marketing type at once. On a refund receipt or
+ *    a "your posting is live" confirmation, one click would silently cancel
+ *    the job alerts the person deliberately signed up for, from mail they
+ *    never opted into in the first place. Transactional mail keeps the
+ *    preferences link, which is a page, not a switch.
+ *  - A real token, because a ?token= the /unsubscribe route cannot resolve
+ *    sends the recipient to an error page from the one control in the message
+ *    that has to work. Previews pass PREVIEW_UNSUB_TOKEN and get no link
+ *    rather than a dead one.
+ *
+ * `emailType` is required so that adding a new kind of mail is a decision
+ * about opt-out, made at the call site, and not an omission.
+ */
+export function unsubscribeFooterV2(
+  unsubscribeToken: string | null | undefined,
+  emailType: EmailType,
+): string {
+  const hasToken = !!unsubscribeToken && unsubscribeToken !== PREVIEW_UNSUB_TOKEN;
+  const unsubscribeLink = hasToken && isMarketingEmailType(emailType)
+    ? `<a href="${BASE_URL}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}" style="color:#A0AEC0;text-decoration:underline;">Unsubscribe</a> &nbsp;&middot;&nbsp;
+                `
+    : '';
   return `<p style="margin:0 0 4px;font-family:${SANS};font-size:12px;color:#A0AEC0;">
-                <a href="${BASE_URL}/job-alerts/manage" style="color:#A0AEC0;text-decoration:underline;">Manage preferences</a>
+                ${unsubscribeLink}<a href="${BASE_URL}/job-alerts/manage" style="color:#A0AEC0;text-decoration:underline;">Manage preferences</a>
               </p>`;
 }
 

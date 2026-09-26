@@ -550,6 +550,74 @@ export function resanitizeBlogHtml(html: string): string {
     return sanitizeHtml(html, BLOG_SANITIZE_CONFIG);
 }
 
+/**
+ * Escape a plain-text value being interpolated into blog HTML.
+ *
+ * The post page assembles a few fragments (the Key Takeaways list) AFTER
+ * resanitizeBlogHtml has run, so anything spliced in at that point never
+ * meets the sanitizer. Heading text is text, not markup: escaping it is both
+ * the security answer and the correct rendering.
+ *
+ * Deliberately local rather than importing lib/email-service's escapeHtml,
+ * which would drag the mail stack into every page that renders a post.
+ */
+export function escapeBlogText(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/** Heading row as produced by extractHeadings below. */
+export interface BlogHeading {
+    level: number;
+    text: string;
+    id: string;
+}
+
+/** Key Takeaways entries shown; the rest of the H2s live in the sidebar TOC. */
+const KEY_TAKEAWAYS_MAX = 5;
+
+/**
+ * Build the Key Takeaways block the post page splices in above the first H2.
+ *
+ * Lives here, beside the sanitizer, because it is assembled AFTER
+ * resanitizeBlogHtml has run and is therefore the one fragment of article
+ * HTML the sanitizer never inspects: `text` is the raw markdown heading line,
+ * so a post authored through the blog API could put `<img src=x onerror=...>`
+ * in an H2 and have it rendered. Every interpolated value is escaped.
+ */
+export function buildKeyTakeawaysHtml(headings: BlogHeading[]): string {
+    const items = headings
+        .filter((h) => h.level === 2)
+        .slice(0, KEY_TAKEAWAYS_MAX)
+        .map((h) => `<li><a href="#${escapeBlogText(h.id)}">${escapeBlogText(h.text)}</a></li>`)
+        .join('');
+    return `<div class="ed-key-takeaways">`
+        + `<div class="ed-kt-header"><span class="ed-kt-icon">💡</span><span class="ed-kt-label">Key Takeaways</span></div>`
+        + `<ul class="ed-kt-list">${items}</ul>`
+        + `</div>`;
+}
+
+/**
+ * Normalize a blog timestamp to an unambiguous UTC ISO string.
+ *
+ * blog_posts.publish_date and reviewed_at are TIMESTAMP(3) WITHOUT time zone
+ * and reach us through PostgREST as '2026-02-02T00:00:00', with no offset.
+ * Google's Article guidance wants ISO 8601 with a timezone and its
+ * VideoObject validator reports an offset-less uploadDate as an error, so
+ * every JSON-LD date sink routes through this. Values that already carry a
+ * 'Z' or a numeric offset pass through unchanged apart from canonicalization.
+ */
+export function toIsoUtc(value: string | null | undefined): string | undefined {
+    if (!value) return undefined;
+    const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(value);
+    const parsed = new Date(hasZone ? value : `${value}Z`);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+}
+
 // ─── Auto-link State Mentions ────────────────────────────────────────────────
 
 const STATE_MAP: Record<string, string> = {

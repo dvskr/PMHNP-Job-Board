@@ -196,7 +196,10 @@ export async function GET(req: Request) {
         try {
           unsubToken = await getOrCreateUnsubToken(target.email);
           subject = def.subject(target.ctx);
-          html = def.buildHtml(target.ctx);
+          // The token goes into the rendered footer as well as the header:
+          // lifecycle mail is marketing, so the recipient needs an opt-out
+          // they can see and click, not only one a mail client can POST.
+          html = def.buildHtml({ ...target.ctx, unsubscribeToken: unsubToken });
         } catch (err) {
           errors++;
           logger.error('Lifecycle email render failed', err, {

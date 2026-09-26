@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { formatCT } from '@/lib/format-ct';
+import { adminFetch } from '@/lib/admin/admin-fetch';
 import {
   Search, Filter, ChevronLeft, ChevronRight, Eye, MousePointerClick,
   FileCheck, MoreHorizontal, Trash2, Star, StarOff, Globe, GlobeLock,
@@ -86,32 +87,36 @@ export default function AdminJobsPage() {
 
   // Action feedback
   const [actionMsg, setActionMsg] = useState<{ text: string; isError: boolean } | null>(null);
+  // Kept apart from actionMsg, which self-clears after three seconds: a list
+  // that failed to load stays wrong until it is reloaded, and "0 total jobs /
+  // No jobs found" is indistinguishable from an empty catalogue otherwise.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchJobs = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      params.set('page', page.toString());
-      params.set('limit', '25');
-      params.set('sort', sortBy);
-      if (search) params.set('search', search);
-      if (sourceFilter !== 'all') params.set('source', sourceFilter);
-      if (publishedFilter) params.set('published', publishedFilter);
-      if (featuredFilter) params.set('featured', featuredFilter);
+    setLoading(true);
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('limit', '25');
+    params.set('sort', sortBy);
+    if (search) params.set('search', search);
+    if (sourceFilter !== 'all') params.set('source', sourceFilter);
+    if (publishedFilter) params.set('published', publishedFilter);
+    if (featuredFilter) params.set('featured', featuredFilter);
 
-      const res = await fetch(`/api/admin/jobs?${params.toString()}`);
-      const data = await res.json();
-      if (data.success) {
-        setJobs(data.jobs);
-        setTotal(data.total);
-        setTotalPages(data.totalPages);
-        if (data.sources) setSources(data.sources);
-      }
-    } catch (err) {
-      console.error('Error fetching jobs:', err);
-    } finally {
-      setLoading(false);
+    const result = await adminFetch<{
+      jobs: AdminJob[]; total: number; totalPages: number; sources?: SourceOption[];
+    }>(`/api/admin/jobs?${params.toString()}`);
+
+    if (result.ok) {
+      setJobs(result.data.jobs);
+      setTotal(result.data.total);
+      setTotalPages(result.data.totalPages);
+      if (result.data.sources) setSources(result.data.sources);
+      setLoadError(null);
+    } else {
+      setLoadError(result.error);
     }
+    setLoading(false);
   }, [page, search, sourceFilter, publishedFilter, featuredFilter, sortBy]);
 
   useEffect(() => { fetchJobs(); }, [fetchJobs]);
@@ -125,29 +130,23 @@ export default function AdminJobsPage() {
 
   // Toggle helpers
   const toggleField = async (jobId: string, field: string, value: boolean) => {
-    try {
-      const res = await fetch(`/api/admin/jobs/${jobId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value }),
-      });
-      if (res.ok) {
-        setJobs(prev => prev.map(j => j.id === jobId ? { ...j, [field]: value } : j));
-        showMsg(`${field === 'isPublished' ? (value ? 'Published' : 'Unpublished') : (value ? 'Featured' : 'Unfeatured')}`, false);
-      }
-    } catch { showMsg('Failed to update', true); }
+    const result = await adminFetch(`/api/admin/jobs/${jobId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: value }),
+    });
+    if (!result.ok) { showMsg(`Nothing changed. ${result.error}`, true); return; }
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, [field]: value } : j));
+    showMsg(`${field === 'isPublished' ? (value ? 'Published' : 'Unpublished') : (value ? 'Featured' : 'Unfeatured')}`, false);
   };
 
   const deleteJob = async (jobId: string, hard = false) => {
     if (!confirm(hard ? 'Permanently delete this job? This cannot be undone.' : 'Unpublish this job?')) return;
-    try {
-      const res = await fetch(`/api/admin/jobs/${jobId}?hard=${hard}`, { method: 'DELETE' });
-      if (res.ok) {
-        if (hard) setJobs(prev => prev.filter(j => j.id !== jobId));
-        else setJobs(prev => prev.map(j => j.id === jobId ? { ...j, isPublished: false } : j));
-        showMsg(hard ? 'Job permanently deleted' : 'Job unpublished', false);
-      }
-    } catch { showMsg('Failed to delete', true); }
+    const result = await adminFetch(`/api/admin/jobs/${jobId}?hard=${hard}`, { method: 'DELETE' });
+    if (!result.ok) { showMsg(`Nothing changed. ${result.error}`, true); return; }
+    if (hard) setJobs(prev => prev.filter(j => j.id !== jobId));
+    else setJobs(prev => prev.map(j => j.id === jobId ? { ...j, isPublished: false } : j));
+    showMsg(hard ? 'Job permanently deleted' : 'Job unpublished', false);
   };
 
   // Bulk actions
@@ -156,21 +155,17 @@ export default function AdminJobsPage() {
     const label = action === 'hard_delete' ? 'permanently delete' : action;
     if (action.includes('delete') && !confirm(`${label} ${selected.size} job(s)?`)) return;
 
-    try {
-      setBulkLoading(true);
-      const res = await fetch('/api/admin/jobs/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, jobIds: Array.from(selected) }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        showMsg(`${data.action}: ${data.affected} job(s)`, false);
-        setSelected(new Set());
-        fetchJobs();
-      }
-    } catch { showMsg('Bulk action failed', true); }
-    finally { setBulkLoading(false); }
+    setBulkLoading(true);
+    const result = await adminFetch<{ action: string; affected: number }>('/api/admin/jobs/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, jobIds: Array.from(selected) }),
+    });
+    setBulkLoading(false);
+    if (!result.ok) { showMsg(`Nothing changed. ${result.error}`, true); return; }
+    showMsg(`${result.data.action}: ${result.data.affected} job(s)`, false);
+    setSelected(new Set());
+    fetchJobs();
   };
 
   // Edit modal
@@ -189,20 +184,19 @@ export default function AdminJobsPage() {
 
   const saveEdit = async () => {
     if (!editingJob) return;
-    try {
-      setEditLoading(true);
-      const res = await fetch(`/api/admin/jobs/${editingJob.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
-      });
-      if (res.ok) {
-        showMsg('Job updated', false);
-        setEditingJob(null);
-        fetchJobs();
-      }
-    } catch { showMsg('Failed to update', true); }
-    finally { setEditLoading(false); }
+    setEditLoading(true);
+    const result = await adminFetch(`/api/admin/jobs/${editingJob.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editForm),
+    });
+    setEditLoading(false);
+    // The modal deliberately stays open on failure so the operator's edits
+    // are still there to correct and resubmit.
+    if (!result.ok) { showMsg(`Not saved. ${result.error}`, true); return; }
+    showMsg('Job updated', false);
+    setEditingJob(null);
+    fetchJobs();
   };
 
   const showMsg = (text: string, isError: boolean) => {
@@ -246,6 +240,17 @@ export default function AdminJobsPage() {
           backgroundColor: actionMsg.isError ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
           color: actionMsg.isError ? '#F87171' : '#22C55E',
         }}>{actionMsg.text}</div>
+      )}
+
+      {loadError && (
+        <div role="alert" style={{
+          marginBottom: '16px', padding: '12px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+          display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+          backgroundColor: 'rgba(239,68,68,0.1)', color: '#B91C1C',
+        }}>
+          <span>This list could not be loaded, so the counts below are not the real ones. {loadError}</span>
+          <button onClick={fetchJobs} style={{ ...inputStyle, cursor: 'pointer', fontWeight: 600 }}>Retry</button>
+        </div>
       )}
 
       {/* Filters */}

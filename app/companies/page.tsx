@@ -1,6 +1,7 @@
 import { brand } from '@/config/brand';
 import { prisma } from '@/lib/prisma';
 import { activeIndexableJobWhere } from '@/lib/active-job-filter';
+import { companyUrlSlug } from '@/lib/company-slug';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -187,7 +188,7 @@ export default async function CompaniesIndexPage() {
               return (
                 <Link
                   key={company.id}
-                  href={`/companies/${company.normalizedName}`}
+                  href={`/companies/${companyUrlSlug(company.normalizedName)}`}
                   style={{ textDecoration: 'none' }}
                 >
                   <div

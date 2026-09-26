@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRight, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { publicJobsWhere } from '@/lib/filters';
 import SalaryGuideForm from '@/components/SalaryGuideForm';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CopyCitation from '@/components/CopyCitation';
@@ -117,14 +118,19 @@ export default async function SalaryGuidePage() {
     getOfferMarketData(),
     getHubStateSummaries(),
     getNationalSettingMedians(),
-    prisma.job.count({ where: { isPublished: true } }),
-    prisma.job.count({ where: { isPublished: true, isRemote: true } }),
+    // publicJobsWhere() throughout: totalPublished is printed as the
+    // denominator of the median sentence ("computed from the N live
+    // postings"), and the engine behind those medians excludes expired and
+    // off-specialty rows. A wider denominator beside a narrower median is a
+    // pair of numbers that cannot both be true.
+    prisma.job.count({ where: publicJobsWhere() }),
+    prisma.job.count({ where: { ...publicJobsWhere(), isRemote: true } }),
     // Real change signal for dateModified: the newest posting to enter the
     // dataset, or the newest employer renewal. NEVER job.updatedAt (it
     // churns daily on view counts) and never render time (organic audit
     // 2026-08: stamping now() is a fabricated freshness signal).
     prisma.job.aggregate({
-      where: { isPublished: true },
+      where: publicJobsWhere(),
       _max: { createdAt: true, lastRenewedAt: true },
     }),
   ]);
@@ -133,7 +139,7 @@ export default async function SalaryGuidePage() {
   // not just salary-bearing — labeled accordingly).
   const stateJobCounts = await prisma.job.groupBy({
     by: ['state'],
-    where: { isPublished: true, state: { not: null } },
+    where: { ...publicJobsWhere(), state: { not: null } },
     _count: { id: true },
   });
   const jobsByState = new Map(stateJobCounts.map((r) => [r.state as string, r._count.id]));
@@ -241,13 +247,25 @@ export default async function SalaryGuidePage() {
     "description": "State-level advertised pay for Psychiatric Mental Health Nurse Practitioners, computed from live job postings that disclose a salary range: median, 25th and 75th percentile advertised annual salary, and sample size per state. States below the minimum sample-size tiers are omitted rather than estimated. Figures are advertised pay from postings, not self-reported earnings.",
     "url": `${BASE_URL}/salary-guide`,
     "isAccessibleForFree": true,
-    "creator": { "@type": "Organization", "name": "PMHNP Hiring", "url": BASE_URL },
+    // Point at the Organization node app/layout.tsx already defines instead
+    // of minting a second, unlinked copy of the same publisher.
+    "creator": { "@id": `${BASE_URL}/#organization` },
     "variableMeasured": [
       "state",
       "sample_size_n",
       "median_advertised_annual_usd",
       "p25_advertised_annual_usd",
       "p75_advertised_annual_usd",
+    ],
+    // How the numbers were produced, in the markup rather than only in the
+    // prose: a consumer deciding whether to cite the dataset should not have
+    // to scrape the methodology section to learn what it measures.
+    "measurementTechnique": "Median of advertised salary-range midpoints from live job postings. Employer-estimated ranges are excluded; a segment needs at least 5 disclosed ranges to publish a median and at least 10 to publish percentiles.",
+    "spatialCoverage": { "@type": "Place", "name": "United States" },
+    "keywords": [
+      "PMHNP salary",
+      "psychiatric nurse practitioner pay",
+      "advertised salary by state",
     ],
     "temporalCoverage": String(currentYear),
     ...(latestChangeAt ? { "dateModified": latestChangeAt.toISOString() } : {}),
@@ -392,6 +410,16 @@ export default async function SalaryGuidePage() {
                       <>Live advertised-pay figures appear here whenever enough postings disclose a range.</>
                     )}
                   </p>
+                  {/* Dated for readers, not just for crawlers: latestChangeAt
+                      was reaching the Dataset and Article markup but nothing
+                      on the page, so an assistant quoting the national median
+                      had no "as of" to attach to it. Real change signal only,
+                      so the line disappears rather than inventing a date. */}
+                  {latestChangeAt && (
+                    <p style={{ fontSize: '12px', color: '#94A3B8', margin: '10px 0 0' }}>
+                      Data as of {latestChangeAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}, from the newest posting in this dataset.
+                    </p>
+                  )}
                 </div>
               </div>
               <div style={{

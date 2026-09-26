@@ -172,7 +172,9 @@ export async function POST(request: NextRequest) {
       try {
         // Personalized welcome: echo the alert's criteria + frequency back to the
         // subscriber and deep-link the CTA to the matching /jobs search.
-        await sendWelcomeEmail(normalizedEmail, jobAlert.token, {
+        // No token argument: jobAlert.token is not an unsubscribe token, and
+        // sendWelcomeEmail resolves the EmailLead one itself.
+        await sendWelcomeEmail(normalizedEmail, {
           criteriaSummary: buildCriteriaSummary(jobAlert),
           filteredJobsUrl: buildFilteredJobsUrl(jobAlert),
           frequency: jobAlert.frequency,

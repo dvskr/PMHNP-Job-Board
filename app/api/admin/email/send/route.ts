@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 import { createClient } from '@/lib/supabase/server';
@@ -40,8 +40,10 @@ async function loadOptedOutEmails(): Promise<Set<string>> {
  *
  * Body: { subject, body, audience, customEmails? }
  */
-export async function POST(req: Request) {
-    const authError = await requireApiAdmin();
+export async function POST(req: NextRequest) {
+    // Passed explicitly so the send gets its own rate-limit bucket: a bulk
+    // broadcast is the last admin endpoint that should run unthrottled.
+    const authError = await requireApiAdmin(req);
     if (authError) return authError;
 
     // Emergency brake: while it is engaged, nothing leaves, and the admin gets

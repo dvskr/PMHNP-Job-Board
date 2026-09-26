@@ -9,6 +9,7 @@ import ResourceDownloadGate from '@/components/ResourceDownloadGate';
 import LicensureChecker from '@/components/LicensureChecker';
 import StateImage from '@/components/StateImage';
 import { prisma } from '@/lib/prisma';
+import { publicJobsWhere } from '@/lib/filters';
 import { STATE_PRACTICE_AUTHORITY } from '@/lib/state-practice-authority';
 
 export const revalidate = 86400;
@@ -102,9 +103,14 @@ export default async function ResourcesPage() {
       select: { slug: true, title: true, category: true, metaDescription: true, imageUrl: true, publishDate: true },
       orderBy: { publishDate: 'desc' },
     }),
+    // publicJobsWhere(), not a bare isPublished: the averages in this table
+    // are read as "PMHNP pay in state X", and the unscoped predicate pulled in
+    // the expired rows and the MD-Psychiatrist / off-specialty postings that
+    // GLOBAL_EXCLUSIONS hides from /jobs, pushing the advertised minimum well
+    // above anything a reader can actually find on the board.
     prisma.job.groupBy({
       by: ['state'],
-      where: { isPublished: true, state: { not: null }, normalizedMinSalary: { not: null } },
+      where: { ...publicJobsWhere(), state: { not: null }, normalizedMinSalary: { not: null } },
       _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
       _min: { normalizedMinSalary: true },
       _max: { normalizedMaxSalary: true },

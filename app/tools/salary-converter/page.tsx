@@ -27,6 +27,14 @@ export const metadata: Metadata = {
     description: 'Convert PMHNP pay across every pay period with honest, editable assumptions.',
     type: 'website',
     url: `${BASE_URL}/tools/salary-converter`,
+    // Without `images` Next.js drops the root layout's og:image: a page-level
+    // openGraph object replaces the parent rather than merging with it.
+    images: [{
+      url: `/api/og?type=page&v=3&title=${encodeURIComponent('PMHNP Salary Converter')}&subtitle=${encodeURIComponent('Hourly to annual, with editable assumptions')}`,
+      width: 1200,
+      height: 630,
+      alt: 'PMHNP Salary Converter',
+    }],
   },
 };
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { verifyCsrf } from '@/lib/csrf';
 
 /**
  * GET /api/employer/tags — List employer's custom tags
@@ -34,6 +35,14 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     // Rate limiting
     const rateLimitResult = await rateLimit(req, 'emp-tags', RATE_LIMITS.employer);
     if (rateLimitResult) return rateLimitResult;
@@ -82,6 +91,14 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 

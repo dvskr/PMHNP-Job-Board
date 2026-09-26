@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeText } from '@/lib/sanitize';
+import { verifyCsrf } from '@/lib/csrf';
 
 /**
  * Alert preferences arrive as raw JSON, so every field can be any type.
@@ -78,6 +79,14 @@ export async function GET() {
  * Body: { specialties?: string[], states?: string[], minExperience?: number, workMode?: string, isActive?: boolean }
  */
 export async function POST(req: NextRequest) {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     // Rate limiting
     const rateLimitResult = await rateLimit(req, 'emp-alerts', RATE_LIMITS.employer);
     if (rateLimitResult) return rateLimitResult;
@@ -149,7 +158,13 @@ export async function POST(req: NextRequest) {
  * DELETE /api/employer/candidate-alerts
  * Disable alerts for this employer.
  */
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
+    // Took no request argument at all, so it had nothing to check an origin
+    // against. Turning someone's candidate alerts off from another origin is
+    // quiet: they simply stop hearing about new candidates.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 

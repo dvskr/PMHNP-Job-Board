@@ -9,7 +9,8 @@
  * This helper accepts either:
  *   1. Bearer-token match against `CRON_SECRET` (Vercel cron path).
  *   2. An authenticated admin session (manual trigger path).
- *   3. In NODE_ENV=development, both are skipped.
+ *   3. A checkout that has no CRON_SECRET to check against, in local
+ *      development only (see isUnauthenticatedCronAllowed).
  *
  * Returns null when authorized; otherwise a 401 NextResponse the caller
  * should return immediately.
@@ -19,20 +20,34 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
+/**
+ * The open door, and why it is this narrow.
+ *
+ * P5.A (2026-06-01) required NODE_ENV=development and no Vercel env, which
+ * still meant NODE_ENV alone decided it: any self-hosted deployment that runs
+ * with NODE_ENV=development served every cron route, including the destructive
+ * purges, to anonymous callers. NODE_ENV describes a build, not a trust
+ * boundary.
+ *
+ * A deployment that runs crons has a CRON_SECRET, so its presence is the
+ * signal that there is something to authenticate against: once it is set, the
+ * bearer token and the admin session are the only ways in, on every host. What
+ * is left open is a fresh local checkout with no secret configured, where
+ * there is no credential to present and nothing deployed to reach.
+ *
+ * Exported so the gate can be tested without standing up Supabase or Prisma.
+ */
+export function isUnauthenticatedCronAllowed(env: NodeJS.ProcessEnv = process.env): boolean {
+    return (
+        env.NODE_ENV === 'development' &&
+        !env.VERCEL &&
+        !env.VERCEL_ENV &&
+        !env.CRON_SECRET
+    );
+}
+
 export async function verifyCronOrAdmin(req: Request): Promise<NextResponse | null> {
-    // P5.A fix (2026-06-01): the dev short-circuit was too broad. Vercel
-    // preview deployments and Next.js dev-server tests both set
-    // NODE_ENV !== 'production' (preview = "production" actually, but
-    // some tooling sets it to "development"), so the guard would silently
-    // skip auth in environments other than local dev. Tighten to "local
-    // CLI only" by also requiring no public deployment URL.
-    //
-    // Allowlist: NODE_ENV=development AND not running on Vercel.
-    if (
-        process.env.NODE_ENV === 'development' &&
-        !process.env.VERCEL &&
-        !process.env.VERCEL_ENV
-    ) {
+    if (isUnauthenticatedCronAllowed()) {
         return null;
     }
 

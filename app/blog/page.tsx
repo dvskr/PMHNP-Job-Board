@@ -8,9 +8,11 @@ import {
     getPublishedPosts,
     getPostCount,
     getPublishedCategoryCounts,
+    toIsoUtc,
     BLOG_CATEGORIES,
 } from '@/lib/blog';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import { getSiteStats } from '@/lib/site-stats';
 
 // ISR: blog index changes when posts publish/unpublish; 1-hour revalidate is
 // well within the editorial cadence. Previously force-dynamic meant every
@@ -67,11 +69,21 @@ export default async function BlogIndexPage({
     const currentPage = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
     const categoryFilter = category || undefined;
 
-    const [posts, totalCount, categoryCounts] = await Promise.all([
+    const [posts, totalCount, categoryCounts, siteStats] = await Promise.all([
         getPublishedPosts(currentPage, POSTS_PER_PAGE, categoryFilter),
         getPostCount(categoryFilter),
         getPublishedCategoryCounts(),
+        getSiteStats(),
     ]);
+
+    // The Browse Jobs CTA used to claim a hand-typed "10,000+ PMHNP
+    // positions", well above the real published count. getSiteStats is the
+    // single stats engine every other count surface reads; when the DB is
+    // degraded it returns zero, and the copy goes number-free rather than
+    // printing a figure nobody can stand behind.
+    const browseJobsDesc = siteStats.totalJobs > 0
+        ? `${siteStats.totalJobs.toLocaleString()} PMHNP positions`
+        : 'PMHNP positions across all 50 states';
 
     // GSC Fix (2026-07 audit P3): only render pills for categories with ≥1
     // published post. Empty ?category= URLs returned 200 "No posts in this
@@ -142,7 +154,9 @@ export default async function BlogIndexPage({
                                 '@type': 'BlogPosting',
                                 headline: post.title,
                                 url: `https://pmhnphiring.com/blog/${post.slug}`,
-                                datePublished: post.publish_date || post.created_at,
+                                // Offset-less TIMESTAMP columns: normalize to
+                                // UTC so the feed's dates are unambiguous.
+                                datePublished: toIsoUtc(post.publish_date || post.created_at),
                             })),
                         },
                         {
@@ -439,7 +453,7 @@ export default async function BlogIndexPage({
                     <div className="blog-cta-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
                         {[
                             { href: '/salary-guide', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp', title: 'Salary Guide', desc: '2026 data with state breakdowns' },
-                            { href: '/jobs', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-trending.webp', title: 'Browse Jobs', desc: '10,000+ PMHNP positions' },
+                            { href: '/jobs', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-trending.webp', title: 'Browse Jobs', desc: browseJobsDesc },
                             { href: '/resources', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-chart.webp', title: 'Resources', desc: 'Licensure guides & tools' },
                         ].map(item => (
                             <Link key={item.href} href={item.href} className="blog-cta-card" style={{

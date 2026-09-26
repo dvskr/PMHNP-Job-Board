@@ -40,6 +40,7 @@ import { isAiFeatureEnabled } from '@/lib/ai/feature-flags';
 import { logger } from '@/lib/logger';
 import { AI_DAILY_CAPS } from '@/lib/ai-usage';
 import { midnightCentralTimeAsUtc } from '@/lib/time';
+import { verifyCsrf } from '@/lib/csrf';
 
 const RERANK_DAILY_CAP = AI_DAILY_CAPS.talent_search_rerank;
 
@@ -81,6 +82,14 @@ const rerankResultSchema = z.object({
 });
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+    // The session cookie is ambient authority: without an origin check a page
+    // on any other site could drive this action from the employer's own
+    // browser. SameSite=Lax is what keeps that theoretical today, and this
+    // route must not be the reason the site depends on a cookie attribute it
+    // does not set itself.
+    const csrfError = verifyCsrf(request);
+    if (csrfError) return csrfError;
+
     // ── Rate limit + auth — same gates as /api/employer/candidates ──────
     const rl = await rateLimit(request, 'employer:talent-search', RATE_LIMITS.employer);
     if (rl) return rl;

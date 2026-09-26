@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/utils';
 import type { Metadata } from 'next';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { activeIndexableJobWhere } from '@/lib/active-job-filter';
+import { companyUrlSlug } from '@/lib/company-slug';
 
 // GSC Fix: ISR caching prevents DB pool exhaustion when Googlebot crawls company pages.
 // Previously defaulted to dynamic (no cache) → every crawl hit the DB.
@@ -61,6 +62,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
         if (!company) return { title: 'Company Not Found' };
 
+        // Self-reference the CLEAN slug, not the requested one: legacy rows
+        // hold a space-separated normalizedName, and echoing the incoming
+        // param put a literal space inside the canonical URL.
+        const canonicalSlug = companyUrlSlug(resolvedName);
+
         // GSC Fix (2026-07 audit, review finding): count with the SAME
         // predicate app/sitemap.ts companyPages uses (activeIndexableJobWhere:
         // includes expiresAt-null jobs + the dead-link gate). The previous
@@ -86,12 +92,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                 description: company.description
                     ? `${company.description.substring(0, 140)}... View ${activeJobCount} open PMHNP role${activeJobCount === 1 ? '' : 's'} at ${company.name}.`
                     : `Browse ${activeJobCount} open PMHNP position${activeJobCount === 1 ? '' : 's'} at ${company.name}. Salary info, locations, and direct apply.`,
-                url: `https://pmhnphiring.com/companies/${slug}`,
+                url: `https://pmhnphiring.com/companies/${canonicalSlug}`,
                 type: 'website',
                 siteName: 'PMHNP Hiring',
+                // A page-level openGraph object replaces the root layout's
+                // instead of merging with it, so leaving `images` out strips
+                // og:image and the share card renders with no picture.
+                images: [{
+                    url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${company.name}: PMHNP Jobs`)}&subtitle=${encodeURIComponent(`${activeJobCount} open position${activeJobCount === 1 ? '' : 's'}`)}`,
+                    width: 1200,
+                    height: 630,
+                    alt: `PMHNP jobs at ${company.name}`,
+                }],
             },
             alternates: {
-                canonical: `https://pmhnphiring.com/companies/${slug}`,
+                canonical: `https://pmhnphiring.com/companies/${canonicalSlug}`,
             },
             // GSC Fix: noindex below the sitemap threshold (0 jobs also 404s
             // in the page body). 1-7 jobs stays useful for direct visitors
@@ -110,11 +125,16 @@ export default async function CompanyPage({ params }: Props) {
     const { slug } = await params;
 
     let company;
+    // Every self-referencing URL below is built from the clean slug rather
+    // than the requested one, so a legacy space-form row cannot put a literal
+    // space into the breadcrumb or the Organization node.
+    let canonicalSlug = slug;
     try {
         const resolvedName = await resolveCompanyNormalizedName(slug);
         if (!resolvedName) {
             notFound();
         }
+        canonicalSlug = companyUrlSlug(resolvedName);
         company = await prisma.company.findUnique({
             where: { normalizedName: resolvedName },
             include: {
@@ -166,7 +186,7 @@ export default async function CompanyPage({ params }: Props) {
             <BreadcrumbSchema items={[
                 { name: 'Home', url: 'https://pmhnphiring.com' },
                 { name: 'Companies', url: 'https://pmhnphiring.com/companies' },
-                { name: company.name, url: `https://pmhnphiring.com/companies/${slug}` },
+                { name: company.name, url: `https://pmhnphiring.com/companies/${canonicalSlug}` },
             ]} />
 
             <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--bg-primary)' }}>
@@ -335,7 +355,7 @@ export default async function CompanyPage({ params }: Props) {
                         '@context': 'https://schema.org',
                         '@type': 'Organization',
                         name: company.name,
-                        url: company.website || `https://pmhnphiring.com/companies/${slug}`,
+                        url: company.website || `https://pmhnphiring.com/companies/${canonicalSlug}`,
                         ...(company.logoUrl && { logo: company.logoUrl }),
                         ...(company.description && { description: company.description }),
                     }),

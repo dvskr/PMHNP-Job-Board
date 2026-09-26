@@ -66,7 +66,7 @@ const DEMAND_PHRASES: Record<DemandTier, string> = {
 // carry APRN practice: the APRN Compact is a separate agreement that has not
 // reached implementation, so a PMHNP needs an APRN license in every state
 // whose residents they treat. Copy here used to say the opposite, which the
-// site's own state licence posts contradicted.
+// site's own state license posts contradicted.
 // As of 2026-05 the following are NOT compact members, so even the RN license
 // has to be issued locally. Source: NCSBN compact page. Update when
 // membership shifts.
@@ -83,46 +83,81 @@ function isNlcMember(stateName: string): boolean {
 // ─── Setting-specific lead phrases ──────────────────────────────────────────
 // One per SETTING_CONFIGS key. Each takes the state context so the lead is
 // (slightly) state-aware where relevant (e.g. Compact-state remote roles).
+//
+// No lead publishes a dollar figure. The ranges that used to sit here were
+// hand-written, identical for Wyoming and California, and contradicted the
+// tier-gated median the salary guide computes from live postings one click
+// away. Pay on these pages comes from the listings and the aggregate stat,
+// never from prose.
 
-interface StateCtx {
+export interface StateCtx {
     stateName: string;
     stateCode: string;
     practiceAuthority: PracticeAuthority | null;
     avgCOL: number;
     shortageCityCount: number;
     totalJobs: number;
+    /** Employers with the most open postings in this state, largest first. */
+    topEmployers: string[];
+    /** Gated top cities for this setting in this state, largest first. */
+    topCities: string[];
+}
+
+/** "A", "A and B", "A, B, and C" — Oxford comma, matching the city narrative. */
+function joinNames(names: string[]): string {
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} and ${names[1]}`;
+    return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
 }
 
 type SettingLeadFn = (ctx: StateCtx) => string;
 
 const SETTING_LEADS: Record<string, SettingLeadFn> = {
-    'remote': (c) => `Remote PMHNP positions covering patients in ${c.stateName} typically pay $130K to $200K+ and require a HIPAA-compliant home setup plus an active ${c.stateCode} APRN license: a multistate license issued under the Nurse Licensure Compact covers RN practice only, and the separate APRN Compact has not been implemented.${isNlcMember(c.stateName) ? '' : ` ${c.stateName} is also outside the Nurse Licensure Compact, so the underlying RN license has to be issued by ${c.stateCode} as well.`}`,
+    'remote': (c) => `Remote PMHNP positions covering patients in ${c.stateName} require a HIPAA-compliant home setup plus an active ${c.stateCode} APRN license: a multistate license issued under the Nurse Licensure Compact covers RN practice only, and the separate APRN Compact has not been implemented.${isNlcMember(c.stateName) ? '' : ` ${c.stateName} is also outside the Nurse Licensure Compact, so the underlying RN license has to be issued by ${c.stateCode} as well.`}`,
     'telehealth': (c) => `Telehealth PMHNP roles serving the ${c.stateName} market combine asynchronous documentation with scheduled video visits. Licensure follows the patient, so employers require HIPAA-compliant equipment and an active ${c.stateCode} APRN license; a Nurse Licensure Compact multistate license covers RN practice, not APRN practice.${isNlcMember(c.stateName) ? '' : ` ${c.stateName} is not a Compact member either, so the RN license must also be a ${c.stateCode} credential.`}`,
-    'inpatient': (c) => `Inpatient PMHNP positions across ${c.stateName} cover acute psychiatric units, consult-liaison services, and crisis stabilization. Shift differentials, weekend premiums, and on-call stipends are standard alongside base salary.`,
-    'outpatient': (c) => `Outpatient PMHNP roles in ${c.stateName} span community mental health centers, group practices, and integrated primary-care settings. Caseloads typically run 12 to 18 patients per day with documentation time built in.`,
-    'travel': (c) => `Travel PMHNP assignments in ${c.stateName} are usually 8 to 26 weeks with tax-free housing stipends, completion bonuses, and 20 to 50% premium pay over permanent equivalents. Most agencies handle multi-state licensure logistics.`,
+    'inpatient': (c) => `Inpatient PMHNP positions across ${c.stateName} cover acute psychiatric units, consult-liaison services, and crisis stabilization. ${c.topEmployers.length > 0 ? `The systems posting most of that acute work right now are ${joinNames(c.topEmployers.slice(0, 3))}.` : 'Acute beds in the state are concentrated in a small number of regional hospitals.'} Shift differentials, weekend premiums, and on-call stipends are standard alongside base salary.`,
+    'outpatient': (c) => `Outpatient PMHNP roles in ${c.stateName} span community mental health centers, group practices, and integrated primary-care settings. Caseloads typically run 12 to 18 patients per day with documentation time built in. ${c.topCities.length > 0 ? `Most of the state's outpatient volume sits around ${joinNames(c.topCities.slice(0, 3))}.` : 'Outpatient volume is spread across the state rather than concentrated in one metro.'}`,
+    'travel': (c) => `Travel PMHNP assignments in ${c.stateName} are usually 8 to 26 weeks with tax-free housing stipends and completion bonuses on top of the hourly rate. Most agencies handle the ${c.stateCode} APRN licensure logistics. ${c.shortageCityCount > 0 ? 'Assignments recur here because several of the largest metros in the state carry a federal mental health shortage designation.' : 'Assignments here usually follow turnover at the larger systems rather than a chronic shortfall.'}`,
     // The Consolidated Appropriations Act of 2023 removed the separate DEA
     // waiver for buprenorphine; standard DEA registration is now sufficient.
-    'addiction': (c) => `Addiction-focused PMHNP roles in ${c.stateName} frequently sit inside medication-assisted treatment (MAT) programs. Buprenorphine prescribing needs only a standard DEA registration, with no separate waiver, though employers commonly expect MAT or ASAM training. NHSC loan repayment is broadly available for substance-use treatment positions at qualifying sites.`,
-    'contract': (c) => `Contract PMHNP positions in ${c.stateName} are typically defined-term W-2 engagements (90 days to 24 months) booked through staffing agencies, paying $90 to $150 per hour with agency-provided malpractice. Distinct from 1099 independent contracting, contract roles preserve employer payroll-tax handling and often include short-term health coverage.`,
-    'correctional': (c) => `Correctional PMHNP roles in ${c.stateName} facilities often offer state-employee benefits, robust pension plans, and educational debt forgiveness through state-specific programs alongside NHSC eligibility.`,
-    'full-time': (c) => `Full-time PMHNP positions in ${c.stateName} typically bundle employer-sponsored health insurance, 401(k) match, CME allowance, malpractice coverage, and 3 to 4 weeks of PTO into a $130K to $190K base. Total-comp comparisons against contract or per-diem rates should net out the benefits self-funded employers don't have to cover.`,
-    'part-time': (c) => `Part-time PMHNP roles in ${c.stateName} generally pay $60 to $100 per hour and run 16 to 32 scheduled hours weekly, with prorated benefits at larger health systems and none at smaller practices. The structure is popular for clinicians maintaining a private practice on the side or stepping down from a full caseload.`,
-    'new-grad': (c) => `New-grad PMHNP positions in ${c.stateName} typically start at $110K to $160K and emphasize structured onboarding: formal preceptorship, gradual caseload ramp over 3 to 6 months, and protected supervision time. Community mental health centers and FQHCs broadly qualify for NHSC loan repayment, whose award amounts and service terms HRSA sets each cycle.`,
-    '1099': (c) => `Independent-contractor (1099) PMHNP roles in ${c.stateName} pay $75 to $150+ per hour without benefits or employer-paid malpractice. Clinicians self-fund quarterly estimated taxes, occurrence-based malpractice, and any LLC or PLLC structure; net take-home depends heavily on those offsets and ${c.stateCode} self-employment tax exposure.`,
-    'behavioral-health': (c) => `Integrated behavioral health PMHNP roles in ${c.stateName} embed psychiatric NPs inside primary-care teams, FQHCs, and school-based clinics, typically 8 to 12 brief consults per day rather than full 30 to 60 minute sessions. Many sites qualify for NHSC loan repayment under value-based contracts that prioritize population mental-health outcomes.`,
+    'addiction': (c) => `Addiction-focused PMHNP roles in ${c.stateName} frequently sit inside medication-assisted treatment (MAT) programs. Buprenorphine prescribing needs only a standard DEA registration, with no separate waiver, though employers commonly expect MAT or ASAM training. NHSC loan repayment is broadly available for substance-use treatment positions at qualifying sites, and HRSA sets each cycle's award amounts and service terms.`,
+    'contract': (c) => `Contract PMHNP positions in ${c.stateName} are typically defined-term W-2 engagements (90 days to 24 months) booked through staffing agencies, with agency-provided malpractice. Distinct from 1099 independent contracting, contract roles preserve employer payroll-tax handling and often include short-term health coverage, which is why the hourly rate and the salaried equivalent are not directly comparable.`,
+    'correctional': (c) => `Correctional PMHNP roles in ${c.stateName} facilities often offer state-employee benefits, robust pension plans, and educational debt forgiveness through state-specific programs alongside NHSC eligibility. Caseloads lean toward intake screening and stabilization rather than long-term therapy.`,
+    'full-time': (c) => `Full-time PMHNP positions in ${c.stateName} typically bundle employer-sponsored health insurance, 401(k) match, CME allowance, malpractice coverage, and 3 to 4 weeks of PTO into the base. ${c.topEmployers.length > 0 ? `The employers hiring on that basis here include ${joinNames(c.topEmployers.slice(0, 2))}.` : 'The employed model still accounts for most psychiatric openings in the state.'} Total-comp comparisons against contract or per-diem rates should net out the benefits self-funded clinicians have to cover themselves.`,
+    'part-time': (c) => `Part-time PMHNP roles in ${c.stateName} run 16 to 32 scheduled hours weekly, with prorated benefits at larger health systems and none at smaller practices. The structure is popular for clinicians maintaining a private practice on the side or stepping down from a full caseload. ${c.topCities.length > 0 ? `Openings cluster around ${joinNames(c.topCities.slice(0, 2))}, where panel density supports a partial schedule.` : 'Openings are thin enough here that most clinicians pair one with telehealth coverage.'}`,
+    'new-grad': (c) => `New-grad PMHNP positions in ${c.stateName} emphasize structured onboarding: formal preceptorship, gradual caseload ramp over 3 to 6 months, and protected supervision time. Community mental health centers and FQHCs broadly qualify for NHSC loan repayment, whose award amounts and service terms HRSA sets each cycle. ${c.practiceAuthority && c.practiceAuthority !== 'full' ? `${c.stateName} places PMHNPs under ${AUTHORITY_PHRASES[c.practiceAuthority]}, so a first role also has to supply that physician relationship.` : `${c.stateName} grants full practice authority, so a first role is chosen on supervision quality rather than on who can legally sign.`}`,
+    '1099': (c) => `Independent-contractor (1099) PMHNP roles in ${c.stateName} carry no benefits and no employer-paid malpractice. Clinicians self-fund quarterly estimated taxes, occurrence-based malpractice, and any LLC or PLLC structure; net take-home depends heavily on those offsets and ${c.stateCode} self-employment tax exposure, so the hourly premium over a salaried role is not all margin.`,
+    'behavioral-health': (c) => `Integrated behavioral health PMHNP roles in ${c.stateName} embed psychiatric NPs inside primary-care teams, FQHCs, and school-based clinics, typically 8 to 12 brief consults per day rather than full 30 to 60 minute sessions. Many sites qualify for NHSC loan repayment under value-based contracts that prioritize population mental-health outcomes. ${c.topEmployers.length > 0 ? `${joinNames(c.topEmployers.slice(0, 2))} carry most of the integrated caseload here.` : 'Integrated roles here sit inside primary-care groups rather than standalone behavioral health clinics.'}`,
 };
 
 // ─── Composite narrative ────────────────────────────────────────────────────
 
-export function buildSettingStateNarrative(
-    settingKey: string,
-    stateName: string,
-    stateCode: string,
-    avgCOL: number,
-    shortageCityCount: number,
-    totalJobs: number,
-): string {
+/**
+ * Facts the caller has already fetched for the page. topEmployers and
+ * topCities were previously computed, rendered in the sidebar, and then not
+ * handed to the narrative, which is why 51 state pages shared a lead that
+ * varied only by state name.
+ */
+export interface SettingStateNarrativeInput {
+    settingKey: string;
+    stateName: string;
+    stateCode: string;
+    avgCOL: number;
+    shortageCityCount: number;
+    totalJobs: number;
+    topEmployers?: string[];
+    topCities?: string[];
+}
+
+export function buildSettingStateNarrative(input: SettingStateNarrativeInput): string {
+    const {
+        settingKey,
+        stateName,
+        stateCode,
+        avgCOL,
+        shortageCityCount,
+        totalJobs,
+    } = input;
     const auth = getStatePracticeAuthority(stateName);
     const ctx: StateCtx = {
         stateName,
@@ -131,6 +166,8 @@ export function buildSettingStateNarrative(
         avgCOL,
         shortageCityCount,
         totalJobs,
+        topEmployers: input.topEmployers ?? [],
+        topCities: input.topCities ?? [],
     };
 
     const lead = SETTING_LEADS[settingKey]?.(ctx);
@@ -158,4 +195,78 @@ export function buildSettingStateNarrative(
     }
 
     return parts.join(' ');
+}
+
+// ─── Setting x state FAQ ────────────────────────────────────────────────────
+
+/**
+ * Every /jobs/{setting}/{state} page used to render the NATIONAL category FAQ
+ * with the state's count substituted, so 51 pages published "There are
+ * currently N remote PMHNP job openings" with no state named: an answer
+ * engine reading any one of them gets a national figure that is wrong, and
+ * the FAQPage JSON-LD on all 51 was identical but for the number.
+ *
+ * These questions name the state, and every answer is derived from a fact
+ * already on the page. No pay figure is stated: the page's own aggregate and
+ * the state salary guide own that number.
+ */
+export interface SettingStateFaqInput {
+    settingLabel: string;
+    stateName: string;
+    stateCode: string;
+    totalJobs: number;
+    /** Aggregate advertised salary in thousands; 0 when the engine has none. */
+    avgSalary: number;
+    topEmployers: string[];
+    topCities: string[];
+    shortageCityCount: number;
+}
+
+export interface SettingStateFaq {
+    question: string;
+    answer: string;
+}
+
+export function buildSettingStateFaqs(input: SettingStateFaqInput): SettingStateFaq[] {
+    const {
+        settingLabel, stateName, stateCode, totalJobs,
+        avgSalary, topEmployers, topCities, shortageCityCount,
+    } = input;
+    const role = settingLabel.toLowerCase();
+    const auth = getStatePracticeAuthority(stateName);
+    const authPhrase = auth ? AUTHORITY_PHRASES[auth.authority] : 'state-specific practice rules';
+    const plural = totalJobs === 1 ? 'position' : 'positions';
+
+    return [
+        {
+            question: `How many ${role} PMHNP jobs are open in ${stateName}?`,
+            answer: `This page lists ${totalJobs} ${role} PMHNP ${plural} in ${stateName} right now, refreshed as employers post and roles close.${topCities.length > 0 ? ` The largest concentrations are around ${joinNames(topCities.slice(0, 3))}.` : ''}`,
+        },
+        {
+            question: `Do PMHNPs have full practice authority in ${stateName}?`,
+            answer: `${stateName} grants ${authPhrase}. That applies to ${role} roles the same as to any other setting, and it is the single biggest difference between practicing here and in a neighboring state.`,
+        },
+        {
+            question: `Which employers hire ${role} PMHNPs in ${stateName}?`,
+            answer: topEmployers.length > 0
+                ? `The employers with the most ${role} PMHNP postings in ${stateName} on this page are ${joinNames(topEmployers.slice(0, 5))}. The list moves with hiring, so it reflects who is actively recruiting rather than who is largest.`
+                : `Openings in ${stateName} currently come from a mix of regional systems, group practices, and staffing agencies rather than one dominant employer.`,
+        },
+        {
+            question: `What do ${role} PMHNP jobs in ${stateName} pay?`,
+            answer: avgSalary > 0
+                ? `Across the ${role} listings on this page, the advertised pay averages about $${avgSalary}K a year in ${stateName}. Individual postings show their own range wherever the employer discloses one, and the ${stateName} salary guide breaks the same data down by setting.`
+                : `Too few ${role} employers in ${stateName} disclose a range for an average to mean anything, so this page does not publish one. Each listing shows its advertised pay when the employer includes it, and the ${stateName} salary guide reports a median once enough postings carry figures.`,
+        },
+        {
+            question: `Do ${role} PMHNP roles in ${stateName} qualify for federal loan repayment?`,
+            answer: shortageCityCount > 0
+                ? `${shortageCityCount} of the top ${stateName} metros on this page carry a federal Mental Health Professional Shortage Area designation, so roles based there are commonly NHSC eligible. Eligibility turns on the individual site's HPSA score, and HRSA sets each cycle's award amounts and service terms.`
+                : `The top ${stateName} metros on this page are not currently federally designated shortage areas, so eligibility turns on the individual site's HPSA score rather than the city. HRSA sets each cycle's award amounts and service terms.`,
+        },
+        {
+            question: `What licenses do I need for ${role} PMHNP work in ${stateName}?`,
+            answer: `You need PMHNP national certification, an active ${stateCode} RN license and ${stateCode} APRN license, and DEA registration for controlled substances. A Nurse Licensure Compact multistate license covers RN practice, not APRN practice, so ${stateName} APRN licensure is required even if you hold a compact RN license elsewhere.`,
+        },
+    ];
 }

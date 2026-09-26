@@ -347,7 +347,8 @@ test.describe('admin pages render', () => {
     await waitSettled(page);
     await expect(page.getByRole('button', { name: /Trigger Manually/ })).toHaveCount(cronCount);
     assertClean(c, '/admin/cron');
-    test.fail(true, '/admin/cron renders no last-run information for any cron');
+    // Fixed 2026-09: the page joins each route to its withCronTracking name
+    // and renders the last outcome, so this is now an ordinary assertion.
     expect(await bodyText(page)).toMatch(/last run|last ran|ran at|succeeded|failed at/i);
   });
 
@@ -359,9 +360,11 @@ test.describe('admin pages render', () => {
     const c = attach(page);
     await gotoAdmin(page, '/admin/settings');
     await expect(page.getByRole('heading', { level: 1, name: /^Settings$/ })).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText(/Job Aggregators/)).toBeVisible();
+    // "Job Aggregators" was a hard-coded badge on the old client component.
+    // The server rewrite groups integrations by INTEGRATION_SECTIONS, whose
+    // first section is "Job ingestion".
+    await expect(page.getByRole('heading', { name: /Job ingestion/ })).toBeVisible();
     assertClean(c, '/admin/settings');
-    test.fail(true, 'settings page is static: no live flag state, no AI flag controls');
     expect(await bodyText(page)).toMatch(/feature flag|ai\.candidate|ai\.employer/i);
   });
 });
@@ -612,7 +615,7 @@ test.describe('admin users', () => {
     await expect(page.getByRole('heading', { level: 1, name: /Users & Subscribers/ })).toBeVisible({ timeout: 60_000 });
     await waitSettled(page);
     assertClean(c, '/admin/users');
-    test.fail(true, 'no restore / reactivate control on /admin/users');
+    // Fixed 2026-09: a soft-deleted row now offers the PATCH that reverses it.
     await expect(page.getByRole('button', { name: /restore|reactivate|unhide/i }).first()).toBeVisible({ timeout: 5_000 });
   });
 
@@ -1074,8 +1077,11 @@ test.describe('admin blog', () => {
       const row = page.locator('tbody tr', { hasText: post.title });
       await expect(row).toHaveCount(1, { timeout: 30_000 });
       const href = await row.locator('a[title="Preview"]').getAttribute('href');
-      expect(href).toBe(`/blog/${post.slug}`);
-      test.fail(true, 'draft preview link resolves to 404');
+      // A draft is not at its public URL: /blog/<slug> filters on
+      // status='published', so previewing used to be a guaranteed 404. The
+      // control now points at the admin-only preview route, which looks the
+      // post up by id and renders it whatever its status.
+      expect(href).toBe(`/admin/blog/preview/${post.id}`);
       const res = await page.request.get(href!, { maxRedirects: 0 });
       expect(res.status()).toBe(200);
     } finally {
@@ -1400,7 +1406,8 @@ test.describe('admin silent failures', () => {
     await expect(row.locator('select')).toHaveValue('job_seeker');
     // The 500 here is injected by this test, so only page-level errors matter.
     expect(c.pageErrors, `page errors: ${c.pageErrors.join(' | ')}`).toEqual([]);
-    test.fail(true, 'no error banner when PATCH /api/admin/users/:id fails');
+    // Fixed 2026-09: the console routes every call through adminFetch, which
+    // turns a 500 into a message instead of a silently reverted <select>.
     await expect(page.getByText(/failed|error|could not/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
@@ -1434,7 +1441,8 @@ test.describe('admin silent failures', () => {
     await expect(page.getByRole('heading', { name: /Edit Job/ })).toBeVisible();
     // The 500 here is injected by this test, so only page-level errors matter.
     expect(c.pageErrors, `page errors: ${c.pageErrors.join(' | ')}`).toEqual([]);
-    test.fail(true, 'no error banner when PATCH /api/admin/jobs/:id fails');
+    // Fixed 2026-09: same adminFetch route, and the edit modal deliberately
+    // stays open on failure so the admin's unsaved edits survive.
     await expect(page.getByText(/failed|error|could not/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
@@ -1495,7 +1503,10 @@ test.describe('admin API canonicalisation', () => {
     // latent rather than exploitable, but any future case-sensitive token in
     // an API path segment would be corrupted before the route ever sees it.
     const res = await request.get('/api/admin/Jobs?limit=5', { maxRedirects: 0 });
-    test.fail(res.status() >= 300 && res.status() < 400, 'API pathnames are 301-lowercased by middleware');
+    // Fixed 2026-09: the trailing-slash and case-fold 301s now carry the same
+    // /api/ exclusion their ?page=1 and utm siblings already had. SEO
+    // canonicalization does not apply to an API, and a 301 on a non-GET call
+    // is downgraded to GET with the body dropped.
     expect(res.status(), `Location: ${res.headers()['location'] ?? ''}`).toBeLessThan(300);
   });
 });

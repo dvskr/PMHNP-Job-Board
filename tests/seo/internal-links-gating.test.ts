@@ -82,12 +82,32 @@ describe('city links on the geo hubs are gated on the city render gate', () => {
     });
   }
 
-  it('the salary-guide city query uses publicJobsWhere, not a bare isPublished', () => {
+  it('the salary-guide city query counts only publicly listable jobs', () => {
+    // The invariant is that getTopCities derives its predicate from
+    // publicJobsWhere, never from a bare isPublished. It may do so directly
+    // or through a local helper that spreads it, which is what the page
+    // actually does now (stateScopedWhere). An earlier version of this test
+    // required the literal call inside the function body and went red on
+    // that refactor even though the behaviour was unchanged: pin the
+    // property, not the spelling.
     const src = read('app/salary-guide/[state]/page.tsx');
+
+    // Local helpers whose own body derives from publicJobsWhere().
+    const derived = [...src.matchAll(/function (\w+)\([^)]*\)[^{]*\{([\s\S]*?)\n\}/g)]
+      .filter(([, , body]) => body.includes('publicJobsWhere()'))
+      .map(([, name]) => name);
+
     const topCities = src.slice(src.indexOf('async function getTopCities'));
     const body = topCities.slice(0, topCities.indexOf('\n}'));
-    expect(body).toContain('publicJobsWhere()');
-    expect(body).not.toMatch(/isPublished:\s*true/);
+
+    expect(body, 'getTopCities filters on a raw isPublished flag').not.toMatch(/isPublished:\s*true/);
+    const usesGatedPredicate =
+      body.includes('publicJobsWhere()') || derived.some((fn) => body.includes(`${fn}(`));
+    expect(
+      usesGatedPredicate,
+      `getTopCities builds a where clause from neither publicJobsWhere() nor a helper that spreads it ` +
+        `(helpers found: ${derived.join(', ') || 'none'})`,
+    ).toBe(true);
   });
 });
 

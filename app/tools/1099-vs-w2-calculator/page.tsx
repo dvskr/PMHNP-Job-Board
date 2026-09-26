@@ -27,6 +27,14 @@ export const metadata: Metadata = {
       'Compare a 1099 contract against a W-2 offer side by side: self-employment tax, benefit value, and the break-even hourly rate.',
     type: 'website',
     url: PAGE_URL,
+    // Without `images` Next.js drops the root layout's og:image: a page-level
+    // openGraph object replaces the parent rather than merging with it.
+    images: [{
+      url: `/api/og?type=page&v=3&title=${encodeURIComponent('1099 vs W-2 Calculator')}&subtitle=${encodeURIComponent('Self-employment tax, benefit value, break-even hourly rate')}`,
+      width: 1200,
+      height: 630,
+      alt: '1099 vs W-2 Calculator for Nurse Practitioners',
+    }],
   },
   twitter: {
     card: 'summary',

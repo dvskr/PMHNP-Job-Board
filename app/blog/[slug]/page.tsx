@@ -12,7 +12,9 @@ import {
     markdownToHtml,
     autoLinkStates,
     resanitizeBlogHtml,
+    buildKeyTakeawaysHtml,
     extractHeadings,
+    toIsoUtc,
     BLOG_CATEGORIES,
 } from '@/lib/blog';
 import { autoLinkCategories } from '@/lib/autoLink';
@@ -191,16 +193,11 @@ export default async function BlogPostPage({ params }: Props) {
     if (h2Matches.length >= 2) {
         const firstH2Pos = h2Matches[0]?.index;
         if (firstH2Pos !== undefined) {
-            const ktItems = headings
-                .filter(h => h.level === 2)
-                .slice(0, 5)
-                .map(h => `<li><a href="#${h.id}">${h.text}</a></li>`)
-                .join('');
-            const ktHtml = `<div class="ed-key-takeaways">`
-                + `<div class="ed-kt-header"><span class="ed-kt-icon">💡</span><span class="ed-kt-label">Key Takeaways</span></div>`
-                + `<ul class="ed-kt-list">${ktItems}</ul>`
-                + `</div>`;
-            const injection = (quickAnswerHtml ?? '') + ktHtml;
+            // Assembled in lib/blog.ts, which escapes every interpolated
+            // value: this block is spliced in AFTER resanitizeBlogHtml, so
+            // the sanitizer never sees it, and the heading text it renders is
+            // the raw markdown source line.
+            const injection = (quickAnswerHtml ?? '') + buildKeyTakeawaysHtml(headings);
             contentHtml = contentHtml.slice(0, firstH2Pos)
                 + injection
                 + contentHtml.slice(firstH2Pos);
@@ -268,11 +265,14 @@ export default async function BlogPostPage({ params }: Props) {
         '@type': 'BlogPosting',
         headline: post.title,
         description: post.meta_description || post.title,
-        datePublished: post.publish_date || post.created_at,
+        // toIsoUtc: the underlying columns are TIMESTAMP without time zone,
+        // and Google's Article guidance treats an offset-less date as
+        // ambiguous.
+        datePublished: toIsoUtc(post.publish_date || post.created_at),
         // Audit 14 HIGH: prefer the editorial-review timestamp when set so
         // dateModified reflects real freshness. Falls back to updated_at
         // for legacy rows that haven't had a review pass yet.
-        dateModified: post.reviewed_at || post.updated_at,
+        dateModified: toIsoUtc(post.reviewed_at || post.updated_at),
         author: {
             '@type': 'Organization',
             name: 'PMHNP Hiring',
@@ -314,7 +314,9 @@ export default async function BlogPostPage({ params }: Props) {
         name: post.title,
         description: post.meta_description || post.title,
         thumbnailUrl: post.image_url || 'https://pmhnphiring.com/api/og?v=3',
-        uploadDate: post.publish_date || post.created_at,
+        // Google's VideoObject validator rejects an uploadDate with no
+        // timezone outright, not just as a warning.
+        uploadDate: toIsoUtc(post.publish_date || post.created_at),
         contentUrl: post.video_url,
         publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
     } : null;

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeText, sanitizeUrl } from '@/lib/sanitize';
+import { verifyCsrf } from '@/lib/csrf';
 import { readJsonBody } from '@/app/api/_lib/json-body';
 
 /**
@@ -70,6 +71,14 @@ export async function GET(req: NextRequest) {
  * Update employer profile and company info.
  */
 export async function PATCH(req: NextRequest) {
+    // The session cookie is ambient authority: without an origin check, a page
+    // on any other site could rewrite this employer's contact details from the
+    // victim's own browser. Cookies are SameSite=Lax today, which is what keeps
+    // that theoretical, but this route must not be the reason the site depends
+    // on a cookie attribute it does not set itself.
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
     const rateLimitResponse = await rateLimit(req, 'employer:settings', RATE_LIMITS.employer);
     if (rateLimitResponse) return rateLimitResponse;
 

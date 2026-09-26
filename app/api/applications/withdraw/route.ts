@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { verifyCsrf } from '@/lib/csrf';
 import { logger } from '@/lib/logger';
 
 /**
@@ -9,6 +10,12 @@ import { logger } from '@/lib/logger';
  * Body: { applicationId: string }
  */
 export async function DELETE(request: NextRequest) {
+    // Irreversible on the session cookie alone: the scrub below destroys the
+    // cover letter and resume link for good, so a cross-origin page must not be
+    // able to trigger it from the applicant's browser.
+    const csrfError = verifyCsrf(request);
+    if (csrfError) return csrfError;
+
     try {
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();

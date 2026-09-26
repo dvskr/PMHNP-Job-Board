@@ -16,6 +16,7 @@ import {
     TIER_FULL_MIN_N,
 } from '@/lib/salary-report/stats';
 import { getStatesByAuthority } from '@/lib/state-practice-authority';
+import { publicJobsWhere } from '@/lib/filters';
 
 /**
  * /llms-full.txt — extended machine-readable site information for AI systems.
@@ -127,7 +128,7 @@ function keyPagesSection(): string {
 async function latestDataChange(): Promise<Date | null> {
     try {
         const agg = await prisma.job.aggregate({
-            where: { isPublished: true },
+            where: publicJobsWhere(),
             _max: { createdAt: true, lastRenewedAt: true },
         });
         const candidates = [agg?._max?.createdAt, agg?._max?.lastRenewedAt]
@@ -145,7 +146,7 @@ async function liveFiguresSections(): Promise<string> {
         getOfferMarketData(),
         getHubStateSummaries(),
         getNationalSettingMedians(),
-        prisma.job.count({ where: { isPublished: true } }),
+        prisma.job.count({ where: publicJobsWhere() }),
         latestDataChange(),
     ]);
 

@@ -4,6 +4,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Building2, DollarSign, FileText, CheckCircle, Shield, Users, BookOpen, Landmark } from 'lucide-react';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import { FULL_PRACTICE_SUMMARY } from '@/lib/state-practice-authority';
 
 // Editorial review constants — bump LAST_REVIEWED on each pass so Article
 // dateModified reflects real freshness, not the original publish date.
@@ -35,7 +36,10 @@ export default function PrivatePracticeGuidePage() {
       number: 1,
       title: 'Verify Your State Requirements',
       icon: Shield,
-      content: 'Check your state\'s practice authority laws. In 34 Full Practice Authority states and DC, you can practice independently. In reduced/restricted states, you\'ll need a collaborative agreement with a physician. See our Full Practice Authority Guide for details.',
+      // Derived from the practice-authority table, never retyped: the hand
+      // written "34" here contradicted the map, the FPA guide and the FAQ,
+      // all of which render from that same table.
+      content: `Check your state's practice authority laws. In the ${FULL_PRACTICE_SUMMARY} with Full Practice Authority, you can practice independently. In reduced or restricted states, you'll need a collaborative agreement with a physician. See our Full Practice Authority Guide for details.`,
       link: { href: '/resources/fpa-guide', text: 'View FPA Guide →' },
     },
     {
