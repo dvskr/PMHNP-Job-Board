@@ -2,8 +2,21 @@
  * Pricing Config — Single-Tier, Paid-First Model
  *
  * All job posts get the SAME features (60-day, featured, 25 unlocks, 25 InMails).
- * The FIRST post per employer identity is half price ($149). Posts 2+ cost $299.
- * Renewals cost $249.
+ * The FIRST post per employer identity is discounted ($199). Posts 2+ cost
+ * $349. Renewals cost $249.
+ *
+ * PRICE MOVE (2026-09-27): first post 149 to 199, standard 299 to 349. The
+ * closest comparable, a nurse practitioner board, charges $389 for a 60-day
+ * post, and NP-specific boards cluster at $389 to $399, so the old standard
+ * sat under the market for a single-specialty board. Note that no employer
+ * had ever actually paid the 299: every sale to date was either the old 199
+ * flat price or the 149 first-post price, so the standard price is being
+ * repositioned rather than raised on anyone.
+ *
+ * The first-post discount is now 43%, not 50%, and it is DERIVED by
+ * firstPostDiscountPercent(). Any copy that states the number must call that
+ * helper rather than writing a figure, which is what
+ * tests/regressions/paid-first-pricing-static.test.ts enforces.
  *
  * WHY PAID-FIRST (2026-09): the previous model gave the first post away free,
  * and the free tier behaved as the product rather than as a funnel into the
@@ -36,11 +49,11 @@ export const config = {
   // ─── Single-Tier Pricing ───
   /** How many half-price posts an employer identity gets, ever. */
   discountedPostsPerEmployer: 1,
-  firstPostPrice: 149,     // dollars, first post per employer identity
-  postingPrice: 299,       // dollars, standard
+  firstPostPrice: 199,     // dollars, first post per employer identity
+  postingPrice: 349,       // dollars, standard
   renewalPrice: 249,       // dollars
-  stripeFirstPostPriceInCents: 14900,
-  stripePriceInCents: 29900,
+  stripeFirstPostPriceInCents: 19900,
+  stripePriceInCents: 34900,
   stripeRenewalPriceInCents: 24900,
   /** Every post runs 60 days. The old 30-day free-post split is retired. */
   durationDays: 60,
