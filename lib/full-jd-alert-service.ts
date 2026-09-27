@@ -24,9 +24,11 @@
  *
  * 2. VOLUME. There is no global per-recipient daily cap anywhere in the
  *    codebase, so a person can already receive the brief, a saved-job
- *    reminder and a lifecycle email in one day. This chain caps itself at
- *    one send per recipient per day and picks a single job, rather than
- *    adding an uncapped fourth sender.
+ *    reminder and a lifecycle email in one day. Rather than add an uncapped
+ *    fourth sender, this one SPLITS THE WEEK with the brief: full
+ *    descriptions on Monday, Wednesday and Friday, the brief on the other
+ *    four days, both at 13:30. The two never land on the same day, so the
+ *    list sees one alert email per day rather than two.
  *
  * 3. CONSENT. EmailLead.isSubscribed is all or nothing, so someone annoyed
  *    by this format would have to switch off the brief they wanted. The
@@ -67,7 +69,16 @@ const EMAIL_FROM = process.env.EMAIL_FROM_MARKETING || process.env.EMAIL_FROM ||
  */
 export const FULL_JD_SOURCE_TYPE = 'employer';
 
-/** One per recipient per day. */
+/**
+ * Minimum gap between two full descriptions to the same person.
+ *
+ * The schedule already spaces them: this runs Monday, Wednesday and Friday,
+ * and the brief takes the other four days, so no one gets two emails on one
+ * day. The cooldown is the belt to that braces. A cron retry after a partial
+ * run, or a manual trigger from /admin/cron on a send day, would otherwise
+ * mail everyone a second posting, and the ledger alone would not stop it
+ * because the second posting is a different row.
+ */
 export const FULL_JD_COOLDOWN_HOURS = 24;
 
 /**

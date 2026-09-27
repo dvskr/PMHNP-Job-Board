@@ -73,6 +73,60 @@ describe('the chain is off until someone turns it on', () => {
 });
 
 /**
+ * The two alert senders split the week.
+ *
+ * They target overlapping audiences: the brief goes to every confirmed
+ * alert, this goes to every mailable lead, and the 937 alert holders are in
+ * both. Running both daily would mean two alert emails a day to those
+ * people from the same sender, which is the fastest way to teach a list to
+ * mark you as spam. So the days are disjoint by construction, and this test
+ * is what keeps them that way when someone edits one schedule without
+ * looking at the other.
+ */
+describe('the brief and the full description never land on the same day', () => {
+  const crons: { path: string; schedule: string }[] =
+    JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../vercel.json'), 'utf8')).crons;
+
+  const scheduleFor = (p: string) => {
+    const row = crons.find((c) => c.path === p);
+    expect(row, `${p} is not scheduled`).toBeDefined();
+    return row!.schedule;
+  };
+
+  /** The weekday field of a 5-part cron, expanded to a set. 0 and 7 are Sunday. */
+  const days = (schedule: string): Set<number> => {
+    const field = schedule.trim().split(/\s+/)[4];
+    if (field === '*') return new Set([0, 1, 2, 3, 4, 5, 6]);
+    const out = new Set<number>();
+    for (const part of field.split(',')) {
+      if (part.includes('-')) {
+        const [a, b] = part.split('-').map(Number);
+        for (let d = a; d <= b; d += 1) out.add(d % 7);
+      } else {
+        out.add(Number(part) % 7);
+      }
+    }
+    return out;
+  };
+
+  const brief = days(scheduleFor('/api/cron/send-alerts'));
+  const full = days(scheduleFor('/api/cron/full-jd-alerts'));
+
+  it('share no day of the week', () => {
+    const both = [...brief].filter((d) => full.has(d));
+    expect(both, `both senders run on weekday(s) ${both.join(',')}`).toEqual([]);
+  });
+
+  it('between them cover every day, so the list hears something daily', () => {
+    expect(new Set([...brief, ...full]).size).toBe(7);
+  });
+
+  it('the full description runs three days a week', () => {
+    expect(full.size).toBe(3);
+  });
+});
+
+/**
  * The gate is description quality, not provenance.
  *
  * This chain was first written employer-only. Production then said there
