@@ -179,12 +179,23 @@ export async function sendFullJdAlerts(options: { dryRun?: boolean } = {}): Prom
   const cooldown = new Date(now.getTime() - FULL_JD_COOLDOWN_HOURS * 60 * 60 * 1000);
   const oldest = new Date(now.getTime() - FULL_JD_MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
 
-  // Every confirmed, active alert. There is no per-alert opt-in: this is the
-  // daily alert now, so the audience is the same one the brief had.
-  const alerts = await prisma.jobAlert.findMany({
-    where: buildAlertEligibilityWhere(now),
-  });
-  if (!alerts.length) return result;
+  // The audience is the whole mailable list, not only alert subscribers.
+  //
+  // On 2026-09-27 that was 1,987 addresses, of which 937 hold a job alert
+  // and 1,097 do not. Those 1,097 came mostly from account signup rather
+  // than from asking for job email, so the two groups are handled
+  // differently below: an alert holder gets a posting that matches their
+  // criteria, and everyone else gets the strongest posting they have not
+  // been shown. Nobody gets a posting that contradicts a stated preference,
+  // because the alternative is teaching the list to mark this as spam.
+  const [leads, alerts] = await Promise.all([
+    prisma.emailLead.findMany({
+      where: { isSubscribed: true, isSuppressed: false },
+      select: { email: true },
+    }),
+    prisma.jobAlert.findMany({ where: buildAlertEligibilityWhere(now) }),
+  ]);
+  if (!leads.length) return result;
 
   // Any source, provided the description can carry the format. The recency
   // window is wide because the ledger, not the window, is what stops a
@@ -205,16 +216,41 @@ export async function sendFullJdAlerts(options: { dryRun?: boolean } = {}): Prom
   const eligible: CandidateJob[] = pool.filter(isFullJdEligible);
   if (!eligible.length) return result;
 
-  // One recipient may hold several full_jd alerts; they get one email.
-  const byEmail = new Map<string, typeof alerts>();
+  // A recipient may hold several alerts; they still get one email.
+  const alertsByEmail = new Map<string, typeof alerts>();
   for (const alert of alerts) {
     const key = alert.email.toLowerCase();
-    const group = byEmail.get(key);
+    const group = alertsByEmail.get(key);
     if (group) group.push(alert);
-    else byEmail.set(key, [alert]);
+    else alertsByEmail.set(key, [alert]);
   }
 
-  for (const [email, group] of byEmail) {
+  // Deduplicate the lead list: the same address can appear in more than one
+  // casing, and sending twice to one person is the failure this whole chain
+  // is built to avoid.
+  const recipients = [...new Set(leads.map((l) => l.email.toLowerCase()))];
+
+  // One query for the whole ledger slice, not one per recipient. At ~2,000
+  // recipients the per-recipient version was 2,000 round trips before a
+  // single email was composed.
+  const ledger = await prisma.alertJobSend.findMany({
+    where: { email: { in: recipients } },
+    select: { email: true, jobId: true, chain: true, sentAt: true },
+  });
+  const sentJobs = new Map<string, Set<string>>();
+  const lastFullJd = new Map<string, Date>();
+  for (const row of ledger) {
+    let seen = sentJobs.get(row.email);
+    if (!seen) { seen = new Set(); sentJobs.set(row.email, seen); }
+    seen.add(row.jobId);
+    if (row.chain === 'full_jd') {
+      const prev = lastFullJd.get(row.email);
+      if (!prev || row.sentAt > prev) lastFullJd.set(row.email, row.sentAt);
+    }
+  }
+
+  for (const email of recipients) {
+    const group = alertsByEmail.get(email) ?? [];
     result.considered += 1;
     try {
       if (await isEmailSuppressed(email)) {
@@ -222,14 +258,26 @@ export async function sendFullJdAlerts(options: { dryRun?: boolean } = {}): Prom
         continue;
       }
 
-      const recent = await prisma.alertJobSend.findFirst({
-        where: { email, chain: 'full_jd', sentAt: { gte: cooldown } },
-        select: { id: true },
-      });
-      if (recent) continue;
+      const last = lastFullJd.get(email);
+      if (last && last >= cooldown) continue;
 
-      const alert = group[0];
-      const match = eligible.find((job) => group.some((a) => jobMatchesAlert(job as never, a as never)));
+      // Never a posting this person has already been shown, by either
+      // chain. Picking first and then discovering it was already sent meant
+      // they got nothing that day instead of the next one down.
+      const seen = sentJobs.get(email) ?? new Set<string>();
+      const unseen = eligible.filter((job) => !seen.has(job.id));
+      if (!unseen.length) {
+        result.noMatch += 1;
+        continue;
+      }
+
+      const alert: (typeof alerts)[number] | undefined = group[0];
+      // An alert holder gets something their criteria actually match.
+      // Everyone else gets the newest they have not seen: they stated no
+      // preference, so the strongest honest default is recency.
+      const match = group.length
+        ? unseen.find((job) => group.some((a) => jobMatchesAlert(job as never, a as never)))
+        : unseen[0];
       if (!match) {
         result.noMatch += 1;
         continue;
@@ -243,26 +291,36 @@ export async function sendFullJdAlerts(options: { dryRun?: boolean } = {}): Prom
         continue;
       }
 
+      // Resolved before the render so the footer link and the
+      // List-Unsubscribe header cannot disagree about the token.
+      const oneClickToken = await getOrCreateUnsubToken(email);
+      const unsubscribeUrl = `${BASE_URL}/unsubscribe?token=${oneClickToken}`;
+
       const jobUrl = `${BASE_URL}/jobs/${slugify(match.title, match.id)}`;
-      const manageUrl = `${BASE_URL}/job-alerts/manage?token=${alert.token}`;
+      // Alert holders manage the alert. Everyone else has no alert to
+      // manage, so they get the preferences page their token resolves.
+      const manageUrl = alert
+        ? `${BASE_URL}/job-alerts/manage?token=${alert.token}`
+        : `${BASE_URL}/email-preferences?token=${oneClickToken}`;
+
       const { subject, html } = buildFullJdEmail({
         job: match,
         jobUrl,
-        alertToken: alert.token,
-        criteriaText: buildCriteriaSummary(alert) || 'your saved search',
+        alertToken: alert?.token ?? null,
+        criteriaText: alert ? buildCriteriaSummary(alert) || 'your saved search' : null,
         manageUrl,
+        unsubscribeUrl,
       });
 
       // sendAndLog owns the List-Unsubscribe pair: it builds both the RFC
       // 8058 machine POST and the human fallback from the URL passed as its
       // fourth argument. Setting the headers here would be a second, likely
       // divergent, source for the one control that has to work.
-      const oneClickToken = await getOrCreateUnsubToken(email);
       const send = await sendAndLog(
         { from: EMAIL_FROM, to: email, subject, html },
         'job_alert',
         undefined,
-        `${BASE_URL}/unsubscribe?token=${oneClickToken}`,
+        unsubscribeUrl,
       );
 
       if (send?.error) {
