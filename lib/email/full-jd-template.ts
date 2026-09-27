@@ -112,11 +112,15 @@ function screeningBlock(questions: { questionText: string }[]): string {
 export function buildFullJdEmail(args: {
   job: FullJdJob;
   jobUrl: string;
-  alertToken: string;
-  criteriaText: string;
+  /** The recipient's alert, when they hold one. Null for the rest of the list. */
+  alertToken?: string | null;
+  /** What their alert matches on. Omitted when they have no alert. */
+  criteriaText?: string | null;
   manageUrl: string;
+  /** Where someone with no alert goes to stop receiving these. */
+  unsubscribeUrl: string;
 }): FullJdEmail {
-  const { job, jobUrl, alertToken, criteriaText, manageUrl } = args;
+  const { job, jobUrl, alertToken, criteriaText, manageUrl, unsubscribeUrl } = args;
 
   const pay = formatPayRange(job);
   const body: JdBody = buildJdBodyHtml(job.description);
@@ -149,6 +153,31 @@ export function buildFullJdEmail(args: {
     ? `${job.title} at ${job.employer}, ${pay}`
     : `${job.title} at ${job.employer}`;
 
+  // Two audiences, two honest explanations. Telling someone who never
+  // created an alert that "your alert matched this" is a small lie that
+  // teaches them the sender is careless, and it points them at a manage
+  // page for something they do not have.
+  const hasAlert = Boolean(alertToken);
+  const whyThis = hasAlert && criteriaText
+    ? `You are getting the full description because your alert matches
+       <strong style="color:${V2.textMuted};">${escapeHtml(criteriaText)}</strong>.
+       <a href="${manageUrl}" style="color:${V2.textMuted};text-decoration:underline;">Change what it sends you</a>.`
+    : `You are getting this because you have an account on PMHNP Hiring and have not
+       turned off job email. One posting, a few times a week, never the same one twice.
+       <a href="${unsubscribeUrl}" style="color:${V2.textMuted};text-decoration:underline;">Stop these</a>.`;
+
+  const footerLinks = hasAlert
+    ? `<p style="margin:0 0 4px;font-family:${SANS};font-size:12px;color:${V2.textMuted};">
+        <a href="${manageUrl}" style="color:${V2.textMuted};text-decoration:underline;">Manage alert</a>
+        &nbsp;&middot;&nbsp;
+        <a href="${unsubscribeUrl}" style="color:${V2.textMuted};text-decoration:underline;">Unsubscribe</a>
+      </p>`
+    : `<p style="margin:0 0 4px;font-family:${SANS};font-size:12px;color:${V2.textMuted};">
+        <a href="${unsubscribeUrl}" style="color:${V2.textMuted};text-decoration:underline;">Unsubscribe</a>
+        &nbsp;&middot;&nbsp;
+        <a href="${manageUrl}" style="color:${V2.textMuted};text-decoration:underline;">Email preferences</a>
+      </p>`;
+
   // Deduped, because location and mode overlap constantly: a remote Texas
   // role has location "Remote, TX" and mode "Remote", and the naive join
   // read "Remote, TX, Full-time, Remote" in the inbox listing.
@@ -167,7 +196,7 @@ export function buildFullJdEmail(args: {
       ${headerBlockV2('A role worth reading', '')}
       ${spacerV2(18)}
       <tr><td class="content-pad" style="padding:0 40px;">
-        <p style="margin:0;font-family:${SANS};font-size:11px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:2px;">Matches your alert</p>
+        <p style="margin:0;font-family:${SANS};font-size:11px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:2px;">${hasAlert ? 'Matches your alert' : 'New on PMHNP Hiring'}</p>
         <h2 style="margin:10px 0 0;font-family:${SERIF};font-size:26px;font-weight:600;color:${V2.textHeading};line-height:1.22;letter-spacing:-0.01em;">${escapeHtml(job.title)}</h2>
         <p style="margin:9px 0 0;font-family:${SANS};font-size:15px;color:${V2.textBody};">${escapeHtml(job.employer)}</p>
       </td></tr>
@@ -191,20 +220,14 @@ export function buildFullJdEmail(args: {
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
           <tr><td style="border-top:1px solid ${V2.borderLight};padding-top:15px;">
             <p style="margin:0;font-family:${SANS};font-size:12px;color:${V2.textFaded};line-height:1.65;">
-              You are getting the full description because your alert is set to full posting for
-              <strong style="color:${V2.textMuted};">${escapeHtml(criteriaText)}</strong>.
-              <a href="${manageUrl}" style="color:${V2.textMuted};text-decoration:underline;">Switch back to the daily brief</a>.
+              ${whyThis}
             </p>
           </td></tr>
         </table>
       </td></tr>
       ${spacerV2(40)}
       ${closeContentV2()}`,
-    `<p style="margin:0 0 4px;font-family:${SANS};font-size:12px;color:${V2.textMuted};">
-      <a href="${manageUrl}" style="color:${V2.textMuted};text-decoration:underline;">Manage alert</a>
-      &nbsp;&middot;&nbsp;
-      <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'}/job-alerts/unsubscribe?token=${alertToken}" style="color:${V2.textMuted};text-decoration:underline;">Delete alert</a>
-    </p>`,
+    footerLinks,
     preheader,
   );
 

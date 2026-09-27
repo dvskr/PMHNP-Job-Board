@@ -50,6 +50,17 @@ const build = (job: FullJdJob) => buildFullJdEmail({
   alertToken: 'alert-token-fic',
   criteriaText: 'PMHNP, Texas or remote',
   manageUrl: 'https://pmhnphiring.com/job-alerts/manage?token=alert-token-fic',
+  unsubscribeUrl: 'https://pmhnphiring.com/unsubscribe?token=unsub-fic',
+});
+
+/** The same email to someone on the list who never created an alert. */
+const buildNoAlert = (job: FullJdJob) => buildFullJdEmail({
+  job,
+  jobUrl: 'https://pmhnphiring.com/jobs/example-fic-1',
+  alertToken: null,
+  criteriaText: null,
+  manageUrl: 'https://pmhnphiring.com/email-preferences?token=unsub-fic',
+  unsubscribeUrl: 'https://pmhnphiring.com/unsubscribe?token=unsub-fic',
 });
 
 describe('the body is budgeted against Gmail clipping', () => {
@@ -158,22 +169,72 @@ describe('the message holds together', () => {
     expect(build(nasty).html).not.toContain('<script>');
   });
 
-  it('tells the reader why they got it and how to stop', () => {
-    expect(html).toContain('your alert is set to full posting');
-    expect(html).toContain('Delete alert');
+  it('tells an alert holder why they got it and how to change it', () => {
+    expect(html).toContain('your alert matches');
+    expect(html).toContain('Manage alert');
+  });
+});
+
+/**
+ * Most of the list never created an alert: on 2026-09-27, 1,097 of 1,987
+ * mailable addresses. Telling them "your alert matched this" is a small lie
+ * that points at a page for something they do not have.
+ */
+describe('the same email to someone with no alert', () => {
+  const { html } = buildNoAlert(JOB);
+
+  it('never claims they have an alert, in the footer or the eyebrow', () => {
+    expect(html).not.toContain('your alert');
+    expect(html).not.toContain('Matches your alert');
+    expect(html).not.toContain('Manage alert');
   });
 
+  it('says plainly why they are getting it', () => {
+    expect(html).toContain('you have an account on PMHNP Hiring');
+    expect(html).toContain('never the same one twice');
+  });
+
+  it('gives them a working way out', () => {
+    expect(html).toContain('/unsubscribe?token=unsub-fic');
+    expect(html).toContain('Unsubscribe');
+  });
+
+  it('points the preferences link somewhere that resolves without a session', () => {
+    expect(html).toContain('/email-preferences?token=');
+    expect(html).not.toContain('/job-alerts/manage');
+  });
+});
+
+describe('both variants hold together', () => {
+  const alertMail = build(JOB);
+  const openMail = buildNoAlert(JOB);
+
   it('writes its own preheader instead of inheriting the first body line', () => {
-    expect(preheader).toContain('Full description inside');
-    expect(subject).toContain('Cascade Behavioral Health');
+    expect(alertMail.preheader).toContain('Full description inside');
+    expect(alertMail.subject).toContain('Cascade Behavioral Health');
   });
 
   it('does not repeat a fact the location already carried', () => {
     // A remote Texas role has location "Remote, TX" and mode "Remote", and
     // the first version read "Remote, TX, Full-time, Remote" in the inbox.
-    expect(preheader).toBe('Remote, TX, Full-time. Full description inside.');
-    expect((preheader.match(/Remote/g) || []).length).toBe(1);
+    expect(alertMail.preheader).toBe('Remote, TX, Full-time. Full description inside.');
+    expect((alertMail.preheader.match(/Remote/g) || []).length).toBe(1);
   });
+
+  it('sends the same subject either way: the job decides it, not the audience', () => {
+    expect(openMail.subject).toBe(alertMail.subject);
+  });
+
+  it.each([['alert', () => build(JOB).html], ['no alert', () => buildNoAlert(JOB).html]])(
+    '%s variant is dash-free',
+    (_label, get) => {
+      expect(get().replace(/<style>[\s\S]*?<\/style>/g, '')).not.toMatch(/[–—]/);
+    },
+  );
+});
+
+describe('the alert variant holds together', () => {
+  const { html } = build(JOB);
 
   it('uses no em or en dash anywhere a reader sees', () => {
     const withoutStyle = html.replace(/<style>[\s\S]*?<\/style>/g, '');

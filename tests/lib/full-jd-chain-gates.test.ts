@@ -31,65 +31,118 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 import {
-  isFullJdEnabled,
   isFullJdEligible,
-  sendFullJdAlerts,
   FULL_JD_SOURCE_TYPE,
   FULL_JD_COOLDOWN_HOURS,
 } from '@/lib/full-jd-alert-service';
 
 const REAL_BODY = `<h2>About the role</h2><p>${'A genuine sentence about the work. '.repeat(24)}</p>`;
 
-const previous = process.env.FULL_JD_ALERTS_ENABLED;
-beforeEach(() => { delete process.env.FULL_JD_ALERTS_ENABLED; });
-afterEach(() => {
-  if (previous === undefined) delete process.env.FULL_JD_ALERTS_ENABLED;
-  else process.env.FULL_JD_ALERTS_ENABLED = previous;
-});
-
-describe('the chain is off until someone turns it on', () => {
-  it('reports disabled and touches nothing', async () => {
-    // prisma is mocked to {}, so any query at all would throw. Returning
-    // cleanly is the proof that it short-circuits before reaching one.
-    await expect(sendFullJdAlerts()).resolves.toMatchObject({ skipped: 'disabled', sent: 0 });
-  });
-
-  it('stays off for any value other than the exact string', async () => {
-    for (const v of ['1', 'yes', 'TRUE', 'on', '']) {
-      process.env.FULL_JD_ALERTS_ENABLED = v;
-      expect(isFullJdEnabled(), v).toBe(false);
+describe('the schedule is the switch', () => {
+  it('has no feature flag left to forget', () => {
+    // The chain was gated on FULL_JD_ALERTS_ENABLED while its audience and
+    // cadence were being settled. Those are settled, so the flag is gone:
+    // the cron days decide when it sends, and nothing else has to be set
+    // anywhere for it to work.
+    for (const file of ['lib/full-jd-alert-service.ts', 'app/api/cron/full-jd-alerts/route.ts']) {
+      expect(readCode(file), file).not.toContain('FULL_JD_ALERTS_ENABLED');
     }
   });
 
-  it('turns on only for "true"', () => {
-    process.env.FULL_JD_ALERTS_ENABLED = 'true';
-    expect(isFullJdEnabled()).toBe(true);
+  it('is registered on its cron days', () => {
+    const vercel = fs.readFileSync(path.resolve(__dirname, '../../vercel.json'), 'utf8');
+    expect(vercel).toContain('/api/cron/full-jd-alerts');
   });
 
-  it('has no cron entry, so nothing schedules it', () => {
-    const vercel = fs.readFileSync(path.resolve(__dirname, '../../vercel.json'), 'utf8');
-    expect(vercel).not.toContain('full-jd');
+  it('still answers to the platform-wide outbound brake', () => {
+    // The one control that must survive: it stops every sender at once and
+    // is not specific to this chain.
+    expect(readCode('lib/full-jd-alert-service.ts')).toContain('isOutboundPaused');
+    expect(readCode('app/api/cron/full-jd-alerts/route.ts')).toContain('isOutboundPaused');
   });
 });
 
-describe('only employer postings with a real description qualify', () => {
+/**
+ * The two alert senders split the week.
+ *
+ * They target overlapping audiences: the brief goes to every confirmed
+ * alert, this goes to every mailable lead, and the 937 alert holders are in
+ * both. Running both daily would mean two alert emails a day to those
+ * people from the same sender, which is the fastest way to teach a list to
+ * mark you as spam. So the days are disjoint by construction, and this test
+ * is what keeps them that way when someone edits one schedule without
+ * looking at the other.
+ */
+describe('the brief and the full description never land on the same day', () => {
+  const crons: { path: string; schedule: string }[] =
+    JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../vercel.json'), 'utf8')).crons;
+
+  const scheduleFor = (p: string) => {
+    const row = crons.find((c) => c.path === p);
+    expect(row, `${p} is not scheduled`).toBeDefined();
+    return row!.schedule;
+  };
+
+  /** The weekday field of a 5-part cron, expanded to a set. 0 and 7 are Sunday. */
+  const days = (schedule: string): Set<number> => {
+    const field = schedule.trim().split(/\s+/)[4];
+    if (field === '*') return new Set([0, 1, 2, 3, 4, 5, 6]);
+    const out = new Set<number>();
+    for (const part of field.split(',')) {
+      if (part.includes('-')) {
+        const [a, b] = part.split('-').map(Number);
+        for (let d = a; d <= b; d += 1) out.add(d % 7);
+      } else {
+        out.add(Number(part) % 7);
+      }
+    }
+    return out;
+  };
+
+  const brief = days(scheduleFor('/api/cron/send-alerts'));
+  const full = days(scheduleFor('/api/cron/full-jd-alerts'));
+
+  it('share no day of the week', () => {
+    const both = [...brief].filter((d) => full.has(d));
+    expect(both, `both senders run on weekday(s) ${both.join(',')}`).toEqual([]);
+  });
+
+  it('between them cover every day, so the list hears something daily', () => {
+    expect(new Set([...brief, ...full]).size).toBe(7);
+  });
+
+  it('the full description runs three days a week', () => {
+    expect(full.size).toBe(3);
+  });
+});
+
+/**
+ * The gate is description quality, not provenance.
+ *
+ * This chain was first written employer-only. Production then said there
+ * were 9 employer postings with a description long enough to fill the email
+ * against 597 across all sources, so employer-only would have run dry in
+ * about nine sends. Aggregator bodies are plain text and go through
+ * lib/jd-blocks.ts, the same reflow the web job page uses.
+ */
+describe('any posting with a real description qualifies', () => {
   it('accepts an employer posting with a genuine body', () => {
     expect(isFullJdEligible({ sourceType: FULL_JD_SOURCE_TYPE, description: REAL_BODY })).toBe(true);
   });
 
-  it('refuses an aggregator posting however good its description', () => {
-    // The format is gated on provenance, not only on length: aggregator
-    // descriptions are plain text with no structure guarantee.
+  it('accepts an aggregator posting with a genuine body', () => {
     for (const source of ['adzuna', 'usajobs', 'ashby', 'greenhouse', null]) {
-      expect(isFullJdEligible({ sourceType: source, description: REAL_BODY }), String(source)).toBe(false);
+      expect(isFullJdEligible({ sourceType: source, description: REAL_BODY }), String(source)).toBe(true);
     }
   });
 
-  it('refuses an employer posting that is only a stub', () => {
-    expect(isFullJdEligible({
-      sourceType: FULL_JD_SOURCE_TYPE,
-      description: 'Psychiatric NP wanted. Competitive pay and benefits. Apply today.',
-    })).toBe(false);
+  it('still refuses a stub, whoever posted it', () => {
+    for (const source of ['employer', 'adzuna']) {
+      expect(isFullJdEligible({
+        sourceType: source,
+        description: 'Psychiatric NP wanted. Competitive pay and benefits. Apply today.',
+      }), source).toBe(false);
+    }
   });
 
   it('refuses an empty description rather than sending a shell', () => {
