@@ -16,8 +16,8 @@ const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 describe('post-job wall carries the offer and a return path', () => {
   const src = read('app/post-job/page.tsx');
 
-  it('headline leads with the half-price first post, not just the login demand', () => {
-    expect(src).toContain('Your first job post is half price');
+  it('headline leads with the discounted first post, not just the login demand', () => {
+    expect(src).toContain('Your first job post is discounted');
     expect(src).not.toContain('You must be logged in as an employer to post jobs.');
   });
 
@@ -95,8 +95,8 @@ describe('checkout page', () => {
   });
 
   it('explains which price this listing carries', () => {
-    expect(src).toContain('Half price first post');
-    expect(src).toContain('Your half price first post is used');
+    expect(src).toContain('Discounted first post');
+    expect(src).toContain('Your discounted first post is used');
     expect(src).not.toContain('FREE_POST_AVAILABLE');
   });
 

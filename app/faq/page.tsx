@@ -91,11 +91,11 @@ export default async function FAQPage() {
   const employerFaqs = [
     {
       question: "How much does it cost to post a job?",
-      answer: `Your first job post is half price: $${config.firstPostPrice} instead of $${config.postingPrice}, once per employer. Every post after that costs $${config.postingPrice} flat. Renewals are discounted at $${config.renewalPrice} (${renewalDiscountPercent}% off).`
+      answer: `Your first job post is $${config.firstPostPrice} instead of $${config.postingPrice}, once per employer. Every post after that costs $${config.postingPrice} flat. Renewals are discounted at $${config.renewalPrice} (${renewalDiscountPercent}% off).`
     },
     {
       question: "What features are included?",
-      answer: `Every job post gets the same features: Featured badge, top placement in search results, company logo, full analytics with salary benchmarks, ${config.limits.candidateUnlocksPerPosting} candidate profile views, ${config.limits.inmailsPerPosting} InMails, up to 5 screening questions, and apply-on-platform. The half-price first post is identical to a standard post in every way except the price.`
+      answer: `Every job post gets the same features: Featured badge, top placement in search results, company logo, full analytics with salary benchmarks, ${config.limits.candidateUnlocksPerPosting} candidate profile views, ${config.limits.inmailsPerPosting} InMails, up to 5 screening questions, and apply-on-platform. The discounted first post is identical to a standard post in every way except the price.`
     },
     {
       question: "How long do job postings last?",

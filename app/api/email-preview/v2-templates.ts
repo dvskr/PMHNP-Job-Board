@@ -142,7 +142,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${spacerV2(20)}
       ${tealCallout(
         'Welcome offer',
-        `Your first job post is <strong>half price at $${config.firstPostPrice}</strong>, ${config.firstPostDiscountPercent()}% off the standard $${config.postingPrice}. Every post after it is $${config.postingPrice}.`,
+        `Your first job post is <strong>$${config.firstPostPrice}</strong>, ${config.firstPostDiscountPercent()}% off the standard $${config.postingPrice}. Every post after it is $${config.postingPrice}.`,
       )}
       ${spacerV2(28)}
       ${sectionHead('Three steps to your first hire')}
@@ -156,7 +156,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${centeredCta('Post Your First Job', `${BASE_URL}/post-job`)}
       ${spacerV2(48)}
       ${closeContentV2()}`, unsubscribeFooterV2('sample', 'welcome_signup'),
-      `Your employer account is ready. Your first post is half price at $${config.firstPostPrice}.`),
+      `Your employer account is ready. Your first post is $${config.firstPostPrice} instead of $${config.postingPrice}.`),
   },
 
   // 3. Job Alert

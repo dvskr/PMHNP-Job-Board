@@ -306,9 +306,9 @@ export default function CheckoutPage() {
         }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#115E59', margin: 0, lineHeight: 1.5 }}>
             {quotaContext === 'first-post'
-              ? `Half price first post: $${config.firstPostPrice} instead of $${config.postingPrice}, for ${config.durationDays} days.`
+              ? `Discounted first post: $${config.firstPostPrice} instead of $${config.postingPrice}, for ${config.durationDays} days.`
               : quotaContext === 'standard'
-                ? `Your half price first post is used. This listing is $${config.postingPrice} for ${config.durationDays} days.`
+                ? `Your discounted first post is used. This listing is $${config.postingPrice} for ${config.durationDays} days.`
                 : `Job listing: $${priceDollars} for ${config.durationDays} days.`}
           </p>
         </div>

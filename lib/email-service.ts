@@ -455,7 +455,7 @@ export async function sendSignupWelcomeEmail(
       <tr><td class="content-pad" style="padding:0 40px;">
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;text-align:center;">
           <p style="margin:0 0 4px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Welcome offer</p>
-          <p style="margin:0;font-family:${SANS_V2};font-size:15px;color:${V2.textPrimary};line-height:1.5;">Your first job post is <strong>half price at $${config.firstPostPrice}</strong>, ${config.firstPostDiscountPercent()}% off the standard $${config.postingPrice}. Every post after it is $${config.postingPrice}.</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:15px;color:${V2.textPrimary};line-height:1.5;">Your first job post is <strong>$${config.firstPostPrice}</strong>, ${config.firstPostDiscountPercent()}% off the standard $${config.postingPrice}. Every post after it is $${config.postingPrice}.</p>
         </div>
       </td></tr>
       ${spacerV2(28)}
@@ -473,7 +473,7 @@ export async function sendSignupWelcomeEmail(
       ${spacerV2(48)}
       ${closeContentV2()}`,
         unsubscribeFooterV2(unsubToken, 'welcome_signup'),
-        `Your employer account is ready. Your first post is half price at $${config.firstPostPrice}.`
+        `Your employer account is ready. Your first post is $${config.firstPostPrice} instead of $${config.postingPrice}.`
       );
     } else {
       html = emailShellV2(`
