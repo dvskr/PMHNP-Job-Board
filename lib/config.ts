@@ -61,11 +61,20 @@ export type PostPriceKind = 'first' | 'standard' | 'renewal';
  *   in the discount gate exactly like any other paid post. Buying a pack
  *   therefore ends the first-post discount.
  *
- * That is the intended behaviour, not a side effect. Someone who buys a pack
- * as their first purchase pays less per post than the discounted entry plus
- * standard pricing would cost them, so nothing is taken away. The opposite
- * rule, where credit posts do not count, would let a buyer spend ten credits
- * and still claim the entry discount on the eleventh.
+ * That is the intended behaviour, not a side effect: the opposite rule, where
+ * credit posts do not count, would let a buyer spend ten credits and still
+ * claim the entry discount on the eleventh.
+ *
+ * BUT IT IS NOT FREE FOR THE BUYER, AND COPY MUST NOT PRETEND IT IS. An
+ * earlier version of this comment claimed a pack always costs less per post
+ * than the discounted entry plus standard pricing. That is false at the
+ * smallest size: three posts bought as a pack cost more than
+ * firstPostPrice + 2 * postingPrice, because buying the pack forfeits the
+ * discount. It only turns in the buyer's favour from the next size up.
+ * savingsPercent measures the saving against the STANDARD price, which is
+ * the right claim for a returning employer and the wrong one for a first
+ * purchase. Use smallestPackWorthItBeforeFirstPost() when the reader may
+ * still hold the discount, and never lead cold copy with creditPacks[0].
  *
  * Credit posts write discountHoldKey null, like any standard post. Taking
  * the hold would collide with the buyer's existing paid row on a unique
@@ -153,6 +162,16 @@ export const config = {
   firstPostDiscountPercent: (): number =>
     Math.round((1 - config.firstPostPrice / config.postingPrice) * 100),
 
+  /**
+   * Whole-percent discount a renewal carries, for copy.
+   *
+   * Exists because the renewal modal hardcoded "Save 10%" next to an
+   * interpolated price. The real figure is nearly three times that, and it
+   * had already survived one repricing, which is what a literal always does.
+   */
+  renewalDiscountPercent: (): number =>
+    Math.round((1 - config.renewalPrice / config.postingPrice) * 100),
+
   /** A pack by its id, or undefined. Never trust an id straight from a form. */
   creditPackById: (id: string): CreditPackOption | undefined =>
     config.creditPacks.find((p) => p.id === id),
@@ -160,6 +179,32 @@ export const config = {
   /** What one post inside a pack works out at, in whole dollars, for copy. */
   creditPackPerPostPrice: (pack: CreditPackOption): number =>
     Math.round(pack.priceCents / pack.credits / 100),
+
+  /**
+   * The best per-post saving any pack offers, for "save up to N%" copy.
+   *
+   * Derived by scanning, not by indexing the last entry: the array happens to
+   * be ascending today and a copy line that silently depends on that ordering
+   * is one reordered literal away from advertising the wrong number.
+   */
+  maxPackSavingsPercent: (): number =>
+    config.creditPacks.reduce((best, p) => Math.max(best, p.savingsPercent), 0),
+
+  /**
+   * The smallest pack that genuinely beats paying post by post for a buyer
+   * who still holds their discounted first post, or null if none does.
+   *
+   * This exists because the obvious copy is wrong. A pack beats the STANDARD
+   * price at every size, which is what savingsPercent measures, but a buyer
+   * whose entry discount is unspent is comparing against
+   * firstPostPrice + (n-1) * postingPrice, and at the smallest size the pack
+   * loses. Any surface that pitches a pack to someone who still has the
+   * discount has to start here, not at creditPacks[0].
+   */
+  smallestPackWorthItBeforeFirstPost: (): CreditPackOption | null =>
+    config.creditPacks
+      .filter((p) => p.priceCents < (config.firstPostPrice + (p.credits - 1) * config.postingPrice) * 100)
+      .sort((a, b) => a.credits - b.credits)[0] ?? null,
 
   /**
    * Returns the tier label for display purposes. Always 'Pro' in the

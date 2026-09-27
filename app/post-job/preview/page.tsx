@@ -46,6 +46,14 @@ interface PostPriceStatus {
   priceKind: PostPriceKind;
   priceDollars: number;
   remaining: number;
+  /**
+   * A prepaid credit will cover this post. Dropping these two fields is how
+   * this page came to promise a charge that never happens: /api/create-checkout
+   * draws a credit before it prices anything, so an employer holding credits
+   * was shown "Continue to Payment: $349" and then billed nothing.
+   */
+  fundedByCredit: boolean;
+  creditsAvailable: number;
   reason?: string;
 }
 
@@ -119,8 +127,14 @@ export default function PreviewPage() {
   // post goes to checkout; the only question is which price it carries. A
   // null/erroring postPrice falls back to neutral copy and the standard
   // price, and checkout re-prices server-side either way.
-  const isFirstPost = postPrice?.eligible === true && postPrice.isFirstPost === true;
-  const isStandardPost = postPrice?.eligible === true && postPrice.isFirstPost === false;
+  // paysWithCredit outranks both price flags, for the same reason it does on
+  // the checkout page: create-checkout draws a credit before it prices
+  // anything, so naming a dollar amount here would name a charge that is not
+  // going to happen.
+  const paysWithCredit = postPrice?.eligible === true && postPrice.fundedByCredit === true;
+  const creditsAvailable = postPrice?.creditsAvailable ?? 0;
+  const isFirstPost = !paysWithCredit && postPrice?.eligible === true && postPrice.isFirstPost === true;
+  const isStandardPost = !paysWithCredit && postPrice?.eligible === true && postPrice.isFirstPost === false;
   const needsLogin = postPrice?.eligible === false && postPrice.reason === 'unauthenticated';
   const priceKind: PostPriceKind = isFirstPost ? 'first' : 'standard';
   const priceDollars = postPrice?.priceDollars ?? config.priceFor(priceKind);
@@ -221,7 +235,9 @@ export default function PreviewPage() {
     companyLogoUrl: formData.companyLogoUrl || null,
   };
 
-  const packageHeadline = isFirstPost
+  const packageHeadline = paysWithCredit
+    ? `Uses 1 of your ${creditsAvailable} prepaid credits. Nothing to pay, live for ${config.durationDays} days`
+    : isFirstPost
     ? `Discounted first post: $${priceDollars} for ${config.durationDays} days`
     : isStandardPost
       ? `Your organization${contactDomain ? ` (${contactDomain})` : ''} has used its discounted first post. This listing is $${priceDollars} for ${config.durationDays} days`
@@ -529,6 +545,8 @@ export default function PreviewPage() {
             }}>
               {isLoading ? (
                 <><Loader2 size={16} className="animate-spin" /> Processing...</>
+              ) : paysWithCredit ? (
+                <>Continue: Uses 1 Credit <ChevronRight size={16} /></>
               ) : (
                 <>Continue to Payment: ${priceDollars} <ChevronRight size={16} /></>
               )}

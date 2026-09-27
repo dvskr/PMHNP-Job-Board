@@ -91,6 +91,69 @@ describe('the pack catalogue is internally coherent', () => {
   });
 });
 
+describe('the pack pitch has to be true for the reader being pitched', () => {
+  // savingsPercent is measured against the STANDARD price, which is the
+  // right claim for a returning employer and the wrong one for a first
+  // purchase: buying a pack forfeits the discounted entry, so the buyer is
+  // really comparing against firstPostPrice + (n-1) * postingPrice.
+  const payAsYouGoCents = (n: number): number =>
+    (config.firstPostPrice + (n - 1) * config.postingPrice) * 100;
+
+  it('the smallest pack does NOT beat pay-as-you-go before the first post', () => {
+    // Not a defect, a fact about the price ladder, pinned so nobody writes
+    // "packs from 3 posts save you money" on a cold marketing surface. If a
+    // repricing ever makes this false, this test should be deleted, not
+    // worked around.
+    const smallest = [...config.creditPacks].sort((a, b) => a.credits - b.credits)[0];
+    expect(smallest.priceCents).toBeGreaterThan(payAsYouGoCents(smallest.credits));
+  });
+
+  it('smallestPackWorthItBeforeFirstPost skips the ones that lose', () => {
+    const worthIt = config.smallestPackWorthItBeforeFirstPost();
+    expect(worthIt, 'no pack beats pay-as-you-go for a first-time buyer').not.toBeNull();
+    expect(worthIt!.priceCents).toBeLessThan(payAsYouGoCents(worthIt!.credits));
+    // And it really is the smallest such pack.
+    const smaller = config.creditPacks.filter((p) => p.credits < worthIt!.credits);
+    for (const p of smaller) {
+      expect(p.priceCents, `${p.id} was skipped but actually wins`)
+        .toBeGreaterThanOrEqual(payAsYouGoCents(p.credits));
+    }
+  });
+
+  it('maxPackSavingsPercent scans instead of trusting array order', () => {
+    expect(config.maxPackSavingsPercent())
+      .toBe(Math.max(...config.creditPacks.map((p) => p.savingsPercent)));
+    // Reordering the catalogue must not change the advertised number.
+    const reversed = [...config.creditPacks].reverse();
+    expect(reversed.reduce((b, p) => Math.max(b, p.savingsPercent), 0))
+      .toBe(config.maxPackSavingsPercent());
+  });
+
+  it('the config rationale no longer claims packs always win', () => {
+    // The comment asserted the opposite of the arithmetic and was the
+    // premise every piece of pack copy would have been built on.
+    const src = read('lib/config.ts');
+    expect(src).not.toMatch(/pays less per post than the discounted entry/);
+    expect(src).toMatch(/NOT FREE FOR THE BUYER/);
+  });
+});
+
+describe('renewal savings are derived, not typed', () => {
+  it('renewalDiscountPercent matches the real discount', () => {
+    expect(config.renewalDiscountPercent())
+      .toBe(Math.round((1 - config.renewalPrice / config.postingPrice) * 100));
+  });
+
+  it('the renewal modal interpolates it instead of hardcoding a number', () => {
+    // It said "Save 10%" beside an interpolated price. The real figure is
+    // nearly three times that, and the literal had already survived one
+    // repricing, which is what a literal always does.
+    const src = read('components/employer/EmployerDashboardClient.tsx');
+    expect(src).toContain('config.renewalDiscountPercent()');
+    expect(src).not.toMatch(/Save 10%/);
+  });
+});
+
 describe('creditPackExpiry', () => {
   it('lands creditPackValidDays out, not at some hardcoded year', () => {
     const from = new Date('2026-01-01T00:00:00.000Z');
@@ -626,6 +689,33 @@ describe('the quote agrees with the charge about credits', () => {
     expect(neutral).toContain('fundedByCredit: false');
     expect(neutral).toContain('creditsAvailable: 0');
   });
+});
+
+describe('every page in the funnel knows a credit covers the post', () => {
+  // The preview page shipped credit-blind: its PostPriceStatus dropped
+  // fundedByCredit, so it showed "Continue to Payment: $349" to an employer
+  // who was then charged nothing. Checked as a set, because the bug was
+  // fixing one page of a two-page funnel and not the other.
+  for (const page of ['app/post-job/preview/page.tsx', 'app/post-job/checkout/page.tsx']) {
+    it(`${page} reads fundedByCredit from the quote`, () => {
+      const src = read(page);
+      expect(src).toContain('fundedByCredit');
+      expect(src).toContain('creditsAvailable');
+    });
+
+    it(`${page} lets the credit state outrank the price flags`, () => {
+      const src = read(page);
+      // isFirstPost must not win over a credit: create-checkout draws the
+      // credit before it prices anything.
+      expect(src).toMatch(/paysWithCredit/);
+    });
+
+    it(`${page} never puts a dollar amount on the button for a credit post`, () => {
+      const src = read(page);
+      const creditLabel = /paysWithCredit \?[\s\S]{0,400}[Cc]redit/;
+      expect(src).toMatch(creditLabel);
+    });
+  }
 });
 
 describe('the checkout page survives a post that was never charged', () => {
