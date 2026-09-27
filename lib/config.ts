@@ -190,6 +190,14 @@ export const config = {
   maxPackSavingsPercent: (): number =>
     config.creditPacks.reduce((best, p) => Math.max(best, p.savingsPercent), 0),
 
+  /** The biggest pack on sale, for "up to N posts" copy. Scanned, not indexed. */
+  largestPack: (): CreditPackOption =>
+    config.creditPacks.reduce((big, p) => (p.credits > big.credits ? p : big), config.creditPacks[0]),
+
+  /** The entry pack. Scanned, not indexed, for the same reason. */
+  smallestPack: (): CreditPackOption =>
+    config.creditPacks.reduce((small, p) => (p.credits < small.credits ? p : small), config.creditPacks[0]),
+
   /**
    * The smallest pack that genuinely beats paying post by post for a buyer
    * who still holds their discounted first post, or null if none does.

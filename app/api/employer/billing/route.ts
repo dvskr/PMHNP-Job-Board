@@ -3,10 +3,24 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { config, PricingTier } from '@/lib/config';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { buildQuotaKeys } from '@/lib/employer-quota';
+import { getCreditBalance } from '@/lib/credit-packs';
 
 /**
  * GET /api/employer/billing
- * Fetch payment history (employer jobs with payment info).
+ * Fetch payment history (employer jobs with payment info) and prepaid packs.
+ *
+ * Packs were missing entirely: this route read userProfile, employerJob and
+ * jobCharge, and a pack is in none of them, so the largest single purchase
+ * on the site left no trace anywhere in the product. A buyer saw a Payment
+ * History table that did not mention the money they had just spent.
+ *
+ * Two different scopes on purpose:
+ *   packs    what THIS account bought. A payment history listing a
+ *            colleague's card would be the wrong kind of transparency.
+ *   balance  what this account may SPEND, which is team-wide by signup
+ *            domain, because that is what the post form will actually draw
+ *            on. Someone who can spend a credit has to be able to see it.
  */
 export async function GET(req: NextRequest) {
     const rateLimitResponse = await rateLimit(req, 'employer:billing', RATE_LIMITS.employer);
@@ -21,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     const profile = await prisma.userProfile.findUnique({
         where: { supabaseId: user.id },
-        select: { id: true, role: true },
+        select: { id: true, role: true, company: true },
     });
 
     if (!profile || !['employer', 'admin'].includes(profile.role)) {
@@ -102,6 +116,9 @@ export async function GET(req: NextRequest) {
             tier: config.getTierLabel((ej.pricingTier || 'pro') as PricingTier),
             status: ej.paymentStatus,
             isFree,
+            // So the table can say "paid with a credit" rather than showing
+            // a posting with no charge against it and no explanation.
+            fundingSource: ej.fundingSource,
             date: ej.createdAt.toISOString(),
             expiresAt: ej.job.expiresAt?.toISOString() || null,
             isActive,
@@ -119,5 +136,49 @@ export async function GET(req: NextRequest) {
         };
     });
 
-    return NextResponse.json({ payments });
+    const packRows = await prisma.postingCreditPack.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'desc' },
+        select: {
+            id: true, amountCents: true, creditsTotal: true, creditsUsed: true,
+            expiresAt: true, refundedAt: true, disputedAt: true, createdAt: true,
+        },
+    });
+
+    const balance = await getCreditBalance(
+        user.id,
+        buildQuotaKeys({
+            userId: user.id,
+            signupEmail: user.email ?? null,
+            // From the authenticated profile row, never a request field.
+            lockedCompanyName: profile.company ?? null,
+        }),
+    );
+
+    const creditPacks = packRows.map((p) => {
+        // A refunded or disputed pack keeps its remaining count on the row
+        // but can no longer be spent, so reporting that number as "left"
+        // would promise posts the spend path will refuse.
+        const frozen = p.refundedAt !== null || p.disputedAt !== null;
+        const expired = p.expiresAt <= new Date();
+        return {
+            id: p.id,
+            amountCents: p.amountCents,
+            creditsTotal: p.creditsTotal,
+            creditsUsed: p.creditsUsed,
+            creditsRemaining: frozen || expired ? 0 : Math.max(0, p.creditsTotal - p.creditsUsed),
+            purchasedAt: p.createdAt.toISOString(),
+            expiresAt: p.expiresAt.toISOString(),
+            status: p.refundedAt ? 'refunded' : p.disputedAt ? 'disputed' : expired ? 'expired' : 'active',
+        };
+    });
+
+    return NextResponse.json({
+        payments,
+        creditPacks,
+        creditBalance: {
+            available: balance.available,
+            expiresAt: balance.nextExpiry?.toISOString() ?? null,
+        },
+    });
 }

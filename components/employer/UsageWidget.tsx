@@ -93,11 +93,21 @@ export default function UsageWidget() {
     const credits = quota?.eligible === true ? (quota.creditsAvailable ?? 0) : 0;
     const hasFirstPostDiscount = quota?.eligible === true && (quota.remaining ?? 0) > 0;
     const planLabel = tierLabel;
+    // The third arm used to be null, which left exactly the pack audience
+    // with nothing: an employer who has spent their discount and owns no
+    // credits is the repeat buyer, looking at this strip on every dashboard
+    // load. "up to", never the entry pack: the smallest pack only beats
+    // paying post by post once the first-post discount is already gone, and
+    // by the time a reader is in this arm that is true, but the same string
+    // should stay honest if the ladder changes.
     const planSublabel = credits > 0
         ? `${credits} prepaid ${credits === 1 ? 'post' : 'posts'} left`
         : hasFirstPostDiscount
             ? `${config.firstPostDiscountPercent()}% off your first post`
-            : null;
+            : `Packs up to ${config.largestPack().credits} posts, save up to ${config.maxPackSavingsPercent()}%`;
+    // Only the pack line is a link. The other two state a fact about this
+    // account and have nowhere useful to go.
+    const planSublabelHref = credits > 0 || hasFirstPostDiscount ? null : '/pricing#credit-packs';
 
     return (
         <div style={{
@@ -115,6 +125,7 @@ export default function UsageWidget() {
                 value={planLabel}
                 valueColor={t.accent}
                 sub={planSublabel}
+                subHref={planSublabelHref}
             />
 
             {/* ─── Candidate Unlocks ─── */}
@@ -179,6 +190,7 @@ export default function UsageWidget() {
             </Link>
 
             <style>{`
+                .clay-plan-sub-link:hover { text-decoration: underline !important; }
                 .clay-upgrade-btn:hover {
                     transform: translateY(-1px);
                     box-shadow: 7px 7px 16px rgba(0,0,0,0.06), -3px -3px 8px rgba(255,255,255,0.8),
@@ -191,7 +203,7 @@ export default function UsageWidget() {
 
 /* ═══ Compact Card — used for the Plan badge ═══ */
 function CompactCard({
-    icon, iconBg, iconGlow, label, value, valueColor, sub,
+    icon, iconBg, iconGlow, label, value, valueColor, sub, subHref = null,
 }: {
     icon: React.ReactNode;
     iconBg: string;
@@ -200,6 +212,8 @@ function CompactCard({
     value: string;
     valueColor: string;
     sub: string | null;
+    /** When set, the sub line becomes a link. Used only by the pack upsell. */
+    subHref?: string | null;
 }) {
     return (
         <div style={{
@@ -226,12 +240,27 @@ function CompactCard({
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{value}</p>
                 {sub && (
-                    <p style={{
-                        fontSize: '10px', color: '#0D9488', margin: '1px 0 0', fontWeight: 600,
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}>
-                        {sub}
-                    </p>
+                    subHref ? (
+                        <Link
+                            href={subHref}
+                            className="clay-plan-sub-link"
+                            style={{
+                                display: 'block',
+                                fontSize: '10px', color: '#0D9488', margin: '1px 0 0', fontWeight: 600,
+                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                textDecoration: 'none',
+                            }}
+                        >
+                            {sub}
+                        </Link>
+                    ) : (
+                        <p style={{
+                            fontSize: '10px', color: '#0D9488', margin: '1px 0 0', fontWeight: 600,
+                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        }}>
+                            {sub}
+                        </p>
+                    )
                 )}
             </div>
         </div>

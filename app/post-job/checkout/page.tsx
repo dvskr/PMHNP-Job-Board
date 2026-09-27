@@ -338,6 +338,25 @@ export default function CheckoutPage() {
                   ? `Your discounted first post is used. This listing is $${config.postingPrice} for ${config.durationDays} days.`
                   : `Job listing: $${priceDollars} for ${config.durationDays} days.`}
           </p>
+
+          {/* The entry pack is only an honest pitch to this reader.
+              Someone who still holds the discounted first post pays
+              firstPostPrice + (n-1) * postingPrice going post by post, and
+              the smallest pack costs MORE than that, because buying it
+              forfeits the discount. Here the discount is already spent, so
+              the comparison is against the standard price and the saving is
+              real. A line and a link, never a second button competing with
+              Pay. */}
+          {quotaContext === 'standard' && (
+            <p style={{ fontSize: '12px', color: '#0F766E', margin: '8px 0 0', lineHeight: 1.5 }}>
+              Hiring for more than one role?{' '}
+              <Link href="/pricing#credit-packs" style={{ color: '#0D9488', fontWeight: 700, textDecoration: 'underline' }}>
+                A {config.smallestPack().credits} post pack is $
+                {(config.smallestPack().priceCents / 100).toLocaleString('en-US')}
+              </Link>
+              , about ${config.creditPackPerPostPrice(config.smallestPack())} per post, and credits last {config.creditPackValidDays} days.
+            </p>
+          )}
         </div>
 
         {/* Job Summary Card */}

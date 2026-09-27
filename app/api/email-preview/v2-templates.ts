@@ -556,14 +556,27 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       'Your application has been submitted successfully.'),
   },
 
-  // 16. Status Update
+  // 16. Status Update, interview stage. Mirrors STATUS_COPY.interview in
+  // lib/email-service.ts, which is the copy that actually sends.
   'status-update': {
-    label: 'Application Status Update',
+    label: 'Application Status: Interview',
     desc: 'Sent when an application status changes',
-    fn: () => simple('status_update', 'hero-status-update.png', 'Application Status Update',
-      'There is an update on your application for <strong>Remote PMHNP \u2014 Telehealth Platform</strong>. Your application has moved to the <strong>interview stage</strong>. The hiring manager will reach out to schedule a conversation.',
-      'View Application Details', `${BASE_URL}/applications`,
-      'Update on your application \u2014 moved to interview stage.'),
+    fn: () => simple('status_update', 'hero-status-update.png', 'You Have Been Invited to Interview',
+      'Hi Jordan,<br /><br />MindPath Health would like to interview you for <strong>Remote PMHNP, Telehealth Platform</strong>. They will contact you directly to arrange a time. It is worth re-reading the job description before you speak with them.',
+      'View your application', `${BASE_URL}/my-applications`,
+      'MindPath Health would like to interview you.'),
+  },
+
+  // 16b. The same template at the hardest stage. Previewed separately
+  // because a rejection is the one this funnel is most likely to get wrong,
+  // and it is the only stage whose CTA leaves the application behind.
+  'status-update-rejected': {
+    label: 'Application Status: Not Selected',
+    desc: 'Sent when an employer passes on a candidate',
+    fn: () => simple('status_update', 'hero-status-update.png', 'Update on Your Application',
+      'Hi Jordan,<br /><br />Thank you for applying for <strong>Remote PMHNP, Telehealth Platform</strong> at MindPath Health. On this occasion the employer has decided to move forward with other candidates. We know that is disappointing. Your profile stays active, and new PMHNP roles are posted here every week.',
+      'Browse current openings', `${BASE_URL}/jobs`,
+      'MindPath Health is moving forward with other candidates.'),
   },
 
   // 17. New Candidate Alert

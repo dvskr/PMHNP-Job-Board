@@ -47,7 +47,20 @@ interface Payment {
     date: string;
     expiresAt: string | null;
     isActive: boolean;
+    /** 'stripe' or 'credit_pack'. A credit post has no charge of its own. */
+    fundingSource?: string;
     charges: PaymentCharge[];
+}
+
+interface CreditPackRow {
+    id: string;
+    amountCents: number;
+    creditsTotal: number;
+    creditsUsed: number;
+    creditsRemaining: number;
+    purchasedAt: string;
+    expiresAt: string;
+    status: 'active' | 'refunded' | 'disputed' | 'expired' | string;
 }
 
 interface AlertPrefs {
@@ -146,6 +159,8 @@ export default function EmployerSettingsClient() {
     const [profile, setProfile] = useState<ProfileInfo | null>(null);
     const [company, setCompany] = useState<CompanyInfo | null>(null);
     const [payments, setPayments] = useState<Payment[]>([]);
+    const [creditPacks, setCreditPacks] = useState<CreditPackRow[]>([]);
+    const [creditBalance, setCreditBalance] = useState<{ available: number; expiresAt: string | null }>({ available: 0, expiresAt: null });
     const [alertPrefs, setAlertPrefs] = useState<AlertPrefs>({ specialties: [], states: [], minExperience: null, workMode: '', isActive: false });
     const [savingAlerts, setSavingAlerts] = useState(false);
     const [activeSection, setActiveSection] = useState<'company' | 'billing' | 'alerts' | 'notifications' | 'account'>('company');
@@ -298,6 +313,8 @@ export default function EmployerSettingsClient() {
                     // here used to crash the billing-section render with
                     // "Cannot read properties of null (reading 'length')".
                     setPayments(Array.isArray(billingData?.payments) ? billingData.payments : []);
+                    setCreditPacks(Array.isArray(billingData?.creditPacks) ? billingData.creditPacks : []);
+                    if (billingData?.creditBalance) setCreditBalance(billingData.creditBalance);
                 }
 
                 // Fetch alert preferences
@@ -639,6 +656,61 @@ export default function EmployerSettingsClient() {
             {/* ═══ Billing Section ═══ */}
             {activeSection === 'billing' && (
                 <div style={clayCard}>
+                    {/* Prepaid packs. Listed above Payment History because a
+                        pack is the larger purchase and, until now, the only
+                        one with no record anywhere in the product. */}
+                    {creditPacks.length > 0 && (
+                        <div style={{ marginBottom: '28px' }}>
+                            <div style={{ marginBottom: '14px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '14px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>
+                                    Prepaid Posting Credits
+                                </h3>
+                                <p style={{ fontSize: '13px', color: '#0D9488', fontWeight: 700, margin: 0 }}>
+                                    {creditBalance.available} available
+                                    {creditBalance.expiresAt
+                                        ? `, next expiry ${new Date(creditBalance.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                                        : ''}
+                                </p>
+                            </div>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                                    <thead>
+                                        <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                                            {['Pack', 'Paid', 'Used', 'Left', 'Expires', 'Status'].map(h => (
+                                                <th key={h} style={{ textAlign: 'left', padding: '10px 8px', color: '#8A9BA6', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {creditPacks.map(pack => (
+                                            <tr key={pack.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                                                <td style={{ padding: '12px 8px', fontWeight: 600, color: '#1A2E35' }}>{pack.creditsTotal} posts</td>
+                                                <td style={{ padding: '12px 8px', color: '#5A6B73', fontVariantNumeric: 'tabular-nums' }}>
+                                                    ${(pack.amountCents / 100).toLocaleString('en-US')}
+                                                </td>
+                                                <td style={{ padding: '12px 8px', color: '#5A6B73', fontVariantNumeric: 'tabular-nums' }}>{pack.creditsUsed}</td>
+                                                <td style={{ padding: '12px 8px', fontWeight: 700, color: pack.creditsRemaining > 0 ? '#0D9488' : '#8A9BA6', fontVariantNumeric: 'tabular-nums' }}>
+                                                    {pack.creditsRemaining}
+                                                </td>
+                                                <td style={{ padding: '12px 8px', color: '#5A6B73' }}>
+                                                    {new Date(pack.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </td>
+                                                <td style={{ padding: '12px 8px' }}>
+                                                    <span style={{
+                                                        fontSize: '11px', fontWeight: 700, padding: '3px 9px', borderRadius: '99px',
+                                                        color: pack.status === 'active' ? '#0D9488' : '#8A6B3A',
+                                                        background: pack.status === 'active' ? 'rgba(13,148,136,0.1)' : 'rgba(180,120,30,0.1)',
+                                                        textTransform: 'capitalize',
+                                                    }}>{pack.status}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
                     <div style={{ marginBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '16px' }}>
                         <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>
                             Payment History
@@ -715,6 +787,12 @@ export default function EmployerSettingsClient() {
                                                 <td style={{ padding: '14px 8px', fontSize: '13px', whiteSpace: 'nowrap' }}>
                                                     {p.isFree ? (
                                                         <span style={{ color: '#B0BEC5', fontSize: '12px' }}>None</span>
+                                                    ) : p.fundingSource === 'credit_pack' ? (
+                                                        // No charge of its own, so no invoice: the money was
+                                                        // one payment for the pack and /api/employer/invoice
+                                                        // 404s this deliberately rather than inventing a
+                                                        // figure. Say so instead of offering a dead button.
+                                                        <span style={{ color: '#0D9488', fontSize: '12px', fontWeight: 600 }}>Paid with a credit</span>
                                                     ) : latestCharge ? (
                                                         // Two buttons side-by-side: the Stripe "Invoice" PDF
                                                         // (formal document) and the Stripe "Receipt" page
