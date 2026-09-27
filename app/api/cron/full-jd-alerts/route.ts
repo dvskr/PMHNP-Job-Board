@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendFullJdAlerts, isFullJdEnabled } from '@/lib/full-jd-alert-service';
+import { sendFullJdAlerts } from '@/lib/full-jd-alert-service';
 import { logger } from '@/lib/logger';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 import { sendCronFailureAlert } from '@/lib/discord-notifier';
@@ -15,16 +15,6 @@ export const maxDuration = 300;
 export async function GET(request: NextRequest) {
   const authError = await verifyCronOrAdmin(request);
   if (authError) return authError;
-
-  // The service checks this too. Answering here as well keeps the response
-  // honest about why nothing happened, rather than reporting a successful
-  // run of zero.
-  if (!isFullJdEnabled()) {
-    return NextResponse.json({
-      enabled: false,
-      message: 'FULL_JD_ALERTS_ENABLED is not set to true, so nothing was sent.',
-    });
-  }
 
   if (isOutboundPaused()) {
     return NextResponse.json({ enabled: false, message: OUTBOUND_PAUSED_MESSAGE });

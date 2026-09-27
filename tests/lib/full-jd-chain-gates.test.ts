@@ -31,44 +31,34 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 import {
-  isFullJdEnabled,
   isFullJdEligible,
-  sendFullJdAlerts,
   FULL_JD_SOURCE_TYPE,
   FULL_JD_COOLDOWN_HOURS,
 } from '@/lib/full-jd-alert-service';
 
 const REAL_BODY = `<h2>About the role</h2><p>${'A genuine sentence about the work. '.repeat(24)}</p>`;
 
-const previous = process.env.FULL_JD_ALERTS_ENABLED;
-beforeEach(() => { delete process.env.FULL_JD_ALERTS_ENABLED; });
-afterEach(() => {
-  if (previous === undefined) delete process.env.FULL_JD_ALERTS_ENABLED;
-  else process.env.FULL_JD_ALERTS_ENABLED = previous;
-});
-
-describe('the chain is off until someone turns it on', () => {
-  it('reports disabled and touches nothing', async () => {
-    // prisma is mocked to {}, so any query at all would throw. Returning
-    // cleanly is the proof that it short-circuits before reaching one.
-    await expect(sendFullJdAlerts()).resolves.toMatchObject({ skipped: 'disabled', sent: 0 });
-  });
-
-  it('stays off for any value other than the exact string', async () => {
-    for (const v of ['1', 'yes', 'TRUE', 'on', '']) {
-      process.env.FULL_JD_ALERTS_ENABLED = v;
-      expect(isFullJdEnabled(), v).toBe(false);
+describe('the schedule is the switch', () => {
+  it('has no feature flag left to forget', () => {
+    // The chain was gated on FULL_JD_ALERTS_ENABLED while its audience and
+    // cadence were being settled. Those are settled, so the flag is gone:
+    // the cron days decide when it sends, and nothing else has to be set
+    // anywhere for it to work.
+    for (const file of ['lib/full-jd-alert-service.ts', 'app/api/cron/full-jd-alerts/route.ts']) {
+      expect(readCode(file), file).not.toContain('FULL_JD_ALERTS_ENABLED');
     }
   });
 
-  it('turns on only for "true"', () => {
-    process.env.FULL_JD_ALERTS_ENABLED = 'true';
-    expect(isFullJdEnabled()).toBe(true);
-  });
-
-  it('is scheduled, but the schedule is inert while the flag is unset', () => {
+  it('is registered on its cron days', () => {
     const vercel = fs.readFileSync(path.resolve(__dirname, '../../vercel.json'), 'utf8');
     expect(vercel).toContain('/api/cron/full-jd-alerts');
+  });
+
+  it('still answers to the platform-wide outbound brake', () => {
+    // The one control that must survive: it stops every sender at once and
+    // is not specific to this chain.
+    expect(readCode('lib/full-jd-alert-service.ts')).toContain('isOutboundPaused');
+    expect(readCode('app/api/cron/full-jd-alerts/route.ts')).toContain('isOutboundPaused');
   });
 });
 

@@ -93,12 +93,9 @@ export const FULL_JD_COOLDOWN_HOURS = 24;
  */
 export const FULL_JD_MAX_AGE_DAYS = 30;
 
-export function isFullJdEnabled(): boolean {
-  return process.env.FULL_JD_ALERTS_ENABLED === 'true';
-}
 
 export interface FullJdRunResult {
-  skipped?: 'disabled' | 'paused';
+  skipped?: 'paused';
   considered: number;
   sent: number;
   suppressed: number;
@@ -180,7 +177,9 @@ export async function releaseClaim(email: string, jobId: string): Promise<void> 
 export async function sendFullJdAlerts(options: { dryRun?: boolean } = {}): Promise<FullJdRunResult> {
   const result: FullJdRunResult = { considered: 0, sent: 0, suppressed: 0, noMatch: 0, errors: 0 };
 
-  if (!isFullJdEnabled()) return { ...result, skipped: 'disabled' };
+  // No feature flag. The schedule is the switch: this runs on its cron days
+  // and sends. isOutboundPaused stays because it is the emergency brake for
+  // every sender on the platform, not a gate on this one.
   if (await isOutboundPaused()) {
     logger.warn(`[full-jd] ${OUTBOUND_PAUSED_MESSAGE}`);
     return { ...result, skipped: 'paused' };
