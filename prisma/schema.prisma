@@ -229,6 +229,45 @@ model EmailLead {
   @@map("email_leads")
 }
 
+/// Prepaid posting credits, bought up front and spent later.
+///
+/// Aimed at staffing agencies, who post continuously and do not want a
+/// checkout per role. Market convention, which this follows: credits are a
+/// prepaid balance on a 12-month clock, not concurrent capacity, and they
+/// are spendable by anyone on the buying account.
+///
+/// The pack is ONE Stripe payment funding N postings, which is why it needs
+/// its own row rather than riding JobCharge: that ledger is keyed to a single
+/// employerJobId, and a pack has none at purchase time.
+model PostingCreditPack {
+  id                    String    @id @default(cuid())
+  /// Session-proven owner. Never form-derived, for the reason stated three
+  /// times in lib/employer-quota.ts: a form-typed identity lets one buyer
+  /// spend another's entitlement.
+  userId                String
+  /// The buyer's quota keys snapshotted at purchase, so a pack bought by one
+  /// account can be spent by its organization without re-deriving identity
+  /// from whatever the post form happened to contain.
+  quotaKeys             String[]  @default([]) @map("quota_keys")
+  stripeSessionId       String    @unique @map("stripe_session_id")
+  stripePaymentIntentId String?   @unique @map("stripe_payment_intent_id")
+  amountCents           Int       @map("amount_cents")
+  creditsTotal          Int       @map("credits_total")
+  creditsUsed           Int       @default(0) @map("credits_used")
+  /// 12 months from purchase. Every comparable board that publishes a pack
+  /// uses this window.
+  expiresAt             DateTime  @map("expires_at")
+  refundedAt            DateTime? @map("refunded_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  posts EmployerJob[]
+
+  @@index([userId, expiresAt])
+  @@index([stripePaymentIntentId])
+  @@map("posting_credit_packs")
+}
+
 /// One row per (recipient, job) that any alert chain has mailed.
 ///
 /// JobAlert.lastSentAt is a CUTOFF, not a record: the next run asks for jobs
@@ -353,6 +392,18 @@ model EmployerJob {
   /// employer their discount. NULLs do not collide in a Postgres unique index,
   /// so standard posts are unaffected.
   discountHoldKey     String?          @unique @map("discount_hold_key")
+  /// How this post was paid for. 'stripe' is its own Checkout payment,
+  /// 'credit_pack' is drawn from a prepaid balance.
+  ///
+  /// paymentStatus stays 'paid' for both, deliberately. Inventing a fourth
+  /// payment status would sail through the renewal route's denylist while
+  /// breaking every other reader: invoice and receipt 400 on anything but
+  /// 'paid', toggle-publish 402s it, job-sort reads it, and the admin org
+  /// rollup has the four statuses hardcoded. The funding source belongs in
+  /// its own column, which is this one.
+  fundingSource       String           @default("stripe") @map("funding_source")
+  creditPackId        String?          @map("credit_pack_id")
+  creditPack          PostingCreditPack? @relation(fields: [creditPackId], references: [id])
   // Immutable snapshot of the signup email's domain at posting time.
   // Used as the canonical anchor for the free-post quota count so that:
   //   - Editing contactEmail can't shift the count
