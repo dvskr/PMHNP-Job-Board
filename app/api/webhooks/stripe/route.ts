@@ -9,6 +9,7 @@ import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { anonymizeEmail } from '@/lib/server-utils';
 import { trackServerPurchase } from '@/lib/analytics-server';
 import { inngest } from '@/lib/inngest/client';
+import { creditPackExpiry, revokePackPostings, restorePackPostings } from '@/lib/credit-packs';
 
 function getStripe(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -156,6 +157,59 @@ export async function POST(request: NextRequest) {
           jobId,
         });
         return NextResponse.json({ received: true, skipped: 'payment not completed' });
+      }
+
+      // ── Credit pack ────────────────────────────────────────────────
+      // ABOVE the missing-jobId check on purpose, and this placement is the
+      // whole ballgame. A pack purchase funds N future postings and so
+      // carries no jobId. Below the check it would hit the 400 path, which
+      // deliberately KEEPS the dedupe row so Stripe stops retrying, and the
+      // first pack ever sold would be paid for and never delivered.
+      if (type === 'credit_pack') {
+        const packOptionId = session.metadata?.packOptionId ?? '';
+        const userId = session.metadata?.userId ?? '';
+        const option = config.creditPackById(packOptionId);
+
+        if (!option || !userId) {
+          logger.error('Credit pack session missing option or buyer', null, {
+            sessionId: session.id, packOptionId, userId,
+          });
+          return NextResponse.json({ error: 'Bad credit pack metadata' }, { status: 400 });
+        }
+
+        try {
+          const quotaKeys = (session.metadata?.quotaKeys ?? '')
+            .split(',').map((k) => k.trim()).filter(Boolean);
+
+          // The unique index on stripeSessionId is what makes a replayed
+          // event harmless: the second insert is a no-op rather than a
+          // second pack. The ProcessedStripeEvent dedupe already covers the
+          // normal case; this covers the abnormal one.
+          await prisma.postingCreditPack.createMany({
+            data: [{
+              userId,
+              quotaKeys,
+              stripeSessionId: session.id,
+              stripePaymentIntentId:
+                typeof session.payment_intent === 'string' ? session.payment_intent : null,
+              amountCents: session.amount_total ?? option.priceCents,
+              creditsTotal: option.credits,
+              expiresAt: creditPackExpiry(),
+            }],
+            skipDuplicates: true,
+          });
+
+          logger.info('Credit pack purchased', {
+            sessionId: session.id, userId, credits: option.credits,
+          });
+          return NextResponse.json({ received: true, creditPack: option.id });
+        } catch (packErr) {
+          // 500 so Stripe retries. cleanupDedupe lets the retry through
+          // rather than being swallowed as already-processed.
+          logger.error('Failed to record credit pack', packErr, { sessionId: session.id });
+          await cleanupDedupe();
+          return NextResponse.json({ error: 'Credit pack write failed' }, { status: 500 });
+        }
       }
 
       if (!jobId) {
@@ -647,6 +701,50 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ received: true, note: 'no payment_intent' });
         }
 
+        // A credit pack is one payment funding N postings, so it is not in
+        // the JobCharge ledger and would fall straight through the
+        // "no matching JobCharge" return below, leaving every credit
+        // spendable after the money went back. Checked first, and a payment
+        // intent funds a pack or a job charge, never both.
+        const pack = await prisma.postingCreditPack.findUnique({
+          where: { stripePaymentIntentId: paymentIntentId },
+        });
+
+        if (pack) {
+          const packRefunded = charge.amount_refunded ?? 0;
+          const packFullyRefunded = packRefunded >= pack.amountCents;
+
+          if (!packFullyRefunded) {
+            // A partial refund on a pack has no honest interpretation here:
+            // there is no per-credit ledger to write it down against, and
+            // killing the remaining credits over a goodwill reversal would
+            // take back posts the buyer still paid for. Leave the pack live
+            // and make an operator decide.
+            logger.warn('charge.refunded: partial refund on a credit pack, credits left intact', {
+              packId: pack.id, refundedCents: packRefunded, packAmountCents: pack.amountCents,
+            });
+            return NextResponse.json({ received: true, note: 'partial credit pack refund' });
+          }
+
+          // refundedAt is what spendableWhere filters on, so this is the
+          // write that actually stops further spending.
+          await prisma.postingCreditPack.update({
+            where: { id: pack.id },
+            data: { refundedAt: new Date() },
+          });
+
+          // Postings already funded by this pack lose their entitlement the
+          // same way a fully refunded JobCharge revokes one: paymentStatus
+          // 'refunded', unpublished, and isFeatured off with it, because the
+          // messaging and unlock gates key on that flag.
+          const revoked = await revokePackPostings(pack.id, 'refunded');
+
+          logger.warn('charge.refunded: credit pack refunded, postings it funded revoked', {
+            packId: pack.id, creditsUsed: pack.creditsUsed, revokedPostings: revoked,
+          });
+          return NextResponse.json({ received: true, note: 'credit pack refunded' });
+        }
+
         const jobCharge = await prisma.jobCharge.findUnique({
           where: { stripePaymentIntentId: paymentIntentId },
         });
@@ -786,6 +884,29 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ received: true, note: 'no payment_intent' });
         }
 
+        // Same reason as in charge.refunded: a credit pack is not in the
+        // JobCharge ledger, so without this it falls through the bail-out
+        // below and a chargeback leaves every remaining credit spendable
+        // and every posting the pack already funded live and featured.
+        const disputedPack = await prisma.postingCreditPack.findUnique({
+          where: { stripePaymentIntentId: paymentIntentId },
+        });
+
+        if (disputedPack) {
+          // disputedAt, not refundedAt: this can still be won, and the pack
+          // has to be restorable without recording a refund that never
+          // happened. Both columns freeze spending while set.
+          await prisma.postingCreditPack.update({
+            where: { id: disputedPack.id },
+            data: { disputedAt: new Date() },
+          });
+          const revokedOnDispute = await revokePackPostings(disputedPack.id, 'disputed');
+          logger.warn('Chargeback on a credit pack: pack frozen, funded postings revoked', {
+            packId: disputedPack.id, disputeId: dispute.id, revokedPostings: revokedOnDispute,
+          });
+          return NextResponse.json({ received: true, note: 'credit pack disputed' });
+        }
+
         const jobCharge = await prisma.jobCharge.findUnique({
           where: { stripePaymentIntentId: paymentIntentId },
         });
@@ -851,6 +972,35 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ received: true, note: 'no payment_intent' });
         }
 
+        const merchantKeptTheFunds = dispute.status === 'won' || dispute.status === 'warning_closed';
+
+        // The pack half of the dispute lifecycle. Without it a pack frozen
+        // by charge.dispute.created stays frozen for ever even when the bank
+        // finds for us, and there is no admin route that writes this table.
+        const closedPack = await prisma.postingCreditPack.findUnique({
+          where: { stripePaymentIntentId: paymentIntentId },
+        });
+
+        if (closedPack) {
+          if (!merchantKeptTheFunds) {
+            logger.info('charge.dispute.closed: credit pack stays frozen', {
+              packId: closedPack.id, disputeId: dispute.id, status: dispute.status,
+            });
+            return NextResponse.json({ received: true, note: 'credit pack dispute lost' });
+          }
+
+          // Clearing disputedAt makes the remaining credits spendable again.
+          await prisma.postingCreditPack.update({
+            where: { id: closedPack.id },
+            data: { disputedAt: null },
+          });
+          const restored = await restorePackPostings(closedPack.id);
+          logger.info('Credit pack dispute closed in our favour: pack unfrozen, postings left unpublished to relist', {
+            packId: closedPack.id, disputeId: dispute.id, restoredPostings: restored,
+          });
+          return NextResponse.json({ received: true, note: 'credit pack restored' });
+        }
+
         const jobCharge = await prisma.jobCharge.findUnique({
           where: { stripePaymentIntentId: paymentIntentId },
         });
@@ -858,8 +1008,6 @@ export async function POST(request: NextRequest) {
           logger.warn('charge.dispute.closed: no matching JobCharge', { paymentIntentId, disputeId: dispute.id });
           return NextResponse.json({ received: true, note: 'no matching JobCharge' });
         }
-
-        const merchantKeptTheFunds = dispute.status === 'won' || dispute.status === 'warning_closed';
         if (!merchantKeptTheFunds) {
           logger.info('charge.dispute.closed: revocation stands', {
             jobChargeId: jobCharge.id,

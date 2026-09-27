@@ -13,6 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { config } from '@/lib/config';
 
 const ROOT = process.cwd();
 
@@ -221,8 +222,13 @@ describe('the withdrawn refund guarantee stays withdrawn', () => {
   it.each(['app/pricing/page.tsx', 'app/for-employers/page.tsx'])(
     '%s hardcodes none of the prices',
     (rel) => {
+      // Derived from config, not written out. The previous version listed
+      // $149, $299 and $249 literally, so moving the prices to 199 and 349
+      // would have left it happily passing while checking for numbers the
+      // site no longer charges.
       const body = blankComments(read(rel));
-      const literals = [/\$149\b/, /\$299\b/, /\$249\b/]
+      const literals = [config.firstPostPrice, config.postingPrice, config.renewalPrice]
+        .map((price) => new RegExp(`\\$${price}\\b`))
         .filter((pattern) => pattern.test(body))
         .map((pattern) => `${rel} contains the literal ${String(pattern)}`);
       expect(offenders(literals, 'hardcodes a price that lives in config')).toBe('');

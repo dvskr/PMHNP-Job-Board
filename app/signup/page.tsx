@@ -66,7 +66,7 @@ export default async function SignUpPage({
           detail: 'Live platform numbers',
         }
       : {
-          message: `Your first job post is half price at $${config.firstPostPrice}, and every listing reaches a dedicated psychiatric-NP audience.`,
+          message: `Your first job post is $${config.firstPostPrice} instead of $${config.postingPrice}, and every listing reaches a dedicated psychiatric-NP audience.`,
           source: 'PMHNP Hiring',
           detail: 'Built for hiring PMHNPs',
         }

@@ -28,9 +28,9 @@ describe('post-job metadata sells the single-tier model from config', () => {
     expect(src).toContain('${config.durationDays}');
   });
 
-  it('advertises the half-price first post, and only the listing carries a duration', () => {
+  it('advertises the discounted first post, and only the listing carries a duration', () => {
     expect(src).toMatch(
-      /First post half price at \$\$\{config\.firstPostPrice\}, then \$\$\{config\.postingPrice\} for a \$\{config\.durationDays\}-day/,
+      /First post \$\$\{config\.firstPostPrice\}, then \$\$\{config\.postingPrice\} for a \$\{config\.durationDays\}-day/,
     );
     expect(src).not.toContain('First post free');
   });

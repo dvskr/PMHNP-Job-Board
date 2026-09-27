@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: 'For Employers: Hire PMHNPs | PMHNP Job Board',
   // Trimmed from 189 chars to ~145 for SERP display (audit 09 M-20).
   description:
-    `Hire Psychiatric Mental Health Nurse Practitioners. First post $${config.firstPostPrice}, half price, all features included. Reach thousands searching for PMHNP roles.`,
+    `Hire Psychiatric Mental Health Nurse Practitioners. First post $${config.firstPostPrice} instead of $${config.postingPrice}, all features included. Reach thousands searching for PMHNP roles.`,
   openGraph: {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP employer hiring solutions' }],
   },
@@ -51,7 +51,7 @@ async function getEmployerStats() {
 const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: true | false | 'partial'; linkedin: true | false | 'partial'; note?: string }[] = [
   { feature: 'PMHNP-Dedicated Audience', us: true, indeed: false, linkedin: false },
   { feature: 'PMHNP-Focused Applicant Pool', us: true, indeed: false, linkedin: false },
-  { feature: `Half-Price First Post`, us: true, indeed: false, linkedin: false, note: `$${config.firstPostPrice} once per employer` },
+  { feature: `${config.firstPostDiscountPercent()}% Off First Post`, us: true, indeed: false, linkedin: false, note: `$${config.firstPostPrice} once per employer` },
   { feature: `Flat $${config.postingPrice} Per Post, No Bidding`, us: true, indeed: false, linkedin: false, note: 'Indeed is pay-per-click' },
   { feature: `${config.durationDays}-Day Listing Duration`, us: true, indeed: false, linkedin: false, note: 'Others: 30 days' },
   { feature: 'Direct Candidate Messaging', us: true, indeed: false, linkedin: 'partial', note: 'LinkedIn: paid add-on' },

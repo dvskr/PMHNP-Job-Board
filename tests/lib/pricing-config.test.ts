@@ -67,8 +67,15 @@ describe('price ordering', () => {
 });
 
 describe('firstPostDiscountPercent', () => {
-  it('is 50, which is the number the copy says out loud', () => {
-    expect(config.firstPostDiscountPercent()).toBe(50);
+  it('is a sane headline discount, not an accident of the two prices', () => {
+    // Deliberately a band, not a figure. This used to assert exactly 50,
+    // which is a restatement of 149 against 299 rather than a property, so
+    // repricing to 199 and 349 broke it without anything being wrong. What
+    // actually matters is that the entry discount stays worth advertising
+    // and never becomes an implausible giveaway.
+    const pct = config.firstPostDiscountPercent();
+    expect(pct).toBeGreaterThanOrEqual(25);
+    expect(pct).toBeLessThanOrEqual(60);
   });
 
   it('is derived from the two prices, not stored separately', () => {

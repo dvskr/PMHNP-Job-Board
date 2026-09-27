@@ -877,7 +877,7 @@ function PostJobContent() {
             <Building2 size={24} color="#fff" />
           </div>
           <h2 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 8px' }}>
-            Your first job post is half price
+            Your first job post is discounted
           </h2>
           <p style={{ fontSize: '14px', color: '#6B7F8A', margin: '0 0 28px', lineHeight: 1.5 }}>
             {`Create an employer account and post for $${config.firstPostPrice} instead of $${config.postingPrice}. Takes about 5 minutes, and the listing runs ${config.durationDays} days.`}

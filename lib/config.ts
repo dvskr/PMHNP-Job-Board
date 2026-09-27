@@ -2,8 +2,21 @@
  * Pricing Config — Single-Tier, Paid-First Model
  *
  * All job posts get the SAME features (60-day, featured, 25 unlocks, 25 InMails).
- * The FIRST post per employer identity is half price ($149). Posts 2+ cost $299.
- * Renewals cost $249.
+ * The FIRST post per employer identity is discounted ($199). Posts 2+ cost
+ * $349. Renewals cost $249.
+ *
+ * PRICE MOVE (2026-09-27): first post 149 to 199, standard 299 to 349. The
+ * closest comparable, a nurse practitioner board, charges $389 for a 60-day
+ * post, and NP-specific boards cluster at $389 to $399, so the old standard
+ * sat under the market for a single-specialty board. Note that no employer
+ * had ever actually paid the 299: every sale to date was either the old 199
+ * flat price or the 149 first-post price, so the standard price is being
+ * repositioned rather than raised on anyone.
+ *
+ * The first-post discount is now 43%, not 50%, and it is DERIVED by
+ * firstPostDiscountPercent(). Any copy that states the number must call that
+ * helper rather than writing a figure, which is what
+ * tests/regressions/paid-first-pricing-static.test.ts enforces.
  *
  * WHY PAID-FIRST (2026-09): the previous model gave the first post away free,
  * and the free tier behaved as the product rather than as a funnel into the
@@ -32,18 +45,68 @@ export type PricingTier = 'pro';
 /** Which price a given post is charged at. */
 export type PostPriceKind = 'first' | 'standard' | 'renewal';
 
+/**
+ * Prepaid posting credits, for agencies that post continuously.
+ *
+ * Discounts follow the market: comparable boards cluster at about 10% off at
+ * three posts, 15% at five and 20 to 25% at ten. Credits sit on a 12-month
+ * clock, which every comparable pack does, and are spendable by anyone on
+ * the buying account.
+ *
+ * HOW A PACK INTERACTS WITH THE FIRST-POST DISCOUNT, decided here because
+ * the discount gate in create-checkout and the quote in post-price must
+ * agree and this file is the declared source of truth:
+ *
+ *   A credit-funded post is written with paymentStatus 'paid', so it COUNTS
+ *   in the discount gate exactly like any other paid post. Buying a pack
+ *   therefore ends the first-post discount.
+ *
+ * That is the intended behaviour, not a side effect. Someone who buys a pack
+ * as their first purchase pays less per post than the discounted entry plus
+ * standard pricing would cost them, so nothing is taken away. The opposite
+ * rule, where credit posts do not count, would let a buyer spend ten credits
+ * and still claim the entry discount on the eleventh.
+ *
+ * Credit posts write discountHoldKey null, like any standard post. Taking
+ * the hold would collide with the buyer's existing paid row on a unique
+ * index, and the one-shot recovery for that collision expires a Checkout
+ * session, which a credit post does not have.
+ */
+export interface CreditPackOption {
+  /** Stable id, carried in Stripe metadata. */
+  id: string;
+  credits: number;
+  priceCents: number;
+  /** Whole percent off the standard per-post price, for copy. */
+  savingsPercent: number;
+}
+
 export const config = {
   // ─── Single-Tier Pricing ───
   /** How many half-price posts an employer identity gets, ever. */
   discountedPostsPerEmployer: 1,
-  firstPostPrice: 149,     // dollars, first post per employer identity
-  postingPrice: 299,       // dollars, standard
+  firstPostPrice: 199,     // dollars, first post per employer identity
+  postingPrice: 349,       // dollars, standard
   renewalPrice: 249,       // dollars
-  stripeFirstPostPriceInCents: 14900,
-  stripePriceInCents: 29900,
+  stripeFirstPostPriceInCents: 19900,
+  stripePriceInCents: 34900,
   stripeRenewalPriceInCents: 24900,
   /** Every post runs 60 days. The old 30-day free-post split is retired. */
   durationDays: 60,
+
+  /** How long prepaid credits stay spendable. */
+  creditPackValidDays: 365,
+
+  /**
+   * The packs on sale. Prices are round numbers near the market discount
+   * curve rather than exact percentages of 349, because a pack priced at
+   * $1,484.25 reads as arithmetic rather than as an offer.
+   */
+  creditPacks: [
+    { id: 'pack3', credits: 3, priceCents: 94500, savingsPercent: 10 },
+    { id: 'pack5', credits: 5, priceCents: 148500, savingsPercent: 15 },
+    { id: 'pack10', credits: 10, priceCents: 279000, savingsPercent: 20 },
+  ] as CreditPackOption[],
 
   // All posts are featured (no differentiation)
   isFeatured: true,
@@ -86,9 +149,17 @@ export const config = {
     return config.stripePriceInCents
   },
 
-  /** Whole-percent discount the first post carries, for copy ("50% off"). */
+  /** Whole-percent discount the first post carries, for copy. */
   firstPostDiscountPercent: (): number =>
     Math.round((1 - config.firstPostPrice / config.postingPrice) * 100),
+
+  /** A pack by its id, or undefined. Never trust an id straight from a form. */
+  creditPackById: (id: string): CreditPackOption | undefined =>
+    config.creditPacks.find((p) => p.id === id),
+
+  /** What one post inside a pack works out at, in whole dollars, for copy. */
+  creditPackPerPostPrice: (pack: CreditPackOption): number =>
+    Math.round(pack.priceCents / pack.credits / 100),
 
   /**
    * Returns the tier label for display purposes. Always 'Pro' in the

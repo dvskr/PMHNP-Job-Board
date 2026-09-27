@@ -22,10 +22,16 @@ import { summarizeForMeta } from '@/lib/description-cleaner';
 import { normalizeExperienceFromInput } from '@/lib/experience-label';
 import { buildQuotaKeys, domainFromEmail } from '@/lib/employer-quota';
 import { expiresFromNow } from '@/lib/expires-at';
+import { getCreditBalance, spendOneCredit, refundOneCredit } from '@/lib/credit-packs';
 import { collectJobTypes } from '@/lib/job-normalizer';
 import { extractEligibleStates } from '@/lib/eligible-states';
 import { STATE_NAME_TO_CODE } from '@/lib/us-states';
 import { readJsonBody } from '@/app/api/_lib/json-body';
+// A credit-funded post publishes here instead of in the Stripe webhook, so
+// everything the webhook does on publish has to happen here too.
+import { sendConfirmationEmail } from '@/lib/email-service';
+import { pingAllSearchEngines } from '@/lib/search-indexing';
+import { inngest } from '@/lib/inngest/client';
 
 // Lazy Stripe client — instantiated per-request so a missing STRIPE_SECRET_KEY
 // surfaces as a clean 503 instead of crashing on module import.
@@ -525,6 +531,130 @@ export async function POST(request: NextRequest) {
       });
       return released.count > 0;
     };
+
+    // ── Spend a prepaid credit instead of charging a card ──────────────
+    //
+    // Checked before anything is created, so an agency with credits never
+    // reaches Stripe at all. Claim-first, the same discipline the alert
+    // sender and the discount hold both settled on: take the credit, then
+    // build the posting, and hand the credit back if the build fails. The
+    // other order loses a posting somebody paid for.
+    //
+    // discountHoldKey is forced to null here. Taking the hold would collide
+    // on the unique index with this account's existing paid row, and the
+    // one-shot recovery for that collision works by expiring a Checkout
+    // session, which a credit post does not have.
+    if (userId) {
+      const creditKeys = buildQuotaKeys({ userId, signupEmail, lockedCompanyName });
+      const balance = await getCreditBalance(userId, creditKeys);
+
+      if (balance.available > 0) {
+        const packId = await spendOneCredit(userId, creditKeys);
+        if (packId) {
+          discountHoldKey = null;
+          try {
+            const created = await createPosting();
+            const expiresAt = expiresFromNow(config.durationDays);
+
+            // Published in one update rather than through the webhook: there
+            // is no payment event coming for this posting, because the money
+            // arrived when the pack was bought.
+            await prisma.$transaction([
+              prisma.job.update({
+                where: { id: created.job.id },
+                data: { isPublished: true, isFeatured: config.isFeatured, expiresAt },
+              }),
+              prisma.employerJob.update({
+                where: { id: created.employerJob.id },
+                data: {
+                  paymentStatus: 'paid',
+                  fundingSource: 'credit_pack',
+                  creditPackId: packId,
+                },
+              }),
+            ]);
+
+            logger.info('Job published from a prepaid credit', {
+              jobId: created.job.id, packId, userId,
+            });
+
+            // ── Everything the webhook does on publish ──────────────────
+            //
+            // This path never reaches the Stripe webhook, so each of these
+            // has to be repeated here or a credit post is a second-class
+            // listing. The embedding refresh and the alert fan-out are the
+            // two that matter most: "Distribution audit A1" in the webhook
+            // records that the paid path once flipped isPublished without
+            // firing the refresh, which left PAID posts invisible to AI
+            // search and recommendations. Leaving them out here would
+            // reintroduce exactly that bug on a new path.
+            //
+            // All fire-and-forget. The posting is already live and paid
+            // for, so none of these may fail the request.
+            inngest.send({
+              name: 'embedding.refresh.job',
+              data: { jobId: created.job.id },
+            }).catch((err) => {
+              logger.warn('inngest.send embedding.refresh.job failed (credit post)', undefined, err);
+            });
+
+            inngest.send({
+              name: 'job/employer.published',
+              data: { jobId: created.job.id },
+            }).catch((err) => {
+              logger.warn('inngest.send job/employer.published failed (credit post)', undefined, err);
+            });
+
+            if (created.job.slug) {
+              pingAllSearchEngines(`https://pmhnphiring.com/jobs/${created.job.slug}`).catch((err) =>
+                logger.error('Background indexing ping failed (credit post)', err),
+              );
+            }
+
+            // No invoice arguments: the money for this post was taken when
+            // the pack was bought, and that purchase has its own Stripe
+            // invoice. There is no JobCharge row for a credit post, so
+            // passing an invoice URL here would link to nothing.
+            void sendConfirmationEmail(
+              created.employerJob.contactEmail,
+              created.job.title,
+              created.job.id,
+              created.employerJob.dashboardToken,
+            ).catch((emailError) => {
+              logger.error('Confirmation email failed (credit post)', emailError, {
+                jobId: created.job.id,
+              });
+            });
+
+            // The draft has been posted; leaving it behind makes the
+            // dashboard offer to resume a job that is already live.
+            prisma.jobDraft
+              .deleteMany({ where: { email: created.employerJob.contactEmail } })
+              .catch((draftError) => {
+                logger.error('Draft cleanup failed (credit post)', draftError, {
+                  jobId: created.job.id,
+                });
+              });
+
+            return NextResponse.json({
+              paidWithCredit: true,
+              jobId: created.job.id,
+              dashboardToken,
+              creditsRemaining: balance.available - 1,
+              redirectUrl: `/employer/dashboard?posted=${created.job.id}`,
+            });
+          } catch (creditErr) {
+            // The credit is only spent if a posting exists to show for it.
+            await refundOneCredit(packId);
+            logger.error('Credit post failed; credit returned', creditErr, { packId, userId });
+            return NextResponse.json(
+              { error: 'Could not publish the post. Your credit was not used.' },
+              { status: 500 },
+            );
+          }
+        }
+      }
+    }
 
     let job: Awaited<ReturnType<typeof createPosting>>['job'];
     let employerJob: Awaited<ReturnType<typeof createPosting>>['employerJob'];

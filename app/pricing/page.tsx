@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import EmployerTestimonials from '@/components/EmployerTestimonials';
+import CreditPackCards from '@/components/pricing/CreditPackCards';
 import { config } from '@/lib/config';
 import { Check, ArrowRight, X, HelpCircle, RefreshCw } from 'lucide-react';
 
@@ -43,7 +44,7 @@ const clayIconWrap = (gradient: string): React.CSSProperties => ({
 const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: true | false | 'partial'; linkedin: true | false | 'partial'; note?: string }[] = [
     { feature: 'PMHNP-Dedicated Audience', us: true, indeed: false, linkedin: false },
     { feature: 'PMHNP-Focused Applicant Pool', us: true, indeed: false, linkedin: false },
-    { feature: `Half-Price First Post`, us: true, indeed: false, linkedin: false, note: `$${config.firstPostPrice} once per employer` },
+    { feature: `${config.firstPostDiscountPercent()}% Off First Post`, us: true, indeed: false, linkedin: false, note: `$${config.firstPostPrice} once per employer` },
     { feature: `Flat $${config.postingPrice} Per Post, No Bidding`, us: true, indeed: false, linkedin: false, note: 'Indeed is pay-per-click' },
     { feature: `${config.durationDays}-Day Listing Duration`, us: true, indeed: false, linkedin: false, note: 'Others: 30 days' },
     { feature: 'Direct Candidate Messaging', us: true, indeed: false, linkedin: 'partial', note: 'LinkedIn: paid add-on' },
@@ -56,14 +57,15 @@ const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: t
 const renewalDiscountPercent = Math.round((1 - config.renewalPrice / config.postingPrice) * 100);
 
 const faqs = [
-    { q: 'How much does it cost to post a job?', a: `Your first post is ${config.firstPostDiscountPercent()}% off: $${config.firstPostPrice} instead of $${config.postingPrice}. That half-price rate applies once per employer. Every post after it is a flat $${config.postingPrice}.` },
+    { q: 'How much does it cost to post a job?', a: `Your first post is ${config.firstPostDiscountPercent()}% off: $${config.firstPostPrice} instead of $${config.postingPrice}. That rate applies once per employer. Every post after it is a flat $${config.postingPrice}.` },
     { q: 'How long do job postings stay active?', a: `Every posting runs for ${config.durationDays} days, first post included. You can renew at any time from your employer dashboard.` },
     { q: 'What does renewal cost?', a: `Renewals are $${config.renewalPrice} (${renewalDiscountPercent}% off the regular price). Your listing gets another ${config.durationDays} days and is boosted back to the top of search results.` },
     { q: 'If I renew before my posting expires, do I lose the remaining days?', a: `No. Renewing early adds ${config.durationDays} days to your current expiration date, so you don't lose any time you've already paid for. Renew whenever it's convenient.` },
-    { q: 'Is the half-price first post any different from a standard post?', a: `No. Same features: Featured badge, top placement, ${config.limits.candidateUnlocksPerPosting} candidate unlocks, ${config.limits.inmailsPerPosting} InMails, full analytics, and the same ${config.durationDays}-day duration. The only difference is the price.` },
+    { q: 'Is the discounted first post any different from a standard post?', a: `No. Same features: Featured badge, top placement, ${config.limits.candidateUnlocksPerPosting} candidate unlocks, ${config.limits.inmailsPerPosting} InMails, full analytics, and the same ${config.durationDays}-day duration. The only difference is the price.` },
     { q: 'Do I lose access to candidates I\'ve unlocked when my posting expires?', a: 'No. Once you\'ve unlocked a candidate (viewed their full profile), their contact info, resume, and details remain in your dashboard forever, even after the posting expires. To unlock new candidates or send new InMails, you\'ll need an active posting.' },
     { q: 'Can I edit my job posting after publishing?', a: `Yes! You can edit your posting anytime from your dashboard: update salary, requirements, or any details. Changes go live immediately.` },
-    { q: 'Do you offer bulk discounts?', a: 'Yes! Contact us at support@pmhnphiring.com for custom pricing if you need to post 5+ positions. We offer volume discounts for larger organizations.' },
+    { q: 'Do you offer bulk discounts?', a: `Yes. Prepaid packs run from ${config.creditPacks[0].credits} posts at $${(config.creditPacks[0].priceCents / 100).toLocaleString('en-US')} up to ${config.creditPacks[config.creditPacks.length - 1].credits} posts at $${(config.creditPacks[config.creditPacks.length - 1].priceCents / 100).toLocaleString('en-US')}, saving up to ${config.creditPacks[config.creditPacks.length - 1].savingsPercent}% per post. You buy them on this page and the credits are drawn automatically the next time you post. For anything larger, or if you need a purchase order, email support@pmhnphiring.com.` },
+    { q: 'How do prepaid credits work?', a: `Each credit publishes one ${config.durationDays} day featured listing with the full package. When you post, we use a credit before charging a card, always the soonest to expire first. Credits stay good for ${config.creditPackValidDays} days and can be spent by anyone on your team account.` },
 ];
 
 export default function PricingPage() {
@@ -93,7 +95,7 @@ export default function PricingPage() {
                             First Post ${config.firstPostPrice}, Then ${config.postingPrice}
                         </h1>
                         <p style={{ fontSize: '17px', color: '#5A4A42', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
-                            Half price on your first post, ${config.postingPrice} after that, ${config.renewalPrice} to renew. Every post runs {config.durationDays} days with the full package: no downgrades, no hidden fees.
+                            ${config.firstPostPrice} for your first post, ${config.postingPrice} after that, ${config.renewalPrice} to renew. Every post runs {config.durationDays} days with the full package: no downgrades, no hidden fees.
                         </p>
                     </div>
                 </section>
@@ -256,6 +258,11 @@ export default function PricingPage() {
 
                     </div>
                 </section>
+
+                {/* ─── Prepaid credit packs. Below the single-post card on
+                     purpose: most visitors are hiring for one role, and the
+                     packs only make sense once the per-post price is known. ─── */}
+                <CreditPackCards />
 
                 {/* ─── Featured Employer Testimonials (renders nothing until an
                      admin features a consented testimonial) ─── */}

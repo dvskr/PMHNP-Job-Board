@@ -110,6 +110,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // A credit-funded post has no charge of its own, and must not be given
+    // one. It has no JobCharge row and no Checkout session, so it would fall
+    // all the way through to the config fallback below and print a standard
+    // price as the amount billed for this posting. Nobody was charged that:
+    // the money was one lump sum for the pack, at a different per-post rate,
+    // and it already has its own Stripe invoice. Inventing a figure on a
+    // document that also carries tax ids is the wrong kind of wrong.
+    if (employerJob.fundingSource === 'credit_pack') {
+      return NextResponse.json(
+        {
+          error: 'No separate invoice for a post paid with a prepaid credit.',
+          message:
+            'This listing used one of your prepaid posting credits. The invoice for that purchase was emailed by Stripe when you bought the pack, and covers every post in it.',
+        },
+        { status: 404 }
+      );
+    }
+
     // Audit #2: pull the actual charge from the ledger.
     const charge = chargeId
       ? await prisma.jobCharge.findFirst({

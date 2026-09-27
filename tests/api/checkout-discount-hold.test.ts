@@ -3,9 +3,10 @@
  *
  * THE RACE. The gate COUNTS an identity's prior posts and the EmployerJob
  * insert ACTS on that count. Two requests fired at the same instant both read
- * "no prior posts", so both would mint a payable half-price Stripe session and
- * the employer could pay $149 twice. Expiring earlier sessions cannot close it:
- * when each request looks, the other has not created its session yet.
+ * "no prior posts", so both would mint a payable discounted Stripe session and
+ * the employer could spend a once-per-identity discount twice. Expiring earlier
+ * sessions cannot close it: when each request looks, the other has not created
+ * its session yet.
  *
  * THE FIX. EmployerJob.discountHoldKey is UNIQUE, so Postgres decides the
  * winner. The loser catches P2002 and resolves it by asking who holds the
@@ -116,8 +117,41 @@ describe('losing the race resolves to the right price', () => {
   it('retries exactly once, because both outcomes are terminal', () => {
     // Both branches settle the question, so a loop could only spin.
     expect(route).not.toMatch(/while \([\s\S]{0,40}conflictedOnHold/);
-    const retries = route.match(/await createPosting\(\)/g) ?? [];
+
+    // Scoped to the try/catch that handles the hold collision. Counting
+    // every `await createPosting()` in the file used to work and stopped
+    // the moment the credit-spend branch added a call on a different path,
+    // which is not a retry and must not be counted as one.
+    const start = route.indexOf('let job: Awaited<ReturnType<typeof createPosting>>');
+    expect(start, 'the paid-checkout path moved').toBeGreaterThan(-1);
+    const end = route.indexOf('const session = await stripe.checkout.sessions.create', start);
+    expect(end, 'the Stripe session call moved').toBeGreaterThan(start);
+
+    const retries = route.slice(start, end).match(/await createPosting\(\)/g) ?? [];
     expect(retries).toHaveLength(2);
+  });
+
+  it('a credit-funded post never takes the discount hold', () => {
+    // The hold is a unique index on acct:<userId> that is deliberately never
+    // released once paid, so a second row taking it throws P2002, and the
+    // recovery for that throw expires a Checkout session a credit post does
+    // not have.
+    const creditBranch = route.slice(
+      route.indexOf('Spend a prepaid credit'),
+      route.indexOf('let job: Awaited<ReturnType<typeof createPosting>>'),
+    );
+    expect(creditBranch.length).toBeGreaterThan(0);
+    expect(creditBranch).toMatch(/discountHoldKey = null/);
+  });
+
+  it('a credit is claimed before the posting exists, and returned if it fails', () => {
+    const creditBranch = route.slice(
+      route.indexOf('Spend a prepaid credit'),
+      route.indexOf('let job: Awaited<ReturnType<typeof createPosting>>'),
+    );
+    expect(creditBranch.indexOf('spendOneCredit'))
+      .toBeLessThan(creditBranch.indexOf('await createPosting()'));
+    expect(creditBranch).toMatch(/refundOneCredit/);
   });
 });
 

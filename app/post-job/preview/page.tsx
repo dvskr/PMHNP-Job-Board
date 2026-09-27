@@ -222,9 +222,9 @@ export default function PreviewPage() {
   };
 
   const packageHeadline = isFirstPost
-    ? `Half price first post: $${priceDollars} for ${config.durationDays} days`
+    ? `Discounted first post: $${priceDollars} for ${config.durationDays} days`
     : isStandardPost
-      ? `Your organization${contactDomain ? ` (${contactDomain})` : ''} has used its half price first post. This listing is $${priceDollars} for ${config.durationDays} days`
+      ? `Your organization${contactDomain ? ` (${contactDomain})` : ''} has used its discounted first post. This listing is $${priceDollars} for ${config.durationDays} days`
       : `$${priceDollars} for ${config.durationDays} days`;
   const packageDetails = `Top placement · ${config.limits.candidateUnlocksPerPosting} candidate unlocks · ${config.limits.inmailsPerPosting} InMails · Applicant analytics`;
 

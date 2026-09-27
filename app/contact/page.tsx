@@ -23,7 +23,7 @@ import ContactFAQ from './ContactFAQ';
 const FAQ_ITEMS = [
     { q: 'Is PMHNP Hiring free for job seekers?', a: 'Yes! Browsing jobs, setting up alerts, and applying are completely free. We never charge job seekers.' },
     { q: 'How often are jobs updated?', a: 'Our pipeline runs twice daily, pulling from major job boards and direct employer career pages.' },
-    { q: 'How do I post a job as an employer?', a: `Posting is paid. Your first post is half price at $${config.firstPostPrice} instead of $${config.postingPrice}, once per employer, and every post runs for ${config.durationDays} days with Featured placement included. See pmhnphiring.com/pricing for what each post includes.` },
+    { q: 'How do I post a job as an employer?', a: `Posting is paid. Your first post is $${config.firstPostPrice} instead of $${config.postingPrice}, once per employer, and every post runs for ${config.durationDays} days with Featured placement included. See pmhnphiring.com/pricing for what each post includes.` },
     { q: 'Can I get daily job alerts?', a: 'Absolutely! Sign up for free and set your preferences (location, job type, salary range). We\'ll email you matching jobs daily.' },
     { q: 'How do I delete my account?', a: 'Go to Settings > Account and click "Delete Account", or email us at support@pmhnphiring.com and we\'ll handle it within 24 hours.' },
     { q: 'Why did a job listing disappear?', a: 'Jobs are automatically removed when they expire, get filled, or are reported by multiple users as invalid. Check the employer\'s site for the latest openings.' },
