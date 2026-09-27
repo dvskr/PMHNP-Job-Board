@@ -258,6 +258,11 @@ model PostingCreditPack {
   /// uses this window.
   expiresAt             DateTime  @map("expires_at")
   refundedAt            DateTime? @map("refunded_at")
+  /// Set while a chargeback on the pack purchase is open, and cleared if the
+  /// bank finds for us. Separate from refundedAt because a dispute can be
+  /// WON: reusing the refund column would have to lie about what happened to
+  /// restore the pack, and the two states exit differently.
+  disputedAt            DateTime? @map("disputed_at")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 

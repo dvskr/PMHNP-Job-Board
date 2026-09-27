@@ -9,12 +9,17 @@ This document describes the live state. Every number below is read from `lib/con
 
 ---
 
+> Repriced 2026-09-27: first post $149 to $199, standard $299 to $349. The
+> entry discount is 43%, down from 50%, and is derived by
+> `firstPostDiscountPercent()` rather than written anywhere. Prepaid credit
+> packs were added at the same time; see `config.creditPacks`.
+
 ## 1. The model
 
 | Item | Value | Config key |
 |---|---|---|
-| First post per employer identity | $149 | `firstPostPrice` |
-| Every post after the first | $299 | `postingPrice` |
+| First post per employer identity | $199 | `firstPostPrice` |
+| Every post after the first | $349 | `postingPrice` |
 | Renewal | $249 | `renewalPrice` |
 | Discounted posts per employer, lifetime | 1 | `discountedPostsPerEmployer` |
 | Listing duration, every post | 60 days | `durationDays` |
@@ -34,7 +39,7 @@ config.firstPostDiscountPercent()                        // 50, for copy
 
 **Every post is paid.** There is no unpaid posting path. There is no duration split: the retired free post ran for a shorter window, and that split is gone along with it.
 
-**Every post gets the same features.** The discount changes the price of the first post and nothing else. A $149 post and a $299 post are the same product for the same 60 days with the same unlocks, InMails, featured badge, and placement.
+**Every post gets the same features.** The discount changes the price of the first post and nothing else. A $199 post and a $349 post are the same product for the same 60 days with the same unlocks, InMails, featured badge, and placement.
 
 ---
 
@@ -42,8 +47,8 @@ config.firstPostDiscountPercent()                        // 50, for copy
 
 | Before | After |
 |---|---|
-| First post per employer identity was free | First post is half price at $149 |
-| Posts after the first cost less | Posts after the first cost $299 |
+| First post per employer identity was free | First post is discounted to $199 |
+| Posts after the first cost less | Posts after the first cost $349 |
 | Renewal priced off the old standard | Renewal is $249 |
 | Free posts ran a shorter window, paid posts ran 60 days | Every post runs 60 days |
 | A quota-key collision refused the post | A quota-key collision only removes the discount |
@@ -54,9 +59,9 @@ config.firstPostDiscountPercent()                        // 50, for copy
 
 **Why.** The free tier was not a funnel into the paid product, it was the product: the overwhelming majority of listings never reached a checkout, so the board carried the cost of hosting, indexing, alerting, and supporting posts that produced no revenue and no signal about what an employer would actually pay. A free first post also attracted the posts least worth carrying, because the employers with real hiring budget were never the ones deterred by the price.
 
-Half price does the job the free post was supposed to do. It still lowers the bar for an employer who has never used the board, it still gives them a reason to try one listing before committing, and it puts every employer on a paid footing from the first transaction, which is the only way the board learns what its listings are worth.
+A discounted entry does the job the free post was supposed to do. It still lowers the bar for an employer who has never used the board, it still gives them a reason to try one listing before committing, and it puts every employer on a paid footing from the first transaction, which is the only way the board learns what its listings are worth.
 
-**Why a collision no longer refuses.** The quota keys existed to protect a giveaway. Under a paid model, refusing a paying employer because a colleague at the same domain posted last quarter is straightforwardly wrong: it turns a returning customer away at the till. So the machinery survives unchanged and its verdict is reinterpreted. A collision now means "you have already had the discount, this one is $299".
+**Why a collision no longer refuses.** The quota keys existed to protect a giveaway. Under a paid model, refusing a paying employer because a colleague at the same domain posted last quarter is straightforwardly wrong: it turns a returning customer away at the till. So the machinery survives unchanged and its verdict is reinterpreted. A collision now means "you have already had the discount, this one is at the standard price".
 
 **Why consumer domains are allowed.** Same reasoning. Gmail and the rest were blocked because a consumer mailbox is a cheap way to mint fresh identities against a free giveaway. Nothing is being given away now, and a solo practitioner hiring their first PMHNP is a real customer. They simply get no `dom:` key, so their discount is gated on their account alone.
 
@@ -176,6 +181,7 @@ Rules for anyone touching pricing copy still apply: interpolate every number fro
 | `/api/webhooks/stripe` | POST | publishes the job, writes the ledger, sends mail, fires the purchase event |
 | `/api/employer/invoice` | GET | PDF from the `JobCharge` ledger |
 | `/api/employer/usage` | GET | per-posting credit usage |
+| `/api/create-pack-checkout` | POST | buys a prepaid posting credit pack |
 
 ### 6a. `GET /api/employer/post-price`
 
@@ -184,10 +190,13 @@ The response shape is fixed:
 ```ts
 {
   eligible: boolean,                       // may this employer post at all
-  isFirstPost: boolean,                    // does the half-price discount apply
+  isFirstPost: boolean,                    // does the entry discount apply
   priceKind: 'first' | 'standard',         // renewal never comes from this endpoint
   priceDollars: number,                    // config.priceFor(priceKind)
   remaining: number,                       // discounts left, 0 or 1
+  fundedByCredit: boolean,                 // a prepaid credit will cover this post
+  creditsAvailable: number,                // spendable credits across live packs
+  creditsExpireAt: string | null,          // ISO, soonest-expiring pack with credits
   reason?: string                          // why eligible is false
 }
 ```
@@ -195,6 +204,28 @@ The response shape is fixed:
 `eligible` answers "may this employer post", which for a signed-in employer account is essentially always yes. It is false only for the structural cases: not signed in, or not an employer account. A consumer email domain is **not** a reason for `eligible: false` any more.
 
 `isFirstPost` answers the separate question "does the discount apply". Do not conflate the two: the old endpoint's `willBeFree` carried both meanings at once, which is exactly why callers had to be rewritten rather than renamed.
+
+`fundedByCredit` outranks both for display. `/api/create-checkout` draws a credit before it prices anything, so when this is true the UI must stop naming a dollar amount: `priceDollars` is then what the post is worth, not what is about to be charged. The balance read here is optimistic by at most one post, in the window where another tab spends the last credit, and that tab's checkout simply falls back to charging.
+
+### 6c. Prepaid credit packs
+
+A pack is **one** Stripe payment that funds N postings later, which is why it is not in the `JobCharge` ledger: that table is keyed to a single `employer_job_id`.
+
+| Concern | Where it is settled |
+|---|---|
+| Price | `config.creditPacks`, resolved by id. A tampered `packId` picks a different pack, never a different price for one. |
+| Row creation | the webhook, on `checkout.session.completed`, keyed on `stripe_session_id` (`@unique`). The route writes nothing, so an abandoned pack checkout leaves no row. |
+| Webhook ordering | the `credit_pack` branch sits **above** the missing-`jobId` 400. Below it, the first pack sold would be paid for and never delivered, because that 400 deliberately keeps the dedupe row. |
+| Spending | `spendOneCredit`, a conditional `UPDATE ... WHERE credits_used < credits_total` returning a row count. Not a read-then-write. |
+| Spend order | soonest-expiring pack first, so nobody loses credits they paid for. |
+| Who may spend | the buyer (`acct:`) and their signup domain (`dom:`), and **not** `org:`. `buildQuotaKeys` is a DENY key set where a false match costs one discount, and it accepts a stated residual risk to get there: `org:` is a company name the account typed for itself at signup, verified by nobody. Reused to GRANT, that same risk buys a whole pack. Filtered in `spendableWhere`, so it governs packs already sold with the wider set snapshotted on them. |
+| Failure | claim-first: the credit is taken, then the posting is built, and `refundOneCredit` hands it back if the build fails. |
+| Discount interaction | a credit post writes `paymentStatus: 'paid'`, so it **counts** in the first-post discount gate, and writes `discountHoldKey: null`, so it never takes the hold. |
+| Refund | `charge.refunded` matches the pack on the payment intent **before** the no-matching-`JobCharge` return. A full refund sets `refunded_at` and revokes the postings the pack funded; a partial refund leaves the credits intact and logs. |
+| Chargeback | `charge.dispute.created` and `charge.dispute.closed` do the same lookup first, for the same reason. An open dispute sets `disputed_at`, which freezes spending and revokes funded postings to `'disputed'`. Winning clears it and restores them to `'paid'`, left unpublished for the employer to relist. A separate column from `refunded_at` because a dispute can be won and the two states exit differently. |
+| Invoice | there is none per post. `/api/employer/invoice` 404s for `fundingSource: 'credit_pack'` and points at the pack's own Stripe invoice, rather than falling through to the config price and printing an amount nobody was charged. |
+
+The client response for a credit-funded post is `{ paidWithCredit: true, redirectUrl }` and carries **no** `url`: there is no Stripe session. Any caller that reads only `url` will report a failure over a post that went live, and the natural retry spends a second credit.
 
 ### 6b. `POST /api/jobs/post-free`
 
@@ -215,6 +246,9 @@ Unchanged by this migration. The fields that matter to pricing:
 | `Job.expiresAt` | drives the active-posting definition. Set to now plus `durationDays` on payment. |
 | `JobCharge` | one row per Stripe checkout, the invoice source of truth. Carries the refund fields. |
 | `ProcessedStripeEvent` | webhook idempotency log, keyed on the Stripe event id. |
+| `PostingCreditPack` | one row per pack purchase. `credits_total` / `credits_used` are the entitlement; `refunded_at` and `expires_at` are what `spendableWhere` filters on. |
+| `EmployerJob.fundingSource` | `'stripe'` or `'credit_pack'`. `paymentStatus` stays `'paid'` for both: a fourth payment status would pass the renewal route's denylist while breaking invoice, receipt, toggle-publish, sorting and the admin org rollup, all of which test for `'paid'` exactly. |
+| `EmployerJob.creditPackId` | which pack funded the post, so a pack refund can find what to revoke. |
 
 The discount count reads discounted posts, not free ones. Historical rows with `paymentStatus='free'` are the retired model's output; whether they consume the new discount is a product decision recorded wherever the gate query lives, not something to infer from the schema.
 
@@ -242,6 +276,7 @@ Three standing rules:
 | [tests/regressions/paid-first-pricing-static.test.ts](../tests/regressions/paid-first-pricing-static.test.ts) | the retired config keys are gone, `post-free` is a 410 stub, no surface advertises a free post or promises a refund, no dashes on the three highest-traffic pricing pages |
 | [tests/lib/tier-limits.test.ts](../tests/lib/tier-limits.test.ts) | unlock and InMail entitlement gates |
 | [tests/api/employer-quota.test.ts](../tests/api/employer-quota.test.ts) | quota key derivation and overlap |
+| [tests/api/credit-packs.test.ts](../tests/api/credit-packs.test.ts) | catalogue coherence, balance and spend semantics, the webhook branch ordering, pack refunds, and the credit path through checkout and its UI |
 
 The pricing-config test is the one that catches the specific mistake this config invites: dollars and Stripe cents are two independent literals, so an edit that updates `postingPrice` and forgets `stripePriceInCents` would charge a number no page displays.
 
@@ -284,7 +319,8 @@ Webhook behaviour is still covered end to end rather than in unit tests, via the
 | Item | Revisit when |
 |---|---|
 | Stripe Price catalog instead of inline `price_data` | enabling Stripe Tax, adding a currency, or running a price experiment |
-| Self-serve bulk packs | there is repeat multi-post demand to serve. Spec is in the audit doc. |
+| Credit reconciliation job | a credit is spent, then the posting is built, with `refundOneCredit` as the compensator. If the process dies between the two, the compensator never runs and the credit is spent with nothing to show for it. Nothing sweeps `PostingCreditPack.creditsUsed` against actual `EmployerJob` rows carrying that `creditPackId`, and the same window can orphan a `pending` Job/EmployerJob pair. Needs infra failure mid-request, so it is accepted for now; revisit if it is ever observed, or when pack volume makes it likely. |
+| Recurring subscriptions | packs show repeat demand that is genuinely continuous. Not built: a subscription needs a Stripe Product/Price, a Customer, the billing portal, dunning on `invoice.payment_failed`, and a decision about pooled entitlements, because unlocks and InMails are currently per-posting and a subscriber between roles would get nothing. |
 | Boost or spotlight upsell | there is an upsell path worth building above the base post |
 | Stripe Tax and a purchase-order path | a buyer who cannot pay by card asks |
 | Per-organization verification | the discount is being farmed across registered shell domains |
@@ -304,3 +340,5 @@ Webhook behaviour is still covered end to end rather than in unit tests, via the
 | **`hasFullAccess`** | Per-candidate gate: admin, or a previous unlock, or an active featured post. Lifetime once granted. |
 | **`JobCharge`** | One row per Stripe checkout. The invoice ledger, including refunds. |
 | **`ProcessedStripeEvent`** | Webhook idempotency log. Insert then process; a unique violation means already handled. |
+| **Credit pack** | One payment funding N future postings. Bought on `/pricing`, delivered by the webhook, spent by `spendOneCredit`. |
+| **Credit** | One unit of a pack. Publishes one `durationDays` featured listing and nothing else; it is not a currency and is never refunded as cash. |

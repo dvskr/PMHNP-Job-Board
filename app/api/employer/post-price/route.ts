@@ -4,15 +4,17 @@ import { createClient } from '@/lib/supabase/server';
 import { config, PostPriceKind } from '@/lib/config';
 import { logger } from '@/lib/logger';
 import { buildQuotaKeys, domainFromEmail } from '@/lib/employer-quota';
+import { getCreditBalance } from '@/lib/credit-packs';
 
 /**
  * GET /api/employer/post-price
  *
- * Read-only price preview for the post-job funnel, so the UI can say "$149,
- * half price" or "$299" before the employer commits to the form. It must
- * agree with /api/create-checkout, which is the route that actually charges:
- * same keys, same predicate, same 'pending'-excluded filter. When those two
- * drift the employer is quoted one price and billed another.
+ * Read-only price preview for the post-job funnel, so the UI can name the
+ * price before the employer commits to the form. It must agree with
+ * /api/create-checkout, which is the route that actually charges: same keys,
+ * same predicate, same 'pending'-excluded filter, and the same answer about
+ * whether a prepaid credit will cover this post. When those two drift the
+ * employer is quoted one price and billed another.
  *
  * `eligible` means MAY POST, which is now essentially always true for a
  * signed-in employer. It is not a pricing signal: the old endpoint refused
@@ -22,7 +24,13 @@ import { buildQuotaKeys, domainFromEmail } from '@/lib/employer-quota';
  *
  * `isFirstPost` is the discount signal, and a false value never blocks
  * anything. It just means this employer identity has already spent its
- * half-price entry.
+ * discounted entry.
+ *
+ * `fundedByCredit` outranks both. A live prepaid pack means create-checkout
+ * will draw a credit and never open a Checkout session, so priceDollars is
+ * what the post is worth, not what the employer is about to be charged. The
+ * UI has to say so, or someone with a pack sees a price and assumes buying
+ * the pack did nothing.
  */
 /** Renewals are priced by /api/create-renewal-checkout, never quoted here. */
 type NewPostPriceKind = Exclude<PostPriceKind, 'renewal'>;
@@ -33,6 +41,11 @@ interface PostPriceResponse {
   priceKind: NewPostPriceKind;
   priceDollars: number;
   remaining: number;
+  /** A prepaid credit will cover this post, so nothing is charged for it. */
+  fundedByCredit: boolean;
+  creditsAvailable: number;
+  /** ISO date the soonest-expiring spendable pack runs out, or null. */
+  creditsExpireAt: string | null;
   reason?: string;
 }
 
@@ -48,6 +61,11 @@ function ineligible(reason: string): PostPriceResponse {
     priceKind: 'standard',
     priceDollars: config.priceFor('standard'),
     remaining: 0,
+    // Claiming a credit we could not verify is the mirror of claiming a
+    // discount we could not verify: it promises a free post and then bills.
+    fundedByCredit: false,
+    creditsAvailable: 0,
+    creditsExpireAt: null,
     reason,
   };
 }
@@ -100,12 +118,22 @@ export async function GET() {
     const isFirstPost = remaining > 0;
     const priceKind: NewPostPriceKind = isFirstPost ? 'first' : 'standard';
 
+    // Same call, same keys, as the credit branch in /api/create-checkout.
+    // A balance read is not a claim: the spend is a conditional UPDATE in
+    // spendOneCredit and stays the only thing that decides. This can only
+    // be optimistic by one post, in the window where a second tab spends
+    // the last credit, and that tab's checkout falls back to charging.
+    const balance = await getCreditBalance(user.id, quotaKeys);
+
     const response: PostPriceResponse = {
       eligible: true,
       isFirstPost,
       priceKind,
       priceDollars: config.priceFor(priceKind),
       remaining,
+      fundedByCredit: balance.available > 0,
+      creditsAvailable: balance.available,
+      creditsExpireAt: balance.nextExpiry?.toISOString() ?? null,
     };
     return NextResponse.json(response);
   } catch (error) {

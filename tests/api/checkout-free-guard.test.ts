@@ -4,9 +4,9 @@
  * 1. CHECKOUT FIRST-POST PRICING. Under the retired free-post model this
  *    guard's job was to refuse a charge the employer did not owe. Now every
  *    post is paid and the same predicate decides only WHICH price applies,
- *    which reverses the danger: a wrong verdict here charges $299 for the
- *    half-price first post that was advertised, and the route must never turn
- *    a key collision back into a refusal to post.
+ *    which reverses the danger: a wrong verdict here bills the standard
+ *    price for the discounted first post that was advertised, and the route
+ *    must never turn a key collision back into a refusal to post.
  *
  * 2. EMPLOYER-EDIT LOCATION STALENESS. /api/jobs/update wrote the raw
  *    location string without re-running parseLocation, so city/state/

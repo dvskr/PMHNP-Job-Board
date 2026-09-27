@@ -1,0 +1,11 @@
+-- Chargebacks on a pack purchase.
+--
+-- charge.dispute.created and charge.dispute.closed both matched only on the
+-- JobCharge ledger, and a pack is deliberately not in that ledger, so a
+-- chargeback on a pack left every remaining credit spendable and every
+-- posting it had already funded live and featured.
+--
+-- A separate column from refunded_at because a dispute can be WON. Restoring
+-- a pack by clearing refunded_at would record that the money was never taken
+-- back, which is a different fact.
+ALTER TABLE "posting_credit_packs" ADD COLUMN "disputed_at" TIMESTAMP(3);

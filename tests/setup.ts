@@ -22,6 +22,7 @@ vi.mock('@/lib/prisma', () => {
                 aggregate: vi.fn(),
                 upsert: vi.fn(),
                 deleteMany: vi.fn(),
+                updateMany: vi.fn(),
             },
             emailLead: {
                 findUnique: vi.fn(),
@@ -48,6 +49,15 @@ vi.mock('@/lib/prisma', () => {
                 count: vi.fn(),
                 create: vi.fn(),
                 update: vi.fn(),
+                updateMany: vi.fn(),
+            },
+            postingCreditPack: {
+                findUnique: vi.fn(),
+                findMany: vi.fn(),
+                create: vi.fn(),
+                createMany: vi.fn(),
+                update: vi.fn(),
+                updateMany: vi.fn(),
             },
             profileView: {
                 count: vi.fn(),
@@ -168,6 +178,11 @@ vi.mock('@/lib/prisma', () => {
                 deleteMany: vi.fn(),
             },
             $queryRaw: vi.fn(),
+            // Credit spends are a conditional UPDATE, so the thing worth
+            // asserting is the SQL and its returned row count, not a
+            // findMany-then-update pair.
+            $executeRaw: vi.fn(),
+            $transaction: vi.fn(),
         },
     };
 });

@@ -6,6 +6,7 @@ import { requireEmployer } from '@/lib/auth/protect';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import EmployerDashboardClient from '@/components/employer/EmployerDashboardClient';
 import UnfinishedPostBanner from '@/components/employer/UnfinishedPostBanner';
+import { CheckCircle2 } from 'lucide-react';
 
 export const metadata: Metadata = {
     title: 'Employer Dashboard',
@@ -13,9 +14,18 @@ export const metadata: Metadata = {
     robots: { index: false, follow: false },
 };
 
-export default async function EmployerDashboardPage() {
+export default async function EmployerDashboardPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ credits?: string }>;
+}) {
     // Require employer or admin role — redirects to /unauthorized otherwise
     await requireEmployer();
+
+    // Where /api/create-pack-checkout sends a buyer after Stripe. Without
+    // this the largest purchase on the site lands on an unchanged-looking
+    // dashboard, and the only confirmation is a number in the usage strip.
+    const justBoughtCredits = (await searchParams).credits === 'purchased';
 
     const supabase = await createClient();
 
@@ -84,6 +94,28 @@ export default async function EmployerDashboardPage() {
                 client-side and renders a Resume + Discard pair when one
                 exists. Quiet when no draft (no flash on most visits). */}
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px 0' }}>
+                {justBoughtCredits && (
+                    <div
+                        role="status"
+                        style={{
+                            display: 'flex', alignItems: 'flex-start', gap: '10px',
+                            padding: '14px 18px', marginBottom: '14px',
+                            background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.25)',
+                            borderRadius: '14px',
+                        }}
+                    >
+                        <CheckCircle2 size={17} style={{ color: '#0D9488', flexShrink: 0, marginTop: '1px' }} />
+                        <div>
+                            <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#134E4A' }}>
+                                Your posting credits are ready
+                            </p>
+                            <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#4A5A55', lineHeight: 1.5 }}>
+                                Your balance is in the strip below. The next job you post uses a credit
+                                automatically, with nothing more to pay. Stripe has emailed your invoice.
+                            </p>
+                        </div>
+                    </div>
+                )}
                 <UnfinishedPostBanner />
             </div>
             <EmployerDashboardClient

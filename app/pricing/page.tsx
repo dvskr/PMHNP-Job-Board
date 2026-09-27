@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import EmployerTestimonials from '@/components/EmployerTestimonials';
+import CreditPackCards from '@/components/pricing/CreditPackCards';
 import { config } from '@/lib/config';
 import { Check, ArrowRight, X, HelpCircle, RefreshCw } from 'lucide-react';
 
@@ -63,7 +64,8 @@ const faqs = [
     { q: 'Is the discounted first post any different from a standard post?', a: `No. Same features: Featured badge, top placement, ${config.limits.candidateUnlocksPerPosting} candidate unlocks, ${config.limits.inmailsPerPosting} InMails, full analytics, and the same ${config.durationDays}-day duration. The only difference is the price.` },
     { q: 'Do I lose access to candidates I\'ve unlocked when my posting expires?', a: 'No. Once you\'ve unlocked a candidate (viewed their full profile), their contact info, resume, and details remain in your dashboard forever, even after the posting expires. To unlock new candidates or send new InMails, you\'ll need an active posting.' },
     { q: 'Can I edit my job posting after publishing?', a: `Yes! You can edit your posting anytime from your dashboard: update salary, requirements, or any details. Changes go live immediately.` },
-    { q: 'Do you offer bulk discounts?', a: 'Yes! Contact us at support@pmhnphiring.com for custom pricing if you need to post 5+ positions. We offer volume discounts for larger organizations.' },
+    { q: 'Do you offer bulk discounts?', a: `Yes. Prepaid packs run from ${config.creditPacks[0].credits} posts at $${(config.creditPacks[0].priceCents / 100).toLocaleString('en-US')} up to ${config.creditPacks[config.creditPacks.length - 1].credits} posts at $${(config.creditPacks[config.creditPacks.length - 1].priceCents / 100).toLocaleString('en-US')}, saving up to ${config.creditPacks[config.creditPacks.length - 1].savingsPercent}% per post. You buy them on this page and the credits are drawn automatically the next time you post. For anything larger, or if you need a purchase order, email support@pmhnphiring.com.` },
+    { q: 'How do prepaid credits work?', a: `Each credit publishes one ${config.durationDays} day featured listing with the full package. When you post, we use a credit before charging a card, always the soonest to expire first. Credits stay good for ${config.creditPackValidDays} days and can be spent by anyone on your team account.` },
 ];
 
 export default function PricingPage() {
@@ -256,6 +258,11 @@ export default function PricingPage() {
 
                     </div>
                 </section>
+
+                {/* ─── Prepaid credit packs. Below the single-post card on
+                     purpose: most visitors are hiring for one role, and the
+                     packs only make sense once the per-post price is known. ─── */}
+                <CreditPackCards />
 
                 {/* ─── Featured Employer Testimonials (renders nothing until an
                      admin features a consented testimonial) ─── */}

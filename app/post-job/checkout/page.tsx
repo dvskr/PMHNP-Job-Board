@@ -80,13 +80,19 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   // Which price this post carries — read-only check against the same endpoint
   // the preview page uses. We only ASSERT a state we actually verified:
-  //   'first-post' eligible + isFirstPost:true  → half price, guarantee applies
+  //   'credit'     eligible + fundedByCredit    → a prepaid credit covers it
+  //   'first-post' eligible + isFirstPost:true  → discounted entry price
   //   'standard'   eligible + isFirstPost:false → the discount is already spent
   //   null         unknown (fetch failed / not signed in) → neutral copy at the
   //                standard price; /api/create-checkout prices it authoritatively
+  //
+  // 'credit' outranks the other two because create-checkout draws a credit
+  // before it prices anything, so quoting a dollar amount here would name a
+  // charge that is not going to happen.
   const [quotaContext, setQuotaContext] = useState<
-    'first-post' | 'standard' | null
+    'credit' | 'first-post' | 'standard' | null
   >(null);
+  const [creditsAvailable, setCreditsAvailable] = useState(0);
   // Signed out. /api/create-checkout is session-gated, so pressing Pay would
   // fail on the far side of a click the employer had every reason to trust.
   const [needsLogin, setNeedsLogin] = useState(false);
@@ -99,10 +105,14 @@ export default function CheckoutPage() {
         if (!res.ok) return;
         const data = (await res.json()) as {
           eligible?: boolean; isFirstPost?: boolean; reason?: string;
+          fundedByCredit?: boolean; creditsAvailable?: number;
         };
         if (cancelled) return;
         if (data.eligible === true) {
-          setQuotaContext(data.isFirstPost ? 'first-post' : 'standard');
+          setCreditsAvailable(data.creditsAvailable ?? 0);
+          setQuotaContext(
+            data.fundedByCredit ? 'credit' : data.isFirstPost ? 'first-post' : 'standard',
+          );
         } else if (data.reason === 'unauthenticated') {
           setNeedsLogin(true);
         }
@@ -142,6 +152,7 @@ export default function CheckoutPage() {
   // authority and will apply the discount if this poster still has it.
   const priceKind: PostPriceKind = quotaContext === 'first-post' ? 'first' : 'standard';
   const priceDollars = config.priceFor(priceKind);
+  const paysWithCredit = quotaContext === 'credit';
 
   const handlePayment = async () => {
     if (!jobData) return;
@@ -149,8 +160,12 @@ export default function CheckoutPage() {
     setLoading(true);
     setError(null);
 
-    // P7: fire begin_checkout before redirect to Stripe
-    trackBeginCheckout(config.priceInCentsFor(priceKind), 'new');
+    // P7: fire begin_checkout before redirect to Stripe. Nothing is charged
+    // on the credit path, so booking the list price as checkout revenue there
+    // would double-count money that was already taken when the pack was sold.
+    if (!paysWithCredit) {
+      trackBeginCheckout(config.priceInCentsFor(priceKind), 'new');
+    }
 
     try {
       const response = await fetch('/api/create-checkout', {
@@ -193,7 +208,17 @@ export default function CheckoutPage() {
         throw new Error(fullMsg);
       }
 
-      const { url } = await response.json();
+      const { url, paidWithCredit, redirectUrl } = await response.json();
+
+      // A prepaid credit funded the post, so there is no Stripe session to
+      // send anyone to: the route already published the listing and returns
+      // its own redirect. Treating that as "no checkout URL" would show an
+      // error over a post that went live, and the obvious retry would spend
+      // a second credit on a duplicate.
+      if (paidWithCredit && redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
 
       if (url) {
         window.location.href = url;
@@ -207,7 +232,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const getPrice = () => `$${priceDollars}`;
+  const getPrice = () => (paysWithCredit ? '1 credit' : `$${priceDollars}`);
 
   const getPlanName = () => 'Job Post';
 
@@ -305,11 +330,13 @@ export default function CheckoutPage() {
           background: '#F0FDFA', border: '1px solid #99F6E4',
         }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#115E59', margin: 0, lineHeight: 1.5 }}>
-            {quotaContext === 'first-post'
-              ? `Discounted first post: $${config.firstPostPrice} instead of $${config.postingPrice}, for ${config.durationDays} days.`
-              : quotaContext === 'standard'
-                ? `Your discounted first post is used. This listing is $${config.postingPrice} for ${config.durationDays} days.`
-                : `Job listing: $${priceDollars} for ${config.durationDays} days.`}
+            {paysWithCredit
+              ? `This post uses 1 of your ${creditsAvailable} prepaid credits. Nothing to pay, live for ${config.durationDays} days.`
+              : quotaContext === 'first-post'
+                ? `Discounted first post: $${config.firstPostPrice} instead of $${config.postingPrice}, for ${config.durationDays} days.`
+                : quotaContext === 'standard'
+                  ? `Your discounted first post is used. This listing is $${config.postingPrice} for ${config.durationDays} days.`
+                  : `Job listing: $${priceDollars} for ${config.durationDays} days.`}
           </p>
         </div>
 
@@ -384,13 +411,15 @@ export default function CheckoutPage() {
               <p style={{ fontSize: '13px', color: '#8A9BA6', margin: 0 }}>{config.durationDays}-day listing</p>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              {priceKind === 'first' && (
+              {!paysWithCredit && priceKind === 'first' && (
                 <span style={{ fontSize: '16px', fontWeight: 600, color: '#B0BEC5', textDecoration: 'line-through', marginRight: '8px' }}>
                   ${config.postingPrice}
                 </span>
               )}
               <span style={{ fontSize: '28px', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35' }}>{getPrice()}</span>
-              <p style={{ fontSize: '12px', color: '#8A9BA6', margin: 0 }}>one-time</p>
+              <p style={{ fontSize: '12px', color: '#8A9BA6', margin: 0 }}>
+                {paysWithCredit ? `${creditsAvailable} available` : 'one-time'}
+              </p>
             </div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -431,7 +460,9 @@ export default function CheckoutPage() {
           }}
         >
           {loading ? (
-            <><Loader2 size={16} className="animate-spin" /> Creating checkout session...</>
+            <><Loader2 size={16} className="animate-spin" /> {paysWithCredit ? 'Publishing your post...' : 'Creating checkout session...'}</>
+          ) : paysWithCredit ? (
+            <><Lock size={15} /> Publish Now: Uses 1 Credit</>
           ) : (
             <><Lock size={15} /> Proceed to Payment: {getPrice()}</>
           )}
@@ -441,7 +472,7 @@ export default function CheckoutPage() {
             protection norms. Reduces post-charge "I didn't know it was
             non-refundable" support tickets and chargeback risk. */}
         <p style={{ textAlign: 'center', fontSize: '12px', color: '#8A9BA6', margin: '12px 0 0' }}>
-          By clicking Pay, you agree to our{' '}
+          By continuing, you agree to our{' '}
           <Link href="/terms" style={{ color: '#0D9488', textDecoration: 'underline' }}>
             Terms of Service
           </Link>

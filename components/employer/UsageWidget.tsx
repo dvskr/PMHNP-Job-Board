@@ -20,6 +20,9 @@ interface PostPriceStatus {
     priceKind: PostPriceKind;
     priceDollars: number;
     remaining: number;
+    fundedByCredit: boolean;
+    creditsAvailable: number;
+    creditsExpireAt: string | null;
     reason?: string;
 }
 
@@ -82,13 +85,19 @@ export default function UsageWidget() {
 
     const t = tierGradients[tier] || tierGradients.pro;
 
-    // Every employer is on the same plan; the only variable is whether their
-    // once-ever half-price first post is still unspent.
+    // Every employer is on the same plan; the only variables are whether their
+    // once-ever discounted first post is still unspent, and whether prepaid
+    // credits are sitting there. Credits win the line: they are money already
+    // spent, and an agency that cannot see its balance assumes the pack
+    // failed. The discount note is the smaller fact and yields.
+    const credits = quota?.eligible === true ? (quota.creditsAvailable ?? 0) : 0;
     const hasFirstPostDiscount = quota?.eligible === true && (quota.remaining ?? 0) > 0;
     const planLabel = tierLabel;
-    const planSublabel = hasFirstPostDiscount
-        ? `${config.firstPostDiscountPercent()}% off your first post`
-        : null;
+    const planSublabel = credits > 0
+        ? `${credits} prepaid ${credits === 1 ? 'post' : 'posts'} left`
+        : hasFirstPostDiscount
+            ? `${config.firstPostDiscountPercent()}% off your first post`
+            : null;
 
     return (
         <div style={{
@@ -162,7 +171,9 @@ export default function UsageWidget() {
                         fontSize: '10px', color: '#8A9BA6', margin: '1px 0 0',
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
-                        +25 unlocks · +25 InMails
+                        {credits > 0
+                            ? 'Uses 1 credit'
+                            : `+${config.limits.candidateUnlocksPerPosting} unlocks · +${config.limits.inmailsPerPosting} InMails`}
                     </p>
                 </div>
             </Link>

@@ -118,13 +118,27 @@ describe('isFeatured write consistency across the post paths (audit fact 7)', ()
     expect(flips.length).toBe(2);
   });
 
-  it('full refund AND chargeback revoke the featured flag with the unpublish', () => {
+  it('every revocation path clears the featured flag with the unpublish', () => {
     // Now that every live employer post is featured, a revoked post keeping
     // isFeatured:true would keep paid entitlements (messaging, candidate
     // unlocks) alive after the money came back.
+    //
+    // Asserted as an invariant over every unpublish, not as a count of them.
+    // The count was a proxy for this rule and broke the moment a correct
+    // third revocation path was added (credit pack refunds), which is
+    // exactly backwards: a new way to take the money back is the case this
+    // test most wants covered.
     const src = read('app/api/webhooks/stripe/route.ts');
-    const revocations = src.match(/isPublished: false, isFeatured: false/g) ?? [];
-    expect(revocations.length).toBe(2);
+
+    const unpublishes = src.match(/isPublished: false[^}]*/g) ?? [];
+    expect(unpublishes.length, 'no unpublish sites found at all').toBeGreaterThanOrEqual(2);
+    for (const site of unpublishes) {
+      expect(site, `an unpublish leaves isFeatured set: ${site}`).toContain('isFeatured: false');
+    }
+
+    // The two original money-back paths must still be among them.
+    expect(src).toContain("event.type === 'charge.refunded'");
+    expect(src).toContain("event.type === 'charge.dispute.created'");
   });
 
   it('the messaging gate requires an ACTIVE posting: featured + published + unexpired', () => {
