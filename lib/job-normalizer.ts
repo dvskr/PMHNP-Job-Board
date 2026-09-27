@@ -8,6 +8,7 @@ import { findCanonicalName } from './company-normalizer';
 import { classifyJobTags } from './pseo/category-tagger';
 import { extractEligibleStates } from './eligible-states';
 import { STATE_NAME_TO_CODE } from './us-states';
+import { normalizeTitlePunctuation } from './title-punctuation';
 
 // lib/types.ts Job doesn't carry the two structured-array columns yet, so
 // they're added here — the ingest create spreads this object into
@@ -880,8 +881,10 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
   try {
     const config = getConfig(source);
 
-    // Extract fields using config
-    const title = extractField(rawJob, config.title, '');
+    // Extract fields using config. The title is punctuation-normalized here,
+    // at the single point every ingested job passes through, rather than at
+    // each of the places that later render it.
+    const title = normalizeTitlePunctuation(extractField(rawJob, config.title, ''));
     const employer = extractField(rawJob, config.employer, config.defaultEmployer);
     const location = extractField(rawJob, config.location, config.defaultLocation);
     const description = extractField(rawJob, config.description, '');

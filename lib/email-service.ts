@@ -16,6 +16,7 @@ import { buildFinalNoticeCopy } from '@/lib/expiry-final-notice';
 import { renderJobCardHtml } from '@/lib/utils/render-job-card';
 import { buildListUnsubscribeHeaders } from '@/lib/email/list-unsubscribe';
 import { type EmailType, MARKETING_EMAIL_TYPES } from '@/lib/email/email-types';
+import { statusCopyFor } from '@/lib/email/application-status-copy';
 import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-switch';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -625,7 +626,7 @@ export async function sendConfirmationEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: employerEmail,
-      subject: `✅ Your PMHNP job post is live: "${jobTitle}"`,
+      subject: `Your PMHNP job post is live: "${jobTitle}"`,
       html,
     }, 'job_confirmation', { jobId }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -699,7 +700,7 @@ export async function sendRenewalConfirmationEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: `✅ Job Renewed: "${jobTitle}" is live again`,
+      subject: `Your job post is live again: "${jobTitle}"`,
       html,
     }, 'renewal_confirmation', { jobTitle }, `${BASE_URL}/unsubscribe?token=${unsubscribeToken}`);
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1026,7 +1027,7 @@ export async function sendDraftSavedEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: '📝 Continue your PMHNP job posting',
+      subject: 'Continue your PMHNP job posting',
       html,
     }, 'draft_saved');
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1038,6 +1039,89 @@ export async function sendDraftSavedEmail(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send draft saved email',
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CREDIT EXPIRY WARNING — prepaid posting credits about to run out
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface CreditExpiryWarningParams {
+  email: string;
+  /** Recipient's first name, when we have one. */
+  contactName?: string | null;
+  /** Credits left on the pack that is about to expire. Always at least 1. */
+  creditsRemaining: number;
+  expiresAt: Date;
+  daysLeft: number;
+}
+
+/**
+ * Tell a buyer their prepaid posts are about to expire, while they can still
+ * use them.
+ *
+ * Transactional, deliberately. This is notice that something already paid
+ * for is about to stop existing, so it is not suppressible by an
+ * unsubscribe: a buyer silently forfeiting posts they bought is the exact
+ * outcome this email exists to prevent.
+ */
+export async function sendCreditExpiryWarningEmail(
+  params: CreditExpiryWarningParams,
+): Promise<ExpiryFinalNoticeResult> {
+  const { email, contactName, creditsRemaining, expiresAt, daysLeft } = params;
+
+  try {
+    const firstName = contactName?.trim().split(/\s+/)[0] ?? '';
+    const greeting = firstName ? `Hi ${escapeHtml(firstName)},` : 'Hi there,';
+    const posts = creditsRemaining === 1 ? 'post' : 'posts';
+    const dateLabel = expiresAt.toLocaleDateString('en-US', {
+      month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+    });
+    const window = daysLeft === 1 ? 'tomorrow' : `in ${daysLeft} days`;
+
+    const html = emailShellV2(`
+      ${headerBlockV2('Your Prepaid Posts Are About to Expire', '')}
+      ${spacerV2(12)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">${greeting}</p>
+      </td></tr>
+      ${spacerV2(12)}
+      ${simpleBlock('hero-expiry-warning-160.png', `You have <strong>${creditsRemaining} prepaid ${posts}</strong> left, and they expire ${window}, on ${escapeHtml(dateLabel)}. Each one publishes a ${config.durationDays} day featured listing with ${config.limits.candidateUnlocksPerPosting} candidate unlocks and ${config.limits.inmailsPerPosting} InMails, and there is nothing further to pay.`)}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('Post a job with a credit', `${BASE_URL}/post-job`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample', 'credit_expiry_warning'),
+      `${creditsRemaining} prepaid ${posts} expire on ${dateLabel}.`
+    );
+
+    const sendResult = await sendAndLog({
+      from: EMAIL_FROM,
+      to: email,
+      subject: `${creditsRemaining} prepaid ${posts} expire on ${dateLabel}`,
+      html,
+    }, 'credit_expiry_warning', { creditsRemaining, daysLeft });
+
+    // Resend reports API-level rejections in the envelope rather than
+    // throwing. Flagging it as `rejected` is what lets the cron hand its
+    // claim back safely; a thrown failure leaves the flag unset and the
+    // claim is kept, because the request may already have landed.
+    if (sendResult?.error) {
+      const message = sendResult.error.message || 'Provider rejected the message';
+      logger.error('Credit expiry warning rejected by provider', sendResult.error, { email });
+      return { success: false, error: message, rejected: true };
+    }
+
+    logger.info('Credit expiry warning sent', { email, creditsRemaining, daysLeft });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending credit expiry warning', error, { email });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send credit expiry warning',
     };
   }
 }
@@ -1257,7 +1341,7 @@ export async function sendEmployerMessageNotification(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: recipientEmail,
-      subject: `${options.subjectPrefix ?? ''}📩 New message from ${fromLine}${jobTitle ? `: ${jobTitle}` : ''}`,
+      subject: `${options.subjectPrefix ?? ''}New message from ${fromLine}${jobTitle ? `: ${jobTitle}` : ''}`,
       html,
     }, options.emailType ?? 'employer_message', { senderName, jobTitle }, options.unsubscribeUrl);
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1337,7 +1421,7 @@ export async function sendCandidateInquiryNotification(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: recipientEmail,
-      subject: `💬 ${candidateName} has a question about your "${jobTitle || 'job posting'}"`,
+      subject: `${candidateName} has a question about "${jobTitle || 'your job posting'}"`,
       html,
     }, 'candidate_inquiry', { candidateName, jobTitle });
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1401,7 +1485,7 @@ export async function sendNewCandidateAlertEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: recipientEmail,
-      subject: `🔔 ${candidates.length} new candidate${candidates.length !== 1 ? 's' : ''} match your criteria`,
+      subject: `${candidates.length} new candidate${candidates.length !== 1 ? 's' : ''} match your criteria`,
       html,
     }, 'candidate_alert', { candidateCount: candidates.length }, unsubscribeUrl);
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1496,27 +1580,44 @@ export async function sendNewApplicationEmail(params: NewApplicationEmailParams)
   } = params;
 
   try {
-    const greeting = employerName ? `Hi ${employerName.split(' ')[0]},` : 'Hi there,';
-    const initial = candidateName.charAt(0).toUpperCase();
+    // Both of these were computed and then dropped, so this email greeted
+    // nobody and never named the candidate in its body, only in the subject.
+    const employerFirstName = employerName?.trim().split(/\s+/)[0] ?? '';
+    const greeting = employerFirstName ? `Hi ${escapeHtml(employerFirstName)},` : 'Hi there,';
+
+    // hasResume and hasCoverLetter were passed in by every caller and then
+    // ignored. Whether there is a resume attached is the single most useful
+    // thing this email can tell an employer before they click.
+    const details: string[] = [];
+    if (candidateExperience) details.push(`${candidateExperience}+ years of experience`);
+    if (hasResume) details.push('resume attached');
+    if (hasCoverLetter) details.push('cover letter included');
+    const detailLine = details.length
+      ? `<br /><span style="color:${V2.textMuted};">${escapeHtml(details.join(', '))}.</span>`
+      : '';
 
     const html = emailShellV2(`
       ${headerBlockV2('New Application Received', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-new-application-160.png', `A new application has been submitted for <strong>${escapeHtml(jobTitle)}</strong>.${candidateHeadline ? ` The candidate ${escapeHtml(candidateHeadline)}.` : ''}${candidateExperience ? ` ${candidateExperience}+ years of experience.` : ''}`)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">${greeting}</p>
+      </td></tr>
+      ${spacerV2(12)}
+      ${simpleBlock('hero-new-application-160.png', `<strong>${escapeHtml(candidateName)}</strong> has applied for <strong>${escapeHtml(jobTitle)}</strong>.${candidateHeadline ? ` ${escapeHtml(candidateHeadline)}.` : ''}${detailLine}`)}
       ${spacerV2(32)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
-        ${primaryButtonV2('Review Application', `${BASE_URL}/employer/dashboard`)}
+        ${primaryButtonV2('Review application', `${BASE_URL}/employer/dashboard`)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2('sample', 'application_notification'),
-      `New application received for your job posting.`
+      `${candidateName} has applied for ${jobTitle}.`
     );
 
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: employerEmail,
-      subject: `📋 New application for "${jobTitle}" from ${candidateName}`,
+      subject: `New application from ${candidateName}: ${jobTitle}`,
       html,
     }, 'application_notification', { jobTitle, candidateName });
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1557,26 +1658,40 @@ export async function sendApplicationConfirmationEmail(params: ApplicationConfir
   } = params;
 
   try {
-    const greeting = candidateName ? `Hi ${candidateName.split(' ')[0]},` : 'Hi there,';
+    const firstName = candidateName?.trim().split(/\s+/)[0] ?? '';
+    const greeting = firstName ? `Hi ${escapeHtml(firstName)},` : 'Hi there,';
+
+    // Same unused params as the employer notification. Confirming what was
+    // actually sent is the reassurance this email exists to give.
+    const sent: string[] = ['your profile'];
+    if (hasResume) sent.push('your resume');
+    if (hasCoverLetter) sent.push('your cover letter');
+    const sentLine = sent.length > 1
+      ? `${sent.slice(0, -1).join(', ')} and ${sent[sent.length - 1]}`
+      : sent[0];
 
     const html = emailShellV2(`
       ${headerBlockV2('Application Submitted', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-app-confirm-160.png', `Your application for <strong>${escapeHtml(jobTitle)}</strong> at ${escapeHtml(employerName)} has been submitted successfully. The employer will review your profile and respond if there is a match.`)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">${greeting}</p>
+      </td></tr>
+      ${spacerV2(12)}
+      ${simpleBlock('hero-app-confirm-160.png', `Your application for <strong>${escapeHtml(jobTitle)}</strong> at ${escapeHtml(employerName)} is now with the employer, along with ${sentLine}. We will email you whenever the status changes, so there is nothing you need to do in the meantime.`)}
       ${spacerV2(32)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
-        ${primaryButtonV2('Track Your Applications', `${BASE_URL}/my-applications`)}
+        ${primaryButtonV2('Track your applications', `${BASE_URL}/my-applications`)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2('sample', 'application_confirmation'),
-      `Your application has been submitted successfully.`
+      `Your application for ${jobTitle} is with ${employerName}.`
     );
 
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: candidateEmail,
-      subject: `✅ Application received: ${jobTitle} at ${employerName}`,
+      subject: `Application received: ${jobTitle} at ${employerName}`,
       html,
     }, 'application_confirmation', { jobTitle, employerName });
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1596,14 +1711,6 @@ export async function sendApplicationConfirmationEmail(params: ApplicationConfir
 // STATUS UPDATE — sent to the CANDIDATE when their application status changes
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const STATUS_LABELS: Record<string, { label: string; emoji: string; message: string }> = {
-  screening: { label: 'Under Review', emoji: '🔍', message: 'Your application is being reviewed.' },
-  interview: { label: 'Interview', emoji: '🎉', message: 'Great news! The employer would like to move forward with an interview.' },
-  offered: { label: 'Offer Extended', emoji: '🎊', message: 'Congratulations! An offer has been extended for this position.' },
-  hired: { label: 'Hired', emoji: '🥳', message: 'Congratulations! You have been hired for this position.' },
-  rejected: { label: 'Not Selected', emoji: '📋', message: 'After careful consideration, the employer has decided to move forward with other candidates.' },
-};
-
 interface StatusUpdateEmailParams {
   candidateEmail: string;
   candidateName: string;
@@ -1615,39 +1722,43 @@ interface StatusUpdateEmailParams {
 export async function sendStatusUpdateEmail(params: StatusUpdateEmailParams): Promise<EmailResult> {
   const { candidateEmail, candidateName, jobTitle, employerName, newStatus } = params;
 
-  const statusInfo = STATUS_LABELS[newStatus];
-  if (!statusInfo) return { success: true }; // Don't email for statuses like 'applied'
+  // Copy lives in lib/email/application-status-copy.ts so it can be unit
+  // tested: tests/setup.ts mocks this whole module, so anything defined here
+  // is unassertable, and copy nobody can assert on is copy that drifts.
+  const copy = statusCopyFor(newStatus);
+  if (!copy) return { success: true }; // Don't email for statuses like 'applied'
 
   try {
-    const greeting = candidateName ? `Hi ${candidateName.split(' ')[0]},` : 'Hi there,';
+    // Was computed and then never used, which is why this email opened with
+    // "There is an update on your application" and addressed nobody.
+    const firstName = candidateName?.trim().split(/\s+/)[0] ?? '';
+    const greeting = firstName ? `Hi ${escapeHtml(firstName)},` : 'Hi there,';
 
-    const statusColors: Record<string, { bg: string; fg: string; border: string }> = {
-      screening: { bg: '#EFF6FF', fg: '#1E40AF', border: '#BFDBFE' },
-      interview: { bg: '#ECFDF5', fg: '#065F46', border: '#A7F3D0' },
-      offered: { bg: '#ECFDF5', fg: '#065F46', border: '#A7F3D0' },
-      hired: { bg: '#ECFDF5', fg: '#065F46', border: '#A7F3D0' },
-      rejected: { bg: '#FEF2F2', fg: '#991B1B', border: '#FECACA' },
-    };
-    const sc = statusColors[newStatus] || statusColors.screening;
+    const jobHtml = escapeHtml(jobTitle);
+    const employerHtml = escapeHtml(employerName);
 
     const html = emailShellV2(`
-      ${headerBlockV2('Application Status Update', '')}
+      ${headerBlockV2(copy.heading, '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-status-update-160.png', `There is an update on your application for <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(employerName)}</strong>. Your application has moved to the <strong>${statusInfo.label.toLowerCase()}</strong> stage. ${statusInfo.message}`)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">${greeting}</p>
+      </td></tr>
+      ${spacerV2(12)}
+      ${simpleBlock('hero-status-update-160.png', copy.body(jobHtml, employerHtml))}
       ${spacerV2(32)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
-        ${primaryButtonV2('View Application Details', `${BASE_URL}/my-applications`)}
+        ${primaryButtonV2(copy.ctaLabel, `${BASE_URL}${copy.ctaPath}`)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2('sample', 'status_update'),
-      `Update on your application: moved to ${statusInfo.label.toLowerCase()} stage.`
+      copy.preheader(jobTitle, employerName)
     );
 
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: candidateEmail,
-      subject: `${statusInfo.emoji} Application update: ${jobTitle} at ${employerName}`,
+      subject: copy.subject(jobTitle, employerName),
       html,
     }, 'status_update', { jobTitle, newStatus });
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1729,7 +1840,7 @@ export async function sendPerformanceReportEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: `📊 ${periodLabel} Report: ${totalViews} views, ${totalApps} applications for ${employerName}`,
+      subject: `${periodLabel} report for ${employerName}: ${totalViews} views, ${totalApps} applications`,
       html,
     }, 'performance_report', { employerName, totalViews, totalApps }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1818,7 +1929,7 @@ export async function sendSavedJobReminderEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: `💾 ${jobs.length} job${jobs.length !== 1 ? 's' : ''} you saved ${jobs.length !== 1 ? 'are' : 'is'} still open`,
+      subject: `${jobs.length} job${jobs.length !== 1 ? 's' : ''} you saved ${jobs.length !== 1 ? 'are' : 'is'} still open`,
       html,
     }, 'saved_job_reminder', { jobCount: jobs.length }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
     if (sendResult?.error) return providerRejected(sendResult.error);

@@ -91,6 +91,69 @@ describe('the pack catalogue is internally coherent', () => {
   });
 });
 
+describe('the pack pitch has to be true for the reader being pitched', () => {
+  // savingsPercent is measured against the STANDARD price, which is the
+  // right claim for a returning employer and the wrong one for a first
+  // purchase: buying a pack forfeits the discounted entry, so the buyer is
+  // really comparing against firstPostPrice + (n-1) * postingPrice.
+  const payAsYouGoCents = (n: number): number =>
+    (config.firstPostPrice + (n - 1) * config.postingPrice) * 100;
+
+  it('the smallest pack does NOT beat pay-as-you-go before the first post', () => {
+    // Not a defect, a fact about the price ladder, pinned so nobody writes
+    // "packs from 3 posts save you money" on a cold marketing surface. If a
+    // repricing ever makes this false, this test should be deleted, not
+    // worked around.
+    const smallest = [...config.creditPacks].sort((a, b) => a.credits - b.credits)[0];
+    expect(smallest.priceCents).toBeGreaterThan(payAsYouGoCents(smallest.credits));
+  });
+
+  it('smallestPackWorthItBeforeFirstPost skips the ones that lose', () => {
+    const worthIt = config.smallestPackWorthItBeforeFirstPost();
+    expect(worthIt, 'no pack beats pay-as-you-go for a first-time buyer').not.toBeNull();
+    expect(worthIt!.priceCents).toBeLessThan(payAsYouGoCents(worthIt!.credits));
+    // And it really is the smallest such pack.
+    const smaller = config.creditPacks.filter((p) => p.credits < worthIt!.credits);
+    for (const p of smaller) {
+      expect(p.priceCents, `${p.id} was skipped but actually wins`)
+        .toBeGreaterThanOrEqual(payAsYouGoCents(p.credits));
+    }
+  });
+
+  it('maxPackSavingsPercent scans instead of trusting array order', () => {
+    expect(config.maxPackSavingsPercent())
+      .toBe(Math.max(...config.creditPacks.map((p) => p.savingsPercent)));
+    // Reordering the catalogue must not change the advertised number.
+    const reversed = [...config.creditPacks].reverse();
+    expect(reversed.reduce((b, p) => Math.max(b, p.savingsPercent), 0))
+      .toBe(config.maxPackSavingsPercent());
+  });
+
+  it('the config rationale no longer claims packs always win', () => {
+    // The comment asserted the opposite of the arithmetic and was the
+    // premise every piece of pack copy would have been built on.
+    const src = read('lib/config.ts');
+    expect(src).not.toMatch(/pays less per post than the discounted entry/);
+    expect(src).toMatch(/NOT FREE FOR THE BUYER/);
+  });
+});
+
+describe('renewal savings are derived, not typed', () => {
+  it('renewalDiscountPercent matches the real discount', () => {
+    expect(config.renewalDiscountPercent())
+      .toBe(Math.round((1 - config.renewalPrice / config.postingPrice) * 100));
+  });
+
+  it('the renewal modal interpolates it instead of hardcoding a number', () => {
+    // It said "Save 10%" beside an interpolated price. The real figure is
+    // nearly three times that, and the literal had already survived one
+    // repricing, which is what a literal always does.
+    const src = read('components/employer/EmployerDashboardClient.tsx');
+    expect(src).toContain('config.renewalDiscountPercent()');
+    expect(src).not.toMatch(/Save 10%/);
+  });
+});
+
 describe('creditPackExpiry', () => {
   it('lands creditPackValidDays out, not at some hardcoded year', () => {
     const from = new Date('2026-01-01T00:00:00.000Z');
@@ -608,6 +671,102 @@ describe('spending a credit on a post', () => {
   });
 });
 
+describe('credits do not expire silently', () => {
+  // getCreditBalance always computed nextExpiry and it always reached the
+  // dashboard, but nothing read it on a schedule, so a buyer who used six
+  // of ten simply lost the other four on day 365 having paid for them.
+  const cron = read('app/api/cron/credit-expiry-warnings/route.ts');
+
+  it('the sweep exists and is cron authenticated', () => {
+    expect(cron).toContain('verifyCronOrAdmin');
+    expect(cron).toContain("withCronTracking('credit-expiry-warnings'");
+  });
+
+  it('is scheduled', () => {
+    const vercel = JSON.parse(read('vercel.json')) as { crons: { path: string }[] };
+    expect(vercel.crons.map((c) => c.path)).toContain('/api/cron/credit-expiry-warnings');
+  });
+
+  it('warns while the credits can still be used, not after', () => {
+    // A pack that already expired cannot be rescued by an email.
+    expect(cron).toMatch(/expiresAt: \{ gt: now, lte: horizon \}/);
+  });
+
+  it('never mails a pack with nothing left to lose', () => {
+    expect(cron).toMatch(/creditsRemaining <= 0/);
+    expect(cron).toContain('skippedNoCredits');
+  });
+
+  it('never mails a refunded or disputed pack', () => {
+    const where = cron.slice(cron.indexOf('findMany({'), cron.indexOf('orderBy'));
+    expect(where).toContain('refundedAt: null');
+    expect(where).toContain('disputedAt: null');
+  });
+
+  it('claims before sending, so a daily sweep mails once per pack', () => {
+    // The pack sits in the window for two weeks. Without a claim this is a
+    // fortnight of identical mail.
+    const claimAt = cron.indexOf('expiryWarningSentAt: now');
+    const sendAt = cron.indexOf('sendCreditExpiryWarningEmail(');
+    expect(claimAt).toBeGreaterThan(-1);
+    expect(sendAt).toBeGreaterThan(claimAt);
+    // Scalar-only predicate, same discipline as the posting expiry sweep.
+    expect(cron).toMatch(/where: \{ id: pack\.id, expiryWarningSentAt: null \}/);
+    expect(cron).toMatch(/claimed\.count === 0/);
+  });
+
+  it('hands the claim back only on a definitive rejection', () => {
+    expect(cron).toMatch(/if \(result\.rejected\)/);
+    // Guarded on our own stamp, so a concurrent writer is never clobbered.
+    expect(cron).toMatch(/where: \{ id: pack\.id, expiryWarningSentAt: now \}/);
+    // Ambiguous failure keeps the claim.
+    expect(cron).toContain('claim kept');
+  });
+
+  it('skips a suppressed address without stamping it', () => {
+    const suppressAt = cron.indexOf('isEmailSuppressed');
+    const claimAt = cron.indexOf('expiryWarningSentAt: now');
+    expect(suppressAt).toBeGreaterThan(-1);
+    // Checked BEFORE the claim, so the pack is reconsidered if the address
+    // is ever un-suppressed.
+    expect(suppressAt).toBeLessThan(claimAt);
+  });
+
+  it('has a dedupe column and an index behind the selection', () => {
+    expect(read('prisma/schema.prisma')).toMatch(/expiryWarningSentAt\s+DateTime\?\s+@map\("expiry_warning_sent_at"\)/);
+    const dir = path.join(ROOT, 'prisma/migrations');
+    const sql = fs.readdirSync(dir)
+      .filter((d) => fs.existsSync(path.join(dir, d, 'migration.sql')))
+      .map((d) => fs.readFileSync(path.join(dir, d, 'migration.sql'), 'utf8'))
+      .join('\n');
+    expect(sql).toMatch(/ADD COLUMN "expiry_warning_sent_at"/);
+  });
+
+  it('the email is transactional, so an unsubscribe cannot suppress it', () => {
+    // It is notice that something already paid for is about to stop
+    // existing. Marketing-typing it would let one click cost a buyer posts.
+    const types = read('lib/email/email-types.ts');
+    expect(types).toContain("'credit_expiry_warning'");
+    const marketing = types.slice(types.indexOf('MARKETING_EMAIL_TYPES'));
+    expect(marketing).not.toContain('credit_expiry_warning');
+  });
+
+  it('the email names the count and the date, which is the whole point', () => {
+    const svc = read('lib/email-service.ts');
+    const fn = svc.slice(svc.indexOf('export async function sendCreditExpiryWarningEmail'));
+    expect(fn).toContain('creditsRemaining');
+    expect(fn).toContain('dateLabel');
+    // And says what a credit is worth, so the reader knows what they lose.
+    expect(fn).toContain('config.durationDays');
+  });
+
+  it('supports a dry run that writes nothing', () => {
+    expect(cron).toContain("dryRun");
+    const dry = cron.slice(cron.indexOf('if (dryRun) {'), cron.indexOf('isEmailSuppressed'));
+    expect(dry).not.toContain('updateMany');
+  });
+});
+
 describe('the quote agrees with the charge about credits', () => {
   it('both resolve the balance the same way, from the same keys', () => {
     for (const src of [quote, checkout]) {
@@ -626,6 +785,33 @@ describe('the quote agrees with the charge about credits', () => {
     expect(neutral).toContain('fundedByCredit: false');
     expect(neutral).toContain('creditsAvailable: 0');
   });
+});
+
+describe('every page in the funnel knows a credit covers the post', () => {
+  // The preview page shipped credit-blind: its PostPriceStatus dropped
+  // fundedByCredit, so it showed "Continue to Payment: $349" to an employer
+  // who was then charged nothing. Checked as a set, because the bug was
+  // fixing one page of a two-page funnel and not the other.
+  for (const page of ['app/post-job/preview/page.tsx', 'app/post-job/checkout/page.tsx']) {
+    it(`${page} reads fundedByCredit from the quote`, () => {
+      const src = read(page);
+      expect(src).toContain('fundedByCredit');
+      expect(src).toContain('creditsAvailable');
+    });
+
+    it(`${page} lets the credit state outrank the price flags`, () => {
+      const src = read(page);
+      // isFirstPost must not win over a credit: create-checkout draws the
+      // credit before it prices anything.
+      expect(src).toMatch(/paysWithCredit/);
+    });
+
+    it(`${page} never puts a dollar amount on the button for a credit post`, () => {
+      const src = read(page);
+      const creditLabel = /paysWithCredit \?[\s\S]{0,400}[Cc]redit/;
+      expect(src).toMatch(creditLabel);
+    });
+  }
 });
 
 describe('the checkout page survives a post that was never charged', () => {

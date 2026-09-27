@@ -1340,7 +1340,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
                                         <span style={{ fontSize: '20px', fontWeight: 800, color: '#134E4A' }}>${config.renewalPrice}</span>
-                                        <p style={{ fontSize: '10px', color: '#6B7F8A', margin: 0 }}>Save 10%</p>
+                                        <p style={{ fontSize: '10px', color: '#6B7F8A', margin: 0 }}>Save {config.renewalDiscountPercent()}%</p>
                                     </div>
                                 </button>
                             </div>
