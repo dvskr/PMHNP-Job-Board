@@ -46,19 +46,41 @@ import { isOutboundPaused, OUTBOUND_PAUSED_MESSAGE } from '@/lib/outbound-kill-s
 import { hasEnoughDescription } from '@/lib/email/jd-body';
 import { buildFullJdEmail, type FullJdJob } from '@/lib/email/full-jd-template';
 import { buildCriteriaSummary, jobMatchesAlert, buildAlertEligibilityWhere } from '@/lib/job-alerts-service';
+import { publicJobsWhere } from '@/lib/filters';
 
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || brand.baseUrl).replace(/\/$/, '');
 /** Same resolution order as the digest, so both chains send from one address. */
 const EMAIL_FROM = process.env.EMAIL_FROM_MARKETING || process.env.EMAIL_FROM || brand.email.marketingFrom;
 
-/** Only employer-authored postings. See the module docblock. */
+/**
+ * Kept for the tests and for anyone reading history: this chain was
+ * originally gated to employer-authored postings, on the theory that
+ * aggregator descriptions were too rough to carry the format.
+ *
+ * The numbers said otherwise. On 2026-09-27 production held 9 employer
+ * postings with a description long enough to fill this email, against 597
+ * across all sources, with 76 arriving in the previous week and at least one
+ * on 28 of the previous 30 days. Employer-only meant the chain would have
+ * run dry in about nine sends. The gate is now description quality alone,
+ * and the plain-text bodies are reflowed through lib/jd-blocks.ts, the same
+ * parser the web job page uses.
+ */
 export const FULL_JD_SOURCE_TYPE = 'employer';
 
 /** One per recipient per day. */
 export const FULL_JD_COOLDOWN_HOURS = 24;
 
-/** How far back a posting may be and still be worth a dedicated email. */
-export const FULL_JD_MAX_AGE_DAYS = 7;
+/**
+ * How far back a posting may be and still be worth a dedicated email.
+ *
+ * Wider than the brief's window on purpose. The brief is "what is new since
+ * your last one", so it needs a cutoff. This chain sends one posting per
+ * person per day and the ledger guarantees nobody sees the same one twice,
+ * so a posting from three weeks ago is still new to someone who has not been
+ * shown it. Narrowing this to a week would leave the chain with nothing to
+ * send on a quiet day for no benefit.
+ */
+export const FULL_JD_MAX_AGE_DAYS = 30;
 
 export function isFullJdEnabled(): boolean {
   return process.env.FULL_JD_ALERTS_ENABLED === 'true';
@@ -83,7 +105,7 @@ type CandidateJob = FullJdJob & { sourceType: string | null; createdAt: Date };
  * "has enough description to fill a dedicated email" are different questions.
  */
 export function isFullJdEligible(job: { sourceType?: string | null; description: string }): boolean {
-  return job.sourceType === FULL_JD_SOURCE_TYPE && hasEnoughDescription(job.description);
+  return hasEnoughDescription(job.description);
 }
 
 /**
@@ -157,21 +179,25 @@ export async function sendFullJdAlerts(options: { dryRun?: boolean } = {}): Prom
   const cooldown = new Date(now.getTime() - FULL_JD_COOLDOWN_HOURS * 60 * 60 * 1000);
   const oldest = new Date(now.getTime() - FULL_JD_MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
 
+  // Every confirmed, active alert. There is no per-alert opt-in: this is the
+  // daily alert now, so the audience is the same one the brief had.
   const alerts = await prisma.jobAlert.findMany({
-    where: { ...buildAlertEligibilityWhere(now), deliveryFormat: 'full_jd' },
+    where: buildAlertEligibilityWhere(now),
   });
   if (!alerts.length) return result;
 
-  // Employer postings only, and only ones recent enough to still be open.
+  // Any source, provided the description can carry the format. The recency
+  // window is wide because the ledger, not the window, is what stops a
+  // repeat: each recipient sees a given posting once, so older postings stay
+  // useful to people who have not been shown them yet.
   const pool = await prisma.job.findMany({
     where: {
-      isPublished: true,
-      sourceType: FULL_JD_SOURCE_TYPE,
+      ...publicJobsWhere(),
       createdAt: { gte: oldest },
     },
     include: { screeningQuestions: { select: { questionText: true }, orderBy: { sortOrder: 'asc' } } },
     orderBy: { createdAt: 'desc' },
-    take: 200,
+    take: 400,
   });
   // No cast through unknown here. An earlier version had one, and it hid a
   // real mismatch: Prisma returns screening questions as questionText, the

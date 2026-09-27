@@ -66,30 +66,39 @@ describe('the chain is off until someone turns it on', () => {
     expect(isFullJdEnabled()).toBe(true);
   });
 
-  it('has no cron entry, so nothing schedules it', () => {
+  it('is scheduled, but the schedule is inert while the flag is unset', () => {
     const vercel = fs.readFileSync(path.resolve(__dirname, '../../vercel.json'), 'utf8');
-    expect(vercel).not.toContain('full-jd');
+    expect(vercel).toContain('/api/cron/full-jd-alerts');
   });
 });
 
-describe('only employer postings with a real description qualify', () => {
+/**
+ * The gate is description quality, not provenance.
+ *
+ * This chain was first written employer-only. Production then said there
+ * were 9 employer postings with a description long enough to fill the email
+ * against 597 across all sources, so employer-only would have run dry in
+ * about nine sends. Aggregator bodies are plain text and go through
+ * lib/jd-blocks.ts, the same reflow the web job page uses.
+ */
+describe('any posting with a real description qualifies', () => {
   it('accepts an employer posting with a genuine body', () => {
     expect(isFullJdEligible({ sourceType: FULL_JD_SOURCE_TYPE, description: REAL_BODY })).toBe(true);
   });
 
-  it('refuses an aggregator posting however good its description', () => {
-    // The format is gated on provenance, not only on length: aggregator
-    // descriptions are plain text with no structure guarantee.
+  it('accepts an aggregator posting with a genuine body', () => {
     for (const source of ['adzuna', 'usajobs', 'ashby', 'greenhouse', null]) {
-      expect(isFullJdEligible({ sourceType: source, description: REAL_BODY }), String(source)).toBe(false);
+      expect(isFullJdEligible({ sourceType: source, description: REAL_BODY }), String(source)).toBe(true);
     }
   });
 
-  it('refuses an employer posting that is only a stub', () => {
-    expect(isFullJdEligible({
-      sourceType: FULL_JD_SOURCE_TYPE,
-      description: 'Psychiatric NP wanted. Competitive pay and benefits. Apply today.',
-    })).toBe(false);
+  it('still refuses a stub, whoever posted it', () => {
+    for (const source of ['employer', 'adzuna']) {
+      expect(isFullJdEligible({
+        sourceType: source,
+        description: 'Psychiatric NP wanted. Competitive pay and benefits. Apply today.',
+      }), source).toBe(false);
+    }
   });
 
   it('refuses an empty description rather than sending a shell', () => {

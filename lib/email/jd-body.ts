@@ -23,6 +23,8 @@
  */
 
 import { SANS, SERIF, V2 } from '@/lib/email-templates-v2';
+import { parseJdBlocks, looksLikeHtml } from '@/lib/jd-blocks';
+import { escapeHtml } from '@/lib/sanitize';
 
 /**
  * Visible characters of description to include.
@@ -120,6 +122,32 @@ function restyle(html: string): string {
  * tell a truncated posting from a badly written one. So blocks are added
  * whole, and the caller renders a link to the rest.
  */
+/**
+ * Render a plain-text description as email HTML.
+ *
+ * Aggregator bodies carry no markup at all, so restyle() has nothing to work
+ * with and would emit one undifferentiated run of text. They go through the
+ * same block parser the web JD page uses, then out as the same styled tags
+ * the HTML path produces, so both formats arrive at the reader looking the
+ * same.
+ */
+function renderBlocks(description: string): string {
+  return parseJdBlocks(description)
+    .map((block) => {
+      if (block.kind === 'header') {
+        return `<p style="${H}">${escapeHtml(block.text)}</p>`;
+      }
+      if (block.kind === 'bullets') {
+        const items = block.items
+          .map((item) => `<li style="${LI}">${escapeHtml(item)}</li>`)
+          .join('');
+        return `<ul style="margin:0 0 14px;padding-left:20px;">${items}</ul>`;
+      }
+      return `<p style="${P}">${escapeHtml(block.text)}</p>`;
+    })
+    .join('');
+}
+
 export function buildJdBodyHtml(description: string, budget = JD_BODY_BUDGET): JdBody {
   const source = (description || '').trim();
   const visibleLength = visibleTextLength(source);
@@ -127,7 +155,10 @@ export function buildJdBodyHtml(description: string, budget = JD_BODY_BUDGET): J
     return { html: '', visibleLength: 0, truncated: false };
   }
 
-  const styled = restyle(source);
+  // Two stored formats, no discriminator on the row, so sniff as the JD page
+  // does. Employer postings are sanitized HTML and only need restyling;
+  // aggregator postings are plain text and need reflowing first.
+  const styled = looksLikeHtml(source) ? restyle(source) : renderBlocks(source);
   if (visibleLength <= budget) {
     return { html: styled, visibleLength, truncated: false };
   }

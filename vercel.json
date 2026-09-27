@@ -221,6 +221,10 @@
       "schedule": "30 13 * * *"
     },
     {
+      "path": "/api/cron/full-jd-alerts",
+      "schedule": "0 14 * * *"
+    },
+    {
       "path": "/api/cron/candidate-alerts",
       "schedule": "45 13 * * *"
     },
