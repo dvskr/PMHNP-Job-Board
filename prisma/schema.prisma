@@ -263,6 +263,10 @@ model PostingCreditPack {
   /// WON: reusing the refund column would have to lie about what happened to
   /// restore the pack, and the two states exit differently.
   disputedAt            DateTime? @map("disputed_at")
+  /// Stamped when the "your credits are about to expire" mail goes out, so
+  /// the daily sweep sends it once per pack rather than once per day for
+  /// the last month of its life.
+  expiryWarningSentAt   DateTime? @map("expiry_warning_sent_at")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 

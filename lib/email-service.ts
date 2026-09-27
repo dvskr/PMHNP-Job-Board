@@ -626,7 +626,7 @@ export async function sendConfirmationEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: employerEmail,
-      subject: `✅ Your PMHNP job post is live: "${jobTitle}"`,
+      subject: `Your PMHNP job post is live: "${jobTitle}"`,
       html,
     }, 'job_confirmation', { jobId }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -700,7 +700,7 @@ export async function sendRenewalConfirmationEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: `✅ Job Renewed: "${jobTitle}" is live again`,
+      subject: `Your job post is live again: "${jobTitle}"`,
       html,
     }, 'renewal_confirmation', { jobTitle }, `${BASE_URL}/unsubscribe?token=${unsubscribeToken}`);
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1027,7 +1027,7 @@ export async function sendDraftSavedEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: '📝 Continue your PMHNP job posting',
+      subject: 'Continue your PMHNP job posting',
       html,
     }, 'draft_saved');
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1039,6 +1039,89 @@ export async function sendDraftSavedEmail(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send draft saved email',
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CREDIT EXPIRY WARNING — prepaid posting credits about to run out
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface CreditExpiryWarningParams {
+  email: string;
+  /** Recipient's first name, when we have one. */
+  contactName?: string | null;
+  /** Credits left on the pack that is about to expire. Always at least 1. */
+  creditsRemaining: number;
+  expiresAt: Date;
+  daysLeft: number;
+}
+
+/**
+ * Tell a buyer their prepaid posts are about to expire, while they can still
+ * use them.
+ *
+ * Transactional, deliberately. This is notice that something already paid
+ * for is about to stop existing, so it is not suppressible by an
+ * unsubscribe: a buyer silently forfeiting posts they bought is the exact
+ * outcome this email exists to prevent.
+ */
+export async function sendCreditExpiryWarningEmail(
+  params: CreditExpiryWarningParams,
+): Promise<ExpiryFinalNoticeResult> {
+  const { email, contactName, creditsRemaining, expiresAt, daysLeft } = params;
+
+  try {
+    const firstName = contactName?.trim().split(/\s+/)[0] ?? '';
+    const greeting = firstName ? `Hi ${escapeHtml(firstName)},` : 'Hi there,';
+    const posts = creditsRemaining === 1 ? 'post' : 'posts';
+    const dateLabel = expiresAt.toLocaleDateString('en-US', {
+      month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+    });
+    const window = daysLeft === 1 ? 'tomorrow' : `in ${daysLeft} days`;
+
+    const html = emailShellV2(`
+      ${headerBlockV2('Your Prepaid Posts Are About to Expire', '')}
+      ${spacerV2(12)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">${greeting}</p>
+      </td></tr>
+      ${spacerV2(12)}
+      ${simpleBlock('hero-expiry-warning-160.png', `You have <strong>${creditsRemaining} prepaid ${posts}</strong> left, and they expire ${window}, on ${escapeHtml(dateLabel)}. Each one publishes a ${config.durationDays} day featured listing with ${config.limits.candidateUnlocksPerPosting} candidate unlocks and ${config.limits.inmailsPerPosting} InMails, and there is nothing further to pay.`)}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('Post a job with a credit', `${BASE_URL}/post-job`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample', 'credit_expiry_warning'),
+      `${creditsRemaining} prepaid ${posts} expire on ${dateLabel}.`
+    );
+
+    const sendResult = await sendAndLog({
+      from: EMAIL_FROM,
+      to: email,
+      subject: `${creditsRemaining} prepaid ${posts} expire on ${dateLabel}`,
+      html,
+    }, 'credit_expiry_warning', { creditsRemaining, daysLeft });
+
+    // Resend reports API-level rejections in the envelope rather than
+    // throwing. Flagging it as `rejected` is what lets the cron hand its
+    // claim back safely; a thrown failure leaves the flag unset and the
+    // claim is kept, because the request may already have landed.
+    if (sendResult?.error) {
+      const message = sendResult.error.message || 'Provider rejected the message';
+      logger.error('Credit expiry warning rejected by provider', sendResult.error, { email });
+      return { success: false, error: message, rejected: true };
+    }
+
+    logger.info('Credit expiry warning sent', { email, creditsRemaining, daysLeft });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending credit expiry warning', error, { email });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send credit expiry warning',
     };
   }
 }
@@ -1258,7 +1341,7 @@ export async function sendEmployerMessageNotification(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: recipientEmail,
-      subject: `${options.subjectPrefix ?? ''}📩 New message from ${fromLine}${jobTitle ? `: ${jobTitle}` : ''}`,
+      subject: `${options.subjectPrefix ?? ''}New message from ${fromLine}${jobTitle ? `: ${jobTitle}` : ''}`,
       html,
     }, options.emailType ?? 'employer_message', { senderName, jobTitle }, options.unsubscribeUrl);
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1338,7 +1421,7 @@ export async function sendCandidateInquiryNotification(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: recipientEmail,
-      subject: `💬 ${candidateName} has a question about your "${jobTitle || 'job posting'}"`,
+      subject: `${candidateName} has a question about "${jobTitle || 'your job posting'}"`,
       html,
     }, 'candidate_inquiry', { candidateName, jobTitle });
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1402,7 +1485,7 @@ export async function sendNewCandidateAlertEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: recipientEmail,
-      subject: `🔔 ${candidates.length} new candidate${candidates.length !== 1 ? 's' : ''} match your criteria`,
+      subject: `${candidates.length} new candidate${candidates.length !== 1 ? 's' : ''} match your criteria`,
       html,
     }, 'candidate_alert', { candidateCount: candidates.length }, unsubscribeUrl);
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1757,7 +1840,7 @@ export async function sendPerformanceReportEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: `📊 ${periodLabel} Report: ${totalViews} views, ${totalApps} applications for ${employerName}`,
+      subject: `${periodLabel} report for ${employerName}: ${totalViews} views, ${totalApps} applications`,
       html,
     }, 'performance_report', { employerName, totalViews, totalApps }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
     if (sendResult?.error) return providerRejected(sendResult.error);
@@ -1846,7 +1929,7 @@ export async function sendSavedJobReminderEmail(
     const sendResult = await sendAndLog({
       from: EMAIL_FROM,
       to: email,
-      subject: `💾 ${jobs.length} job${jobs.length !== 1 ? 's' : ''} you saved ${jobs.length !== 1 ? 'are' : 'is'} still open`,
+      subject: `${jobs.length} job${jobs.length !== 1 ? 's' : ''} you saved ${jobs.length !== 1 ? 'are' : 'is'} still open`,
       html,
     }, 'saved_job_reminder', { jobCount: jobs.length }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
     if (sendResult?.error) return providerRejected(sendResult.error);

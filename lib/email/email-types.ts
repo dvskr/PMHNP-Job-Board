@@ -27,6 +27,11 @@ export type EmailType =
   // apart and a dedupe bug in one can never be read as the other.
   | 'expiry_final_notice'
   | 'draft_saved'
+  // Prepaid posting credits about to run out. Transactional, not marketing:
+  // it is notice that something the employer already paid for is about to
+  // stop existing, and suppressing it with an unsubscribe would mean the
+  // buyer silently forfeits posts they bought.
+  | 'credit_expiry_warning'
   | 'employer_message'
   | 'candidate_inquiry'
   | 'candidate_alert'

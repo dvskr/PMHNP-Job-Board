@@ -7,6 +7,7 @@
  */
 
 import sanitizeHtml from 'sanitize-html';
+import { normalizeTitlePunctuation } from '@/lib/title-punctuation';
 
 /**
  * HTML entities to encode
@@ -191,7 +192,13 @@ export interface JobPostingInput {
 
 export function sanitizeJobPosting(input: JobPostingInput): JobPostingInput {
     return {
-        title: sanitizeText(input.title, 200),
+        // Punctuation-normalized as well as sanitized. An employer typing an
+        // em dash into the post form put one into every email, OG image and
+        // page title for that job, in a codebase whose copy rule forbids
+        // them; the rule's test can only see strings we write, not data.
+        // Both employer write paths, create-checkout and jobs/update, come
+        // through here, so this is the one place it has to happen.
+        title: normalizeTitlePunctuation(sanitizeText(input.title, 200)),
         employer: sanitizeText(input.employer, 200),
         location: sanitizeText(input.location, 200),
         // Sec1: the description is stored HTML rendered via dangerouslySetInnerHTML,

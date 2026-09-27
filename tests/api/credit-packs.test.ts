@@ -671,6 +671,102 @@ describe('spending a credit on a post', () => {
   });
 });
 
+describe('credits do not expire silently', () => {
+  // getCreditBalance always computed nextExpiry and it always reached the
+  // dashboard, but nothing read it on a schedule, so a buyer who used six
+  // of ten simply lost the other four on day 365 having paid for them.
+  const cron = read('app/api/cron/credit-expiry-warnings/route.ts');
+
+  it('the sweep exists and is cron authenticated', () => {
+    expect(cron).toContain('verifyCronOrAdmin');
+    expect(cron).toContain("withCronTracking('credit-expiry-warnings'");
+  });
+
+  it('is scheduled', () => {
+    const vercel = JSON.parse(read('vercel.json')) as { crons: { path: string }[] };
+    expect(vercel.crons.map((c) => c.path)).toContain('/api/cron/credit-expiry-warnings');
+  });
+
+  it('warns while the credits can still be used, not after', () => {
+    // A pack that already expired cannot be rescued by an email.
+    expect(cron).toMatch(/expiresAt: \{ gt: now, lte: horizon \}/);
+  });
+
+  it('never mails a pack with nothing left to lose', () => {
+    expect(cron).toMatch(/creditsRemaining <= 0/);
+    expect(cron).toContain('skippedNoCredits');
+  });
+
+  it('never mails a refunded or disputed pack', () => {
+    const where = cron.slice(cron.indexOf('findMany({'), cron.indexOf('orderBy'));
+    expect(where).toContain('refundedAt: null');
+    expect(where).toContain('disputedAt: null');
+  });
+
+  it('claims before sending, so a daily sweep mails once per pack', () => {
+    // The pack sits in the window for two weeks. Without a claim this is a
+    // fortnight of identical mail.
+    const claimAt = cron.indexOf('expiryWarningSentAt: now');
+    const sendAt = cron.indexOf('sendCreditExpiryWarningEmail(');
+    expect(claimAt).toBeGreaterThan(-1);
+    expect(sendAt).toBeGreaterThan(claimAt);
+    // Scalar-only predicate, same discipline as the posting expiry sweep.
+    expect(cron).toMatch(/where: \{ id: pack\.id, expiryWarningSentAt: null \}/);
+    expect(cron).toMatch(/claimed\.count === 0/);
+  });
+
+  it('hands the claim back only on a definitive rejection', () => {
+    expect(cron).toMatch(/if \(result\.rejected\)/);
+    // Guarded on our own stamp, so a concurrent writer is never clobbered.
+    expect(cron).toMatch(/where: \{ id: pack\.id, expiryWarningSentAt: now \}/);
+    // Ambiguous failure keeps the claim.
+    expect(cron).toContain('claim kept');
+  });
+
+  it('skips a suppressed address without stamping it', () => {
+    const suppressAt = cron.indexOf('isEmailSuppressed');
+    const claimAt = cron.indexOf('expiryWarningSentAt: now');
+    expect(suppressAt).toBeGreaterThan(-1);
+    // Checked BEFORE the claim, so the pack is reconsidered if the address
+    // is ever un-suppressed.
+    expect(suppressAt).toBeLessThan(claimAt);
+  });
+
+  it('has a dedupe column and an index behind the selection', () => {
+    expect(read('prisma/schema.prisma')).toMatch(/expiryWarningSentAt\s+DateTime\?\s+@map\("expiry_warning_sent_at"\)/);
+    const dir = path.join(ROOT, 'prisma/migrations');
+    const sql = fs.readdirSync(dir)
+      .filter((d) => fs.existsSync(path.join(dir, d, 'migration.sql')))
+      .map((d) => fs.readFileSync(path.join(dir, d, 'migration.sql'), 'utf8'))
+      .join('\n');
+    expect(sql).toMatch(/ADD COLUMN "expiry_warning_sent_at"/);
+  });
+
+  it('the email is transactional, so an unsubscribe cannot suppress it', () => {
+    // It is notice that something already paid for is about to stop
+    // existing. Marketing-typing it would let one click cost a buyer posts.
+    const types = read('lib/email/email-types.ts');
+    expect(types).toContain("'credit_expiry_warning'");
+    const marketing = types.slice(types.indexOf('MARKETING_EMAIL_TYPES'));
+    expect(marketing).not.toContain('credit_expiry_warning');
+  });
+
+  it('the email names the count and the date, which is the whole point', () => {
+    const svc = read('lib/email-service.ts');
+    const fn = svc.slice(svc.indexOf('export async function sendCreditExpiryWarningEmail'));
+    expect(fn).toContain('creditsRemaining');
+    expect(fn).toContain('dateLabel');
+    // And says what a credit is worth, so the reader knows what they lose.
+    expect(fn).toContain('config.durationDays');
+  });
+
+  it('supports a dry run that writes nothing', () => {
+    expect(cron).toContain("dryRun");
+    const dry = cron.slice(cron.indexOf('if (dryRun) {'), cron.indexOf('isEmailSuppressed'));
+    expect(dry).not.toContain('updateMany');
+  });
+});
+
 describe('the quote agrees with the charge about credits', () => {
   it('both resolve the balance the same way, from the same keys', () => {
     for (const src of [quote, checkout]) {
