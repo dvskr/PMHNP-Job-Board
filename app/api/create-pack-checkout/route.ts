@@ -31,7 +31,10 @@ import { brand } from '@/config/brand';
 function getStripe(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) return null;
-  return new Stripe(key, { apiVersion: '2025-11-17.clover' });
+  // No apiVersion pin, matching every other Stripe client in the repo. A
+  // lone pin here would drift from the account's own version the moment
+  // Stripe rolls it, and this route only reads session.id and session.url.
+  return new Stripe(key);
 }
 
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || brand.baseUrl).replace(/\/$/, '');
