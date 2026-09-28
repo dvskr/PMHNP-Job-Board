@@ -1,5 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
-import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
+import { JOBS_SHARE_TEXT, PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
@@ -96,20 +96,22 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
   return {
     title,
     description,
+    // Share text and card are static for every /jobs variant (filtered,
+    // paginated). The HTML title above keeps the live count for the SERP; a
+    // count in a share preview freezes into the post and goes stale. Never
+    // build share text or card text from the filters: location and q are
+    // free user input and would put arbitrary words under our brand.
     openGraph: {
-      title: `${title} - Find Your Next Position`,
-      description,
+      title: JOBS_SHARE_TEXT.title,
+      description: JOBS_SHARE_TEXT.description,
       type: 'website',
-      // One static branded card for every /jobs variant (filtered, paginated,
-      // UTM-tagged). Never build card text from the filters: location is free
-      // user input and would put arbitrary text under our brand.
       images: [pageOgImage(PAGE_OG_CARDS['/jobs'])],
     },
     twitter: {
       card: 'summary_large_image',
-      title,
-      description,
-      images: [pageOgPath(PAGE_OG_CARDS['/jobs'])],
+      title: JOBS_SHARE_TEXT.title,
+      description: JOBS_SHARE_TEXT.description,
+      images: [pageOgImage(PAGE_OG_CARDS['/jobs'])],
     },
     alternates: {
       canonical,

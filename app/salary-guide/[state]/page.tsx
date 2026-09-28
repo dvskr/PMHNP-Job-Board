@@ -14,7 +14,7 @@ import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 import { cityLinkHref } from '@/lib/pseo/related-cities';
 import { hasLicensePost } from '@/lib/pseo/license-posts';
 import { jsonLdString } from '@/lib/seo/json-ld';
-import { stateSalaryOgCard, pageOgImage, pageOgPath, pageOgUrl } from '@/lib/seo/og-image';
+import { stateSalaryOgCard, pageOgImage, pageOgUrl } from '@/lib/seo/og-image';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import {
     DollarSign,
@@ -246,7 +246,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         : `Advertised PMHNP pay in ${stateName}: median and range from live postings, by practice setting, with top employers and open positions. Updated daily.`;
     // No median on the card: the figure moves daily and is carried by the
     // title, which is recomputed on every render.
-    const ogCard = stateSalaryOgCard(stateName);
+    const ogImage = pageOgImage(stateSalaryOgCard(stateName), `PMHNP Salary in ${stateName}`);
 
     return {
         title,
@@ -260,7 +260,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             type: 'website',
             url: `https://pmhnphiring.com/salary-guide/${canonicalSlug}`,
             siteName: 'PMHNP Hiring',
-            images: [pageOgImage(ogCard, `PMHNP Salary in ${stateName}`)],
+            images: [ogImage],
         },
         twitter: {
             card: 'summary_large_image',
@@ -268,7 +268,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
                 ? `PMHNP Salary in ${stateName}: $${medK}K Median (${year})`
                 : `PMHNP Salary in ${stateName} (${code}) ${year}`,
             description,
-            images: [pageOgPath(ogCard)],
+            images: [ogImage],
         },
     };
 }

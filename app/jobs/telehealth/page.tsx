@@ -1,5 +1,6 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -93,15 +94,10 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
         description: `Find ${categoryTitleCount(stats.totalJobs)}telehealth PMHNP and telepsychiatry jobs. Work from home with flexible hours, no commute, and video-visit roles. Updated daily.`,
         keywords: ['telehealth pmhnp', 'telepsychiatry jobs', 'virtual pmhnp', 'telemedicine psychiatric nurse practitioner', 'behavioral health NP telehealth', 'telepsychiatry nurse practitioner jobs', 'remote psych NP telehealth'],
         openGraph: {
-            title: `${categoryTitleCount(stats.totalJobs)}Telehealth PMHNP Jobs - Virtual Psychiatric Care`,
+            title: `${categoryTitleCount(stats.totalJobs)}Telehealth PMHNP Jobs: Virtual Psychiatric Care`,
             description: 'Browse telehealth and telepsychiatry psychiatric mental health nurse practitioner positions. Work from home, competitive pay.',
             type: 'website',
-            images: [{
-                url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Telehealth PMHNP Jobs`)}&subtitle=${encodeURIComponent('Virtual psychiatric care positions')}`,
-                width: 1200,
-                height: 630,
-                alt: 'Telehealth PMHNP Jobs',
-            }],
+            images: [pageOgImage(PAGE_OG_CARDS['/jobs/telehealth'])],
         },
         alternates: {
             canonical: `${brand.baseUrl}/jobs/telehealth`,

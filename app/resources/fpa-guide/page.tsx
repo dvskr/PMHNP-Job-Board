@@ -1,5 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
-import { PAGE_OG_CARDS, pageOgImage, pageOgPath, pageOgUrl } from '@/lib/seo/og-image';
+import { PAGE_OG_CARDS, pageOgImage, pageOgUrl } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'PMHNP Full Practice Authority Guide 2026',
-    images: [pageOgPath(OG_CARD)],
+    images: [pageOgImage(OG_CARD)],
   },
   alternates: { canonical: `${brand.baseUrl}/resources/fpa-guide` },
 };

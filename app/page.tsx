@@ -4,6 +4,7 @@ import { Metadata } from 'next';
 import { getSiteStats, getExtendedSiteStats } from '@/lib/site-stats';
 import { roundedCountDisplay } from '@/lib/format-count';
 import { brand } from '@/config/brand';
+import { SITE_OG_ALT, SITE_OG_PATH, SITE_SHARE_TEXT } from '@/lib/seo/og-image';
 import { STAT_SOURCES } from '@/lib/stats-sources';
 import EmployerTrustSection from '@/components/EmployerTrustSection';
 import FeaturedJobsSection from '@/components/FeaturedJobsSection';
@@ -26,21 +27,10 @@ async function getTotalJobCount(): Promise<number> {
 }
 
 /**
- * Unique employer count for dynamic metadata — also from the cached snapshot
- * (avoids a `findMany({ distinct: ['employer'] })` per render).
- */
-async function getUniqueEmployerCount(): Promise<number> {
-  return (await getSiteStats()).totalCompanies;
-}
-
-/**
  * Generate dynamic metadata with job count
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const [totalJobs, uniqueEmployerCount] = await Promise.all([
-    getTotalJobCount(),
-    getUniqueEmployerCount(),
-  ]);
+  const totalJobs = await getTotalJobCount();
   const jobCountDisplay = roundedCountDisplay(totalJobs);
 
   return {
@@ -48,9 +38,16 @@ export async function generateMetadata(): Promise<Metadata> {
     // ran 77 chars and got truncated mid-phrase, costing CTR.
     title: `${jobCountDisplay} PMHNP Jobs | Psychiatric NP Job Board`,
     description: `Browse ${jobCountDisplay} PMHNP jobs updated daily. Remote, telehealth & in-person psychiatric NP positions with salary transparency. Free for job seekers.`,
+    // This block replaces the root layout's openGraph wholesale, so it
+    // carries its own url, type and siteName. Share text is count-free (see
+    // SITE_SHARE_TEXT): the HTML title above keeps the live count for the
+    // SERP, but a count in a share preview freezes into the post.
     openGraph: {
-      title: `${jobCountDisplay} PMHNP Jobs: Find Your Next Position`,
-      description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
+      type: 'website',
+      url: brand.baseUrl,
+      siteName: brand.name,
+      title: SITE_SHARE_TEXT.title,
+      description: SITE_SHARE_TEXT.description,
       // The generated 1200x630 card, not the 1280x900 page screenshot that
       // used to sit here. Facebook, LinkedIn, X and Slack crop a large card
       // to 1.91:1, so a 1.42:1 screenshot lost its top and bottom third and
@@ -59,16 +56,16 @@ export async function generateMetadata(): Promise<Metadata> {
       // shared most often.
       images: [
         {
-          url: '/api/og?v=3',
+          url: SITE_OG_PATH,
           width: 1200,
           height: 630,
-          alt: `PMHNP Hiring: ${jobCountDisplay} psychiatric nurse practitioner jobs from ${uniqueEmployerCount}+ companies across 50 states`,
+          alt: SITE_OG_ALT,
         },
       ],
     },
+    // Title, description and image are filled from openGraph by Next.
     twitter: {
       card: 'summary_large_image',
-      images: ['/api/og?v=3'],
     },
     alternates: {
       canonical: brand.baseUrl,

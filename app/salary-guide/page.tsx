@@ -1,5 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
-import { PAGE_OG_CARDS, pageOgImage, pageOgPath, pageOgUrl } from '@/lib/seo/og-image';
+import { PAGE_OG_CARDS, pageOgImage, pageOgUrl } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Image from 'next/image';
@@ -80,7 +80,7 @@ export async function generateMetadata(): Promise<Metadata> {
       url: `${BASE_URL}/salary-guide`,
       images: [pageOgImage(PAGE_OG_CARDS['/salary-guide'])],
     },
-    twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/salary-guide'])] },
+    twitter: { card: 'summary_large_image', images: [pageOgImage(PAGE_OG_CARDS['/salary-guide'])] },
     alternates: { canonical: `${brand.baseUrl}/salary-guide` },
   };
 }

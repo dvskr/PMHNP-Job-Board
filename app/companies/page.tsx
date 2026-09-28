@@ -5,7 +5,7 @@ import { companyUrlSlug } from '@/lib/company-slug';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Companies Hiring PMHNPs',
     description: 'Browse employers actively hiring psychiatric nurse practitioners across all 50 states. Updated daily.',
-    images: [pageOgPath(PAGE_OG_CARDS['/companies'])],
+    images: [pageOgImage(PAGE_OG_CARDS['/companies'])],
   },
   alternates: {
     canonical: `${brand.baseUrl}/companies`,

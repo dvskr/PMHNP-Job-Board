@@ -4,6 +4,7 @@ import { headers, cookies } from 'next/headers';
 import { CONSENT_COOKIE, parseConsentCookie } from '@/lib/consent';
 import { brand } from '@/config/brand';
 import { ASSET_BASE } from '@/lib/asset-url';
+import { SITE_OG_ALT, SITE_OG_PATH } from '@/lib/seo/og-image';
 // Newsreader is loaded only in app/blog/layout.tsx (scoped to /blog/*) so
 // non-blog pages don't pay the cost of a font that's only used by editorial
 // body typography.
@@ -99,32 +100,36 @@ export const metadata: Metadata = {
   creator: brand.name,
   publisher: brand.name,
 
+  // Next replaces openGraph and twitter wholesale per segment, so a page that
+  // sets neither inherits both blocks below verbatim.
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    // Absolute URL so child pages that don't override og:url inherit a real
-    // host (audit 09 M-25). Previously '/' meant Facebook/LinkedIn dedup'd
-    // every page-without-its-own-og:url to the homepage entry, reusing one
-    // cached image across unrelated pages.
-    url: brand.baseUrl,
+    // No og:url here, on purpose. Any value (relative '/' or the absolute
+    // base URL, which resolve to the same address) was inherited by every
+    // page without its own openGraph, telling Facebook and LinkedIn that
+    // page was the homepage: they deduplicated its preview onto the homepage
+    // entry. With none, scrapers use the URL they fetched. app/page.tsx
+    // sets the homepage's own og:url.
     siteName: brand.name,
     title: `${brand.name}: Find ${brand.niche.long} Positions`,
-    description: `The dedicated job board for ${brand.niche.short}s. Browse remote and in-person ${brand.niche.descriptor} jobs across all 50 states.`,
+    description: `The dedicated job board for ${brand.niche.short}s. Browse remote, telehealth and in-person ${brand.niche.descriptor} jobs by state and city.`,
     images: [
       {
-        url: '/api/og?v=3',
+        url: SITE_OG_PATH,
         width: 1200,
         height: 630,
-        alt: `${brand.name}: ${brand.niche.long} Job Board`,
+        alt: SITE_OG_ALT,
       },
     ],
   },
 
+  // Card type only. Title, description and image are left to Next, which
+  // fills them from the page's own openGraph. Setting them here made every
+  // page that has an openGraph block but no twitter block (category pages,
+  // /contact) inherit this homepage title and card as its twitter:image.
   twitter: {
     card: 'summary_large_image',
-    title: `${brand.name}: ${brand.niche.long} Jobs`,
-    description: `Find your next ${brand.niche.short} position. Remote and in-person jobs across 50 states, updated daily.`,
-    images: ['/api/og?v=3'],
   },
 
   icons: {

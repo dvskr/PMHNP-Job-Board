@@ -4,7 +4,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import Image from 'next/image';
 import { Shield } from 'lucide-react';
 import { brand } from '@/config/brand';
-import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   openGraph: {
     images: [pageOgImage(PAGE_OG_CARDS['/privacy'])],
   },
-  twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/privacy'])] },
+  twitter: { card: 'summary_large_image', images: [pageOgImage(PAGE_OG_CARDS['/privacy'])] },
   alternates: { canonical: `${brand.baseUrl}/privacy` },
 };
 

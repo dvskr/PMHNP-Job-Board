@@ -1,5 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
-import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -46,7 +46,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: 'Free career resources for psychiatric nurse practitioners. Salary data, licensure guides, and expert articles.',
       images: [pageOgImage(PAGE_OG_CARDS['/resources'])],
     },
-    twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/resources'])] },
+    twitter: { card: 'summary_large_image', images: [pageOgImage(PAGE_OG_CARDS['/resources'])] },
     alternates: { canonical: `${brand.baseUrl}/resources` },
   };
 }

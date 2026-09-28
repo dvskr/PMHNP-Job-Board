@@ -1,5 +1,6 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -56,6 +57,10 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     title: `${categoryTitleCount(stats.totalJobs)}Per Diem PMHNP Jobs`,
     description: `Find ${categoryTitleCount(stats.totalJobs)}per diem PMHNP positions. Pick your shifts, no long-term commitment.`,
     alternates: { canonical: `${brand.baseUrl}/jobs/per-diem` },
+    // Own openGraph, so this page stops inheriting the root layout block's
+    // homepage title and card. Title and description come from the fields
+    // above; Next fills twitter from this block.
+    openGraph: { type: 'website', url: `${brand.baseUrl}/jobs/per-diem`, images: [pageOgImage(PAGE_OG_CARDS['/jobs/per-diem'])] },
     ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }

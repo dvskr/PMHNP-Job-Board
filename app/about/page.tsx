@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { getSiteStats } from '@/lib/site-stats';
 import { newGradWhereClause, publicJobsWhere } from '@/lib/filters';
 import AboutClient from './AboutClient';
-import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 
 export const revalidate = 3600;
 
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     siteName: 'PMHNP Hiring',
     images: [pageOgImage(ABOUT_OG_CARD)],
   },
-  twitter: { card: 'summary_large_image', title: 'About PMHNP Hiring', images: [pageOgPath(ABOUT_OG_CARD)] },
+  twitter: { card: 'summary_large_image', title: 'About PMHNP Hiring', images: [pageOgImage(ABOUT_OG_CARD)] },
   alternates: { canonical: `${brand.baseUrl}/about` },
 };
 
