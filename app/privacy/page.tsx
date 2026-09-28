@@ -4,14 +4,15 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import Image from 'next/image';
 import { Shield } from 'lucide-react';
 import { brand } from '@/config/brand';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description: `Privacy Policy for ${brand.name}. Learn how we collect, use, and protect your information.`,
   openGraph: {
-    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-privacy-policy.webp', width: 1280, height: 900, alt: `${brand.name} privacy policy page detailing data collection, security measures, and user privacy rights` }],
+    images: [pageOgImage(PAGE_OG_CARDS['/privacy'])],
   },
-  twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-privacy-policy.webp'] },
+  twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/privacy'])] },
   alternates: { canonical: `${brand.baseUrl}/privacy` },
 };
 

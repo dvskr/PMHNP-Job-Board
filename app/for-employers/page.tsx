@@ -6,6 +6,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import EmployerHowItWorks from '@/components/EmployerHowItWorks';
 import EmployerTestimonials from '@/components/EmployerTestimonials';
 import { config } from '@/lib/config';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
 import { prisma } from '@/lib/prisma';
 import {
   Check, ArrowRight, Users,
@@ -20,9 +21,9 @@ export const metadata: Metadata = {
   description:
     `Hire Psychiatric Mental Health Nurse Practitioners. First post $${config.firstPostPrice} instead of $${config.postingPrice}, all features included. Reach thousands searching for PMHNP roles.`,
   openGraph: {
-    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP employer hiring solutions' }],
+    images: [pageOgImage(PAGE_OG_CARDS['/for-employers'])],
   },
-  twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp'] },
+  twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/for-employers'])] },
   alternates: { canonical: `${brand.baseUrl}/for-employers` },
 };
 

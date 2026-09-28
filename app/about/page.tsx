@@ -6,10 +6,11 @@ import { prisma } from '@/lib/prisma';
 import { getSiteStats } from '@/lib/site-stats';
 import { newGradWhereClause, publicJobsWhere } from '@/lib/filters';
 import AboutClient from './AboutClient';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
 
 export const revalidate = 3600;
 
-const ABOUT_OG_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/about-pmhnp-hiring-platform.webp';
+const ABOUT_OG_CARD = PAGE_OG_CARDS['/about'];
 
 export const metadata: Metadata = {
   title: 'About Us - The Dedicated Job Board for Psychiatric NPs',
@@ -24,9 +25,9 @@ export const metadata: Metadata = {
     type: 'website',
     url: `${brand.baseUrl}/about`,
     siteName: 'PMHNP Hiring',
-    images: [{ url: ABOUT_OG_IMAGE, width: 1280, height: 900, alt: 'About PMHNP Hiring' }],
+    images: [pageOgImage(ABOUT_OG_CARD)],
   },
-  twitter: { card: 'summary_large_image', title: 'About PMHNP Hiring', images: [ABOUT_OG_IMAGE] },
+  twitter: { card: 'summary_large_image', title: 'About PMHNP Hiring', images: [pageOgPath(ABOUT_OG_CARD)] },
   alternates: { canonical: `${brand.baseUrl}/about` },
 };
 

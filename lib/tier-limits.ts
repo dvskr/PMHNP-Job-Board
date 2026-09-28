@@ -84,19 +84,25 @@ export async function getInMailsForPosting(
 ): Promise<number> {
     return prisma.conversation.count({
         where: {
-            AND: [
-                {
-                    OR: [
-                        { participantA: senderId },
-                        { participantB: senderId },
-                    ],
-                },
-                {
-                    OR: [
-                        { jobId },
-                        { jobId: null },
-                    ],
-                },
+            // participantA ONLY, because participantA is always the party who
+            // STARTED the thread, at all three creation sites:
+            //   app/api/employer/messages   employer  -> candidate  (the InMail)
+            //   app/api/candidate/messages  candidate -> employer
+            //   lib/system-messages         system    -> employer
+            //
+            // This used to be `participantA OR participantB`, which counted
+            // the last two as well. An employer's paid InMail allowance was
+            // therefore spent by candidates writing TO them, and by our own
+            // weekly nudge, neither of which they sent and neither of which
+            // they can prevent. A popular posting could exhaust its own
+            // outreach budget on inbound mail before the employer sent a
+            // single message.
+            participantA: senderId,
+            // jobId null covers legacy threads written before conversations
+            // carried one; they still belong to whoever started them.
+            OR: [
+                { jobId },
+                { jobId: null },
             ],
             createdAt: { gte: postingCreatedAt },
         },

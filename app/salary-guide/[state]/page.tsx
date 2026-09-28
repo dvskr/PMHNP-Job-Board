@@ -14,6 +14,7 @@ import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 import { cityLinkHref } from '@/lib/pseo/related-cities';
 import { hasLicensePost } from '@/lib/pseo/license-posts';
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { stateSalaryOgCard, pageOgImage, pageOgPath, pageOgUrl } from '@/lib/seo/og-image';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import {
     DollarSign,
@@ -243,7 +244,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const description = medK != null
         ? `The median advertised PMHNP salary in ${stateName} is $${medK}K per year, computed from live postings that disclose a range. See the full range, practice settings, top employers, and open jobs. Updated daily.`
         : `Advertised PMHNP pay in ${stateName}: median and range from live postings, by practice setting, with top employers and open positions. Updated daily.`;
-    const ogImage = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp';
+    // No median on the card: the figure moves daily and is carried by the
+    // title, which is recomputed on every render.
+    const ogCard = stateSalaryOgCard(stateName);
 
     return {
         title,
@@ -257,7 +260,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             type: 'website',
             url: `https://pmhnphiring.com/salary-guide/${canonicalSlug}`,
             siteName: 'PMHNP Hiring',
-            images: [{ url: ogImage, width: 1280, height: 900, alt: `PMHNP Salary in ${stateName} ${year}` }],
+            images: [pageOgImage(ogCard, `PMHNP Salary in ${stateName}`)],
         },
         twitter: {
             card: 'summary_large_image',
@@ -265,7 +268,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
                 ? `PMHNP Salary in ${stateName}: $${medK}K Median (${year})`
                 : `PMHNP Salary in ${stateName} (${code}) ${year}`,
             description,
-            images: [ogImage],
+            images: [pageOgPath(ogCard)],
         },
     };
 }
@@ -418,8 +421,9 @@ export default async function StateSalaryPage({ params }: PageProps) {
         '@type': 'Article',
         headline: `PMHNP Salary in ${stateName} (${stateCode}): ${currentYear} Advertised Pay`,
         description: `Advertised PMHNP pay in ${stateName} computed from live job postings: median, percentile range, practice settings, top employers, and open positions. Every figure ships with its sample size.`,
-        // Same OG image generateMetadata advertises for this page.
-        image: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp',
+        // Same OG card generateMetadata advertises for this page, absolute
+        // because JSON-LD gets no metadataBase.
+        image: pageOgUrl(stateSalaryOgCard(stateName)),
         // datePublished: the day this page template first shipped
         // (git 0dfc5b5, 2026-03-10) — a real date, not a freshness prop.
         // dateModified: the most recent REAL change to this state's posting

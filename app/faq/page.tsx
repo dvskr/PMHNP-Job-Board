@@ -1,4 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -17,7 +18,7 @@ import { summarizeMidpoints, roundDisplayDollars } from '@/lib/salary-report/sta
 // the same cadence as /salary-guide rather than fully static.
 export const revalidate = 86400;
 
-const FAQ_OG_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-frequently-asked-questions.webp';
+const FAQ_OG_CARD = PAGE_OG_CARDS['/faq'];
 
 export const metadata: Metadata = {
   // `absolute` opts out of the layout title template so we don't end up
@@ -31,9 +32,9 @@ export const metadata: Metadata = {
     type: 'website',
     url: `${brand.baseUrl}/faq`,
     siteName: 'PMHNP Hiring',
-    images: [{ url: FAQ_OG_IMAGE, width: 1280, height: 900, alt: 'PMHNP Hiring FAQ: job posting, salary transparency, job alerts, employer features' }],
+    images: [pageOgImage(FAQ_OG_CARD)],
   },
-  twitter: { card: 'summary_large_image', title: 'PMHNP Hiring FAQ', images: [FAQ_OG_IMAGE] },
+  twitter: { card: 'summary_large_image', title: 'PMHNP Hiring FAQ', images: [pageOgPath(FAQ_OG_CARD)] },
   alternates: {
     canonical: `${brand.baseUrl}/faq`,
   },

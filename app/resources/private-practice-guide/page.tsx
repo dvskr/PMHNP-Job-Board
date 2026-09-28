@@ -1,4 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath, pageOgUrl } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -10,7 +11,7 @@ import { FULL_PRACTICE_SUMMARY } from '@/lib/state-practice-authority';
 // dateModified reflects real freshness, not the original publish date.
 const PUBLISHED_AT = '2026-03-19';
 const LAST_REVIEWED = '2026-03-19';
-const HERO_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp';
+const OG_CARD = PAGE_OG_CARDS['/resources/private-practice-guide'];
 
 export const metadata: Metadata = {
   title: 'How to Start a PMHNP Private Practice: Step-by-Step Guide 2026',
@@ -20,12 +21,12 @@ export const metadata: Metadata = {
     title: 'How to Start a PMHNP Private Practice: 2026 Guide',
     description: 'Step-by-step guide to launching your own psychiatric nurse practitioner private practice.',
     type: 'article',
-    images: [{ url: HERO_IMAGE, width: 1280, height: 900, alt: 'How to Start a PMHNP Private Practice: 2026 Guide' }],
+    images: [pageOgImage(OG_CARD)],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'How to Start a PMHNP Private Practice: 2026 Guide',
-    images: [HERO_IMAGE],
+    images: [pageOgPath(OG_CARD)],
   },
   alternates: { canonical: `${brand.baseUrl}/resources/private-practice-guide` },
 };
@@ -165,7 +166,7 @@ export default function PrivatePracticeGuidePage() {
             description: 'Complete guide to starting your own psychiatric NP private practice: LLC formation, insurance credentialing, EHR setup, malpractice, billing, and income projections.',
             datePublished: PUBLISHED_AT,
             dateModified: LAST_REVIEWED,
-            image: HERO_IMAGE,
+            image: pageOgUrl(OG_CARD),
             author: { '@type': 'Organization', name: 'PMHNP Hiring' },
             publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
             mainEntityOfPage: { '@type': 'WebPage', '@id': `${brand.baseUrl}/resources/private-practice-guide` },

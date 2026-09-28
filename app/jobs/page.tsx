@@ -1,4 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
@@ -99,17 +100,16 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
       title: `${title} - Find Your Next Position`,
       description,
       type: 'website',
-      // SEO Fix C8: previously pointed at `pmhnp-job-board-og.webp` which
-      // returns 404 from Supabase, breaking every social share of /jobs and
-      // every filtered jobs URL. Pointing at the existing homepage asset
-      // until a dedicated OG image is uploaded.
-      images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp', width: 1280, height: 900, alt: 'PMHNP Job Board: browse psychiatric nurse practitioner jobs' }],
+      // One static branded card for every /jobs variant (filtered, paginated,
+      // UTM-tagged). Never build card text from the filters: location is free
+      // user input and would put arbitrary text under our brand.
+      images: [pageOgImage(PAGE_OG_CARDS['/jobs'])],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp'],
+      images: [pageOgPath(PAGE_OG_CARDS['/jobs'])],
     },
     alternates: {
       canonical,

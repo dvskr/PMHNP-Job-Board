@@ -1,14 +1,20 @@
 /**
  * Image SEO Configuration
  *
- * Maps site routes to their optimised page-screenshot image, alt text,
- * and caption for use in OG tags, image sitemap, and on-page alt.
+ * Maps indexable site routes to the share card submitted for them in the
+ * image sitemap (app/image-sitemap.xml/route.ts).
+ *
+ * Each image is the route's branded /api/og card from lib/seo/og-image.ts,
+ * the same card the page's og:image shows. This registry used to submit
+ * stored screenshots of the old site, which carried retired claims and the
+ * retired brand name into Google Images.
  */
+import { PAGE_OG_CARDS, SITE_OG_URL, pageOgUrl, type PageOgRoute } from '@/lib/seo/og-image';
 
 export interface PageImageSEO {
-    /** Path to WebP image relative to public, e.g. https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp */
+    /** Absolute image URL. Contains '&', so sinks must XML-escape it. */
     image: string;
-    /** Descriptive alt text with keywords */
+    /** Descriptive alt text */
     alt: string;
     /** Short caption for image sitemap */
     caption: string;
@@ -16,142 +22,57 @@ export interface PageImageSEO {
     title: string;
 }
 
-const BASE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages';
+/**
+ * Build an entry from the route's card so the sitemap copy can never drift
+ * from the image. The card copy rules (no counts, figures or years) apply
+ * here too: tests/seo/page-og-cards.test.ts checks the registry.
+ */
+function cardEntry(route: PageOgRoute): PageImageSEO {
+    const card = PAGE_OG_CARDS[route];
+    const summary = `${card.title}: ${card.subtitle}`;
+    return {
+        image: pageOgUrl(card),
+        alt: `PMHNP Hiring share card. ${summary}`,
+        caption: summary,
+        title: card.title,
+    };
+}
 
 export const PAGE_IMAGE_SEO: Record<string, PageImageSEO> = {
     // Audit 2026-08 C6: captions/alt in this registry must stay number-free.
-    // The old copy claimed job/company counts and salary figures that were
-    // never true (e.g. "10,000 plus jobs") — hardcoded stats in a static file
-    // can only drift from reality. Live counts belong to DB-derived props.
+    // Hardcoded stats in a static file can only drift from reality. Live
+    // counts belong to DB-derived props.
     '/': {
-        image: `${BASE}/pmhnp-job-board-homepage.webp`,
-        alt: 'PMHNP Hiring job board homepage showing psychiatric nurse practitioner job listings with salary transparency across all 50 states',
+        image: SITE_OG_URL,
+        alt: 'PMHNP Hiring share card: a job board for psychiatric mental health nurse practitioners',
         caption: 'The job board for psychiatric mental health nurse practitioners',
-        title: 'PMHNP Hiring Homepage',
+        title: 'PMHNP Hiring',
     },
-    '/about': {
-        image: `${BASE}/about-pmhnp-hiring-platform.webp`,
-        alt: 'About PMHNP Hiring platform showing mission, methodology, and data sources for psychiatric nurse practitioner job board',
-        caption: 'About PMHNP Hiring: mission and methodology',
-        title: 'About PMHNP Hiring',
-    },
-    '/for-employers': {
-        image: `${BASE}/pmhnp-employer-hiring-solutions.webp`,
-        alt: 'PMHNP employer hiring solutions page showing job posting options, pricing tiers, and targeted recruitment for psychiatric nurse practitioners',
-        caption: 'Employer solutions for hiring PMHNPs',
-        title: 'PMHNP Employer Hiring Solutions',
-    },
-    '/for-job-seekers': {
-        image: `${BASE}/pmhnp-job-seeker-career-resources.webp`,
-        alt: 'PMHNP job seeker career resources page showing job search tools, salary data, and application features for psychiatric nurse practitioners',
-        caption: 'Career resources for PMHNP job seekers',
-        title: 'PMHNP Job Seeker Resources',
-    },
-    '/faq': {
-        image: `${BASE}/pmhnp-hiring-frequently-asked-questions.webp`,
-        alt: 'PMHNP Hiring FAQ page with answers about job posting, salary transparency, job alerts, and employer features',
-        caption: 'Frequently asked questions about PMHNP Hiring',
-        title: 'PMHNP Hiring FAQ',
-    },
-    '/contact': {
-        image: `${BASE}/contact-pmhnp-hiring-support.webp`,
-        alt: 'Contact PMHNP Hiring support page with email form for job seekers and employers needing assistance',
-        caption: 'Contact PMHNP Hiring support team',
-        title: 'Contact PMHNP Hiring',
-    },
-    '/privacy': {
-        image: `${BASE}/pmhnp-hiring-privacy-policy.webp`,
-        alt: 'PMHNP Hiring privacy policy page detailing data protection practices for psychiatric nurse practitioner job seekers and employers',
-        caption: 'PMHNP Hiring privacy policy',
-        title: 'Privacy Policy',
-    },
-    '/terms': {
-        image: `${BASE}/pmhnp-hiring-terms-of-service.webp`,
-        alt: 'PMHNP Hiring terms of service page outlining usage policies for the psychiatric nurse practitioner job board',
-        caption: 'PMHNP Hiring terms of service',
-        title: 'Terms of Service',
-    },
-    '/resources': {
-        image: `${BASE}/pmhnp-career-resources-guides.webp`,
-        alt: 'PMHNP career resources page with salary guides, certification information, and professional development tools for psychiatric nurse practitioners',
-        caption: 'Career resources and guides for PMHNPs',
-        title: 'PMHNP Career Resources',
-    },
-    '/salary-guide': {
-        image: `${BASE}/pmhnp-salary-guide-2026.webp`,
-        alt: '2026 PMHNP Salary Guide showing national and state-by-state psychiatric nurse practitioner compensation data',
-        caption: '2026 PMHNP salary guide with state comparisons',
-        title: '2026 PMHNP Salary Guide',
-    },
-    '/blog': {
-        image: `${BASE}/pmhnp-career-insights-blog.webp`,
-        alt: 'PMHNP Career Insights blog with salary guides, career strategies, interview tips, and industry news for psychiatric nurse practitioners',
-        caption: 'PMHNP career insights and industry blog',
-        title: 'PMHNP Career Blog',
-    },
-    '/jobs': {
-        image: `${BASE}/pmhnp-job-search-listings.webp`,
-        alt: 'PMHNP job search results page with salary filters, location search, and psychiatric nurse practitioner positions nationwide',
-        caption: 'Browse PMHNP job listings with salary data',
-        title: 'PMHNP Job Search',
-    },
-    '/jobs/remote': {
-        image: `${BASE}/remote-pmhnp-jobs-telehealth.webp`,
-        alt: 'Remote PMHNP jobs page showing work from home psychiatric nurse practitioner positions with salary transparency',
-        caption: 'Remote and work-from-home PMHNP positions',
-        title: 'Remote PMHNP Jobs',
-    },
-    '/jobs/telehealth': {
-        image: `${BASE}/telehealth-pmhnp-positions.webp`,
-        alt: 'Telehealth PMHNP jobs page showing virtual psychiatric care positions for nurse practitioners across all 50 states',
-        caption: 'Telehealth PMHNP job opportunities',
-        title: 'Telehealth PMHNP Jobs',
-    },
-    '/jobs/travel': {
-        image: `${BASE}/travel-pmhnp-nursing-jobs.webp`,
-        alt: 'Travel PMHNP nursing jobs page showing contract psychiatric nurse practitioner positions with weekly pay rates',
-        caption: 'Travel PMHNP contract positions',
-        title: 'Travel PMHNP Jobs',
-    },
-    '/jobs/per-diem': {
-        image: `${BASE}/per-diem-pmhnp-jobs.webp`,
-        alt: 'Per diem PMHNP jobs page showing flexible psychiatric nurse practitioner positions with hourly rates',
-        caption: 'Per diem PMHNP flexible positions',
-        title: 'Per Diem PMHNP Jobs',
-    },
-    '/jobs/new-grad': {
-        image: `${BASE}/new-graduate-pmhnp-jobs.webp`,
-        alt: 'New graduate PMHNP jobs page with entry-level psychiatric nurse practitioner positions and mentorship programs',
-        caption: 'Entry-level jobs for new PMHNP graduates',
-        title: 'New Graduate PMHNP Jobs',
-    },
-    '/jobs/locations': {
-        image: `${BASE}/pmhnp-jobs-by-state-location.webp`,
-        alt: 'PMHNP jobs by state and location page showing psychiatric nurse practitioner positions across all 50 states with job counts',
-        caption: 'Browse PMHNP jobs by state and city',
-        title: 'PMHNP Jobs by Location',
-    },
-    '/post-job': {
-        image: `${BASE}/post-pmhnp-job-listing.webp`,
-        alt: 'Post a PMHNP job listing page with form fields for salary, location, and job details on the psychiatric nurse practitioner job board',
-        caption: 'Post a PMHNP job on our board',
-        title: 'Post a PMHNP Job',
-    },
+    '/about': cardEntry('/about'),
+    '/for-employers': cardEntry('/for-employers'),
+    '/for-job-seekers': cardEntry('/for-job-seekers'),
+    '/faq': cardEntry('/faq'),
+    '/contact': cardEntry('/contact'),
+    '/privacy': cardEntry('/privacy'),
+    '/terms': cardEntry('/terms'),
+    '/resources': cardEntry('/resources'),
+    '/salary-guide': cardEntry('/salary-guide'),
+    '/blog': cardEntry('/blog'),
+    '/jobs': cardEntry('/jobs'),
+    '/jobs/remote': cardEntry('/jobs/remote'),
+    '/jobs/telehealth': cardEntry('/jobs/telehealth'),
+    '/jobs/travel': cardEntry('/jobs/travel'),
+    '/jobs/per-diem': cardEntry('/jobs/per-diem'),
+    '/jobs/new-grad': cardEntry('/jobs/new-grad'),
+    '/jobs/locations': cardEntry('/jobs/locations'),
+    '/post-job': cardEntry('/post-job'),
     // '/job-alerts' removed (GSC Fix 2026-07 audit P3): the page is
     // permanently noindexed (app/job-alerts/layout.tsx) and was deliberately
-    // dropped from the primary sitemap — advertising it here reintroduced
+    // dropped from the primary sitemap. Advertising it here reintroduced
     // the "submitted URL marked noindex" contradiction through the image
     // sitemap side door. Every entry in this registry must also be an
     // indexable page in the primary sitemap.
 };
-
-/**
- * Get SEO image config for a given pathname.
- * Falls back to homepage config if no match.
- */
-export function getPageImageSEO(pathname: string): PageImageSEO {
-    return PAGE_IMAGE_SEO[pathname] ?? PAGE_IMAGE_SEO['/'];
-}
 
 /**
  * Get all page image entries for building the image sitemap.

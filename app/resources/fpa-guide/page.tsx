@@ -1,4 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath, pageOgUrl } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -12,7 +13,7 @@ import { STATE_PRACTICE_AUTHORITY, getStatesByAuthority, getAuthorityColor, type
 // classifications change.
 const PUBLISHED_AT = '2026-03-19';
 const LAST_REVIEWED = '2026-03-19';
-const HERO_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp';
+const OG_CARD = PAGE_OG_CARDS['/resources/fpa-guide'];
 
 export const metadata: Metadata = {
   title: 'PMHNP Full Practice Authority Guide 2026: All 50 States',
@@ -22,12 +23,12 @@ export const metadata: Metadata = {
     title: 'Full Practice Authority Guide for PMHNPs (2026)',
     description: 'State-by-state FPA classifications. See where psychiatric nurse practitioners can practice independently.',
     type: 'article',
-    images: [{ url: HERO_IMAGE, width: 1280, height: 900, alt: 'PMHNP Full Practice Authority Guide 2026' }],
+    images: [pageOgImage(OG_CARD)],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'PMHNP Full Practice Authority Guide 2026',
-    images: [HERO_IMAGE],
+    images: [pageOgPath(OG_CARD)],
   },
   alternates: { canonical: `${brand.baseUrl}/resources/fpa-guide` },
 };
@@ -93,7 +94,7 @@ export default function FPAGuidePage() {
             description: 'Complete state-by-state guide to Full Practice Authority for psychiatric nurse practitioners.',
             datePublished: PUBLISHED_AT,
             dateModified: LAST_REVIEWED,
-            image: HERO_IMAGE,
+            image: pageOgUrl(OG_CARD),
             author: { '@type': 'Organization', name: 'PMHNP Hiring' },
             publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
           }),

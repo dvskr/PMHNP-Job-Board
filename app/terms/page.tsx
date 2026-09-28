@@ -5,14 +5,15 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import Image from 'next/image';
 import { FileText } from 'lucide-react';
 import { config } from '@/lib/config';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
   description: 'Read the Terms of Service for PMHNP Hiring, operated by Akari Labs LLC. Understand your rights, responsibilities, pricing, and platform policies for the PMHNP-only job board.',
   openGraph: {
-    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-terms-of-service.webp', width: 1280, height: 900, alt: 'PMHNP Hiring terms of service page with user rights, employer responsibilities, and platform policies' }],
+    images: [pageOgImage(PAGE_OG_CARDS['/terms'])],
   },
-  twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-terms-of-service.webp'] },
+  twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/terms'])] },
   alternates: { canonical: `${brand.baseUrl}/terms` },
 };
 
