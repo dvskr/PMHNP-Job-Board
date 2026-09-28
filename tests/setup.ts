@@ -50,6 +50,7 @@ vi.mock('@/lib/prisma', () => {
                 create: vi.fn(),
                 update: vi.fn(),
                 updateMany: vi.fn(),
+                groupBy: vi.fn(),
             },
             postingCreditPack: {
                 findUnique: vi.fn(),
