@@ -211,9 +211,7 @@ describe('canSendInMail', () => {
         expect(arg.where).toMatchObject({
             createdAt: { gte: posting.createdAt },
         });
-        expect(arg.where!.AND).toContainEqual({
-            OR: [{ jobId: posting.job.id }, { jobId: null }],
-        });
+        expect(arg.where!.OR).toEqual([{ jobId: posting.job.id }, { jobId: null }]);
     });
 
     // The bypass this closes: /api/employer/messages used to write
@@ -228,13 +226,17 @@ describe('canSendInMail', () => {
         await canSendInMail(PROFILE_ID, EMPLOYER_ID, 'pro');
 
         const where = vi.mocked(prisma.conversation.count).mock.calls[0][0]!.where!;
-        const jobClause = (where.AND as { OR?: { jobId: string | null }[] }[])
-            .find(clause => Array.isArray(clause.OR) && clause.OR.some(o => 'jobId' in o));
-        expect(jobClause?.OR).toEqual([{ jobId: posting.job.id }, { jobId: null }]);
-        // The sender filter must still be its own clause, not overwritten by it.
-        expect(where.AND).toContainEqual({
-            OR: [{ participantA: PROFILE_ID }, { participantB: PROFILE_ID }],
-        });
+        expect(where.OR).toEqual([{ jobId: posting.job.id }, { jobId: null }]);
+
+        // The sender filter must survive alongside the job clause rather than
+        // being overwritten by it, which is the bypass this test was written
+        // for. It is now participantA ONLY: participantA is the party who
+        // STARTED the thread, so the previous `participantA OR participantB`
+        // charged the employer for candidate inquiries and for our own system
+        // nudge, neither of which they sent. See
+        // tests/lib/inmail-quota-attribution.test.ts.
+        expect(where.participantA).toBe(PROFILE_ID);
+        expect(JSON.stringify(where)).not.toContain('participantB');
     });
 });
 

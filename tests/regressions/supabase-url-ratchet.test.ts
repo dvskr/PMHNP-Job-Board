@@ -23,6 +23,15 @@ const MIGRATED = [
   'lib/pseo/category-asset-registry.ts',
   'components/StateImage.tsx',
   'lib/pseo/category-city-template.tsx',
+  // Share images moved to the branded /api/og card (lib/seo/og-image.ts).
+  'app/about/page.tsx',
+  'app/companies/page.tsx',
+  'app/jobs/page.tsx',
+  'app/resources/1099-vs-w2/page.tsx',
+  'app/resources/fpa-guide/page.tsx',
+  'app/resources/private-practice-guide/page.tsx',
+  'app/salary-guide/[state]/page.tsx',
+  'lib/image-seo.ts',
 ];
 
 const ALLOWLIST = [
@@ -30,11 +39,9 @@ const ALLOWLIST = [
   'lib/asset-url.ts',
   // ── legacy hardcoded tail — remove entries as they migrate ──
   'app/about/AboutClient.tsx',
-  'app/about/page.tsx',
   'app/api/email-preview/v2-templates.ts',
   'app/api/salary-guide/route.ts',
   'app/blog/page.tsx',
-  'app/companies/page.tsx',
   'app/contact/page.tsx',
   'app/faq/page.tsx',
   'app/for-employers/page.tsx',
@@ -61,7 +68,6 @@ const ALLOWLIST = [
   'app/jobs/mid-career/page.tsx',
   'app/jobs/new-grad/page.tsx',
   'app/jobs/outpatient/page.tsx',
-  'app/jobs/page.tsx',
   'app/jobs/part-time/page.tsx',
   'app/jobs/per-diem/page.tsx',
   'app/jobs/private-practice/page.tsx',
@@ -78,12 +84,8 @@ const ALLOWLIST = [
   'app/page.tsx',
   'app/pricing/page.tsx',
   'app/privacy/page.tsx',
-  'app/resources/1099-vs-w2/page.tsx',
-  'app/resources/fpa-guide/page.tsx',
   'app/resources/page.tsx',
-  'app/resources/private-practice-guide/page.tsx',
   'app/salary-guide/page.tsx',
-  'app/salary-guide/[state]/page.tsx',
   'app/terms/page.tsx',
   'components/EmployerHowItWorks.tsx',
   'components/FeaturedJobs.tsx',
@@ -91,7 +93,6 @@ const ALLOWLIST = [
   'components/LicensureChecker.tsx',
   'lib/email-service.ts',
   'lib/env.ts',
-  'lib/image-seo.ts',
   'lib/pseo/setting-state-template.tsx',
   'lib/video-seo.ts',
 ];

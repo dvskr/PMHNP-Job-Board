@@ -6,7 +6,7 @@ import { siteAsset } from '@/lib/asset-url';
 
 /**
  * Renders a state hero image from the Supabase `images/states/{slug}.webp`
- * bucket, falling back to a generic homepage hero if the per-state asset
+ * bucket, falling back to a generic clay illustration if the per-state asset
  * is missing.
  *
  * Why: not every state slug in the codebase has a corresponding webp uploaded
@@ -18,9 +18,12 @@ import { siteAsset } from '@/lib/asset-url';
  */
 
 const STATE_IMAGE_BASE = siteAsset('images/states');
-// Verified 200 at audit time — used as the universal fallback so a single
-// missing per-state asset doesn't cascade into a broken-image hit.
-const FALLBACK_URL = siteAsset('images/pages/pmhnp-job-board-homepage.webp');
+// Used as the universal fallback so a single missing per-state asset doesn't
+// cascade into a broken-image hit. A text-free clay diorama from the same
+// family as the state tiles. It was a screenshot of the old homepage, which
+// put retired claims on every tile whose state asset is missing (DC and PR
+// at the time of the swap).
+const FALLBACK_URL = siteAsset('images/pages/clay_career_growth.webp');
 
 type FillProps = {
     fill: true;

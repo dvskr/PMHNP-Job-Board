@@ -9,6 +9,10 @@ export const revalidate = 86400; // daily
 /**
  * Generates an image sitemap following Google's image sitemap extension.
  * @see https://developers.google.com/search/docs/crawling-indexing/sitemaps/image-sitemaps
+ *
+ * Every <image:loc> is escaped: the entries are /api/og card URLs whose
+ * query strings contain '&', and a raw '&' makes the whole document invalid
+ * XML.
  */
 export function GET() {
     const images = getAllPageImages();
@@ -21,7 +25,7 @@ ${images
                 (entry) => `  <url>
     <loc>${BASE_URL}${entry.url}</loc>
     <image:image>
-      <image:loc>${entry.image.startsWith('http') ? entry.image : `${BASE_URL}${entry.image}`}</image:loc>
+      <image:loc>${escapeXml(entry.image.startsWith('http') ? entry.image : `${BASE_URL}${entry.image}`)}</image:loc>
       <image:title>${escapeXml(entry.title)}</image:title>
       <image:caption>${escapeXml(entry.caption)}</image:caption>
     </image:image>

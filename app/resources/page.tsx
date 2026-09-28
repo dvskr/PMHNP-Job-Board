@@ -1,4 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -43,9 +44,9 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title,
       description: 'Free career resources for psychiatric nurse practitioners. Salary data, licensure guides, and expert articles.',
-      images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp', width: 1280, height: 900, alt: 'PMHNP career resources and guides' }],
+      images: [pageOgImage(PAGE_OG_CARDS['/resources'])],
     },
-    twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp'] },
+    twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/resources'])] },
     alternates: { canonical: `${brand.baseUrl}/resources` },
   };
 }

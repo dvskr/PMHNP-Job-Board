@@ -1,4 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -43,12 +44,7 @@ export const metadata: Metadata = {
         siteName: 'PMHNP Hiring',
         // Without `images` Next.js drops the root layout's og:image: a
         // page-level openGraph object replaces the parent, it does not merge.
-        images: [{
-            url: `/api/og?type=page&v=3&title=${encodeURIComponent('Contact PMHNP Hiring')}&subtitle=${encodeURIComponent('Support, employer and partnership inquiries')}`,
-            width: 1200,
-            height: 630,
-            alt: 'Contact PMHNP Hiring',
-        }],
+        images: [pageOgImage(PAGE_OG_CARDS['/contact'], 'Contact PMHNP Hiring')],
     },
     twitter: { card: 'summary_large_image', title: 'Contact PMHNP Hiring', description: 'Get in touch with the team: support, employer, and partnership inquiries.' },
 };

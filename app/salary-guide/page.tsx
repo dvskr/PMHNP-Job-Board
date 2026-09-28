@@ -1,4 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath, pageOgUrl } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Image from 'next/image';
@@ -77,9 +78,9 @@ export async function generateMetadata(): Promise<Metadata> {
       description: `Live advertised pay for psychiatric nurse practitioners: national median $${medK},000, state-by-state breakdown, and tips to maximize earnings.`,
       type: 'website',
       url: `${BASE_URL}/salary-guide`,
-      images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp', width: 1280, height: 900, alt: 'PMHNP salary guide showing psychiatric nurse practitioner pay by state with interactive salary comparison table' }],
+      images: [pageOgImage(PAGE_OG_CARDS['/salary-guide'])],
     },
-    twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp'] },
+    twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/salary-guide'])] },
     alternates: { canonical: `${brand.baseUrl}/salary-guide` },
   };
 }
@@ -226,7 +227,9 @@ export default async function SalaryGuidePage() {
     "@type": "Article",
     "headline": `${currentYear} PMHNP Salary Guide: Psychiatric NP Pay by State`,
     "description": `Advertised PMHNP pay computed from live job postings: national median, state-by-state medians and ranges, and practice-setting breakdowns. Every figure ships with its sample size.`,
-    "image": "https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-salary-guide-2026.webp",
+    // Same branded card the share metadata uses; absolute because JSON-LD
+    // gets no metadataBase.
+    "image": pageOgUrl(PAGE_OG_CARDS['/salary-guide']),
     "datePublished": "2026-01-01T00:00:00Z",
     // Real change signal only (newest posting or renewal in the dataset) —
     // never render time. Omitted entirely if the aggregate is empty.

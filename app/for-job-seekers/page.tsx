@@ -8,6 +8,7 @@ import FeaturedJobsSection from '@/components/FeaturedJobsSection';
 import { prisma } from '@/lib/prisma';
 import { publicJobsWhere } from '@/lib/filters';
 import { roundedCountDisplay } from '@/lib/format-count';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
 import {
   ArrowRight, Search, Users, Briefcase, MapPin,
   Check, X, Star,
@@ -27,9 +28,9 @@ export const metadata: Metadata = {
   description:
     'Find your next PMHNP opportunity: remote and in-person psychiatric nurse practitioner jobs with salary transparency, AI matching, and one-click apply. Free for job seekers.',
   openGraph: {
-    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-seeker-career-resources.webp', width: 1280, height: 900, alt: 'PMHNP job seeker career resources' }],
+    images: [pageOgImage(PAGE_OG_CARDS['/for-job-seekers'])],
   },
-  twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-seeker-career-resources.webp'] },
+  twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/for-job-seekers'])] },
   alternates: { canonical: `${brand.baseUrl}/for-job-seekers` },
 };
 

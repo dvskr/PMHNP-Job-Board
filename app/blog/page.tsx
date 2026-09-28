@@ -1,4 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -25,9 +26,9 @@ export const metadata: Metadata = {
     description:
         'PMHNP career guides, salary insights, and job market trends from the dedicated psychiatric NP job board.',
     openGraph: {
-        images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-insights-blog.webp', width: 1280, height: 900, alt: 'PMHNP career blog with expert guides on salary negotiation, state spotlights, and job market insights' }],
+        images: [pageOgImage(PAGE_OG_CARDS['/blog'])],
     },
-    twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-insights-blog.webp'] },
+    twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/blog'])] },
     alternates: {
         canonical: `${brand.baseUrl}/blog`,
     },

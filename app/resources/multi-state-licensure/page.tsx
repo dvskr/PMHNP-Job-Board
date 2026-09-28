@@ -1,6 +1,6 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
-import { siteAsset } from '@/lib/asset-url';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath, pageOgUrl } from '@/lib/seo/og-image';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { Globe2, CheckCircle, AlertTriangle, MapPin, Stethoscope, BookOpen } from 'lucide-react';
@@ -12,7 +12,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 // Compact reaches operational status (that event rewrites this page).
 const PUBLISHED_AT = '2026-08-04';
 const LAST_REVIEWED = '2026-08-04';
-const HERO_IMAGE = siteAsset('images/pages/pmhnp-career-resources-guides.webp');
+const OG_CARD = PAGE_OG_CARDS['/resources/multi-state-licensure'];
 
 export const metadata: Metadata = {
   title: 'Multi-State Licensure for PMHNPs: NLC, APRN Compact & Telehealth',
@@ -22,12 +22,12 @@ export const metadata: Metadata = {
     title: 'Multi-State Licensure for PMHNPs: What the Compacts Do and Do Not Cover',
     description: 'The NLC covers RN licensure, not your APRN role. A precise, practical guide to practicing in multiple states as a PMHNP.',
     type: 'article',
-    images: [{ url: HERO_IMAGE, width: 1280, height: 900, alt: 'Multi-state licensure guide for PMHNPs' }],
+    images: [pageOgImage(OG_CARD)],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Multi-State Licensure for PMHNPs',
-    images: [HERO_IMAGE],
+    images: [pageOgPath(OG_CARD)],
   },
   alternates: { canonical: `${brand.baseUrl}/resources/multi-state-licensure` },
 };
@@ -95,7 +95,7 @@ export default function MultiStateLicensurePage() {
             description: 'How multi-state practice actually works for psychiatric nurse practitioners: the RN compact vs state-by-state APRN licensure, the APRN Compact status, and a practical playbook.',
             datePublished: PUBLISHED_AT,
             dateModified: LAST_REVIEWED,
-            image: HERO_IMAGE,
+            image: pageOgUrl(OG_CARD),
             author: { '@type': 'Organization', name: 'PMHNP Hiring' },
             publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
           }),

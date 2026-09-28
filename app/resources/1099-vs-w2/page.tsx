@@ -1,4 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { PAGE_OG_CARDS, pageOgImage, pageOgPath, pageOgUrl } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -10,7 +11,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 // minimum; bump sooner when content changes substantively.
 const PUBLISHED_AT = '2026-03-19';
 const LAST_REVIEWED = '2026-03-19';
-const HERO_IMAGE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp';
+const OG_CARD = PAGE_OG_CARDS['/resources/1099-vs-w2'];
 
 export const metadata: Metadata = {
   title: '1099 vs W2 for PMHNPs: Complete Compensation Comparison 2026',
@@ -20,12 +21,12 @@ export const metadata: Metadata = {
     title: '1099 vs W2 for PMHNPs: Compensation Guide',
     description: 'Which pays more? Complete comparison of independent contractor vs employee compensation for psychiatric nurse practitioners.',
     type: 'article',
-    images: [{ url: HERO_IMAGE, width: 1280, height: 900, alt: '1099 vs W2 PMHNP Compensation Guide' }],
+    images: [pageOgImage(OG_CARD)],
   },
   twitter: {
     card: 'summary_large_image',
     title: '1099 vs W2 for PMHNPs: Compensation Guide',
-    images: [HERO_IMAGE],
+    images: [pageOgPath(OG_CARD)],
   },
   alternates: { canonical: `${brand.baseUrl}/resources/1099-vs-w2` },
 };
@@ -93,7 +94,7 @@ export default function CompensationGuidePage() {
             description: 'Compare independent contractor vs employee compensation for psychiatric nurse practitioners.',
             datePublished: PUBLISHED_AT,
             dateModified: LAST_REVIEWED,
-            image: HERO_IMAGE,
+            image: pageOgUrl(OG_CARD),
             author: { '@type': 'Organization', name: 'PMHNP Hiring' },
             publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
           }),
