@@ -4,12 +4,13 @@
  * The share cards at app/api/og/{route,city/route}.tsx are marketing surfaces:
  *   - copy must stay claim-free (no "#1", no superlatives), and
  *   - both routes must keep the shared cream/teal/ink visual system plus the
- *     edge-cache directives, with the v=3 cache buster on the URL builders so
- *     scrapers refetch the new design.
+ *     edge-cache directives, with a per-layout cache buster on the URL
+ *     builders so scrapers refetch a changed design.
  */
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { PAGE_OG_VERSION, SITE_OG_PATH } from '@/lib/seo/og-image';
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const read = (p: string) => fs.readFileSync(path.join(ROOT, p), 'utf8');
@@ -67,8 +68,13 @@ describe('OG routes share the current visual system', () => {
  * cache instead of re-rendering them for nothing.
  */
 describe('og URL builders carry a cache buster matched to their layout', () => {
-  it('app/layout.tsx site-wide og image', () => {
-    expect(read('app/layout.tsx')).toContain('/api/og?v=3');
+  it('the site-wide card moved to 4 when its copy dropped the coverage claims', () => {
+    // app/layout.tsx and app/page.tsx use SITE_OG_PATH; tests/seo/page-og-cards
+    // checks that from their real metadata.
+    expect(SITE_OG_PATH).toBe('/api/og?v=4');
+  });
+  it('the page branch stays at 3', () => {
+    expect(PAGE_OG_VERSION).toBe('3');
   });
   it('lib/pseo/category-city-template.tsx city og params', () => {
     expect(read('lib/pseo/category-city-template.tsx')).toMatch(/v: '3'/);

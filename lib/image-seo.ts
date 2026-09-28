@@ -5,11 +5,12 @@
  * image sitemap (app/image-sitemap.xml/route.ts).
  *
  * Each image is the route's branded /api/og card from lib/seo/og-image.ts,
- * the same card the page's og:image shows. This registry used to submit
- * stored screenshots of the old site, which carried retired claims and the
- * retired brand name into Google Images.
+ * the same card the page's og:image shows: tests/seo/page-og-cards.test.ts
+ * loads every route's real metadata and fails if the two differ. This
+ * registry used to submit stored screenshots of the old site, which carried
+ * retired claims and the retired brand name into Google Images.
  */
-import { PAGE_OG_CARDS, SITE_OG_URL, pageOgUrl, type PageOgRoute } from '@/lib/seo/og-image';
+import { PAGE_OG_CARDS, SITE_OG_CARD, SITE_OG_URL, pageOgUrl, type PageOgRoute } from '@/lib/seo/og-image';
 
 export interface PageImageSEO {
     /** Absolute image URL. Contains '&', so sinks must XML-escape it. */
@@ -42,10 +43,11 @@ export const PAGE_IMAGE_SEO: Record<string, PageImageSEO> = {
     // Audit 2026-08 C6: captions/alt in this registry must stay number-free.
     // Hardcoded stats in a static file can only drift from reality. Live
     // counts belong to DB-derived props.
+    // The site-wide card; alt and caption repeat the text it shows.
     '/': {
         image: SITE_OG_URL,
-        alt: 'PMHNP Hiring share card: a job board for psychiatric mental health nurse practitioners',
-        caption: 'The job board for psychiatric mental health nurse practitioners',
+        alt: `PMHNP Hiring share card. ${SITE_OG_CARD.title}: ${SITE_OG_CARD.subtitle}`,
+        caption: `${SITE_OG_CARD.title}: ${SITE_OG_CARD.subtitle}`,
         title: 'PMHNP Hiring',
     },
     '/about': cardEntry('/about'),

@@ -1,6 +1,6 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
-import { PAGE_OG_CARDS, pageOgImage, pageOgPath, pageOgUrl } from '@/lib/seo/og-image';
+import { PAGE_OG_CARDS, pageOgImage, pageOgUrl } from '@/lib/seo/og-image';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { Globe2, CheckCircle, AlertTriangle, MapPin, Stethoscope, BookOpen } from 'lucide-react';
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Multi-State Licensure for PMHNPs',
-    images: [pageOgPath(OG_CARD)],
+    images: [pageOgImage(OG_CARD)],
   },
   alternates: { canonical: `${brand.baseUrl}/resources/multi-state-licensure` },
 };

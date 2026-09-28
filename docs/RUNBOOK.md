@@ -20,6 +20,7 @@
 | **Site-quality remediation** | | |
 | [runbooks/seo-2026-05-remediation.md](runbooks/seo-2026-05-remediation.md) | Remediation | Tracking the 52-issue SEO + site-quality audit |
 | [runbooks/mobile-2026-05-remediation.md](runbooks/mobile-2026-05-remediation.md) | Remediation | Tracking the 38-issue mobile-rendering audit (drawer z-index, iOS form zoom, pSEO overflow, etc.) |
+| [runbooks/share-cards.md](runbooks/share-cards.md) | Runbook | A LinkedIn, Facebook, X or Slack link preview shows an old or wrong image |
 | **Educational (background, not policy)** | | |
 | [educational/README.md](educational/README.md) | Index | Browsing the educational folder |
 | [educational/cookies-and-tracking.md](educational/cookies-and-tracking.md) | Primer | Adding tracking, ad pixels, or analytics; explaining cookies to a stakeholder |
@@ -39,6 +40,7 @@
 | "When do we buy paid Cloudmersive / sGTM / SOC 2?" | [educational/when-to-expand-infra.md](educational/when-to-expand-infra.md) tracker table |
 | "Why are some jobs being unpublished?" | [job-health-runbook.md](job-health-runbook.md) |
 | "An ingestion source returned 0 jobs — what now?" | [ingestion-pipeline-audit.md](ingestion-pipeline-audit.md) |
+| "Why does a shared link still show the old preview image?" | [runbooks/share-cards.md](runbooks/share-cards.md) |
 
 ## What lives where (source-of-truth chain)
 
@@ -64,4 +66,4 @@ If 1 and 3 disagree, **fix the code, don't downgrade the public commitment**.
 3. Start the file with `> Audience:` and `> Last updated:`
 4. Reference, don't duplicate — if a fact is in another doc, link to it
 
-Last updated: 2026-05-08.
+Last updated: 2026-09-29.

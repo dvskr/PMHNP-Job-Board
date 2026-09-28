@@ -1,5 +1,6 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -144,15 +145,10 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     // SEO Fix #7: trim to ≤160 chars (Google SERP cap).
     description: `Find ${categoryTitleCount(stats.totalJobs)}remote PMHNP jobs. Work from home psychiatric nurse practitioner positions: telehealth, flexible, no commute.`,
     openGraph: {
-      title: `${categoryTitleCount(stats.totalJobs)}Remote PMHNP Jobs - Work From Home`,
+      title: `${categoryTitleCount(stats.totalJobs)}Remote PMHNP Jobs: Work From Home`,
       description: 'Browse telehealth and remote psychiatric mental health nurse practitioner positions. Flexible schedules, competitive pay.',
       type: 'website',
-      images: [{
-        url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}Remote PMHNP Jobs`)}&subtitle=${encodeURIComponent('Work from home psychiatric NP positions')}`,
-        width: 1200,
-        height: 630,
-        alt: 'Remote PMHNP Jobs',
-      }],
+      images: [pageOgImage(PAGE_OG_CARDS['/jobs/remote'])],
     },
     alternates: {
       canonical: `${brand.baseUrl}/jobs/remote`,

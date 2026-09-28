@@ -1,5 +1,6 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -139,15 +140,10 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
         description: `Find ${categoryTitleCount(stats.totalJobs)}new grad PMHNP jobs. Entry-level psychiatric nurse practitioner positions with mentorship, fellowships, and residency programs. No experience required. Start your PMHNP career today.`,
         keywords: ['new grad pmhnp', 'entry level pmhnp', 'pmhnp fellowship', 'new graduate psychiatric nurse practitioner', 'pmhnp residency'],
         openGraph: {
-            title: `${categoryTitleCount(stats.totalJobs)}New Grad PMHNP Jobs - Entry Level Positions`,
+            title: `${categoryTitleCount(stats.totalJobs)}New Grad PMHNP Jobs: Entry Level Positions`,
             description: 'Browse new graduate and entry-level psychiatric mental health nurse practitioner positions. Fellowships, residencies, mentorship programs.',
             type: 'website',
-            images: [{
-                url: `/api/og?type=page&v=3&title=${encodeURIComponent(`${categoryTitleCount(stats.totalJobs)}New Grad PMHNP Jobs`)}&subtitle=${encodeURIComponent('Entry-level psychiatric NP positions')}`,
-                width: 1200,
-                height: 630,
-                alt: 'New Grad PMHNP Jobs',
-            }],
+            images: [pageOgImage(PAGE_OG_CARDS['/jobs/new-grad'])],
         },
         alternates: {
             canonical: `${brand.baseUrl}/jobs/new-grad`,

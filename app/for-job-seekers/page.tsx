@@ -8,7 +8,7 @@ import FeaturedJobsSection from '@/components/FeaturedJobsSection';
 import { prisma } from '@/lib/prisma';
 import { publicJobsWhere } from '@/lib/filters';
 import { roundedCountDisplay } from '@/lib/format-count';
-import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import {
   ArrowRight, Search, Users, Briefcase, MapPin,
   Check, X, Star,
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     images: [pageOgImage(PAGE_OG_CARDS['/for-job-seekers'])],
   },
-  twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/for-job-seekers'])] },
+  twitter: { card: 'summary_large_image', images: [pageOgImage(PAGE_OG_CARDS['/for-job-seekers'])] },
   alternates: { canonical: `${brand.baseUrl}/for-job-seekers` },
 };
 

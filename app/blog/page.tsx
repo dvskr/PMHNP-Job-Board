@@ -1,5 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
-import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     openGraph: {
         images: [pageOgImage(PAGE_OG_CARDS['/blog'])],
     },
-    twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/blog'])] },
+    twitter: { card: 'summary_large_image', images: [pageOgImage(PAGE_OG_CARDS['/blog'])] },
     alternates: {
         canonical: `${brand.baseUrl}/blog`,
     },

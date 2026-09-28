@@ -1,5 +1,6 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { brand } from '@/config/brand';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -60,6 +61,10 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     description: `Find ${categoryTitleCount(stats.totalJobs)}travel PMHNP and locum tenens positions. Housing stipends, flexible nationwide assignments, premium pay.`,
     keywords: ['travel pmhnp jobs', 'locum tenens psych NP', 'travel psychiatric nurse practitioner', 'traveling PMHNP positions'],
     alternates: { canonical: `${brand.baseUrl}/jobs/travel` },
+    // Own openGraph, so this page stops inheriting the root layout block's
+    // homepage title and card. Title and description come from the fields
+    // above; Next fills twitter from this block.
+    openGraph: { type: 'website', url: `${brand.baseUrl}/jobs/travel`, images: [pageOgImage(PAGE_OG_CARDS['/jobs/travel'])] },
     ...categoryLandingRobotsMeta(stats.totalJobs, page),
   };
 }

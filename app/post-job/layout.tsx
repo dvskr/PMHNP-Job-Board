@@ -1,4 +1,5 @@
 import { brand } from '@/config/brand';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import { config } from '@/lib/config';
 import { Metadata } from 'next';
 
@@ -10,6 +11,14 @@ export const metadata: Metadata = {
     description: `Post your PMHNP job and reach qualified psychiatric nurse practitioners. First post $${config.firstPostPrice}, then $${config.postingPrice} for a ${config.durationDays}-day featured listing.`,
     alternates: {
         canonical: `${brand.baseUrl}/post-job`,
+    },
+    // Own openGraph, so this page stops inheriting the root layout block's
+    // homepage title and card. Next fills title and description from the
+    // fields above, and twitter from this block.
+    openGraph: {
+        type: 'website',
+        url: `${brand.baseUrl}/post-job`,
+        images: [pageOgImage(PAGE_OG_CARDS['/post-job'])],
     },
 };
 

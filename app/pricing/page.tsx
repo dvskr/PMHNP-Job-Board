@@ -6,7 +6,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import EmployerTestimonials from '@/components/EmployerTestimonials';
 import CreditPackCards from '@/components/pricing/CreditPackCards';
 import { config } from '@/lib/config';
-import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import { Check, ArrowRight, X, HelpCircle, RefreshCw } from 'lucide-react';
 
 // ISR: featured employer testimonials come from the database, so revalidate
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
         description: `Post PMHNP jobs: first post $${config.firstPostPrice}, then $${config.postingPrice} per post. Every post gets the full package.`,
         images: [pageOgImage(PAGE_OG_CARDS['/pricing'])],
     },
-    twitter: { card: 'summary_large_image', images: [pageOgPath(PAGE_OG_CARDS['/pricing'])] },
+    twitter: { card: 'summary_large_image', images: [pageOgImage(PAGE_OG_CARDS['/pricing'])] },
     alternates: { canonical: `${brand.baseUrl}/pricing` },
 };
 

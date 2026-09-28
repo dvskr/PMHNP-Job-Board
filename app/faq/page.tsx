@@ -1,5 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
-import { PAGE_OG_CARDS, pageOgImage, pageOgPath } from '@/lib/seo/og-image';
+import { PAGE_OG_CARDS, pageOgImage } from '@/lib/seo/og-image';
 import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     siteName: 'PMHNP Hiring',
     images: [pageOgImage(FAQ_OG_CARD)],
   },
-  twitter: { card: 'summary_large_image', title: 'PMHNP Hiring FAQ', images: [pageOgPath(FAQ_OG_CARD)] },
+  twitter: { card: 'summary_large_image', title: 'PMHNP Hiring FAQ', images: [pageOgImage(FAQ_OG_CARD)] },
   alternates: {
     canonical: `${brand.baseUrl}/faq`,
   },

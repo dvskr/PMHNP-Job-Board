@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 import { LOGO_DATA_URI } from './_logo';
+import { SITE_OG_CARD } from '@/lib/seo/og-image';
 
 export const runtime = 'edge';
 
@@ -113,7 +114,7 @@ export async function GET(request: NextRequest) {
           maxWidth: 980,
         }}
       >
-        The PMHNP-Only Job Board
+        {SITE_OG_CARD.title}
       </div>
       <div
         style={{
@@ -126,12 +127,11 @@ export async function GET(request: NextRequest) {
           maxWidth: 860,
         }}
       >
-        Psychiatric nurse practitioner jobs with salary transparency. Remote and in-person roles across all 50 states, updated daily.
+        {SITE_OG_CARD.subtitle}
       </div>
+      {/* Copy lives in lib/seo/og-image.ts so the copy test can read it. */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: 36 }}>
-        {chip('Salary transparency', true)}
-        {chip('All 50 states')}
-        {chip('Updated daily')}
+        {SITE_OG_CARD.chips.map((label, i) => chip(label, i === 0))}
       </div>
     </div>
   ) : isPageType ? (

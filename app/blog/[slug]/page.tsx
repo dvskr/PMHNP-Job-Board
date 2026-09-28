@@ -1,4 +1,5 @@
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { SITE_OG_URL } from '@/lib/seo/og-image';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -46,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         return { title: 'Article Not Found' };
     }
 
-    const ogImage = post.image_url || 'https://pmhnphiring.com/api/og?v=3';
+    const ogImage = post.image_url || SITE_OG_URL;
     const url = `https://pmhnphiring.com/blog/${slug}`;
 
     return {
@@ -290,7 +291,7 @@ export default async function BlogPostPage({ params }: Props) {
             '@type': 'WebPage',
             '@id': currentUrl,
         },
-        image: post.image_url || 'https://pmhnphiring.com/api/og?v=3',
+        image: post.image_url || SITE_OG_URL,
         keywords: post.target_keyword || undefined,
         articleSection: categoryLabel,
         url: currentUrl,
@@ -313,7 +314,7 @@ export default async function BlogPostPage({ params }: Props) {
         '@type': 'VideoObject',
         name: post.title,
         description: post.meta_description || post.title,
-        thumbnailUrl: post.image_url || 'https://pmhnphiring.com/api/og?v=3',
+        thumbnailUrl: post.image_url || SITE_OG_URL,
         // Google's VideoObject validator rejects an uploadDate with no
         // timezone outright, not just as a warning.
         uploadDate: toIsoUtc(post.publish_date || post.created_at),
