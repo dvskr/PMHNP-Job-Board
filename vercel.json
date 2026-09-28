@@ -253,6 +253,10 @@
       "schedule": "30 22 * * *"
     },
     {
+      "path": "/api/cron/credit-reconciliation",
+      "schedule": "45 8 * * *"
+    },
+    {
       "path": "/api/cron/source-presence-unpublish",
       "schedule": "55 12 * * *"
     },
