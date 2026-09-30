@@ -213,10 +213,34 @@ describe('the withdrawn refund guarantee stays withdrawn', () => {
     },
   );
 
-  it('terms no longer carve the guarantee out of the refund policy', () => {
+  it('terms state fees are non-refundable, with no carve-out and no hedge', () => {
     const src = read('app/terms/page.tsx');
-    expect(src).toContain('Job posting and renewal fees are generally non-refundable');
+    expect(src).toMatch(/fees are non-refundable/);
     expect(src).not.toMatch(/Except as provided by/);
+    // "generally" was the hedge that used to sit in front of it, and the
+    // 7-day case-by-case window behind it. Both read as a promise of
+    // possible refundability, which is the thing being removed.
+    expect(src).not.toMatch(/generally non-refundable/);
+    expect(src).not.toMatch(/within 7 days of purchase/);
+    expect(src).not.toMatch(/case-by-case/i);
+  });
+
+  it('no user-facing surface offers a refund, a window, or a consideration', () => {
+    // The instruction is that nothing is refundable and nothing claims it
+    // is. These phrasings each imply the opposite somewhere a reader or an
+    // assistant quoting the page would take as a commitment.
+    const CLAIMS = [
+      /refund requests? (may|will) be considered/i,
+      /case[- ]by[- ]case/i,
+      /generally non-refundable/i,
+      /money[- ]back/i,
+      /full refund/i,
+      /we('ll| will) refund/i,
+    ];
+    for (const pattern of CLAIMS) {
+      const hits = SWEEP.filter((rel) => pattern.test(blankComments(read(rel))));
+      expect(offenders(hits, `claims refundability via ${pattern}`)).toBe('');
+    }
   });
 
   it.each(['app/pricing/page.tsx', 'app/for-employers/page.tsx'])(

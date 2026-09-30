@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ChevronLeft, Loader2, Lock } from 'lucide-react';
 import { config, type PostPriceKind } from '@/lib/config';
 import { trackBeginCheckout } from '@/lib/analytics';
-import { POST_JOB_SCREENING_SCOPE, readScreeningQuestions } from '@/components/ScreeningQuestionsBuilder';
+import { POST_JOB_SCREENING_SCOPE, readScreeningQuestions, clearScreeningQuestions } from '@/components/ScreeningQuestionsBuilder';
 
 interface ScreeningQuestion {
   text: string;
@@ -216,6 +216,18 @@ export default function CheckoutPage() {
       // error over a post that went live, and the obvious retry would spend
       // a second credit on a duplicate.
       if (paidWithCredit && redirectUrl) {
+        // Clear the local draft, exactly as /success does on the paid path.
+        // The credit path never reaches /success, so without this the draft
+        // survived: pressing Back or reloading re-rendered an enabled
+        // "Publish Now: Uses 1 Credit" over a job that was already live, and
+        // a second press spent a second credit on a duplicate listing. The
+        // route deletes the SERVER draft, so nothing else signalled it.
+        try {
+          localStorage.removeItem('jobFormData');
+          clearScreeningQuestions(POST_JOB_SCREENING_SCOPE);
+        } catch {
+          /* storage can throw in a private window; the redirect still stands */
+        }
         window.location.href = redirectUrl;
         return;
       }

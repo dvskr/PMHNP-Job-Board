@@ -49,13 +49,11 @@ function makeUpdateRequest(overrides: Record<string, unknown> = {}): NextRequest
 describe('C1 — employer job update emits embedding.refresh.job', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  // Explicit timeout, because this is the first test in the file to
-  // `await import` the route and so pays the cold cost of its whole module
-  // graph. That lands around 5.1s, against a 5s default, so the test has
-  // been passing on luck: it fails whenever the machine is a little busier.
-  // The work here is an import, not the assertion, and slowing the import
-  // is not a regression worth failing a build over.
-  it('emits embedding.refresh.job after a successful update', { timeout: 30_000 }, async () => {
+  // This is the first test in the file to `await import` the route, so it
+  // pays the cold cost of the route's whole module graph. That is now
+  // covered by the raised global testTimeout in vitest.config.ts rather than
+  // per test, because a second file hit the same wall.
+  it('emits embedding.refresh.job after a successful update', async () => {
     vi.mocked(prisma.employerJob.findFirst).mockResolvedValue({
       id: 'ej-1', jobId: 'job-abc', contactEmail: 'employer@example.com',
       companyWebsite: null, companyLogoUrl: null, editToken: 'valid-token-abc',

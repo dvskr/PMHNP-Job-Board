@@ -179,9 +179,24 @@ export default function CreditPackCards() {
                 </p>
             )}
 
-            <p style={{ fontSize: '12.5px', color: '#7A6A62', textAlign: 'center', margin: '18px auto 0', maxWidth: '560px', lineHeight: 1.55 }}>
-                Credits are drawn automatically the next time you post, soonest to expire first.
-                Need more than {config.creditPacks[config.creditPacks.length - 1].credits} posts, or an invoice
+            {/* The disclosure that makes the savings badges honest.
+                savingsPercent is measured against the standard per-post
+                price, which is the right comparison for a returning employer
+                and the wrong one for a first purchase: buying a pack spends
+                the discounted first post, so the smallest pack costs MORE
+                than paying post by post for a buyer who still holds it.
+                config.smallestPackWorthItBeforeFirstPost() is the one that
+                does not, and naming it here is what stops the page quoting a
+                saving to the one reader it does not apply to. */}
+            <p style={{ fontSize: '12.5px', color: '#7A6A62', textAlign: 'center', margin: '18px auto 0', maxWidth: '620px', lineHeight: 1.6 }}>
+                Savings are against the ${config.postingPrice} standard post price. A pack uses up
+                your discounted first post at ${config.firstPostPrice}, so if you have not posted
+                with us before, a pack pays off from{' '}
+                {config.smallestPackWorthItBeforeFirstPost()?.credits ?? config.largestPack().credits} posts upward.
+            </p>
+            <p style={{ fontSize: '12.5px', color: '#7A6A62', textAlign: 'center', margin: '10px auto 0', maxWidth: '620px', lineHeight: 1.6 }}>
+                Credits are drawn automatically the next time you post, soonest to expire first, and
+                are non-refundable. Need more than {config.largestPack().credits} posts, or an invoice
                 and a purchase order? Email support@pmhnphiring.com.
             </p>
 

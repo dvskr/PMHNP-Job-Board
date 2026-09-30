@@ -70,6 +70,12 @@ export async function POST(request: NextRequest) {
             expiresAt: true,
             // Needed for the double-charge guard below.
             lastRenewedAt: true,
+            // Needed for the paused/archived guard below. The webhook's
+            // honorsExistingHold already withholds isPublished and isFeatured
+            // from these, so without this check the employer pays and the
+            // posting correctly stays down, which is the worst combination.
+            isManuallyUnpublished: true,
+            archivedAt: true,
           },
         },
       },
@@ -89,6 +95,27 @@ export async function POST(request: NextRequest) {
     if (employerJob.paymentStatus === 'pending') {
       return NextResponse.json(
         { error: 'This job posting was never completed. Please complete the original checkout instead of renewing.' },
+        { status: 409 }
+      );
+    }
+
+    // A paused or deleted posting cannot be renewed into visibility. The
+    // webhook's honorsExistingHold deliberately withholds isPublished and
+    // isFeatured from these rows, so the money would buy days on a listing
+    // nobody can see, and the renewal receipt would then tell them it is
+    // "live again". Unpause first, which is free.
+    if (employerJob.job.archivedAt) {
+      return NextResponse.json(
+        { error: 'This job posting has been deleted and cannot be renewed.' },
+        { status: 409 }
+      );
+    }
+    if (employerJob.job.isManuallyUnpublished) {
+      return NextResponse.json(
+        {
+          error: 'This posting is paused. Unpause it from your dashboard first, then renew.',
+          cause: 'paused',
+        },
         { status: 409 }
       );
     }

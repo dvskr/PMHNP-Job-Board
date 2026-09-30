@@ -138,13 +138,12 @@ export default function TermsPage() {
 
           <h2 style={h2Style}>8. Refund Policy</h2>
           <ul style={ulStyle}>
-            <li style={liStyle}>Job posting and renewal fees are generally non-refundable</li>
-            <li style={liStyle}>Refund requests may be considered within 7 days of purchase on a case-by-case basis</li>
-            <li style={liStyle}>To request a refund, email <a href="mailto:support@pmhnphiring.com" style={{ color: '#0D9488', textDecoration: 'none' }}>support@pmhnphiring.com</a> with your order details and the reason for the request</li>
-            <li style={liStyle}>We reserve the right to grant or deny refund requests at our sole discretion</li>
-            <li style={liStyle}>If we remove a posting for violation of these Terms, no refund will be issued</li>
-            <li style={liStyle}>Postings published without charge under a prior version of these Terms have no associated payment and are therefore not refundable</li>
-            <li style={liStyle}>Refunds, if granted, will be issued to the original payment method through Stripe and may take 5 to 10 business days to appear on your statement</li>
+            <li style={liStyle}>Job posting fees, renewal fees and prepaid posting credit fees are non-refundable</li>
+            <li style={liStyle}>Payment is committed when the posting is published or, for a prepaid credit pack, when the pack is purchased</li>
+            <li style={liStyle}>Prepaid posting credits expire {config.creditPackValidDays} days after purchase. Unused credits have no cash value and are not exchangeable</li>
+            <li style={liStyle}>If we remove a posting for violation of these Terms, no refund is issued</li>
+            <li style={liStyle}>If a payment is reversed, whether by a chargeback or by a reversal we elect to make, the posting it paid for is unpublished and loses its Featured status, and any unspent credits from that purchase are withdrawn</li>
+            <li style={liStyle}>Postings published without charge under a prior version of these Terms have no associated payment</li>
           </ul>
 
           <h2 style={h2Style}>9. Candidate Data, Unlocks & Privacy</h2>

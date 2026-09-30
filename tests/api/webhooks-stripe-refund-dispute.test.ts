@@ -140,8 +140,8 @@ describe('Stripe webhook — refund/dispute entitlement', () => {
         );
     });
 
-    it('a dispute WON restores paymentStatus without republishing', async () => {
-        vi.mocked(prisma.employerJob.findUnique).mockResolvedValue({ id: 'ej1', paymentStatus: 'disputed' } as never);
+    it('a dispute WON restores paymentStatus AND the featured entitlement, without republishing', async () => {
+        vi.mocked(prisma.employerJob.findUnique).mockResolvedValue({ id: 'ej1', paymentStatus: 'disputed', jobId: 'job1' } as never);
 
         const { POST } = await import('@/app/api/webhooks/stripe/route');
         const res = await POST(makeRequest({
@@ -153,8 +153,19 @@ describe('Stripe webhook — refund/dispute entitlement', () => {
         expect(prisma.employerJob.update).toHaveBeenCalledWith(
             expect.objectContaining({ data: { paymentStatus: 'paid' } }),
         );
-        // Relisting is the employer's decision, not the webhook's.
-        expect(prisma.job.update).not.toHaveBeenCalled();
+
+        // isFeatured MUST come back. This is the only restore site in the
+        // codebase: three writers revoke it and, before this, none returned
+        // it, so a posting revoked by a chargeback stayed unfeatured for ever
+        // even on a dispute we won. isFeatured gates employer messaging and
+        // candidate unlocks, so the employer's only way back to what they had
+        // already paid for was to buy a renewal.
+        const jobUpdate = vi.mocked(prisma.job.update).mock.calls[0]?.[0];
+        expect(jobUpdate, 'the featured entitlement is never restored').toBeDefined();
+        expect(jobUpdate!.data).toMatchObject({ isFeatured: true });
+
+        // Relisting is still the employer's decision, not the webhook's.
+        expect(JSON.stringify(jobUpdate!.data)).not.toContain('isPublished');
     });
 
     it('a dispute LOST leaves the revocation in place', async () => {
