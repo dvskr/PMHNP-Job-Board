@@ -1,4 +1,9 @@
-import { ACTIVE_CAMPAIGN, PLATFORM_BY_LETTER } from './campaigns'
+import {
+  ACTIVE_CAMPAIGN,
+  EMAIL_OUTREACH_CAMPAIGN,
+  EMAIL_OUTREACH_LINKS,
+  PLATFORM_BY_LETTER,
+} from './campaigns'
 import type { ShortlinkCampaign, ShortlinkResolution } from './types'
 
 /**
@@ -54,6 +59,23 @@ export function resolveShortlink(
       platform,
       campaign: campaign.campaign,
       content: 'pd-landing',
+      jobId: id,
+    })
+  }
+
+  // Employer cold email ('e' letter): the id names the link placement, not
+  // a job, and the campaign is always the email one so these clicks never
+  // mix with the social campaign passed in. Unknown ids resolve to null,
+  // which the route turns into an untracked redirect to /jobs.
+  if (letter === 'e') {
+    const link = EMAIL_OUTREACH_LINKS[id]
+    if (!link) return null
+    return Object.freeze({
+      destination: `${trimmedBase}${link.path}`,
+      destinationPath: link.path,
+      platform,
+      campaign: EMAIL_OUTREACH_CAMPAIGN,
+      content: link.content,
       jobId: id,
     })
   }

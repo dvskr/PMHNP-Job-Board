@@ -147,7 +147,12 @@ export function updateConsentByCategories(cats: { analytics: boolean; marketing:
 
 export function setUserId(userId: string | null) {
   if (!GA_ID) return;
-  gtag('config', GA_ID, { user_id: userId });
+  // 'set', not 'config': a config call sends a page_view, and this runs on
+  // mount before RouteChangeTracker's first trackPageView. That extra hit
+  // was each anonymous landing's first event, so it started the session
+  // with a clean URL and the restored utm_* on the real page view came too
+  // late to set the session source (and every landing counted twice).
+  gtag('set', { user_id: userId });
 }
 
 export function setUserProperties(props: UserProperties) {
@@ -157,13 +162,90 @@ export function setUserProperties(props: UserProperties) {
 
 // ── Page Tracking ───────────────────────────────────────────────
 
+// ── Campaign Attribution ────────────────────────────────────────
+// Middleware 301s every utm_* URL to its clean form (duplicate-URL SEO fix)
+// and stashes source/medium/campaign in this cookie first. GA4 reads a
+// session's source from the utm_* on page_location, so the first page view
+// after that redirect has to put them back or every tagged link (program
+// widget, LinkedIn page button, shared posts) lands in GA as direct traffic.
+
+export const ATTRIBUTION_COOKIE = 'pmhnp_attribution';
+
+export interface CampaignAttribution {
+  readonly source?: string;
+  readonly medium?: string;
+  readonly campaign?: string;
+}
+
+// Values we send on to GA: slugs only. Anything else in the cookie is
+// dropped rather than forwarded.
+const ATTRIBUTION_VALUE = /^[A-Za-z0-9._-]{1,100}$/;
+
+function attributionValue(value: unknown): string | undefined {
+  return typeof value === 'string' && ATTRIBUTION_VALUE.test(value) ? value : undefined;
+}
+
+/** Reads the attribution cookie out of a `document.cookie` string. */
+export function parseAttributionCookie(cookieString: string): CampaignAttribution | null {
+  const entry = cookieString
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${ATTRIBUTION_COOKIE}=`));
+  if (!entry) return null;
+  try {
+    const parsed: unknown = JSON.parse(decodeURIComponent(entry.slice(ATTRIBUTION_COOKIE.length + 1)));
+    if (!parsed || typeof parsed !== 'object') return null;
+    const record = parsed as Record<string, unknown>;
+    const attribution: CampaignAttribution = {
+      source: attributionValue(record.source),
+      medium: attributionValue(record.medium),
+      campaign: attributionValue(record.campaign),
+    };
+    return attribution.source || attribution.medium || attribution.campaign ? attribution : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Returns `href` with the attribution restored as utm_* query params. */
+export function withCampaignParams(href: string, attribution: CampaignAttribution): string {
+  try {
+    const url = new URL(href);
+    const pairs: ReadonlyArray<readonly [string, string | undefined]> = [
+      ['utm_source', attribution.source],
+      ['utm_medium', attribution.medium],
+      ['utm_campaign', attribution.campaign],
+    ];
+    for (const [key, value] of pairs) {
+      if (value) url.searchParams.set(key, value);
+    }
+    return url.toString();
+  } catch {
+    return href;
+  }
+}
+
+/**
+ * The page_location for a page view. Consumes the attribution cookie, so
+ * only the first view after a tagged landing carries the utm_* values.
+ */
+function pageLocationWithAttribution(): string {
+  if (typeof window === 'undefined') return '';
+  const href = window.location.href;
+  if (typeof document === 'undefined') return href;
+  const attribution = parseAttributionCookie(document.cookie);
+  if (!attribution) return href;
+  document.cookie = `${ATTRIBUTION_COOKIE}=; Max-Age=0; path=/`;
+  return withCampaignParams(href, attribution);
+}
+
 export function trackPageView(path: string, title?: string) {
   if (!GA_ID) return;
   // Standard GA4 SPA page view tracking via gtag config call
   gtag('config', GA_ID, {
     page_path: path,
     page_title: title || (typeof document !== 'undefined' ? document.title : ''),
-    page_location: typeof window !== 'undefined' ? window.location.href : '',
+    page_location: pageLocationWithAttribution(),
   });
 }
 

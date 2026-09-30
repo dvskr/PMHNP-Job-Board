@@ -118,7 +118,13 @@ export async function GET(
     )
   }
 
-  // ── 4. Privacy signals — redirect without logging ─────────────────
+  // ── 4. HEAD probes and privacy signals — redirect without logging ─
+  // Next.js answers HEAD with this GET handler. Nobody reads a page with
+  // HEAD: it is link checkers and mail security scanners testing the URL,
+  // and recording them would credit a click to the email's recipient.
+  if (req.method === 'HEAD') {
+    return withRedirectHeaders(NextResponse.redirect(resolved.destination, 302))
+  }
   if (isPrivacyRespectingRequest(req)) {
     logger.debug('[shortlink] privacy signal, skipping tracker', {
       code,
