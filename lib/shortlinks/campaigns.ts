@@ -14,6 +14,7 @@ export const PLATFORM_BY_LETTER: Readonly<Record<string, string>> = Object.freez
   r: 'reddit',
   t: 'threads',
   p: 'program-director',
+  e: 'email',
 })
 
 export const KNOWN_PLATFORM_LETTERS: ReadonlySet<string> = new Set(
@@ -50,6 +51,25 @@ export const FEATURED_EMPLOYERS_MAY_2026: ShortlinkCampaign = Object.freeze({
     { id: 14, slug: 'pmhnp-part-time-aa948106-2473-465b-988e-f6ab24e98ffc', content: 'higher-dimensions-nv' },
   ]),
 }) as ShortlinkCampaign
+
+/**
+ * Employer cold-email links ('e' letter). Each id is one link placement in
+ * the outbound email sequences, so the id records which email drove the
+ * click and `?r=<contact id>` records who clicked. Email click tracking in
+ * the sending tool stays off (tracking pixels and rewritten links hurt
+ * inbox placement), which makes this route the only click signal.
+ *
+ * Ids are frozen once an email containing them has been sent: renumbering
+ * would send clicks from mail already in inboxes to the wrong page and the
+ * wrong content label. Add new placements with new ids.
+ */
+export const EMAIL_OUTREACH_CAMPAIGN = 'employer-cold-email'
+
+export const EMAIL_OUTREACH_LINKS: Readonly<Record<number, { readonly path: string; readonly content: string }>> =
+  Object.freeze({
+    1: Object.freeze({ path: '/', content: 'seq-c-touch2-home' }),
+    2: Object.freeze({ path: '/post-job', content: 'seq-c-touch3-post-job' }),
+  })
 
 /**
  * Pointer to the campaign the route handler currently serves. To roll a

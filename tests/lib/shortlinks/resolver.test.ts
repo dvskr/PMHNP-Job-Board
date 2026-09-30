@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { resolveShortlink } from '@/lib/shortlinks/resolver'
-import { ACTIVE_CAMPAIGN, PLATFORM_BY_LETTER } from '@/lib/shortlinks/campaigns'
+import {
+  ACTIVE_CAMPAIGN,
+  EMAIL_OUTREACH_CAMPAIGN,
+  EMAIL_OUTREACH_LINKS,
+  PLATFORM_BY_LETTER,
+} from '@/lib/shortlinks/campaigns'
 import type { ShortlinkCampaign } from '@/lib/shortlinks/types'
 
 const BASE = 'https://pmhnphiring.com'
@@ -48,9 +53,9 @@ describe('resolveShortlink — browse-all (id=0)', () => {
   it('resolves to /jobs with browse-all content for every social platform', () => {
     for (const [letter, source] of Object.entries(PLATFORM_BY_LETTER)) {
       // Program-director ('p') is intentionally not browse-all — it
-      // always lands on /for-programs regardless of id. See the
-      // dedicated PD-letter describe block below.
-      if (letter === 'p') continue
+      // always lands on /for-programs regardless of id. Email ('e') ids
+      // are link placements with no id 0. See their describe blocks below.
+      if (letter === 'p' || letter === 'e') continue
       const r = resolveShortlink(`${letter}0`, BASE)
       expect(r, `code ${letter}0`).not.toBeNull()
       expect(r!.destinationPath).toBe('/jobs')
@@ -162,5 +167,48 @@ describe('resolveShortlink — custom campaign', () => {
     expect(r).not.toBeNull()
     expect(r!.content).toBe('browse-all')
     expect(r!.campaign).toBe('test-campaign-2030')
+  })
+})
+
+describe('resolveShortlink — employer cold email ("e" letter)', () => {
+  it('resolves every configured placement to its own page on this site', () => {
+    const seen = new Set<string>()
+    for (const [idStr, link] of Object.entries(EMAIL_OUTREACH_LINKS)) {
+      const r = resolveShortlink(`e${idStr}`, BASE)
+      expect(r, `code e${idStr}`).not.toBeNull()
+      expect(r!.destination).toBe(`${BASE}${link.path}`)
+      expect(new URL(r!.destination).origin).toBe(BASE)
+      expect(r!.platform).toBe('email')
+      expect(r!.content).toBe(link.content)
+      expect(r!.jobId).toBe(Number(idStr))
+      expect(seen.has(r!.content), `duplicate content ${r!.content}`).toBe(false)
+      seen.add(r!.content)
+    }
+  })
+
+  it('sends the sequence links where the email copy says they go', () => {
+    // Touch 2 says "pmhnphiring.com lets psych NPs browse roles", touch 3
+    // says "post directly at pmhnphiring.com/post-job".
+    expect(resolveShortlink('e1', BASE)!.destinationPath).toBe('/')
+    expect(resolveShortlink('e2', BASE)!.destinationPath).toBe('/post-job')
+  })
+
+  it('always logs under the email campaign, whatever campaign is passed', () => {
+    const custom: ShortlinkCampaign = {
+      campaign: 'social-campaign-x',
+      jobs: [{ id: 1, slug: 'some-job', content: 'some-content' }],
+    }
+    expect(resolveShortlink('e1', BASE)!.campaign).toBe(EMAIL_OUTREACH_CAMPAIGN)
+    expect(resolveShortlink('e1', BASE, custom)!.campaign).toBe(EMAIL_OUTREACH_CAMPAIGN)
+    expect(resolveShortlink('e1', BASE, custom)!.destinationPath).toBe('/')
+  })
+
+  it('rejects ids with no configured placement instead of guessing a page', () => {
+    expect(resolveShortlink('e0', BASE)).toBeNull()
+    expect(resolveShortlink('e99', BASE)).toBeNull()
+  })
+
+  it('returns a frozen object', () => {
+    expect(Object.isFrozen(resolveShortlink('e2', BASE)!)).toBe(true)
   })
 })
