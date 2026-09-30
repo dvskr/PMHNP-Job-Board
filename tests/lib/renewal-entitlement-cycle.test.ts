@@ -106,8 +106,9 @@ describe('the renewal actually moves the cycle', () => {
     expect(sql).toMatch(/ADD COLUMN "entitlement_cycle_started_at"/);
     // Backfilled, so the column means something for every existing row.
     expect(sql).toMatch(/UPDATE "employer_jobs" SET "entitlement_cycle_started_at" = "created_at"/);
-    // The count now filters on both columns.
-    expect(sql).toMatch(/profile_views.*employer_job_id.*viewed_at/s);
+    // The count now filters on both columns. [\s\S] rather than the dotAll
+    // flag: tsc targets below es2018 and rejects /s outright.
+    expect(sql).toMatch(/profile_views[\s\S]*employer_job_id[\s\S]*viewed_at/);
   });
 });
 
