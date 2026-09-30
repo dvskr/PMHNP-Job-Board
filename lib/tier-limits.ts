@@ -23,6 +23,9 @@ export async function getEmployerActivePostings(employerId: string) {
             id: true,
             pricingTier: true,
             createdAt: true,
+            // The lower bound on this posting's CURRENT unlock and InMail
+            // buckets. A renewal moves it forward; see cycleStart below.
+            entitlementCycleStartedAt: true,
             jobId: true,
             job: {
                 select: { id: true, createdAt: true, expiresAt: true },
@@ -32,6 +35,21 @@ export async function getEmployerActivePostings(employerId: string) {
     });
 
     return activePostings;
+}
+
+/**
+ * When a posting's current entitlement cycle began.
+ *
+ * Falls back to createdAt, which is both what the backfill wrote and the
+ * correct answer for any posting that has never been renewed. Every
+ * entitlement count goes through this rather than reading either column
+ * directly, so the two cannot drift apart.
+ */
+export function cycleStart(posting: {
+    createdAt: Date;
+    entitlementCycleStartedAt?: Date | null;
+}): Date {
+    return posting.entitlementCycleStartedAt ?? posting.createdAt;
 }
 
 /**
@@ -58,11 +76,26 @@ export async function getEmployerTier(_employerId: string): Promise<PricingTier>
 }
 
 /**
- * Count how many profile unlocks are tied to a specific posting.
+ * Count profile unlocks charged to a posting's CURRENT entitlement cycle.
+ *
+ * `since` is the cycle start, from cycleStart(posting). Without it this
+ * counted every view the posting had ever received, so renewing an exhausted
+ * posting bought nothing: the count stayed at the cap for ever while the
+ * receipt, both expiry emails, the dashboard modal and Terms section 7 all
+ * said a fresh allowance had been delivered.
+ *
+ * `since` is optional only so a caller that genuinely wants the lifetime
+ * total does not have to invent a date. Every entitlement gate passes it.
  */
-export async function getUnlocksForPosting(employerJobId: string): Promise<number> {
+export async function getUnlocksForPosting(
+    employerJobId: string,
+    since?: Date,
+): Promise<number> {
     return prisma.profileView.count({
-        where: { employerJobId },
+        where: {
+            employerJobId,
+            ...(since ? { viewedAt: { gte: since } } : {}),
+        },
     });
 }
 
@@ -174,16 +207,30 @@ export async function canUnlockCandidate(
     // Views from EXPIRED postings (employerJobId pointing to a non-active row)
     // are deliberately excluded — they were paid for under that posting's cap
     // and shouldn't penalize a new active posting (audit #13).
-    const activePostingIds = postings.map(p => p.id);
-    const activeAndLegacyViews = await prisma.profileView.count({
-        where: {
-            viewerId: employerId,
-            OR: [
-                { employerJobId: { in: activePostingIds } },
-                { employerJobId: null },
-            ],
-        },
+    //
+    // Summed per posting rather than fetched in one query, because each
+    // posting carries its OWN cycle start and a single `employerJobId IN
+    // (...)` predicate cannot express a different lower bound per row. The
+    // total is identical: every ProfileView has exactly one employerJobId or
+    // null, so the arms cannot double count. This also becomes the single
+    // source for the per-posting numbers used further down, which the two
+    // loops below previously re-queried once each.
+    const attributedPerPosting = new Map<string, number>();
+    for (const posting of postings) {
+        attributedPerPosting.set(
+            posting.id,
+            await getUnlocksForPosting(posting.id, cycleStart(posting)),
+        );
+    }
+
+    // Legacy views predate posting attribution, so they belong to no cycle
+    // and are counted once, whole.
+    const legacyViews = await prisma.profileView.count({
+        where: { viewerId: employerId, employerJobId: null },
     });
+
+    const activeAndLegacyViews =
+        [...attributedPerPosting.values()].reduce((sum, n) => sum + n, 0) + legacyViews;
 
     // Global safety check using the active-scoped count
     if (Number.isFinite(totalLimit) && activeAndLegacyViews >= totalLimit) {
@@ -192,10 +239,7 @@ export async function canUnlockCandidate(
 
     // Per-posting check: distribute legacy views to postings (oldest first so
     // the newest posting keeps its full bucket for fresh unlocks).
-    const legacyViews = await prisma.profileView.count({
-        where: { viewerId: employerId, employerJobId: null },
-    });
-
+    //
     // Iterate oldest-to-newest for legacy distribution, then return the first
     // (newest) posting with remaining capacity for the new charge.
     const oldestToNewest = [...postings].reverse();
@@ -206,7 +250,7 @@ export async function canUnlockCandidate(
         const postingLimit = postingLimits.candidateUnlocksPerPosting;
         if (!Number.isFinite(postingLimit)) continue;
 
-        const attributedViews = await getUnlocksForPosting(posting.id);
+        const attributedViews = attributedPerPosting.get(posting.id) ?? 0;
         const headroom = Math.max(0, postingLimit - attributedViews);
         const charged = Math.min(legacyRemaining, headroom);
         legacyChargedPerPosting.set(posting.id, charged);
@@ -222,7 +266,7 @@ export async function canUnlockCandidate(
             return { allowed: true, used: activeAndLegacyViews, limit: Infinity, postingId: posting.id };
         }
 
-        const attributedViews = await getUnlocksForPosting(posting.id);
+        const attributedViews = attributedPerPosting.get(posting.id) ?? 0;
         const legacyCharge = legacyChargedPerPosting.get(posting.id) ?? 0;
         const effectiveUsed = attributedViews + legacyCharge;
 
@@ -263,7 +307,7 @@ export async function canSendInMail(
     for (const posting of postings) {
         const postingLimits = config.getTierLimits(posting.pricingTier as PricingTier);
         const postingLimit = postingLimits.inmailsPerPosting;
-        const used = await getInMailsForPosting(senderId, posting.job.id, posting.createdAt);
+        const used = await getInMailsForPosting(senderId, posting.job.id, cycleStart(posting));
         totalUsed += used;
 
         if (Number.isFinite(postingLimit) && used < postingLimit) {
@@ -318,7 +362,7 @@ export async function getUsageSummary(
         // Unlocks
         const unlockLimit = postingLimits.candidateUnlocksPerPosting;
         if (Number.isFinite(unlockLimit)) {
-            const unlockCount = await getUnlocksForPosting(posting.id);
+            const unlockCount = await getUnlocksForPosting(posting.id, cycleStart(posting));
             totalUnlocksUsed += unlockCount;
             totalUnlocksLimit += unlockLimit;
         } else {
@@ -328,7 +372,7 @@ export async function getUsageSummary(
         // InMails — count unique conversations, not individual messages
         const inmailLimit = postingLimits.inmailsPerPosting;
         if (Number.isFinite(inmailLimit)) {
-            const inmailCount = await getInMailsForPosting(profileId, posting.job.id, posting.createdAt);
+            const inmailCount = await getInMailsForPosting(profileId, posting.job.id, cycleStart(posting));
             totalInmailsUsed += inmailCount;
             totalInmailsLimit += inmailLimit;
         } else {
@@ -363,11 +407,11 @@ export async function getPerPostingUsage(
     for (const posting of postings) {
         const limits = config.getTierLimits(posting.pricingTier as PricingTier);
 
-        const unlockCount = await getUnlocksForPosting(posting.id);
+        const unlockCount = await getUnlocksForPosting(posting.id, cycleStart(posting));
         const unlockLimit = limits.candidateUnlocksPerPosting;
         const unlockRemaining = Number.isFinite(unlockLimit) ? Math.max(0, unlockLimit - unlockCount) : Infinity;
 
-        const inmailCount = await getInMailsForPosting(profileId, posting.job.id, posting.createdAt);
+        const inmailCount = await getInMailsForPosting(profileId, posting.job.id, cycleStart(posting));
         const inmailLimit = limits.inmailsPerPosting;
         const inmailRemaining = Number.isFinite(inmailLimit) ? Math.max(0, inmailLimit - inmailCount) : Infinity;
 

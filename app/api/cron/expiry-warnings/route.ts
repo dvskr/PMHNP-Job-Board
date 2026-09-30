@@ -138,11 +138,40 @@ export async function GET(request: NextRequest) {
       })
 
       let sentCount = 0
+      let skippedCappedWarning = 0
       const errors: string[] = []
       const warningPreviews: SendPreview[] = []
 
+      // Both passes price the same renewal, so both need the same cap.
+      const renewalDurationDays = config.getDurationDays()
+
       for (const job of expiringJobs) {
         const employerJob = job.employerJobs
+
+        // The 365-day cap, which PASS 2 below has always applied and this
+        // pass never did. Its email states "adds {durationDays} days" as a
+        // flat fact, but a posting near the cap gets only the days left
+        // under it, which can be a handful. The webhook clears
+        // expiryWarningSentAt on every renewal, so this pass re-arms each
+        // cycle and therefore fires precisely on the most-renewed postings,
+        // which are the ones closest to the cap.
+        //
+        // Skipped rather than reworded, matching PASS 2: a renewal pitch
+        // that cannot deliver what it offers should not be sent at all.
+        // Not stamped, so nothing is permanently suppressed by this.
+        if (
+          job.expiresAt &&
+          renewalIsCapped({
+            expiresAt: job.expiresAt,
+            createdAt: job.createdAt,
+            durationDays: renewalDurationDays,
+            now,
+          })
+        ) {
+          skippedCappedWarning++
+          continue
+        }
+
         if (employerJob?.contactEmail) {
           // This mail carries a dashboard bearer token, so it goes to the
           // verified account address where there is one. See _lib/employer-recipient.
@@ -250,8 +279,6 @@ export async function GET(request: NextRequest) {
       let skippedClaimLost = 0
       let skippedChangedUnderUs = 0
       const finalNoticePreviews: FinalNoticePreview[] = []
-
-      const renewalDurationDays = config.getDurationDays()
 
       /**
        * Everything that disqualifies a posting from the pitch, evaluated
@@ -451,6 +478,7 @@ export async function GET(request: NextRequest) {
         response: NextResponse.json({
           success: true,
           warningsSent: sentCount,
+          skippedCappedWarning,
           finalNoticesSent,
           skippedIneligible,
           skippedSuppressed,
@@ -462,6 +490,7 @@ export async function GET(request: NextRequest) {
         metrics: {
           candidates: expiringJobs.length,
           warningsSent: sentCount,
+          skippedCappedWarning,
           finalNoticeCandidates: finalCandidates.length,
           finalNoticesSent,
           skippedIneligible,

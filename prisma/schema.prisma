@@ -443,6 +443,23 @@ model EmployerJob {
   /// Reset to null by the Stripe renewal branch alongside expiryWarningSentAt
   /// so a renewed posting gets its own full sequence on the new expiry date.
   expiryFinalNoticeSentAt DateTime?    @map("expiry_final_notice_sent_at")
+  /// When this posting's CURRENT unlock and InMail buckets began.
+  ///
+  /// Moved forward by the Stripe renewal branch, because a renewal is sold
+  /// as a fresh allowance: the receipt, both expiry emails, the dashboard
+  /// modal and Terms section 7 all say so. Left null on insert; every read
+  /// goes through cycleStart() in lib/tier-limits.ts, which falls back to
+  /// createdAt, so there is one place that decides and nothing to keep in
+  /// sync at write time.
+  /// Without it, getUnlocksForPosting counted every view the posting had
+  /// ever received, so an employer who spent their 25 unlocks and then paid
+  /// to renew was refused on the next unlock, holding a receipt that said
+  /// the allowance had already been delivered.
+  ///
+  /// Nullable only so existing rows need no backfill; every read falls back
+  /// to createdAt, which is exactly the old behaviour for a posting that has
+  /// never been renewed.
+  entitlementCycleStartedAt DateTime?  @map("entitlement_cycle_started_at")
   notifyOnApplication Boolean          @default(true) @map("notify_on_application")
   notifyDigest        String           @default("instant") @map("notify_digest") // instant, daily, off
   userId              String?          @map("user_id")
@@ -904,6 +921,9 @@ model ProfileView {
   @@index([viewerId])
   @@index([candidateId])
   @@index([employerJobId])
+  /// Unlock counting is per posting AND per entitlement cycle, so the lower
+  /// bound on viewedAt belongs in the index with it.
+  @@index([employerJobId, viewedAt])
   @@map("profile_views")
 }
 

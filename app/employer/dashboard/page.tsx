@@ -17,15 +17,24 @@ export const metadata: Metadata = {
 export default async function EmployerDashboardPage({
     searchParams,
 }: {
-    searchParams: Promise<{ credits?: string }>;
+    searchParams: Promise<{ credits?: string; posted?: string }>;
 }) {
     // Require employer or admin role — redirects to /unauthorized otherwise
     await requireEmployer();
 
+    const params = await searchParams;
+
     // Where /api/create-pack-checkout sends a buyer after Stripe. Without
     // this the largest purchase on the site lands on an unchanged-looking
     // dashboard, and the only confirmation is a number in the usage strip.
-    const justBoughtCredits = (await searchParams).credits === 'purchased';
+    const justBoughtCredits = params.credits === 'purchased';
+
+    // Where a credit-funded post lands. That path never reaches /success,
+    // which is the page that normally confirms a publish, and this param was
+    // being sent and read by nothing: the employer spent a credit, got a
+    // dashboard that looked unchanged, and had no confirmation their listing
+    // was live.
+    const justPostedWithCredit = typeof params.posted === 'string' && params.posted.length > 0;
 
     const supabase = await createClient();
 
@@ -70,6 +79,11 @@ export default async function EmployerDashboardPage({
         createdAt: record.job.createdAt.toISOString(),
         expiresAt: record.job.expiresAt ? record.job.expiresAt.toISOString() : null,
         archivedAt: record.job.archivedAt ? record.job.archivedAt.toISOString() : null,
+        // Paused by the employer, as opposed to expired. Both leave
+        // isPublished false, and only this one must hide the Renew button:
+        // the renewal webhook withholds republication from a paused posting,
+        // so renewing it buys days nobody can see.
+        isManuallyUnpublished: record.job.isManuallyUnpublished,
         editToken: record.editToken,
         paymentStatus: record.paymentStatus,
         pricingTier: record.pricingTier || 'pro',
@@ -112,6 +126,28 @@ export default async function EmployerDashboardPage({
                             <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#4A5A55', lineHeight: 1.5 }}>
                                 Your balance is in the strip below. The next job you post uses a credit
                                 automatically, with nothing more to pay. Stripe has emailed your invoice.
+                            </p>
+                        </div>
+                    </div>
+                )}
+                {justPostedWithCredit && (
+                    <div
+                        role="status"
+                        style={{
+                            display: 'flex', alignItems: 'flex-start', gap: '10px',
+                            padding: '14px 18px', marginBottom: '14px',
+                            background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.25)',
+                            borderRadius: '14px',
+                        }}
+                    >
+                        <CheckCircle2 size={17} style={{ color: '#0D9488', flexShrink: 0, marginTop: '1px' }} />
+                        <div>
+                            <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#134E4A' }}>
+                                Your job is live
+                            </p>
+                            <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#4A5A55', lineHeight: 1.5 }}>
+                                It used one prepaid credit, so there is nothing to pay. Your remaining
+                                balance is in the strip below.
                             </p>
                         </div>
                     </div>

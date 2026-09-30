@@ -17,6 +17,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { config } from '@/lib/config';
+import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
 
 export interface CreditBalance {
@@ -177,10 +178,44 @@ export async function revokePackPostings(
   packId: string,
   status: 'refunded' | 'disputed',
 ): Promise<number> {
-  const funded = await prisma.employerJob.findMany({
+  const candidates = await prisma.employerJob.findMany({
     where: { creditPackId: packId, paymentStatus: 'paid' },
     select: { id: true, jobId: true },
   });
+  if (candidates.length === 0) return 0;
+
+  // A posting the credit paid for may since have been EXTENDED by a card
+  // renewal, and that renewal is money the employer paid and we are not
+  // giving back. Taking the posting down over the pack refund would revoke
+  // something separately funded and unrefunded, and it is unrecoverable:
+  // toggle-publish answers 402 on a refunded row and the renewal checkout
+  // answers 409. The refund handler applies the same rule in the other
+  // direction, treating a live credit as an unrefunded sibling.
+  //
+  // Queried separately because EmployerJob has no charges back-relation;
+  // the rest of the codebase joins these by hand for the same reason.
+  const charges = await prisma.jobCharge.findMany({
+    where: { employerJobId: { in: candidates.map((c) => c.id) } },
+    select: { employerJobId: true, amountCents: true, refundedAmountCents: true },
+  });
+  const hasUnrefundedCard = new Set(
+    charges
+      .filter((c) => (c.refundedAmountCents ?? 0) < c.amountCents)
+      .map((c) => c.employerJobId),
+  );
+
+  const funded = candidates.filter((p) => !hasUnrefundedCard.has(p.id));
+  const spared = candidates.filter((p) => hasUnrefundedCard.has(p.id));
+
+  if (spared.length > 0) {
+    // Loud, because the employer now holds a posting funded by a refunded
+    // credit and an unrefunded renewal, which is a judgement call.
+    logger.warn('Credit pack revocation spared postings carrying an unrefunded card charge', {
+      packId,
+      sparedPostings: spared.map((p) => p.id),
+    });
+  }
+
   if (funded.length === 0) return 0;
 
   await prisma.$transaction([

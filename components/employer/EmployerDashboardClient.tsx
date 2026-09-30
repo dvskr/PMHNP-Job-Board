@@ -28,6 +28,8 @@ interface Job {
     createdAt: string;
     expiresAt: string | null;
     archivedAt: string | null;
+    /** Employer-paused. Distinct from expired, which also clears isPublished. */
+    isManuallyUnpublished?: boolean;
     editToken: string;
     paymentStatus: string;
     pricingTier: string;
@@ -211,6 +213,14 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
     const shouldShowRenew = (job: Job): boolean => {
         if (isPaymentReversed(job)) return false;
+        // A paused or deleted posting cannot be renewed into visibility: the
+        // webhook's honorsExistingHold withholds isPublished and isFeatured
+        // from both, so the money would buy days on a listing nobody can see
+        // and the receipt would then say it is "live again".
+        // /api/create-renewal-checkout answers 409 for both; this stops the
+        // button ever being offered. isPublished alone cannot tell paused
+        // from expired, which is why isManuallyUnpublished is carried here.
+        if (job.archivedAt || job.isManuallyUnpublished) return false;
         return isExpired(job) || isExpiringSoon(job);
     };
 

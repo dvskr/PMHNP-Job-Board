@@ -158,38 +158,9 @@ export async function POST(request: NextRequest) {
         ],
       };
 
-      // Collapse this identity's open checkouts down to the one we are about
-      // to create. Every POST mints a fresh pending row plus a Checkout
-      // session, Stripe sessions do not expire on their own, and pending rows
-      // are excluded from the count below by design. Left alone that turns the
-      // Back button, or a handful of tabs, into several simultaneously payable
-      // half-price sessions, each of which publishes a discounted post.
-      // Expiring the older ones first means only the checkout the employer
-      // actually finishes can ever become a posting.
-      const openCheckouts = await prisma.employerJob.findMany({
-        where: {
-          paymentStatus: 'pending',
-          stripeSessionId: { not: null },
-          ...identity,
-        },
-        select: { id: true, stripeSessionId: true },
-      });
-      for (const open of openCheckouts) {
-        if (!open.stripeSessionId) continue;
-        try {
-          await stripe.checkout.sessions.expire(open.stripeSessionId);
-        } catch (expireErr) {
-          // Stripe refuses to expire a session that is already completed or
-          // already expired, and both outcomes are fine. A completed session
-          // has a webhook that lifts its row out of 'pending', so the count
-          // below sees it and this post is priced as a standard one.
-          logger.debug('Could not expire an earlier checkout session', {
-            employerJobId: open.id,
-            error: expireErr instanceof Error ? expireErr.message : String(expireErr),
-          });
-        }
-      }
-
+      // COUNT FIRST, then sweep. The order used to be the other way round,
+      // which meant the sweep ran on every checkout without knowing whether
+      // a discount was even in play.
       const priorPosts = await prisma.employerJob.count({
         where: {
           paymentStatus: { not: 'pending' },
@@ -197,6 +168,55 @@ export async function POST(request: NextRequest) {
         },
       });
       isFirstPost = priorPosts < config.discountedPostsPerEmployer;
+
+      // Collapse this ACCOUNT's open checkouts down to the one we are about
+      // to create. Every POST mints a fresh pending row plus a Checkout
+      // session, Stripe sessions do not expire on their own, and pending rows
+      // are excluded from the count above by design. Left alone that turns the
+      // Back button, or a handful of tabs, into several simultaneously payable
+      // discounted sessions, each of which publishes a discounted post.
+      //
+      // TWO THINGS NARROW IT, both learned the hard way:
+      //
+      // Only when the discount is actually at stake. This exists to stop a
+      // SECOND discounted session existing, which is impossible once the
+      // discount is spent. Running it unconditionally meant a standard $349
+      // checkout expired other standard checkouts for no reason at all.
+      //
+      // Only on acct:, never the full identity. `identity` spreads every
+      // quota key, including dom: (the signup domain) and org: (a company
+      // name the account typed for itself at signup, verified by nobody). So
+      // a recruiter sitting on a Stripe card page had their session killed
+      // the moment a COLLEAGUE started a checkout, and anyone who typed a
+      // rival's company name could do it deliberately. lib/credit-packs.ts
+      // drops org: from spending for exactly that reason; this reached a
+      // destructive Stripe call. The discount hold is itself scoped to
+      // `acct:<userId>`, so acct: is the correct and sufficient scope here.
+      if (isFirstPost && userId) {
+        const openCheckouts = await prisma.employerJob.findMany({
+          where: {
+            paymentStatus: 'pending',
+            stripeSessionId: { not: null },
+            userId,
+          },
+          select: { id: true, stripeSessionId: true },
+        });
+        for (const open of openCheckouts) {
+          if (!open.stripeSessionId) continue;
+          try {
+            await stripe.checkout.sessions.expire(open.stripeSessionId);
+          } catch (expireErr) {
+            // Stripe refuses to expire a session that is already completed or
+            // already expired, and both outcomes are fine. A completed session
+            // has a webhook that lifts its row out of 'pending', so a later
+            // count sees it and the next post is priced as a standard one.
+            logger.debug('Could not expire an earlier checkout session', {
+              employerJobId: open.id,
+              error: expireErr instanceof Error ? expireErr.message : String(expireErr),
+            });
+          }
+        }
+      }
     } catch (priceErr) {
       logger.warn('First-post lookup failed in create-checkout; charging the discounted price', {
         error: priceErr,
@@ -508,17 +528,52 @@ export async function POST(request: NextRequest) {
         return false;
       }
 
+      // The holder's session must be PROVABLY dead before the discount moves.
+      //
+      // This used to expire and then release regardless of the outcome. The
+      // catch cannot tell "already expired", which is fine, from a timeout or
+      // a 429, which is not: on those the holder's session is still open and
+      // payable, and releasing the hold mints a SECOND live discounted
+      // session for the same identity. Both are then payable, and the second
+      // is labelled with the discount percentage. Two discounted posts.
+      //
+      // So: expire, then read the session back and require a terminal status.
+      // Anything else, including a failed read, keeps the hold and prices
+      // this post as standard, which is the safe direction: it costs one
+      // employer one discount rather than giving away two.
       if (holder.stripeSessionId) {
         try {
           await stripe.checkout.sessions.expire(holder.stripeSessionId);
         } catch (expireErr) {
-          // Already completed or already expired. A completed session has a
-          // webhook that lifts the row out of 'pending', and the re-read below
-          // will then price this post as standard.
           logger.debug('Could not expire the checkout session holding the discount', {
             holderId: holder.id,
             error: expireErr instanceof Error ? expireErr.message : String(expireErr),
           });
+        }
+
+        try {
+          const after = await stripe.checkout.sessions.retrieve(holder.stripeSessionId);
+          if (after.status === 'open') {
+            logger.warn('Holder session is still open after an expire attempt; keeping the discount hold', {
+              holderId: holder.id,
+            });
+            return false;
+          }
+          if (after.payment_status === 'paid') {
+            // It completed while we were working. Its webhook will lift the
+            // row out of 'pending'; the discount is genuinely spent.
+            logger.info('Holder session completed mid-flight; pricing this post as standard', {
+              holderId: holder.id,
+            });
+            return false;
+          }
+        } catch (readErr) {
+          // Cannot prove it is dead, so treat it as alive.
+          logger.warn('Could not confirm the holder session is closed; keeping the discount hold', {
+            holderId: holder.id,
+            error: readErr instanceof Error ? readErr.message : String(readErr),
+          });
+          return false;
         }
       }
 

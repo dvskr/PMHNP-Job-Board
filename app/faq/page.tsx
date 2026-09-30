@@ -119,11 +119,12 @@ export default async function FAQPage() {
       answer: "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, browse candidates, and manage all your job postings in one place. If you've lost the link, contact us at support@pmhnphiring.com."
     },
     {
-      // There is no refund guarantee. The old answer ("we'll work with you")
-      // read like one in structured data while the Terms say postings are
-      // generally non-refundable, so this now states the actual policy.
+      // No refundability is claimed here, in any form. This answer carries
+      // FAQPage structured data, so a hedge like "generally" or a named
+      // consideration window reads as a promise when an assistant quotes it
+      // back stripped of context. Terms section 8 says the same thing.
       question: "Do you offer refunds?",
-      answer: "Job posting and renewal fees are generally non-refundable. You can email support@pmhnphiring.com within 7 days of purchase with your order details and the reason, and we consider requests case by case at our discretion. The full policy is in our Terms of Service."
+      answer: "No. Job posting fees, renewal fees and prepaid posting credit fees are non-refundable. Payment is committed when the posting is published, or when a credit pack is purchased. The full policy is in our Terms of Service."
     },
   ];
 
