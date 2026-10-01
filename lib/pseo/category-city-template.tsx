@@ -44,6 +44,7 @@ import { siteAsset } from '@/lib/asset-url';
 import {
   getStatePracticeAuthority,
   getAuthorityColor,
+  getAuthorityImplication,
   StatePracticeInfo,
   PracticeAuthority,
 } from '@/lib/state-practice-authority';
@@ -1212,7 +1213,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
     {
       q: `Does ${city!.state} grant PMHNPs full practice authority, and does it apply to ${config.label.toLowerCase()} roles?`,
       a: practiceAuthority
-        ? `${city!.state} has ${practiceAuthority.authority.toLowerCase()} practice authority for nurse practitioners, and it applies to ${config.label.toLowerCase()} positions the same as any other setting. ${String(practiceAuthority.authority).includes('Full') ? 'PMHNPs can practice independently, prescribe medications, and diagnose without physician oversight.' : String(practiceAuthority.authority).includes('Reduced') ? 'PMHNPs require a collaborative agreement with a physician but can prescribe and diagnose under that arrangement.' : 'PMHNPs must practice under physician supervision for prescribing and some clinical decisions.'}`
+        ? `${city!.state} has ${practiceAuthority.authority.toLowerCase()} practice authority for nurse practitioners, and it applies to ${config.label.toLowerCase()} positions the same as any other setting. ${getAuthorityImplication(practiceAuthority.authority)}`
         : `Contact the ${city!.state} Board of Nursing for current practice authority information.`,
     },
     {

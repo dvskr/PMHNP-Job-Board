@@ -369,6 +369,24 @@ export function getAuthorityLabel(authority: PracticeAuthority): string {
 }
 
 /**
+ * One-sentence consequence of a practice authority level for PMHNPs, as
+ * rendered in the category-city FAQ. A switch on the union instead of
+ * string matching: an earlier version tested includes('Full') against the
+ * lowercase values, so every state, full practice ones included, was
+ * described as requiring physician supervision.
+ */
+export function getAuthorityImplication(authority: PracticeAuthority): string {
+    switch (authority) {
+        case 'full':
+            return 'PMHNPs can practice independently, prescribe medications, and diagnose without physician oversight.';
+        case 'reduced':
+            return 'PMHNPs require a collaborative agreement with a physician but can prescribe and diagnose under that arrangement.';
+        case 'restricted':
+            return 'PMHNPs must practice under physician supervision for prescribing and some clinical decisions.';
+    }
+}
+
+/**
  * Get color class for practice authority badge
  */
 export function getAuthorityColor(authority: PracticeAuthority): {
