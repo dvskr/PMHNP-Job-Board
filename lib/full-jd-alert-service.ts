@@ -101,6 +101,8 @@ export interface FullJdRunResult {
   suppressed: number;
   noMatch: number;
   errors: number;
+  /** Employers and admins filtered out of the lead list. Candidates only. */
+  excludedEmployers: number;
 }
 
 type CandidateJob = FullJdJob & { sourceType: string | null; createdAt: Date };
@@ -175,7 +177,9 @@ export async function releaseClaim(email: string, jobId: string): Promise<void> 
  * ledger rows.
  */
 export async function sendFullJdAlerts(options: { dryRun?: boolean } = {}): Promise<FullJdRunResult> {
-  const result: FullJdRunResult = { considered: 0, sent: 0, suppressed: 0, noMatch: 0, errors: 0 };
+  const result: FullJdRunResult = {
+    considered: 0, sent: 0, suppressed: 0, noMatch: 0, errors: 0, excludedEmployers: 0,
+  };
 
   // No feature flag. The schedule is the switch: this runs on its cron days
   // and sends. isOutboundPaused stays because it is the emergency brake for
@@ -198,14 +202,44 @@ export async function sendFullJdAlerts(options: { dryRun?: boolean } = {}): Prom
   // criteria, and everyone else gets the strongest posting they have not
   // been shown. Nobody gets a posting that contradicts a stated preference,
   // because the alternative is teaching the list to mark this as spam.
-  const [leads, alerts] = await Promise.all([
+  const [leads, alerts, nonCandidateAccounts, legacyEmployerContacts] = await Promise.all([
     prisma.emailLead.findMany({
       where: { isSubscribed: true, isSuppressed: false },
       select: { email: true },
     }),
     prisma.jobAlert.findMany({ where: buildAlertEligibilityWhere(now) }),
+    // THIS CHAIN IS FOR CANDIDATES ONLY.
+    //
+    // The lead list is everyone mailable, and an employer who created an
+    // account to post a job is on it, so employers were receiving job
+    // adverts for roles they are trying to fill, including their own. The
+    // brief does not have this problem because it only mails people who
+    // explicitly created a JobAlert; this chain mails the whole list, so it
+    // has to do the filtering itself.
+    //
+    // UserProfile.role is the authoritative signal: it is session-proven,
+    // defaults to job_seeker, and is what every other employer gate reads.
+    // Admin is excluded too; an operator is not a candidate.
+    prisma.userProfile.findMany({
+      where: { role: { not: 'job_seeker' } },
+      select: { email: true },
+    }),
+    // Legacy posters with no account. Posting is session-gated now, so this
+    // set cannot grow, which also bounds the one weakness of using a
+    // form-typed address: someone could once have typed a stranger's email
+    // as the contact on a posting. Over-excluding costs one marketing
+    // email, which is the safe direction to be wrong in.
+    prisma.employerJob.findMany({
+      where: { userId: null },
+      select: { contactEmail: true },
+    }),
   ]);
   if (!leads.length) return result;
+
+  const employerEmails = new Set<string>([
+    ...nonCandidateAccounts.map((p) => p.email.toLowerCase()),
+    ...legacyEmployerContacts.map((e) => e.contactEmail.toLowerCase()),
+  ]);
 
   // Any source, provided the description can carry the format. The recency
   // window is wide because the ledger, not the window, is what stops a
@@ -237,8 +271,13 @@ export async function sendFullJdAlerts(options: { dryRun?: boolean } = {}): Prom
 
   // Deduplicate the lead list: the same address can appear in more than one
   // casing, and sending twice to one person is the failure this whole chain
-  // is built to avoid.
-  const recipients = [...new Set(leads.map((l) => l.email.toLowerCase()))];
+  // is built to avoid. Employers come out here, before anything is claimed
+  // in the ledger, so an excluded address leaves no trace that would stop a
+  // later legitimate send to it.
+  const allLeadEmails = [...new Set(leads.map((l) => l.email.toLowerCase()))];
+  const recipients = allLeadEmails.filter((email) => !employerEmails.has(email));
+  result.excludedEmployers = allLeadEmails.length - recipients.length;
+  if (!recipients.length) return result;
 
   // One query for the whole ledger slice, not one per recipient. At ~2,000
   // recipients the per-recipient version was 2,000 round trips before a

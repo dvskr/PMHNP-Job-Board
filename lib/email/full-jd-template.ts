@@ -22,6 +22,7 @@ import {
 } from '@/lib/email-templates-v2';
 import { escapeHtml } from '@/lib/sanitize';
 import { buildJdBodyHtml, type JdBody } from '@/lib/email/jd-body';
+import { workModeLabel } from '@/lib/filters';
 
 export interface FullJdJob {
   id: string;
@@ -30,7 +31,11 @@ export interface FullJdJob {
   location: string;
   description: string;
   jobType?: string | null;
+  /** Free-text and usually null. The booleans below are the real source. */
   mode?: string | null;
+  /** Work mode comes from these, via workModeLabel. In-Person is both false. */
+  isRemote?: boolean | null;
+  isHybrid?: boolean | null;
   experienceLabel?: string | null;
   normalizedMinSalary?: number | null;
   normalizedMaxSalary?: number | null;
@@ -125,13 +130,19 @@ export function buildFullJdEmail(args: {
   const pay = formatPayRange(job);
   const body: JdBody = buildJdBodyHtml(job.description);
 
+  // Remote, Hybrid or In-Person, derived from the booleans rather than read
+  // from the nullable mode column. Every posting has one, so this cell is
+  // never conditional: the previous version only ever showed a mode when
+  // Job.mode happened to be populated, which for most postings it is not.
+  const workMode = workModeLabel(job);
+
   const stats: string[] = [];
   if (pay) stats.push(statCell('Advertised', pay, false, true));
-  stats.push(statCell('Where', job.location, !job.jobType));
+  stats.push(statCell('Where', job.location, false));
+  stats.push(statCell('Work mode', workMode, !job.jobType));
   if (job.jobType) stats.push(statCell('Schedule', job.jobType, true));
 
   const chips: string[] = [];
-  if (job.mode) chips.push(job.mode);
   if (job.experienceLabel) chips.push(job.experienceLabel);
   const chipRow = chips.length
     ? `<tr><td class="content-pad" style="padding:0 40px;">
@@ -182,7 +193,7 @@ export function buildFullJdEmail(args: {
   // role has location "Remote, TX" and mode "Remote", and the naive join
   // read "Remote, TX, Full-time, Remote" in the inbox listing.
   const parts: string[] = [];
-  for (const raw of [job.location, job.jobType, job.mode]) {
+  for (const raw of [job.location, job.jobType, workMode]) {
     const part = (raw ?? '').trim();
     if (!part) continue;
     const seen = parts.some(
