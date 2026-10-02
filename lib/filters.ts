@@ -659,6 +659,45 @@ export function workModeClause(mode: WorkMode): Prisma.JobWhereInput {
 }
 
 /**
+ * The work mode as a reader sees it: "Remote", "Hybrid" or "In-Person".
+ *
+ * Derived from the SAME two booleans workModeClause filters on, and lives
+ * beside it so a surface that displays the mode and a filter that selects it
+ * can never disagree. Job.mode is a free-text column that is frequently null,
+ * so anything reading it alone shows nothing for most postings; that is
+ * exactly how the full-description email came to omit the mode entirely.
+ *
+ * Hybrid is checked first because a hybrid role commonly carries isRemote
+ * too, and hybrid is the more specific claim. In-Person is the absence of
+ * both, not a column, which is why every posting gets a label rather than
+ * only the ones somebody tagged.
+ *
+ * The vocabulary matches lib/ingestion-service.ts, which canonicalizes
+ * "Onsite" and "On-site" to "In-Person" at write time.
+ */
+export function workModeLabel(job: {
+  isRemote?: boolean | null;
+  isHybrid?: boolean | null;
+  mode?: string | null;
+}): 'Remote' | 'Hybrid' | 'In-Person' {
+  if (job.isHybrid) return 'Hybrid';
+  if (job.isRemote) return 'Remote';
+
+  // Both flags false means onsite to workModeClause, and for a row written
+  // through parseLocation that is correct. But a flag set to false is also
+  // what an unset flag looks like, and some rows carry the truth only in the
+  // free-text column. Asserting "In-Person" over a posting whose own mode
+  // says Remote is the one error worth avoiding here: a reader can forgive a
+  // missing field, not a wrong one, and this label sits next to a location
+  // that would contradict it.
+  const raw = (job.mode ?? '').toLowerCase();
+  if (raw.includes('hybrid')) return 'Hybrid';
+  if (raw.includes('remote')) return 'Remote';
+
+  return 'In-Person';
+}
+
+/**
  * Free-text location box clause ("City or 'Remote'" in the homepage hero,
  * "City, state, or 'Remote'" in the /jobs sidebar).
  *
