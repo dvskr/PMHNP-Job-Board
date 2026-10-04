@@ -202,7 +202,7 @@ export async function sendFullJdAlerts(options: { dryRun?: boolean } = {}): Prom
   // criteria, and everyone else gets the strongest posting they have not
   // been shown. Nobody gets a posting that contradicts a stated preference,
   // because the alternative is teaching the list to mark this as spam.
-  const [leads, alerts, nonCandidateAccounts, legacyEmployerContacts] = await Promise.all([
+  const [leads, alerts, nonCandidateAccounts, postingContacts, employerLeads] = await Promise.all([
     prisma.emailLead.findMany({
       where: { isSubscribed: true, isSuppressed: false },
       select: { email: true },
@@ -224,22 +224,38 @@ export async function sendFullJdAlerts(options: { dryRun?: boolean } = {}): Prom
       where: { role: { not: 'job_seeker' } },
       select: { email: true },
     }),
-    // Legacy posters with no account. Posting is session-gated now, so this
-    // set cannot grow, which also bounds the one weakness of using a
-    // form-typed address: someone could once have typed a stranger's email
-    // as the contact on a posting. Over-excluding costs one marketing
-    // email, which is the safe direction to be wrong in.
-    prisma.employerJob.findMany({
-      where: { userId: null },
-      select: { contactEmail: true },
-    }),
+    // EVERY posting contact, not only the account-less ones.
+    //
+    // This was originally scoped to userId: null, on the reasoning that a
+    // form-typed address can be poisoned and posting is session-gated now.
+    // That reasoning was right about the risk and wrong about the shape of
+    // the data: in production 54 of 58 postings DO carry a userId, and the
+    // contact address on a posting is routinely a different mailbox from the
+    // account that made it (jobs@, careers@, info@). Those mailboxes land in
+    // EmailLead and were sailing straight through, so employers kept
+    // receiving adverts for their own roles.
+    //
+    // The poisoning concern stands but does not change the answer: the cost
+    // of a wrong entry here is that one address stops receiving marketing
+    // mail, which is the safe direction to be wrong in, and the reader can
+    // re-subscribe. The cost of being wrong the other way is mailing an
+    // employer their own job advert.
+    prisma.employerJob.findMany({ select: { contactEmail: true } }),
+    // Employer prospects and enquiries. An EmployerLead is by definition
+    // someone on the hiring side, so none of them is a candidate.
+    prisma.employerLead.findMany({ select: { contactEmail: true } }),
   ]);
   if (!leads.length) return result;
 
-  const employerEmails = new Set<string>([
-    ...nonCandidateAccounts.map((p) => p.email.toLowerCase()),
-    ...legacyEmployerContacts.map((e) => e.contactEmail.toLowerCase()),
-  ]);
+  const employerEmails = new Set<string>(
+    [
+      ...nonCandidateAccounts.map((p) => p.email),
+      ...postingContacts.map((e) => e.contactEmail),
+      ...employerLeads.map((e) => e.contactEmail),
+    ]
+      .map((e) => (e ?? '').trim().toLowerCase())
+      .filter(Boolean),
+  );
 
   // Any source, provided the description can carry the format. The recency
   // window is wide because the ledger, not the window, is what stops a

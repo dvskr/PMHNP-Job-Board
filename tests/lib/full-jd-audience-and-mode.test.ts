@@ -116,17 +116,43 @@ describe('the chain is for candidates only', () => {
     expect(src).toMatch(/userProfile\.findMany\(\{[\s\S]{0,200}role: \{ not: 'job_seeker' \}/);
   });
 
-  it('excludes legacy posters who have no account', () => {
-    expect(src).toMatch(/employerJob\.findMany\(\{[\s\S]{0,200}userId: null/);
-    expect(src).toContain('contactEmail: true');
+  it('excludes EVERY posting contact, not only the account-less ones', () => {
+    // The first version scoped this to userId: null, reasoning that posting
+    // is session-gated so only legacy rows lack an account. True, and it
+    // missed almost everything: in production 54 of 58 postings DO carry a
+    // userId, and the contact address on a posting is routinely a different
+    // mailbox from the account that made it (jobs@, careers@, info@). Eight
+    // employers kept receiving adverts for their own roles.
+    expect(src).toMatch(/employerJob\.findMany\(\{\s*select: \{ contactEmail: true \}/);
+    expect(src, 'the userId: null narrowing is back').not.toMatch(
+      /employerJob\.findMany\(\{[\s\S]{0,120}userId: null/,
+    );
+  });
+
+  it('excludes employer leads, who are by definition not candidates', () => {
+    expect(src).toMatch(/employerLead\.findMany\(\{\s*select: \{ contactEmail: true \}/);
+  });
+
+  it('builds the exclusion set from all three sources', () => {
+    const block = src.slice(src.indexOf('const employerEmails'), src.indexOf('const allLeadEmails'));
+    expect(block).toContain('nonCandidateAccounts');
+    expect(block).toContain('postingContacts');
+    expect(block).toContain('employerLeads');
   });
 
   it('filters the recipient list, not merely the query', () => {
     expect(src).toContain('employerEmails.has(email)');
-    // Lowercased on both sides, because an address can be stored in more
-    // than one casing and a case-sensitive miss would mail an employer.
-    expect(src).toMatch(/\.email\.toLowerCase\(\)/);
-    expect(src).toMatch(/\.contactEmail\.toLowerCase\(\)/);
+  });
+
+  it('lowercases both sides, so a casing mismatch cannot leak an employer', () => {
+    // The same address is stored in different casings across these tables,
+    // and Postgres `in` is case-sensitive, so an unnormalized compare mails
+    // an employer. Asserted as "the set is built from lowercased values and
+    // the lookup key is lowercased", not as a particular call shape.
+    const setBlock = src.slice(src.indexOf('const employerEmails'), src.indexOf('const allLeadEmails'));
+    expect(setBlock).toMatch(/\.toLowerCase\(\)/);
+    const recipientBlock = src.slice(src.indexOf('const allLeadEmails'), src.indexOf('result.excludedEmployers'));
+    expect(recipientBlock).toMatch(/\.toLowerCase\(\)/);
   });
 
   it('excludes before anything is claimed in the ledger', () => {
