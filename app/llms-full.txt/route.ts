@@ -95,7 +95,7 @@ function keyPagesSection(): string {
 - [Salary Guide](${BASE_URL}/salary-guide): National and state advertised-pay data
 - [State Salary Pages](${BASE_URL}/salary-guide/california): Per-state pay pages; every state follows /salary-guide/{state-name-slug}
 - [Career Resources](${BASE_URL}/resources): Career resources and state licensure guides
-- [Career Tools](${BASE_URL}/tools): Free career tools (offer analyzer, salary converter, practice authority map)
+- [Career Tools](${BASE_URL}/tools): Free career tools (offer analyzer, 1099 vs W-2 calculator, salary converter, practice authority map, resume checker, resume builder)
 - [Post a Job](${BASE_URL}/post-job): Employers: post a PMHNP job
 
 ## Machine-Readable Feeds

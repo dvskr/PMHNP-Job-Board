@@ -145,8 +145,17 @@ export function roundDisplayDollars(v: number): number {
  * all already branch on `> 0` to decide whether to mention pay at all.
  */
 export function medianAdvertisedK(rows: SalaryRow[]): number {
-  const { midpoints } = cleanSalaryRows(rows);
-  const summary = summarizeMidpoints(midpoints);
+  return medianKFromMidpoints(cleanSalaryRows(rows).midpoints);
+}
+
+/**
+ * The same figure from a midpoint set that is already cleaned and ascending
+ * (the shape lib/salary-report/market-data.ts caches). The tier gate and the
+ * display rounding live here and nowhere else, so a median computed from raw
+ * rows and one computed from cached midpoints cannot disagree.
+ */
+export function medianKFromMidpoints(sortedAsc: number[]): number {
+  const summary = summarizeMidpoints(sortedAsc);
   if (summary.tier !== 'full' && summary.tier !== 'median') return 0;
   return Math.round(roundDisplayDollars(summary.median) / 1000);
 }

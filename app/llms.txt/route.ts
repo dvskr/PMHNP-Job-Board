@@ -54,7 +54,10 @@ PMHNP Hiring (https://pmhnphiring.com) aggregates, verifies, and enriches PMHNP 
 - [Career Tools](https://pmhnphiring.com/tools): Free career tools built on the same live posting data
 - [Offer Analyzer](https://pmhnphiring.com/tools/offer-analyzer): See where an offer lands against live advertised pay
 - [Salary Converter](https://pmhnphiring.com/tools/salary-converter): Convert hourly quotes to annual equivalents
+- [1099 vs W-2 Calculator](https://pmhnphiring.com/tools/1099-vs-w2-calculator): Compare contractor and employee take-home pay, with the break-even hourly rate
 - [Practice Authority Map](https://pmhnphiring.com/tools/practice-authority-map): Interactive practice authority map
+- [Resume Checker](https://pmhnphiring.com/tools/resume-checker): Score a PMHNP resume against what psychiatric employers screen for
+- [Resume Builder](https://pmhnphiring.com/tools/resume-builder): Build a licensure-first PMHNP resume and export it as a PDF
 - [Blog](https://pmhnphiring.com/blog): Career guides and state licensure articles
 - [Post a Job](https://pmhnphiring.com/post-job): Employers: post a PMHNP job
 - [FAQ](https://pmhnphiring.com/faq): Frequently asked questions

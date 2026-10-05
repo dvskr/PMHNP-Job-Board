@@ -2,7 +2,8 @@ import { cache } from 'react';
 import { prisma } from '@/lib/prisma';
 import { STATE_PRACTICE_AUTHORITY } from '@/lib/state-practice-authority';
 import { publicJobsWhere } from '@/lib/filters';
-import { cleanSalaryRows, summarizeMidpoints, TIER_MEDIAN_MIN_N } from './stats';
+import { logger } from '@/lib/logger';
+import { cleanSalaryRows, medianKFromMidpoints, summarizeMidpoints, TIER_MEDIAN_MIN_N } from './stats';
 
 /**
  * Advertised-pay market data for the candidate tools (offer analyzer,
@@ -88,6 +89,41 @@ export const getOfferMarketData = cache(async function getOfferMarketData(): Pro
     quarantined: national.quarantined,
   };
 });
+
+/** How long one warm instance reuses the national median before recomputing. */
+const NATIONAL_MEDIAN_TTL_MS = 60 * 60 * 1000;
+
+let nationalMedianCache: { valueK: number; cachedAt: number } | null = null;
+
+/**
+ * National median of advertised pay, in THOUSANDS, for the widgets that
+ * render on every job detail page.
+ *
+ * Job detail pages are the most numerous template on the site and each one
+ * regenerates on its own ISR clock, so a national scan per render would run
+ * thousands of times an hour for a figure that moves about once a day. One
+ * warm instance computes it once per TTL instead, the same module-level
+ * pattern lib/site-stats.ts uses for its engagement numbers.
+ *
+ * Returns 0 when the sample does not clear the median tier or the read fails.
+ * Every caller hides the figure on `> 0`, and a failed read is not cached, so
+ * the next render tries again.
+ */
+export async function getNationalMedianK(): Promise<number> {
+  const now = Date.now();
+  if (nationalMedianCache && now - nationalMedianCache.cachedAt < NATIONAL_MEDIAN_TTL_MS) {
+    return nationalMedianCache.valueK;
+  }
+  try {
+    const { national } = await getOfferMarketData();
+    const valueK = medianKFromMidpoints(national);
+    nationalMedianCache = { valueK, cachedAt: now };
+    return valueK;
+  } catch (error) {
+    logger.error('getNationalMedianK: hiding the national figure, DB read failed', error);
+    return 0;
+  }
+}
 
 /**
  * Per-state tier summaries for the salary-guide hub (table + explorer).

@@ -516,7 +516,7 @@ pmhnp-job-board/
 | `ReportJobButton` | Report problematic/spam jobs |
 | `EmailJobButton` | Email a job to someone |
 | `RelatedJobs` | "More jobs like this" section |
-| `SalaryInsights` | Salary context on job detail pages |
+| `SalaryComparisonWidget` | State versus national median advertised pay on job detail pages |
 | `JobStructuredData` | Schema.org JobPosting JSON-LD |
 | `JobNotFound` | Job not found / unpublished state |
 

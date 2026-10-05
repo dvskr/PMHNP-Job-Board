@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ChevronRight, Home } from 'lucide-react';
 import { jsonLdString } from '@/lib/seo/json-ld';
 
-interface BreadcrumbItem {
+export interface BreadcrumbItem {
   label: string;
   href?: string; // Optional - last item has no link
 }
@@ -11,20 +11,37 @@ interface BreadcrumbsProps {
   items: BreadcrumbItem[];
 }
 
-export default function Breadcrumbs({ items }: BreadcrumbsProps) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
-
-  // Generate JSON-LD schema for SEO
-  const schemaData = {
+/**
+ * BreadcrumbList JSON-LD for a visual trail.
+ *
+ * Google requires an `item` URL on every ListItem except the last one. The
+ * visual trail may carry an unlinked crumb in the middle (a job page shows a
+ * city name with no link when that city has no page of its own), and emitting
+ * that crumb without `item` made Search Console fail the whole breadcrumb
+ * with 'Missing field "item"'. An unlinked middle crumb names no page, so it
+ * is left out of the markup and the positions are renumbered. The final crumb
+ * is the current page and is always kept.
+ */
+export function buildBreadcrumbSchema(items: BreadcrumbItem[], baseUrl: string) {
+  const lastIndex = items.length - 1;
+  const marked = items.filter((item, index) => Boolean(item.href) || index === lastIndex);
+  return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: items.map((item, index) => ({
+    itemListElement: marked.map((item, index) => ({
       '@type': 'ListItem',
       position: index + 1,
       name: item.label,
       item: item.href ? `${baseUrl}${item.href}` : undefined,
     })),
   };
+}
+
+export default function Breadcrumbs({ items }: BreadcrumbsProps) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
+
+  // Generate JSON-LD schema for SEO
+  const schemaData = buildBreadcrumbSchema(items, baseUrl);
 
   return (
     <>
