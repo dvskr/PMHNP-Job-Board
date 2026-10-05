@@ -12,9 +12,9 @@
  *   - a slug with no row is INSERTED as a draft, to be previewed in
  *     /admin/blog before it goes live (pass --publish-new to skip the draft)
  *
- * A row that exists as a draft is left alone unless you name its slug. The
- * drafts in that table are mostly unpublished duplicates of live posts, and a
- * bulk sync must not be the thing that republishes one.
+ * A row that is not published (a draft or an archived post) is left alone
+ * unless you name its slug. Those rows are mostly unpublished duplicates of
+ * live posts, and a bulk sync must not be the thing that republishes one.
  *
  * Dry run by default. Nothing is written without --apply, and every row that
  * is about to change is first saved to tmp/ so the update can be reversed.
@@ -168,7 +168,7 @@ export function planSync(posts: ParsedPost[], rows: DbPost[], options: PlanOptio
       }
 
       if (existing.status !== 'published' && !only) {
-        return { slug: post.slug, action: 'skip', reason: 'row is a draft; name the slug to sync it', data: {} }
+        return { slug: post.slug, action: 'skip', reason: `${existing.status} row; name the slug to sync it`, data: {} }
       }
 
       const data: Record<string, unknown> = {}

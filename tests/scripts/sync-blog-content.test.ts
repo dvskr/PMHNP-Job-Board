@@ -85,6 +85,14 @@ describe('planSync', () => {
     expect(asked.action).toBe('update')
   })
 
+  it('names the real status when it skips an archived row', () => {
+    const [skipped] = planSync([post()], [row({ status: 'archived' })], { fields: ['content'] })
+
+    expect(skipped.action).toBe('skip')
+    expect(skipped.reason).toMatch(/archived/)
+    expect(skipped.reason).not.toMatch(/draft/)
+  })
+
   it('leaves title and description alone unless those fields are requested', () => {
     const [contentOnly] = planSync([post()], [row()], { fields: ['content'] })
     const [withMeta] = planSync([post()], [row({ title: 'Stale Title' })], { fields: ['content', 'title', 'description'] })
