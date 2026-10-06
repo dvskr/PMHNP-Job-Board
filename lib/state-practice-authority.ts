@@ -8,12 +8,20 @@
  * 
  * Source: American Association of Nurse Practitioners (AANP) State Practice Environment
  *
- * OPERATOR: the classifications below have never been re-checked against the
- * AANP source line by line. Massachusetts and New York in particular are
- * carried here as 'reduced' and AANP may classify one or both as full. There
- * is deliberately no `lastVerified` constant: stamping a date nobody actually
- * verified on would be the same class of invented fact this file already
- * caused once. Whoever does the AANP pass adds the date with the pass.
+ * VERIFIED 2026-10-05, with these limits. aanp.org refuses automated requests,
+ * so the full practice list was checked against AANP's published list as
+ * search engines index it, two independent secondary tables, and the New
+ * Jersey governor's 2026-03-30 statement that twenty-seven states have full
+ * practice authority. New York and Massachusetts were checked against the
+ * law itself: NY Education Law 6902(3)(b) (3,600 hours, in force until
+ * 2030-07-01) and 244 CMR 4.07 (two years of supervised practice). Both had
+ * been carried here as 'reduced' while this site's own licensure guides for
+ * the two states called them full practice.
+ *
+ * Still open: the reduced versus restricted split for Arkansas, Indiana,
+ * Louisiana, Mississippi, West Virginia and Michigan rests on one secondary
+ * source, and three states passed laws that AANP may yet reclassify
+ * (Oklahoma HB 2298, Wisconsin 2025 Act 17, New Jersey P.L.2026 c.6).
  */
 
 export type PracticeAuthority = 'full' | 'reduced' | 'restricted';
@@ -170,6 +178,20 @@ export const STATE_PRACTICE_AUTHORITY: Record<string, StatePracticeInfo> = {
         description: 'Full Practice Authority',
         details: 'Kansas PMHNPs have full independent practice authority.',
     },
+    // New York and Massachusetts grant independence after a time-in-practice
+    // period, which is how AANP classifies them and several states above
+    // (Colorado, Connecticut, Maryland, Minnesota and others) as well. Both
+    // were carried here as 'reduced' until the 2026-10 verification pass.
+    'New York': {
+        authority: 'full',
+        description: 'Full Practice Authority',
+        details: 'New York PMHNPs with more than 3,600 hours of practice do not need a written practice agreement with a physician. Before that point, a written practice agreement and practice protocols are required.',
+    },
+    'Massachusetts': {
+        authority: 'full',
+        description: 'Full Practice Authority',
+        details: 'Massachusetts PMHNPs can prescribe without supervision after two years of supervised practice. Before that point, prescriptive practice is supervised under written guidelines.',
+    },
 
     // Reduced Practice States (12 states)
     'Alabama': {
@@ -212,11 +234,6 @@ export const STATE_PRACTICE_AUTHORITY: Record<string, StatePracticeInfo> = {
         description: 'Reduced Practice',
         details: 'New Jersey PMHNPs need a collaborative agreement with a physician.',
     },
-    'New York': {
-        authority: 'reduced',
-        description: 'Reduced Practice',
-        details: 'New York requires a collaborative agreement for PMHNPs, though recent legislation is expanding autonomy.',
-    },
     'Ohio': {
         authority: 'reduced',
         description: 'Reduced Practice',
@@ -253,11 +270,6 @@ export const STATE_PRACTICE_AUTHORITY: Record<string, StatePracticeInfo> = {
         authority: 'restricted',
         description: 'Restricted Practice',
         details: 'Georgia requires PMHNPs to practice under physician supervision with a protocol agreement.',
-    },
-    'Massachusetts': {
-        authority: 'reduced',
-        description: 'Reduced Practice',
-        details: 'Massachusetts requires PMHNPs to have a supervisory agreement, though requirements vary by practice setting.',
     },
     'Michigan': {
         authority: 'restricted',
@@ -312,7 +324,7 @@ export const STATE_PRACTICE_AUTHORITY: Record<string, StatePracticeInfo> = {
  * places and all three disagreed with each other AND with this table: the
  * comment above said "27 states + DC", lib/stats-sources.ts said "27 states +
  * DC", and content/blog/pmhnp-private-practice-salary.mdx said "28 states +
- * DC" (including inside its FAQPage JSON-LD), while the table itself lists
+ * DC" (including inside its FAQPage JSON-LD), while the table itself listed
  * 25 states plus the District of Columbia. Every practice-authority map, state
  * page and licensure surface renders from this table, so the map and the
  * sentence next to it were contradicting each other in front of readers and
@@ -334,7 +346,7 @@ export const FULL_PRACTICE_STATE_COUNT =
     FULL_PRACTICE_COUNT - (FULL_PRACTICE_JURISDICTIONS.includes(DISTRICT_OF_COLUMBIA) ? 1 : 0);
 
 /**
- * Prose form, e.g. "25 states + DC". Use this anywhere the count is written
+ * Prose form, e.g. "27 states + DC". Use this anywhere the count is written
  * out; never retype the number.
  */
 export const FULL_PRACTICE_SUMMARY = FULL_PRACTICE_JURISDICTIONS.includes(DISTRICT_OF_COLUMBIA)

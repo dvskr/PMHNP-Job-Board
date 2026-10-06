@@ -11,6 +11,8 @@ import {
   percentileRank,
   summarizeMidpoints,
   roundDisplayDollars,
+  medianAdvertisedK,
+  medianKFromMidpoints,
   SALARY_SANITY_MIN,
   SALARY_SANITY_MAX,
 } from '@/lib/salary-report/stats';
@@ -142,5 +144,29 @@ describe('roundDisplayDollars', () => {
   it('rounds to nearest $500', () => {
     expect(roundDisplayDollars(151_249)).toBe(151_000);
     expect(roundDisplayDollars(151_250)).toBe(151_500);
+  });
+});
+
+describe('medianKFromMidpoints and medianAdvertisedK: one gate, two entry points', () => {
+  it('returns the median in thousands once the sample clears the median tier', () => {
+    expect(medianKFromMidpoints([100_000, 120_000, 140_000, 160_000, 180_000])).toBe(140);
+  });
+
+  it('returns 0 below the median tier instead of a small-sample number', () => {
+    expect(medianKFromMidpoints([140_000, 150_000, 160_000, 170_000])).toBe(0);
+    expect(medianKFromMidpoints([])).toBe(0);
+  });
+
+  it('gives the same answer from raw rows as from their cleaned midpoints', () => {
+    const rows = [
+      row(90_000, 110_000),
+      row(110_000, 130_000),
+      row(130_000, 150_000),
+      row(150_000, 170_000),
+      row(170_000, 190_000),
+    ];
+
+    expect(medianAdvertisedK(rows)).toBe(medianKFromMidpoints(cleanSalaryRows(rows).midpoints));
+    expect(medianAdvertisedK(rows)).toBe(140);
   });
 });

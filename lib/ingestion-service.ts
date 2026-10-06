@@ -339,6 +339,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           where: { id },
           select: {
             isManuallyUnpublished: true,
+            expiresAt: true,
             description: true,
             descriptionSummary: true,
             minSalary: true,
@@ -362,6 +363,20 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
         if (!existing) return;
         if (existing.isManuallyUnpublished) {
           return; // Skip — admin intentionally hid this job
+        }
+
+        // expiresAt is the single clock and is never extended (see below).
+        // The age cap that follows only measures 60 days from
+        // originalPostedAt, but a row whose source gave no posting date
+        // expires 30 days after first sight. Between day 30 and day 60 such a
+        // row was revived here on every ingest and unpublished again by the
+        // expiry cron, twice a day. Every lap rewrote the row, which made the
+        // deindex cron send Google another URL_DELETED for it, and those
+        // notices spent the daily Indexing API quota before a single new job
+        // could be announced. Past its clock a row is left exactly as it is:
+        // no revive, and no write that would re-queue it for deindexing.
+        if (isPastExpiryClock(existing.expiresAt, Date.now())) {
+          return;
         }
 
         // Enforce 60-day-from-original cap. Past it → unpublish, do not renew.
@@ -932,6 +947,18 @@ function countRejectionsByReason(
     counts[r.rejectionReason] = (counts[r.rejectionReason] ?? 0) + 1;
   }
   return counts;
+}
+
+/**
+ * Has a job's single lifetime clock run out?
+ *
+ * expiresAt is set once at ingest and never extended, so a row past it is
+ * finished: a renewal must not revive it. A row with no expiresAt (legacy
+ * rows from before the column was populated) is not past anything, and falls
+ * through to the age cap measured from originalPostedAt.
+ */
+export function isPastExpiryClock(expiresAt: Date | null | undefined, nowMs: number): boolean {
+  return expiresAt != null && expiresAt.getTime() <= nowMs;
 }
 
 /** The salary columns buildRenewalEnrichmentDelta treats as one group. */

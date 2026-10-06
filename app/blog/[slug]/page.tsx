@@ -19,6 +19,7 @@ import {
     BLOG_CATEGORIES,
 } from '@/lib/blog';
 import { autoLinkCategories } from '@/lib/autoLink';
+import { getBlogToolLinks } from '@/lib/blog-tool-links';
 import { STAT_SOURCES } from '@/lib/stats-sources';
 import { ArrowRight } from 'lucide-react';
 import EditorialTOC from '@/components/blog/EditorialTOC';
@@ -346,7 +347,7 @@ export default async function BlogPostPage({ params }: Props) {
                 // Audit A5: salary/growth figures interpolated from
                 // STAT_SOURCES so every surface quotes the same sourced
                 // numbers; the invented open-position count was dropped.
-                text: `Yes. PMHNPs are among the most in-demand healthcare providers in the US. For pay context, the ${STAT_SOURCES.npAverageSalaryBls.source} reports an average of ${STAT_SOURCES.npAverageSalaryBls.formatted} for nurse practitioners across all specialties, and our salary guide computes PMHNP medians from advertised ranges in live postings. Employment growth of ${STAT_SOURCES.blsGrowthProjection.formatted} is projected by the ${STAT_SOURCES.blsGrowthProjection.source}. With ${STAT_SOURCES.hrsaShortagePopulation.formatted} Americans living in designated mental health professional shortage areas (${STAT_SOURCES.hrsaShortagePopulation.source}), demand is expected to stay strong for years to come.`,
+                text: `Yes. PMHNPs are among the most in-demand healthcare providers in the US. For pay context, the ${STAT_SOURCES.npMedianWageBls.source} reports a median annual wage of ${STAT_SOURCES.npMedianWageBls.formatted} for nurse practitioners across all specialties, and our salary guide computes PMHNP medians from advertised ranges in live postings. Employment growth of ${STAT_SOURCES.blsGrowthProjection.formatted} is projected by the ${STAT_SOURCES.blsGrowthProjection.source}. With ${STAT_SOURCES.hrsaShortagePopulation.formatted} Americans living in designated mental health professional shortage areas (${STAT_SOURCES.hrsaShortagePopulation.source}), demand is expected to stay strong for years to come.`,
             },
         ],
         'new-grad-pmhnp-first-job': [
@@ -375,7 +376,7 @@ export default async function BlogPostPage({ params }: Props) {
                 // Audit A5: the psychiatrist salary range had no citable
                 // source, so the comparison is now number-free; the PMHNP
                 // figure comes from STAT_SOURCES.
-                text: `No. Psychiatrists generally earn substantially more. For context, the ${STAT_SOURCES.npAverageSalaryBls.source} reports an average of ${STAT_SOURCES.npAverageSalaryBls.formatted} for nurse practitioners across all specialties, and our salary guide computes PMHNP medians from advertised ranges in live postings. However, PMHNPs require significantly less training time and student debt, often resulting in a better return on investment earlier in their career.`,
+                text: `No. Psychiatrists generally earn substantially more. For context, the ${STAT_SOURCES.npMedianWageBls.source} reports a median annual wage of ${STAT_SOURCES.npMedianWageBls.formatted} for nurse practitioners across all specialties, and our salary guide computes PMHNP medians from advertised ranges in live postings. However, PMHNPs require significantly less training time and student debt, often resulting in a better return on investment earlier in their career.`,
             },
             {
                 name: 'Should I become a PMHNP or psychiatrist?',
@@ -737,6 +738,9 @@ export default async function BlogPostPage({ params }: Props) {
                                     <Link href={`/salary-guide/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
                                         Salary Guide →
                                     </Link>
+                                    <Link href="/tools/practice-authority-map" className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        Practice Authority Map →
+                                    </Link>
                                 </div>
                             </>
                         );
@@ -755,6 +759,9 @@ export default async function BlogPostPage({ params }: Props) {
                     ];
                     const fullText = `${post.title} ${post.content.slice(0, 500)}`;
                     const matched = categoryLinks.filter(l => l.match.test(fullText)).slice(0, 4);
+                    // Topic-matched free tools: see lib/blog-tool-links.ts for
+                    // why the in-body auto-linker alone left /tools orphaned.
+                    const toolLinks = getBlogToolLinks(fullText);
 
                     return (
                         <>
@@ -765,7 +772,7 @@ export default async function BlogPostPage({ params }: Props) {
                                 <Link href="/jobs" className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#0D9488', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#fff' }}>
                                     Browse All PMHNP Jobs →
                                 </Link>
-                                {matched.map(l => (
+                                {[...matched, ...toolLinks].map(l => (
                                     <Link key={l.href} href={l.href} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
                                         {l.label} →
                                     </Link>

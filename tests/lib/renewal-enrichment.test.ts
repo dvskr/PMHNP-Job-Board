@@ -15,7 +15,7 @@
  * values are never published as employer-stated offers.
  */
 import { describe, it, expect } from 'vitest';
-import { buildRenewalEnrichmentDelta } from '@/lib/ingestion-service';
+import { buildRenewalEnrichmentDelta, isPastExpiryClock } from '@/lib/ingestion-service';
 
 const baseExisting = {
     description: null,
@@ -221,5 +221,50 @@ describe('buildRenewalEnrichmentDelta', () => {
             employer: 'Different Co',
         });
         expect(delta).toEqual({});
+    });
+});
+
+/**
+ * Added 2026-10-05. A row that expires 30 days after first sight (its source
+ * gave no posting date) sat under the 60-day age cap for another month, so
+ * every ingest revived it and the expiry cron unpublished it again, twice a
+ * day. Each lap sent Google a URL_DELETED notice and the daily Indexing API
+ * quota was gone before any new job could be announced.
+ */
+describe('isPastExpiryClock', () => {
+    const NOW = Date.parse('2026-10-05T12:00:00Z');
+    const DAY = 24 * 60 * 60 * 1000;
+
+    it('is true once expiresAt has passed, so a renewal cannot revive the row', () => {
+        expect(isPastExpiryClock(new Date(NOW - DAY), NOW)).toBe(true);
+    });
+
+    it('is true at the exact moment of expiry', () => {
+        expect(isPastExpiryClock(new Date(NOW), NOW)).toBe(true);
+    });
+
+    it('is false while the clock is still running', () => {
+        expect(isPastExpiryClock(new Date(NOW + DAY), NOW)).toBe(false);
+    });
+
+    it('is false for a legacy row with no expiresAt, which the age cap handles instead', () => {
+        expect(isPastExpiryClock(null, NOW)).toBe(false);
+        expect(isPastExpiryClock(undefined, NOW)).toBe(false);
+    });
+});
+
+describe('renewJob honours the expiry clock before it writes anything', () => {
+    it('checks the clock ahead of the revive, and returns without an update', async () => {
+        const { readCode } = await import('../helpers/source');
+        const code = readCode('lib/ingestion-service.ts');
+        const guard = code.indexOf('isPastExpiryClock(existing.expiresAt');
+        const revive = code.indexOf('isPublished: true,', guard);
+
+        expect(guard, 'renewJob no longer consults the expiry clock').toBeGreaterThan(-1);
+        expect(revive, 'the revive should come after the clock check').toBeGreaterThan(guard);
+        // Between the check and its return there is no prisma write: a write
+        // is what re-queued the row for another URL_DELETED notice.
+        const guardBlock = code.slice(guard, code.indexOf('return;', guard));
+        expect(guardBlock).not.toMatch(/prisma\./);
     });
 });

@@ -122,6 +122,15 @@ export default function CompensationGuidePage() {
             <p className="text-lg md:text-xl text-blue-100 mb-6">
               Which pays more? Independent contractor vs employee: taxes, benefits, and take-home pay compared.
             </p>
+            {/* This guide outranks the calculator for calculator queries, and
+                until now only linked it from the foot of the page. */}
+            <Link
+              href="/tools/1099-vs-w2-calculator"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold bg-white text-teal-700 hover:bg-blue-50 transition-colors"
+            >
+              <Calculator className="w-5 h-5" aria-hidden="true" />
+              Run your numbers in the 1099 vs W-2 calculator
+            </Link>
           </div>
         </div>
       </section>

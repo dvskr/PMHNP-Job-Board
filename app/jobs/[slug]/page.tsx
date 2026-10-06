@@ -32,6 +32,7 @@ import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import { publicJobsWhere } from '@/lib/filters';
 import { medianAdvertisedK } from '@/lib/salary-report/stats';
+import { getNationalMedianK } from '@/lib/salary-report/market-data';
 import { MIN_JOBS_FOR_CATEGORY_CITY } from '@/lib/pseo/render-gate';
 import { cityLinkHref } from '@/lib/pseo/related-cities';
 import { STATE_CODES, stateToSlug } from '@/lib/pseo/setting-state-config';
@@ -792,6 +793,7 @@ export default async function JobPage({ params }: JobPageProps) {
     internalLinkBuckets,
     siteStats,
     cityPageJobCount,
+    nationalMedianK,
   ] = await Promise.all([
     getRelatedJobs({
       currentJobId: job.id,
@@ -818,6 +820,9 @@ export default async function JobPage({ params }: JobPageProps) {
     // Decides whether the City breadcrumb gets an href at all — see
     // getCityPageJobCount. Joins the fan-out so it costs no extra latency.
     getCityPageJobCount(job.city, job.state, job.stateCode),
+    // The national figure both pay widgets compare against. Instance-cached
+    // for an hour, so it is not a per-page scan (see getNationalMedianK).
+    getNationalMedianK(),
   ]);
   const employerUserId = (job as unknown as Record<string, unknown>).employerUserId as string | null | undefined;
 
@@ -1205,9 +1210,13 @@ export default async function JobPage({ params }: JobPageProps) {
             {/* Salary Comparison Widget (A21) */}
             {stateAvgSalary > 0 && job.state && (
               <AnimatedContainer animation="fade-in-up" delay={220}>
+                {/* stateAvgSalary is already in thousands (medianAdvertisedK).
+                    Dividing it by 1,000 again rounded every state to 0, and
+                    the widget, which hides on 0, rendered nothing at all. */}
                 <SalaryComparisonWidget
                   stateName={job.state}
-                  stateAvgSalary={Math.round(stateAvgSalary / 1000)}
+                  stateMedianK={stateAvgSalary}
+                  nationalMedianK={nationalMedianK}
                   jobMinSalary={job.normalizedMinSalary}
                   jobMaxSalary={job.normalizedMaxSalary}
                 />
@@ -1308,7 +1317,7 @@ export default async function JobPage({ params }: JobPageProps) {
               </div>
 
               <div className="hidden lg:block mt-4">
-                <CareerPulseCard jobCount={siteStats.totalJobs > 0 ? siteStats.totalJobs : null} />
+                <CareerPulseCard jobCount={siteStats.totalJobs > 0 ? siteStats.totalJobs : null} nationalMedianK={nationalMedianK} />
               </div>
 
               {/* Career Resources — separate card */}

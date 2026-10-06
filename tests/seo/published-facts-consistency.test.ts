@@ -39,10 +39,7 @@ import {
     getStatePracticeAuthority,
 } from '@/lib/state-practice-authority';
 import { METRO_CITIES } from '@/lib/metro-data';
-import {
-    NATIONAL_AVG_PMHNP_SALARY,
-    NATIONAL_AVG_PMHNP_SALARY_FORMATTED,
-} from '@/lib/salary-stats';
+import { readCode } from '../helpers/source';
 
 const ROOT = path.resolve(__dirname, '../../');
 
@@ -106,32 +103,49 @@ describe('Full Practice Authority count is derived, not retyped', () => {
     });
 });
 
-describe('one national salary figure, and it is cited', () => {
-    it('salary-stats re-exports the sourced figure instead of declaring its own', () => {
-        expect(NATIONAL_AVG_PMHNP_SALARY).toBe(Number(STAT_SOURCES.npAverageSalaryBls.value));
-        expect(NATIONAL_AVG_PMHNP_SALARY_FORMATTED).toBe(STAT_SOURCES.npAverageSalaryBls.formatted);
-    });
-
-    it('the retired unsourced constant is gone', () => {
-        const src = fs.readFileSync(path.join(ROOT, 'lib/salary-stats.ts'), 'utf8');
-        // A numeric literal assignment, not the doc comment that records why
-        // the old one was removed.
-        expect(src).not.toMatch(/const\s+NATIONAL_AVG_PMHNP_SALARY\s*=\s*\d/);
-        expect(src).toMatch(/from '\.\/stats-sources'/);
-    });
-
+describe('the BLS context figure is cited as what it is', () => {
     it('carries a source and a date, because an uncited figure is not quotable', () => {
-        expect(STAT_SOURCES.npAverageSalaryBls.source).toMatch(/BLS OEWS/);
-        expect(STAT_SOURCES.npAverageSalaryBls.sourceUrl).toMatch(/^https:\/\/www\.bls\.gov\//);
-        expect(STAT_SOURCES.npAverageSalaryBls.asOf).toMatch(/^\d{4}(-\d{2})?$/);
+        expect(STAT_SOURCES.npMedianWageBls.source).toMatch(/BLS OEWS/);
+        expect(STAT_SOURCES.npMedianWageBls.sourceUrl).toMatch(/^https:\/\/www\.bls\.gov\//);
+        expect(STAT_SOURCES.npMedianWageBls.asOf).toMatch(/^\d{4}(-\d{2})?$/);
     });
 
-    it('is named and described as the all-specialty NP figure it is', () => {
+    it('is named and described as the all-specialty NP median it is', () => {
         // BLS does not break out psychiatric mental health NPs. Presenting this
         // as a PMHNP salary attributes a specialty claim to a source that does
         // not report the specialty.
-        expect(STAT_SOURCES.npAverageSalaryBls.source).toMatch(/all specialties/i);
+        expect(STAT_SOURCES.npMedianWageBls.source).toMatch(/all specialties/i);
         expect(STAT_SOURCES).not.toHaveProperty('averageSalary');
+        // Until 2026-10 the entry was `npAverageSalaryBls`: a median filed
+        // under "average", holding a number BLS never published.
+        expect(STAT_SOURCES).not.toHaveProperty('npAverageSalaryBls');
+    });
+
+    it('is never introduced to a reader as an average', () => {
+        for (const rel of ['app/page.tsx', 'app/blog/[slug]/page.tsx']) {
+            const code = readCode(rel);
+            expect(code, `${rel} should quote the BLS figure`).toContain('STAT_SOURCES.npMedianWageBls.formatted');
+            expect(code, `${rel} calls the BLS median an average`).not.toMatch(
+                /average of \$\{STAT_SOURCES\.npMedianWageBls/,
+            );
+        }
+    });
+});
+
+describe('job pages take the national pay figure from the salary engine', () => {
+    it('the hand-declared national constant is gone, not just unused', () => {
+        // lib/salary-stats.ts re-exported the BLS all-specialty figure under a
+        // name that called it a PMHNP salary, and two job-page widgets printed
+        // it as the national number. A module that exists gets imported again.
+        expect(fs.existsSync(path.join(ROOT, 'lib/salary-stats.ts'))).toBe(false);
+    });
+
+    it('neither pay widget declares a national figure of its own', () => {
+        for (const rel of ['components/SalaryComparisonWidget.tsx', 'components/jobs/SidebarVisualCards.tsx']) {
+            const code = readCode(rel);
+            expect(code, `${rel} should receive the national median as a prop`).toMatch(/nationalMedianK/);
+            expect(code, `${rel} hardcodes a dollar figure in thousands`).not.toMatch(/\$\d{3}[kK]\b/);
+        }
     });
 });
 

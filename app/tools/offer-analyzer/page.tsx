@@ -16,10 +16,14 @@ export const revalidate = 86400;
 const BASE_URL = brand.baseUrl;
 
 export const metadata: Metadata = {
-  title: 'PMHNP Offer Analyzer: Is Your Salary Offer Competitive?',
+  // "Salary calculator" is how people search for this; "offer analyzer" is
+  // only our internal name for it, so the title leads with the search phrase.
+  title: 'PMHNP Salary Calculator: Check Any Offer Against Live Pay by State',
   description:
-    'Paste your PMHNP job offer and see where it lands against advertised pay in live psychiatric nurse practitioner postings: percentile, p25/median/p75 by state. Free, no signup, analyzed in your browser.',
+    'Free PMHNP salary calculator and offer analyzer. Enter an offer and see where it lands against advertised pay in live psychiatric nurse practitioner postings: percentile, p25/median/p75 by state. No signup, analyzed in your browser.',
   keywords: [
+    'pmhnp salary calculator',
+    'psychiatric nurse practitioner salary calculator',
     'pmhnp offer analyzer',
     'is my pmhnp offer competitive',
     'pmhnp salary percentile',

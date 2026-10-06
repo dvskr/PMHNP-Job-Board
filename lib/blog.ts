@@ -194,7 +194,7 @@ export async function getRelatedPosts(
         return [];
     }
 
-    let related = (data ?? []) as BlogPost[];
+    const related = (data ?? []) as BlogPost[];
 
     // Top up from any-category if the same-category query is short of `limit`.
     // Thin categories (1-2 posts) would otherwise leave the "Read Next" block
@@ -403,6 +403,10 @@ export function markdownToHtml(markdown: string): string {
     html = html.replace(/<\/blockquote>\n<blockquote>/g, '\n');
 
     // GFM Tables
+    // Trailing whitespace after a row's closing pipe is invisible in an
+    // editor but made the pattern below miss the table, which then rendered
+    // as raw `| a | b |` paragraphs. Strip it from table rows first.
+    html = html.replace(/^(\|.*\|)[ \t]+(?=\r?$)/gm, '$1');
     html = html.replace(
         /^(\|.+\|)\r?\n(\|[\s:|-]+\|)\r?\n((?:\|.+\|\r?\n?)+)/gm,
         (match, headerRow, separatorRow, bodyRows) => {
