@@ -204,7 +204,16 @@ Two enforcement layers:
 
 1. **Bulk scanner** — `npm run lint:pii-prompts` greps every prompt file in
    `lib/ai/prompts/` for forbidden field references and PII-shaped values.
-   Wired as a CI gate in `ai-gates.yml`.
+   Wired as a CI gate in `ai-gates.yml`, and run over every registered prompt
+   by `tests/lib/ai/pii-scanner.test.ts`, so it also fails the PR gate.
+
+   A prompt may name a protected attribute only to forbid its use, as in
+   "Do NOT infer race, ethnicity, gender". The scanner accepts that when the
+   attribute follows an explicit prohibition in the same clause, with only
+   list words in between, no exception ("unless", "except", "if"), no
+   reversal in the next sentence, and no `{{template variable}}`. Identifier
+   fields (DEA, NPI, SSN, date of birth) are never accepted this way. A
+   prompt that needs anything else declares `_pii_scan_allow` with a reason.
 
 2. **In-test assertion** — `assertNoPIIInPrompt()` from `tests/helpers/pii.ts`
    for inline checks in feature tests. Use when a feature's prompt is

@@ -10,6 +10,12 @@
  * The PII rules in docs/ai-architecture.md §10 are absolute: NONE of these
  * fields may appear in any prompt body or template variable name.
  *
+ * One narrow exception: a prompt may NAME a protected attribute in order to
+ * forbid its use ("Do NOT infer race, ethnicity, gender..."). That sentence
+ * is the anti-bias guardrail the rules ask for, not a reference to applicant
+ * data. See isNamedOnlyToForbid for exactly what qualifies. Identifier fields
+ * (DEA, NPI, SSN, date of birth) never qualify.
+ *
  * Exit codes:
  *   0 — clean
  *   1 — at least one violation found (fails CI)
@@ -54,6 +60,143 @@ const PII_VALUE_PATTERNS: ReadonlyArray<{ name: string; re: RegExp }> = [
     { name: 'SSN with dashes',         re: /\b\d{3}-\d{2}-\d{4}\b/ },
 ];
 
+/**
+ * Protected attributes a prompt may name only in order to forbid their use.
+ * Identifier fields (DEA, NPI, SSN, date of birth) are deliberately absent: a
+ * prompt has no reason to name those even inside a prohibition.
+ */
+const PROTECTED_ATTRIBUTE_REFS: ReadonlySet<string> = new Set([
+    'race', 'ethnicity',
+    'gender',
+    'sexualorientation', 'sexual_orientation',
+    'religion',
+    'nationalorigin', 'national_origin',
+    'maritalstatus', 'marital_status',
+    'veteranstatus', 'veteran_status',
+    'disability', 'disabled',
+]);
+
+/** Verbs a prohibition can govern: the ways a prompt could use an attribute. */
+const RESTRICTION_VERBS = [
+    'infer', 'consider', 'use', 'mention', 'assume', 'guess', 'speculate', 'comment', 'extract',
+    'ask', 'request', 'collect', 'record', 'store', 'rely', 'factor', 'penalize', 'penalise',
+    'reward', 'score', 'judge', 'rank', 'evaluate',
+] as const;
+
+/** "Do not" or "never", followed closely by one of those verbs. */
+const PROHIBITION = new RegExp(
+    `\\b(?:do not|don't|never|must not|may not|should not|shall not)\\b[^.!?;\\n]{0,60}?\\b(?:${RESTRICTION_VERBS.join('|')})\\b`,
+    'i',
+);
+
+/**
+ * The only words allowed between a prohibition and the attribute it bans:
+ * the restriction verbs, list glue, and the vocabulary of a protected
+ * attribute list. Any other word means the sentence has moved on to a new
+ * instruction ("never rank by tenure alone, weigh gender too"), so the
+ * attribute is no longer covered by the "never".
+ */
+const LIST_WORDS: ReadonlySet<string> = new Set([
+    ...RESTRICTION_VERBS,
+    'on', 'of', 'about', 'from', 'by', 'to', 'or', 'and', 'nor', 'any', 'the', 'a', 'an', 'as', 'in', 'for',
+    'into', 'with', 'such', 'like', 'including', 'example', 'based', 'their', "candidate's", "applicant's",
+    "person's", "someone's", 'candidate', 'applicant', 'person',
+    'protected', 'attribute', 'attributes', 'characteristic', 'characteristics', 'class', 'classes', 'status',
+    'age', 'date', 'birth', 'photo', 'photos', 'name', 'names', 'marital', 'sexual', 'orientation', 'veteran',
+    'national', 'origin', 'pregnancy', 'citizenship', 'identity',
+    'race', 'ethnicity', 'gender', 'religion', 'disability', 'disabled',
+]);
+
+function isAttributeList(gap: string): boolean {
+    const words = gap.toLowerCase().replace(/\b(?:e\.g|i\.e)\.?/g, ' ').match(/[a-z']+/g) ?? [];
+    return words.every((w) => LIST_WORDS.has(w));
+}
+
+/**
+ * Words that turn a prohibition into a conditional or a second, positive
+ * instruction ("do not mention race unless...", "...but do use gender"). A
+ * sentence carrying one is not a clean prohibition and gets no exemption.
+ */
+const EXCEPTION =
+    /\b(?:unless|except|instead|but|however|rather|otherwise|if|when|always|do (?:use|include|consider|mention|record|note)|should(?!\s+not\b)|must(?!\s+not\b))\b/i;
+
+/** A following sentence that opens by reversing the one before it. */
+const REVERSAL_OPENER = /^[\s\-*•]*(?:instead|however|but|rather|otherwise|unless|except)\b/i;
+
+interface Span { start: number; end: number }
+
+/**
+ * Spans of text between boundaries. Sentences end at . ! ? or a newline;
+ * clauses also end at a semicolon. "e.g." and "i.e." do not end either.
+ */
+function splitSpans(text: string, boundary: RegExp): Span[] {
+    const spans: Span[] = [];
+    // Blank spans (the line break between two bullets) are dropped, so "the
+    // next sentence" always means the next one with words in it.
+    const push = (start: number, end: number) => {
+        if (text.slice(start, end).trim() !== '') spans.push({ start, end });
+    };
+    let start = 0;
+    for (let m = boundary.exec(text); m; m = boundary.exec(text)) {
+        const before = text.slice(Math.max(0, m.index - 3), m.index).toLowerCase();
+        if (m[0] === '.' && (before === 'e.g' || before === 'i.e')) continue;
+        push(start, m.index + 1);
+        start = m.index + 1;
+    }
+    push(start, text.length);
+    return spans;
+}
+
+interface TextSpans { sentences: Span[]; clauses: Span[] }
+
+function textSpans(text: string): TextSpans {
+    return {
+        sentences: splitSpans(text, /[.!?](?=\s)|\n/g),
+        clauses: splitSpans(text, /[.!?;](?=\s)|\n/g),
+    };
+}
+
+/** Is this offset inside a {{template variable}}? An unclosed one counts. */
+function insidePlaceholder(text: string, index: number): boolean {
+    const open = text.lastIndexOf('{{', index);
+    if (open < 0) return false;
+    const close = text.indexOf('}}', open);
+    return close < 0 || close >= index;
+}
+
+/**
+ * True when a protected attribute at `index` is only being named so the
+ * prompt can forbid its use. All of these must hold:
+ *   - it is not inside a {{template variable}} (that is a data reference
+ *     whatever the sentence around it says);
+ *   - its own clause carries an explicit prohibition, the attribute comes
+ *     after it ("use gender, and never guess" does not qualify), and only
+ *     list words sit between the two (see LIST_WORDS);
+ *   - the whole sentence carves out no exception and adds no positive
+ *     instruction, and the next sentence does not open by reversing it
+ *     ("Never assume gender; instead infer it from the name").
+ * Anything else stays a violation, so a prompt that needs more has to declare
+ * `_pii_scan_allow` with a reason, where a reviewer will see it.
+ */
+function isNamedOnlyToForbid(text: string, index: number, spans: TextSpans): boolean {
+    if (insidePlaceholder(text, index)) return false;
+    const within = (s: Span) => index >= s.start && index < s.end;
+    const clause = spans.clauses.find(within);
+    const sentenceAt = spans.sentences.findIndex(within);
+    if (!clause || sentenceAt < 0) return false;
+
+    const prohibition = PROHIBITION.exec(text.slice(clause.start, clause.end));
+    if (!prohibition) return false;
+    const listStart = clause.start + prohibition.index + prohibition[0].length;
+    if (index < listStart) return false;
+    if (!isAttributeList(text.slice(listStart, index))) return false;
+
+    const sentence = spans.sentences[sentenceAt];
+    if (EXCEPTION.test(text.slice(sentence.start, sentence.end))) return false;
+    const next = spans.sentences[sentenceAt + 1];
+    return !(next && REVERSAL_OPENER.test(text.slice(next.start, next.end)));
+}
+
 function findViolations(
     file: string,
     where: 'system' | 'user_template',
@@ -62,13 +205,20 @@ function findViolations(
 ): Violation[] {
     const found: Violation[] = [];
     const lower = text.toLowerCase();
+    const spans = textSpans(text);
 
     for (const ref of FORBIDDEN_FIELD_REFS) {
-        if (allow.has(ref.toLowerCase())) continue;
-        const idx = lower.indexOf(ref.toLowerCase());
-        if (idx >= 0) {
+        const needle = ref.toLowerCase();
+        if (allow.has(needle)) continue;
+        const exemptable = PROTECTED_ATTRIBUTE_REFS.has(needle);
+        // Every occurrence is checked, not only the first: a guardrail line
+        // near the top must not hide a real reference further down. One
+        // violation per pattern keeps the report readable.
+        for (let idx = lower.indexOf(needle); idx >= 0; idx = lower.indexOf(needle, idx + 1)) {
+            if (exemptable && isNamedOnlyToForbid(text, idx, spans)) continue;
             const snippet = text.slice(Math.max(0, idx - 30), idx + ref.length + 30);
             found.push({ file, where, pattern: `field:${ref}`, snippet });
+            break;
         }
     }
 
@@ -83,14 +233,11 @@ function findViolations(
     return found;
 }
 
-async function main(): Promise<void> {
+/** Scan every registered prompt version. Shared by the CLI and the test suite. */
+async function scanAllPrompts(): Promise<{ scanned: number; violations: Violation[] }> {
     const prompts = await listPrompts();
-    if (prompts.length === 0) {
-        console.log('[pii-scan] No prompts registered. Skipping.');
-        process.exit(0);
-    }
-
-    let total: Violation[] = [];
+    let scanned = 0;
+    let violations: Violation[] = [];
     for (const entry of prompts) {
         for (const v of entry.versions) {
             const file = path.join('lib', 'ai', 'prompts', entry.task, `${v}.json`);
@@ -105,13 +252,23 @@ async function main(): Promise<void> {
             const raw = JSON.parse(await fs.readFile(file, 'utf-8')) as { _pii_scan_allow?: string[] };
             const allow = new Set((raw._pii_scan_allow ?? []).map((s) => s.toLowerCase()));
 
-            total = total.concat(findViolations(file, 'system',        loaded.rawSystem,         allow));
-            total = total.concat(findViolations(file, 'user_template', loaded.rawUserTemplate,   allow));
+            violations = violations.concat(findViolations(file, 'system',        loaded.rawSystem,         allow));
+            violations = violations.concat(findViolations(file, 'user_template', loaded.rawUserTemplate,   allow));
+            scanned++;
         }
+    }
+    return { scanned, violations };
+}
+
+async function main(): Promise<void> {
+    const { scanned, violations: total } = await scanAllPrompts();
+    if (scanned === 0) {
+        console.log('[pii-scan] No prompts registered. Skipping.');
+        process.exit(0);
     }
 
     if (total.length === 0) {
-        console.log(`[pii-scan] PASS — ${prompts.reduce((a, b) => a + b.versions.length, 0)} prompt files scanned, no violations.`);
+        console.log(`[pii-scan] PASS — ${scanned} prompt files scanned, no violations.`);
         process.exit(0);
     }
 
@@ -138,6 +295,7 @@ if (typeof require !== 'undefined' && require.main === module) {
 export const __testing = {
     findViolations: (file: string, where: 'system' | 'user_template', text: string, allow: ReadonlySet<string> = new Set()) =>
         findViolations(file, where, text, allow),
+    scanAllPrompts,
     FORBIDDEN_FIELD_REFS,
     PII_VALUE_PATTERNS,
 };
