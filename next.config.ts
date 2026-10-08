@@ -285,6 +285,130 @@ const nextConfig: NextConfig = {
         destination: '/blog/ultimate-guide-remote-pmhnp-jobs-2026',
         permanent: true,
       },
+      // Thin-post merge (2026-10-08): twenty-two posts that lived only in
+      // the database, each a short take on a subject a canonical guide
+      // already covers, with pay figures no source backed. Each now 301s to
+      // the guide or page that answers the same question. The useful parts
+      // of the five that had search traction were folded into their
+      // destinations first; tests/seo/blog-merged-posts.test.ts pins both
+      // the redirects and those sections. The rows are archived in the
+      // database so /blog and the sitemap stop listing them.
+      //
+      // Pay and negotiation.
+      {
+        source: '/blog/how-to-ask-for-a-raise-as-a-pmhnp-scripts-timing',
+        destination: '/blog/pmhnp-salary-negotiation',
+        permanent: true,
+      },
+      {
+        source: '/blog/pmhnp-salary-negotiation-3-things-most-people-skip',
+        destination: '/blog/pmhnp-salary-negotiation',
+        permanent: true,
+      },
+      {
+        source: '/blog/the-real-cost-of-accepting-a-low-ball-offer',
+        destination: '/blog/pmhnp-salary-negotiation',
+        permanent: true,
+      },
+      {
+        source: '/blog/dnp-vs-msn-pmhnp-salary-is-the-extra-degree-worth-it',
+        destination: '/blog/how-to-become-a-pmhnp',
+        permanent: true,
+      },
+      {
+        source: '/blog/hospital-vs-private-practice-pay-real-numbers-for-pmhnps',
+        destination: '/blog/pmhnp-private-practice-salary-how-much-can-you-really-earn',
+        permanent: true,
+      },
+      {
+        source: '/blog/highest-paying-pmhnp-states-col-adjusted-in-2026',
+        destination: '/blog/pmhnp-salary-by-state-2026',
+        permanent: true,
+      },
+      {
+        source: '/blog/pmhnp-salary-growth-the-10-year-trend-20162026',
+        destination: '/blog/pmhnp-job-outlook',
+        permanent: true,
+      },
+      // Market and job search.
+      {
+        source: '/blog/35-pmhnp-job-growth-what-it-means-for-your-career',
+        destination: '/blog/pmhnp-job-outlook',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-fast-do-pmhnp-jobs-get-filled-timelines-tips',
+        destination: '/blog/pmhnp-interview-questions-2026',
+        permanent: true,
+      },
+      {
+        source: '/blog/3-red-flags-in-pmhnp-job-postings-and-what-to-do',
+        destination: '/blog/new-grad-pmhnp-guide-2026',
+        permanent: true,
+      },
+      {
+        source: '/blog/entry-level-pmhnp-what-to-realistically-expect',
+        destination: '/blog/new-grad-pmhnp-guide-2026',
+        permanent: true,
+      },
+      {
+        source: '/blog/california-pmhnp-jobs-693-openings-what-to-know',
+        destination: '/blog/pmhnp-jobs-california-texas-2026',
+        permanent: true,
+      },
+      // Work arrangements.
+      {
+        source: '/blog/travellocum-tenens-pmhnp-is-it-worth-it',
+        destination: '/blog/locum-tenens-pmhnp-guide-2026',
+        permanent: true,
+      },
+      {
+        source: '/blog/per-diem-pmhnp-the-flexibility-math',
+        destination: '/blog/pmhnp-prn-moonlighting-guide-2026',
+        permanent: true,
+      },
+      {
+        source: '/blog/part-time-pmhnp-can-you-make-real-money',
+        destination: '/blog/part-time-pmhnp-jobs-guide',
+        permanent: true,
+      },
+      // Telehealth.
+      {
+        source: '/blog/telehealth-vs-in-person-which-pmhnp-role-pays-more',
+        destination: '/blog/telehealth-pmhnp-guide',
+        permanent: true,
+      },
+      {
+        source: '/blog/telehealth-vs-in-person-pmhnp-vote-in-our-poll',
+        destination: '/blog/telehealth-pmhnp-guide',
+        permanent: true,
+      },
+      {
+        source: '/blog/telehealth-pmhnp-the-fastest-growing-segment-in-2026',
+        destination: '/blog/telehealth-pmhnp-guide',
+        permanent: true,
+      },
+      // Employer and brand posts go to the pages built for those readers.
+      {
+        source: '/blog/why-your-pmhnp-job-post-isnt-getting-applicants',
+        destination: '/for-employers',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-write-a-pmhnp-job-post-that-actually-converts',
+        destination: '/for-employers',
+        permanent: true,
+      },
+      {
+        source: '/blog/retention-starts-with-the-pmhnp-job-post-heres-how',
+        destination: '/for-employers',
+        permanent: true,
+      },
+      {
+        source: '/blog/why-we-built-a-pmhnp-only-job-board-no-noise',
+        destination: '/about',
+        permanent: true,
+      },
     ];
   },
 };
