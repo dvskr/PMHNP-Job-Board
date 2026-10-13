@@ -48,10 +48,35 @@ describe('U2 — auth modal promises only real benefits', () => {
 });
 
 describe('U3 — apply click awaits the auth check (no wall flash)', () => {
-  it('handleApply awaits the stored auth promise before branching', () => {
+  it('handleApply resolves auth before branching, never on a bare default', () => {
+    // Was pinned to the literal `await authPromiseRef.current`. The promise
+    // is now created lazily by verifyAuth so the click can resolve a question
+    // the mount deliberately left open, which that literal cannot express.
+    // The rule is unchanged: branch on an awaited answer, not on state.
     const src = read('components/ApplyButton.tsx');
-    expect(src).toMatch(/authPromiseRef/);
-    expect(src).toMatch(/await authPromiseRef\.current/);
+    const start = src.indexOf('const handleApply');
+    const end = src.indexOf('const handleConfirmApplied');
+    expect(start, 'handleApply moved').toBeGreaterThan(-1);
+    expect(end, 'handleConfirmApplied moved').toBeGreaterThan(start);
+    const handler = src.slice(start, end);
+    expect(handler).toMatch(/await verifyAuth\.current\(\)/);
+    // And the wall is only reachable after that await.
+    expect(handler.indexOf('await verifyAuth.current()'))
+      .toBeLessThan(handler.indexOf('setShowAuthModal(true)'));
+  });
+
+  it('an unrecognised cookie never decides the gate by itself', () => {
+    // The live bug: @supabase/ssr chunks a large session cookie into
+    // `sb-<ref>-auth-token.0`, the heuristic did not match it, and the miss
+    // was recorded as a resolved "not signed in". Candidates with completed
+    // profiles were shown the sign-in wall on every job, forever.
+    const src = read('components/ApplyButton.tsx');
+    const miss = src.slice(src.indexOf('if (!hasLikelyAuthCookie())'));
+    const block = miss.slice(0, miss.indexOf('}') + 1);
+    // It may render signed out, but it must NOT mark the answer resolved.
+    expect(block).toMatch(/authResolvedRef\.current = false/);
+    expect(block).not.toMatch(/authResolvedRef\.current = true/);
+    expect(block).not.toMatch(/Promise\.resolve\(false\)/);
   });
 });
 

@@ -100,6 +100,24 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
     typeof isAuthenticated === 'boolean' ? Promise.resolve(isAuthenticated) : null,
   );
   const authResolvedRef = useRef<boolean>(typeof isAuthenticated === 'boolean');
+
+  /** Ask the server, once, and cache the answer for this mount. */
+  const verifyAuth = useRef<() => Promise<boolean>>(null as never);
+  verifyAuth.current = (): Promise<boolean> => {
+    if (authPromiseRef.current) return authPromiseRef.current;
+    const pending = fetch('/api/auth/me', { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const ok = !!d?.id;
+        setAuthed(ok);
+        return ok;
+      })
+      .catch(() => false)
+      .finally(() => { authResolvedRef.current = true; });
+    authPromiseRef.current = pending;
+    return pending;
+  };
+
   useEffect(() => {
     if (typeof isAuthenticated === 'boolean') {
       authPromiseRef.current = Promise.resolve(isAuthenticated);
@@ -109,23 +127,29 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
     // No session cookie means the call can only 401, and this component mounts
     // twice per job page (sidebar + sticky bar). Skip the round trip entirely
     // for anonymous visitors rather than paying for two guaranteed 401s.
+    //
+    // CRUCIALLY, skipping is NOT the same as deciding. This used to record
+    // the skip as a resolved "false", which made a cookie the component could
+    // not recognise indistinguishable from no session at all: handleApply
+    // then went straight to the sign-in wall and never asked the server. When
+    // @supabase/ssr chunked the session cookie past 3180 bytes the name
+    // stopped matching, and everyone whose profile was complete enough to
+    // cross that threshold was locked out of applying, permanently, on every
+    // device. The regex is fixed in lib/auth-cookie.ts, but the shape of that
+    // failure is the real defect: a heuristic that can only ever be a hint
+    // must not be allowed to answer the question.
+    //
+    // So: render as signed out, and leave the question genuinely open. The
+    // optimisation survives (an anonymous visitor still makes zero requests
+    // while reading the page) and the cost moves to the one moment where a
+    // round trip is unarguably worth it, the click itself.
     if (!hasLikelyAuthCookie()) {
-      authPromiseRef.current = Promise.resolve(false);
-      authResolvedRef.current = true;
       setAuthed(false);
+      authPromiseRef.current = null;
+      authResolvedRef.current = false;
       return;
     }
-    let active = true;
-    authPromiseRef.current = fetch('/api/auth/me')
-      .then((r) => r.json())
-      .then((d) => {
-        const ok = !!d?.id;
-        if (active) setAuthed(ok);
-        return ok;
-      })
-      .catch(() => false)
-      .finally(() => { authResolvedRef.current = true; });
-    return () => { active = false; };
+    verifyAuth.current();
   }, [isAuthenticated]);
   // Use the shared detection so the detail-page button matches the
   // card's label exactly — both consider both `sourceType === 'employer'`
@@ -258,11 +282,16 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
     // the click's transient activation alive for window.open below (an
     // awaited microtask hop is safe in modern browsers, but there is no
     // reason to spend it).
+    // Never show the wall on an unverified negative. If the question is still
+    // open, which now includes "the cookie heuristic saw nothing", ask the
+    // server before deciding. For a genuinely anonymous visitor this is one
+    // request on the click rather than one on every page view, and the answer
+    // is cached for the rest of the mount.
     let isAuthed = authed;
-    if (authPromiseRef.current && !authResolvedRef.current) {
+    if (!authResolvedRef.current) {
       setCheckingAuth(true);
       try {
-        isAuthed = await authPromiseRef.current;
+        isAuthed = await verifyAuth.current();
       } finally {
         setCheckingAuth(false);
       }
