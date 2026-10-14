@@ -178,10 +178,22 @@ describe('signup does not lose what the user asked for', () => {
     expect(src).toContain('!firstName.trim() || !lastName.trim()');
   });
 
-  it('checks the profile POST and says so when the opt-ins did not save', () => {
+  it('carries the opt-ins where they cannot be lost', () => {
+    // This used to assert the opposite shape: check the profile POST and
+    // warn when it failed. The POST authenticates from the session cookie
+    // and signUp() issues none while the project requires email
+    // confirmation, so it failed on essentially every signup. The test was
+    // pinning the error path as if it were rare, and a real employer
+    // reported the resulting warning as a pop-up blocking signup.
+    //
+    // The opt-ins now ride in the signUp metadata, which survives having no
+    // session, and lib/auth/ensure-profile.ts applies them when the profile
+    // is created. Nothing is lost, so there is nothing to warn about.
     const src = readCode(SIGNUP_FORM);
-    expect(src).toContain('if (!profileRes.ok)');
-    expect(src).toContain('setPrefsWarning');
+    for (const key of ['want_job_highlights', 'highlights_frequency', 'newsletter_opt_in']) {
+      expect(src, `signUp metadata is missing ${key}`).toContain(key);
+    }
+    expect(src, 'the warning is back on a path that always fails').not.toContain('setPrefsWarning');
   });
 
   it('clears the resend countdown on unmount', () => {

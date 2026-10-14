@@ -4,11 +4,13 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { sanitizeText, sanitizeUrl } from '@/lib/sanitize'
 import { verifyCsrf } from '@/lib/csrf'
-import { syncToBeehiiv } from '@/lib/beehiiv'
-import { sendSignupWelcomeEmail } from '@/lib/email-service'
+// syncToBeehiiv moved into lib/auth/signup-preferences.ts with the lead
+// write it belongs to. sendSignupWelcomeEmail was already unused here: the
+// welcome mail is sent after email confirmation, not during signup.
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { inngest } from '@/lib/inngest/client'
 import { ensureProfileFromAuth } from '@/lib/auth/ensure-profile'
+import { applySignupPreferences } from '@/lib/auth/signup-preferences'
 
 // The settings editor counts a professional summary up to this same limit
 // (app/settings/page.tsx). When the server cap was lower, sanitizeText()
@@ -223,62 +225,31 @@ export async function POST(request: NextRequest) {
           }
           logger.info('EmployerLead created for employer signup', { email })
         } else {
-          // Job seekers go into email_leads table
-          await prisma.emailLead.upsert({
-            where: { email },
-            update: {
-              isSubscribed: true,
-              newsletterOptIn: newsletterOptIn ? true : undefined,
-            },
-            create: {
-              email,
-              source: 'signup',
-              isSubscribed: true,
-              newsletterOptIn: !!newsletterOptIn,
-            },
+          // Job seekers: the lead and the highlights alert are one shared,
+          // idempotent write, because this route is no longer the only
+          // caller. ensure-profile runs the same write from auth metadata
+          // when the user confirms their email, which for a
+          // confirmation-required project is the path that actually fires:
+          // this handler needs a session cookie that signUp() has not
+          // issued yet. Two copies of the logic drifted into losing the
+          // opt-ins entirely, so there is now one.
+          await applySignupPreferences({
+            email,
+            role,
+            wantJobHighlights: !!wantJobHighlights,
+            highlightsFrequency,
+            newsletterOptIn: !!newsletterOptIn,
           })
-          logger.info('EmailLead created for job seeker signup', { email })
-
-          // Sync to Beehiiv newsletter (fire-and-forget)
-          syncToBeehiiv(email, { utmSource: 'signup' })
         }
       } catch (leadError) {
         logger.error('Failed to create lead', leadError)
       }
     }
 
-    // Create JobAlert if user opted in (only for new signups)
-    // Must run AFTER EmailLead creation above (FK constraint)
-    if (!existingProfile && wantJobHighlights && role === 'job_seeker') {
-      try {
-        // Check if alert already exists for this email
-        const existingAlert = await prisma.jobAlert.findFirst({
-          where: { email }
-        })
-
-        if (!existingAlert) {
-          await prisma.jobAlert.create({
-            data: {
-              email,
-              name: 'Job Highlights',
-              keyword: null,
-              location: null,
-              mode: null,
-              jobType: null,
-              minSalary: null,
-              maxSalary: null,
-              frequency: highlightsFrequency || 'daily',
-              isActive: true,
-              token: crypto.randomUUID(),
-            }
-          })
-          logger.info('JobAlert created for new user', { email, frequency: highlightsFrequency })
-        }
-      } catch (alertError) {
-        // Don't fail signup if alert creation fails
-        logger.error('Failed to create JobAlert', alertError)
-      }
-    }
+    // The job-highlights alert is created inside applySignupPreferences
+    // above, in the same call as the lead it has an FK to, so the ordering
+    // the two used to depend on is no longer something a caller can get
+    // wrong.
 
     // Welcome email is sent after email confirmation, not during signup
 

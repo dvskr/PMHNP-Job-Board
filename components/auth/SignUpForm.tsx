@@ -78,12 +78,10 @@ export default function SignUpForm() {
   // navigated away from the form.
   const resendTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Signup creates the Supabase account first, then POSTs the profile that
-  // carries role/company and the newsletter and job-highlight opt-ins. When
-  // that second call fails the account still exists, so we cannot fail the
-  // whole signup: we say the preferences did not save instead of dropping
-  // them silently and letting the user wait for highlights that never come.
-  const [prefsWarning, setPrefsWarning] = useState<string | null>(null);
+  // There is deliberately no "preferences did not save" state any more. The
+  // opt-ins now travel in the signUp metadata and are applied by
+  // ensure-profile when the profile is created, so the profile POST failing
+  // loses nothing and has nothing to report. See lib/auth/signup-preferences.
 
   useEffect(() => {
     const roleParam = searchParams.get('role');
@@ -130,7 +128,6 @@ export default function SignUpForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setPrefsWarning(null);
 
     // `required` passes on a string of spaces, and sanitizeText trims it away
     // server-side, so a blank-name account was created with a success screen
@@ -173,11 +170,22 @@ export default function SignUpForm() {
           // /auth/confirm reads ?redirectTo= and routes there (re-validated
           // on that page) instead of hardcoding /dashboard.
           emailRedirectTo: `${window.location.origin}/auth/confirm${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ''}`,
+          // Everything the profile needs travels here, because this is the
+          // only channel that survives the gap. signUp() returns no session
+          // when the project requires email confirmation, so the POST below
+          // cannot authenticate and 401s; ensure-profile reads this metadata
+          // back on the first authenticated request and builds the profile
+          // from it. role and company have been carried this way since
+          // 2026-05. The three opt-ins were not, which is why they were lost
+          // on every signup and the form reported that they had been.
           data: {
             first_name: firstName,
             last_name: lastName,
             role: role === 'employer' ? 'employer' : 'job_seeker',
             company: role === 'employer' ? company : null,
+            want_job_highlights: role === 'seeker' ? wantJobHighlights : false,
+            highlights_frequency: role === 'seeker' ? highlightsFrequency : null,
+            newsletter_opt_in: newsletterOptIn,
           },
         },
       });
@@ -185,34 +193,35 @@ export default function SignUpForm() {
       if (signUpError) { setError(signUpError.message); return; }
 
       if (data.user) {
-        // This POST carries the role, company and both opt-ins. It can fail
-        // for reasons the user did nothing to cause (429 from the auth rate
-        // limiter on a shared office IP, or 401 when the project requires
-        // email confirmation so no session cookie exists yet). fetch resolves
-        // for all of those, so without the res.ok check the preferences were
-        // dropped under a success screen. The account itself is already
-        // created, so we keep the success state and say what did not save.
-        try {
-          const profileRes = await fetch('/api/auth/profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              supabaseId: data.user.id,
-              email: data.user.email,
-              firstName, lastName,
-              role: role === 'employer' ? 'employer' : 'job_seeker',
-              company: role === 'employer' ? company : null,
-              wantJobHighlights: role === 'seeker' ? wantJobHighlights : false,
-              highlightsFrequency: role === 'seeker' ? highlightsFrequency : undefined,
-              newsletterOptIn,
-            }),
-          });
-          if (!profileRes.ok) {
-            setPrefsWarning('Your account was created, but we could not save your email preferences. Set them in Settings once you sign in.');
-          }
-        } catch {
-          setPrefsWarning('Your account was created, but we could not save your email preferences. Set them in Settings once you sign in.');
-        }
+        // Best effort, and deliberately silent on failure.
+        //
+        // This POST authenticates from the session cookie, and signUp() does
+        // not issue one while the project requires email confirmation, so it
+        // answers 401 on essentially every signup. It used to surface that as
+        // "we could not save your email preferences", which is a real-looking
+        // warning on the success screen of a signup that worked, and it is
+        // what one employer reported as a pop-up blocking their final step.
+        //
+        // Nothing is lost when it fails now: every field above also travels
+        // in the signUp metadata, and ensure-profile applies it when the
+        // profile is created on the first authenticated request. The call is
+        // kept only for the case where a session DOES exist (confirmation
+        // turned off, or an already-confirmed address), where it saves a
+        // round trip later.
+        fetch('/api/auth/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            supabaseId: data.user.id,
+            email: data.user.email,
+            firstName, lastName,
+            role: role === 'employer' ? 'employer' : 'job_seeker',
+            company: role === 'employer' ? company : null,
+            wantJobHighlights: role === 'seeker' ? wantJobHighlights : false,
+            highlightsFrequency: role === 'seeker' ? highlightsFrequency : undefined,
+            newsletterOptIn,
+          }),
+        }).catch(() => {});
 
         fetch('/api/auth/welcome', {
           method: 'POST',
@@ -274,11 +283,6 @@ export default function SignUpForm() {
           <p style={{ fontSize: '14px', color: '#4B5E68', margin: 0 }}>
             We&apos;ve sent a confirmation link to <strong>{email}</strong>
           </p>
-          {prefsWarning && (
-            <p role="alert" style={{ fontSize: '13px', color: '#92400E', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 12px', margin: 0 }}>
-              {prefsWarning}
-            </p>
-          )}
           <p style={{ fontSize: '12px', color: '#4B5E68', margin: 0 }}>
             Check spam/junk if you don&apos;t see it within a few minutes.
           </p>
