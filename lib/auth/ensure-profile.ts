@@ -28,12 +28,18 @@ import type { User } from '@supabase/supabase-js'
 import type { PrismaClient } from '@prisma/client'
 import { logger } from '@/lib/logger'
 import { logAudit } from '@/lib/audit-log'
+import { applySignupPreferences } from '@/lib/auth/signup-preferences'
 
 interface SupabaseAuthMetadata {
   role?: string
   company?: string
   first_name?: string
   last_name?: string
+  /** Seeker opt-ins. Here for the same reason role is: the POST that used to
+   *  carry them cannot authenticate before email confirmation. */
+  want_job_highlights?: boolean
+  highlights_frequency?: string | null
+  newsletter_opt_in?: boolean
 }
 
 export interface AuthMetadataDerivedFields {
@@ -41,6 +47,9 @@ export interface AuthMetadataDerivedFields {
   company: string | null
   firstName: string | null
   lastName: string | null
+  wantJobHighlights: boolean
+  highlightsFrequency: string | null
+  newsletterOptIn: boolean
 }
 
 /**
@@ -59,6 +68,12 @@ export function readSignupMetadata(user: User): AuthMetadataDerivedFields {
     company: role === 'employer' && meta.company ? meta.company : null,
     firstName: meta.first_name ?? null,
     lastName: meta.last_name ?? null,
+    // Seeker-only, and defaulted to false rather than true: an absent flag
+    // means an older signup that never recorded a choice, and inventing an
+    // opt-in for someone who never gave one is the one wrong answer here.
+    wantJobHighlights: role === 'job_seeker' && meta.want_job_highlights === true,
+    highlightsFrequency: meta.highlights_frequency ?? null,
+    newsletterOptIn: role === 'job_seeker' && meta.newsletter_opt_in === true,
   }
 }
 
@@ -240,5 +255,20 @@ export async function ensureProfileFromAuth<
     hasEmployerMetadata: derived.role === 'employer',
     source: options.logSource ?? null,
   })
+
+  // The opt-ins the signup form recorded. This is the only place they can be
+  // honoured for a confirmation-required project: /api/auth/profile cannot
+  // authenticate before the user confirms, so by the time anyone is holding a
+  // session this row is being created right here. Awaited rather than fired
+  // and forgotten so a failure is logged against this request, and it never
+  // throws, so it cannot cost someone the profile they just got.
+  await applySignupPreferences({
+    email: user.email,
+    role: derived.role,
+    wantJobHighlights: derived.wantJobHighlights,
+    highlightsFrequency: derived.highlightsFrequency,
+    newsletterOptIn: derived.newsletterOptIn,
+  })
+
   return created as unknown as T
 }

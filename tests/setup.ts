@@ -28,6 +28,9 @@ vi.mock('@/lib/prisma', () => {
                 findUnique: vi.fn(),
                 findMany: vi.fn(),
                 create: vi.fn(),
+                // Signup writes the lead as an upsert, so a returning address
+                // is not re-subscribed on a second signup.
+                upsert: vi.fn(),
                 update: vi.fn(),
                 updateMany: vi.fn(),
                 // Account erasure deletes the rows that keep mailing an erased
@@ -35,6 +38,7 @@ vi.mock('@/lib/prisma', () => {
                 deleteMany: vi.fn(),
             },
             jobAlert: {
+                findFirst: vi.fn(),
                 findMany: vi.fn(),
                 create: vi.fn(),
                 update: vi.fn(),
