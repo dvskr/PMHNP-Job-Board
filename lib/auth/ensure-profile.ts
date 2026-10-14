@@ -59,15 +59,33 @@ export interface AuthMetadataDerivedFields {
  * need the derived role *without* writing to the DB (e.g. analytics)
  * can reuse the same allow-list logic.
  */
+/**
+ * Trim a metadata string, and treat blank as absent.
+ *
+ * The company name is write-once: the signup form says it cannot be changed
+ * after the account is created and that every posting publishes under it, and
+ * it reaches JSON-LD hiringOrganization.name. An employer typed theirs with a
+ * trailing space, so whatever arrives here is permanent. Blank collapses to
+ * null rather than " ", which would be a name that is present but empty.
+ *
+ * The org quota key never depended on this: normalizeOrgName splits on
+ * [^a-z0-9]+, so stray whitespace was already discarded there. This is about
+ * the stored and displayed name.
+ */
+function clean(value: string | null | undefined): string | null {
+  const trimmed = (value ?? '').trim()
+  return trimmed === '' ? null : trimmed
+}
+
 export function readSignupMetadata(user: User): AuthMetadataDerivedFields {
   const meta = (user.user_metadata ?? {}) as SupabaseAuthMetadata
   const role: 'employer' | 'job_seeker' =
     meta.role === 'employer' ? 'employer' : 'job_seeker'
   return {
     role,
-    company: role === 'employer' && meta.company ? meta.company : null,
-    firstName: meta.first_name ?? null,
-    lastName: meta.last_name ?? null,
+    company: role === 'employer' ? clean(meta.company) : null,
+    firstName: clean(meta.first_name),
+    lastName: clean(meta.last_name),
     // Seeker-only, and defaulted to false rather than true: an absent flag
     // means an older signup that never recorded a choice, and inventing an
     // opt-in for someone who never gave one is the one wrong answer here.
