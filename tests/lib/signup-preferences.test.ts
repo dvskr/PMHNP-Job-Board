@@ -204,3 +204,33 @@ describe('ensure-profile applies them when the profile is really created', () =>
     expect(src).not.toContain("name: 'Job Highlights'");
   });
 });
+
+describe('metadata is trimmed before it reaches a write-once field', () => {
+  // An employer typed their company name with a trailing space. The name is
+  // write-once ("cannot be changed after the account is created", and every
+  // posting publishes under it), so whatever lands in the profile row is
+  // permanent. It reaches JSON-LD hiringOrganization.name too.
+  //
+  // The org quota key is NOT at risk: normalizeOrgName splits on
+  // [^a-z0-9]+, so stray whitespace was already discarded there. This is
+  // about the stored and displayed name.
+  it('trims a company name the person typed with trailing space', () => {
+    const derived = readSignupMetadata(authUser({ role: 'employer', company: 'Example Clinic Inc ' }));
+    expect(derived.company).toBe('Example Clinic Inc');
+  });
+
+  it('treats a whitespace-only company as absent, not as a space', () => {
+    const derived = readSignupMetadata(authUser({ role: 'employer', company: '   ' }));
+    expect(derived.company).toBeNull();
+  });
+
+  it('trims the names, and a whitespace-only name is absent', () => {
+    const padded = readSignupMetadata(authUser({ role: 'employer', first_name: ' Ada ', last_name: ' Lovelace ' }));
+    expect(padded.firstName).toBe('Ada');
+    expect(padded.lastName).toBe('Lovelace');
+
+    const blank = readSignupMetadata(authUser({ role: 'employer', first_name: ' ', last_name: '' }));
+    expect(blank.firstName).toBeNull();
+    expect(blank.lastName).toBeNull();
+  });
+})

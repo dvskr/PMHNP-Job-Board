@@ -179,10 +179,10 @@ export default function SignUpForm() {
           // 2026-05. The three opt-ins were not, which is why they were lost
           // on every signup and the form reported that they had been.
           data: {
-            first_name: firstName,
-            last_name: lastName,
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
             role: role === 'employer' ? 'employer' : 'job_seeker',
-            company: role === 'employer' ? company : null,
+            company: role === 'employer' ? company.trim() : null,
             want_job_highlights: role === 'seeker' ? wantJobHighlights : false,
             highlights_frequency: role === 'seeker' ? highlightsFrequency : null,
             newsletter_opt_in: newsletterOptIn,
@@ -214,9 +214,9 @@ export default function SignUpForm() {
           body: JSON.stringify({
             supabaseId: data.user.id,
             email: data.user.email,
-            firstName, lastName,
+            firstName: firstName.trim(), lastName: lastName.trim(),
             role: role === 'employer' ? 'employer' : 'job_seeker',
-            company: role === 'employer' ? company : null,
+            company: role === 'employer' ? company.trim() : null,
             wantJobHighlights: role === 'seeker' ? wantJobHighlights : false,
             highlightsFrequency: role === 'seeker' ? highlightsFrequency : undefined,
             newsletterOptIn,
